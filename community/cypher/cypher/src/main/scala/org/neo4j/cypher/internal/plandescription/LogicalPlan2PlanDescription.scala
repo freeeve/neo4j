@@ -3786,7 +3786,7 @@ case class LogicalPlan2PlanDescription(
         pretty"()-[:all$$($prettyType)]-()"
       case dynamicType: DynamicRelTypeExpression =>
         val prettyType = asPrettyString(dynamicType.expression)
-        pretty"()-[:all$$($prettyType)]-()"
+        pretty"()-[:any$$($prettyType)]-()"
     }
     indexInfoString(indexType, nameOption, pattern, propertyString, options)
   }
@@ -3861,7 +3861,7 @@ case class LogicalPlan2PlanDescription(
         pretty"()-[$prettyEntity:all$$($prettyType)]-()"
       case dynamicType: DynamicRelTypeExpression =>
         val prettyType = asPrettyString(dynamicType.expression)
-        pretty"()-[$prettyEntity:all$$($prettyType)]-()"
+        pretty"()-[$prettyEntity:any$$($prettyType)]-()"
     }
     val onOrFor = if (useForAndRequire) pretty"FOR" else pretty"ON"
     val assertOrRequire = if (useForAndRequire) pretty"REQUIRE" else pretty"ASSERT"

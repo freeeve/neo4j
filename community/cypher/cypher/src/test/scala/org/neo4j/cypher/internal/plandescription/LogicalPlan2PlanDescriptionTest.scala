@@ -2885,2588 +2885,6 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     )
   }
 
-  test("CreateRangeIndex") {
-    assertGood(
-      attach(
-        CreateIndex(None, IndexType.RANGE, label("Label"), List(key("prop")), Some(Left("$indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("RANGE INDEX `$indexName` FOR (:Label) ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateIndex(None, IndexType.RANGE, label("Label"), List(key("prop")), None, NoOptions), 63.2),
-      planDescription(id, "CreateIndex", Seq.empty, Seq(details("RANGE INDEX FOR (:Label) ON (prop)")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.RANGE,
-          label("Label"),
-          List(key("prop")),
-          Some(Right(parameter("indexName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("""RANGE INDEX $indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "range-1.0"}""")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(label("Label"), List(key("prop")), IndexType.RANGE, None, NoOptions)),
-          IndexType.RANGE,
-          label("Label"),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("RANGE INDEX FOR (:Label) ON (prop)")),
-            Set.empty
-          )
-        ),
-        Seq(details("RANGE INDEX FOR (:Label) ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(None, IndexType.RANGE, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("RANGE INDEX indexName FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateIndex(None, IndexType.RANGE, relType("Label"), List(key("prop")), None, NoOptions), 63.2),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("RANGE INDEX FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.RANGE,
-          relType("Label"),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("""RANGE INDEX indexName FOR ()-[:Label]-() ON (prop) OPTIONS {indexProvider: "range-1.0"}""")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.RANGE, None, NoOptions)),
-          IndexType.RANGE,
-          relType("Label"),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("RANGE INDEX FOR ()-[:Label]-() ON (prop)")),
-            Set.empty
-          )
-        ),
-        Seq(details("RANGE INDEX FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.RANGE,
-          label("Label"),
-          List(key("prop1"), key("prop2")),
-          Some(Left("$indexName")),
-          OptionsParam(parameter("options", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("RANGE INDEX `$indexName` FOR (:Label) ON (prop1, prop2) OPTIONS $options")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateLookupIndex") {
-    assertGood(
-      attach(CreateLookupIndex(None, EntityType.NODE, Some(Left("indexName")), NoOptions), 63.2),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("LOOKUP INDEX indexName FOR (n) ON EACH labels(n)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateLookupIndex(
-          Some(DoNothingIfExistsForLookupIndex(EntityType.NODE, None, NoOptions)),
-          EntityType.NODE,
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("LOOKUP INDEX FOR (n) ON EACH labels(n)")),
-            Set.empty
-          )
-        ),
-        Seq(details("LOOKUP INDEX FOR (n) ON EACH labels(n)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateLookupIndex(
-          None,
-          EntityType.NODE,
-          Some(Left("$indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("token-lookup-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(
-          details("""LOOKUP INDEX `$indexName` FOR (n) ON EACH labels(n) OPTIONS {indexProvider: "token-lookup-1.0"}""")
-        ),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateLookupIndex(None, EntityType.RELATIONSHIP, Some(Left("indexName")), NoOptions), 63.2),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("LOOKUP INDEX indexName FOR ()-[r]-() ON EACH type(r)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateLookupIndex(
-          Some(DoNothingIfExistsForLookupIndex(
-            EntityType.RELATIONSHIP,
-            Some(Right(parameter("indexName", CTString))),
-            NoOptions
-          )),
-          EntityType.RELATIONSHIP,
-          Some(Right(parameter("indexName", CTString))),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("LOOKUP INDEX $indexName FOR ()-[r]-() ON EACH type(r)")),
-            Set.empty
-          )
-        ),
-        Seq(details("LOOKUP INDEX $indexName FOR ()-[r]-() ON EACH type(r)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateLookupIndex(
-          None,
-          EntityType.RELATIONSHIP,
-          Some(Left("indexName")),
-          OptionsMap(Map("indexConfig" -> MapExpression(Seq.empty)(pos)))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("LOOKUP INDEX indexName FOR ()-[r]-() ON EACH type(r) OPTIONS {indexConfig: {}}")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateFulltextIndex") {
-    assertGood(
-      attach(
-        CreateFulltextIndex(None, Left(List(label("Label"))), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("FULLTEXT INDEX indexName FOR (:Label) ON EACH [prop]")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateFulltextIndex(None, Left(List(label("Label"))), List(key("prop1"), key("prop2")), None, NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("FULLTEXT INDEX FOR (:Label) ON EACH [prop1, prop2]")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateFulltextIndex(
-          None,
-          Left(List(label("Label1"), label("Label2"))),
-          List(key("prop")),
-          Some(Right(parameter("$indexName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details(
-          """FULLTEXT INDEX $`$indexName` FOR (:Label1|Label2) ON EACH [prop] OPTIONS {indexProvider: "fulltext-1.0"}"""
-        )),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateFulltextIndex(
-          Some(DoNothingIfExistsForFulltextIndex(Left(List(label("Label"))), List(key("prop")), None, NoOptions)),
-          Left(List(label("Label"))),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("FULLTEXT INDEX FOR (:Label) ON EACH [prop]")),
-            Set.empty
-          )
-        ),
-        Seq(details("FULLTEXT INDEX FOR (:Label) ON EACH [prop]")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateFulltextIndex(None, Right(List(relType("Label"))), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("FULLTEXT INDEX indexName FOR ()-[:Label]-() ON EACH [prop]")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateFulltextIndex(
-          None,
-          Right(List(relType("Label"), relType("Type"))),
-          List(key("prop1"), key("prop2")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("FULLTEXT INDEX FOR ()-[:Label|Type]-() ON EACH [prop1, prop2]")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateFulltextIndex(
-          None,
-          Right(List(relType("Label"))),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details(
-          """FULLTEXT INDEX indexName FOR ()-[:Label]-() ON EACH [prop] OPTIONS {indexProvider: "fulltext-1.0"}"""
-        )),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateFulltextIndex(
-          Some(DoNothingIfExistsForFulltextIndex(Right(List(relType("Label"))), List(key("prop")), None, NoOptions)),
-          Right(List(relType("Label"))),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("FULLTEXT INDEX FOR ()-[:Label]-() ON EACH [prop]")),
-            Set.empty
-          )
-        ),
-        Seq(details("FULLTEXT INDEX FOR ()-[:Label]-() ON EACH [prop]")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateFulltextIndex(
-          None,
-          Left(List(label("Label"))),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsParam(parameter("ops", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("FULLTEXT INDEX indexName FOR (:Label) ON EACH [prop] OPTIONS $ops")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateTextIndex") {
-    assertGood(
-      attach(
-        CreateIndex(None, IndexType.TEXT, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("TEXT INDEX indexName FOR (:Label) ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateIndex(None, IndexType.TEXT, label("Label"), List(key("prop")), None, NoOptions), 63.2),
-      planDescription(id, "CreateIndex", Seq.empty, Seq(details("TEXT INDEX FOR (:Label) ON (prop)")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.TEXT,
-          label("Label"),
-          List(key("prop")),
-          Some(Right(parameter("indexName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("""TEXT INDEX $indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "text-1.0"}""")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(label("Label"), List(key("prop")), IndexType.TEXT, None, NoOptions)),
-          IndexType.TEXT,
-          label("Label"),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("TEXT INDEX FOR (:Label) ON (prop)")),
-            Set.empty
-          )
-        ),
-        Seq(details("TEXT INDEX FOR (:Label) ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(None, IndexType.TEXT, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("TEXT INDEX indexName FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateIndex(None, IndexType.TEXT, relType("Label"), List(key("prop")), None, NoOptions), 63.2),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("TEXT INDEX FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.TEXT,
-          relType("Label"),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("""TEXT INDEX indexName FOR ()-[:Label]-() ON (prop) OPTIONS {indexProvider: "text-1.0"}""")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.TEXT, None, NoOptions)),
-          IndexType.TEXT,
-          relType("Label"),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("TEXT INDEX FOR ()-[:Label]-() ON (prop)")),
-            Set.empty
-          )
-        ),
-        Seq(details("TEXT INDEX FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.TEXT,
-          label("Label"),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsParam(parameter("options", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("TEXT INDEX indexName FOR (:Label) ON (prop) OPTIONS $options")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreatPointIndex") {
-    assertGood(
-      attach(
-        CreateIndex(None, IndexType.POINT, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("POINT INDEX indexName FOR (:Label) ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateIndex(None, IndexType.POINT, label("Label"), List(key("prop")), None, NoOptions), 63.2),
-      planDescription(id, "CreateIndex", Seq.empty, Seq(details("POINT INDEX FOR (:Label) ON (prop)")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.POINT,
-          label("Label"),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("""POINT INDEX indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "point-1.0"}""")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(
-            label("Label"),
-            List(key("prop")),
-            IndexType.POINT,
-            Some(Right(parameter("indexName", CTString))),
-            NoOptions
-          )),
-          IndexType.POINT,
-          label("Label"),
-          List(key("prop")),
-          Some(Right(parameter("indexName", CTString))),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("POINT INDEX $indexName FOR (:Label) ON (prop)")),
-            Set.empty
-          )
-        ),
-        Seq(details("POINT INDEX $indexName FOR (:Label) ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(None, IndexType.POINT, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("POINT INDEX indexName FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateIndex(None, IndexType.POINT, relType("Label"), List(key("prop")), None, NoOptions), 63.2),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("POINT INDEX FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.POINT,
-          relType("Label"),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("""POINT INDEX indexName FOR ()-[:Label]-() ON (prop) OPTIONS {indexProvider: "point-1.0"}""")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.POINT, None, NoOptions)),
-          IndexType.POINT,
-          relType("Label"),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("POINT INDEX FOR ()-[:Label]-() ON (prop)")),
-            Set.empty
-          )
-        ),
-        Seq(details("POINT INDEX FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.POINT,
-          label("Label"),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsParam(parameter("options", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("POINT INDEX indexName FOR (:Label) ON (prop) OPTIONS $options")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateVectorIndex") {
-    assertGood(
-      attach(
-        CreateIndex(None, IndexType.VECTOR, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("VECTOR INDEX indexName FOR (:Label) ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateIndex(None, IndexType.VECTOR, label("Label"), List(key("prop")), None, NoOptions), 63.2),
-      planDescription(id, "CreateIndex", Seq.empty, Seq(details("VECTOR INDEX FOR (:Label) ON (prop)")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.VECTOR,
-          label("Label"),
-          List(key("prop")),
-          Some(Right(parameter("indexName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("""VECTOR INDEX $indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "vector-1.0"}""")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(label("Label"), List(key("prop")), IndexType.VECTOR, None, NoOptions)),
-          IndexType.VECTOR,
-          label("Label"),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("VECTOR INDEX FOR (:Label) ON (prop)")),
-            Set.empty
-          )
-        ),
-        Seq(details("VECTOR INDEX FOR (:Label) ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(None, IndexType.VECTOR, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("VECTOR INDEX indexName FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(CreateIndex(None, IndexType.VECTOR, relType("Label"), List(key("prop")), None, NoOptions), 63.2),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("VECTOR INDEX FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.VECTOR,
-          relType("Label"),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(
-          details("""VECTOR INDEX indexName FOR ()-[:Label]-() ON (prop) OPTIONS {indexProvider: "vector-1.0"}""")
-        ),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.VECTOR, None, NoOptions)),
-          IndexType.VECTOR,
-          relType("Label"),
-          List(key("prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(INDEX)",
-            Seq.empty,
-            Seq(details("VECTOR INDEX FOR ()-[:Label]-() ON (prop)")),
-            Set.empty
-          )
-        ),
-        Seq(details("VECTOR INDEX FOR ()-[:Label]-() ON (prop)")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateIndex(
-          None,
-          IndexType.VECTOR,
-          label("Label"),
-          List(key("prop")),
-          Some(Left("indexName")),
-          OptionsParam(parameter("options", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateIndex",
-        Seq.empty,
-        Seq(details("VECTOR INDEX indexName FOR (:Label) ON (prop) OPTIONS $options")),
-        Set.empty
-      )
-    )
-  }
-
-  test("DropIndexOnName") {
-    assertGood(
-      attach(DropIndexOnName(Left("indexName"), ifExists = false), 63.2),
-      planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX indexName")), Set.empty)
-    )
-
-    assertGood(
-      attach(DropIndexOnName(Left("indexName"), ifExists = true), 63.2),
-      planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX indexName IF EXISTS")), Set.empty)
-    )
-
-    assertGood(
-      attach(DropIndexOnName(Right(parameter("indexName", CTString)), ifExists = false), 63.2),
-      planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX $indexName")), Set.empty)
-    )
-  }
-
-  test("ShowIndexes") {
-    assertGood(
-      attach(ShowIndexes(AllIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
-      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("allIndexes, allColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(ShowIndexes(RangeIndexes, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
-      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("rangeIndexes, defaultColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(ShowIndexes(FulltextIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
-      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("fulltextIndexes, allColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(ShowIndexes(TextIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
-      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("textIndexes, allColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(ShowIndexes(PointIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
-      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("pointIndexes, allColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(ShowIndexes(VectorIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
-      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("vectorIndexes, allColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        ShowIndexes(
-          LookupIndexes,
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
-          List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
-          ),
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowIndexes",
-        Seq.empty,
-        Seq(details("lookupIndexes, columns(xxx, yyy AS zzz, vvv)")),
-        Set("xxx", "zzz", "vvv")
-      )
-    )
-  }
-
-  test("CreateNodeUniquePropertyConstraint") {
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodePropertyUniqueness.cypher5,
-          label("Label"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS UNIQUE")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodePropertyUniqueness.cypher25,
-          label("Label"),
-          Seq(prop("x", "prop")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop) IS UNIQUE")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodePropertyUniqueness.cypher5,
-          label("Label"),
-          Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop1, x.prop2) IS UNIQUE")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodePropertyUniqueness.cypher25,
-          label("Label"),
-          List(prop("x", "prop")),
-          Some(Left("$constraintName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details(
-          """CONSTRAINT `$constraintName` FOR (x:Label) REQUIRE (x.prop) IS UNIQUE OPTIONS {indexProvider: "range-1.0"}"""
-        )),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          Some(DoNothingIfExistsForConstraint(
-            label("Label"),
-            Seq(prop(" x", "prop")),
-            NodePropertyUniqueness.cypher5,
-            None,
-            NoOptions
-          )),
-          NodePropertyUniqueness.cypher5,
-          label("Label"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(CONSTRAINT)",
-            Seq.empty,
-            Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS UNIQUE")),
-            Set.empty
-          )
-        ),
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS UNIQUE")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodePropertyUniqueness.cypher25,
-          label("Label"),
-          Seq(prop(" x", "prop")),
-          None,
-          OptionsParam(parameter("options", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS UNIQUE OPTIONS $options")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateRelationshipUniquePropertyConstraint") {
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipPropertyUniqueness.cypher25,
-          relType("REL_TYPE"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS UNIQUE")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipPropertyUniqueness.cypher5,
-          relType("REL_TYPE"),
-          Seq(prop("x", "prop")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR ()-[x:REL_TYPE]-() REQUIRE (x.prop) IS UNIQUE")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipPropertyUniqueness.cypher25,
-          relType("REL_TYPE"),
-          Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR ()-[x:REL_TYPE]-() REQUIRE (x.prop1, x.prop2) IS UNIQUE")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipPropertyUniqueness.cypher5,
-          relType("REL-TYPE"),
-          List(prop("x", "prop-prop")),
-          Some(Right(parameter("constraintName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details(
-          """CONSTRAINT $constraintName FOR ()-[x:`REL-TYPE`]-() REQUIRE (x.`prop-prop`) IS UNIQUE OPTIONS {indexProvider: "range-1.0"}"""
-        )),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          Some(DoNothingIfExistsForConstraint(
-            relType("REL_TYPE"),
-            Seq(prop(" x", "prop")),
-            RelationshipPropertyUniqueness.cypher25,
-            None,
-            NoOptions
-          )),
-          RelationshipPropertyUniqueness.cypher25,
-          relType("REL_TYPE"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(CONSTRAINT)",
-            Seq.empty,
-            Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS UNIQUE")),
-            Set.empty
-          )
-        ),
-        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS UNIQUE")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipPropertyUniqueness.cypher25,
-          relType("REL_TYPE"),
-          Seq(prop(" x", "prop")),
-          None,
-          OptionsParam(parameter("options", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS UNIQUE OPTIONS $options")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateNodeKeyConstraint") {
-    assertGood(
-      attach(CreateConstraint(None, NodeKey.cypher5, label("Label"), Seq(prop(" x", "prop")), None, NoOptions), 63.2),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NODE KEY")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodeKey.cypher5,
-          label("Label"),
-          Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop1, x.prop2) IS NODE KEY")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodeKey.cypher5,
-          label("Label"),
-          List(prop("x", "prop")),
-          Some(Right(parameter("constraintName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details(
-          """CONSTRAINT $constraintName FOR (x:Label) REQUIRE (x.prop) IS NODE KEY OPTIONS {indexProvider: "range-1.0"}"""
-        )),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          Some(DoNothingIfExistsForConstraint(
-            label("Label"),
-            Seq(prop(" x", "prop")),
-            NodeKey.cypher5,
-            Some(Left("constraintName")),
-            NoOptions
-          )),
-          NodeKey.cypher5,
-          label("Label"),
-          Seq(prop(" x", "prop")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(CONSTRAINT)",
-            Seq.empty,
-            Seq(details("CONSTRAINT constraintName FOR (` x`:Label) REQUIRE (` x`.prop) IS NODE KEY")),
-            Set.empty
-          )
-        ),
-        Seq(details("CONSTRAINT constraintName FOR (` x`:Label) REQUIRE (` x`.prop) IS NODE KEY")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodeKey.cypher5,
-          label("Label"),
-          Seq(prop(" x", "prop")),
-          None,
-          OptionsParam(parameter("options", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NODE KEY OPTIONS $options")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodeKey.cypher25,
-          label("Label"),
-          Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop1, x.prop2) IS KEY")),
-        Set.empty
-      ),
-      cypherVersion = CypherVersion.Cypher25
-    )
-  }
-
-  test("CreateRelationshipKeyConstraint") {
-    assertGood(
-      attach(
-        CreateConstraint(None, RelationshipKey.cypher5, relType("REL_TYPE"), Seq(prop(" x", "prop")), None, NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS RELATIONSHIP KEY")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipKey.cypher5,
-          relType("REL_TYPE"),
-          Seq(prop("x", "prop1"), prop("x", "prop2")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR ()-[x:REL_TYPE]-() REQUIRE (x.prop1, x.prop2) IS RELATIONSHIP KEY")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipKey.cypher5,
-          relType("REL_TYPE"),
-          List(prop("x", "prop")),
-          Some(Right(parameter("constraintName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details(
-          """CONSTRAINT $constraintName FOR ()-[x:REL_TYPE]-() REQUIRE (x.prop) IS RELATIONSHIP KEY OPTIONS {indexProvider: "range-1.0"}"""
-        )),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          Some(DoNothingIfExistsForConstraint(
-            relType("REL_TYPE"),
-            Seq(prop(" x", "prop")),
-            RelationshipKey.cypher5,
-            Some(Left("constraintName")),
-            NoOptions
-          )),
-          RelationshipKey.cypher5,
-          relType("REL_TYPE"),
-          Seq(prop(" x", "prop")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(CONSTRAINT)",
-            Seq.empty,
-            Seq(details("CONSTRAINT constraintName FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS RELATIONSHIP KEY")),
-            Set.empty
-          )
-        ),
-        Seq(details("CONSTRAINT constraintName FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS RELATIONSHIP KEY")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipKey.cypher5,
-          relType("REL_TYPE"),
-          Seq(prop(" x", "prop")),
-          None,
-          OptionsParam(parameter("options", CTMap))(pos)
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS RELATIONSHIP KEY OPTIONS $options")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(None, RelationshipKey.cypher25, relType("REL_TYPE"), Seq(prop(" x", "prop")), None, NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS KEY")),
-        Set.empty
-      ),
-      cypherVersion = CypherVersion.Cypher25
-    )
-  }
-
-  test("CreateNodePropertyExistenceConstraint") {
-    assertGood(
-      attach(
-        CreateConstraint(None, NodePropertyExistence, label("Label"), Seq(prop(" x", "prop")), None, NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NOT NULL")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodePropertyExistence,
-          label("Label"),
-          Seq(prop("x", "prop")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop) IS NOT NULL")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          Some(DoNothingIfExistsForConstraint(
-            label("Label"),
-            Seq(prop(" x", "prop")),
-            NodePropertyExistence,
-            None,
-            NoOptions
-          )),
-          NodePropertyExistence,
-          label("Label"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(CONSTRAINT)",
-            Seq.empty,
-            Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NOT NULL")),
-            Set.empty
-          )
-        ),
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NOT NULL")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateRelationshipPropertyExistenceConstraint") {
-    assertGood(
-      attach(
-        CreateConstraint(None, RelationshipPropertyExistence, relType("R"), Seq(prop(" x", "prop")), None, NoOptions),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS NOT NULL")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipPropertyExistence,
-          relType("R"),
-          Seq(prop(" x", "prop")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS NOT NULL")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          Some(DoNothingIfExistsForConstraint(
-            relType("R"),
-            Seq(prop(" x", "prop")),
-            RelationshipPropertyExistence,
-            None,
-            NoOptions
-          )),
-          RelationshipPropertyExistence,
-          relType("R"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(CONSTRAINT)",
-            Seq.empty,
-            Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS NOT NULL")),
-            Set.empty
-          )
-        ),
-        Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS NOT NULL")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateNodePropertyTypeConstraint") {
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodePropertyType(IntegerType(isNullable = true)(pos)),
-          label("Label"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS :: INTEGER")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          NodePropertyType(
-            ClosedDynamicUnionType(Set(
-              ListType(BooleanType(isNullable = true)(pos), isNullable = true)(pos),
-              StringType(isNullable = true)(pos)
-            ))(pos)
-          ),
-          label("Label"),
-          Seq(prop("x", "prop")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop) IS :: STRING | LIST<BOOLEAN>")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          Some(DoNothingIfExistsForConstraint(
-            label("Label"),
-            Seq(prop(" x", "prop")),
-            NodePropertyType(ZonedDateTimeType(isNullable = true)(pos)),
-            None,
-            NoOptions
-          )),
-          NodePropertyType(ZonedDateTimeType(isNullable = true)(pos)),
-          label("Label"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(CONSTRAINT)",
-            Seq.empty,
-            Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS :: ZONED DATETIME")),
-            Set.empty
-          )
-        ),
-        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS :: ZONED DATETIME")),
-        Set.empty
-      )
-    )
-  }
-
-  test("CreateRelationshipPropertyTypeConstraint") {
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipPropertyType(FloatType(isNullable = true)(pos)),
-          relType("R"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: FLOAT")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          None,
-          RelationshipPropertyType(LocalTimeType(isNullable = true)(pos)),
-          relType("R"),
-          Seq(prop(" x", "prop")),
-          Some(Left("constraintName")),
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq.empty,
-        Seq(details("CONSTRAINT constraintName FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: LOCAL TIME")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        CreateConstraint(
-          Some(DoNothingIfExistsForConstraint(
-            relType("R"),
-            Seq(prop(" x", "prop")),
-            RelationshipPropertyType(
-              ClosedDynamicUnionType(Set(
-                DurationType(isNullable = true)(pos),
-                DateType(isNullable = true)(pos)
-              ))(pos)
-            ),
-            None,
-            NoOptions
-          )),
-          RelationshipPropertyType(
-            ClosedDynamicUnionType(Set(
-              DurationType(isNullable = true)(pos),
-              DateType(isNullable = true)(pos)
-            ))(pos)
-          ),
-          relType("R"),
-          Seq(prop(" x", "prop")),
-          None,
-          NoOptions
-        ),
-        63.2
-      ),
-      planDescription(
-        id,
-        "CreateConstraint",
-        Seq(
-          planDescription(
-            id,
-            "DoNothingIfExists(CONSTRAINT)",
-            Seq.empty,
-            Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: DATE | DURATION")),
-            Set.empty
-          )
-        ),
-        Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: DATE | DURATION")),
-        Set.empty
-      )
-    )
-  }
-
-  test("DropConstraintOnName") {
-    assertGood(
-      attach(DropConstraintOnName(Left("name"), ifExists = false), 63.2),
-      planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT name")), Set.empty)
-    )
-
-    assertGood(
-      attach(DropConstraintOnName(Left("name"), ifExists = true), 63.2),
-      planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT name IF EXISTS")), Set.empty)
-    )
-
-    assertGood(
-      attach(DropConstraintOnName(Right(parameter("name", CTString)), ifExists = false), 63.2),
-      planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT $name")), Set.empty)
-    )
-  }
-
-  test("ShowConstraints") {
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = AllConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("allConstraints, defaultColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = UniqueConstraints.cypher25,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("propertyUniquenessConstraints, allColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = NodeUniqueConstraints.cypher5,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("nodeUniquenessConstraints, allColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = RelUniqueConstraints.cypher25,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("relationshipPropertyUniquenessConstraints, allColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = KeyConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("keyConstraints, defaultColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = NodeKeyConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("nodeKeyConstraints, defaultColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = RelKeyConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("relationshipKeyConstraints, defaultColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = PropExistsConstraints.cypher5,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("existenceConstraints, allColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = NodePropExistsConstraints.cypher25,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("nodePropertyExistenceConstraints, defaultColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = RelPropExistsConstraints.cypher5,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("relationshipExistenceConstraints, allColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = AllExistsConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("existenceConstraints, allColumns")), Set.empty)
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = NodeAllExistsConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("nodeExistenceConstraints, defaultColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = RelAllExistsConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("relationshipExistenceConstraints, allColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = PropTypeConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("propertyTypeConstraints, defaultColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = NodePropTypeConstraints,
-          List.empty,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("nodePropertyTypeConstraints, allColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowConstraints(
-          constraintType = RelPropTypeConstraints,
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
-          List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
-          ),
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowConstraints",
-        Seq.empty,
-        Seq(details("relationshipPropertyTypeConstraints, columns(xxx, yyy AS zzz, vvv)")),
-        Set("xxx", "zzz", "vvv")
-      )
-    )
-  }
-
-  test("ShowProcedures") {
-    assertGood(
-      attach(ShowProcedures(None, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
-      planDescription(
-        id,
-        "ShowProcedures",
-        Seq.empty,
-        Seq(details("proceduresForUser(all), defaultColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(ShowProcedures(Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
-      planDescription(
-        id,
-        "ShowProcedures",
-        Seq.empty,
-        Seq(details("proceduresForUser(current), allColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowProcedures(
-          Some(User("foo")),
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
-          List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
-          ),
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowProcedures",
-        Seq.empty,
-        Seq(details("proceduresForUser(foo), columns(xxx, yyy AS zzz, vvv)")),
-        Set("xxx", "zzz", "vvv")
-      )
-    )
-  }
-
-  test("ShowFunctions") {
-    assertGood(
-      attach(ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
-      planDescription(
-        id,
-        "ShowFunctions",
-        Seq.empty,
-        Seq(details("allFunctions, functionsForUser(all), defaultColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowFunctions(BuiltInFunctions, Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowFunctions",
-        Seq.empty,
-        Seq(details("builtInFunctions, functionsForUser(current), allColumns")),
-        Set.empty
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowFunctions(
-          UserDefinedFunctions,
-          Some(User("foo")),
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
-          List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
-          ),
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowFunctions",
-        Seq.empty,
-        Seq(details("userDefinedFunctions, functionsForUser(foo), columns(xxx, yyy AS zzz, vvv)")),
-        Set("xxx", "zzz", "vvv")
-      )
-    )
-  }
-
-  test("ShowSettings") {
-    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
-    assertGood(
-      attach(ShowSettings(Left(List.empty[String]), defaultColumns, List.empty, yieldAll = true, Set.empty), 1.0),
-      planDescription(
-        id,
-        "ShowSettings",
-        Seq.empty,
-        Seq(details("allSettings, allColumns")),
-        Set("xxx", "yyy")
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowSettings(Left(List("Foo", "Bar")), defaultColumns, List.empty, yieldAll = false, Set.empty),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowSettings",
-        Seq.empty,
-        Seq(details("settings(Foo, Bar), defaultColumns")),
-        Set("xxx", "yyy")
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowSettings(
-          Right(stringLiteral("foo.*")),
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
-          List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
-          ),
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowSettings",
-        Seq.empty,
-        Seq(details("settings(foo.*), columns(xxx, yyy AS zzz, vvv)")),
-        Set("xxx", "zzz", "vvv")
-      )
-    )
-  }
-
-  test("ShowTransactions") {
-    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
-
-    assertGood(
-      attach(ShowTransactions(Left(List.empty), defaultColumns, List.empty, yieldAll = false, Set.empty), 1.0),
-      planDescription(
-        id,
-        "ShowTransactions",
-        Seq.empty,
-        Seq(details("defaultColumns, allTransactions")),
-        Set("xxx", "yyy")
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowTransactions(
-          Left(List("db1-transaction-123")),
-          defaultColumns,
-          List.empty,
-          yieldAll = true,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowTransactions",
-        Seq.empty,
-        Seq(details("allColumns, transactions(db1-transaction-123)")),
-        Set("xxx", "yyy")
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowTransactions(
-          Left(List("db1-transaction-123", "db2-transaction-456")),
-          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
-          List(
-            CommandResultItem("xxx", varFor("xxx"))(pos),
-            CommandResultItem("yyy", varFor("zzz"))(pos),
-            CommandResultItem("vvv", varFor("vvv"))(pos)
-          ),
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowTransactions",
-        Seq.empty,
-        Seq(details("columns(xxx, yyy AS zzz, vvv), transactions(db1-transaction-123, db2-transaction-456)")),
-        Set("xxx", "zzz", "vvv")
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowTransactions(
-          Right(parameter("foo", CTAny)),
-          defaultColumns,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowTransactions",
-        Seq.empty,
-        Seq(details("defaultColumns, transactions($foo)")),
-        Set("xxx", "yyy")
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowTransactions(
-          Right(varFor("foo")),
-          defaultColumns,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowTransactions",
-        Seq.empty,
-        Seq(details("defaultColumns, transactions(foo)")),
-        Set("xxx", "yyy")
-      )
-    )
-
-    assertGood(
-      attach(
-        ShowTransactions(
-          Right(Add(varFor("foo"), stringLiteral("123"))(pos)),
-          defaultColumns,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "ShowTransactions",
-        Seq.empty,
-        Seq(details("defaultColumns, transactions(foo + 123)")),
-        Set("xxx", "yyy")
-      )
-    )
-  }
-
-  test("TerminateTransactions") {
-    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
-
-    assertGood(
-      attach(
-        TerminateTransactions(
-          Left(List("db1-transaction-123")),
-          defaultColumns,
-          List.empty,
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "TerminateTransactions",
-        Seq.empty,
-        Seq(details("defaultColumns, transactions(db1-transaction-123)")),
-        Set("xxx", "yyy")
-      )
-    )
-
-    assertGood(
-      attach(
-        TerminateTransactions(
-          Left(List("db1-transaction-123", "db2-transaction-456")),
-          defaultColumns,
-          List(CommandResultItem("xxx", varFor("xxx"))(pos), CommandResultItem("yyy", varFor("zzz"))(pos)),
-          yieldAll = false,
-          Set.empty
-        ),
-        1.0
-      ),
-      planDescription(
-        id,
-        "TerminateTransactions",
-        Seq.empty,
-        Seq(details("columns(xxx, yyy AS zzz), transactions(db1-transaction-123, db2-transaction-456)")),
-        Set("xxx", "zzz")
-      )
-    )
-
-    assertGood(
-      attach(
-        TerminateTransactions(Right(parameter("foo", CTAny)), defaultColumns, List.empty, yieldAll = true, Set.empty),
-        1.0
-      ),
-      planDescription(
-        id,
-        "TerminateTransactions",
-        Seq.empty,
-        Seq(details("allColumns, transactions($foo)")),
-        Set("xxx", "yyy")
-      )
-    )
-
-    assertGood(
-      attach(
-        TerminateTransactions(Right(number("123")), defaultColumns, List.empty, yieldAll = true, Set.empty),
-        1.0
-      ),
-      planDescription(
-        id,
-        "TerminateTransactions",
-        Seq.empty,
-        Seq(details("allColumns, transactions(123)")),
-        Set("xxx", "yyy")
-      )
-    )
-  }
-
   test("Aggregation") {
     // Aggregation 1 grouping, 0 aggregating
     assertGood(
@@ -7789,612 +5207,6 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     )
   }
 
-  test("Admin") {
-    val adminPlanDescription: PlanDescriptionImpl =
-      planDescription(id, "AdministrationCommand", Seq.empty, Seq.empty, Set.empty)
-
-    assertGood(
-      attach(
-        AllowedNonAdministrationCommands(
-          SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(pos)))(pos)
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(attach(ShowUsers(privLhsLP, withAuth = true, List(), None, None), 1.0), adminPlanDescription)
-
-    assertGood(attach(ShowCurrentUser(List(), None, None), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(
-        CreateUser(
-          privLhsLP,
-          util.Left("name"),
-          suspended = None,
-          defaultDatabase = None,
-          nativeAuth =
-            Some(NativeAuth(List(
-              Password(varFor("password"), isEncrypted = false)(pos),
-              PasswordChange(requireChange = false)(pos)
-            ))(pos)),
-          externalAuths = Seq.empty
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(attach(RenameUser(privLhsLP, util.Left("user1"), Left("user2")), 1.0), adminPlanDescription)
-
-    assertGood(attach(DropUser(privLhsLP, util.Left("name")), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(
-        AlterUser(
-          privLhsLP,
-          util.Left("name"),
-          suspended = Some(false),
-          defaultDatabase = None,
-          nativeAuth = Some(NativeAuth(List(PasswordChange(requireChange = true)(pos)))(pos)),
-          Seq.empty,
-          RemoveAuth(all = false, List(stringLiteral("provider")))
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(SetOwnPassword(privLhsLP, stringLiteral("oldPassword"), stringLiteral("newPassword")), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(ShowRoles(privLhsLP, withUsers = false, showAll = true, List(), None, None), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(attach(DropRole(privLhsLP, util.Left("role")), 1.0), adminPlanDescription)
-
-    assertGood(attach(CreateRole(privLhsLP, util.Left("role"), immutable = false), 1.0), adminPlanDescription)
-
-    assertGood(attach(RenameRole(privLhsLP, util.Left("role1"), Left("role2")), 1.0), adminPlanDescription)
-
-    assertGood(attach(RequireRole(privLhsLP, util.Left("role")), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(CopyRolePrivileges(privLhsLP, util.Left("role1"), util.Left("role2"), grantDeny = "DENIED"), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(GrantRoleToUser(privLhsLP, util.Left("role"), util.Left("user"), "GRANT ROLE role TO user"), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(RevokeRoleFromUser(privLhsLP, util.Left("role"), util.Left("user"), "REVOKE ROLE role FROM user"), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        GrantDbmsAction(
-          privLhsLP,
-          ExecuteProcedureAction,
-          ProcedureAllQualifier()(pos),
-          util.Left("role1"),
-          immutable = false,
-          "GRANT ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        DenyDbmsAction(
-          privLhsLP,
-          ExecuteBoostedProcedureAction,
-          ProcedureQualifier("apoc.sin")(pos),
-          util.Left("role1"),
-          immutable = false,
-          "DENY ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        RevokeDbmsAction(
-          privLhsLP,
-          ExecuteAdminProcedureAction,
-          ProcedureAllQualifier()(pos),
-          util.Left("role1"),
-          "GRANTED",
-          immutableOnly = false,
-          "REVOKE GRANT ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        GrantDatabaseAction(
-          privLhsLP,
-          CreateNodeLabelAction,
-          NamedScope(NamespacedName("foo")(pos)),
-          UserAllQualifier()(pos),
-          util.Left("role1"),
-          immutable = false,
-          "GRANT ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        DenyDatabaseAction(
-          privLhsLP,
-          CreateNodeLabelAction,
-          AllScope,
-          UserQualifier(literalString("user1"))(pos),
-          util.Left("role1"),
-          immutable = false,
-          "DENY ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        RevokeDatabaseAction(
-          privLhsLP,
-          CreateNodeLabelAction,
-          AllScope,
-          UserQualifier(literalString("user1"))(pos),
-          util.Left("role1"),
-          "GRANTED",
-          immutableOnly = false,
-          "REVOKE GRANT ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        GrantGraphAction(
-          privLhsLP,
-          TraverseAction,
-          NoResource()(pos),
-          HomeScope,
-          LabelQualifier("Label1")(pos),
-          util.Left("role1"),
-          immutable = false,
-          "GRANT ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        DenyGraphAction(
-          privLhsLP,
-          ReadAction,
-          AllPropertyResource()(pos),
-          HomeScope,
-          PatternQualifier(
-            Seq(LabelQualifier("Label1")(pos)),
-            Some(varFor("n")),
-            Equals(Property(varFor("n"), PropertyKeyName("prop1")(pos))(pos), Null.NULL)(pos),
-            Node
-          ),
-          util.Left("role1"),
-          immutable = false,
-          "DENY ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        DenyGraphAction(
-          privLhsLP,
-          ReadAction,
-          AllPropertyResource()(pos),
-          HomeScope,
-          PatternQualifier(
-            Seq(RelationshipQualifier("R")(pos)),
-            Some(varFor("n")),
-            Equals(Property(varFor("n"), PropertyKeyName("prop1")(pos))(pos), Null.NULL)(pos),
-            Relationship
-          ),
-          util.Left("role1"),
-          immutable = false,
-          "DENY ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        RevokeGraphAction(
-          privLhsLP,
-          WriteAction,
-          NoResource()(pos),
-          AllScope,
-          ElementsAllQualifier()(pos),
-          util.Left("role1"),
-          "GRANTED",
-          immutableOnly = false,
-          "REVOKE GRANT ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        GrantLoadAction(
-          privLhsLP,
-          LoadAllDataAction,
-          FileResource()(pos),
-          LoadAllQualifier()(pos),
-          util.Left("role1"),
-          immutable = false,
-          "GRANT ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        DenyLoadAction(
-          privLhsLP,
-          LoadCidrAction,
-          FileResource()(pos),
-          LoadCidrQualifier(Left("cidr"))(pos),
-          util.Left("role1"),
-          immutable = false,
-          "DENY ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        RevokeLoadAction(
-          privLhsLP,
-          LoadUrlAction,
-          FileResource()(pos),
-          LoadUrlQualifier(Right(parameter("url", CTString)))(pos),
-          util.Left("role1"),
-          "GRANTED",
-          immutableOnly = false,
-          "REVOKE GRANT ..."
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        ShowSupportedPrivileges(
-          List(),
-          None,
-          None
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        ShowPrivileges(
-          Some(privLhsLP),
-          ShowUsersPrivileges(List(literalString("user1"), literalString("user2")))(pos),
-          List(),
-          None,
-          None
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        ShowPrivilegeCommands(
-          Some(privLhsLP),
-          ShowUsersPrivileges(List(literalString("user1"), literalString("user2")))(pos),
-          asRevoke = false,
-          List(),
-          None,
-          None
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        ShowDatabase(AllDatabasesScope()(pos), verbose = false, List(varFor("foo"), varFor("bar")), None, None),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        CreateDatabase(privLhsLP, util.Left("db1"), NoOptions, IfExistsDoNothing, isComposite = false, None, None),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(DropDatabase(privLhsLP, NamespacedName("db1")(pos), DumpData, forceComposite = false, Restrict), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadOnlyAccess), None, NoOptions, None, Set.empty),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadWriteAccess), None, NoOptions, None, Set.empty),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(EnableServer(privLhsLP, Left("s1"), NoOptions), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(AlterServer(privLhsLP, Left("s1"), NoOptions), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(RenameServer(privLhsLP, Left("s1"), Left("s2")), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(DropServer(privLhsLP, Left("s1")), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(ShowServers(privLhsLP, verbose = false, List.empty, None, None), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(DeallocateServer(privLhsLP, dryRun = false, Seq(Left("s1"))), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(attach(StartDatabase(privLhsLP, NamespacedName("db1")(pos)), 1.0), adminPlanDescription)
-
-    assertGood(attach(StopDatabase(privLhsLP, NamespacedName("db1")(pos)), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(
-        CreateLocalDatabaseAlias(
-          privLhsLP,
-          NamespacedName("alias1")(pos),
-          NamespacedName("db1")(pos),
-          None,
-          replace = false
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        CreateLocalDatabaseAlias(
-          privLhsLP,
-          NamespacedName("alias1")(pos),
-          NamespacedName("db1")(pos),
-          Some(util.Left(Map("a" -> stringLiteral("b")))),
-          replace = false
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        CreateRemoteDatabaseAlias(
-          privLhsLP,
-          NamespacedName("alias1")(pos),
-          NamespacedName("db1")(pos),
-          replace = false,
-          util.Left("url"),
-          util.Left("user"),
-          varFor("password"),
-          None,
-          None,
-          None
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(attach(DropDatabaseAlias(privLhsLP, NamespacedName("alias1")(pos)), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(
-        AlterLocalDatabaseAlias(
-          privLhsLP,
-          NamespacedName("alias1")(pos),
-          Some(NamespacedName("db2")(pos)),
-          None
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        AlterRemoteDatabaseAlias(
-          privLhsLP,
-          NamespacedName("alias1")(pos),
-          Some(NamespacedName("db2")(pos)),
-          Some(util.Left("url")),
-          Some(util.Left("user")),
-          Some(varFor("password")),
-          None,
-          Some(Left(Map("some" -> StringLiteral("prop")(pos.withInputLength(0))))),
-          None
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(attach(ShowAliases(privLhsLP, None, verbose = false, List.empty, None, None), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(
-        ShowAliases(privLhsLP, Some(NamespacedName("alias1")(pos)), verbose = false, List.empty, None, None),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(EnsureValidNonSystemDatabase(privLhsLP, "ALTER DATABASE", NamespacedName("db1")(pos), "action1"), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        EnsureValidNumberOfDatabases(CreateDatabase(
-          privLhsLP,
-          util.Left("db1"),
-          NoOptions,
-          IfExistsDoNothing,
-          isComposite = false,
-          None,
-          None
-        )),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(attach(LogSystemCommand(privLhsLP, "command1"), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(DoNothingIfNotExists(privLhsLP, "DROP USER", UserEntity, util.Left("user1"), "delete"), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(DoNothingIfExists(privLhsLP, "DROP USER", UserEntity, util.Left("user1")), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        EnsureNodeExists(
-          privLhsLP,
-          "DROP USER",
-          UserEntity,
-          util.Left("user1"),
-          labelDescription = "User",
-          action = "delete"
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(
-      attach(
-        AssertNotCurrentUser(
-          privLhsLP,
-          util.Left("user1"),
-          "verb1",
-          "validation message",
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42).build()
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-
-    assertGood(attach(AssertAllowedDbmsActionsOrSelf(util.Left("user1"), DropRoleAction), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(AssertAllowedDatabaseAction(StopDatabaseAction, NamespacedName("db1")(pos), None), 1.0),
-      adminPlanDescription
-    )
-
-    assertGood(attach(AssertManagementActionNotBlocked(CreateDatabaseAction), 1.0), adminPlanDescription)
-
-    assertGood(attach(AssertNotBlockedRemoteAliasManagement(), 1.0), adminPlanDescription)
-
-    assertGood(attach(AssertNotBlockedDropAlias(NamespacedName("alias")(pos)), 1.0), adminPlanDescription)
-
-    assertGood(
-      attach(
-        WaitForCompletion(
-          StartDatabase(
-            AssertAllowedDatabaseAction(StartDatabaseAction, NamespacedName("db1")(pos), Some(privLhsLP)),
-            NamespacedName("db1")(pos)
-          ),
-          NamespacedName("db1")(pos),
-          IndefiniteWait()(pos)
-        ),
-        1.0
-      ),
-      adminPlanDescription
-    )
-  }
-
   test("AntiConditionalApply") {
     assertGood(
       attach(AntiConditionalApply(lhsLP, rhsLP, Seq(varFor("c"))), 2345.0),
@@ -9280,6 +6092,3220 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       "-[r1:R WHERE r1.prop = 5]->(n WHERE n.prop = 5)-[r2:R WHERE r2.prop = 5]-> WHERE b.prop = c.prop"
     )
   }
+
+  // Schema and non-admin show and terminate commands
+
+  // Index related commands
+
+  test("CreateRangeIndex") {
+    assertGood(
+      attach(
+        CreateIndex(None, IndexType.RANGE, label("Label"), List(key("prop")), Some(Left("$indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("RANGE INDEX `$indexName` FOR (:Label) ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateIndex(None, IndexType.RANGE, label("Label"), List(key("prop")), None, NoOptions), 63.2),
+      planDescription(id, "CreateIndex", Seq.empty, Seq(details("RANGE INDEX FOR (:Label) ON (prop)")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.RANGE,
+          label("Label"),
+          List(key("prop")),
+          Some(Right(parameter("indexName", CTString))),
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("""RANGE INDEX $indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "range-1.0"}""")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          Some(DoNothingIfExistsForIndex(label("Label"), List(key("prop")), IndexType.RANGE, None, NoOptions)),
+          IndexType.RANGE,
+          label("Label"),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("RANGE INDEX FOR (:Label) ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("RANGE INDEX FOR (:Label) ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(None, IndexType.RANGE, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("RANGE INDEX indexName FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateIndex(None, IndexType.RANGE, relType("Label"), List(key("prop")), None, NoOptions), 63.2),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("RANGE INDEX FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.RANGE,
+          relType("Label"),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("""RANGE INDEX indexName FOR ()-[:Label]-() ON (prop) OPTIONS {indexProvider: "range-1.0"}""")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.RANGE, None, NoOptions)),
+          IndexType.RANGE,
+          relType("Label"),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("RANGE INDEX FOR ()-[:Label]-() ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("RANGE INDEX FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.RANGE,
+          label("Label"),
+          List(key("prop1"), key("prop2")),
+          Some(Left("$indexName")),
+          OptionsParam(parameter("options", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("RANGE INDEX `$indexName` FOR (:Label) ON (prop1, prop2) OPTIONS $options")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateLookupIndex") {
+    assertGood(
+      attach(CreateLookupIndex(None, EntityType.NODE, Some(Left("indexName")), NoOptions), 63.2),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("LOOKUP INDEX indexName FOR (n) ON EACH labels(n)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateLookupIndex(
+          Some(DoNothingIfExistsForLookupIndex(EntityType.NODE, None, NoOptions)),
+          EntityType.NODE,
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("LOOKUP INDEX FOR (n) ON EACH labels(n)")),
+            Set.empty
+          )
+        ),
+        Seq(details("LOOKUP INDEX FOR (n) ON EACH labels(n)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateLookupIndex(
+          None,
+          EntityType.NODE,
+          Some(Left("$indexName")),
+          OptionsMap(Map("indexProvider" -> stringLiteral("token-lookup-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(
+          details("""LOOKUP INDEX `$indexName` FOR (n) ON EACH labels(n) OPTIONS {indexProvider: "token-lookup-1.0"}""")
+        ),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateLookupIndex(None, EntityType.RELATIONSHIP, Some(Left("indexName")), NoOptions), 63.2),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("LOOKUP INDEX indexName FOR ()-[r]-() ON EACH type(r)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateLookupIndex(
+          Some(DoNothingIfExistsForLookupIndex(
+            EntityType.RELATIONSHIP,
+            Some(Right(parameter("indexName", CTString))),
+            NoOptions
+          )),
+          EntityType.RELATIONSHIP,
+          Some(Right(parameter("indexName", CTString))),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("LOOKUP INDEX $indexName FOR ()-[r]-() ON EACH type(r)")),
+            Set.empty
+          )
+        ),
+        Seq(details("LOOKUP INDEX $indexName FOR ()-[r]-() ON EACH type(r)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateLookupIndex(
+          None,
+          EntityType.RELATIONSHIP,
+          Some(Left("indexName")),
+          OptionsMap(Map("indexConfig" -> MapExpression(Seq.empty)(pos)))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("LOOKUP INDEX indexName FOR ()-[r]-() ON EACH type(r) OPTIONS {indexConfig: {}}")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateFulltextIndex") {
+    assertGood(
+      attach(
+        CreateFulltextIndex(None, Left(List(label("Label"))), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("FULLTEXT INDEX indexName FOR (:Label) ON EACH [prop]")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateFulltextIndex(None, Left(List(label("Label"))), List(key("prop1"), key("prop2")), None, NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("FULLTEXT INDEX FOR (:Label) ON EACH [prop1, prop2]")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateFulltextIndex(
+          None,
+          Left(List(label("Label1"), label("Label2"))),
+          List(key("prop")),
+          Some(Right(parameter("$indexName", CTString))),
+          OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details(
+          """FULLTEXT INDEX $`$indexName` FOR (:Label1|Label2) ON EACH [prop] OPTIONS {indexProvider: "fulltext-1.0"}"""
+        )),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateFulltextIndex(
+          Some(DoNothingIfExistsForFulltextIndex(Left(List(label("Label"))), List(key("prop")), None, NoOptions)),
+          Left(List(label("Label"))),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("FULLTEXT INDEX FOR (:Label) ON EACH [prop]")),
+            Set.empty
+          )
+        ),
+        Seq(details("FULLTEXT INDEX FOR (:Label) ON EACH [prop]")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateFulltextIndex(None, Right(List(relType("Label"))), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("FULLTEXT INDEX indexName FOR ()-[:Label]-() ON EACH [prop]")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateFulltextIndex(
+          None,
+          Right(List(relType("Label"), relType("Type"))),
+          List(key("prop1"), key("prop2")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("FULLTEXT INDEX FOR ()-[:Label|Type]-() ON EACH [prop1, prop2]")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateFulltextIndex(
+          None,
+          Right(List(relType("Label"))),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details(
+          """FULLTEXT INDEX indexName FOR ()-[:Label]-() ON EACH [prop] OPTIONS {indexProvider: "fulltext-1.0"}"""
+        )),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateFulltextIndex(
+          Some(DoNothingIfExistsForFulltextIndex(Right(List(relType("Label"))), List(key("prop")), None, NoOptions)),
+          Right(List(relType("Label"))),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("FULLTEXT INDEX FOR ()-[:Label]-() ON EACH [prop]")),
+            Set.empty
+          )
+        ),
+        Seq(details("FULLTEXT INDEX FOR ()-[:Label]-() ON EACH [prop]")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateFulltextIndex(
+          None,
+          Left(List(label("Label"))),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsParam(parameter("ops", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("FULLTEXT INDEX indexName FOR (:Label) ON EACH [prop] OPTIONS $ops")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateTextIndex") {
+    assertGood(
+      attach(
+        CreateIndex(None, IndexType.TEXT, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("TEXT INDEX indexName FOR (:Label) ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateIndex(None, IndexType.TEXT, label("Label"), List(key("prop")), None, NoOptions), 63.2),
+      planDescription(id, "CreateIndex", Seq.empty, Seq(details("TEXT INDEX FOR (:Label) ON (prop)")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.TEXT,
+          label("Label"),
+          List(key("prop")),
+          Some(Right(parameter("indexName", CTString))),
+          OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("""TEXT INDEX $indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "text-1.0"}""")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          Some(DoNothingIfExistsForIndex(label("Label"), List(key("prop")), IndexType.TEXT, None, NoOptions)),
+          IndexType.TEXT,
+          label("Label"),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("TEXT INDEX FOR (:Label) ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("TEXT INDEX FOR (:Label) ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(None, IndexType.TEXT, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("TEXT INDEX indexName FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateIndex(None, IndexType.TEXT, relType("Label"), List(key("prop")), None, NoOptions), 63.2),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("TEXT INDEX FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.TEXT,
+          relType("Label"),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("""TEXT INDEX indexName FOR ()-[:Label]-() ON (prop) OPTIONS {indexProvider: "text-1.0"}""")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.TEXT, None, NoOptions)),
+          IndexType.TEXT,
+          relType("Label"),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("TEXT INDEX FOR ()-[:Label]-() ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("TEXT INDEX FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.TEXT,
+          label("Label"),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsParam(parameter("options", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("TEXT INDEX indexName FOR (:Label) ON (prop) OPTIONS $options")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreatPointIndex") {
+    assertGood(
+      attach(
+        CreateIndex(None, IndexType.POINT, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("POINT INDEX indexName FOR (:Label) ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateIndex(None, IndexType.POINT, label("Label"), List(key("prop")), None, NoOptions), 63.2),
+      planDescription(id, "CreateIndex", Seq.empty, Seq(details("POINT INDEX FOR (:Label) ON (prop)")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.POINT,
+          label("Label"),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("""POINT INDEX indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "point-1.0"}""")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          Some(DoNothingIfExistsForIndex(
+            label("Label"),
+            List(key("prop")),
+            IndexType.POINT,
+            Some(Right(parameter("indexName", CTString))),
+            NoOptions
+          )),
+          IndexType.POINT,
+          label("Label"),
+          List(key("prop")),
+          Some(Right(parameter("indexName", CTString))),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("POINT INDEX $indexName FOR (:Label) ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("POINT INDEX $indexName FOR (:Label) ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(None, IndexType.POINT, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("POINT INDEX indexName FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateIndex(None, IndexType.POINT, relType("Label"), List(key("prop")), None, NoOptions), 63.2),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("POINT INDEX FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.POINT,
+          relType("Label"),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("""POINT INDEX indexName FOR ()-[:Label]-() ON (prop) OPTIONS {indexProvider: "point-1.0"}""")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.POINT, None, NoOptions)),
+          IndexType.POINT,
+          relType("Label"),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("POINT INDEX FOR ()-[:Label]-() ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("POINT INDEX FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.POINT,
+          label("Label"),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsParam(parameter("options", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("POINT INDEX indexName FOR (:Label) ON (prop) OPTIONS $options")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateVectorIndex") {
+    assertGood(
+      attach(
+        CreateIndex(None, IndexType.VECTOR, label("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("VECTOR INDEX indexName FOR (:Label) ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateIndex(None, IndexType.VECTOR, label("Label"), List(key("prop")), None, NoOptions), 63.2),
+      planDescription(id, "CreateIndex", Seq.empty, Seq(details("VECTOR INDEX FOR (:Label) ON (prop)")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.VECTOR,
+          label("Label"),
+          List(key("prop")),
+          Some(Right(parameter("indexName", CTString))),
+          OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("""VECTOR INDEX $indexName FOR (:Label) ON (prop) OPTIONS {indexProvider: "vector-1.0"}""")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          Some(DoNothingIfExistsForIndex(label("Label"), List(key("prop")), IndexType.VECTOR, None, NoOptions)),
+          IndexType.VECTOR,
+          label("Label"),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("VECTOR INDEX FOR (:Label) ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("VECTOR INDEX FOR (:Label) ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(None, IndexType.VECTOR, relType("Label"), List(key("prop")), Some(Left("indexName")), NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("VECTOR INDEX indexName FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(CreateIndex(None, IndexType.VECTOR, relType("Label"), List(key("prop")), None, NoOptions), 63.2),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("VECTOR INDEX FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.VECTOR,
+          relType("Label"),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(
+          details("""VECTOR INDEX indexName FOR ()-[:Label]-() ON (prop) OPTIONS {indexProvider: "vector-1.0"}""")
+        ),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          Some(DoNothingIfExistsForIndex(relType("Label"), List(key("prop")), IndexType.VECTOR, None, NoOptions)),
+          IndexType.VECTOR,
+          relType("Label"),
+          List(key("prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(INDEX)",
+            Seq.empty,
+            Seq(details("VECTOR INDEX FOR ()-[:Label]-() ON (prop)")),
+            Set.empty
+          )
+        ),
+        Seq(details("VECTOR INDEX FOR ()-[:Label]-() ON (prop)")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateIndex(
+          None,
+          IndexType.VECTOR,
+          label("Label"),
+          List(key("prop")),
+          Some(Left("indexName")),
+          OptionsParam(parameter("options", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateIndex",
+        Seq.empty,
+        Seq(details("VECTOR INDEX indexName FOR (:Label) ON (prop) OPTIONS $options")),
+        Set.empty
+      )
+    )
+  }
+
+  test("DropIndexOnName") {
+    assertGood(
+      attach(DropIndexOnName(Left("indexName"), ifExists = false), 63.2),
+      planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX indexName")), Set.empty)
+    )
+
+    assertGood(
+      attach(DropIndexOnName(Left("indexName"), ifExists = true), 63.2),
+      planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX indexName IF EXISTS")), Set.empty)
+    )
+
+    assertGood(
+      attach(DropIndexOnName(Right(parameter("indexName", CTString)), ifExists = false), 63.2),
+      planDescription(id, "DropIndex", Seq.empty, Seq(details("INDEX $indexName")), Set.empty)
+    )
+  }
+
+  test("ShowIndexes") {
+    assertGood(
+      attach(ShowIndexes(AllIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("allIndexes, allColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(ShowIndexes(RangeIndexes, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
+      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("rangeIndexes, defaultColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(ShowIndexes(FulltextIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("fulltextIndexes, allColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(ShowIndexes(TextIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("textIndexes, allColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(ShowIndexes(PointIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("pointIndexes, allColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(ShowIndexes(VectorIndexes, List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      planDescription(id, "ShowIndexes", Seq.empty, Seq(details("vectorIndexes, allColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        ShowIndexes(
+          LookupIndexes,
+          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(
+            CommandResultItem("xxx", varFor("xxx"))(pos),
+            CommandResultItem("yyy", varFor("zzz"))(pos),
+            CommandResultItem("vvv", varFor("vvv"))(pos)
+          ),
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowIndexes",
+        Seq.empty,
+        Seq(details("lookupIndexes, columns(xxx, yyy AS zzz, vvv)")),
+        Set("xxx", "zzz", "vvv")
+      )
+    )
+  }
+
+  // Constraint related commands
+
+  test("CreateNodeUniquePropertyConstraint") {
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyUniqueness.cypher5,
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS UNIQUE")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyUniqueness.cypher25,
+          label("Label"),
+          Seq(prop("x", "prop")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop) IS UNIQUE")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyUniqueness.cypher5,
+          label("Label"),
+          Seq(prop("x", "prop1"), prop("x", "prop2")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop1, x.prop2) IS UNIQUE")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyUniqueness.cypher25,
+          label("Label"),
+          List(prop("x", "prop")),
+          Some(Left("$constraintName")),
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details(
+          """CONSTRAINT `$constraintName` FOR (x:Label) REQUIRE (x.prop) IS UNIQUE OPTIONS {indexProvider: "range-1.0"}"""
+        )),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          Some(DoNothingIfExistsForConstraint(
+            label("Label"),
+            Seq(prop(" x", "prop")),
+            NodePropertyUniqueness.cypher5,
+            None,
+            NoOptions
+          )),
+          NodePropertyUniqueness.cypher5,
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(CONSTRAINT)",
+            Seq.empty,
+            Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS UNIQUE")),
+            Set.empty
+          )
+        ),
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS UNIQUE")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyUniqueness.cypher25,
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          None,
+          OptionsParam(parameter("options", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS UNIQUE OPTIONS $options")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateRelationshipUniquePropertyConstraint") {
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyUniqueness.cypher25,
+          relType("REL_TYPE"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS UNIQUE")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyUniqueness.cypher5,
+          relType("REL_TYPE"),
+          Seq(prop("x", "prop")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR ()-[x:REL_TYPE]-() REQUIRE (x.prop) IS UNIQUE")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyUniqueness.cypher25,
+          relType("REL_TYPE"),
+          Seq(prop("x", "prop1"), prop("x", "prop2")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR ()-[x:REL_TYPE]-() REQUIRE (x.prop1, x.prop2) IS UNIQUE")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyUniqueness.cypher5,
+          relType("REL-TYPE"),
+          List(prop("x", "prop-prop")),
+          Some(Right(parameter("constraintName", CTString))),
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details(
+          """CONSTRAINT $constraintName FOR ()-[x:`REL-TYPE`]-() REQUIRE (x.`prop-prop`) IS UNIQUE OPTIONS {indexProvider: "range-1.0"}"""
+        )),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          Some(DoNothingIfExistsForConstraint(
+            relType("REL_TYPE"),
+            Seq(prop(" x", "prop")),
+            RelationshipPropertyUniqueness.cypher25,
+            None,
+            NoOptions
+          )),
+          RelationshipPropertyUniqueness.cypher25,
+          relType("REL_TYPE"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(CONSTRAINT)",
+            Seq.empty,
+            Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS UNIQUE")),
+            Set.empty
+          )
+        ),
+        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS UNIQUE")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyUniqueness.cypher25,
+          relType("REL_TYPE"),
+          Seq(prop(" x", "prop")),
+          None,
+          OptionsParam(parameter("options", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS UNIQUE OPTIONS $options")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateNodeKeyConstraint") {
+    assertGood(
+      attach(CreateConstraint(None, NodeKey.cypher5, label("Label"), Seq(prop(" x", "prop")), None, NoOptions), 63.2),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NODE KEY")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodeKey.cypher5,
+          label("Label"),
+          Seq(prop("x", "prop1"), prop("x", "prop2")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop1, x.prop2) IS NODE KEY")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodeKey.cypher5,
+          label("Label"),
+          List(prop("x", "prop")),
+          Some(Right(parameter("constraintName", CTString))),
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details(
+          """CONSTRAINT $constraintName FOR (x:Label) REQUIRE (x.prop) IS NODE KEY OPTIONS {indexProvider: "range-1.0"}"""
+        )),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          Some(DoNothingIfExistsForConstraint(
+            label("Label"),
+            Seq(prop(" x", "prop")),
+            NodeKey.cypher5,
+            Some(Left("constraintName")),
+            NoOptions
+          )),
+          NodeKey.cypher5,
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(CONSTRAINT)",
+            Seq.empty,
+            Seq(details("CONSTRAINT constraintName FOR (` x`:Label) REQUIRE (` x`.prop) IS NODE KEY")),
+            Set.empty
+          )
+        ),
+        Seq(details("CONSTRAINT constraintName FOR (` x`:Label) REQUIRE (` x`.prop) IS NODE KEY")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodeKey.cypher5,
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          None,
+          OptionsParam(parameter("options", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NODE KEY OPTIONS $options")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodeKey.cypher25,
+          label("Label"),
+          Seq(prop("x", "prop1"), prop("x", "prop2")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop1, x.prop2) IS KEY")),
+        Set.empty
+      ),
+      cypherVersion = CypherVersion.Cypher25
+    )
+  }
+
+  test("CreateRelationshipKeyConstraint") {
+    assertGood(
+      attach(
+        CreateConstraint(None, RelationshipKey.cypher5, relType("REL_TYPE"), Seq(prop(" x", "prop")), None, NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS RELATIONSHIP KEY")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipKey.cypher5,
+          relType("REL_TYPE"),
+          Seq(prop("x", "prop1"), prop("x", "prop2")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR ()-[x:REL_TYPE]-() REQUIRE (x.prop1, x.prop2) IS RELATIONSHIP KEY")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipKey.cypher5,
+          relType("REL_TYPE"),
+          List(prop("x", "prop")),
+          Some(Right(parameter("constraintName", CTString))),
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details(
+          """CONSTRAINT $constraintName FOR ()-[x:REL_TYPE]-() REQUIRE (x.prop) IS RELATIONSHIP KEY OPTIONS {indexProvider: "range-1.0"}"""
+        )),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          Some(DoNothingIfExistsForConstraint(
+            relType("REL_TYPE"),
+            Seq(prop(" x", "prop")),
+            RelationshipKey.cypher5,
+            Some(Left("constraintName")),
+            NoOptions
+          )),
+          RelationshipKey.cypher5,
+          relType("REL_TYPE"),
+          Seq(prop(" x", "prop")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(CONSTRAINT)",
+            Seq.empty,
+            Seq(details("CONSTRAINT constraintName FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS RELATIONSHIP KEY")),
+            Set.empty
+          )
+        ),
+        Seq(details("CONSTRAINT constraintName FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS RELATIONSHIP KEY")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipKey.cypher5,
+          relType("REL_TYPE"),
+          Seq(prop(" x", "prop")),
+          None,
+          OptionsParam(parameter("options", CTMap))(pos)
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS RELATIONSHIP KEY OPTIONS $options")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(None, RelationshipKey.cypher25, relType("REL_TYPE"), Seq(prop(" x", "prop")), None, NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR ()-[` x`:REL_TYPE]-() REQUIRE (` x`.prop) IS KEY")),
+        Set.empty
+      ),
+      cypherVersion = CypherVersion.Cypher25
+    )
+  }
+
+  test("CreateNodePropertyExistenceConstraint") {
+    assertGood(
+      attach(
+        CreateConstraint(None, NodePropertyExistence, label("Label"), Seq(prop(" x", "prop")), None, NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NOT NULL")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyExistence,
+          label("Label"),
+          Seq(prop("x", "prop")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop) IS NOT NULL")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          Some(DoNothingIfExistsForConstraint(
+            label("Label"),
+            Seq(prop(" x", "prop")),
+            NodePropertyExistence,
+            None,
+            NoOptions
+          )),
+          NodePropertyExistence,
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(CONSTRAINT)",
+            Seq.empty,
+            Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NOT NULL")),
+            Set.empty
+          )
+        ),
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS NOT NULL")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateRelationshipPropertyExistenceConstraint") {
+    assertGood(
+      attach(
+        CreateConstraint(None, RelationshipPropertyExistence, relType("R"), Seq(prop(" x", "prop")), None, NoOptions),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS NOT NULL")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyExistence,
+          relType("R"),
+          Seq(prop(" x", "prop")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS NOT NULL")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          Some(DoNothingIfExistsForConstraint(
+            relType("R"),
+            Seq(prop(" x", "prop")),
+            RelationshipPropertyExistence,
+            None,
+            NoOptions
+          )),
+          RelationshipPropertyExistence,
+          relType("R"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(CONSTRAINT)",
+            Seq.empty,
+            Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS NOT NULL")),
+            Set.empty
+          )
+        ),
+        Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS NOT NULL")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateNodePropertyTypeConstraint") {
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyType(IntegerType(isNullable = true)(pos)),
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS :: INTEGER")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyType(
+            ClosedDynamicUnionType(Set(
+              ListType(BooleanType(isNullable = true)(pos), isNullable = true)(pos),
+              StringType(isNullable = true)(pos)
+            ))(pos)
+          ),
+          label("Label"),
+          Seq(prop("x", "prop")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR (x:Label) REQUIRE (x.prop) IS :: STRING | LIST<BOOLEAN>")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          Some(DoNothingIfExistsForConstraint(
+            label("Label"),
+            Seq(prop(" x", "prop")),
+            NodePropertyType(ZonedDateTimeType(isNullable = true)(pos)),
+            None,
+            NoOptions
+          )),
+          NodePropertyType(ZonedDateTimeType(isNullable = true)(pos)),
+          label("Label"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(CONSTRAINT)",
+            Seq.empty,
+            Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS :: ZONED DATETIME")),
+            Set.empty
+          )
+        ),
+        Seq(details("CONSTRAINT FOR (` x`:Label) REQUIRE (` x`.prop) IS :: ZONED DATETIME")),
+        Set.empty
+      )
+    )
+  }
+
+  test("CreateRelationshipPropertyTypeConstraint") {
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyType(FloatType(isNullable = true)(pos)),
+          relType("R"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: FLOAT")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyType(LocalTimeType(isNullable = true)(pos)),
+          relType("R"),
+          Seq(prop(" x", "prop")),
+          Some(Left("constraintName")),
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT constraintName FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: LOCAL TIME")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          Some(DoNothingIfExistsForConstraint(
+            relType("R"),
+            Seq(prop(" x", "prop")),
+            RelationshipPropertyType(
+              ClosedDynamicUnionType(Set(
+                DurationType(isNullable = true)(pos),
+                DateType(isNullable = true)(pos)
+              ))(pos)
+            ),
+            None,
+            NoOptions
+          )),
+          RelationshipPropertyType(
+            ClosedDynamicUnionType(Set(
+              DurationType(isNullable = true)(pos),
+              DateType(isNullable = true)(pos)
+            ))(pos)
+          ),
+          relType("R"),
+          Seq(prop(" x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq(
+          planDescription(
+            id,
+            "DoNothingIfExists(CONSTRAINT)",
+            Seq.empty,
+            Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: DATE | DURATION")),
+            Set.empty
+          )
+        ),
+        Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: DATE | DURATION")),
+        Set.empty
+      )
+    )
+  }
+
+  test("DropConstraintOnName") {
+    assertGood(
+      attach(DropConstraintOnName(Left("name"), ifExists = false), 63.2),
+      planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT name")), Set.empty)
+    )
+
+    assertGood(
+      attach(DropConstraintOnName(Left("name"), ifExists = true), 63.2),
+      planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT name IF EXISTS")), Set.empty)
+    )
+
+    assertGood(
+      attach(DropConstraintOnName(Right(parameter("name", CTString)), ifExists = false), 63.2),
+      planDescription(id, "DropConstraint", Seq.empty, Seq(details("CONSTRAINT $name")), Set.empty)
+    )
+  }
+
+  test("ShowConstraints") {
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = AllConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("allConstraints, defaultColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = UniqueConstraints.cypher25,
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("propertyUniquenessConstraints, allColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = NodeUniqueConstraints.cypher5,
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("nodeUniquenessConstraints, allColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = RelUniqueConstraints.cypher25,
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("relationshipPropertyUniquenessConstraints, allColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = KeyConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("keyConstraints, defaultColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = NodeKeyConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("nodeKeyConstraints, defaultColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = RelKeyConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("relationshipKeyConstraints, defaultColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = PropExistsConstraints.cypher5,
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("existenceConstraints, allColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = NodePropExistsConstraints.cypher25,
+          List.empty,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("nodePropertyExistenceConstraints, defaultColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = RelPropExistsConstraints.cypher5,
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("relationshipExistenceConstraints, allColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = AllExistsConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(id, "ShowConstraints", Seq.empty, Seq(details("existenceConstraints, allColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = NodeAllExistsConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("nodeExistenceConstraints, defaultColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = RelAllExistsConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("relationshipExistenceConstraints, allColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = PropTypeConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("propertyTypeConstraints, defaultColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = NodePropTypeConstraints,
+          List.empty,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("nodePropertyTypeConstraints, allColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowConstraints(
+          constraintType = RelPropTypeConstraints,
+          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(
+            CommandResultItem("xxx", varFor("xxx"))(pos),
+            CommandResultItem("yyy", varFor("zzz"))(pos),
+            CommandResultItem("vvv", varFor("vvv"))(pos)
+          ),
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowConstraints",
+        Seq.empty,
+        Seq(details("relationshipPropertyTypeConstraints, columns(xxx, yyy AS zzz, vvv)")),
+        Set("xxx", "zzz", "vvv")
+      )
+    )
+  }
+
+  // Remaining non-admin show and terminate commands
+
+  test("ShowProcedures") {
+    assertGood(
+      attach(ShowProcedures(None, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
+      planDescription(
+        id,
+        "ShowProcedures",
+        Seq.empty,
+        Seq(details("proceduresForUser(all), defaultColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(ShowProcedures(Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty), 1.0),
+      planDescription(
+        id,
+        "ShowProcedures",
+        Seq.empty,
+        Seq(details("proceduresForUser(current), allColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowProcedures(
+          Some(User("foo")),
+          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(
+            CommandResultItem("xxx", varFor("xxx"))(pos),
+            CommandResultItem("yyy", varFor("zzz"))(pos),
+            CommandResultItem("vvv", varFor("vvv"))(pos)
+          ),
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowProcedures",
+        Seq.empty,
+        Seq(details("proceduresForUser(foo), columns(xxx, yyy AS zzz, vvv)")),
+        Set("xxx", "zzz", "vvv")
+      )
+    )
+  }
+
+  test("ShowFunctions") {
+    assertGood(
+      attach(ShowFunctions(AllFunctions, None, List.empty, List.empty, yieldAll = false, Set.empty), 1.0),
+      planDescription(
+        id,
+        "ShowFunctions",
+        Seq.empty,
+        Seq(details("allFunctions, functionsForUser(all), defaultColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowFunctions(BuiltInFunctions, Some(CurrentUser), List.empty, List.empty, yieldAll = true, Set.empty),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowFunctions",
+        Seq.empty,
+        Seq(details("builtInFunctions, functionsForUser(current), allColumns")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowFunctions(
+          UserDefinedFunctions,
+          Some(User("foo")),
+          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(
+            CommandResultItem("xxx", varFor("xxx"))(pos),
+            CommandResultItem("yyy", varFor("zzz"))(pos),
+            CommandResultItem("vvv", varFor("vvv"))(pos)
+          ),
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowFunctions",
+        Seq.empty,
+        Seq(details("userDefinedFunctions, functionsForUser(foo), columns(xxx, yyy AS zzz, vvv)")),
+        Set("xxx", "zzz", "vvv")
+      )
+    )
+  }
+
+  test("ShowSettings") {
+    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
+    assertGood(
+      attach(ShowSettings(Left(List.empty[String]), defaultColumns, List.empty, yieldAll = true, Set.empty), 1.0),
+      planDescription(
+        id,
+        "ShowSettings",
+        Seq.empty,
+        Seq(details("allSettings, allColumns")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowSettings(Left(List("Foo", "Bar")), defaultColumns, List.empty, yieldAll = false, Set.empty),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowSettings",
+        Seq.empty,
+        Seq(details("settings(Foo, Bar), defaultColumns")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowSettings(
+          Right(stringLiteral("foo.*")),
+          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(
+            CommandResultItem("xxx", varFor("xxx"))(pos),
+            CommandResultItem("yyy", varFor("zzz"))(pos),
+            CommandResultItem("vvv", varFor("vvv"))(pos)
+          ),
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowSettings",
+        Seq.empty,
+        Seq(details("settings(foo.*), columns(xxx, yyy AS zzz, vvv)")),
+        Set("xxx", "zzz", "vvv")
+      )
+    )
+  }
+
+  test("ShowTransactions") {
+    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
+
+    assertGood(
+      attach(ShowTransactions(Left(List.empty), defaultColumns, List.empty, yieldAll = false, Set.empty), 1.0),
+      planDescription(
+        id,
+        "ShowTransactions",
+        Seq.empty,
+        Seq(details("defaultColumns, allTransactions")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowTransactions(
+          Left(List("db1-transaction-123")),
+          defaultColumns,
+          List.empty,
+          yieldAll = true,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowTransactions",
+        Seq.empty,
+        Seq(details("allColumns, transactions(db1-transaction-123)")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowTransactions(
+          Left(List("db1-transaction-123", "db2-transaction-456")),
+          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(
+            CommandResultItem("xxx", varFor("xxx"))(pos),
+            CommandResultItem("yyy", varFor("zzz"))(pos),
+            CommandResultItem("vvv", varFor("vvv"))(pos)
+          ),
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowTransactions",
+        Seq.empty,
+        Seq(details("columns(xxx, yyy AS zzz, vvv), transactions(db1-transaction-123, db2-transaction-456)")),
+        Set("xxx", "zzz", "vvv")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowTransactions(
+          Right(parameter("foo", CTAny)),
+          defaultColumns,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowTransactions",
+        Seq.empty,
+        Seq(details("defaultColumns, transactions($foo)")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowTransactions(
+          Right(varFor("foo")),
+          defaultColumns,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowTransactions",
+        Seq.empty,
+        Seq(details("defaultColumns, transactions(foo)")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        ShowTransactions(
+          Right(Add(varFor("foo"), stringLiteral("123"))(pos)),
+          defaultColumns,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowTransactions",
+        Seq.empty,
+        Seq(details("defaultColumns, transactions(foo + 123)")),
+        Set("xxx", "yyy")
+      )
+    )
+  }
+
+  test("TerminateTransactions") {
+    val defaultColumns = List("xxx", "yyy").map(s => ShowColumn(s)(pos))
+
+    assertGood(
+      attach(
+        TerminateTransactions(
+          Left(List("db1-transaction-123")),
+          defaultColumns,
+          List.empty,
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "TerminateTransactions",
+        Seq.empty,
+        Seq(details("defaultColumns, transactions(db1-transaction-123)")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        TerminateTransactions(
+          Left(List("db1-transaction-123", "db2-transaction-456")),
+          defaultColumns,
+          List(CommandResultItem("xxx", varFor("xxx"))(pos), CommandResultItem("yyy", varFor("zzz"))(pos)),
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "TerminateTransactions",
+        Seq.empty,
+        Seq(details("columns(xxx, yyy AS zzz), transactions(db1-transaction-123, db2-transaction-456)")),
+        Set("xxx", "zzz")
+      )
+    )
+
+    assertGood(
+      attach(
+        TerminateTransactions(Right(parameter("foo", CTAny)), defaultColumns, List.empty, yieldAll = true, Set.empty),
+        1.0
+      ),
+      planDescription(
+        id,
+        "TerminateTransactions",
+        Seq.empty,
+        Seq(details("allColumns, transactions($foo)")),
+        Set("xxx", "yyy")
+      )
+    )
+
+    assertGood(
+      attach(
+        TerminateTransactions(Right(number("123")), defaultColumns, List.empty, yieldAll = true, Set.empty),
+        1.0
+      ),
+      planDescription(
+        id,
+        "TerminateTransactions",
+        Seq.empty,
+        Seq(details("allColumns, transactions(123)")),
+        Set("xxx", "yyy")
+      )
+    )
+  }
+
+  // Admin commands
+
+  private val adminPlanDescription: PlanDescriptionImpl =
+    planDescription(id, "AdministrationCommand", Seq.empty, Seq.empty, Set.empty)
+
+  test("AllowedNonAdministrationCommands") {
+    assertGood(
+      attach(
+        AllowedNonAdministrationCommands(
+          SingleQuery(Seq(ShowProceduresClause(None, None, List.empty, yieldAll = false, None)(pos)))(pos)
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+  }
+
+  test("User commands") {
+    assertGood(attach(ShowUsers(privLhsLP, withAuth = true, List(), None, None), 1.0), adminPlanDescription)
+
+    assertGood(attach(ShowCurrentUser(List(), None, None), 1.0), adminPlanDescription)
+
+    assertGood(
+      attach(
+        CreateUser(
+          privLhsLP,
+          util.Left("name"),
+          suspended = None,
+          defaultDatabase = None,
+          nativeAuth =
+            Some(NativeAuth(List(
+              Password(varFor("password"), isEncrypted = false)(pos),
+              PasswordChange(requireChange = false)(pos)
+            ))(pos)),
+          externalAuths = Seq.empty
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(attach(RenameUser(privLhsLP, util.Left("user1"), Left("user2")), 1.0), adminPlanDescription)
+
+    assertGood(attach(DropUser(privLhsLP, util.Left("name")), 1.0), adminPlanDescription)
+
+    assertGood(
+      attach(
+        AlterUser(
+          privLhsLP,
+          util.Left("name"),
+          suspended = Some(false),
+          defaultDatabase = None,
+          nativeAuth = Some(NativeAuth(List(PasswordChange(requireChange = true)(pos)))(pos)),
+          Seq.empty,
+          RemoveAuth(all = false, List(stringLiteral("provider")))
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(SetOwnPassword(privLhsLP, stringLiteral("oldPassword"), stringLiteral("newPassword")), 1.0),
+      adminPlanDescription
+    )
+  }
+
+  test("Role commands") {
+    assertGood(
+      attach(ShowRoles(privLhsLP, withUsers = false, showAll = true, List(), None, None), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(attach(DropRole(privLhsLP, util.Left("role")), 1.0), adminPlanDescription)
+
+    assertGood(attach(CreateRole(privLhsLP, util.Left("role"), immutable = false), 1.0), adminPlanDescription)
+
+    assertGood(attach(RenameRole(privLhsLP, util.Left("role1"), Left("role2")), 1.0), adminPlanDescription)
+
+    assertGood(attach(RequireRole(privLhsLP, util.Left("role")), 1.0), adminPlanDescription)
+
+    assertGood(
+      attach(CopyRolePrivileges(privLhsLP, util.Left("role1"), util.Left("role2"), grantDeny = "DENIED"), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(GrantRoleToUser(privLhsLP, util.Left("role"), util.Left("user"), "GRANT ROLE role TO user"), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(RevokeRoleFromUser(privLhsLP, util.Left("role"), util.Left("user"), "REVOKE ROLE role FROM user"), 1.0),
+      adminPlanDescription
+    )
+  }
+
+  test("Privilege commands") {
+    assertGood(
+      attach(
+        GrantDbmsAction(
+          privLhsLP,
+          ExecuteProcedureAction,
+          ProcedureAllQualifier()(pos),
+          util.Left("role1"),
+          immutable = false,
+          "GRANT ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        DenyDbmsAction(
+          privLhsLP,
+          ExecuteBoostedProcedureAction,
+          ProcedureQualifier("apoc.sin")(pos),
+          util.Left("role1"),
+          immutable = false,
+          "DENY ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        RevokeDbmsAction(
+          privLhsLP,
+          ExecuteAdminProcedureAction,
+          ProcedureAllQualifier()(pos),
+          util.Left("role1"),
+          "GRANTED",
+          immutableOnly = false,
+          "REVOKE GRANT ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        GrantDatabaseAction(
+          privLhsLP,
+          CreateNodeLabelAction,
+          NamedScope(NamespacedName("foo")(pos)),
+          UserAllQualifier()(pos),
+          util.Left("role1"),
+          immutable = false,
+          "GRANT ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        DenyDatabaseAction(
+          privLhsLP,
+          CreateNodeLabelAction,
+          AllScope,
+          UserQualifier(literalString("user1"))(pos),
+          util.Left("role1"),
+          immutable = false,
+          "DENY ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        RevokeDatabaseAction(
+          privLhsLP,
+          CreateNodeLabelAction,
+          AllScope,
+          UserQualifier(literalString("user1"))(pos),
+          util.Left("role1"),
+          "GRANTED",
+          immutableOnly = false,
+          "REVOKE GRANT ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        GrantGraphAction(
+          privLhsLP,
+          TraverseAction,
+          NoResource()(pos),
+          HomeScope,
+          LabelQualifier("Label1")(pos),
+          util.Left("role1"),
+          immutable = false,
+          "GRANT ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        DenyGraphAction(
+          privLhsLP,
+          ReadAction,
+          AllPropertyResource()(pos),
+          HomeScope,
+          PatternQualifier(
+            Seq(LabelQualifier("Label1")(pos)),
+            Some(varFor("n")),
+            Equals(Property(varFor("n"), PropertyKeyName("prop1")(pos))(pos), Null.NULL)(pos),
+            Node
+          ),
+          util.Left("role1"),
+          immutable = false,
+          "DENY ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        DenyGraphAction(
+          privLhsLP,
+          ReadAction,
+          AllPropertyResource()(pos),
+          HomeScope,
+          PatternQualifier(
+            Seq(RelationshipQualifier("R")(pos)),
+            Some(varFor("n")),
+            Equals(Property(varFor("n"), PropertyKeyName("prop1")(pos))(pos), Null.NULL)(pos),
+            Relationship
+          ),
+          util.Left("role1"),
+          immutable = false,
+          "DENY ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        RevokeGraphAction(
+          privLhsLP,
+          WriteAction,
+          NoResource()(pos),
+          AllScope,
+          ElementsAllQualifier()(pos),
+          util.Left("role1"),
+          "GRANTED",
+          immutableOnly = false,
+          "REVOKE GRANT ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        GrantLoadAction(
+          privLhsLP,
+          LoadAllDataAction,
+          FileResource()(pos),
+          LoadAllQualifier()(pos),
+          util.Left("role1"),
+          immutable = false,
+          "GRANT ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        DenyLoadAction(
+          privLhsLP,
+          LoadCidrAction,
+          FileResource()(pos),
+          LoadCidrQualifier(Left("cidr"))(pos),
+          util.Left("role1"),
+          immutable = false,
+          "DENY ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        RevokeLoadAction(
+          privLhsLP,
+          LoadUrlAction,
+          FileResource()(pos),
+          LoadUrlQualifier(Right(parameter("url", CTString)))(pos),
+          util.Left("role1"),
+          "GRANTED",
+          immutableOnly = false,
+          "REVOKE GRANT ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        ShowSupportedPrivileges(
+          List(),
+          None,
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        ShowPrivileges(
+          Some(privLhsLP),
+          ShowUsersPrivileges(List(literalString("user1"), literalString("user2")))(pos),
+          List(),
+          None,
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        ShowPrivilegeCommands(
+          Some(privLhsLP),
+          ShowUsersPrivileges(List(literalString("user1"), literalString("user2")))(pos),
+          asRevoke = false,
+          List(),
+          None,
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+  }
+
+  test("Database commands") {
+    assertGood(
+      attach(
+        ShowDatabase(AllDatabasesScope()(pos), verbose = false, List(varFor("foo"), varFor("bar")), None, None),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        CreateDatabase(privLhsLP, util.Left("db1"), NoOptions, IfExistsDoNothing, isComposite = false, None, None),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(DropDatabase(privLhsLP, NamespacedName("db1")(pos), DumpData, forceComposite = false, Restrict), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadOnlyAccess), None, NoOptions, None, Set.empty),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadWriteAccess), None, NoOptions, None, Set.empty),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(attach(StartDatabase(privLhsLP, NamespacedName("db1")(pos)), 1.0), adminPlanDescription)
+
+    assertGood(attach(StopDatabase(privLhsLP, NamespacedName("db1")(pos)), 1.0), adminPlanDescription)
+  }
+
+  test("Server commands") {
+    assertGood(
+      attach(EnableServer(privLhsLP, Left("s1"), NoOptions), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(AlterServer(privLhsLP, Left("s1"), NoOptions), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(RenameServer(privLhsLP, Left("s1"), Left("s2")), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(DropServer(privLhsLP, Left("s1")), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(ShowServers(privLhsLP, verbose = false, List.empty, None, None), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(DeallocateServer(privLhsLP, dryRun = false, Seq(Left("s1"))), 1.0),
+      adminPlanDescription
+    )
+  }
+
+  test("Alias commands") {
+    assertGood(
+      attach(
+        CreateLocalDatabaseAlias(
+          privLhsLP,
+          NamespacedName("alias1")(pos),
+          NamespacedName("db1")(pos),
+          None,
+          replace = false
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        CreateLocalDatabaseAlias(
+          privLhsLP,
+          NamespacedName("alias1")(pos),
+          NamespacedName("db1")(pos),
+          Some(util.Left(Map("a" -> stringLiteral("b")))),
+          replace = false
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        CreateRemoteDatabaseAlias(
+          privLhsLP,
+          NamespacedName("alias1")(pos),
+          NamespacedName("db1")(pos),
+          replace = false,
+          util.Left("url"),
+          util.Left("user"),
+          varFor("password"),
+          None,
+          None,
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(attach(DropDatabaseAlias(privLhsLP, NamespacedName("alias1")(pos)), 1.0), adminPlanDescription)
+
+    assertGood(
+      attach(
+        AlterLocalDatabaseAlias(
+          privLhsLP,
+          NamespacedName("alias1")(pos),
+          Some(NamespacedName("db2")(pos)),
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        AlterRemoteDatabaseAlias(
+          privLhsLP,
+          NamespacedName("alias1")(pos),
+          Some(NamespacedName("db2")(pos)),
+          Some(util.Left("url")),
+          Some(util.Left("user")),
+          Some(varFor("password")),
+          None,
+          Some(Left(Map("some" -> StringLiteral("prop")(pos.withInputLength(0))))),
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(attach(ShowAliases(privLhsLP, None, verbose = false, List.empty, None, None), 1.0), adminPlanDescription)
+
+    assertGood(
+      attach(
+        ShowAliases(privLhsLP, Some(NamespacedName("alias1")(pos)), verbose = false, List.empty, None, None),
+        1.0
+      ),
+      adminPlanDescription
+    )
+  }
+
+  test("Various Aadmin helpers and assert plans") {
+    assertGood(
+      attach(EnsureValidNonSystemDatabase(privLhsLP, "ALTER DATABASE", NamespacedName("db1")(pos), "action1"), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        EnsureValidNumberOfDatabases(CreateDatabase(
+          privLhsLP,
+          util.Left("db1"),
+          NoOptions,
+          IfExistsDoNothing,
+          isComposite = false,
+          None,
+          None
+        )),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(attach(LogSystemCommand(privLhsLP, "command1"), 1.0), adminPlanDescription)
+
+    assertGood(
+      attach(DoNothingIfNotExists(privLhsLP, "DROP USER", UserEntity, util.Left("user1"), "delete"), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(DoNothingIfExists(privLhsLP, "DROP USER", UserEntity, util.Left("user1")), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        EnsureNodeExists(
+          privLhsLP,
+          "DROP USER",
+          UserEntity,
+          util.Left("user1"),
+          labelDescription = "User",
+          action = "delete"
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        AssertNotCurrentUser(
+          privLhsLP,
+          util.Left("user1"),
+          "verb1",
+          "validation message",
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42).build()
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(attach(AssertAllowedDbmsActionsOrSelf(util.Left("user1"), DropRoleAction), 1.0), adminPlanDescription)
+
+    assertGood(
+      attach(AssertAllowedDatabaseAction(StopDatabaseAction, NamespacedName("db1")(pos), None), 1.0),
+      adminPlanDescription
+    )
+
+    assertGood(attach(AssertManagementActionNotBlocked(CreateDatabaseAction), 1.0), adminPlanDescription)
+
+    assertGood(attach(AssertNotBlockedRemoteAliasManagement(), 1.0), adminPlanDescription)
+
+    assertGood(attach(AssertNotBlockedDropAlias(NamespacedName("alias")(pos)), 1.0), adminPlanDescription)
+
+    assertGood(
+      attach(
+        WaitForCompletion(
+          StartDatabase(
+            AssertAllowedDatabaseAction(StartDatabaseAction, NamespacedName("db1")(pos), Some(privLhsLP)),
+            NamespacedName("db1")(pos)
+          ),
+          NamespacedName("db1")(pos),
+          IndefiniteWait()(pos)
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+  }
+
+  // Help methods
 
   private def assertGood(
     logicalPlan: LogicalPlan,
