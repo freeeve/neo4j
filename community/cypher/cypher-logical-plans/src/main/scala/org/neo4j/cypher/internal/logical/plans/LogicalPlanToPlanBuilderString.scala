@@ -80,6 +80,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.Empty
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.Value
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.call
+import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.chain
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.concat
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.conditional
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.convertableToParam
@@ -347,6 +348,15 @@ object LogicalPlanToPlanBuilderString {
           ")(",
           spread(predicates)(_.quoted)
         )
+      case remoteBatchPropertiesWithPushdownOperators: RemoteBatchPropertiesWithPushdownOperators => concat(
+          params(
+            "variable" -> remoteBatchPropertiesWithPushdownOperators.variable,
+            "properties" -> spread(remoteBatchPropertiesWithPushdownOperators.properties)
+          ),
+          ")(",
+          pushdownOperatorsString(remoteBatchPropertiesWithPushdownOperators)
+        )
+
       case Create(_, commands) => spread(commands)
       case Merge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
         params(createNodes, createRelationships, onMatch, onCreate, nodesToLock)
@@ -1740,6 +1750,44 @@ object LogicalPlanToPlanBuilderString {
       expansionMode
     )
 
+  private def pushdownOperatorsString(
+    remoteBatchPropertiesWithPushdownOperators: RemoteBatchPropertiesWithPushdownOperators
+  ): Param = {
+    chain(
+      "PushdownOperators",
+      conditional(remoteBatchPropertiesWithPushdownOperators.limit.nonEmpty)(call(
+        "limit",
+        spread(remoteBatchPropertiesWithPushdownOperators.limit.map(_.quoted))
+      )),
+      conditional(remoteBatchPropertiesWithPushdownOperators.skip.nonEmpty)(call(
+        "skip",
+        spread(remoteBatchPropertiesWithPushdownOperators.skip.map(_.quoted))
+      )),
+      conditional(remoteBatchPropertiesWithPushdownOperators.orderBy.nonEmpty)(call(
+        "orderBy",
+        spread(remoteBatchPropertiesWithPushdownOperators.orderBy.map(_.quoted))
+      )),
+      conditional(remoteBatchPropertiesWithPushdownOperators.distinctBy.nonEmpty)(call(
+        "distinct",
+        spread(remoteBatchPropertiesWithPushdownOperators.distinctBy.map(_.quoted))
+      )),
+      conditional(remoteBatchPropertiesWithPushdownOperators.predicates.nonEmpty)(call(
+        "filter",
+        spread(remoteBatchPropertiesWithPushdownOperators.predicates.map(_.quoted))
+      )),
+      conditional(remoteBatchPropertiesWithPushdownOperators.arguments.nonEmpty)(call(
+        "arguments",
+        spread(remoteBatchPropertiesWithPushdownOperators.arguments)
+      )),
+      conditional(remoteBatchPropertiesWithPushdownOperators.previouslyCachedProperties.nonEmpty)(
+        call(
+          "previouslyCachedProperties",
+          spread(remoteBatchPropertiesWithPushdownOperators.previouslyCachedProperties.map(_.quoted))
+        )
+      )
+    )
+  }
+
   private def setPropertiesParam(items: Seq[(PropertyKeyName, Expression)]): Param =
     spread(
       items.map {
@@ -1921,7 +1969,9 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse(
+          ""
+        )}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       "indexOrder" -> indexOrder,
       "paramExpr" -> paramExpr,
       "argumentIds" -> argumentIds,
@@ -1945,7 +1995,9 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse(
+          ""
+        )}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       "argumentIds" -> argumentIds,
       "getValue" -> Param.mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
       "indexType" -> indexType
@@ -2014,7 +2066,9 @@ object LogicalPlanToPlanBuilderString {
     val propName = properties.map(_.propertyKeyToken.name).head
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse(
+          ""
+        )}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       lowerLeft.quoted,
       upperRight.quoted,
       "indexOrder" -> indexOrder,
@@ -2041,7 +2095,9 @@ object LogicalPlanToPlanBuilderString {
     val propName = properties.map(_.propertyKeyToken.name).head
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse(
+          ""
+        )}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       point.quoted,
       distance,
       "inclusive" -> inclusive,
@@ -2401,6 +2457,17 @@ object LogicalPlanToPlanBuilderString {
         b.write(sb)
         sb.append(')')
       }
+
+    /** Writes a function chain, for a builder new Builder().withA().withB().build()*/
+    def chain(name: String, params: Param*): Param = Param { sb =>
+      sb.append(s"$name()")
+      params.foreach {
+        case Empty => ()
+        case param =>
+          sb.append(s"\n$indent.")
+          param.write(sb)
+      }
+    }
 
     /** Writes a tuple of two parameters with arrow syntax a -> b */
     private def tupleArrow(a: Param, b: Param): Param =

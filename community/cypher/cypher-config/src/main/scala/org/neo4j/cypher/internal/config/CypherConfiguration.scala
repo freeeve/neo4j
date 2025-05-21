@@ -208,6 +208,9 @@ class CypherConfiguration private (val config: Config) {
   val remoteBatchPropertiesImplementation: RemoteBatchPropertiesImplementation =
     config.get(GraphDatabaseInternalSettings.cypher_remote_batch_properties_implementation)
 
+  val pushOperatorsToRemoteBatchPropertiesEnabled: Boolean =
+    config.get(GraphDatabaseInternalSettings.push_operators_into_remote_batch_properties)
+
   val parallel_runtime_config: CypherParallelRuntimeConfigOption =
     CypherParallelRuntimeConfigOption.fromConfig(config)
 

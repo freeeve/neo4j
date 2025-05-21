@@ -1603,6 +1603,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     .build();
 
     @Internal
+    @Description("Push valid operators into Remote Batch Properties")
+    public static final Setting<Boolean> push_operators_into_remote_batch_properties = newBuilder(
+                    "internal.cypher.push_operators_into_remote_batch_properties", BOOL, false)
+            .build();
+
+    @Internal
     @Description("Allow duplicated setting declarations when strict validation is enabled.")
     public static final Setting<Boolean> strict_config_validation_allow_duplicates = newBuilder(
                     "internal.server.config.strict_validation.allow_duplicates.enabled", BOOL, false)

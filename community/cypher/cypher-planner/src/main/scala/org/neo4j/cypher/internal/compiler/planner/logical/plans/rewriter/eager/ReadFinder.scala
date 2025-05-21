@@ -148,6 +148,7 @@ import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
@@ -909,6 +910,7 @@ object ReadFinder {
         ProcedureCall(_, _) |
         RemoteBatchProperties(_, _) | // the actual usage of these properties should happen eventually.
         RemoteBatchPropertiesWithFilter(_, _, _) | // should only be used in readOnly queries
+        RemoteBatchPropertiesWithPushdownOperators(_, _, _, _, _, _, _, _, _, _) |
         SelectOrAntiSemiApply(_, _, _) |
         SelectOrSemiApply(_, _, _) |
         SemiApply(_, _) |

@@ -1260,6 +1260,28 @@ case class RemoteBatchPropertiesWithFilter(
 }
 
 /**
+ * Similar to [[RemoteBatchProperties]] but with property operations applied on the server.
+ */
+case class RemoteBatchPropertiesWithPushdownOperators(
+  override val source: LogicalPlan,
+  variable: LogicalVariable,
+  properties: Set[PropertyKeyName],
+  predicates: Seq[Expression] = Seq.empty,
+  distinctBy: Option[Expression] = None,
+  orderBy: Seq[Expression] = Seq.empty,
+  skip: Option[Expression] = None,
+  limit: Option[Expression] = None,
+  // the next two are variables and properties (from other variables) that are used in other expressions.
+  arguments: Set[LogicalVariable] = Set.empty,
+  previouslyCachedProperties: Set[LogicalProperty] = Set.empty
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) {
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
+
+  override val distinctness: Distinctness = source.distinctness
+}
+
+/**
  * Cartesian Product
  *
  * {{{

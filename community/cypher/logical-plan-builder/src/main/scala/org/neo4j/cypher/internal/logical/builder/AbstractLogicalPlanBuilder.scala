@@ -96,6 +96,7 @@ import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.disjoinRelTypesToLabelExpression
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.PushdownOperators
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.pos
@@ -221,6 +222,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
@@ -2747,6 +2749,26 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       RemoteBatchPropertiesWithFilter(source, expressions, properties)(_)
     ))
 
+  def remoteBatchPropertiesWithPushdownOperators(
+    variable: String,
+    properties: String*
+  )(pushdownOperators: PushdownOperators): IMPL = {
+    appendAtCurrentIndent(UnaryOperator(source =>
+      RemoteBatchPropertiesWithPushdownOperators(
+        source,
+        variable = varFor(variable),
+        properties = properties.map(PropertyKeyName(_)(pos)).toSet,
+        predicates = pushdownOperators.filter,
+        distinctBy = pushdownOperators.distinct,
+        limit = pushdownOperators.limit,
+        skip = pushdownOperators.skip,
+        orderBy = pushdownOperators.orderBy,
+        arguments = pushdownOperators.arguments,
+        previouslyCachedProperties = pushdownOperators.previouslyCachedProperties
+      )(_)
+    ))
+  }
+
   def setProperty(entity: String, propertyKey: String, value: String): IMPL = {
     appendAtCurrentIndent(UnaryOperator(source =>
       SetProperty(source, parseExpression(entity), PropertyKeyName(propertyKey)(pos), parseExpression(value))(_)
@@ -3772,4 +3794,47 @@ object AbstractLogicalPlanBuilder {
 
   // Note! Parses with default language.
   def coerceToPredicate(expression: String) = CoerceToPredicate(Parser.Latest.parseExpression(expression))
+
+  case class PushdownOperators private (
+    filter: Seq[Expression] = Seq.empty,
+    distinct: Option[Expression] = None,
+    orderBy: Seq[Expression] = Seq.empty,
+    skip: Option[Expression] = None,
+    limit: Option[Expression] = None,
+    arguments: Set[LogicalVariable] = Set.empty,
+    previouslyCachedProperties: Set[LogicalProperty] = Set.empty
+  ) {
+
+    def filter(exprs: String*): PushdownOperators = {
+      val newPredicates = exprs.map(Parser.Latest.parseExpression)
+      copy(filter = filter ++ newPredicates)
+    }
+
+    def distinct(expr: String): PushdownOperators = {
+      copy(distinct = Some(Parser.Latest.parseExpression(expr)))
+    }
+
+    def orderBy(expr: String): PushdownOperators = {
+      val newOrderBy = Parser.Latest.parseExpression(expr)
+      copy(orderBy = orderBy :+ newOrderBy)
+    }
+
+    def limit(expr: String): PushdownOperators = {
+      copy(limit = Some(Parser.Latest.parseExpression(expr)))
+    }
+
+    def skip(expr: String): PushdownOperators = {
+      copy(skip = Some(Parser.Latest.parseExpression(expr)))
+    }
+
+    def arguments(exprs: String*): PushdownOperators = {
+      copy(arguments = arguments ++ exprs.map(varFor).toSet)
+    }
+
+    def previouslyCachedProperties(exprs: String*): PushdownOperators = {
+      copy(previouslyCachedProperties =
+        previouslyCachedProperties ++ exprs.map(Parser.Latest.parseExpression(_).asInstanceOf[LogicalProperty]).toSet
+      )
+    }
+  }
 }

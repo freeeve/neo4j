@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ir.HasHeaders
 import org.neo4j.cypher.internal.ir.NoHeaders
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.PushdownOperators
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
@@ -1080,6 +1081,21 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         equals(prop("r", "prop"), literalInt(5))
       )
       .argument()
+      .build()
+  )
+
+  testPlan(
+    "remoteBatchPropertiesWithPushdownOperators",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .remoteBatchPropertiesWithPushdownOperators("x", "prop1", "prop2")(PushdownOperators()
+        .limit("10")
+        .orderBy("x.prop3")
+        .distinct("x")
+        .filter("x.prop1=10", "x.prop2=y.prop")
+        .arguments("y")
+        .previouslyCachedProperties("y.prop"))
+      .argument("y")
       .build()
   )
 
@@ -3195,6 +3211,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.removeLabel
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
             |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
+            |import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.PushdownOperators
             |import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
             |import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
             |import org.neo4j.cypher.internal.expressions.SemanticDirection.{INCOMING, OUTGOING, BOTH}
