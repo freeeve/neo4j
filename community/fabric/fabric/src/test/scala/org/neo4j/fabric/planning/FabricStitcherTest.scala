@@ -50,11 +50,11 @@ class FabricStitcherTest
   private def importParams(names: String*) =
     with_(names.map(v => parameter(Columns.paramName(v), ct.any).as(v)): _*)
 
-  private val dummyQuery = ""
-  private val dummyPipeline = pipeline("RETURN 1")
-
   val systemDefaultLanguage: CypherVersion =
     QueryLanguageConverter.toInternal(GraphDatabaseSettings.default_language.defaultValue)
+
+  private val dummyQuery = ""
+  private val dummyPipeline = pipeline("RETURN 1")
 
   "Single-graph:" - {
 
