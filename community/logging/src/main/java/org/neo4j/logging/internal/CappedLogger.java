@@ -26,6 +26,7 @@ import java.time.Clock;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.NullLog;
 
 /**
  * A CappedLogger will accept log messages, unless they occur "too much", in which case the messages will be ignored
@@ -35,6 +36,16 @@ import org.neo4j.logging.InternalLog;
  * output capping.
  */
 public class CappedLogger {
+
+    public static final CappedLogger NULL =
+            new CappedLogger(NullLog.getInstance(), 1, TimeUnit.DAYS, Clock.systemUTC());
+
+    public interface CappedLoggerSupplier {
+        CappedLoggerSupplier NULL = () -> CappedLogger.NULL;
+
+        CappedLogger get();
+    }
+
     private static final AtomicLongFieldUpdater<CappedLogger> LAST_CHECK =
             AtomicLongFieldUpdater.newUpdater(CappedLogger.class, "lastCheck");
 
