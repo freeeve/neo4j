@@ -2308,19 +2308,19 @@ case class ScopeClauseSubqueryCall(
     outer: SemanticState
   ): SemanticCheck = fromState { inner =>
     val innerScope = inner.currentScope.scope
+    val innerFinalScope = innerQuery.finalScope(innerScope)
     val importedSymbolNames = innerScope.symbolNames
 
     returnToOuterScope(outer.currentScope) chain
       when(innerQuery.isReturning) {
         val outerScopeSymbolNames = outer.currentScope.symbolNames
-        val outputSymbolNames = innerQuery.finalScope(innerScope).symbolNames
+        val outputSymbolNames = innerFinalScope.symbolNames
         val intersection = outputSymbolNames.intersect(outerScopeSymbolNames)
         val difference =
           if (innerQuery.returnVariables.includeExisting) intersection.diff(importedSymbolNames) else intersection
 
-        val scopeForDeclaringVariables = innerQuery.finalScope(innerScope)
         val filteredVariables =
-          scopeForDeclaringVariables.symbolTable.values.filter(x => !importedSymbolNames.contains(x.name))
+          innerFinalScope.symbolTable.values.filter(x => !importedSymbolNames.contains(x.name))
 
         innerQuery.getReturns.flatMap(v => difference.map((v, _))).foldSemanticCheck { case (ret, name) =>
           val position = ret.returnItems.items.find(_.name == name) match {

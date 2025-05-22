@@ -79,6 +79,10 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
       "match p=(a:Start)-->(b) return a, b, p"
     )
 
+  }
+
+  test("rewrites * in return in subquery expression") {
+
     assertRewrite(
       "MATCH (a) WHERE EXISTS { MATCH (b) RETURN * } RETURN a",
       "MATCH (a) WHERE EXISTS { MATCH (b) RETURN b } RETURN a"
@@ -153,8 +157,13 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
     )
 
     assertRewrite(
-      "WITH 1 AS x CALL (*) { WITH 2 AS y WITH x, y RETURN * } RETURN *",
-      "WITH 1 AS x CALL (x) { WITH 2 AS y WITH x, y RETURN x, y } RETURN x, y"
+      "with 1 as x call (*) { with 2 as y with x, y return * } return *",
+      "with 1 as x call (x) { with 2 as y with x, y return y } return x, y"
+    )
+
+    assertRewrite(
+      "with 1 as x call (*) { with 2 as y return * } return *",
+      "with 1 as x call (x) { with 2 as y return y } return x, y"
     )
 
     assertRewrite(

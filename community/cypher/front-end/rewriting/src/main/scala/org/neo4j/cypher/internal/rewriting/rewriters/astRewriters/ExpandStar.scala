@@ -40,7 +40,7 @@ import org.neo4j.cypher.internal.util.topDown
 
 case object ProjectionClausesHaveSemanticInfo extends Condition
 
-case class ExpandStar(state: SemanticState) extends Rewriter {
+case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty) extends Rewriter {
 
   override def apply(that: AnyRef): AnyRef = {
     instance(that)
@@ -54,7 +54,8 @@ case class ExpandStar(state: SemanticState) extends Rewriter {
 
     case clause @ Return(_, values, _, _, _, excludedNames, _, _) if values.includeExisting =>
       val newReturnItems =
-        if (values.includeExisting) returnItems(clause, values.items, values.defaultOrderOnColumns, excludedNames)
+        if (values.includeExisting)
+          returnItems(clause, values.items, values.defaultOrderOnColumns, excludedNames ++ exclude)
         else values
       clause.copy(returnItems = newReturnItems, excludedNames = Set.empty)(clause.position)
 
@@ -63,9 +64,9 @@ case class ExpandStar(state: SemanticState) extends Rewriter {
         if (values.includeExisting) returnItems(clause, values.items, values.defaultOrderOnColumns) else values
       clause.copy(returnItems = newReturnItems)(clause.position)
 
-    case clause @ ScopeClauseSubqueryCall(iq, true, _, _, _) =>
-      val innerQuery = iq.endoRewrite(this)
-      val expandedItems = importVariables(clause)
+    case clause @ ScopeClauseSubqueryCall(iq, importAll, imports, _, _) =>
+      val expandedItems = if (importAll) importVariables(clause) else imports
+      val innerQuery = iq.endoRewrite(ExpandStar(state, expandedItems.map(_.name).toSet ++ exclude))
       clause.copy(innerQuery = innerQuery, isImportingAll = false, importedVariables = expandedItems)(clause.position)
 
     case expandedAstNode =>
@@ -93,7 +94,7 @@ case class ExpandStar(state: SemanticState) extends Rewriter {
     }).getOrElse(symbolNames.toIndexedSeq.sorted)
     val expandedItems = orderedSymbolNames.map { id =>
       // We use the position of the clause for variables in new return items.
-      // If the position was one of previous declaration, that could destroy scoping.
+      // If the position was one of previous declarations, that could destroy scoping.
       val expr = Variable(id)(clausePos, Variable.isIsolatedDefault)
       val alias = expr.copyId
       AliasedReturnItem(expr, alias)(clausePos)
