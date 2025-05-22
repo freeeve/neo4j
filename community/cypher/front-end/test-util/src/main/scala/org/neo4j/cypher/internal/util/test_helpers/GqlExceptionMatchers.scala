@@ -262,7 +262,7 @@ trait GqlExceptionMatchers {
             } else {
               Matcher { ex =>
                 MatchResult(
-                  ex.getMessage.equals(legacyMsg),
+                  ex.getMessage.replace("\r\n", "\n").equals(legacyMsg.replace("\r\n", "\n")),
                   s"Message '${ex.getMessage}' did not equal '$legacyMsg'",
                   s"Message equals '$legacyMsg'"
                 )
