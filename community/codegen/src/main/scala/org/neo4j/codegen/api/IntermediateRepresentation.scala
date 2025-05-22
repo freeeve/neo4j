@@ -1566,9 +1566,6 @@ object IntermediateRepresentation {
 
   def loadField(field: Field): IntermediateRepresentation = LoadField(None, field)
 
-  def loadField(owner: IntermediateRepresentation, field: Field): IntermediateRepresentation =
-    LoadField(Some(owner), field)
-
   def setField(field: Field, value: IntermediateRepresentation): IntermediateRepresentation =
     SetField(None, field, value)
 
@@ -1713,6 +1710,20 @@ object IntermediateRepresentation {
 
   def block(ops: IntermediateRepresentation*): IntermediateRepresentation = {
     val reducedOps = ops.filter(_ != Noop)
+    if (reducedOps.isEmpty) noop()
+    else if (reducedOps.length == 1) reducedOps.head
+    else Block(reducedOps)
+  }
+
+  // similar to the above but nested Blocks are flattened
+  def flattenBlock(ops: IntermediateRepresentation*): IntermediateRepresentation = {
+    def flatten(ops: Iterator[IntermediateRepresentation]): Iterator[IntermediateRepresentation] =
+      ops.flatMap {
+        case Block(ops) => flatten(ops.iterator)
+        case op         => Iterator(op)
+      }
+
+    val reducedOps = flatten(ops.iterator).filter(_ != Noop).toSeq
     if (reducedOps.isEmpty) noop()
     else if (reducedOps.length == 1) reducedOps.head
     else Block(reducedOps)
