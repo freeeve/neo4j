@@ -322,6 +322,7 @@ case class CommunityExpressionConverter(
         commands.expressions
           .ShortestPathExpression(
             e.pattern.asLegacyPatterns(id, None, self, anonymousVariableNameGenerator).head,
+            disallowSameNode = runtimeConfig.errorIfShortestPathHasCommonNodesAtRuntime,
             operatorId = id
           )
       case e: internal.expressions.HasLabelsOrTypes   => hasLabelsOrTypes(id, e, self)

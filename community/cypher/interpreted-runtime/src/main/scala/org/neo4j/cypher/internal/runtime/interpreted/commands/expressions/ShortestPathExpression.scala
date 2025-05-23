@@ -44,7 +44,7 @@ import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 case class ShortestPathExpression(
   shortestPathPattern: ShortestPath,
-  disallowSameNode: Boolean = true,
+  disallowSameNode: Boolean,
   operatorId: Id = Id.INVALID_ID
 ) extends Expression {
 
@@ -135,7 +135,11 @@ case class ShortestPathExpression(
   override def arguments: Seq[Expression] = Seq.empty
 
   override def rewrite(f: Expression => Expression): Expression =
-    f(ShortestPathExpression(shortestPathPattern.rewrite(f), operatorId = operatorId))
+    f(ShortestPathExpression(
+      shortestPathPattern.rewrite(f),
+      disallowSameNode = disallowSameNode,
+      operatorId = operatorId
+    ))
 }
 
 object ShortestPathExpression {

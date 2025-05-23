@@ -52,7 +52,7 @@ class PathExpressionTest extends GraphDatabaseFunSuite with QueryStateTestSuppor
       relIterator = None
     )
 
-    val expression = ShortestPathExpression(pattern)
+    val expression = ShortestPathExpression(pattern, disallowSameNode = true)
 
     val m = CypherRow.from("a" -> a, "c" -> c)
 

@@ -47,7 +47,8 @@ object CypherRuntimeConfiguration {
       freeMemoryOfUnusedColumns = config.freeMemoryOfUnusedColumns,
       expressionEngineOption = config.expressionEngineOption,
       spdBatchSize = config.shardedPropertyBatchSize,
-      warnOnAggregationSkipNull = config.warnOnAggregationSkipNull
+      warnOnAggregationSkipNull = config.warnOnAggregationSkipNull,
+      errorIfShortestPathHasCommonNodesAtRuntime = config.errorIfShortestPathHasCommonNodesAtRuntime
     )
   }
 
@@ -72,7 +73,8 @@ case class CypherRuntimeConfiguration(
   freeMemoryOfUnusedColumns: Boolean,
   expressionEngineOption: CypherExpressionEngineOption,
   spdBatchSize: Int,
-  warnOnAggregationSkipNull: Boolean
+  warnOnAggregationSkipNull: Boolean,
+  errorIfShortestPathHasCommonNodesAtRuntime: Boolean
 ) {
 
   Preconditions.checkArgument(
