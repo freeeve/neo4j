@@ -1394,7 +1394,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     planner.plan(query).stripProduceResults shouldEqual
       planner.subPlanBuilder()
-        .aggregation(Seq("cacheN[friend.firstName] AS `friend.firstName`"), Seq("min(anon_1) AS distance"))
+        .projection("anon_1 AS distance", "cacheN[friend.firstName] AS `friend.firstName`")
         .remoteBatchPropertiesWithFilter("cacheNFromStore[friend.firstName]")("friend.firstName = $Name")
         .bfsPruningVarExpand("(anon_0)-[:KNOWS*1..3]-(friend)", depthName = Some("anon_1"), mode = ExpandAll)
         .nodeIndexOperator(

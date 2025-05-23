@@ -38,6 +38,8 @@ import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.OrderedAggregation
 import org.neo4j.cypher.internal.logical.plans.OrderedDistinct
 import org.neo4j.cypher.internal.logical.plans.Projection
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.SameId
@@ -201,7 +203,9 @@ case object bfsAggregationRemover extends Rewriter {
 
         case _: Selection |
           _: Eager |
-          _: CacheProperties =>
+          _: CacheProperties |
+          _: RemoteBatchProperties |
+          _: RemoteBatchPropertiesWithFilter =>
           distinctHorizon
 
         case SingleRowLeaf(_) =>
