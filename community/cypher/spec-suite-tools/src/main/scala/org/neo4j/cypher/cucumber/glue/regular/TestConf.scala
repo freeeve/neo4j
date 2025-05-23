@@ -487,6 +487,41 @@ object TestConf {
     final class ObjectFactory extends SingletonInjector(injector)
   }
 
+  object Planner {
+
+    object InferLabels extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Planner$InferLabels$ObjectFactory"
+
+      final override val conf: TestConf = TestConf.withCypher25(TestConf(
+        neo4jConf = Map("dbms.cypher.infer_schema_parts" -> "MOST_SELECTIVE_LABEL")
+      ))
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object SmallIdpTableSize extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Planner$SmallIdpTableSize$ObjectFactory"
+
+      final override val conf: TestConf = {
+        val idpTableSize = ThreadLocalRandom.current().nextInt(16, 128)
+        TestConf.withCypher25(TestConf(
+          neo4jConf = Map("internal.cypher.idp_solver_table_threshold" -> idpTableSize.toString)
+        ))
+      }
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object UpdateStrategyEager extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$Planner$UpdateStrategyEager$ObjectFactory"
+
+      final override val conf: TestConf = TestConf.withCypher25(TestConf(
+        preparserOptions = Map("updateStrategy" -> "eager")
+      ))
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+  }
+
   private def preParserPrefix(options: Map[String, String]): String = {
     if (options.isEmpty) ""
     else options

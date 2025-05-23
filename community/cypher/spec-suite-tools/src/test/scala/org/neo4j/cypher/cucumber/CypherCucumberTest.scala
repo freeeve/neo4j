@@ -302,7 +302,10 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       TestConf.SpdParallel.FactoryName -> TestConf.SpdParallel.conf,
       TestConf.CommunityDefaultBolt.Cypher25.FactoryName -> TestConf.CommunityDefaultBolt.Cypher25.conf,
       TestConf.CommunityDefaultBolt.Cypher5.FactoryName -> TestConf.CommunityDefaultBolt.Cypher5.conf,
-      TestConf.Legacy.FactoryName -> TestConf.Legacy.conf
+      TestConf.Legacy.FactoryName -> TestConf.Legacy.conf,
+      TestConf.Planner.SmallIdpTableSize.FactoryName -> TestConf.Planner.SmallIdpTableSize.conf,
+      TestConf.Planner.InferLabels.FactoryName -> TestConf.Planner.InferLabels.conf,
+      TestConf.Planner.UpdateStrategyEager.FactoryName -> TestConf.Planner.UpdateStrategyEager.conf
     )
 
     // It's important that the ObjectFactoryName match the correct config.
@@ -342,7 +345,10 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       TestConf.SpdParallel.FactoryName -> "CYPHER runtime=parallel",
       TestConf.CommunityDefaultBolt.Cypher25.FactoryName -> "",
       TestConf.CommunityDefaultBolt.Cypher5.FactoryName -> "",
-      TestConf.Legacy.FactoryName -> "CYPHER runtime=legacy"
+      TestConf.Legacy.FactoryName -> "CYPHER runtime=legacy",
+      TestConf.Planner.SmallIdpTableSize.FactoryName -> "",
+      TestConf.Planner.InferLabels.FactoryName -> "",
+      TestConf.Planner.UpdateStrategyEager.FactoryName -> "CYPHER updateStrategy=eager"
     )
     expectedPrefix.foreach { case (className, prefix) =>
       withClue(className)(testConfs.get(className).map(_.preparserPrefix.trim) shouldBe Some(prefix))
