@@ -195,7 +195,8 @@ public class TransactionLogServiceImpl implements TransactionLogService {
                     readOnlyStoreChannel.position(),
                     endOffset,
                     lastAppendIndex,
-                    logFilePrevChecksum(startPositionAppendIndex, minimalVersion, version, logHeader)));
+                    logFilePrevChecksum(startPositionAppendIndex, minimalVersion, version, logHeader),
+                    logHeader.getLogFormatVersion()));
         }
         logFile.registerExternalReaders(internalChannels);
         return channels;

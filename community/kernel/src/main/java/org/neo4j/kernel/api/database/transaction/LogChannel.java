@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.database.transaction;
 
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.storageengine.api.LogVersionRepository;
 
 /**
@@ -31,7 +32,8 @@ import org.neo4j.storageengine.api.LogVersionRepository;
  * @param endOffset        a known transaction-ending aligned offset for this channel.
  * @param lastAppendIndex  last append index in this channel.
  * @param previousChecksum previous checksum if at beginning of a file,
- *                         or {@link LogVersionRepository#UNKNOWN_LOG_OFFSET} if starting from the middle of a file.
+ *                         or {@link LogVersionRepository#UNKNOWN_LOG_OFFSET} if starting from the middle of a file,
+ * @param logFormatVersion the log format version for this log channel.
  */
 public record LogChannel(
         long startAppendIndex,
@@ -40,7 +42,8 @@ public record LogChannel(
         long startOffset,
         long endOffset,
         long lastAppendIndex,
-        int previousChecksum)
+        int previousChecksum,
+        LogFormat logFormatVersion)
         implements AutoCloseable {
     @Override
     public void close() throws Exception {
