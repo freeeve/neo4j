@@ -53,7 +53,10 @@ import static org.neo4j.values.storable.Values.of;
 import static org.neo4j.values.storable.Values.pointArray;
 import static org.neo4j.values.storable.Values.shortArray;
 import static org.neo4j.values.storable.Values.timeArray;
+import static org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -64,7 +67,9 @@ import java.time.ZonedDateTime;
 import java.time.temporal.TemporalAmount;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
@@ -75,6 +80,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.internal.helpers.ArrayUtil;
 import org.neo4j.io.pagecache.ByteArrayPageCursor;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCursor;
@@ -90,8 +96,14 @@ import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.DoubleArray;
 import org.neo4j.values.storable.DoubleValue;
 import org.neo4j.values.storable.DurationValue;
+import org.neo4j.values.storable.Float32Vector;
+import org.neo4j.values.storable.Float64Vector;
 import org.neo4j.values.storable.FloatArray;
 import org.neo4j.values.storable.FloatValue;
+import org.neo4j.values.storable.Int16Vector;
+import org.neo4j.values.storable.Int32Vector;
+import org.neo4j.values.storable.Int64Vector;
+import org.neo4j.values.storable.Int8Vector;
 import org.neo4j.values.storable.IntArray;
 import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.LocalDateTimeValue;
@@ -109,6 +121,7 @@ import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 
 @ExtendWith(RandomExtension.class)
 @TestInstance(PER_CLASS)
@@ -118,43 +131,12 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
 
     @BeforeEach
     void setupRandomConfig() {
-        random = random.withConfiguration(new RandomValues.Configuration() {
-            @Override
-            public int stringMinLength() {
-                return 0;
-            }
-
-            @Override
-            public int stringMaxLength() {
-                return 50;
-            }
-
-            @Override
-            public int arrayMinLength() {
-                return 0;
-            }
-
-            @Override
-            public int arrayMaxLength() {
-                return 10;
-            }
-
-            @Override
-            public int maxCodePoint() {
-                return RandomValues.MAX_BMP_CODE_POINT;
-            }
-
-            @Override
-            public int minCodePoint() {
-                return Character.MIN_CODE_POINT;
-            }
-
-            @Override
-            public boolean includeVectorTypes() {
-                // TODO: Vector index support
-                return false;
-            }
-        });
+        random = random.withConfiguration(RandomValues.defaults()
+                .stringMinLength(0)
+                .stringMaxLength(50)
+                .arrayMinLength(0)
+                .maxCodePoint(RandomValues.MAX_BMP_CODE_POINT)
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
         random.reset();
     }
 
@@ -252,13 +234,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
             mode = EXCLUDE,
             names = {
                 "NO_VALUE",
-                "INT8VECTOR",
-                "INT16VECTOR",
-                "INT32VECTOR",
-                "INT64VECTOR",
-                "FLOAT32VECTOR",
-                "FLOAT64VECTOR"
-            }) // todo: remove VECTOR when implemented
+            })
     void copyShouldCopyExtremeValues(ValueGroup valueGroup) {
         // Given
         KEY extreme = newKeyState();
@@ -326,6 +302,71 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
                 }
             }
         }
+    }
+
+    @Test
+    void vectorKeysMustBeOrderedAfterCoordinateAndDimensionAndLexicographicOrder() {
+        var expectedOrder = List.of(
+                Values.int8Vector(new byte[] {1, 2, 3}),
+                Values.int8Vector(new byte[] {3, 2, 1}),
+                Values.int16Vector(new short[] {1, 2, 3}),
+                Values.int16Vector(new short[] {3, 2, 1}),
+                Values.int32Vector(new int[] {1, 2, 3}),
+                Values.int32Vector(new int[] {3, 2, 1}),
+                Values.int64Vector(new long[] {1, 2, 3}),
+                Values.int64Vector(new long[] {3, 2, 1}),
+                Values.float32Vector(new float[] {1, 2, 3}),
+                Values.float32Vector(new float[] {3, 2, 1}),
+                Values.float64Vector(new double[] {1, 2, 3}),
+                Values.float64Vector(new double[] {3, 2, 1}));
+
+        Function<VectorValue, RangeKey> makeKey = (v) -> {
+            var k = new RangeKey();
+            v.writeTo(k);
+            return k;
+        };
+
+        var shuffled = new ArrayList<>(expectedOrder);
+        Collections.shuffle(shuffled, random.random());
+        var actualOrder = shuffled.stream()
+                .map(makeKey)
+                .sorted(RangeKey::compareValueTo)
+                .map(RangeKey::asValue)
+                .toList();
+        assertThat(actualOrder).isEqualTo(expectedOrder);
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void vectorKeysAreNotConfusedAboutEndianness(ByteOrder order) {
+        final byte[] storage = new byte[PageCache.PAGE_SIZE];
+        final var value = Values.int32Vector(0xde7ec7ed);
+        final var serializeKey = new RangeKey();
+        final var deserializeKey = new RangeKey();
+
+        // Make sure that the keys are properly initialized
+        serializeKey.clear();
+        deserializeKey.clear();
+
+        // when
+        value.writeTo(serializeKey);
+        try (var cursor = new ByteArrayPageCursor(
+                0, ByteBuffer.wrap(storage, 0, storage.length).order(order))) {
+            serializeKey.put(cursor);
+        }
+
+        try (var cursor = new ByteArrayPageCursor(
+                0, ByteBuffer.wrap(storage, 0, storage.length).order(order))) {
+            deserializeKey.get(cursor, serializeKey.size());
+        }
+
+        // then
+        assertThat(value).isEqualTo(deserializeKey.asValue());
+        assertThat(serializeKey.compareValueTo(deserializeKey)).isZero();
+    }
+
+    public Stream<ByteOrder> vectorKeysAreNotConfusedAboutEndianness() {
+        return Stream.of(ByteOrder.BIG_ENDIAN, ByteOrder.LITTLE_ENDIAN);
     }
 
     // The reason this test doesn't test incomparable values is that it relies on ordering being same as that of the
@@ -516,6 +557,13 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
         assertLowest(of(ArrayUtils.EMPTY_LONG_ARRAY));
         assertLowest(of(ArrayUtils.EMPTY_FLOAT_ARRAY));
         assertLowest(of(ArrayUtils.EMPTY_DOUBLE_ARRAY));
+        // VECTORS (ordered lexicographically)
+        assertLowest(Values.int8Vector((byte) 0));
+        assertLowest(Values.int16Vector((short) 0));
+        assertLowest(Values.int32Vector(0));
+        assertLowest(Values.int64Vector(0));
+        assertLowest(Values.float32Vector(0));
+        assertLowest(Values.float64Vector(0));
     }
 
     @Test
@@ -578,6 +626,13 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
         assertHighest(longArray(new long[] {Long.MAX_VALUE}));
         assertHighest(floatArray(new float[] {Float.POSITIVE_INFINITY}));
         assertHighest(doubleArray(new double[] {Double.POSITIVE_INFINITY}));
+        // VECTORS
+        assertHighest(Values.int8Vector(ArrayUtil.filled(MAX_VECTOR_DIMENSIONS, Byte.MAX_VALUE)));
+        assertHighest(Values.int16Vector(ArrayUtil.filled(MAX_VECTOR_DIMENSIONS, Short.MAX_VALUE)));
+        assertHighest(Values.int32Vector(ArrayUtil.filled(MAX_VECTOR_DIMENSIONS, Integer.MAX_VALUE)));
+        assertHighest(Values.int64Vector(ArrayUtil.filled(MAX_VECTOR_DIMENSIONS, Long.MAX_VALUE)));
+        assertHighest(Values.float32Vector(ArrayUtil.filled(MAX_VECTOR_DIMENSIONS, Float.MAX_VALUE)));
+        assertHighest(Values.float64Vector(ArrayUtil.filled(MAX_VECTOR_DIMENSIONS, Double.MAX_VALUE)));
     }
 
     @Test
@@ -794,6 +849,9 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
                 29;
             case GEOMETRY -> getGeometrySize(value);
             case TEXT -> getStringSize(value);
+            case INT8VECTOR, INT16VECTOR, INT32VECTOR, INT64VECTOR, FLOAT32VECTOR, FLOAT64VECTOR ->
+                // typeName: VectorKeyType
+                getVectorSize(value);
             default ->
                 throw new RuntimeException("Did not expect this type to be tested in this test. Value was " + value);
         };
@@ -1022,7 +1080,8 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
                 () -> random.randomValues().nextTextValue(),
                 () -> random.randomValues().nextAlphaNumericTextValue(),
                 () -> random.randomValues().nextBooleanValue(),
-                () -> random.randomValues().nextNumberValue()));
+                () -> random.randomValues().nextNumberValue(),
+                () -> random.randomValues().nextVectorValue()));
 
         if (includeIncomparable) {
             generators.addAll(asList(
@@ -1127,6 +1186,20 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
                     "Unexpected class for value in value group " + GEOMETRY + ", was " + value.getClass());
         }
         return getPointSerialisedSize(dimensions);
+    }
+
+    private int getVectorSize(Value value) {
+        return Byte.BYTES /* typeId */
+                + Integer.BYTES /* dimension header */
+                + switch (value) {
+                    case Int8Vector i8v -> Types.VECTOR_INT8.elementSize * i8v.dimensions();
+                    case Int16Vector i16v -> Types.VECTOR_INT16.elementSize * i16v.dimensions();
+                    case Int32Vector i32v -> Types.VECTOR_INT32.elementSize * i32v.dimensions();
+                    case Int64Vector i64v -> Types.VECTOR_INT64.elementSize * i64v.dimensions();
+                    case Float32Vector f32v -> Types.VECTOR_FLOAT32.elementSize * f32v.dimensions();
+                    case Float64Vector f64v -> Types.VECTOR_FLOAT64.elementSize * f64v.dimensions();
+                    default -> throw new IllegalArgumentException(value.toString());
+                };
     }
 
     private static int getNumberSize(Value value) {

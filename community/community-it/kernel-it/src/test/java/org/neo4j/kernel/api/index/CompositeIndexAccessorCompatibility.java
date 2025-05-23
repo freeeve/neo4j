@@ -89,6 +89,7 @@ import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.PointValue;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
@@ -105,7 +106,10 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
     @Test
     void testIndexScan() throws Exception {
         List<Long> ids = LongStream.rangeClosed(1L, 10L).boxed().toList();
-        Supplier<Value> randomValue = () -> random.randomValues().nextValueOfTypes(testSuite.supportedValueTypes());
+        final RandomValues rv = RandomValues.create(
+                random.random(),
+                RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2));
+        Supplier<Value> randomValue = () -> rv.nextValueOfTypes(testSuite.supportedValueTypes());
 
         updateAndCommit(ids.stream()
                 .map(id -> add(id, descriptor, randomValue.get(), randomValue.get()))
@@ -611,16 +615,14 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
     void testExactMatchOnRandomCompositeValues() throws Exception {
         // given
         ValueType[] types = randomSetOfSupportedTypes();
+        RandomValues randomValues = randomValues(2);
         List<ValueIndexEntryUpdate> updates = new ArrayList<>();
         Set<ValueTuple> duplicateChecker = new HashSet<>();
         for (long id = 0; id < 10_000; id++) {
             ValueIndexEntryUpdate update;
             do {
-                update = add(
-                        id,
-                        descriptor,
-                        random.randomValues().nextValueOfTypes(types),
-                        random.randomValues().nextValueOfTypes(types));
+                update =
+                        add(id, descriptor, randomValues.nextValueOfTypes(types), randomValues.nextValueOfTypes(types));
             } while (!duplicateChecker.add(ValueTuple.of(update.values())));
             updates.add(update);
         }
@@ -1179,17 +1181,20 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
     @Test
     void shouldUpdateEntries() throws Exception {
         ValueType[] valueTypes = testSuite.supportedValueTypes();
+        RandomValues randomValues = randomValues(2);
         long entityId = random.nextLong(1_000_000_000);
         for (ValueType valueType : valueTypes) {
             // given
-            Value[] value = new Value[] {random.nextValue(valueType), random.nextValue(valueType)};
+            Value[] value =
+                    new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
             updateAndCommit(singletonList(IndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(exactQuery(value)));
 
             // when
             Value[] newValue;
             do {
-                newValue = new Value[] {random.nextValue(valueType), random.nextValue(valueType)};
+                newValue =
+                        new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
             } while (ValueTuple.of(value).equals(ValueTuple.of(newValue)));
             updateAndCommit(singletonList(IndexEntryUpdate.change(entityId, descriptor, value, newValue)));
 
@@ -1202,10 +1207,12 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
     @Test
     void shouldRemoveEntries() throws Exception {
         ValueType[] valueTypes = testSuite.supportedValueTypes();
+        RandomValues randomValues = randomValues(2);
         long entityId = random.nextLong(1_000_000_000);
         for (ValueType valueType : valueTypes) {
             // given
-            Value[] value = new Value[] {random.nextValue(valueType), random.nextValue(valueType)};
+            Value[] value =
+                    new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
             updateAndCommit(singletonList(IndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(exactQuery(value)));
 

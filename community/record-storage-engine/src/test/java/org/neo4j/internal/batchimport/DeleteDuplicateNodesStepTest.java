@@ -102,7 +102,7 @@ class DeleteDuplicateNodesStepTest {
     @BeforeEach
     void before() {
         random.withConfiguration(
-                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+                RandomValues.defaults().includeVectorTypes(false) /* Record engine does not support vectors. */);
         random.reset();
         contextFactory = new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER);
         var storeFactory = new StoreFactory(

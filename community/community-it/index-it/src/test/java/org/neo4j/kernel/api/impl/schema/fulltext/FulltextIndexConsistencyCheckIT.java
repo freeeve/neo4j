@@ -99,7 +99,7 @@ class FulltextIndexConsistencyCheckIT {
 
     @BeforeEach
     void before() {
-        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector pointer issue */);
+        random.withConfiguration(RandomValues.defaults().includeVectorTypes(false) /* TODO: Vector pointer issue */);
         random.reset();
         builder = new TestDatabaseManagementServiceBuilder(testDirectory.homePath());
     }

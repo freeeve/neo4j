@@ -53,12 +53,7 @@ class StringCollisionValuesTest {
 
     @BeforeEach
     void before() {
-        random.withConfiguration(new RandomValues.Default() {
-            @Override
-            public int stringMaxLength() {
-                return (1 << Short.SIZE) - 1;
-            }
-        });
+        random.withConfiguration(RandomValues.defaults().stringMaxLength(RandomValues.MAX_BMP_CODE_POINT));
         random.reset();
     }
 

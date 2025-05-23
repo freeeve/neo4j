@@ -84,7 +84,7 @@ public abstract class AbstractRecordCloningTest {
     @BeforeEach
     void setUp() {
         random.withConfiguration(
-                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record format does not support vectors. */);
+                RandomValues.defaults().includeVectorTypes(false) /* Record format does not support vectors. */);
         random.reset();
         RecordFormats formats = formats();
         RecordGenerators generators =

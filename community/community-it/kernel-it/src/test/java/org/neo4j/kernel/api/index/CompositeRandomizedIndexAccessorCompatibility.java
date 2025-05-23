@@ -40,6 +40,7 @@ import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.InMemoryTokens;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.ValueType;
@@ -60,6 +61,7 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
         @Test
         void testExactMatchOnRandomCompositeValues() throws Exception {
             // given
+            RandomValues randomValues = randomValues(4);
             ValueType[] types = randomSetOfSupportedTypes();
             List<ValueIndexEntryUpdate> updates = new ArrayList<>();
             Set<ValueTuple> duplicateChecker = new HashSet<>();
@@ -69,10 +71,10 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
                     update = add(
                             id,
                             descriptor,
-                            random.randomValues().nextValueOfTypes(types),
-                            random.randomValues().nextValueOfTypes(types),
-                            random.randomValues().nextValueOfTypes(types),
-                            random.randomValues().nextValueOfTypes(types));
+                            randomValues.nextValueOfTypes(types),
+                            randomValues.nextValueOfTypes(types),
+                            randomValues.nextValueOfTypes(types),
+                            randomValues.nextValueOfTypes(types));
                 } while (!duplicateChecker.add(ValueTuple.of(update.values())));
                 updates.add(update);
             }
@@ -225,12 +227,14 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
 
         private ValueTuple generateUniqueRandomValue(ValueType[] types, Set<ValueTuple> duplicateChecker) {
             ValueTuple value;
+            RandomValues randomValues = RandomValues.create(
+                    random.random(),
+                    RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2));
             var maxTries = 0;
             do {
                 value = ValueTuple.of(
                         // Use boolean for first slot in composite because we will use exact match on this part.x
-                        random.randomValues().nextBooleanValue(),
-                        random.randomValues().nextValueOfTypes(types));
+                        randomValues.nextBooleanValue(), randomValues.nextValueOfTypes(types));
                 if (maxTries++ == 1000) {
                     return null;
                 }

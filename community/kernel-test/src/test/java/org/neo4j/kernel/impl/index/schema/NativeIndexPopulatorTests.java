@@ -42,6 +42,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Values;
 
 abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
@@ -152,9 +153,11 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
     void shouldApplyLargeAmountOfInterleavedRandomUpdates() throws Exception {
         // given
         populator.create();
-        random.reset();
+        var cfg = RandomValues.defaults()
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / LARGE_AMOUNT_OF_UPDATES);
+        var randomValues = RandomValues.create(random.random(), cfg);
         Random updaterRandom = new Random(random.seed());
-        Iterator<ValueIndexEntryUpdate> updates = valueCreatorUtil.randomUpdateGenerator(random);
+        Iterator<ValueIndexEntryUpdate> updates = valueCreatorUtil.randomUpdateGenerator(randomValues);
 
         // when
         int count = interleaveLargeAmountOfUpdates(updaterRandom, updates);
@@ -163,7 +166,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
         populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
         populator.close(true, NULL_CONTEXT);
         random.reset();
-        verifyUpdates(valueCreatorUtil.randomUpdateGenerator(random), count);
+        verifyUpdates(valueCreatorUtil.randomUpdateGenerator(RandomValues.create(random.random(), cfg)), count);
     }
 
     private void verifyUpdates(Iterator<ValueIndexEntryUpdate> indexEntryUpdateIterator, int count) throws IOException {

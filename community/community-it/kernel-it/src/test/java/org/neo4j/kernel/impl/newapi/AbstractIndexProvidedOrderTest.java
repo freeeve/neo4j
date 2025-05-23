@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,6 +49,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.ValueType;
@@ -74,14 +76,7 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
             ValueType.DURATION,
             ValueType.DURATION_ARRAY,
             ValueType.PERIOD,
-            ValueType.PERIOD_ARRAY,
-            // TODO: Vector index support
-            ValueType.INT8VECTOR,
-            ValueType.INT16VECTOR,
-            ValueType.INT32VECTOR,
-            ValueType.INT64VECTOR,
-            ValueType.FLOAT32VECTOR,
-            ValueType.FLOAT64VECTOR);
+            ValueType.PERIOD_ARRAY);
 
     @Inject
     RandomSupport randomRule;
@@ -107,9 +102,21 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
             tx.commit();
         }
 
+        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb);
+        randomRule.withConfiguration(configuration);
+        randomRule.reset();
+
+        if (!configuration.includeVectorTypes()) {
+            targetedTypes = Arrays.stream(ALL_ORDERABLE)
+                    .filter(Predicate.not(RandomValues.IS_VECTOR_TYPE))
+                    .toArray(ValueType[]::new);
+        } else {
+            targetedTypes = ALL_ORDERABLE;
+        }
+
         RandomValues randomValues = randomRule.randomValues();
 
-        targetedTypes = randomValues.selection(ALL_ORDERABLE, 1, ALL_ORDERABLE.length, false);
+        targetedTypes = randomValues.selection(targetedTypes, 1, targetedTypes.length, false);
         targetedTypes = ensureHighEnoughCardinality(targetedTypes);
         try (Transaction tx = graphDb.beginTx()) {
             for (int i = 0; i < N_ENTITIES; i++) {
@@ -131,7 +138,6 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
     @Test
     void shouldProvideResultInOrderIfCapable() throws KernelException {
         int prop = token.propertyKey(PROPERTY_KEY);
-
         RandomValues randomValues = randomRule.randomValues();
         IndexReadSession index = read.indexReadSession(tx.schemaRead().indexGetForName(INDEX_NAME));
         for (int i = 0; i < N_ITERATIONS; i++) {

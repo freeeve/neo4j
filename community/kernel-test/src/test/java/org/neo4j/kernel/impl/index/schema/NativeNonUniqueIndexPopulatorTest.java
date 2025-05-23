@@ -127,10 +127,10 @@ abstract class NativeNonUniqueIndexPopulatorTest<KEY extends NativeIndexKey<KEY>
         // GIVEN
         try {
             populator.create();
+            Value[] updates = new Value[5];
             ValueIndexEntryUpdate[] scanUpdates = valueCreatorUtil.someUpdates(random);
             populator.add(asList(scanUpdates), NULL_CONTEXT);
             Iterator<ValueIndexEntryUpdate> generator = valueCreatorUtil.randomUpdateGenerator(random);
-            Value[] updates = new Value[5];
             updates[0] = generator.next().values()[0];
             updates[1] = generator.next().values()[0];
             updates[2] = updates[1];

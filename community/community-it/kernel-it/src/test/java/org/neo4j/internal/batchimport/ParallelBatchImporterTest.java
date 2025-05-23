@@ -563,7 +563,8 @@ public class ParallelBatchImporterTest {
                 batchSize,
                 new RandomsStates(
                         randomSeed,
-                        RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */),
+                        RandomValues.defaults()
+                                .includeVectorTypes(false) /* Record engine does not support vectors. */),
                 (randoms, visitor, id) -> {
                     int thisPropertyCount = randomProperties(randoms, "Name " + id, visitor);
                     ExistingId startNodeExistingId = idGenerator.randomExisting(randoms);
@@ -605,7 +606,7 @@ public class ParallelBatchImporterTest {
                 batchSize,
                 new RandomsStates(
                         randomSeed,
-                        RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector PropertyBlockValueWriter */),
+                        RandomValues.defaults().includeVectorTypes(false) /* TODO: Vector PropertyBlockValueWriter */),
                 (randoms, visitor, id) -> {
                     Object nodeId = inputIdGenerator.nextNodeId(randoms, id);
                     Group group = groups.groupOf(id);

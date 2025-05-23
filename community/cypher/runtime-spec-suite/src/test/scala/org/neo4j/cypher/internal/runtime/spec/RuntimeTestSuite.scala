@@ -448,7 +448,8 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
         val crsExpr = "crs" -> literal(point.getCRS.getType)
         resolve(function("point", mapOf((coordExpr :+ crsExpr): _*)))
       case array: Array[_] => listOf(array.map(toExpression): _*)
-      case other           => literal(other)
+      // TODO: Vector cypher expressions
+      case other => literal(other)
     }
   }
 

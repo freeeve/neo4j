@@ -43,7 +43,7 @@ trait PropertyIndexTestSupport[CONTEXT <: RuntimeContext] {
       ValueType.CHAR_ARRAY,
       ValueType.BYTE,
       ValueType.BYTE_ARRAY,
-      // TODO: Vector index support
+      // TODO: Vector cypher literal
       ValueType.INT8VECTOR,
       ValueType.INT16VECTOR,
       ValueType.INT32VECTOR,

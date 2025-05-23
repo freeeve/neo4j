@@ -32,7 +32,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 import org.junit.jupiter.api.Nested;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -101,10 +100,7 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
                     ValueType.GEOGRAPHIC_POINT_3D,
                     ValueType.GEOGRAPHIC_POINT_3D_ARRAY);
         }
-        // TODO: Vector index support
-        return Arrays.stream(ValueType.ALL_TYPES)
-                .filter(Predicate.not(RandomValues.IS_VECTOR_TYPE))
-                .toArray(ValueType[]::new);
+        return ValueType.ALL_TYPES;
     }
 
     @Nested
@@ -199,7 +195,6 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
         Compatibility(PropertyIndexProviderCompatibilityTestSuite testSuite, IndexPrototype prototype) {
             super(testSuite, prototype);
             this.testSuite = testSuite;
-            // TODO: Vector index support
             this.valueSet1 = allValues(
                     testSuite.supportsSpatial(),
                     Arrays.asList(
@@ -212,7 +207,13 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
                             Values.of(new short[] {314, 1337}),
                             Values.of(new int[] {3140, 13370}),
                             Values.of(new long[] {31400, 133700}),
-                            Values.of(new boolean[] {true, true})),
+                            Values.of(new boolean[] {true, true}),
+                            Values.int8Vector(new byte[4000]),
+                            Values.int16Vector(new short[2000]),
+                            Values.int32Vector(new int[1000]),
+                            Values.int64Vector(new long[500]),
+                            Values.float32Vector(new float[1000]),
+                            Values.float64Vector(new double[500])),
                     Arrays.asList(
                             DateValue.epochDate(2),
                             LocalTimeValue.localTime(100000),
@@ -272,7 +273,13 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
                             Values.of(new short[] {99, 999}),
                             Values.of(new int[] {99999, 99999}),
                             Values.of(new long[] {999999, 999999}),
-                            Values.of(new boolean[] {false, false})),
+                            Values.of(new boolean[] {false, false}),
+                            Values.int8Vector(new byte[4000]),
+                            Values.int16Vector(new short[2000]),
+                            Values.int32Vector(new int[1000]),
+                            Values.int64Vector(new long[500]),
+                            Values.float32Vector(new float[1000]),
+                            Values.float64Vector(new double[500])),
                     Arrays.asList(
                             DateValue.epochDate(42),
                             LocalTimeValue.localTime(2000),

@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -59,20 +58,16 @@ class IndexUpdateStorageTest {
 
     private final RangeLayout layout = new RangeLayout(1);
 
-    @BeforeEach
-    void setup() {
-        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector index support */);
-        random.reset();
-    }
-
     @Test
     void shouldAddZeroEntries() throws IOException {
+        int blockSize = 1000;
+        random.withConfiguration(RandomValues.defaults().maxVectorNumBytes(blockSize));
         // given
         try (IndexUpdateStorage<RangeKey> storage = new IndexUpdateStorage<>(
                 directory.getFileSystem(),
                 directory.file("file"),
                 heapBufferFactory(0).globalAllocator(),
-                1000,
+                blockSize,
                 layout,
                 INSTANCE)) {
             // when
@@ -86,16 +81,19 @@ class IndexUpdateStorageTest {
 
     @Test
     void shouldAddFewEntries() throws IOException {
+        int blockSize = 1000;
+        int numEntries = 5;
+        random.withConfiguration(RandomValues.defaults().maxVectorNumBytes(blockSize / numEntries));
         // given
         try (IndexUpdateStorage<RangeKey> storage = new IndexUpdateStorage<>(
                 directory.getFileSystem(),
                 directory.file("file"),
                 heapBufferFactory(0).globalAllocator(),
-                1000,
+                blockSize,
                 layout,
                 INSTANCE)) {
             // when
-            var expected = generateSomeUpdates(5);
+            var expected = generateSomeUpdates(numEntries);
             storeAll(storage, expected);
 
             // then
@@ -105,16 +103,20 @@ class IndexUpdateStorageTest {
 
     @Test
     void shouldAddManyEntries() throws IOException {
+        int blockSize = 10_000;
+        int numEntries = 1_000;
+        random.withConfiguration(RandomValues.defaults().maxVectorNumBytes(blockSize / numEntries));
+        random.reset();
         // given
         try (IndexUpdateStorage<RangeKey> storage = new IndexUpdateStorage<>(
                 directory.getFileSystem(),
                 directory.file("file"),
                 heapBufferFactory(0).globalAllocator(),
-                10_000,
+                blockSize,
                 layout,
                 INSTANCE)) {
             // when
-            var expected = generateSomeUpdates(1_000);
+            var expected = generateSomeUpdates(numEntries);
             storeAll(storage, expected);
 
             // then

@@ -63,7 +63,7 @@ class AbstractBaseRecordCopyTest {
     @BeforeEach
     void setUp() {
         random.withConfiguration(
-                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+                RandomValues.defaults().includeVectorTypes(false) /* Record engine does not support vectors. */);
         random.reset();
         dataProviders.put(int.class, () -> random.nextInt());
         dataProviders.put(long.class, () -> random.nextLong());

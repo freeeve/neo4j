@@ -70,6 +70,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 import picocli.CommandLine;
 
 @Neo4jLayoutExtension
@@ -356,8 +357,9 @@ class MemoryRecommendationsCommandTest {
                 }
 
                 try (Transaction tx = db.beginTx()) {
-                    RandomValues randomValues = RandomValues.create(
-                            RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector index support*/);
+                    /* Not all storage engines support vectors. */
+                    RandomValues randomValues =
+                            RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
                     for (int i = 0; i < 10_000; i++) {
                         tx.createNode(labelOne)
                                 .setProperty(key, randomValues.nextValue().asObject());

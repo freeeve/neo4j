@@ -25,6 +25,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.neo4j.kernel.impl.index.schema.VectorKeyType.Float32VectorKey;
+import org.neo4j.kernel.impl.index.schema.VectorKeyType.Float64VectorKey;
+import org.neo4j.kernel.impl.index.schema.VectorKeyType.Int16VectorKey;
+import org.neo4j.kernel.impl.index.schema.VectorKeyType.Int32VectorKey;
+import org.neo4j.kernel.impl.index.schema.VectorKeyType.Int64VectorKey;
+import org.neo4j.kernel.impl.index.schema.VectorKeyType.Int8VectorKey;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.ValueWriter;
 
@@ -53,6 +59,12 @@ class Types {
     static final TextArrayType TEXT_ARRAY = new TextArrayType((byte) 17);
     static final BooleanArrayType BOOLEAN_ARRAY = new BooleanArrayType((byte) 18);
     static final NumberArrayType NUMBER_ARRAY = new NumberArrayType((byte) 19);
+    static final Int8VectorKey VECTOR_INT8 = new Int8VectorKey((byte) 20);
+    static final Int16VectorKey VECTOR_INT16 = new Int16VectorKey((byte) 21);
+    static final Int32VectorKey VECTOR_INT32 = new Int32VectorKey((byte) 22);
+    static final Int64VectorKey VECTOR_INT64 = new Int64VectorKey((byte) 23);
+    static final Float32VectorKey VECTOR_FLOAT32 = new Float32VectorKey((byte) 24);
+    static final Float64VectorKey VECTOR_FLOAT64 = new Float64VectorKey((byte) 25);
 
     /* Geometry constants are located in PointKeyUtil */
     public static final int SIZE_ZONED_DATE_TIME =
@@ -117,6 +129,12 @@ class Types {
         types.add(TEXT_ARRAY);
         types.add(BOOLEAN_ARRAY);
         types.add(NUMBER_ARRAY);
+        types.add(VECTOR_INT8);
+        types.add(VECTOR_INT16);
+        types.add(VECTOR_INT32);
+        types.add(VECTOR_INT64);
+        types.add(VECTOR_FLOAT32);
+        types.add(VECTOR_FLOAT64);
 
         // Assert order of typeId
         byte expectedTypeId = 0;

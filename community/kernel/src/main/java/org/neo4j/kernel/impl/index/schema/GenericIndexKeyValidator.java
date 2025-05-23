@@ -26,13 +26,12 @@ import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.index.IndexValueValidator;
-import org.neo4j.values.AnyValue;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.SequenceValue;
 import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
-import org.neo4j.values.storable.ValueCategory;
+import org.neo4j.values.storable.VectorValue;
 
 /**
  * Validates Value[] tuples, whether or not they fit inside a {@link GBPTree} with a layout using {@link GenericKey}.
@@ -88,7 +87,7 @@ class GenericIndexKeyValidator implements IndexValueValidator {
         return length;
     }
 
-    private static int worstCaseLength(AnyValue value) {
+    private static int worstCaseLength(Value value) {
         if (value.isSequenceValue()) {
             SequenceValue sequenceValue = (SequenceValue) value;
             if (sequenceValue instanceof TextArray textArray) {
@@ -99,14 +98,18 @@ class GenericIndexKeyValidator implements IndexValueValidator {
                 return length;
             }
             return sequenceValue.intSize() * BIGGEST_STATIC_SIZE;
-        } else {
-            if (((Value) value).valueGroup().category() == ValueCategory.TEXT) {
-                // For text, which is very dynamic in its nature do a worst-case off of number of characters in it
-                return stringWorstCaseLength(((TextValue) value).length());
-            }
-            // For all else then use the biggest possible value for a non-dynamic, non-array value a state can occupy
-            return BIGGEST_STATIC_SIZE;
         }
+
+        return switch (value.valueGroup().category()) {
+            case VECTOR -> ((VectorValue) value).dimensions() * BIGGEST_STATIC_SIZE;
+            case TEXT ->
+                // For text, which is very dynamic in its nature do a worst-case off of number of characters in it
+                stringWorstCaseLength(((TextValue) value).length());
+            case null, default ->
+                // For all else then use the biggest possible value for a non-dynamic, non-array value a state can
+                // occupy
+                BIGGEST_STATIC_SIZE;
+        };
     }
 
     private static int stringWorstCaseLength(int stringLength) {

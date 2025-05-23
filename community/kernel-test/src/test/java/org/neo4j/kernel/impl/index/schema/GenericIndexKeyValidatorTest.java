@@ -33,7 +33,6 @@ import static org.neo4j.values.storable.Values.intValue;
 import static org.neo4j.values.storable.Values.stringValue;
 
 import java.util.Arrays;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -43,7 +42,6 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.values.ElementIdMapper;
-import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 
 @ExtendWith(RandomExtension.class)
@@ -54,12 +52,6 @@ class GenericIndexKeyValidatorTest {
 
     @Inject
     private RandomSupport random;
-
-    @BeforeEach
-    void setup() {
-        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector index support*/);
-        random.reset();
-    }
 
     @Test
     void shouldNotBotherSerializingToRealBytesIfFarFromThreshold() {

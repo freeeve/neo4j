@@ -82,6 +82,7 @@ import org.eclipse.collections.api.list.primitive.LongList;
 public class RandomValues {
 
     public interface Configuration {
+
         int stringMinLength();
 
         int stringMaxLength();
@@ -95,53 +96,32 @@ public class RandomValues {
         int minCodePoint();
 
         boolean includeVectorTypes();
+
+        int maxVectorNumBytes();
     }
 
-    public static class Default implements Configuration {
-        @Override
-        public int stringMinLength() {
-            return 5;
-        }
+    private static final RecordConfiguration DEFAULTS = new RecordConfiguration(
+            5,
+            20,
+            1,
+            10,
+            Character.MIN_CODE_POINT,
+            Character.MAX_CODE_POINT,
+            true,
+            MAX_VECTOR_DIMENSIONS * Double.BYTES);
+    public static final Configuration DEFAULT_CONFIGURATION = DEFAULTS;
 
-        @Override
-        public int stringMaxLength() {
-            return 20;
-        }
-
-        @Override
-        public int arrayMinLength() {
-            return 1;
-        }
-
-        @Override
-        public int arrayMaxLength() {
-            return 10;
-        }
-
-        @Override
-        public int maxCodePoint() {
-            return Character.MAX_CODE_POINT;
-        }
-
-        @Override
-        public int minCodePoint() {
-            return Character.MIN_CODE_POINT;
-        }
-
-        @Override
-        public boolean includeVectorTypes() {
-            return true;
-        }
+    public static RandomValues.RecordConfiguration defaults() {
+        return RandomValues.DEFAULTS;
     }
+
+    /* This information is duplicated and could end up out-of-sync,
+       but since it is a major hassle to decouple this everywhere the tradeoff is reasonable.
+    */
+    public static final int MAX_NUM_BYTES_IN_INDEX_KEY =
+            8175 - 100 /* Account for some extra type information in the key */;
 
     public static final int MAX_BMP_CODE_POINT = 0xFFFF;
-    public static final Configuration DEFAULT_CONFIGURATION = new Default();
-    public static final Configuration DEFAULT_CONFIGURATION_NO_VECTOR = new Default() {
-        @Override
-        public boolean includeVectorTypes() {
-            return false;
-        }
-    };
     static final int MAX_ASCII_CODE_POINT = 0x7F;
 
     private static final ValueType[] ARRAY_TYPES = ValueType.arrayTypes();
@@ -396,32 +376,38 @@ public class RandomValues {
     }
 
     private Int8Vector nextInt8Vector() {
-        byte[] array = nextByteArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        int maxDimension = Math.min(maxVectorNumBytes(), MAX_VECTOR_DIMENSIONS);
+        byte[] array = nextByteArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
         return Values.int8Vector(array);
     }
 
     private Int16Vector nextInt16Vector() {
-        short[] array = nextShortArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        int maxDimension = Math.min(maxVectorNumBytes() / Short.BYTES, MAX_VECTOR_DIMENSIONS);
+        short[] array = nextShortArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
         return Values.int16Vector(array);
     }
 
     private Int32Vector nextInt32Vector() {
-        int[] array = nextIntArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        int maxDimension = Math.min(maxVectorNumBytes() / Integer.BYTES, MAX_VECTOR_DIMENSIONS);
+        int[] array = nextIntArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
         return Values.int32Vector(array);
     }
 
     private Int64Vector nextInt64Vector() {
-        long[] array = nextLongArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        int maxDimension = Math.min(maxVectorNumBytes() / Long.BYTES, MAX_VECTOR_DIMENSIONS);
+        long[] array = nextLongArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
         return Values.int64Vector(array);
     }
 
     private Float32Vector nextFloat32Vector() {
-        float[] array = nextFloatArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        int maxDimension = Math.min(maxVectorNumBytes() / Float.BYTES, MAX_VECTOR_DIMENSIONS);
+        float[] array = nextFloatArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
         return Values.float32Vector(array);
     }
 
     private Float64Vector nextFloat64Vector() {
-        double[] array = nextDoubleArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        int maxDimension = Math.min(maxVectorNumBytes() / Double.BYTES, MAX_VECTOR_DIMENSIONS);
+        double[] array = nextDoubleArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
         return Values.float64Vector(array);
     }
 
@@ -733,6 +719,20 @@ public class RandomValues {
      */
     public TextValue nextTextValue(int minLength, int maxLength) {
         return nextTextValue(minLength, maxLength, this::nextValidCodePoint);
+    }
+
+    /**
+     * @return {@link VectorValue}.
+     * @see RandomValues
+     */
+    public Value nextVectorValue() {
+        return nextValueOfTypes(
+                ValueType.INT8VECTOR,
+                ValueType.INT16VECTOR,
+                ValueType.INT32VECTOR,
+                ValueType.INT64VECTOR,
+                ValueType.FLOAT32VECTOR,
+                ValueType.FLOAT64VECTOR);
     }
 
     private TextValue nextTextValue(int minLength, int maxLength, CodePointFactory codePointFactory) {
@@ -1618,6 +1618,10 @@ public class RandomValues {
         return configuration.stringMinLength();
     }
 
+    private int maxVectorNumBytes() {
+        return configuration.maxVectorNumBytes();
+    }
+
     @FunctionalInterface
     private interface ElementFactory<T> {
         T generate();
@@ -1636,5 +1640,113 @@ public class RandomValues {
             return excluding(ALL_TYPES, IS_VECTOR_TYPE);
         }
         return ALL_TYPES;
+    }
+
+    public record RecordConfiguration(
+            int stringMinLength,
+            int stringMaxLength,
+            int arrayMinLength,
+            int arrayMaxLength,
+            int minCodePoint,
+            int maxCodePoint,
+            boolean includeVectorTypes,
+            int maxVectorNumBytes)
+            implements Configuration {
+
+        public RecordConfiguration stringMinLength(int length) {
+            return new RecordConfiguration(
+                    length,
+                    stringMaxLength,
+                    arrayMinLength,
+                    arrayMaxLength,
+                    minCodePoint,
+                    maxCodePoint,
+                    includeVectorTypes,
+                    maxVectorNumBytes);
+        }
+
+        public RecordConfiguration stringMaxLength(int length) {
+            return new RecordConfiguration(
+                    stringMinLength,
+                    length,
+                    arrayMinLength,
+                    arrayMaxLength,
+                    minCodePoint,
+                    maxCodePoint,
+                    includeVectorTypes,
+                    maxVectorNumBytes);
+        }
+
+        public RecordConfiguration arrayMinLength(int length) {
+            return new RecordConfiguration(
+                    stringMinLength,
+                    stringMaxLength,
+                    length,
+                    arrayMaxLength,
+                    minCodePoint,
+                    maxCodePoint,
+                    includeVectorTypes,
+                    maxVectorNumBytes);
+        }
+
+        public RecordConfiguration arrayMaxLength(int length) {
+            return new RecordConfiguration(
+                    stringMinLength,
+                    stringMaxLength,
+                    arrayMinLength,
+                    length,
+                    minCodePoint,
+                    maxCodePoint,
+                    includeVectorTypes,
+                    maxVectorNumBytes);
+        }
+
+        public RecordConfiguration minCodePoint(int codepoint) {
+            return new RecordConfiguration(
+                    stringMinLength,
+                    stringMaxLength,
+                    arrayMinLength,
+                    arrayMaxLength,
+                    codepoint,
+                    maxCodePoint,
+                    includeVectorTypes,
+                    maxVectorNumBytes);
+        }
+
+        public RecordConfiguration maxCodePoint(int codepoint) {
+            return new RecordConfiguration(
+                    stringMinLength,
+                    stringMaxLength,
+                    arrayMinLength,
+                    arrayMaxLength,
+                    minCodePoint,
+                    codepoint,
+                    includeVectorTypes,
+                    maxVectorNumBytes);
+        }
+
+        public RecordConfiguration includeVectorTypes(boolean include) {
+            return new RecordConfiguration(
+                    stringMinLength,
+                    stringMaxLength,
+                    arrayMinLength,
+                    arrayMaxLength,
+                    minCodePoint,
+                    maxCodePoint,
+                    include,
+                    maxVectorNumBytes);
+        }
+
+        public RecordConfiguration maxVectorNumBytes(int numBytes) {
+            return new RecordConfiguration(
+                    stringMinLength,
+                    stringMaxLength,
+                    arrayMinLength,
+                    arrayMaxLength,
+                    minCodePoint,
+                    maxCodePoint,
+                    includeVectorTypes,
+                    numBytes);
+        }
     }
 }

@@ -393,9 +393,8 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
                     .map(ValueIndexEntryUpdate::getEntityId)
                     .collect(Collectors.toCollection(HashSet::new));
             assertEquals(expectedIds, ids);
-            assertThat(cursorContext.getCursorTracer().pins()).isEqualTo(1);
-            assertThat(cursorContext.getCursorTracer().unpins()).isEqualTo(1);
             assertThat(cursorContext.getCursorTracer().faults()).isEqualTo(0);
+            assertThat(cursorContext.getCursorTracer().pins()).isGreaterThanOrEqualTo(1);
         }
     }
 

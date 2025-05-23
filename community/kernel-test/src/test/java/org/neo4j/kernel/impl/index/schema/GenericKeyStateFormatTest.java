@@ -121,6 +121,24 @@ abstract class GenericKeyStateFormatTest<KEY extends GenericKey<KEY>> extends In
             Values.pointValue(CoordinateReferenceSystem.CARTESIAN_3D, 0.0000043, -0.0000000012341025786543, 666),
             Values.pointValue(CoordinateReferenceSystem.CARTESIAN_3D, 0.2000043, -0.0300000012341025786543, 555)
         }));
+        values.add(Values.int8Vector(new byte[] {1, 2, 3}));
+        values.add(Values.int8Vector(new byte[] {1, 2, 3, 4, 5}));
+        values.add(Values.int8Vector(new byte[] {1, 2, 4, 5, 6}));
+        values.add(Values.int16Vector(new short[] {1, 2, 3}));
+        values.add(Values.int16Vector(new short[] {1, 2, 3, 4, 5}));
+        values.add(Values.int16Vector(new short[] {1, 2, 4, 5, 6}));
+        values.add(Values.int32Vector(1, 2, 3));
+        values.add(Values.int32Vector(1, 2, 3, 4, 5));
+        values.add(Values.int32Vector(1, 2, 4, 5, 6));
+        values.add(Values.int64Vector(1, 2, 3));
+        values.add(Values.int64Vector(1, 2, 3, 4, 5));
+        values.add(Values.int64Vector(1, 2, 4, 5, 6));
+        values.add(Values.float32Vector(1, 2, 3));
+        values.add(Values.float32Vector(1, 2, 3, 4, 5));
+        values.add(Values.float32Vector(1, 2, 4, 5, 6));
+        values.add(Values.float64Vector(1, 2, 3));
+        values.add(Values.float64Vector(1, 2, 3, 4, 5));
+        values.add(Values.float64Vector(1, 2, 4, 5, 6));
     }
 
     @Override

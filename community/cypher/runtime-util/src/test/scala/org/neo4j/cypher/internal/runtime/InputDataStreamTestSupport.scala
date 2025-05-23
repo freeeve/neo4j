@@ -31,15 +31,12 @@ import scala.collection.mutable.ArrayBuffer
 object InputDataStreamTestSupport {
 
   val RANDOM_VALUE_CONFIG: RandomValues.Configuration =
-    new RandomValues.Configuration {
-      override def stringMinLength = 0
-      override def stringMaxLength = 50
-      override def arrayMinLength = 0
-      override def arrayMaxLength = 10
-      override def maxCodePoint: Int = RandomValues.MAX_BMP_CODE_POINT
-      override def minCodePoint: Int = Character.MIN_CODE_POINT
-      override def includeVectorTypes(): Boolean = true
-    }
+    RandomValues.defaults()
+      .stringMinLength(0)
+      .stringMaxLength(50)
+      .arrayMinLength(0)
+      .arrayMaxLength(10)
+      .maxCodePoint(RandomValues.MAX_BMP_CODE_POINT)
 }
 
 /**

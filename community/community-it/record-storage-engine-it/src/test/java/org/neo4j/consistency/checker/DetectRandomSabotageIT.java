@@ -177,7 +177,7 @@ public class DetectRandomSabotageIT {
         db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
 
         random.withConfiguration(
-                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+                RandomValues.defaults().includeVectorTypes(false) /* Record engine does not support vectors. */);
         random.reset();
 
         // Create some nodes

@@ -41,12 +41,9 @@ trait RandomValuesTestSupport extends TestSuiteMixin with TestSuite {
   }
 
   def randomValuesConfiguration(): RandomValues.Configuration = {
-    new RandomValues.Default {
-      override def maxCodePoint(): Int =
-        10000 // Because characters outside BMP have inconsistent or non-deterministic ordering
-      override def minCodePoint(): Int = Character.MIN_CODE_POINT
-      override def includeVectorTypes() = false // TODO: Vector index support
-    }
+    RandomValues.defaults().minCodePoint(
+      Character.MIN_CODE_POINT
+    ).maxCodePoint(10_000).includeVectorTypes(false /* TODO: Vector cypher expression */ );
   }
 
   def randomValue(valueType: ValueType): Value = randomValues.nextValueOfType(valueType)

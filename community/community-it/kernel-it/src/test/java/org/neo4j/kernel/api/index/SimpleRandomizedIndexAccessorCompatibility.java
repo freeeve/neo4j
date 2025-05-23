@@ -38,6 +38,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueType;
 import org.neo4j.values.storable.Values;
@@ -51,8 +52,9 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
     void testExactMatchOnRandomValues() throws Exception {
         // given
         ValueType[] types = randomSetOfSupportedTypes();
-
-        List<Value> values = generateValuesFromType(types, new HashSet<>(), 30_000);
+        RandomValues rv = RandomValues.create(
+                random.random(), RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+        List<Value> values = generateValuesFromType(rv, types, new HashSet<>(), 30_000);
         List<ValueIndexEntryUpdate> updates = generateUpdatesFromValues(values, new MutableLong());
         updateAndCommit(updates);
 
@@ -73,13 +75,15 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
         Set<Value> uniqueValues = new HashSet<>();
         TreeSet<ValueAndId> sortedValues = new TreeSet<>((v1, v2) -> Values.COMPARATOR.compare(v1.value, v2.value));
         MutableLong nextId = new MutableLong();
+        RandomValues rv = RandomValues.create(
+                random.random(), RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
 
         // A couple of rounds of updates followed by lots of range verifications
         for (int i = 0; i < 5; i++) {
             List<ValueIndexEntryUpdate> updates = new ArrayList<>();
             if (i == 0) {
                 // The initial batch of data can simply be additions
-                updates = generateUpdatesFromValues(generateValuesFromType(types, uniqueValues, 20_000), nextId);
+                updates = generateUpdatesFromValues(generateValuesFromType(rv, types, uniqueValues, 20_000), nextId);
                 sortedValues.addAll(updates.stream()
                         .map(u -> new ValueAndId(u.values()[0], u.getEntityId()))
                         .toList());
@@ -88,7 +92,7 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
                 for (int j = 0; j < 1_000; j++) {
                     int type = random.intBetween(0, 2);
                     if (type == 0) { // add
-                        Value value = generateUniqueRandomValue(types, uniqueValues);
+                        Value value = generateUniqueRandomValue(rv, types, uniqueValues);
                         if (value == null) {
                             continue;
                         }
@@ -97,7 +101,7 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
                         updates.add(add(id, descriptor, value));
                     } else if (type == 1) { // update
                         ValueAndId existing = random.among(sortedValues.toArray(new ValueAndId[0]));
-                        Value newValue = generateUniqueRandomValue(types, uniqueValues);
+                        Value newValue = generateUniqueRandomValue(rv, types, uniqueValues);
                         if (newValue == null) {
                             continue;
                         }
@@ -162,10 +166,11 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
                 .collect(Collectors.toList());
     }
 
-    private List<Value> generateValuesFromType(ValueType[] types, Set<Value> duplicateChecker, int count) {
+    private static List<Value> generateValuesFromType(
+            RandomValues rv, ValueType[] types, Set<Value> duplicateChecker, int count) {
         List<Value> values = new ArrayList<>();
         for (long i = 0; i < count; i++) {
-            Value value = generateUniqueRandomValue(types, duplicateChecker);
+            Value value = generateUniqueRandomValue(rv, types, duplicateChecker);
             if (value != null) {
                 values.add(value);
             }
@@ -173,11 +178,11 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
         return values;
     }
 
-    private Value generateUniqueRandomValue(ValueType[] types, Set<Value> duplicateChecker) {
+    private static Value generateUniqueRandomValue(RandomValues rv, ValueType[] types, Set<Value> duplicateChecker) {
         Value value;
         long maxTries = 0;
         do {
-            value = random.randomValues().nextValueOfTypes(types);
+            value = rv.nextValueOfTypes(types);
             if (maxTries++ == 1000) {
                 return null;
             }

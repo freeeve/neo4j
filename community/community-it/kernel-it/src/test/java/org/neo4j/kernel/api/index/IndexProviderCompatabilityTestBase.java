@@ -93,6 +93,7 @@ abstract class IndexProviderCompatabilityTestBase {
         indexProvider = testSuite.createIndexProvider(pageCache, fs, homePath, config);
         descriptor = indexProvider.completeConfiguration(
                 incompleteIndexPrototype.withName("index_17").materialise(17), storageEngineIndexingBehaviour);
+
         jobScheduler.start();
     }
 

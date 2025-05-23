@@ -483,33 +483,39 @@ public abstract class GenericKey<KEY extends GenericKey<KEY>> extends NativeInde
     }
 
     @Override
-    public void writeInt8Vector(byte[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+    public void writeInt8Vector(byte[] values) {
+        setType(Types.VECTOR_INT8);
+        Types.VECTOR_INT8.write(this, values);
     }
 
     @Override
     public void writeInt16Vector(short[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        setType(Types.VECTOR_INT16);
+        Types.VECTOR_INT16.write(this, values);
     }
 
     @Override
     public void writeInt32Vector(int[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        setType(Types.VECTOR_INT32);
+        Types.VECTOR_INT32.write(this, values);
     }
 
     @Override
     public void writeInt64Vector(long[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        setType(Types.VECTOR_INT64);
+        Types.VECTOR_INT64.write(this, values);
     }
 
     @Override
     public void writeFloat32Vector(float[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        setType(Types.VECTOR_FLOAT32);
+        Types.VECTOR_FLOAT32.write(this, values);
     }
 
     @Override
     public void writeFloat64Vector(double[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        setType(Types.VECTOR_FLOAT64);
+        Types.VECTOR_FLOAT64.write(this, values);
     }
 
     // Write byte array is a special case,

@@ -151,7 +151,7 @@ class PropertyDeleterTest {
 
     @BeforeEach
     void setup() {
-        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR);
+        random.withConfiguration(RandomValues.defaults().includeVectorTypes(false));
         random.reset();
     }
 

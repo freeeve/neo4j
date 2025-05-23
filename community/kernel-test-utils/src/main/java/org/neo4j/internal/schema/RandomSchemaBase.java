@@ -79,18 +79,10 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
         return 300;
     }
 
-    protected RandomValues.Default valuesConfiguration() {
-        return new RandomValues.Default() {
-            @Override
-            public int stringMaxLength() {
-                return 200;
-            }
-
-            @Override
-            public int minCodePoint() {
-                return super.minCodePoint() + 1; // Avoid null-bytes in our strings.
-            }
-        };
+    protected RandomValues.Configuration valuesConfiguration() {
+        var defaults = RandomValues.defaults();
+        return defaults.stringMaxLength(200)
+                .minCodePoint(defaults.minCodePoint() + 1 /* Avoid null-bytes in our strings */);
     }
 
     public Stream<SchemaRule> schemaRules() {

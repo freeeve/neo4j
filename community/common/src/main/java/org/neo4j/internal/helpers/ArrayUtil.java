@@ -264,6 +264,54 @@ public final class ArrayUtil {
         return array[0];
     }
 
+    public static byte[] filled(int size, byte value) {
+        var arr = new byte[size];
+        if (value != 0) {
+            Arrays.fill(arr, value);
+        }
+        return arr;
+    }
+
+    public static short[] filled(int size, short value) {
+        var arr = new short[size];
+        if (value != 0) {
+            Arrays.fill(arr, value);
+        }
+        return arr;
+    }
+
+    public static int[] filled(int size, int value) {
+        var arr = new int[size];
+        if (value != 0) {
+            Arrays.fill(arr, value);
+        }
+        return arr;
+    }
+
+    public static long[] filled(int size, long value) {
+        var arr = new long[size];
+        if (value != 0) {
+            Arrays.fill(arr, value);
+        }
+        return arr;
+    }
+
+    public static float[] filled(int size, float value) {
+        var arr = new float[size];
+        if (value != 0) {
+            Arrays.fill(arr, value);
+        }
+        return arr;
+    }
+
+    public static double[] filled(int size, double value) {
+        var arr = new double[size];
+        if (value != 0) {
+            Arrays.fill(arr, value);
+        }
+        return arr;
+    }
+
     private ArrayUtil() { // No instances allowed
     }
 }

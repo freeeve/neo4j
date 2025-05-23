@@ -57,7 +57,7 @@ class ValuesReadWriteTest {
 
     @BeforeEach
     void setup() {
-        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector cdc support */);
+        random.withConfiguration(RandomValues.defaults().includeVectorTypes(false) /* TODO: Vector cdc support */);
         random.reset();
     }
 

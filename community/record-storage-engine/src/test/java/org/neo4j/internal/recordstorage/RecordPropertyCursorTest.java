@@ -107,7 +107,7 @@ public class RecordPropertyCursorTest {
     @BeforeEach
     void setup() {
         random.withConfiguration(
-                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+                RandomValues.defaults().includeVectorTypes(false) /* Record engine does not support vectors. */);
         random.reset();
         var pageCacheTracer = PageCacheTracer.NULL;
         idGeneratorFactory =

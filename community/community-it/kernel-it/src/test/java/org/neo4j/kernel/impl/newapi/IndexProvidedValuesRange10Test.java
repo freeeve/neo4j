@@ -24,9 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unorderedValues;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
+import static org.neo4j.values.storable.RandomValues.IS_VECTOR_TYPE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +47,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.ValueType;
@@ -58,16 +62,7 @@ abstract class IndexProvidedValuesRange10Test extends KernelAPIReadTestBase<Read
     public static final String PRIP = "prip";
     public static final String PROP_INDEX = "propIndex";
     public static final String PROP_PRIP_INDEX = "propPripIndex";
-    private static final ValueType[] SORTABLE_TYPES = RandomValues.excluding(
-            ValueType.STRING,
-            ValueType.STRING_ARRAY,
-            // TODO: Vector index support
-            ValueType.INT8VECTOR,
-            ValueType.INT16VECTOR,
-            ValueType.INT32VECTOR,
-            ValueType.INT64VECTOR,
-            ValueType.FLOAT32VECTOR,
-            ValueType.FLOAT64VECTOR);
+    private static final ValueType[] SORTABLE_TYPES = RandomValues.excluding(ValueType.STRING, ValueType.STRING_ARRAY);
 
     @Inject
     private RandomSupport randomRule;
@@ -93,15 +88,27 @@ abstract class IndexProvidedValuesRange10Test extends KernelAPIReadTestBase<Read
             tx.schema().awaitIndexesOnline(5, MINUTES);
             tx.commit();
         }
+        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb)
+                .maxVectorNumBytes(
+                        RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2 /* Tests assume two keys fit in index */);
+        randomRule.withConfiguration(configuration);
+        randomRule.reset();
+
+        ValueType[] targetedTypes = SORTABLE_TYPES;
+        if (!configuration.includeVectorTypes()) {
+            targetedTypes = Arrays.stream(targetedTypes)
+                    .filter(Predicate.not(IS_VECTOR_TYPE))
+                    .toArray(ValueType[]::new);
+        }
 
         try (Transaction tx = graphDb.beginTx()) {
             RandomValues randomValues = randomRule.randomValues();
 
             for (int i = 0; i < N_ENTITIES; i++) {
                 var node = getEntityControl().createEntity(tx, TOKEN);
-                Value propValue = randomValues.nextValueOfTypes(SORTABLE_TYPES);
+                Value propValue = randomValues.nextValueOfTypes(targetedTypes);
                 node.setProperty(PROP, propValue.asObject());
-                Value pripValue = randomValues.nextValueOfTypes(SORTABLE_TYPES);
+                Value pripValue = randomValues.nextValueOfTypes(targetedTypes);
                 node.setProperty(PRIP, pripValue.asObject());
 
                 singlePropValues.add(propValue);

@@ -77,6 +77,7 @@ import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.PointValue;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueType;
@@ -893,14 +894,17 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
         long entityId = random.nextLong(1_000_000_000);
         for (ValueType valueType : valueTypes) {
             // given
-            Value value = random.nextValue(valueType);
+            RandomValues rv = RandomValues.create(
+                    random.random(),
+                    RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+            Value value = rv.nextValueOfType(valueType);
             updateAndCommit(singletonList(IndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(PropertyIndexQuery.exact(0, value)));
 
             // when
             Value newValue;
             do {
-                newValue = random.nextValue(valueType);
+                newValue = rv.nextValueOfType(valueType);
             } while (value.equals(newValue));
             updateAndCommit(singletonList(IndexEntryUpdate.change(entityId, descriptor, value, newValue)));
 
@@ -916,7 +920,10 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
         long entityId = random.nextLong(1_000_000_000);
         for (ValueType valueType : valueTypes) {
             // given
-            Value value = random.nextValue(valueType);
+            RandomValues rv = RandomValues.create(
+                    random.random(),
+                    RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+            Value value = rv.nextValueOfType(valueType);
             updateAndCommit(singletonList(IndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(PropertyIndexQuery.exact(0, value)));
 
