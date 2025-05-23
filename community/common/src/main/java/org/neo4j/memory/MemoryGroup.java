@@ -31,6 +31,7 @@ public enum MemoryGroup {
     CENTRAL_BYTE_BUFFER_MANAGER("Central Byte Buffer Manager"),
     NO_TRACKING("No Tracking"),
     CLUSTER("Cluster"),
+    SHARDED("Sharded"),
     BACKUP("Backup");
 
     private final String name;
