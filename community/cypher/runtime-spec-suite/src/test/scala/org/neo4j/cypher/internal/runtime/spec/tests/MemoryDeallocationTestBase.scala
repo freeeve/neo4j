@@ -1081,7 +1081,7 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
     compareMemoryUsage(
       queryWithNestedNodeRefs,
       queryWithPropsAndLabels,
-      toleratedDeviation = 0.20,
+      toleratedDeviation = 0.25,
       minAllocated = estHeapPropsAndLabels
     )
   }

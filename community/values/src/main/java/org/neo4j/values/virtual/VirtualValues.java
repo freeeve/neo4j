@@ -99,15 +99,21 @@ public final class VirtualValues {
 
     public static MapValue map(String[] keys, AnyValue[] values) {
         assert keys.length == values.length;
-        long payloadSize = 0;
-        Map<String, AnyValue> map = new HashMap<>((int) ((float) keys.length / 0.75f + 1.0f));
-        for (int i = 0; i < keys.length; i++) {
-            String key = keys[i];
-            AnyValue value = values[i];
-            map.put(key, value);
-            payloadSize += sizeOf(key) + value.estimatedHeapUsage();
+        if (keys.length == 0) {
+            return MapValue.EMPTY;
+        } else if (keys.length == 1) {
+            return new SingletonMapValue(keys[0], values[0]);
+        } else {
+            long payloadSize = 0;
+            Map<String, AnyValue> map = new HashMap<>((int) ((float) keys.length / 0.75f + 1.0f));
+            for (int i = 0; i < keys.length; i++) {
+                String key = keys[i];
+                AnyValue value = values[i];
+                map.put(key, value);
+                payloadSize += sizeOf(key) + value.estimatedHeapUsage();
+            }
+            return new MapValue.MapWrappingMapValue(map, payloadSize);
         }
-        return new MapValue.MapWrappingMapValue(map, payloadSize);
     }
 
     public static MapValue fromMap(Map<String, AnyValue> map, long mapSize, long payloadSize) {

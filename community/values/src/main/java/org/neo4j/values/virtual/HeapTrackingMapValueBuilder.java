@@ -25,6 +25,7 @@ import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import org.neo4j.collection.trackable.HeapTrackingCollections;
 import org.neo4j.collection.trackable.HeapTrackingUnifiedMap;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.memory.HeapEstimatorCache;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.util.VisibleForTesting;
@@ -94,7 +95,15 @@ public class HeapTrackingMapValueBuilder implements AutoCloseable {
         scopedMemoryTracker.allocateHeap(unAllocatedHeapSize);
         unAllocatedHeapSize = 0;
         heapEstimatorCache.fullReset();
-        return new MapValue.MapWrappingMapValue(values, payloadSize());
+        int size = values.size();
+        if (size == 0) {
+            return MapValue.EMPTY;
+        } else if (size == 1) {
+            var first = Iterables.first(values.entrySet());
+            return new SingletonMapValue(first.getKey(), first.getValue());
+        } else {
+            return new MapValue.MapWrappingMapValue(values, payloadSize());
+        }
     }
 
     public MapValue buildAndClose() {
