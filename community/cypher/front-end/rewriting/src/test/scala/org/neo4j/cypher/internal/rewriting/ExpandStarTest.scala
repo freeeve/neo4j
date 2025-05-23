@@ -156,6 +156,8 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
       "with 1 as a, 2 as b call (a, b) { with 1 as x return x } return a, b, x"
     )
 
+    // This query is invalid as it is returning variables already declared in outer scope
+    // This is handled elsewhere.
     assertRewrite(
       "with 1 as x call (*) { with 2 as y with x, y return * } return *",
       "with 1 as x call (x) { with 2 as y with x, y return y } return x, y"

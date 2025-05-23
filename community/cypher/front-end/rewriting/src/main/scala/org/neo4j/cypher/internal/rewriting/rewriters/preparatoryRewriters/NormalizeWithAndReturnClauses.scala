@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
+import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
@@ -154,6 +155,10 @@ case class NormalizeWithAndReturnClauses(
           },
           default = default.endoRewrite(rewriteProjectionsRecursively)
         )(when.position)
+      case next @ NextStatement(queries) =>
+        next.copy(
+          queries.dropRight(1).endoRewrite(rewriteProjectionsRecursively) :+ rewriteTopLevelQuery(queries.last)
+        )(next.position)
       case _: ProjectingUnion =>
         throw new IllegalStateException("Didn't expect ProjectingUnion, only SingleQuery, UnionAll, or UnionDistinct.")
     }
@@ -173,7 +178,6 @@ case class NormalizeWithAndReturnClauses(
       case tlb: TopLevelBraces =>
         tlb.endoRewrite(rewriteProjectionsRecursively)
     }
-
   }
 
   private def addAliasesToReturn(r: Return): Return =

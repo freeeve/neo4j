@@ -3007,7 +3007,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N21(
             new GqlStatus("42N21"),
             "Expression in { %s } must be aliased (use AS).",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "unaliased return item",

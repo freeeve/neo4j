@@ -761,7 +761,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.ExistsExpressionContext
   ): Unit = {
     ctx.ast = ExistsExpression(subqueryBuilder(
-      ctx.regularQuery(),
+      ctx.nextStatement(),
       ctx.matchMode(),
       ctx.whereClause(),
       ctx.patternList()
@@ -772,7 +772,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.CountExpressionContext
   ): Unit = {
     ctx.ast = CountExpression(subqueryBuilder(
-      ctx.regularQuery(),
+      ctx.nextStatement(),
       ctx.matchMode(),
       ctx.whereClause(),
       ctx.patternList()
@@ -780,7 +780,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   }
 
   private def subqueryBuilder(
-    regQuery: Cypher25Parser.RegularQueryContext,
+    regQuery: Cypher25Parser.NextStatementContext,
     matchMode: Cypher25Parser.MatchModeContext,
     whereClause: Cypher25Parser.WhereClauseContext,
     patternList: Cypher25Parser.PatternListContext
@@ -808,7 +808,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   final override def exitCollectExpression(
     ctx: Cypher25Parser.CollectExpressionContext
   ): Unit = {
-    ctx.ast = CollectExpression(ctx.regularQuery().ast[Query]())(pos(ctx), None, None)
+    ctx.ast = CollectExpression(ctx.nextStatement().ast[Query]())(pos(ctx), None, None)
   }
 
   final override def exitPropertyKeyName(ctx: Cypher25Parser.PropertyKeyNameContext): Unit = {

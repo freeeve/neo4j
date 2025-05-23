@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.NamespacedName
+import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.Query
@@ -300,6 +301,7 @@ object Deprecations {
               case wh: ConditionalQueryWhen =>
                 wh.branches.exists(b => includesExisting(b.query)) || wh.default.exists(d => includesExisting(d.query))
               case tlb: TopLevelBraces => includesExisting(tlb.query)
+              case nxt: NextStatement  => nxt.queries.exists(includesExisting)
             }
           }
 

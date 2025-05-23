@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
+import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
 import org.neo4j.cypher.internal.ast.Query
@@ -34,6 +35,7 @@ import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNextStatements
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoTopLevelBraces
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
@@ -89,7 +91,8 @@ import org.neo4j.cypher.internal.util.topDown
  */
 case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTransformerFactory with Step {
 
-  override def preConditions: Set[StepSequencer.Condition] = Set(BaseContains[SemanticTable]())
+  override def preConditions: Set[StepSequencer.Condition] =
+    Set(BaseContains[SemanticTable](), StatementCondition(ContainsNoNextStatements))
 
   override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(ContainsNoTopLevelBraces))
 
@@ -107,7 +110,11 @@ case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTra
         )(wh.position)
       case _: ProjectingUnion =>
         throw new IllegalStateException(
-          "Didn't expect ProjectingUnion, only SingleQuery, TopLevelBraces, UnionAll, or UnionDistinct."
+          "Didn't expect ProjectingUnion, only SingleQuery, TopLevelBraces, ConditionalWhen, UnionAll, or UnionDistinct."
+        )
+      case _: NextStatement =>
+        throw new IllegalStateException(
+          "Didn't expect Next, only SingleQuery, TopLevelBraces, ConditionalWhen, UnionAll, or UnionDistinct."
         )
     }
   }
@@ -139,6 +146,10 @@ case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTra
       )(wh.position)
     case tlb: TopLevelBraces =>
       tlb.getQuery(false)
+    case _: NextStatement =>
+      throw new IllegalStateException(
+        "Didn't expect Next, only SingleQuery, TopLevelBraces, ConditionalWhen, UnionAll, or UnionDistinct."
+      )
   })
 
   override def instance(from: BaseState, context: BaseContext): Rewriter = propagateUse andThen rewriter

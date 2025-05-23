@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandNext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandWhen
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensitiveLiterals
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqueriesInMutatingPatterns
@@ -76,6 +77,7 @@ trait FrontEndCompilationPhases {
       Set(
         CollectSyntaxUsageMetrics,
         ScopeCaseExpressions(),
+        ExpandNext,
         ExpandWhen,
         ExtractSensitiveLiterals,
         IsolateSubqueriesInMutatingPatterns,

@@ -536,6 +536,45 @@ class PrettifierIT extends CypherFunSuite {
         |  MATCH (n)
         |}""".stripMargin
     ),
+    FailsInCypher5(
+      "match (m) return m next match(n) return n",
+      """MATCH (m)
+        |RETURN m
+        |
+        |NEXT
+        |
+        |MATCH (n)
+        |RETURN n""".stripMargin
+    ),
+    FailsInCypher5(
+      "with 1 as x call(*) { match (m) return m next match(n) return n } return *",
+      """WITH 1 AS x
+        |CALL (*) {
+        |  MATCH (m)
+        |  RETURN m
+        |
+        |  NEXT
+        |
+        |  MATCH (n)
+        |  RETURN n
+        |}
+        |RETURN *""".stripMargin
+    ),
+    FailsInCypher5(
+      "match (n) return n next when n.x > 2 then return \"large number\" as msg  when n.x > 1 then return \"small number\" as msg else return \"tiny number\" as msg next return collect(msg) as messages",
+      """MATCH (n)
+        |RETURN n
+        |
+        |NEXT
+        |
+        |WHEN n.x > 2 THEN RETURN "large number" AS msg
+        |WHEN n.x > 1 THEN RETURN "small number" AS msg
+        |ELSE RETURN "tiny number" AS msg
+        |
+        |NEXT
+        |
+        |RETURN collect(msg) AS messages""".stripMargin
+    ),
     "load csv from '/import/data.csv' AS row create ({key: row[0]})" ->
       """LOAD CSV FROM "/import/data.csv" AS row
         |CREATE ({key: row[0]})""".stripMargin,

@@ -411,10 +411,10 @@ object RegularCypherCucumberSteps {
        |Query:
        |${failure.query}
        |
+       |Cause: ${Exceptions.stringify(originalError(failure.cause))}
+       |
        |Config (excl tag based config, @conf:...):
        |${describeConf(conf)}
-       |
-       |Cause: ${Exceptions.stringify(originalError(failure.cause))}
        |""".stripMargin
   )
 

@@ -100,6 +100,10 @@ object CompositeQueryFragmenter {
         throw new IllegalStateException(
           "When should have been rewritten to single queries by AST rewriting."
         )
+      case _: ast.NextStatement =>
+        throw new IllegalStateException(
+          "Next should have been rewritten to single queries by AST rewriting."
+        )
 
     }
   }

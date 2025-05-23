@@ -35,6 +35,7 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
         switch (ctx.getRuleIndex()) {
             case Cypher25Parser.RULE_statements -> exitStatements((Cypher25Parser.StatementsContext) ctx);
             case Cypher25Parser.RULE_statement -> exitStatement((Cypher25Parser.StatementContext) ctx);
+            case Cypher25Parser.RULE_nextStatement -> exitNextStatement((Cypher25Parser.NextStatementContext) ctx);
             case Cypher25Parser.RULE_regularQuery -> exitRegularQuery((Cypher25Parser.RegularQueryContext) ctx);
             case Cypher25Parser.RULE_union -> exitUnion((Cypher25Parser.UnionContext) ctx);
             case Cypher25Parser.RULE_when -> exitWhen((Cypher25Parser.WhenContext) ctx);

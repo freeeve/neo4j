@@ -27,6 +27,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitStatement(Cypher25Parser.StatementContext ctx);
 
+    void exitNextStatement(Cypher25Parser.NextStatementContext ctx);
+
     void exitRegularQuery(Cypher25Parser.RegularQueryContext ctx);
 
     void exitUnion(Cypher25Parser.UnionContext ctx);

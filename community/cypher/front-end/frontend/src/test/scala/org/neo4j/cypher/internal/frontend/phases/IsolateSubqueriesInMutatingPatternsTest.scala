@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.DefaultWith
@@ -126,6 +127,124 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
           // both explicit WITHs in the expected will have DefaultWith
           // so let's update the added WITH before checking the equality
           case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
+    )
+  }
+
+  test("Rewrites subquery expression in CREATE that has a dependency on a previous clause with NEXT") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """MATCH (b)
+        |WITH b
+        |CREATE (c)
+        |CREATE (a {p: COUNT { MATCH (b) }})
+        |RETURN a
+        |
+        |NEXT
+        |
+        |CREATE (x {p: COUNT { MATCH (a) }})
+        |RETURN a""".stripMargin,
+      """MATCH (b)
+        |WITH b
+        |CREATE (c)
+        |WITH *, COUNT { MATCH (b) } AS `  UNNAMED0`
+        |CREATE (a {p: `  UNNAMED0`})
+        |RETURN a AS a
+        |
+        |NEXT
+        |
+        |WITH *, COUNT { MATCH (a) } AS `  UNNAMED1`
+        |CREATE (x {p: `  UNNAMED1`})
+        |RETURN a AS a""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0") | r.name.equals("  UNNAMED1")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
+    )
+  }
+
+  test("Rewrites subquery expr in CREATE that has a dependency on a previous clause with NEXT forwarded variable") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """MATCH (b)
+        |WITH b
+        |CREATE (c)
+        |CREATE (a {p: COUNT { MATCH (b) }})
+        |RETURN a, b
+        |
+        |NEXT
+        |
+        |CREATE (x {p: COUNT { MATCH (a) }})
+        |RETURN a, b""".stripMargin,
+      """MATCH (b)
+        |WITH b
+        |CREATE (c)
+        |WITH *, COUNT { MATCH (b) } AS `  UNNAMED0`
+        |CREATE (a {p: `  UNNAMED0`})
+        |RETURN a AS a, b AS b
+        |
+        |NEXT
+        |
+        |WITH *, COUNT { MATCH (a) } AS `  UNNAMED1`
+        |CREATE (x {p: `  UNNAMED1`})
+        |RETURN a AS a, b AS b""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0") | r.name.equals("  UNNAMED1")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
+    )
+  }
+
+  test("Rewrites subquery expression in CREATE that has a dependency on a previous clause with NEXT in subquery") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """CALL () {
+        |MATCH (b)
+        |WITH b
+        |CREATE (c)
+        |CREATE (a {p: COUNT { MATCH (b) }})
+        |RETURN a
+        |
+        |NEXT
+        |
+        |CREATE (x {p: COUNT { MATCH (a) }})
+        |}
+        |FINISH""".stripMargin,
+      """CALL () {
+        |MATCH (b)
+        |WITH b
+        |CREATE (c)
+        |WITH *, COUNT { MATCH (b) } AS `  UNNAMED0`
+        |CREATE (a {p: `  UNNAMED0`})
+        |RETURN a AS a
+        |
+        |NEXT
+        |
+        |WITH *, COUNT { MATCH (a) } AS `  UNNAMED1`
+        |CREATE (x {p: `  UNNAMED1`})
+        |}
+        |FINISH""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With
+            if w.returnItems.items.exists(r =>
+              Seq("  UNNAMED0", "  UNNAMED1", "  UNNAMED2").contains(r.name)
+            ) =>
             w.copy(withType = AddedInRewriteGeneral)(w.position)
         }))
       }

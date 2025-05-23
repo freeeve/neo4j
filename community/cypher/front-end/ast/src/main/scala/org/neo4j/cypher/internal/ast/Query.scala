@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithG
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromFunctionWithContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.setState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
@@ -94,11 +95,16 @@ sealed trait QueryUtils {
   ): SemanticCheck
 
   /**
-   * Semantic check for when this `Query` is enclosed in Top Level Braces
+   * Semantic check for when this `Query` is enclosed in outer context
    */
-  def semanticCheckInTopLevelBracesContext: SemanticCheck
+  def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck
 
-  def semanticCheckInConditionalQueryContext: SemanticCheck
+  def importValuesFromRecordedFinalScope(query: Query): SemanticCheck = { (state: SemanticState) =>
+    val scopeToImportFrom = state.scope(query).getOrElse(Scope.empty)
+    SemanticCheckResult.success(state
+      .importValuesFromScope(finalScope(scopeToImportFrom))
+      .importValuesFromScope(scopeToImportFrom))
+  }
 
 }
 
@@ -252,11 +258,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   override def semanticCheck: SemanticCheck =
     semanticCheckAbstract(clauses, checkClauses(_, None))
 
-  override def semanticCheckInTopLevelBracesContext: SemanticCheck =
-    semanticCheckAbstract(clauses, checkClauses(_, None, TopLevelBraces))
-
-  override def semanticCheckInConditionalQueryContext: SemanticCheck =
-    semanticCheckAbstract(clauses, checkClauses(_, None, ConditionalQueryWhen))
+  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
+    semanticCheckAbstract(clauses, checkClauses(_, None, context))
 
   /**
    * No outer scope is needed for checkClauses as we don't need to check the naming of any returned variables
@@ -524,28 +527,26 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     val lastIndex = clauses.size - 1
     clauses.zipWithIndex.foldSemanticCheck {
       case (clause, idx) =>
-        SemanticCheck.fromState { state =>
-          clause match {
-            case c: Return =>
-              checkReturn(c, outerScope, context) chain recordCurrentScope(clause)
-            case c: ScopeClauseSubqueryCall =>
-              checkHorizon(c, outerScope)
-            case c: HorizonClause =>
-              checkHorizon(c, outerScope) chain recordCurrentScope(clause)
-            case _ =>
-              clause.semanticCheck.map { checked =>
-                val resultState = clause match {
-                  case _: UpdateClause if idx == lastIndex =>
-                    checked.state.newSiblingScope
-                  case cc: CallClause
-                    if cc.returnVariables.explicitVariables.isEmpty && !cc.yieldAll && idx == lastIndex =>
-                    checked.state.newSiblingScope
-                  case _ =>
-                    checked.state
-                }
-                checked.copy(state = resultState)
-              } chain recordCurrentScope(clause)
-          }
+        clause match {
+          case c: Return =>
+            checkReturn(c, outerScope, context) chain recordCurrentScope(clause)
+          case c: ScopeClauseSubqueryCall =>
+            checkHorizon(c, outerScope)
+          case c: HorizonClause =>
+            checkHorizon(c, outerScope) chain recordCurrentScope(clause)
+          case _ =>
+            clause.semanticCheck.map { checked =>
+              val resultState = clause match {
+                case _: UpdateClause if idx == lastIndex =>
+                  checked.state.newSiblingScope
+                case cc: CallClause
+                  if cc.returnVariables.explicitVariables.isEmpty && !cc.yieldAll && idx == lastIndex =>
+                  checked.state.newSiblingScope
+                case _ =>
+                  checked.state
+              }
+              checked.copy(state = resultState)
+            } chain recordCurrentScope(clause)
         }
     }
   }
@@ -759,7 +760,8 @@ case class TopLevelBraces(
 
   val getCommandClauses: Seq[CommandClause] = query.getCommandClauses
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query = f(wrapQuery(query, position))
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(query.mapEachSingleQuery(f))(position)
 
   override def getQuery(fromUnion: Boolean): Query = if (fromUnion) {
     wrapQuery(query, position)
@@ -802,7 +804,7 @@ case class TopLevelBraces(
 
   }
 
-  override def semanticCheckInConditionalQueryContext: SemanticCheck = semanticCheck
+  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck = semanticCheck
 
   override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
     query.semanticCheckInSubqueryContext(outer, current) chain recordCurrentScope(this)
@@ -817,9 +819,8 @@ case class TopLevelBraces(
   ): SemanticCheck =
     query.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context) chain recordCurrentScope(this)
 
-  override def semanticCheckInTopLevelBracesContext: SemanticCheck = semanticCheck
-
-  override def semanticCheck: SemanticCheck = query.semanticCheckInTopLevelBracesContext chain recordCurrentScope(this)
+  override def semanticCheck: SemanticCheck =
+    query.semanticCheckInContext(TopLevelBraces) chain recordCurrentScope(this)
 
   override def checkImportingWith: SemanticCheck = query.checkImportingWith
   override def importColumns: Seq[String] = query.importColumns
@@ -881,6 +882,11 @@ sealed trait Union extends Query {
           withScopedState {
             SemanticCheck.nestedCheck(union.checkRecursively(semanticCheck))
           }
+        case _: NextStatement => SemanticCheck.error(SemanticError.internalError(
+            "invalid union argument",
+            "NEXT should never be directly contained within a UNION",
+            position
+          ))
       }
 
     SemanticCheck.fromState(state => {
@@ -928,11 +934,8 @@ sealed trait Union extends Query {
   override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
     checkRecursively(_.semanticCheckImportingWithSubQueryContext(outer))
 
-  override def semanticCheckInTopLevelBracesContext: SemanticCheck =
-    checkRecursively(_.semanticCheckInTopLevelBracesContext)
-
-  override def semanticCheckInConditionalQueryContext: SemanticCheck =
-    checkRecursively(_.semanticCheckInConditionalQueryContext)
+  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
+    checkRecursively(_.semanticCheckInContext(context))
 
   private def defineUnionVariables: SemanticCheck = (state: SemanticState) => {
     var result = SemanticCheckResult.success(state.newChildScope)
@@ -1132,13 +1135,9 @@ case class ConditionalQueryBranch(predicate: Expression, query: PartQuery)(val p
   override def isReturning: Boolean = query.isReturning
 
   override def semanticCheck: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInConditionalQueryContext)
+    semanticCheckAbstract(_.semanticCheckInContext(ConditionalQueryWhen))
 
-  override def semanticCheckInConditionalQueryContext: SemanticCheck =
-    semanticCheck
-
-  override def semanticCheckInTopLevelBracesContext: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInTopLevelBracesContext)
+  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck = semanticCheck
 
   override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck = {
     importValuesFromScope(outer.currentScope.scope) chain
@@ -1173,7 +1172,7 @@ case class ConditionalQueryBranch(predicate: Expression, query: PartQuery)(val p
     if (scope.children.size < 1) Scope.empty else scope.children.last
 
   def mapEachSingleQuery(f: SingleQuery => SingleQuery): ConditionalQueryBranch =
-    copy(query = f(query.singleQuery))(position)
+    copy(query = query.mapEachSingleQuery(f).asInstanceOf[PartQuery])(position)
 
   def wrapInnerQuery: ConditionalQueryBranch = this.copy(query = query.singleQuery)(position)
 
@@ -1224,13 +1223,11 @@ case class ConditionalQueryWhen(
   ): SemanticCheck =
     semanticCheckAbstract(_.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, ConditionalQueryWhen))
 
-  override def semanticCheckInTopLevelBracesContext: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInTopLevelBracesContext)
-
-  override def semanticCheckInConditionalQueryContext: SemanticCheck = semanticCheck
+  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
+    semanticCheck
 
   override def semanticCheck: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheckInConditionalQueryContext)
+    semanticCheckAbstract(_.semanticCheckInContext(ConditionalQueryWhen))
 
   private def semanticCheckAbstract(check: QueryUtils => SemanticCheck): SemanticCheck = {
     allBranches.foldSemanticCheck(x => withScopedState(check(x))) chain
@@ -1297,4 +1294,103 @@ case class ConditionalQueryWhen(
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
     copy(branches.map(_.mapEachSingleQuery(f)), default.map(_.mapEachSingleQuery(f)))(position)
+}
+
+case object NextStatement extends UnaliasedNotAllowed {
+  override val msg: String = "RETURN followed by NEXT"
+}
+
+case class NextStatement(queries: Seq[Query])(val position: InputPosition) extends Query {
+
+  private def lastQuery = queries.last
+
+  override def returnColumns: List[LogicalVariable] = lastQuery.returnColumns
+
+  override def containsUpdates: Boolean = queries.exists(_.containsUpdates)
+
+  override def getReturns: Seq[Return] = lastQuery.getReturns
+
+  override def endsWithFinish: Boolean = lastQuery.endsWithFinish
+
+  override def checkImportingWith: SemanticCheck = queries.foldSemanticCheck(_.checkImportingWith)
+
+  override def isCorrelated: Boolean = queries.exists(_.isCorrelated)
+
+  override def importColumns: Seq[String] = queries.flatMap(_.importColumns)
+
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(queries.dropRight(1) ++ Seq(lastQuery.mapEachSingleQuery(f)))(position)
+
+  override def getQuery(fromUnion: Boolean): Query = this
+
+  override def getCommandClauses: Seq[CommandClause] =
+    queries.flatMap(_.getCommandClauses)
+
+  override def returnVariables: ReturnVariables = lastQuery.returnVariables
+
+  override def isReturning: Boolean = lastQuery.isReturning
+
+  override def finalScope(scope: Scope): Scope = lastQuery.finalScope(scope)
+
+  private case class CheckWithPrevious(
+    check: Query => SemanticCheck,
+    accumulator: SemanticCheck = SemanticCheck.success,
+    previous: Option[Query] = None
+  ) {
+
+    private def innerCheck(query: Query): SemanticCheck =
+      withScopedState(
+        fromState(state => setState(state.recordWorkingGraph(None))) chain
+          when(previous.fold(false)(_.isReturning)) {
+            previous.map(importValuesFromRecordedFinalScope).getOrElse(SemanticCheck.success)
+          } chain
+          query.semanticCheckInContext(NextStatement)
+      )
+
+    def checkQuery(query: Query): CheckWithPrevious =
+      copy(accumulator = accumulator chain innerCheck(query), previous = Some(query))
+
+  }
+
+  private def noteFinalScope(): SemanticCheck = {
+    withScopedState(
+      fromState(state =>
+        importValuesFromScope(lastQuery.finalScope(state.scope(lastQuery).getOrElse(Scope.empty)))
+      )
+    )
+  }
+
+  private def semanticCheckAbstract(check: Query => SemanticCheck): SemanticCheck = {
+    val trunk = queries.dropRight(1)
+    trunk.foldLeft(CheckWithPrevious(check)) {
+      case (accCheck, q) => accCheck.checkQuery(q)
+    }.accumulator chain
+      withScopedState(fromState(s =>
+        setState(s.recordWorkingGraph(None)) chain
+          when(trunk.last.isReturning) { importValuesFromRecordedFinalScope(trunk.last) } chain
+          check(lastQuery)
+      )) chain
+      noteFinalScope chain
+      recordCurrentScope(this)
+  }
+
+  override def semanticCheck: SemanticCheck =
+    semanticCheckAbstract(_.semanticCheck)
+
+  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
+
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+    SemanticCheck.error(SemanticError.invalidUseOfOldCall("NEXT", position))
+
+  override def semanticCheckInSubqueryExpressionContext(
+    canOmitReturn: Boolean,
+    outer: SemanticState,
+    context: UnaliasedNotAllowed
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context))
+
+  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInContext(context))
+
 }

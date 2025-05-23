@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ast.Limit
 import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
+import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.OnCreate
 import org.neo4j.cypher.internal.ast.OnMatch
 import org.neo4j.cypher.internal.ast.OrderBy
@@ -149,6 +150,12 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = lastChild[AstRuleCtx](ctx).ast
   }
 
+  final override def exitNextStatement(ctx: Cypher25Parser.NextStatementContext): Unit = {
+    ctx.ast =
+      if (ctx.NEXT().isEmpty) ctxChild(ctx, 0).ast[Query]()
+      else NextStatement(astSeq[Query](ctx.regularQuery()))(pos(ctx))
+  }
+
   final override def exitRegularQuery(ctx: Cypher25Parser.RegularQueryContext): Unit = {
     ctx.ast = ctxChild(ctx, 0).ast[Query]()
   }
@@ -190,8 +197,8 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitSingleQuery(ctx: Cypher25Parser.SingleQueryContext): Unit = {
-    ctx.ast = if (ctx.regularQuery() != null) {
-      TopLevelBraces(ctx.regularQuery().ast[Query], astOpt[UseGraph](ctx.useClause()))(pos(ctx))
+    ctx.ast = if (ctx.nextStatement() != null) {
+      TopLevelBraces(ctx.nextStatement().ast[Query], astOpt[UseGraph](ctx.useClause()))(pos(ctx))
     } else {
       SingleQuery(astSeq[Clause](ctx.children))(pos(ctx))
     }
@@ -582,7 +589,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = if (scope != null) {
       val (isImportingAll, importedVariables) = scope.ast[(Boolean, Seq[Variable])]()
       ScopeClauseSubqueryCall(
-        ctx.regularQuery().ast(),
+        ctx.nextStatement().ast(),
         isImportingAll,
         importedVariables,
         astOpt(ctx.subqueryInTransactionsParameters()),
@@ -590,7 +597,7 @@ trait StatementBuilder extends Cypher25ParserListener {
       )(pos(ctx))
     } else {
       ImportingWithSubqueryCall(
-        ctx.regularQuery().ast(),
+        ctx.nextStatement().ast(),
         astOpt(ctx.subqueryInTransactionsParameters()),
         ctx.OPTIONAL() != null
       )(pos(ctx))

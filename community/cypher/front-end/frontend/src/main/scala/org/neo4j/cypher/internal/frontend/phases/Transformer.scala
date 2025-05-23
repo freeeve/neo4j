@@ -63,10 +63,10 @@ object Transformer {
   object Debug {
     // Debug flags, requires that assertions are enabled to have effect (jvm option -ea)
     // Intellij Idea: You might need you to: Build -> Recompile 'Transformer.scala'
-    final val LogStatementsAsQueries = false
     final val LogStatements = false
+    final val LogStatementsAsQueries = false
     final val LogChangedFields = false
-    final val Enabled = LogStatementsAsQueries || LogStatements || LogChangedFields
+    final val Enabled = LogStatements || LogStatementsAsQueries || LogChangedFields
   }
 
   /**

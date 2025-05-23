@@ -955,6 +955,9 @@ trait AstConstructionTestSupport {
     FunctionInvocation(FunctionName(Relationships.name)(p.position), p)(p.position)
   }
 
+  def nextStatement(queries: Query*): NextStatement =
+    NextStatement(queries)(pos)
+
   def singleQuery(cs: Clause, position: InputPosition): Query =
     SingleQuery(List(cs))(position)
 
@@ -1204,6 +1207,9 @@ trait AstConstructionTestSupport {
     Return(distinct = true, ReturnItems(includeExisting = false, items)(pos), Some(ob), Some(skip), Some(limit))(pos)
 
   def returnAll: Return = Return(returnAllItems)(pos)
+
+  def returnAll(items: ReturnItem*): Return =
+    Return(ReturnItems(includeExisting = true, items)(pos))(pos)
 
   def returnAllItems: ReturnItems = ReturnItems(includeExisting = true, Seq.empty)(pos)
 

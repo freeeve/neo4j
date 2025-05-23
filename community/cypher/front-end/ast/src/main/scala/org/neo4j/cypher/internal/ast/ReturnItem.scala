@@ -113,6 +113,8 @@ sealed trait ReturnItem extends ASTNode with SemanticCheckable {
     SemanticExpressionCheck.check(Expression.SemanticContext.Results, expression)
 
   def stringify(expressionStringifier: ExpressionStringifier): String
+
+  def withName(name: LogicalVariable)(position: InputPosition): ReturnItem
 }
 
 case class UnaliasedReturnItem(expression: Expression, inputText: String)(val position: InputPosition)
@@ -128,6 +130,10 @@ case class UnaliasedReturnItem(expression: Expression, inputText: String)(val po
   override def asCanonicalStringVal: String = expression.asCanonicalStringVal
 
   def stringify(expressionStringifier: ExpressionStringifier): String = expressionStringifier(expression)
+
+  override def withName(name: LogicalVariable)(position: InputPosition): ReturnItem =
+    AliasedReturnItem(expression, name)(position)
+
 }
 
 object AliasedReturnItem {
@@ -152,6 +158,8 @@ case class AliasedReturnItem(expression: Expression, variable: LogicalVariable)(
   def stringify(expressionStringifier: ExpressionStringifier): String =
     s"${expressionStringifier(expression)} AS ${expressionStringifier(variable)}"
 
+  override def withName(name: LogicalVariable)(position: InputPosition): ReturnItem =
+    AliasedReturnItem(expression, name)(position)
 }
 
 object ReturnItems {

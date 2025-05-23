@@ -245,6 +245,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.NFKC -> "'NFKC'",
     Cypher25Parser.NFKD -> "'NFKD'",
     Cypher25Parser.NEW -> "'NEW'",
+    Cypher25Parser.NEXT -> "'NEXT'",
     Cypher25Parser.NODE -> "'NODE'",
     Cypher25Parser.NODETACH -> "'NODETACH'",
     Cypher25Parser.NODES -> "'NODES'",

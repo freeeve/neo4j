@@ -195,6 +195,7 @@ import org.neo4j.cypher.internal.ast.MergeAdminAction
 import org.neo4j.cypher.internal.ast.NamedDatabasesScope
 import org.neo4j.cypher.internal.ast.NamedGraphsScope
 import org.neo4j.cypher.internal.ast.NamespacedName
+import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.Node
@@ -692,7 +693,7 @@ class AstGenerator(
 
   protected val pos: InputPosition = InputPosition.NONE
 
-  private val usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
+  private val usesCypher5 = whenAstDifferUseCypherVersion == CypherVersion.Cypher5
 
   def string: Gen[String] =
     if (simpleStrings) alphaLowerChar.map(_.toString)
@@ -1180,7 +1181,7 @@ class AstGenerator(
     if (size <= 0) {
       _shallowExpression
     } else {
-      if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) {
+      if (usesCypher5) {
         frequency(
           4 -> _shallowExpression,
           1 -> Gen.resize(size - 1, _deepExpressionCypher5)
@@ -1422,7 +1423,7 @@ class AstGenerator(
   }
 
   def _selector: Gen[Selector] = for {
-    count <- if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) literalIntOnly else literalIntOrParam
+    count <- if (usesCypher5) literalIntOnly else literalIntOrParam
     selector <- oneOf(
       lzy(AnyPath(count)(pos)),
       lzy(AllPaths()(pos)),
@@ -1871,7 +1872,7 @@ class AstGenerator(
   } yield partQuery
 
   def _unionArgument: Gen[Query] = {
-    if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) frequency(
+    if (usesCypher5) frequency(
       5 -> lzy(_singleQuery),
       1 -> lzy(_union)
     )
@@ -1882,8 +1883,20 @@ class AstGenerator(
     )
   }
 
+  def _nextArgument: Gen[Query] =
+    frequency(
+      5 -> lzy(_singleQuery),
+      1 -> lzy(_union),
+      1 -> lzy(_topLevelBraces),
+      1 -> lzy(_when)
+    )
+
+  def _next: Gen[NextStatement] = for {
+    queries <- listOfN(2, _nextArgument)
+  } yield NextStatement(queries)(pos)
+
   def _query: Gen[Query] = {
-    if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) frequency(
+    if (usesCypher5) frequency(
       5 -> lzy(_singleQuery),
       1 -> lzy(_union)
     )
@@ -1891,7 +1904,8 @@ class AstGenerator(
       5 -> lzy(_singleQuery),
       1 -> lzy(_union),
       1 -> lzy(_topLevelBraces),
-      1 -> lzy(_when)
+      1 -> lzy(_when),
+      1 -> lzy(_next)
     )
   }
 

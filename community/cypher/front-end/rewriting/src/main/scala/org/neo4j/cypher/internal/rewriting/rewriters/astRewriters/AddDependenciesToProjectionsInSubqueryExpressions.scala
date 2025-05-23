@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
+import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
 import org.neo4j.cypher.internal.ast.Query
@@ -101,6 +102,8 @@ case object AddDependenciesToProjectionsInSubqueryExpressions extends StepSequen
           lhs = rewriteQuery(lhs, scopeDependencies, shouldSplitReturn),
           rhs = rewritePartQuery(rhs.singleQuery, scopeDependencies, shouldSplitReturn)
         )(union.position)
+      case _: NextStatement =>
+        throw new IllegalStateException("Didn't expect Next, only SingleQuery, UnionAll, or UnionDistinct.")
       case _: ConditionalQueryWhen =>
         throw new IllegalStateException("Didn't expect When, only SingleQuery, UnionAll, or UnionDistinct.")
       case _: TopLevelBraces =>

@@ -788,6 +788,10 @@ NEW
    : N E W
    ;
 
+NEXT
+   : N E X T
+   ;
+
 NODE
    : N O D E
    ;

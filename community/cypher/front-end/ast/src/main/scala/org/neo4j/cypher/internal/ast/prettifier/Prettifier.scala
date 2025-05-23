@@ -110,6 +110,7 @@ import org.neo4j.cypher.internal.ast.MergeAction
 import org.neo4j.cypher.internal.ast.NamedDatabasesScope
 import org.neo4j.cypher.internal.ast.NamedGraphsScope
 import org.neo4j.cypher.internal.ast.NamespacedName
+import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.Node
 import org.neo4j.cypher.internal.ast.OnCreate
@@ -948,6 +949,8 @@ case class Prettifier(
         case ConditionalQueryWhen(branches, default) =>
           (branches.map(b => s"${INDENT}WHEN ${expr(b.predicate)} THEN ${query(b.query).trim}") ++
             default.map(d => s"${INDENT}ELSE ${query(d.query).trim}")).mkString(NL)
+        case NextStatement(queries) =>
+          queries.map(query).mkString(s"$NL$NL${INDENT}NEXT$NL$NL")
       }
 
     def asString(clause: Clause): String = dispatch(clause)

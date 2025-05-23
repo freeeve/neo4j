@@ -758,16 +758,16 @@ object SemanticError {
     SemanticError(gql, s"Invalid use of $clause inside FOREACH", position)
   }
 
-  def unaliasedReturnItem(clause: String, position: InputPosition): SemanticError = {
+  def unaliasedReturnItem(context: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N21)
         .atPosition(position.offset, position.line, position.column)
-        .withParam(GqlParams.StringParam.clause, clause)
+        .withParam(GqlParams.StringParam.context, context)
         .build())
       .build()
 
-    SemanticError(gql, s"Expression in $clause must be aliased (use AS)", position)
+    SemanticError(gql, s"Expression in $context must be aliased (use AS)", position)
   }
 
   def implicitGroupingExpressionInAggregationColumnErrorMessage(variables: Seq[String]): String =

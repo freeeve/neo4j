@@ -23,7 +23,11 @@ statements
    ;
 
 statement
-   : command | regularQuery
+   : command | nextStatement
+   ;
+
+nextStatement
+   : regularQuery (NEXT regularQuery)*
    ;
 
 regularQuery
@@ -48,7 +52,7 @@ elseBranch
 
 singleQuery
    : clause+
-   | useClause? LCURLY regularQuery RCURLY
+   | useClause? LCURLY nextStatement RCURLY
    ;
 
 clause
@@ -241,7 +245,7 @@ foreachClause
    ;
 
 subqueryClause
-   : OPTIONAL? CALL subqueryScope? LCURLY regularQuery RCURLY subqueryInTransactionsParameters?
+   : OPTIONAL? CALL subqueryScope? LCURLY nextStatement RCURLY subqueryInTransactionsParameters?
    ;
 
 subqueryScope
@@ -681,15 +685,15 @@ countStar
    ;
 
 existsExpression
-   : EXISTS LCURLY (regularQuery | matchMode? patternList whereClause?) RCURLY
+   : EXISTS LCURLY (nextStatement | matchMode? patternList whereClause?) RCURLY
    ;
 
 countExpression
-   : COUNT LCURLY (regularQuery | matchMode? patternList whereClause?) RCURLY
+   : COUNT LCURLY (nextStatement | matchMode? patternList whereClause?) RCURLY
    ;
 
 collectExpression
-   : COLLECT LCURLY regularQuery RCURLY
+   : COLLECT LCURLY nextStatement RCURLY
    ;
 
 numberLiteral
@@ -2115,6 +2119,7 @@ unescapedSymbolicNameString_
    | NAMES
    | NAN
    | NEW
+   | NEXT
    | NFC
    | NFD
    | NFKC
