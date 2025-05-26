@@ -129,6 +129,18 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.QUANTIFIED_PATH_PATTERN) should be(1)
   }
 
+  testVersions("should find Repeatable Elements") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |MATCH REPEATABLE ELEMENTS (a)( ()-->() )*(b)
+        |MATCH REPEATABLE ELEMENTS ANY SHORTEST (a)( ()-->() )*(b)
+        |RETURN *
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.REPEATABLE_ELEMENTS) should be(2)
+  }
+
   private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
     val context = new ErrorCollectingContext(version, query = query) {

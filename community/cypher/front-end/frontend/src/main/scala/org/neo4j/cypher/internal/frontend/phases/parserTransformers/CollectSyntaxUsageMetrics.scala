@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
@@ -68,6 +69,8 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.COUNT_SUBQUERY)
       case _: CollectExpression =>
         increaseMetric(SyntaxUsageMetricKey.COLLECT_SUBQUERY)
+      case _: RepeatableElements =>
+        increaseMetric(SyntaxUsageMetricKey.REPEATABLE_ELEMENTS)
     }
   }
 
