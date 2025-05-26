@@ -89,7 +89,11 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
     queryGraph: QueryGraph
   ): (LabelInfo, Cardinality) = {
     val predicates =
-      QueryGraphPredicates.partitionSelections(previousLabelInfo, queryGraph.patternNodeLabels, queryGraph.selections)
+      QueryGraphPredicates.partitionSelections(
+        previousLabelInfo,
+        context.graphSchemaOptimizations.addImpliedLabels(queryGraph.patternNodeLabels),
+        queryGraph.selections
+      )
     val (inferredLabelInfo, newContext) =
       context.labelInferenceStrategy.inferLabels(context, predicates.allLabelInfo, queryGraph.nodeConnections.toSeq)
     val newPredicates = predicates.copy(allLabelInfo = inferredLabelInfo)

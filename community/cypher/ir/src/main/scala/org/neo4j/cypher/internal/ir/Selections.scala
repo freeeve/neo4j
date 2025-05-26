@@ -28,9 +28,11 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.PartialPredicate
+import org.neo4j.cypher.internal.expressions.PartialPredicate.PartialPredicateWrapper
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.ir.Selections.AsHasLabelsPredicate
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
@@ -79,7 +81,7 @@ case class Selections private (predicates: Set[Predicate]) {
    */
   lazy val labelPredicates: Map[LogicalVariable, Set[HasLabels]] =
     predicates.foldLeft(Map.empty[LogicalVariable, Set[HasLabels]]) {
-      case (acc, Predicate(_, hasLabels @ HasLabels(v: Variable, _))) =>
+      case (acc, AsHasLabelsPredicate(hasLabels @ HasLabels(v: Variable, _))) =>
         acc.updated(v, acc.getOrElse(v, Set.empty) + hasLabels)
       case (acc, _) => acc
     }
@@ -203,5 +205,14 @@ object Selections {
     case Not(_: ExistsIRExpression) => true
     case Ors(exprs)                 => exprs.exists(containsExistsSubquery)
     case _                          => false
+  }
+
+  object AsHasLabelsPredicate {
+
+    def unapply(p: Predicate): Option[HasLabels] = p match {
+      case Predicate(_, hasLabels: HasLabels)                             => Some(hasLabels)
+      case Predicate(_, PartialPredicateWrapper(hasLabels: HasLabels, _)) => Some(hasLabels)
+      case _                                                              => None
+    }
   }
 }

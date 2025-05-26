@@ -97,8 +97,14 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
     ExpressionSelectivityCalculator(planContext.statistics, combiner)
 
   private val nodeIndexMatchCache =
-    CachedFunction[QueryGraph, SemanticTable, IndexCompatiblePredicatesProviderContext, Set[IndexMatch]] {
-      (a, b, c) => findNodeIndexMatches(a, b, c)
+    CachedFunction[
+      QueryGraph,
+      SemanticTable,
+      IndexCompatiblePredicatesProviderContext,
+      GraphSchemaOptimizations,
+      Set[IndexMatch]
+    ] {
+      (a, b, c, gso) => findNodeIndexMatches(a, b, c, gso)
     }
 
   private val relationshipIndexMatchCache =
@@ -202,7 +208,12 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
     val relationshipIndexMatches =
       queryGraphs.relQgs.flatMap(relationshipIndexMatchCache(_, semanticTable, indexPredicateProviderContext)).toSet
     val nodeIndexMatches =
-      queryGraphs.nodeQgs.flatMap(nodeIndexMatchCache(_, semanticTable, indexPredicateProviderContext)).toSet
+      queryGraphs.nodeQgs.flatMap(nodeIndexMatchCache(
+        _,
+        semanticTable,
+        indexPredicateProviderContext,
+        graphSchemaOptimizations
+      )).toSet
     val allIndexMatches = relationshipIndexMatches.union(nodeIndexMatches)
     val (atMostOnePropertyPredicate, twoOrMorePropertyPredicates) =
       allIndexMatches.partition(_.propertyPredicates.size <= 1)
@@ -319,7 +330,8 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
   private def findNodeIndexMatches(
     queryGraph: QueryGraph,
     semanticTable: SemanticTable,
-    indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext
+    indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
+    graphSchemaOptimizations: GraphSchemaOptimizations
   ): Set[IndexMatch] = {
     NodeIndexLeafPlanner.findIndexMatchesForQueryGraph(
       queryGraph,
@@ -328,6 +340,7 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
       indexPredicateProviderContext,
       InterestingOrderConfig.empty,
       ParallelExecutionProvidedOrderFactory,
+      graphSchemaOptimizations,
       // text indexes do not support composite indexes
       findTextIndexes = false,
       findRangeIndexes = true,

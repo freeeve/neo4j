@@ -20,10 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps.index
 
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.ast.semantics.TokenTable
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicPropertyNotifier
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.implicitIsNotNullPredicates
@@ -36,6 +38,7 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
+import org.neo4j.cypher.internal.expressions.PartialPredicate.PartialPredicateWrapper
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
@@ -61,7 +64,8 @@ case class NodeIndexLeafPlanner(planProviders: Seq[NodeIndexPlanProvider], restr
       context.staticComponents.planContext,
       context.plannerState.indexCompatiblePredicatesProviderContext,
       interestingOrderConfig,
-      context.providedOrderFactory
+      context.providedOrderFactory,
+      context.staticComponents.graphSchemaOptimizations
     )
 
     // Find plans solving given property predicates together with any label predicates from QG
@@ -124,9 +128,21 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
   ) extends PredicateSet {
 
     override def allSolvedPredicates: Seq[Expression] =
-      super.allSolvedPredicates :+ labelPredicate
+      super.allSolvedPredicates :+ solvedLabelPredicate
 
     override def getEntityType: EntityType = NODE_TYPE
+
+    private def solvedLabelPredicate: Expression = {
+      if (labelPredicate.labels == Seq(symbolicName)) {
+        labelPredicate
+      } else {
+        // using index with a parent (implied) label
+        PartialPredicateWrapper(
+          coveredPredicate = labelPredicate.copy(labels = Seq(symbolicName))(labelPredicate.position),
+          coveringPredicate = labelPredicate
+        )
+      }
+    }
   }
 
   def findIndexMatchesForQueryGraph(
@@ -136,6 +152,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
     indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
     interestingOrderConfig: InterestingOrderConfig,
     providedOrderFactory: ProvidedOrderFactory,
+    graphSchemaOptimizations: GraphSchemaOptimizations,
     findTextIndexes: Boolean = true,
     findRangeIndexes: Boolean = true,
     findPointIndexes: Boolean = true
@@ -168,7 +185,8 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
           providedOrderFactory,
           findTextIndexes,
           findRangeIndexes,
-          findPointIndexes
+          findPointIndexes,
+          graphSchemaOptimizations
         )
       } yield indexMatch
       matches.toSet
@@ -180,16 +198,17 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
     indexCompatiblePredicates: Set[IndexCompatiblePredicate],
     labelPredicates: Set[HasLabels],
     interestingOrderConfig: InterestingOrderConfig,
-    semanticTable: SemanticTable,
+    tokenTable: TokenTable,
     planContext: PlanContext,
     providedOrderFactory: ProvidedOrderFactory,
     findTextIndexes: Boolean,
     findRangeIndexes: Boolean,
-    findPointIndexes: Boolean
+    findPointIndexes: Boolean,
+    graphSchemaOptimizations: GraphSchemaOptimizations
   ): Set[NodeIndexMatch] = for {
     labelPredicate <- labelPredicates
-    labelName <- labelPredicate.labels
-    labelId: LabelId <- semanticTable.id(labelName).toSet
+    labelName <- graphSchemaOptimizations.addImpliedLabels(labelPredicate.labels.toSet)
+    labelId: LabelId <- tokenTable.id(labelName).toSet
     indexDescriptor <- indexDescriptorsForLabel(
       labelId,
       planContext,
@@ -201,7 +220,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
       indexDescriptor,
       indexCompatiblePredicates,
       interestingOrderConfig,
-      semanticTable,
+      tokenTable,
       planContext.getNodePropertiesWithTypeConstraint(labelName.name),
       providedOrderFactory
     )

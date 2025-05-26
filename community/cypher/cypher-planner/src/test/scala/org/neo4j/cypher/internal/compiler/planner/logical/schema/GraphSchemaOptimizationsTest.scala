@@ -78,6 +78,20 @@ class GraphSchemaOptimizationsTest extends CypherFunSuite with AstConstructionTe
     gso.pruneImplyingLabels(labelNameSeq("A", "B", "C", "Other")) shouldEqual labelNameSeq("B", "Other")
   }
 
+  test("should not add implied labels if there are none defined") {
+    val gso = givenImpliedLabels()
+    gso.addImpliedLabels(labelNames("A", "B", "Other")) shouldEqual labelNames("A", "B", "Other")
+    gso.addImpliedLabels(labelInfo("x" -> Set("A", "B", "Other"))) shouldEqual labelInfo("x" -> Set("A", "B", "Other"))
+  }
+
+  test("should add implied labels") {
+    val gso = givenImpliedLabels("A" -> Set("B"), "C" -> Set("D", "E"))
+    gso.addImpliedLabels(labelNames("A", "C", "Other")) shouldEqual
+      labelNames("A", "B", "C", "D", "E", "Other")
+    gso.addImpliedLabels(labelInfo("x" -> Set("A", "Other"), "y" -> Set("C"))) shouldEqual
+      labelInfo("x" -> Set("A", "B", "Other"), "y" -> Set("C", "D", "E"))
+  }
+
   private def givenImpliedLabels(impliedLabels: (String, Set[String])*): GraphSchemaOptimizations.Enabled = {
     new GraphSchemaOptimizations.Enabled(mockPlanContext(impliedLabels.toMap))
   }

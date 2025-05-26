@@ -482,6 +482,8 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
       override def databaseMode: DatabaseMode = DatabaseMode.SINGLE
 
       override def storageHasPropertyColocation: Boolean = false
+
+      override def getNodeLabelConstraints(constrainedLabel: String): Set[String] = Set.empty
     }
 
     // Hack to guarantee coverage across cypher versions :/.

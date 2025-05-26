@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingAnyIndexType
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingPointIndexType
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingRangeIndexType
 import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingTextIndexType
-import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.ast.semantics.TokenTable
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -146,7 +146,7 @@ object EntityIndexLeafPlanner {
     indexDescriptor: IndexDescriptor,
     predicates: Set[IndexCompatiblePredicate],
     interestingOrderConfig: InterestingOrderConfig,
-    semanticTable: SemanticTable,
+    tokenTable: TokenTable,
     typeConstraints: Map[String, Seq[ConstrainableType]],
     providedOrderFactory: ProvidedOrderFactory
   ): Set[PredicatesForIndex] = {
@@ -155,7 +155,7 @@ object EntityIndexLeafPlanner {
     val predicatesByProperty = predicates
       .flatMap(resolveConstraintTypes(_, typeConstraints))
       .filter(predicate => predicate.indexRequirements.forall(req => req.satisfiedBy(indexDescriptor, predicate)))
-      .groupBy(icp => semanticTable.id(icp.propertyKeyName))
+      .groupBy(icp => tokenTable.id(icp.propertyKeyName))
       // Sort out predicates that are not found in semantic table
       .collect { case (Some(x), v) => (x, v) }
 

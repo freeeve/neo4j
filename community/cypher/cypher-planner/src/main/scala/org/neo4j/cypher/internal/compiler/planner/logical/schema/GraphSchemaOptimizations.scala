@@ -45,6 +45,16 @@ sealed trait GraphSchemaOptimizations {
   def pruneImpliedLabels(labelInfo: LabelInfo): LabelInfo
 
   /**
+   * Adds labels implied by existing labels to the set.
+   */
+  def addImpliedLabels(labels: Set[LabelName]): Set[LabelName]
+
+  /**
+   * For each entry in `labelInfo`, adds labels implied by existing labels to the set.
+   */
+  def addImpliedLabels(labelInfo: LabelInfo): LabelInfo
+
+  /**
    * Returns true if the presence of `labelToCheck` is implied by one or more of the `knownLabels`.
    */
   def isLabelImplied(labelToCheck: LabelName, knownLabels: Set[LabelName]): Boolean
@@ -81,6 +91,10 @@ object GraphSchemaOptimizations {
 
     override def isLabelImplied(labelToCheck: LabelName, knownLabels: Set[LabelName]): Boolean = false
 
+    override def addImpliedLabels(labels: Set[LabelName]): Set[LabelName] = labels
+
+    override def addImpliedLabels(labelInfo: LabelInfo): LabelInfo = labelInfo
+
     override def isLabelImplied(
       labelToCheck: String,
       outRelTypes: Set[DisjunctiveTypes],
@@ -91,11 +105,11 @@ object GraphSchemaOptimizations {
 
   final class Enabled(planContext: PlanContext) extends GraphSchemaOptimizations {
 
-    private val impliedLabels: (LabelName => Set[LabelName]) = CachedFunction {
-      (labelName: LabelName) =>
+    private val impliedLabels: LabelName => Set[LabelName] =
+      CachedFunction { (labelName: LabelName) =>
         planContext.getNodeLabelConstraints(labelName.name)
           .map(strLabel => LabelName(strLabel)(InputPosition.NONE))
-    }
+      }
 
     override def pruneImpliedLabels(labels: Set[LabelName]): Set[LabelName] = {
       labels.foldLeft(labels) {
@@ -118,6 +132,12 @@ object GraphSchemaOptimizations {
         impliedLabels(knownLabel).contains(labelToCheck)
       }
     }
+
+    override def addImpliedLabels(labels: Set[LabelName]): Set[LabelName] =
+      labels.flatMap(l => impliedLabels(l).incl(l))
+
+    override def addImpliedLabels(labelInfo: LabelInfo): LabelInfo =
+      labelInfo.view.mapValues(addImpliedLabels).toMap
 
     override def isLabelImplied(
       labelToCheck: String,

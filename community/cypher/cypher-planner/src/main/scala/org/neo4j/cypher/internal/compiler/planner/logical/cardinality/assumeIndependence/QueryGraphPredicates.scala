@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.expressions.Unique
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.Selections
+import org.neo4j.cypher.internal.ir.Selections.AsHasLabelsPredicate
 import org.neo4j.cypher.internal.util.helpers.MapSupport.PowerMap
 
 /**
@@ -59,8 +60,8 @@ object QueryGraphPredicates {
   ): QueryGraphPredicates = {
     val (uniqueRelationships, otherPredicates) =
       selections.predicates.foldLeft((Set.empty[LogicalVariable], Set.empty[Predicate])) {
-        case ((uniqueRelationships, otherPredicates), Predicate(_, HasLabels(_: Variable, _))) =>
-          (uniqueRelationships, otherPredicates)
+        case (acc, AsHasLabelsPredicate(HasLabels(_: Variable, _))) =>
+          acc
         case ((uniqueRelationships, otherPredicates), Predicate(_, Unique(VariableList(relationships)))) =>
           (uniqueRelationships ++ relationships, otherPredicates)
         case ((uniqueRelationships, otherPredicates), otherPred) => (uniqueRelationships, otherPredicates + otherPred)

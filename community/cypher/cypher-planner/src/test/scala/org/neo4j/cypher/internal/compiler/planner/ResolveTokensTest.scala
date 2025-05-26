@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler.planner
 
-import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext
 import org.neo4j.cypher.internal.compiler.planner.ResolveTokensTest.AllPathsPattern
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.HasLabels
@@ -56,14 +57,11 @@ import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ResolveTokensTest extends CypherFunSuite {
+class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
 
   parseTest("match (n) where n.name = 'Resolved' return *") { query =>
-    var semanticTable = SemanticTable()
-    val planContext = mock[PlanContext]
-    when(planContext.getOptPropertyKeyId("name")).thenReturn(Some(12))
-
-    semanticTable = ResolveTokens.resolve(query, semanticTable)(planContext)
+    val planContext = mockPlanContext(propertyIds = Map("name" -> 12))
+    val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
 
     query match {
       case SingleQuery(Seq(
@@ -83,11 +81,8 @@ class ResolveTokensTest extends CypherFunSuite {
   }
 
   parseTest("match (n) where n.name = 'Unresolved' return *") { query =>
-    var semanticTable = SemanticTable()
-    val planContext = mock[PlanContext]
-    when(planContext.getOptPropertyKeyId("name")).thenReturn(None)
-
-    semanticTable = ResolveTokens.resolve(query, semanticTable)(planContext)
+    val planContext = mockPlanContext()
+    val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
 
     query match {
       case SingleQuery(Seq(
@@ -107,11 +102,8 @@ class ResolveTokensTest extends CypherFunSuite {
   }
 
   parseTest("match (n) where n:Resolved return *") { query =>
-    var semanticTable = SemanticTable()
-    val planContext = mock[PlanContext]
-    when(planContext.getOptLabelId("Resolved")).thenReturn(Some(12))
-
-    semanticTable = ResolveTokens.resolve(query, semanticTable)(planContext)
+    val planContext = mockPlanContext(labelIds = Map("Resolved" -> 12))
+    val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
 
     query match {
       case SingleQuery(Seq(
@@ -131,11 +123,8 @@ class ResolveTokensTest extends CypherFunSuite {
   }
 
   parseTest("match (n) where n:Unresolved return *") { query =>
-    var semanticTable = SemanticTable()
-    val planContext = mock[PlanContext]
-    when(planContext.getOptLabelId("Unresolved")).thenReturn(None)
-
-    semanticTable = ResolveTokens.resolve(query, semanticTable)(planContext)
+    val planContext = mockPlanContext()
+    val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
 
     query match {
       case SingleQuery(Seq(
@@ -155,11 +144,8 @@ class ResolveTokensTest extends CypherFunSuite {
   }
 
   parseTest("match ()-[:RESOLVED]->() return *") { query =>
-    var semanticTable = SemanticTable()
-    val planContext = mock[PlanContext]
-    when(planContext.getOptRelTypeId("RESOLVED")).thenReturn(Some(12))
-
-    semanticTable = ResolveTokens.resolve(query, semanticTable)(planContext)
+    val planContext = mockPlanContext(relTypeIds = Map("RESOLVED" -> 12))
+    val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
 
     query match {
       case SingleQuery(Seq(
@@ -192,11 +178,8 @@ class ResolveTokensTest extends CypherFunSuite {
   }
 
   parseTest("match ()-[:UNRESOLVED]->() return *") { query =>
-    var semanticTable = SemanticTable()
-    val planContext = mock[PlanContext]
-    when(planContext.getOptRelTypeId("UNRESOLVED")).thenReturn(None)
-
-    semanticTable = ResolveTokens.resolve(query, semanticTable)(planContext)
+    val planContext = mockPlanContext()
+    val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
 
     query match {
       case SingleQuery(Seq(
@@ -228,19 +211,60 @@ class ResolveTokensTest extends CypherFunSuite {
     }
   }
 
-  def parseTest(queryText: String, versions: Seq[CypherVersion] = CypherVersion.values())(f: Query => Unit): Unit =
+  test("should resolve implied labels") {
+    parse("match (n:X) return *") { query =>
+      val planContext = mockPlanContext(
+        labelIds = Map("X" -> 123, "Y" -> 321, "Z" -> 42),
+        nodeLabelConstraints = Map("X" -> Set("Y", "Z"))
+      )
+
+      val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
+
+      semanticTable.id(labelName("X")) shouldEqual Some(LabelId(123))
+      semanticTable.id(labelName("Y")) shouldEqual Some(LabelId(321))
+      semanticTable.id(labelName("Z")) shouldEqual Some(LabelId(42))
+    }
+  }
+
+  private def parseTest(
+    queryText: String,
+    versions: Seq[CypherVersion] = CypherVersion.values()
+  )(f: Query => Unit): Unit = {
     test(queryText) {
-      versions.foreach { version =>
-        val parsed = AstParserFactory(version)(queryText, Neo4jCypherExceptionFactory(queryText, None), None)
-          .singleStatement()
-        val rewriter = LabelExpressionPredicateNormalizer.instance andThen
-          NormalizeHasLabelsAndHasType(SemanticChecker.check(parsed).state)
-        rewriter(parsed) match {
-          case query: Query => withClue(s"Parser: $version\n")(f(query))
-          case other        => throw new IllegalArgumentException(s"Unexpected value with $version: $other")
-        }
+      parse(queryText, versions)(f)
+    }
+  }
+
+  private def parse(
+    queryText: String,
+    versions: Seq[CypherVersion] = CypherVersion.values()
+  )(f: Query => Unit): Unit = {
+    versions.foreach { version =>
+      val parsed = AstParserFactory(version)(queryText, Neo4jCypherExceptionFactory(queryText, None), None)
+        .singleStatement()
+      val rewriter = LabelExpressionPredicateNormalizer.instance andThen
+        NormalizeHasLabelsAndHasType(SemanticChecker.check(parsed).state)
+      rewriter(parsed) match {
+        case query: Query => withClue(s"Parser: $version\n")(f(query))
+        case other        => throw new IllegalArgumentException(s"Unexpected value with $version: $other")
       }
     }
+  }
+
+  private def mockPlanContext(
+    labelIds: Map[String, Int] = Map.empty,
+    propertyIds: Map[String, Int] = Map.empty,
+    relTypeIds: Map[String, Int] = Map.empty,
+    nodeLabelConstraints: Map[String, Set[String]] = Map.empty
+  ): PlanContext = {
+    new NotImplementedPlanContext {
+      override def getOptLabelId(labelName: String): Option[Int] = labelIds.get(labelName)
+      override def getOptPropertyKeyId(propertyKeyName: String): Option[Int] = propertyIds.get(propertyKeyName)
+      override def getOptRelTypeId(relTypeName: String): Option[Int] = relTypeIds.get(relTypeName)
+      override def getNodeLabelConstraints(constrainedLabel: String): Set[String] =
+        nodeLabelConstraints.getOrElse(constrainedLabel, Set.empty)
+    }
+  }
 }
 
 object ResolveTokensTest {

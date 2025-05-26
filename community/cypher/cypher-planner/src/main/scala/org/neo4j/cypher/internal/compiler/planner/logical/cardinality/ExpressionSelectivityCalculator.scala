@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.ast.semantics.TokenTable
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.CardinalityModel
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
@@ -372,7 +373,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     relTypeInfo: RelTypeInfo,
     propertyKey: PropertyKeyName,
     existenceConstraints: Set[(ElementTypeName, String)]
-  )(implicit semanticTable: SemanticTable): Selectivity = {
+  )(implicit tokenTable: TokenTable): Selectivity = {
     val labels = labelInfo.getOrElse(variable, Set.empty)
     val relTypes = relTypeInfo.get(variable)
     val relevantConstraints: Set[(ElementTypeName, String)] = (labels ++ relTypes).map(_ -> propertyKey.name)
@@ -388,7 +389,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
     propertyKey: PropertyKeyName
-  )(implicit semanticTable: SemanticTable): Selectivity = {
+  )(implicit tokenTable: TokenTable): Selectivity = {
     val indexTypesAbleToAnswerIsNotNull: Set[IndexType] = Set(IndexType.Range)
 
     val indexPropertyExistsSelectivities =
@@ -419,7 +420,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     relTypeInfo: RelTypeInfo,
     propertyKey: PropertyKeyName,
     indexTypesPriorityOrder: Seq[IndexType]
-  )(implicit semanticTable: SemanticTable): Option[Selectivity] = {
+  )(implicit tokenTable: TokenTable): Option[Selectivity] = {
     val indexPropertyExistsSelectivities: Seq[(Selectivity, IndexType)] =
       multipleIndexPropertyExistsSelectivitiesFor(
         variable,
@@ -440,20 +441,20 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     relTypeInfo: RelTypeInfo,
     propertyKey: PropertyKeyName,
     indexTypesPriorityOrder: Seq[IndexType]
-  )(implicit semanticTable: SemanticTable): Seq[(Selectivity, IndexType)] = {
+  )(implicit tokenTable: TokenTable): Seq[(Selectivity, IndexType)] = {
     val labels = labelInfo.getOrElse(variable, Set.empty)
     val relTypes = relTypeInfo.get(variable)
 
     val entityTypeAndPropertyIds: Seq[(NameId, PropertyKeyId)] = {
       labels.toIndexedSeq.flatMap { (labelName: LabelName) =>
         for {
-          labelId <- semanticTable.id(labelName)
-          propId <- semanticTable.id(propertyKey)
+          labelId <- tokenTable.id(labelName)
+          propId <- tokenTable.id(propertyKey)
         } yield (labelId, propId)
       } ++ relTypes.toIndexedSeq.flatMap { (relTypeName: RelTypeName) =>
         for {
-          relTypeId <- semanticTable.id(relTypeName)
-          propId <- semanticTable.id(propertyKey)
+          relTypeId <- tokenTable.id(relTypeName)
+          propId <- tokenTable.id(propertyKey)
         } yield (relTypeId, propId)
       }
     }
@@ -494,7 +495,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     relTypeInfo: RelTypeInfo,
     propertyKey: PropertyKeyName,
     typeConstraints: Map[ElementTypeName, Map[String, Seq[ConstrainableType]]]
-  )(implicit semanticTable: SemanticTable): Selectivity = {
+  )(implicit tokenTable: TokenTable): Selectivity = {
     val valueTypeContradictsTypeConstraint =
       propertyTypeSelectivityFromTypeConstraints(
         variable,
@@ -516,10 +517,10 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
             nameId.map(id => indexTypesToConsider.map(IndexDescriptor(_, EntityType.of(id), Seq(propertyKeyId))))
               .getOrElse(Seq.empty)
 
-          val descriptors: Seq[IndexDescriptor] = (name, semanticTable.id(propertyKey)) match {
-            case (labelName: LabelName, Some(propKeyId)) => descriptorCreator(semanticTable.id(labelName), propKeyId)
+          val descriptors: Seq[IndexDescriptor] = (name, tokenTable.id(propertyKey)) match {
+            case (labelName: LabelName, Some(propKeyId)) => descriptorCreator(tokenTable.id(labelName), propKeyId)
             case (relTypeName: RelTypeName, Some(propKeyId)) =>
-              descriptorCreator(semanticTable.id(relTypeName), propKeyId)
+              descriptorCreator(tokenTable.id(relTypeName), propKeyId)
             case _ => Seq.empty
           }
 
@@ -645,7 +646,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     seekable: PointDistanceSeekable,
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo
-  )(implicit semanticTable: SemanticTable): Selectivity = {
+  )(implicit tokenTable: TokenTable): Selectivity = {
     val indexPropertyExistsSelectivities =
       multipleIndexPropertyExistsSelectivitiesFor(
         seekable.ident,
@@ -665,7 +666,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     seekable: PointBoundingBoxSeekable,
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo
-  )(implicit semanticTable: SemanticTable): Selectivity = {
+  )(implicit tokenTable: TokenTable): Selectivity = {
     // NOTE this equivalent to using two inequalities, like p1 <= n.prop <= p2
     def default = {
       val defaultRange = DEFAULT_RANGE_SELECTIVITY * Selectivity(0.5)
@@ -685,9 +686,9 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     val relTypes = relTypeInfo.get(seekable.ident)
 
     val idTuples = labels.toIndexedSeq.map { name =>
-      (semanticTable.id(name), semanticTable.id(seekable.property.propertyKey))
+      (tokenTable.id(name), tokenTable.id(seekable.property.propertyKey))
     } ++ relTypes.toIndexedSeq.map { name =>
-      (semanticTable.id(name), semanticTable.id(seekable.property.propertyKey))
+      (tokenTable.id(name), tokenTable.id(seekable.property.propertyKey))
     }
 
     val indexRangeSelectivities: Seq[Selectivity] = idTuples.flatMap {
@@ -718,7 +719,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     propertyKey: PropertyKeyName,
     stringExpression: Expression,
     prefix: Boolean = false
-  )(implicit semanticTable: SemanticTable): Selectivity = {
+  )(implicit tokenTable: TokenTable): Selectivity = {
     val stringLength = getStringLength(stringExpression)
 
     def default =
@@ -760,7 +761,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
     propertyKey: PropertyKeyName
-  )(implicit semanticTable: SemanticTable): Option[Selectivity] = {
+  )(implicit tokenTable: TokenTable): Option[Selectivity] = {
     calculateSelectivityForPropertyTypePredicateFromIndex(
       variable,
       labelInfo,
@@ -775,7 +776,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
     propertyKey: PropertyKeyName
-  )(implicit semanticTable: SemanticTable): Option[Selectivity] = {
+  )(implicit tokenTable: TokenTable): Option[Selectivity] = {
     calculateSelectivityForPropertyTypePredicateFromIndex(
       variable,
       labelInfo,
@@ -790,7 +791,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
     existenceConstraints: Set[(ElementTypeName, String)]
-  )(implicit semanticTable: SemanticTable): Selectivity = {
+  )(implicit tokenTable: TokenTable): Selectivity = {
     scannable.cypherType match {
       case CTString =>
         isStringPropertyNotNullSelectivityFromIndex(
@@ -824,7 +825,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
     typeConstraints: Map[ElementTypeName, Map[String, Seq[ConstrainableType]]]
-  )(implicit semanticTable: SemanticTable): Selectivity = {
+  )(implicit tokenTable: TokenTable): Selectivity = {
     val typeConstraintSelectivity: Option[Selectivity] =
       propertyTypeSelectivityFromTypeConstraints(
         variable,

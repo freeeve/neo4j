@@ -502,7 +502,8 @@ object Scannable {
       case _                                                     => None
     }
 
-    explicitlyScannableProperty(predicate1) == explicitlyScannableProperty(predicate2)
+    val scannableProperty = explicitlyScannableProperty(predicate1)
+    scannableProperty.isDefined && scannableProperty == explicitlyScannableProperty(predicate2)
   }
 }
 

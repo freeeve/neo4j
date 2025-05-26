@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTest
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.graphdb.schema.IndexType
 
 import java.lang.Boolean.TRUE
 
@@ -582,5 +583,216 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .expandAll("(a)-[:R1|R2]->()")
       .nodeByLabelScan("a", "A")
       .build()
+  }
+
+  test("should plan index scan with implied label") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("pet"), existsSelectivity = 0.5, uniqueSelectivity = 0.01)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query = "MATCH (n:Actor) WHERE n.pet IS NOT NULL RETURN 1 AS result"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("1 AS result")
+      .filter("n:Actor")
+      .nodeIndexOperator("n:Person(pet)")
+      .build()
+  }
+
+  test("should not plan index scan with implied label if original label scan with IS NOT NULL predicate is cheaper") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 320)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("pet"), existsSelectivity = 0.5, uniqueSelectivity = 0.01)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query = "MATCH (n:Actor) WHERE n.pet IS NOT NULL RETURN 1 AS result"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("1 AS result")
+      .filter("n.pet IS NOT NULL")
+      .nodeByLabelScan("n", "Actor")
+      .build()
+  }
+
+  test("should plan index seek with implied label") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("prop"), existsSelectivity = 1.0, uniqueSelectivity = 0.01)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    for (op <- Seq("=", "<", ">", "<=", ">=", "STARTS WITH")) {
+      val query =
+        s"""MATCH (n:Actor)
+           |WHERE n.prop $op 'Hello'
+           |RETURN 1 AS result
+           |""".stripMargin
+
+      withClue(query) {
+        val plan = planner.plan(query).stripProduceResults
+        plan shouldEqual planner.subPlanBuilder()
+          .projection("1 AS result")
+          .filter("n:Actor")
+          .nodeIndexOperator(s"n:Person(prop $op 'Hello')")
+          .build()
+      }
+    }
+  }
+
+  test("should plan index seek with implied label, TEXT index") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("name"), existsSelectivity = 1.0, uniqueSelectivity = 0.1, indexType = IndexType.TEXT)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    for (op <- Seq("STARTS WITH", "ENDS WITH", "CONTAINS")) {
+      val query =
+        s"""MATCH (n:Actor)
+           |WHERE n.name $op 'Bob'
+           |RETURN 1 AS result
+           |""".stripMargin
+
+      withClue(query) {
+        val plan = planner.plan(query).stripProduceResults
+        plan shouldEqual planner.subPlanBuilder()
+          .projection("1 AS result")
+          .filter("n:Actor")
+          .nodeIndexOperator(s"n:Person(name $op 'Bob')", indexType = IndexType.TEXT, supportPartitionedScan = false)
+          .build()
+      }
+    }
+  }
+
+  test("should plan index seek with implied label, POINT index") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("loc"), existsSelectivity = 1.0, uniqueSelectivity = 0.1, indexType = IndexType.POINT)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      s"""MATCH (n:Actor)
+         |WHERE point.distance(n.loc, point({x: 123, y: 456})) < 123.0
+         |RETURN 1 AS result
+         |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("1 AS result")
+      .filter("point.distance(cacheN[n.loc], point({x: 123, y: 456})) < 123.0", "n:Actor")
+      .pointDistanceNodeIndexSeek("n", "Person", "loc", "{x: 123, y: 456}", 123, getValue = GetValue)
+      .build()
+  }
+
+  test("should plan index scan with implied label for type predicate") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("x"), existsSelectivity = 0.5, uniqueSelectivity = 0.01, indexType = IndexType.POINT)
+      .addNodeIndex("Person", Seq("x"), existsSelectivity = 0.5, uniqueSelectivity = 0.01, indexType = IndexType.TEXT)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    for ((typePred, indexType) <- Seq(("STRING", IndexType.TEXT), ("POINT", IndexType.POINT))) {
+      val query =
+        s"""MATCH (n:Actor)
+           |WHERE n.x :: $typePred NOT NULL
+           |RETURN 1 AS result
+           |""".stripMargin
+
+      withClue(query) {
+        val plan = planner.plan(query).stripProduceResults
+        plan shouldEqual planner.subPlanBuilder()
+          .projection("1 AS result")
+          .filter("n:Actor")
+          .nodeIndexOperator("n:Person(x)", indexType = indexType, supportPartitionedScan = false)
+          .build()
+      }
+    }
+  }
+
+  test("should plan composite index scan with implied label") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("x", "y"), existsSelectivity = 0.5, uniqueSelectivity = 0.01)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      """MATCH (n:Actor)
+        |WHERE n.x IS NOT NULL AND n.y IS NOT NULL
+        |RETURN 1 AS result""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("1 AS result")
+      .filter("n:Actor")
+      .nodeIndexOperator("n:Person(x, y)")
+      .build()
+  }
+
+  test("should plan composite index seek with implied label") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("x", "y"), existsSelectivity = 0.5, uniqueSelectivity = 0.01)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      """MATCH (n:Actor)
+        |WHERE n.x = 123 AND n.y IS NOT NULL
+        |RETURN 1 AS result""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("1 AS result")
+      .filter("n:Actor")
+      .nodeIndexOperator("n:Person(x = 123, y)", supportPartitionedScan = false)
+      .build()
+  }
+
+  test("should use index with implied label to estimate cardinality") {
+    val personCount = 1000
+    val petExistsSel = 0.5
+    val actorCount = 800
+
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", personCount)
+      .setLabelCardinality("Actor", actorCount)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeIndex("Person", Seq("pet"), existsSelectivity = petExistsSel, uniqueSelectivity = 0.01)
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query = "MATCH (n:Actor) WHERE n.pet IS NOT NULL RETURN 1 AS result"
+
+    val resultCount = actorCount * petExistsSel
+    val expected = planner.planBuilder()
+      .produceResults("result").withCardinality(resultCount)
+      .projection("1 AS result").withCardinality(resultCount)
+      .filter("n:Actor").withCardinality(resultCount)
+      .nodeIndexOperator("n:Person(pet)").withCardinality(personCount * petExistsSel)
+
+    val actual = planner.planState(query)
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
   }
 }
