@@ -616,6 +616,11 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
         }
     }
 
+    @Override
+    public void clearCache() {
+        rootMappingCache.clear();
+    }
+
     private record DataTreeRoot<DATA_ROOT_KEY>(DATA_ROOT_KEY key, Root root) {}
 
     private class RootDeleteValueMerger implements ValueMerger<ROOT_KEY, RootMappingValue>, AutoCloseable {

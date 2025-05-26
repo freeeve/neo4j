@@ -25,6 +25,7 @@ import java.io.IOException;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.util.VisibleForTesting;
 
 /**
  * The upper layer in a GBPTree that manages mappings from root keys to data tree.
@@ -216,6 +217,9 @@ abstract class RootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> implements TreeRootExch
         }
         return DEFAULT_SPLIT_RATIO;
     }
+
+    @VisibleForTesting
+    public abstract void clearCache();
 
     @FunctionalInterface
     public interface TreeRootsVisitor<ROOT_KEY> {

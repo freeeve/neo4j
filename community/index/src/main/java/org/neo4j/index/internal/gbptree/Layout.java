@@ -91,6 +91,14 @@ public interface Layout<KEY, VALUE> extends KeyLayout<KEY> {
         return (upperInt << Integer.SIZE) | identifier;
     }
 
+    /*
+     * Only true for root layer in MultiRootGBPTree currently
+     * @return {@code true} if you should never have this layout be versioned.
+     */
+    default boolean neverVersioned() {
+        return false;
+    }
+
     /**
      * Adapter for {@link Layout}, which contains convenient standard implementations of some methods.
      *

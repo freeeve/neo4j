@@ -180,6 +180,11 @@ class SingleRootLayer<KEY, VALUE> extends RootLayer<SingleRoot, KEY, VALUE> {
         }
     }
 
+    @Override
+    public void clearCache() {
+        // Not needed in SingleRootLayer, but must be used in testing for MultiRootLayer
+    }
+
     private class SingleDataTree implements DataTree<KEY, VALUE> {
         private final GBPTreeWriter<KEY, VALUE> batchedWriter;
 

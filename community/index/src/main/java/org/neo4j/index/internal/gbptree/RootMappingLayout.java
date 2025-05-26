@@ -103,6 +103,11 @@ class RootMappingLayout<ROOT_KEY> extends Layout.Adapter<ROOT_KEY, RootMappingLa
         return keyLayout.compare(o1, o2);
     }
 
+    @Override
+    public boolean neverVersioned() {
+        return true;
+    }
+
     static class RootMappingValue {
         long rootId;
         long rootGeneration;
