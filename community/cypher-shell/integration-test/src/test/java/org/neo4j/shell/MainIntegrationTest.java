@@ -112,14 +112,14 @@ class MainIntegrationTest extends TestHarness {
                 .run()
                 .assertThatErrorOutput(
                         contains(
-                                "There is no procedure with the name `dbms.upgradeStatus` registered for this database instance."));
+                                "42N08: syntax error or access rule violation - no such procedure. The procedure dbms.upgradeStatus() was not found. Verify that the spelling is correct."));
         buildTest()
                 .addArgs("-u", USER, "-p", PASSWORD, "--format", "plain")
                 .userInputLines("CYPHER 5 CALL dbms.upgradeStatus(); :exit")
                 .run()
                 .assertThatErrorOutput(
                         notContains(
-                                "There is no procedure with the name `dbms.upgradeStatus` registered for this database instance."));
+                                "42N08: syntax error or access rule violation - no such procedure. The procedure dbms.upgradeStatus() was not found. Verify that the spelling is correct."));
     }
 
     @Test
@@ -414,7 +414,9 @@ class MainIntegrationTest extends TestHarness {
                         ":disconnect ", format(":connect -u %s -p %s -d %s", USER, "wut!", SYSTEM_DB_NAME), ":exit")
                 .run()
                 .assertSuccessAndDisconnected(false)
-                .assertThatErrorOutput(contains("The client is unauthorized due to authentication failure."))
+                .assertThatErrorOutput(
+                        contains(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."))
                 .assertThatOutput(
                         contains("> :disconnect "
                                 + format("%nDisconnected> :connect -u %s -p %s -d %s", USER, "wut!", SYSTEM_DB_NAME)),
@@ -431,7 +433,9 @@ class MainIntegrationTest extends TestHarness {
                         ":exit")
                 .run()
                 .assertSuccessAndDisconnected(false)
-                .assertThatErrorOutput(contains("The client is unauthorized due to authentication failure."))
+                .assertThatErrorOutput(
+                        contains(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."))
                 .assertThatOutput(
                         contains("> :disconnect "
                                 + format(
@@ -870,7 +874,8 @@ class MainIntegrationTest extends TestHarness {
                         + PASSWORD + " -d neo4j\n" + "Disconnected> show current user yield user;\n"
                         + "Disconnected>"))
                 .assertThatErrorOutput(
-                        contains("The client is unauthorized due to authentication failure"),
+                        contains(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."),
                         contains("Not connected"));
     }
 
@@ -890,7 +895,8 @@ class MainIntegrationTest extends TestHarness {
                                 + "Disconnected> show current user yield user;\n"
                                 + "Disconnected>"))
                 .assertThatErrorOutput(
-                        contains("The client is unauthorized due to authentication failure"),
+                        contains(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."),
                         contains("Not connected"));
     }
 
@@ -1388,7 +1394,9 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines(":impersonate impersonate_me", "MATCH (n:ImpersonationTest) RETURN n;", ":exit")
                 .run()
                 .assertSuccess(false)
-                .assertThatErrorOutput(contains("Cannot impersonate user 'impersonate_me'"))
+                .assertThatErrorOutput(
+                        contains(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."))
                 .assertThatOutput(
                         contains(
                                 """
@@ -1726,6 +1734,20 @@ class MainIntegrationTest extends TestHarness {
 
     @Test
     void errorFormatDefault() throws Exception {
+        final String expected;
+        if (isAtLeastVersion("5.27.0")) {
+            expected =
+                    """
+                    42N08: syntax error or access rule violation - no such procedure. The procedure dibs() was not found. Verify that the spelling is correct.
+                      42001: syntax error or access rule violation - invalid syntax
+
+                    """;
+        } else {
+            expected =
+                    """
+                    There is no procedure with the name `dibs` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed.
+                    """;
+        }
         buildTest()
                 .addArgs("-u", USER, "-p", PASSWORD)
                 .userInputLines("call dibs;", ":exit")
@@ -1736,12 +1758,8 @@ class MainIntegrationTest extends TestHarness {
                                 """
                         neo4j@neo4j> call dibs;
                         neo4j@neo4j> :exit"""))
-                .errorOutputSatisfies(
-                        err -> assertThat(err)
-                                .isEqualTo(
-                                        """
-                    There is no procedure with the name `dibs` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed.
-                    """));
+                .errorOutputSatisfies(err ->
+                        assertThat(err).as("serverVersion=%s", serverVersion).isEqualTo(expected));
     }
 
     @Test

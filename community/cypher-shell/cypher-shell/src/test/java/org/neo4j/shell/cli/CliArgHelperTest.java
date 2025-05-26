@@ -546,7 +546,7 @@ class CliArgHelperTest extends LocaleDependentTestBase {
         assertEquals(
                 ErrorFormat.STACKTRACE,
                 parser.parse("--error-format", "stacktrace").getErrorFormat());
-        assertEquals(ErrorFormat.LEGACY, parser.parse().getErrorFormat());
+        assertEquals(ErrorFormat.GQL, parser.parse().getErrorFormat());
         assertEquals(ErrorFormat.DEFAULT, parser.parse().getErrorFormat());
     }
 
@@ -635,7 +635,7 @@ named arguments:
                          `<hours>h<minutes>m<seconds>s`, for example `1h` (1  hour), `1h30m` (1 hour
                          30 minutes), or `30m` (30 minutes).
   --error-format {gql,legacy,stacktrace}
-                         Controls how errors are displayed. (default: legacy)
+                         Controls how errors are displayed. (default: gql)
 
 connection arguments:
   -a ADDRESS, --address ADDRESS, --uri ADDRESS

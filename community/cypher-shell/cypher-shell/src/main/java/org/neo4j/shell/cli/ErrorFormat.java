@@ -24,7 +24,7 @@ public enum ErrorFormat {
     LEGACY("legacy", "display only error message"),
     STACKTRACE("stacktrace", "display full stacktrace, for debugging");
 
-    public static final ErrorFormat DEFAULT = ErrorFormat.LEGACY;
+    public static final ErrorFormat DEFAULT = ErrorFormat.GQL;
     private final String name;
     private final String description;
 
