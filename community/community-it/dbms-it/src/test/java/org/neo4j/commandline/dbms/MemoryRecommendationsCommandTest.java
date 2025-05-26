@@ -53,6 +53,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.configuration.SettingImpl;
 import org.neo4j.dbms.MemoryRecommendation;
@@ -65,21 +66,27 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.api.impl.index.storage.FailureStorage;
 import org.neo4j.kernel.internal.LuceneIndexFileFilter;
 import org.neo4j.storageengine.api.StorageEngineFactory;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.RandomValuesUtils;
 import picocli.CommandLine;
 
 @Neo4jLayoutExtension
+@ExtendWith(RandomExtension.class)
 class MemoryRecommendationsCommandTest {
     @Inject
     private TestDirectory testDirectory;
 
     @Inject
     private Neo4jLayout neo4jLayout;
+
+    @Inject
+    private RandomSupport random;
 
     @Test
     void printUsageHelp() {
@@ -242,7 +249,7 @@ class MemoryRecommendationsCommandTest {
         Files.createDirectories(configDir);
         Path configFile = configDir.resolve(DEFAULT_CONFIG_FILE_NAME);
         Files.createFile(configFile);
-        createDatabaseWithIndexes(homeDir, DEFAULT_DATABASE_NAME);
+        createDatabaseWithIndexes(homeDir, DEFAULT_DATABASE_NAME, random);
 
         var outputStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(outputStream);
@@ -280,7 +287,7 @@ class MemoryRecommendationsCommandTest {
         long totalLuceneIndexesSize = 0;
         for (int i = 0; i < 5; i++) {
             DatabaseLayout databaseLayout = neo4jLayout.databaseLayout("db" + i);
-            createDatabaseWithIndexes(homeDir, databaseLayout.getDatabaseName());
+            createDatabaseWithIndexes(homeDir, databaseLayout.getDatabaseName(), random);
             long[] expectedSizes = calculatePageCacheFileSize(databaseLayout);
             totalPageCacheSize += expectedSizes[0];
             totalLuceneIndexesSize += expectedSizes[1];
@@ -335,12 +342,16 @@ class MemoryRecommendationsCommandTest {
         return new long[] {pageCacheTotal.longValue(), luceneTotal.longValue()};
     }
 
-    private static void createDatabaseWithIndexes(Path homeDirectory, String databaseName) {
+    private static void createDatabaseWithIndexes(Path homeDirectory, String databaseName, RandomSupport random) {
         // Create one index for every provider that we have
         try (var dbms = new TestDatabaseManagementServiceBuilder(homeDirectory)
                 .setConfig(initial_default_database, databaseName)
                 .build()) {
             var db = dbms.database(databaseName);
+            RandomValues randomValues = RandomValues.create(
+                    random.random(),
+                    RandomValuesUtils.selectStorageEngineDependentConfiguration(db)
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
             for (IndexType indexType : Arrays.stream(IndexType.values())
                     .filter(type -> type != IndexType.LOOKUP)
                     .toList()) {
@@ -355,11 +366,8 @@ class MemoryRecommendationsCommandTest {
                             .create();
                     tx.commit();
                 }
-
                 try (Transaction tx = db.beginTx()) {
                     /* Not all storage engines support vectors. */
-                    RandomValues randomValues =
-                            RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
                     for (int i = 0; i < 10_000; i++) {
                         tx.createNode(labelOne)
                                 .setProperty(key, randomValues.nextValue().asObject());
