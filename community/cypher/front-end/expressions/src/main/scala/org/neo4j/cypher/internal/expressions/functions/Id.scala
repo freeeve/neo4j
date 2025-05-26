@@ -35,7 +35,7 @@ case object Id extends Function {
       description = "Returns the id of a `NODE` or `RELATIONSHIP`.",
       category = Category.SCALAR,
       deprecated = true,
-      deprecatedBy = Some(s"${ElementId.name} or an application-generated id"),
+      deprecatedBy = Some(s"${ElementId.name} or consider using an application-generated id"),
       argumentDescriptions = Map("input" -> "A node or a relationship.")
     )
   )

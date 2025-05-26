@@ -1577,11 +1577,11 @@ class MainIntegrationTest extends TestHarness {
 
         if (protocolVersion.compareTo(Versions.version("5.6")) >= 0) {
             expected =
-                    "warn: The query used a deprecated function. ('id' has been replaced by 'elementId or an application-generated id')\n"
+                    "warn: The query used a deprecated function. ('id' has been replaced by 'elementId or consider using an application-generated id')\n"
                             + "01N01 (Neo.ClientNotification.Statement.FeatureDeprecationWarning)";
         } else {
             expected =
-                    "warn: The query used a deprecated function. ('id' has been replaced by 'elementId or an application-generated id') (Neo.ClientNotification.Statement.FeatureDeprecationWarning)";
+                    "warn: The query used a deprecated function. ('id' has been replaced by 'elementId or consider using an application-generated id') (Neo.ClientNotification.Statement.FeatureDeprecationWarning)";
         }
 
         buildTest()

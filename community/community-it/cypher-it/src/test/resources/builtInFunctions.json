@@ -1606,7 +1606,7 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": true,
-    "deprecatedBy": "elementId or an application-generated id",
+    "deprecatedBy": "elementId or consider using an application-generated id",
     "cypherVersionScope": [5, 25]
   },
   {
