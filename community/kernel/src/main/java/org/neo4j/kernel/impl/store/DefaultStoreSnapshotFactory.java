@@ -46,6 +46,7 @@ public class DefaultStoreSnapshotFactory implements StoreSnapshot.Factory {
 
     @Override
     public Optional<StoreSnapshot> createStoreSnapshot() throws IOException {
+        log.debug("Starting creating store snapshot");
         if (!database.getDatabaseAvailabilityGuard().isAvailable()) {
             log.warn("Unable to prepare a store snapshot because database '"
                     + database.getNamedDatabaseId().name() + "' is unavailable");
@@ -80,6 +81,7 @@ public class DefaultStoreSnapshotFactory implements StoreSnapshot.Factory {
             if (!success) {
                 IOUtils.closeAll(unrecoverableFiles, checkpointMutex);
             }
+            log.debug("Creating store snapshot complete, success=%s", success);
         }
     }
 
@@ -127,8 +129,9 @@ public class DefaultStoreSnapshotFactory implements StoreSnapshot.Factory {
      * occurring until we have streamed all the *unrecoverable* files.
      */
     private Resource tryCheckpointAndAcquireMutex(CheckPointer checkPointer) throws IOException {
-        return database.getStoreCopyCheckPointMutex()
-                .storeCopy(() -> checkPointer.tryCheckPoint(new SimpleTriggerInfo("Store copy")));
+        return database.getStoreCopyCheckPointMutex().storeCopy(() -> {
+            checkPointer.tryCheckPoint(new SimpleTriggerInfo("Store copy"));
+        });
     }
 
     private StoreResource toStoreResource(Path databaseDirectory, Path storeFile) {
