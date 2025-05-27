@@ -80,11 +80,15 @@ case object QueryPlanner
     // whereas the one in the statement might have been rewritten and contain the variables
     // that will actually be available to ProduceResults
     val produceResultColumns = from.statement().returnColumns
-    val logicalPlan = plan(from.query, logicalPlanningContext, produceResultColumns)
 
-    if (context.debugOptions.printIDPLog) {
-      logicalPlanningContext.staticComponents.idpLogger.result().foreach(println)
-    }
+    val logicalPlan =
+      try {
+        plan(from.query, logicalPlanningContext, produceResultColumns)
+      } finally {
+        if (context.debugOptions.printIDPLog) {
+          logicalPlanningContext.staticComponents.idpLogger.result().foreach(println)
+        }
+      }
 
     from.copy(
       maybeLogicalPlan = Some(logicalPlan),

@@ -213,7 +213,7 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
     }
 
     def compactBlock(original: Goal): Unit = {
-      logCompaction(registry, table, original)
+      logCompactionStart(registry, original)
 
       val newId = registry.compact(original.bitSet)
       val IDPCache.Results(result, sortedResult, extraPropertiesResult) = table(original)
@@ -225,7 +225,7 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
       toDo = Goal(toDo.bitSet -- original.bitSet + newId)
       table.removeAllTracesOf(original)
 
-      idpLogger.log(s"New compacted goal id = $newId")
+      logCompactionEnd(table, newId)
     }
 
     // actual algorithm
@@ -342,14 +342,16 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
     }
   }
 
-  private def logCompaction(registry: IdRegistry[Solvable], table: IDPTable[Result], original: Goal): Unit = {
+  private def logCompactionStart(registry: IdRegistry[Solvable], original: Goal): Unit = {
     idpLogger.log {
       val originalGoalsSummaries = registry.explode(original.bitSet).map(IDPLoggable.summary(_))
       val originalGoalsBits = registry.explodedBitSet(original.bitSet)
-
-      s"Compacting goal ${original.bitSet} (exploded = $originalGoalsBits) = ${originalGoalsSummaries.mkString("[\n  ", ",\n  ", "\n]")}\n" +
-        s"Compacted table size: ${table.size}"
+      s"Compacting goal ${original.bitSet} (exploded = $originalGoalsBits) = ${originalGoalsSummaries.mkString("[\n  ", ",\n  ", "\n]")}"
     }
+  }
+
+  private def logCompactionEnd(table: IDPTable[Result], newId: Int): Unit = {
+    idpLogger.log(s"New compacted goal id = $newId, compacted table size: ${table.size}")
   }
 
   private def logIterationFullyCompleted(
