@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Type
+import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.CreateConstraint
 import org.neo4j.cypher.internal.logical.plans.CreateFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.CreateIndex
@@ -691,6 +692,9 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           },
           None
         )
+
+    // ALTER CURRENT GRAPH TYPE ...
+    case _: AlterCurrentGraphType => ???
   }
 
   private def getName(name: Option[Either[String, Parameter]], params: MapValue): Option[String] =

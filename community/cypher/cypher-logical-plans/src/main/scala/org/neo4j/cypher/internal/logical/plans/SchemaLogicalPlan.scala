@@ -40,6 +40,8 @@ abstract class SchemaLogicalPlan(idGen: IdGen) extends LogicalPlanExtension(idGe
   override val localAvailableSymbols: Set[LogicalVariable] = Set.empty
 }
 
+// Constraints
+
 case class CreateConstraint(
   source: Option[DoNothingIfExistsForConstraint],
   constraintType: CreateConstraintType,
@@ -55,6 +57,8 @@ case class DropConstraintOnName(
   name: Either[String, Parameter],
   ifExists: Boolean
 )(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen)
+
+// Indexes
 
 case class CreateIndex(
   source: Option[DoNothingIfExistsForIndex],
@@ -91,6 +95,8 @@ case class DropIndexOnName(
   ifExists: Boolean
 )(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen)
 
+// DoNothingIfExistsFor...
+
 case class DoNothingIfExistsForIndex(
   entityName: ElementTypeName,
   propertyKeyNames: List[PropertyKeyName],
@@ -120,3 +126,7 @@ case class DoNothingIfExistsForConstraint(
   name: Option[Either[String, Parameter]],
   options: Options
 )(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen)
+
+// Graph types
+
+case class AlterCurrentGraphType(graphType: GraphType)(implicit idGen: IdGen) extends SchemaLogicalPlan(idGen)

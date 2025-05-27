@@ -190,6 +190,7 @@ import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.AllNodesScan
 import org.neo4j.cypher.internal.logical.plans.AllScope
 import org.neo4j.cypher.internal.logical.plans.AllowedNonAdministrationCommands
+import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.AlterDatabase
 import org.neo4j.cypher.internal.logical.plans.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.logical.plans.AlterRemoteDatabaseAlias
@@ -265,12 +266,14 @@ import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
 import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
+import org.neo4j.cypher.internal.logical.plans.EmptyNodeElementTypeReference
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.EnableServer
 import org.neo4j.cypher.internal.logical.plans.EnsureNodeExists
 import org.neo4j.cypher.internal.logical.plans.EnsureValidNonSystemDatabase
 import org.neo4j.cypher.internal.logical.plans.EnsureValidNumberOfDatabases
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
+import org.neo4j.cypher.internal.logical.plans.ExistenceConstraint
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
@@ -284,6 +287,12 @@ import org.neo4j.cypher.internal.logical.plans.GrantDbmsAction
 import org.neo4j.cypher.internal.logical.plans.GrantGraphAction
 import org.neo4j.cypher.internal.logical.plans.GrantLoadAction
 import org.neo4j.cypher.internal.logical.plans.GrantRoleToUser
+import org.neo4j.cypher.internal.logical.plans.GraphTypeCreateConstraint
+import org.neo4j.cypher.internal.logical.plans.GraphTypeDropConstraint
+import org.neo4j.cypher.internal.logical.plans.GraphTypeForAdd
+import org.neo4j.cypher.internal.logical.plans.GraphTypeForAlter
+import org.neo4j.cypher.internal.logical.plans.GraphTypeForDrop
+import org.neo4j.cypher.internal.logical.plans.GraphTypeForSet
 import org.neo4j.cypher.internal.logical.plans.HomeScope
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.IndexSeek.nodeIndexSeek
@@ -293,6 +302,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexSeek.relationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 import org.neo4j.cypher.internal.logical.plans.Input
 import org.neo4j.cypher.internal.logical.plans.IntersectionNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.KeyConstraint
 import org.neo4j.cypher.internal.logical.plans.LeftOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.LetAntiSemiApply
 import org.neo4j.cypher.internal.logical.plans.LetSelectOrAntiSemiApply
@@ -316,6 +326,9 @@ import org.neo4j.cypher.internal.logical.plans.NodeByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByIdSeek
 import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
 import org.neo4j.cypher.internal.logical.plans.NodeCountFromCountStore
+import org.neo4j.cypher.internal.logical.plans.NodeElementType
+import org.neo4j.cypher.internal.logical.plans.NodeElementTypeReferenceByIdentifyingLabel
+import org.neo4j.cypher.internal.logical.plans.NodeElementTypeReferenceByLabel
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
@@ -346,9 +359,14 @@ import org.neo4j.cypher.internal.logical.plans.ProcedureCall
 import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.ProjectEndpoints
 import org.neo4j.cypher.internal.logical.plans.Projection
+import org.neo4j.cypher.internal.logical.plans.PropertyType
+import org.neo4j.cypher.internal.logical.plans.PropertyTypeConstraint
 import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
+import org.neo4j.cypher.internal.logical.plans.RelationshipElementType
+import org.neo4j.cypher.internal.logical.plans.RelationshipElementTypeReferenceByIdentifyingLabel
+import org.neo4j.cypher.internal.logical.plans.RelationshipElementTypeReferenceByLabel
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RenameRole
 import org.neo4j.cypher.internal.logical.plans.RenameServer
@@ -423,6 +441,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Union
 import org.neo4j.cypher.internal.logical.plans.UnionNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.UniquenessConstraint
 import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.UserEntity
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
@@ -459,6 +478,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTFloat
@@ -486,6 +506,7 @@ import org.neo4j.values.storable.Values.stringValue
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import scala.collection.immutable
+import scala.collection.immutable.ArraySeq
 import scala.language.implicitConversions
 
 object LogicalPlan2PlanDescriptionTest {
@@ -8385,6 +8406,2203 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details("relationshipPropertyTypeConstraints, columns(xxx, yyy AS zzz, vvv)")),
         Set("xxx", "zzz", "vvv")
+      )
+    )
+  }
+
+  // Graph type commands
+
+  test("AlterCurrentGraphType - set, empty graph type") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(GraphTypeForSet(Set.empty, Set.empty)),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeSet", Seq.empty, Seq(details("{}")), Set.empty)
+    )
+  }
+
+  test("AlterCurrentGraphType - set, node and rel elem types") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              NodeElementType(
+                label("L"),
+                Set.empty,
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeSet", Seq.empty, Seq(details("{ (:L => {p :: INTEGER}) }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              NodeElementType(
+                label("L1"),
+                Set(label("L2")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeSet", Seq.empty, Seq(details("{ (:L1 => :L2) }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              NodeElementType(
+                label("L1"),
+                Set(label("L3"), label("L2")),
+                Set(
+                  PropertyType(propName("p1"), IntegerType(isNullable = false)(pos)),
+                  PropertyType(propName("p2"), BooleanType(isNullable = true)(pos))
+                )
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ (:L1 => :L2&L3 {p1 :: INTEGER NOT NULL, p2 :: BOOLEAN}) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                EmptyNodeElementTypeReference,
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p :: INTEGER}]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L2")),
+                NodeElementTypeReferenceByLabel(label("L1")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ (:L2 =>)-[:R =>]->(:L1) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                EmptyNodeElementTypeReference,
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ (:L =>)-[:R =>]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ ()-[:R =>]->(:L) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                Set(
+                  PropertyType(propName("p2"), DateType(isNullable = false)(pos)),
+                  PropertyType(propName("p1"), StringType(isNullable = false)(pos))
+                )
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p1 :: STRING NOT NULL, p2 :: DATE NOT NULL}]->(:L =>) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByLabel(label("L1")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L2")),
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ (:L1)-[:R => {p :: INTEGER}]->(:L2 =>) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              RelationshipElementType(
+                relType("R2"),
+                NodeElementTypeReferenceByLabel(label("L2")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L1")),
+                Set(
+                  PropertyType(propName("p2"), DateType(isNullable = true)(pos)),
+                  PropertyType(propName("p3"), FloatType(isNullable = true)(pos)),
+                  PropertyType(propName("p1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L1"),
+                Set(label("L3"), label("L4"), label("L2")),
+                Set(
+                  PropertyType(propName("p2"), BooleanType(isNullable = true)(pos)),
+                  PropertyType(propName("p1"), StringType(isNullable = false)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L5"),
+                Set.empty,
+                Set(
+                  PropertyType(propName("p2"), AnyType(isNullable = false)(pos)),
+                  PropertyType(propName("p1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              RelationshipElementType(
+                relType("R1"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L5")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details(
+          "{ (:L1 => :L2&L3&L4 {p1 :: STRING NOT NULL, p2 :: BOOLEAN}), (:L5 => {p1 :: INTEGER, p2 :: ANY NOT NULL}), " +
+            "()-[:R1 =>]->(:L5), (:L2)-[:R2 => {p1 :: INTEGER, p2 :: DATE, p3 :: FLOAT}]->(:L1 =>) }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - set, constraints") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L")),
+                ArraySeq(propName("p")),
+                ExistenceConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR (n:L) REQUIRE n.p IS NOT NULL }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R")),
+                ArraySeq(propName("p")),
+                ExistenceConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR ()-[r:R]->() REQUIRE r.p IS NOT NULL }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                Some("c"),
+                NodeElementTypeReferenceByLabel(label("L")),
+                ArraySeq(propName("p")),
+                PropertyTypeConstraint(IntegerType(isNullable = true)(pos)),
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT c FOR (n:L) REQUIRE n.p IS :: INTEGER }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R")),
+                ArraySeq(propName("p")),
+                PropertyTypeConstraint(StringType(isNullable = true)(pos)),
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR ()-[r:R]->() REQUIRE r.p IS :: STRING }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L")),
+                ArraySeq(propName("p")),
+                UniquenessConstraint,
+                OptionsMap(Map(
+                  "index\nConfig" -> mapOf("invalid\nToHave\nConfig" -> stringLiteral("butFails\nInRuntime"))
+                ))(pos)
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details(
+          "{ CONSTRAINT FOR (n:L) REQUIRE n.p IS UNIQUE OPTIONS {`index Config`: {`invalid ToHave Config`: \"butFails InRuntime\"}} }"
+        )),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                Some("c"),
+                RelationshipElementTypeReferenceByIdentifyingLabel(relType("R")),
+                ArraySeq(propName("p")),
+                UniquenessConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT c FOR ()-[r:R =>]->() REQUIRE r.p IS UNIQUE }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                ArraySeq(propName("p")),
+                KeyConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR (n:L =>) REQUIRE n.p IS KEY }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R")),
+                ArraySeq(propName("p")),
+                KeyConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR ()-[r:R]->() REQUIRE r.p IS KEY }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                Some("c2"),
+                RelationshipElementTypeReferenceByLabel(relType("R1")),
+                ArraySeq(propName("p2"), propName("p1")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L3")),
+                ArraySeq(propName("p2")),
+                PropertyTypeConstraint(IntegerType(isNullable = true)(pos)),
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                Some("c1"),
+                NodeElementTypeReferenceByLabel(label("L3")),
+                ArraySeq(propName("p1")),
+                ExistenceConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByIdentifyingLabel(relType("R2")),
+                ArraySeq(propName("p")),
+                UniquenessConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R3")),
+                ArraySeq(propName("p1")),
+                PropertyTypeConstraint(StringType(isNullable = true)(pos)),
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L2")),
+                ArraySeq(propName("p2"), propName("p3"), propName("p1")),
+                UniquenessConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L1")),
+                ArraySeq(propName("p")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R3")),
+                ArraySeq(propName("p1")),
+                ExistenceConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L4")),
+                ArraySeq(propName("p1"), propName("p2"), propName("p3")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L4")),
+                ArraySeq(propName("p2"), propName("p1")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L4")),
+                ArraySeq(propName("p1"), propName("p2")),
+                UniquenessConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details(
+          "{ CONSTRAINT FOR (n:L1 =>) REQUIRE n.p IS KEY, " +
+            "CONSTRAINT FOR (n:L4 =>) REQUIRE (n.p1, n.p2) IS UNIQUE, " +
+            "CONSTRAINT FOR (n:L4 =>) REQUIRE (n.p1, n.p2, n.p3) IS KEY, " +
+            "CONSTRAINT FOR (n:L4 =>) REQUIRE (n.p2, n.p1) IS KEY, " +
+            "CONSTRAINT FOR (n:L2) REQUIRE (n.p2, n.p3, n.p1) IS UNIQUE, " +
+            "CONSTRAINT c1 FOR (n:L3) REQUIRE n.p1 IS NOT NULL, " +
+            "CONSTRAINT FOR (n:L3) REQUIRE n.p2 IS :: INTEGER, " +
+            "CONSTRAINT FOR ()-[r:R2 =>]->() REQUIRE r.p IS UNIQUE, " +
+            "CONSTRAINT c2 FOR ()-[r:R1]->() REQUIRE (r.p2, r.p1) IS KEY, " +
+            "CONSTRAINT FOR ()-[r:R3]->() REQUIRE r.p1 IS NOT NULL, " +
+            "CONSTRAINT FOR ()-[r:R3]->() REQUIRE r.p1 IS :: STRING }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - set, mixed") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              RelationshipElementType(
+                relType("R-\n2"),
+                NodeElementTypeReferenceByLabel(label("L!\n2")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L`1")),
+                Set(
+                  PropertyType(propName("1p2"), DateType(isNullable = true)(pos)),
+                  PropertyType(propName("p-3"), FloatType(isNullable = true)(pos)),
+                  PropertyType(propName("p%1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L-1"),
+                Set(label("L-3"), label("L-4"), label("L-2")),
+                Set(
+                  PropertyType(propName("p`2"), BooleanType(isNullable = true)(pos)),
+                  PropertyType(propName("p`\n1"), StringType(isNullable = false)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L-5"),
+                Set.empty,
+                Set(
+                  PropertyType(propName("p-2"), AnyType(isNullable = false)(pos)),
+                  PropertyType(propName("p-1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              RelationshipElementType(
+                relType("R%1"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L%5")),
+                Set.empty
+              )
+            ),
+            Set(
+              GraphTypeCreateConstraint(
+                Some("c\n-2"),
+                RelationshipElementTypeReferenceByLabel(relType("R-1")),
+                ArraySeq(propName("p-2"), propName("p-1")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L%3")),
+                ArraySeq(propName("p`\n2")),
+                PropertyTypeConstraint(IntegerType(isNullable = true)(pos)),
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L!2")),
+                ArraySeq(propName("2p2"), propName("3p3"), propName("1p1")),
+                UniquenessConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                Some("c-3"),
+                RelationshipElementTypeReferenceByLabel(relType("R`\n3")),
+                ArraySeq(propName("p-1")),
+                ExistenceConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details(
+          "{ (:`L-1` => :`L-2`&`L-3`&`L-4` {`p`` 1` :: STRING NOT NULL, `p``2` :: BOOLEAN}), " +
+            "(:`L-5` => {`p-1` :: INTEGER, `p-2` :: ANY NOT NULL}), " +
+            "()-[:`R%1` =>]->(:`L%5`), " +
+            "(:`L! 2`)-[:`R- 2` => {`1p2` :: DATE, `p%1` :: INTEGER, `p-3` :: FLOAT}]->(:`L``1` =>), " +
+            "CONSTRAINT FOR (n:`L!2` =>) REQUIRE (n.`2p2`, n.`3p3`, n.`1p1`) IS UNIQUE, " +
+            "CONSTRAINT FOR (n:`L%3`) REQUIRE n.`p`` 2` IS :: INTEGER, " +
+            "CONSTRAINT `c -2` FOR ()-[r:`R-1`]->() REQUIRE (r.`p-2`, r.`p-1`) IS KEY, " +
+            "CONSTRAINT `c-3` FOR ()-[r:`R`` 3`]->() REQUIRE r.`p-1` IS NOT NULL }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - add, empty graph type") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(GraphTypeForAdd(Set.empty, Set.empty)),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeAdd", Seq.empty, Seq(details("{}")), Set.empty)
+    )
+  }
+
+  test("AlterCurrentGraphType - add, node and rel elem types") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              NodeElementType(
+                label("L"),
+                Set.empty,
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeAdd", Seq.empty, Seq(details("{ (:L => {p :: INTEGER}) }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              NodeElementType(
+                label("L1"),
+                Set(label("L2")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeAdd", Seq.empty, Seq(details("{ (:L1 => :L2) }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              NodeElementType(
+                label("L1"),
+                Set(label("L3"), label("L2")),
+                Set(
+                  PropertyType(propName("p1"), IntegerType(isNullable = false)(pos)),
+                  PropertyType(propName("p2"), BooleanType(isNullable = true)(pos))
+                )
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ (:L1 => :L2&L3 {p1 :: INTEGER NOT NULL, p2 :: BOOLEAN}) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                EmptyNodeElementTypeReference,
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p :: INTEGER}]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L2")),
+                NodeElementTypeReferenceByLabel(label("L1")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ (:L2 =>)-[:R =>]->(:L1) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                EmptyNodeElementTypeReference,
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ (:L =>)-[:R =>]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ ()-[:R =>]->(:L) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                Set(
+                  PropertyType(propName("p2"), DateType(isNullable = false)(pos)),
+                  PropertyType(propName("p1"), StringType(isNullable = false)(pos))
+                )
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p1 :: STRING NOT NULL, p2 :: DATE NOT NULL}]->(:L =>) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByLabel(label("L1")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L2")),
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ (:L1)-[:R => {p :: INTEGER}]->(:L2 =>) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              RelationshipElementType(
+                relType("R2"),
+                NodeElementTypeReferenceByLabel(label("L2")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L1")),
+                Set(
+                  PropertyType(propName("p2"), DateType(isNullable = true)(pos)),
+                  PropertyType(propName("p3"), FloatType(isNullable = true)(pos)),
+                  PropertyType(propName("p1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L1"),
+                Set(label("L3"), label("L4"), label("L2")),
+                Set(
+                  PropertyType(propName("p2"), BooleanType(isNullable = true)(pos)),
+                  PropertyType(propName("p1"), StringType(isNullable = false)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L5"),
+                Set.empty,
+                Set(
+                  PropertyType(propName("p2"), AnyType(isNullable = false)(pos)),
+                  PropertyType(propName("p1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              RelationshipElementType(
+                relType("R1"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L5")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details(
+          "{ (:L1 => :L2&L3&L4 {p1 :: STRING NOT NULL, p2 :: BOOLEAN}), (:L5 => {p1 :: INTEGER, p2 :: ANY NOT NULL}), " +
+            "()-[:R1 =>]->(:L5), (:L2)-[:R2 => {p1 :: INTEGER, p2 :: DATE, p3 :: FLOAT}]->(:L1 =>) }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - add, constraints") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L")),
+                ArraySeq(propName("p")),
+                ExistenceConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR (n:L) REQUIRE n.p IS NOT NULL }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R")),
+                ArraySeq(propName("p")),
+                ExistenceConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR ()-[r:R]->() REQUIRE r.p IS NOT NULL }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                Some("c"),
+                NodeElementTypeReferenceByLabel(label("L")),
+                ArraySeq(propName("p")),
+                PropertyTypeConstraint(IntegerType(isNullable = true)(pos)),
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT c FOR (n:L) REQUIRE n.p IS :: INTEGER }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R")),
+                ArraySeq(propName("p")),
+                PropertyTypeConstraint(StringType(isNullable = true)(pos)),
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR ()-[r:R]->() REQUIRE r.p IS :: STRING }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L")),
+                ArraySeq(propName("p")),
+                UniquenessConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR (n:L) REQUIRE n.p IS UNIQUE }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                Some("c"),
+                RelationshipElementTypeReferenceByIdentifyingLabel(relType("R")),
+                ArraySeq(propName("p")),
+                UniquenessConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT c FOR ()-[r:R =>]->() REQUIRE r.p IS UNIQUE }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                ArraySeq(propName("p")),
+                KeyConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR (n:L =>) REQUIRE n.p IS KEY }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R")),
+                ArraySeq(propName("p")),
+                KeyConstraint,
+                OptionsMap(Map.empty)(pos)
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details("{ CONSTRAINT FOR ()-[r:R]->() REQUIRE r.p IS KEY OPTIONS {} }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set.empty,
+            Set(
+              GraphTypeCreateConstraint(
+                Some("c2"),
+                RelationshipElementTypeReferenceByLabel(relType("R1")),
+                ArraySeq(propName("p2"), propName("p1")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L3")),
+                ArraySeq(propName("p2")),
+                PropertyTypeConstraint(IntegerType(isNullable = true)(pos)),
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                Some("c1"),
+                NodeElementTypeReferenceByLabel(label("L3")),
+                ArraySeq(propName("p1")),
+                ExistenceConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByIdentifyingLabel(relType("R2")),
+                ArraySeq(propName("p")),
+                UniquenessConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R3")),
+                ArraySeq(propName("p1")),
+                PropertyTypeConstraint(StringType(isNullable = true)(pos)),
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L2")),
+                ArraySeq(propName("p2"), propName("p3"), propName("p1")),
+                UniquenessConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L1")),
+                ArraySeq(propName("p")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                RelationshipElementTypeReferenceByLabel(relType("R3")),
+                ArraySeq(propName("p1")),
+                ExistenceConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L4")),
+                ArraySeq(propName("p1"), propName("p2"), propName("p3")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L4")),
+                ArraySeq(propName("p2"), propName("p1")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L4")),
+                ArraySeq(propName("p1"), propName("p2")),
+                UniquenessConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details(
+          "{ CONSTRAINT FOR (n:L1 =>) REQUIRE n.p IS KEY, " +
+            "CONSTRAINT FOR (n:L4 =>) REQUIRE (n.p1, n.p2) IS UNIQUE, " +
+            "CONSTRAINT FOR (n:L4 =>) REQUIRE (n.p1, n.p2, n.p3) IS KEY, " +
+            "CONSTRAINT FOR (n:L4 =>) REQUIRE (n.p2, n.p1) IS KEY, " +
+            "CONSTRAINT FOR (n:L2) REQUIRE (n.p2, n.p3, n.p1) IS UNIQUE, " +
+            "CONSTRAINT c1 FOR (n:L3) REQUIRE n.p1 IS NOT NULL, " +
+            "CONSTRAINT FOR (n:L3) REQUIRE n.p2 IS :: INTEGER, " +
+            "CONSTRAINT FOR ()-[r:R2 =>]->() REQUIRE r.p IS UNIQUE, " +
+            "CONSTRAINT c2 FOR ()-[r:R1]->() REQUIRE (r.p2, r.p1) IS KEY, " +
+            "CONSTRAINT FOR ()-[r:R3]->() REQUIRE r.p1 IS NOT NULL, " +
+            "CONSTRAINT FOR ()-[r:R3]->() REQUIRE r.p1 IS :: STRING }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - add, mixed") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAdd(
+            Set(
+              RelationshipElementType(
+                relType("R-2"),
+                NodeElementTypeReferenceByLabel(label("L!2")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L`1")),
+                Set(
+                  PropertyType(propName("1p2"), DateType(isNullable = true)(pos)),
+                  PropertyType(propName("p-3"), FloatType(isNullable = true)(pos)),
+                  PropertyType(propName("p%1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L-1"),
+                Set(label("L-3"), label("L-4"), label("L-2")),
+                Set(
+                  PropertyType(propName("p`2"), BooleanType(isNullable = true)(pos)),
+                  PropertyType(propName("p`1"), StringType(isNullable = false)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L-5"),
+                Set.empty,
+                Set(
+                  PropertyType(propName("p-2"), AnyType(isNullable = false)(pos)),
+                  PropertyType(propName("p-1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              RelationshipElementType(
+                relType("R%1"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L%5")),
+                Set.empty
+              )
+            ),
+            Set(
+              GraphTypeCreateConstraint(
+                Some("c-2"),
+                RelationshipElementTypeReferenceByLabel(relType("R-1")),
+                ArraySeq(propName("p-2"), propName("p-1")),
+                KeyConstraint,
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByLabel(label("L%3")),
+                ArraySeq(propName("p`2")),
+                PropertyTypeConstraint(IntegerType(isNullable = true)(pos)),
+                NoOptions
+              ),
+              GraphTypeCreateConstraint(
+                None,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L!2")),
+                ArraySeq(propName("2p2"), propName("3p3"), propName("1p1")),
+                UniquenessConstraint,
+                OptionsParam(parameter("par\nam", CTMap))(pos)
+              ),
+              GraphTypeCreateConstraint(
+                Some("c-3"),
+                RelationshipElementTypeReferenceByLabel(relType("R`3")),
+                ArraySeq(propName("p-1")),
+                ExistenceConstraint,
+                NoOptions
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAdd",
+        Seq.empty,
+        Seq(details(
+          "{ (:`L-1` => :`L-2`&`L-3`&`L-4` {`p``1` :: STRING NOT NULL, `p``2` :: BOOLEAN}), " +
+            "(:`L-5` => {`p-1` :: INTEGER, `p-2` :: ANY NOT NULL}), " +
+            "()-[:`R%1` =>]->(:`L%5`), " +
+            "(:`L!2`)-[:`R-2` => {`1p2` :: DATE, `p%1` :: INTEGER, `p-3` :: FLOAT}]->(:`L``1` =>), " +
+            "CONSTRAINT FOR (n:`L!2` =>) REQUIRE (n.`2p2`, n.`3p3`, n.`1p1`) IS UNIQUE OPTIONS $`par am`, " +
+            "CONSTRAINT FOR (n:`L%3`) REQUIRE n.`p``2` IS :: INTEGER, " +
+            "CONSTRAINT `c-2` FOR ()-[r:`R-1`]->() REQUIRE (r.`p-2`, r.`p-1`) IS KEY, " +
+            "CONSTRAINT `c-3` FOR ()-[r:`R``3`]->() REQUIRE r.`p-1` IS NOT NULL }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - drop, empty graph type") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(GraphTypeForDrop(Set.empty, Set.empty)),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeDrop", Seq.empty, Seq(details("{}")), Set.empty)
+    )
+  }
+
+  test("AlterCurrentGraphType - drop, node and rel elem types") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              NodeElementType(
+                label("L"),
+                Set.empty,
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeDrop", Seq.empty, Seq(details("{ (:L => {p :: INTEGER}) }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              NodeElementType(
+                label("L1"),
+                Set(label("L2")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeDrop", Seq.empty, Seq(details("{ (:L1 => :L2) }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              NodeElementType(
+                label("L1"),
+                Set(label("L3"), label("L2")),
+                Set(
+                  PropertyType(propName("p1"), IntegerType(isNullable = false)(pos)),
+                  PropertyType(propName("p2"), BooleanType(isNullable = true)(pos))
+                )
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details("{ (:L1 => :L2&L3 {p1 :: INTEGER NOT NULL, p2 :: BOOLEAN}) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                EmptyNodeElementTypeReference,
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p :: INTEGER}]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L2")),
+                NodeElementTypeReferenceByLabel(label("L1")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details("{ (:L2 =>)-[:R =>]->(:L1) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                EmptyNodeElementTypeReference,
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details("{ (:L =>)-[:R =>]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details("{ ()-[:R =>]->(:L) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                Set(
+                  PropertyType(propName("p2"), DateType(isNullable = false)(pos)),
+                  PropertyType(propName("p1"), StringType(isNullable = false)(pos))
+                )
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p1 :: STRING NOT NULL, p2 :: DATE NOT NULL}]->(:L =>) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByLabel(label("L1")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L2")),
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details("{ (:L1)-[:R => {p :: INTEGER}]->(:L2 =>) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R2"),
+                NodeElementTypeReferenceByLabel(label("L2")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L1")),
+                Set(
+                  PropertyType(propName("p2"), DateType(isNullable = true)(pos)),
+                  PropertyType(propName("p3"), FloatType(isNullable = true)(pos)),
+                  PropertyType(propName("p1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L1"),
+                Set(label("L3"), label("L4"), label("L2")),
+                Set(
+                  PropertyType(propName("p2"), BooleanType(isNullable = true)(pos)),
+                  PropertyType(propName("p1"), StringType(isNullable = false)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L5"),
+                Set.empty,
+                Set(
+                  PropertyType(propName("p2"), AnyType(isNullable = false)(pos)),
+                  PropertyType(propName("p1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              RelationshipElementType(
+                relType("R1"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L5")),
+                Set.empty
+              )
+            ),
+            Set.empty
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details(
+          "{ (:L1 => :L2&L3&L4 {p1 :: STRING NOT NULL, p2 :: BOOLEAN}), (:L5 => {p1 :: INTEGER, p2 :: ANY NOT NULL}), " +
+            "()-[:R1 =>]->(:L5), (:L2)-[:R2 => {p1 :: INTEGER, p2 :: DATE, p3 :: FLOAT}]->(:L1 =>) }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - drop, constraints") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set.empty,
+            Set(GraphTypeDropConstraint("const"))
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeDrop", Seq.empty, Seq(details("{ CONSTRAINT const }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set.empty,
+            Set(GraphTypeDropConstraint("con-st"))
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeDrop", Seq.empty, Seq(details("{ CONSTRAINT `con-st` }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set.empty,
+            Set(GraphTypeDropConstraint("con\nst"))
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeDrop", Seq.empty, Seq(details("{ CONSTRAINT `con st` }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set.empty,
+            Set(
+              GraphTypeDropConstraint("const2"),
+              GraphTypeDropConstraint("const4"),
+              GraphTypeDropConstraint("const1"),
+              GraphTypeDropConstraint("const3")
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details(
+          "{ CONSTRAINT const1, CONSTRAINT const2, CONSTRAINT const3, CONSTRAINT const4 }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - drop, mixed") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R-2"),
+                NodeElementTypeReferenceByLabel(label("L!2")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L`1")),
+                Set(
+                  PropertyType(propName("1p2"), DateType(isNullable = true)(pos)),
+                  PropertyType(propName("p-3"), FloatType(isNullable = true)(pos)),
+                  PropertyType(propName("p%1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L-1"),
+                Set(label("L-3"), label("L-4"), label("L-2")),
+                Set(
+                  PropertyType(propName("p`2"), BooleanType(isNullable = true)(pos)),
+                  PropertyType(propName("p`1"), StringType(isNullable = false)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L-5"),
+                Set.empty,
+                Set(
+                  PropertyType(propName("p-2"), AnyType(isNullable = false)(pos)),
+                  PropertyType(propName("p-1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              RelationshipElementType(
+                relType("R%1"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L%5")),
+                Set.empty
+              )
+            ),
+            Set(
+              GraphTypeDropConstraint("const5"),
+              GraphTypeDropConstraint("1const"),
+              GraphTypeDropConstraint("con`st")
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details(
+          "{ (:`L-1` => :`L-2`&`L-3`&`L-4` {`p``1` :: STRING NOT NULL, `p``2` :: BOOLEAN}), " +
+            "(:`L-5` => {`p-1` :: INTEGER, `p-2` :: ANY NOT NULL}), " +
+            "()-[:`R%1` =>]->(:`L%5`), " +
+            "(:`L!2`)-[:`R-2` => {`1p2` :: DATE, `p%1` :: INTEGER, `p-3` :: FLOAT}]->(:`L``1` =>), " +
+            "CONSTRAINT `1const`, " +
+            "CONSTRAINT `con``st`, " +
+            "CONSTRAINT const5 }"
+        )),
+        Set.empty
+      )
+    )
+  }
+
+  test("AlterCurrentGraphType - alter, empty graph type") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(GraphTypeForAlter(Set.empty)),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeAlter", Seq.empty, Seq(details("{}")), Set.empty)
+    )
+  }
+
+  test("AlterCurrentGraphType - alter, node and rel elem types") {
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              NodeElementType(
+                label("L"),
+                Set.empty,
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details("{ (:L => {p :: INTEGER}) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              NodeElementType(
+                label("L1"),
+                Set(label("L2")),
+                Set.empty
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(id, "AlterCurrentGraphTypeAlter", Seq.empty, Seq(details("{ (:L1 => :L2) }")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              NodeElementType(
+                label("L1"),
+                Set(label("L3"), label("L2")),
+                Set(
+                  PropertyType(propName("p1"), IntegerType(isNullable = false)(pos)),
+                  PropertyType(propName("p2"), BooleanType(isNullable = true)(pos))
+                )
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details("{ (:L1 => :L2&L3 {p1 :: INTEGER NOT NULL, p2 :: BOOLEAN}) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                EmptyNodeElementTypeReference,
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p :: INTEGER}]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L2")),
+                NodeElementTypeReferenceByLabel(label("L1")),
+                Set.empty
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details("{ (:L2 =>)-[:R =>]->(:L1) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                EmptyNodeElementTypeReference,
+                Set.empty
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details("{ (:L =>)-[:R =>]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L")),
+                Set.empty
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details("{ ()-[:R =>]->(:L) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByIdentifyingLabel(label("L")),
+                Set(
+                  PropertyType(propName("p2"), DateType(isNullable = false)(pos)),
+                  PropertyType(propName("p1"), StringType(isNullable = false)(pos))
+                )
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p1 :: STRING NOT NULL, p2 :: DATE NOT NULL}]->(:L =>) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                NodeElementTypeReferenceByLabel(label("L1")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L2")),
+                Set(PropertyType(propName("p"), IntegerType(isNullable = true)(pos)))
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details("{ (:L1)-[:R => {p :: INTEGER}]->(:L2 =>) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              RelationshipElementType(
+                relType("R2"),
+                NodeElementTypeReferenceByLabel(label("L2")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L1")),
+                Set(
+                  PropertyType(propName("p2"), DateType(isNullable = true)(pos)),
+                  PropertyType(propName("p3"), FloatType(isNullable = true)(pos)),
+                  PropertyType(propName("p1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L1"),
+                Set(label("L3"), label("L4"), label("L2")),
+                Set(
+                  PropertyType(propName("p2"), BooleanType(isNullable = true)(pos)),
+                  PropertyType(propName("p1"), StringType(isNullable = false)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L5"),
+                Set.empty,
+                Set(
+                  PropertyType(propName("p2"), AnyType(isNullable = false)(pos)),
+                  PropertyType(propName("p1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              RelationshipElementType(
+                relType("R1"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L5")),
+                Set.empty
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details(
+          "{ (:L1 => :L2&L3&L4 {p1 :: STRING NOT NULL, p2 :: BOOLEAN}), (:L5 => {p1 :: INTEGER, p2 :: ANY NOT NULL}), " +
+            "()-[:R1 =>]->(:L5), (:L2)-[:R2 => {p1 :: INTEGER, p2 :: DATE, p3 :: FLOAT}]->(:L1 =>) }"
+        )),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForAlter(
+            Set(
+              RelationshipElementType(
+                relType("R-2"),
+                NodeElementTypeReferenceByLabel(label("L!2")),
+                NodeElementTypeReferenceByIdentifyingLabel(label("L`1")),
+                Set(
+                  PropertyType(propName("1p2"), DateType(isNullable = true)(pos)),
+                  PropertyType(propName("p-3"), FloatType(isNullable = true)(pos)),
+                  PropertyType(propName("p%1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L-1"),
+                Set(label("L-3"), label("L-4"), label("L-2")),
+                Set(
+                  PropertyType(propName("p`2"), BooleanType(isNullable = true)(pos)),
+                  PropertyType(propName("p`1"), StringType(isNullable = false)(pos))
+                )
+              ),
+              NodeElementType(
+                label("L-5"),
+                Set.empty,
+                Set(
+                  PropertyType(propName("p-2"), AnyType(isNullable = false)(pos)),
+                  PropertyType(propName("p-1"), IntegerType(isNullable = true)(pos))
+                )
+              ),
+              RelationshipElementType(
+                relType("R%1"),
+                EmptyNodeElementTypeReference,
+                NodeElementTypeReferenceByLabel(label("L%5")),
+                Set.empty
+              )
+            )
+          )
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeAlter",
+        Seq.empty,
+        Seq(details(
+          "{ (:`L-1` => :`L-2`&`L-3`&`L-4` {`p``1` :: STRING NOT NULL, `p``2` :: BOOLEAN}), " +
+            "(:`L-5` => {`p-1` :: INTEGER, `p-2` :: ANY NOT NULL}), " +
+            "()-[:`R%1` =>]->(:`L%5`), " +
+            "(:`L!2`)-[:`R-2` => {`1p2` :: DATE, `p%1` :: INTEGER, `p-3` :: FLOAT}]->(:`L``1` =>) }"
+        )),
+        Set.empty
       )
     )
   }

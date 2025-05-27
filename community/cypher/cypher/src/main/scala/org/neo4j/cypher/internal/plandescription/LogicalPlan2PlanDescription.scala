@@ -96,6 +96,7 @@ import org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.AllNodesScan
+import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.Anti
 import org.neo4j.cypher.internal.logical.plans.AntiConditionalApply
 import org.neo4j.cypher.internal.logical.plans.AntiSemiApply
@@ -160,6 +161,12 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeDropInfo
+import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeInfo
+import org.neo4j.cypher.internal.logical.plans.GraphTypeForAdd
+import org.neo4j.cypher.internal.logical.plans.GraphTypeForAlter
+import org.neo4j.cypher.internal.logical.plans.GraphTypeForDrop
+import org.neo4j.cypher.internal.logical.plans.GraphTypeForSet
 import org.neo4j.cypher.internal.logical.plans.IndexSeekNames
 import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
 import org.neo4j.cypher.internal.logical.plans.Input
@@ -1573,6 +1580,54 @@ case class LogicalPlan2PlanDescription(
           "ShowConstraints",
           children,
           Seq(Details(pretty"$typeDescription, $colsDescription")),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case AlterCurrentGraphType(gt: GraphTypeForSet) =>
+        val details = Details(asPrettyString.raw(graphTypeInfo(gt.elementTypes, gt.constraints)))
+        PlanDescriptionImpl(
+          id,
+          "AlterCurrentGraphTypeSet",
+          children,
+          Seq(details),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case AlterCurrentGraphType(gt: GraphTypeForAdd) =>
+        val details = Details(asPrettyString.raw(graphTypeInfo(gt.elementTypes, gt.constraints)))
+        PlanDescriptionImpl(
+          id,
+          "AlterCurrentGraphTypeAdd",
+          children,
+          Seq(details),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case AlterCurrentGraphType(gt: GraphTypeForDrop) =>
+        val details = Details(asPrettyString.raw(graphTypeDropInfo(gt.elementTypes, gt.constraints)))
+        PlanDescriptionImpl(
+          id,
+          "AlterCurrentGraphTypeDrop",
+          children,
+          Seq(details),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case AlterCurrentGraphType(gt: GraphTypeForAlter) =>
+        val details = Details(asPrettyString.raw(graphTypeInfo(gt.elementTypes, Set.empty)))
+        PlanDescriptionImpl(
+          id,
+          "AlterCurrentGraphTypeAlter",
+          children,
+          Seq(details),
           variables,
           withRawCardinalities,
           withDistinctness

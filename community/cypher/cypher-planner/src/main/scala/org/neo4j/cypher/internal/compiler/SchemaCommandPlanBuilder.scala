@@ -20,14 +20,33 @@
 package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.common.EntityType
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.ast.CreateFulltextIndex
 import org.neo4j.cypher.internal.ast.CreateLookupIndex
 import org.neo4j.cypher.internal.ast.CreateSingleLabelPropertyIndex
 import org.neo4j.cypher.internal.ast.DropConstraintOnName
 import org.neo4j.cypher.internal.ast.DropIndexOnName
+import org.neo4j.cypher.internal.ast.EdgeType
+import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByIdentifyingLabel
+import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByLabel
+import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByVariable
+import org.neo4j.cypher.internal.ast.EmptyNodeTypeReference
+import org.neo4j.cypher.internal.ast.GraphType
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.GraphTypeConstraintBody
+import org.neo4j.cypher.internal.ast.GraphTypeConstraintDefinition
+import org.neo4j.cypher.internal.ast.GraphTypeConstraintName
+import org.neo4j.cypher.internal.ast.GraphTypeElementReference
+import org.neo4j.cypher.internal.ast.GraphTypeEntry
 import org.neo4j.cypher.internal.ast.IfExistsDoNothing
+import org.neo4j.cypher.internal.ast.NodeType
+import org.neo4j.cypher.internal.ast.NodeTypeReference
+import org.neo4j.cypher.internal.ast.NodeTypeReferenceByIdentifyingLabel
+import org.neo4j.cypher.internal.ast.NodeTypeReferenceByLabel
+import org.neo4j.cypher.internal.ast.NodeTypeReferenceByVariable
 import org.neo4j.cypher.internal.ast.PointCreateIndex
+import org.neo4j.cypher.internal.ast.PropertyType
 import org.neo4j.cypher.internal.ast.RangeCreateIndex
 import org.neo4j.cypher.internal.ast.TextCreateIndex
 import org.neo4j.cypher.internal.ast.VectorCreateIndex
@@ -43,6 +62,7 @@ import org.neo4j.cypher.internal.planner.spi.AdministrationPlannerName
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.graphdb.schema.IndexType
+import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 
 /**
  * This planner takes on queries that requires no planning such as schema commands
@@ -122,6 +142,17 @@ case object SchemaCommandPlanBuilder extends Phase[PlannerContext, BaseState, Lo
       case DropIndexOnName(name, ifExists, _) =>
         Some(plans.DropIndexOnName(name, ifExists))
 
+      // ALTER CURRENT GRAPH TYPE SET {...}
+      // ALTER CURRENT GRAPH TYPE ADD {...}
+      // ALTER CURRENT GRAPH TYPE ALTER {...}
+      // ALTER CURRENT GRAPH TYPE DROP {...}
+      case AlterCurrentGraphType(graphType, operation, _) => operation match {
+          case AlterCurrentGraphType.Set   => Some(plans.AlterCurrentGraphType(getGraphTypeForSet(graphType)))
+          case AlterCurrentGraphType.Add   => Some(plans.AlterCurrentGraphType(getGraphTypeForAdd(graphType)))
+          case AlterCurrentGraphType.Alter => Some(plans.AlterCurrentGraphType(getGraphTypeForAlter(graphType)))
+          case AlterCurrentGraphType.Drop  => Some(plans.AlterCurrentGraphType(getGraphTypeForDrop(graphType)))
+        }
+
       case _ => None
     }
 
@@ -131,4 +162,112 @@ case object SchemaCommandPlanBuilder extends Phase[PlannerContext, BaseState, Lo
       planState.copy(maybeLogicalPlan = maybeLogicalPlan, plannerName = AdministrationPlannerName)
     else planState
   }
+
+  // All of these help methods assume the graph type is valid (excluding the checks based on the existing graph type)
+  // and normalized, so they will throw away parts of the ast they no longer care about based on that.
+
+  private def getGraphTypeForSet(graphType: GraphType) = plans.GraphTypeForSet(
+    getPlanElementTypes(graphType.types),
+    getPlanCreateConstraints(graphType.constraints, "SET")
+  )
+
+  private def getGraphTypeForAdd(graphType: GraphType) = plans.GraphTypeForAdd(
+    getPlanElementTypes(graphType.types),
+    getPlanCreateConstraints(graphType.constraints, "ADD")
+  )
+
+  private def getGraphTypeForAlter(graphType: GraphType) =
+    plans.GraphTypeForAlter(getPlanElementTypes(graphType.types))
+
+  private def getGraphTypeForDrop(graphType: GraphType) = plans.GraphTypeForDrop(
+    getPlanElementTypes(graphType.types),
+    getPlanDropConstraints(graphType.constraints)
+  )
+
+  private def getPlanElementTypes(elementTypes: Set[GraphTypeEntry]): Set[plans.GraphTypeEntry] = {
+    elementTypes.map {
+      case net: NodeType =>
+        plans.NodeElementType(net.identifyingLabel, net.additionalLabels, getPlanPropertyType(net.propertyTypes))
+      case ret: EdgeType => plans.RelationshipElementType(
+          ret.identifyingLabel,
+          getPlanNodeReference(ret.src),
+          getPlanNodeReference(ret.dest),
+          getPlanPropertyType(ret.propertyTypes)
+        )
+    }
+  }
+
+  private def getPlanPropertyType(propertyTypes: Set[PropertyType]): Set[plans.PropertyType] =
+    propertyTypes.map(pt => plans.PropertyType(pt.name, pt.normalizedPropertyType))
+
+  private def getPlanNodeReference(
+    nodeTypeRef: NodeTypeReference
+  ): plans.NodeElementTypeReferenceForRelationshipElementType = nodeTypeRef match {
+    case _: EmptyNodeTypeReference                => plans.EmptyNodeElementTypeReference
+    case ntr: NodeTypeReferenceByLabel            => plans.NodeElementTypeReferenceByLabel(ntr.labelName)
+    case ntr: NodeTypeReferenceByIdentifyingLabel => plans.NodeElementTypeReferenceByIdentifyingLabel(ntr.labelName)
+    case _: NodeTypeReferenceByVariable => throw InvalidArgumentsException.internalError(
+        "invalid node element type reference",
+        "did not expect node element type variable references here, it should already have been resolved."
+      )
+  }
+
+  private def getPlanCreateConstraints(
+    graphTypeConstraints: Set[GraphTypeConstraint],
+    operation: String
+  ): Set[plans.GraphTypeCreateConstraint] =
+    graphTypeConstraints.map {
+      case gtc: GraphTypeConstraintDefinition => plans.GraphTypeCreateConstraint(
+          gtc.name,
+          getPlanConstraintReference(gtc.reference),
+          gtc.body.properties.map(_.propertyKey),
+          getPlanConstraintType(gtc.body),
+          gtc.options
+        )
+      case _: GraphTypeConstraintName => throw InvalidArgumentsException.internalError(
+          "invalid constraint definition",
+          s"Did not expect name only constraint definitions for $operation."
+        )
+    }
+
+  private def getPlanConstraintReference(
+    ref: GraphTypeElementReference
+  ): plans.GraphElementTypeReferenceForConstraint = ref match {
+    case ntr: NodeTypeReferenceByLabel            => plans.NodeElementTypeReferenceByLabel(ntr.labelName)
+    case ntr: NodeTypeReferenceByIdentifyingLabel => plans.NodeElementTypeReferenceByIdentifyingLabel(ntr.labelName)
+    case etr: EdgeTypeReferenceByLabel            => plans.RelationshipElementTypeReferenceByLabel(etr.relTypeName)
+    case etr: EdgeTypeReferenceByIdentifyingLabel =>
+      plans.RelationshipElementTypeReferenceByIdentifyingLabel(etr.relTypeName)
+    case _: EmptyNodeTypeReference => throw InvalidArgumentsException.internalError(
+        "invalid element type reference",
+        "Did not expect empty node element type references here, it is not a valid target for a constraint."
+      )
+    case _: NodeTypeReferenceByVariable => throw InvalidArgumentsException.internalError(
+        "invalid element type reference",
+        "Did not expect node element type variable references here, it should already have been resolved."
+      )
+    case _: EdgeTypeReferenceByVariable => throw InvalidArgumentsException.internalError(
+        "invalid element type reference",
+        "Did not expect relationship element type variable references here, it should already have been resolved."
+      )
+  }
+
+  private def getPlanConstraintType(constraintBody: GraphTypeConstraintBody): plans.GraphTypeConstraintType =
+    constraintBody match {
+      case _: GraphTypeConstraint.ExistenceConstraint      => plans.ExistenceConstraint
+      case gtc: GraphTypeConstraint.PropertyTypeConstraint => plans.PropertyTypeConstraint(gtc.normalizedPropertyType)
+      case _: GraphTypeConstraint.KeyConstraint            => plans.KeyConstraint
+      case _: GraphTypeConstraint.UniquenessConstraint     => plans.UniquenessConstraint
+    }
+
+  private def getPlanDropConstraints(
+    graphTypeConstraints: Set[GraphTypeConstraint]
+  ): Set[plans.GraphTypeDropConstraint] =
+    graphTypeConstraints.map {
+      case gtc: GraphTypeConstraintName => plans.GraphTypeDropConstraint(gtc.name)
+      case _: GraphTypeConstraintDefinition => throw InvalidArgumentsException.internalError(
+          "invalid constraint definition",
+          "Did not expect constraint specification definitions for DROP."
+        )
+    }
 }
