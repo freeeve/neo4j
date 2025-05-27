@@ -419,7 +419,6 @@ object TestConf {
     "server.cluster.raft.listen_address" -> "127.0.0.1:0",
     "server.cluster.advertised_address" -> "127.0.0.1:0",
     "server.cluster.raft.advertised_address" -> "127.0.0.1:0",
-    "db.cluster.catchup.pull_interval" -> "10ms",
     "internal.dbms.single_raft_enabled" -> "true",
     "internal.dbms.replication_enabled" -> "true",
     "internal.initial.dbms.default_database.enable" -> "false",
