@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.UsingScanHint
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.BestPlans
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
@@ -103,34 +102,29 @@ object LeafPlanRestrictions {
 
 object LabelScanLeafPlanner {
 
-  case class HintsAndPrunedLabels(
+  case class HintsAndHintedLabels(
     fulfilledHints: ListSet[UsingScanHint],
-    prunedLabels: Set[LabelName]
+    hintedLabels: ListSet[LabelName]
   )
 
   /**
    * Find all the hints that are fulfilled by a scan on the given variable and prune away the implied labels, unless they are hinted upon.
-   * @param hints the hints present in the query graph
+   *
+   * @param hints    the hints present in the query graph
    * @param variable the variable to check for hints
-   * @param graphSchemaOptimizations 
-   * @param labels
-   * @return
+   * @param labels   the labels to prune
    */
-  def getHintsAndPrunedLabels(
+  def getHintsAndHintedLabels(
     hints: ListSet[Hint],
     variable: Variable,
-    graphSchemaOptimizations: GraphSchemaOptimizations,
-    labels: Set[LabelName]
-  ): HintsAndPrunedLabels = {
-    val (fulfilledHints, hintedLabels) =
-      hints.collect {
-        case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(name))
-          if labels.exists(_.name == name) =>
-          (hint, labels.filter(_.name == name))
-      }.unzip
-    val prunedLabels =
-      graphSchemaOptimizations.pruneImpliedLabels(labels) ++
-        hintedLabels.flatten
-    HintsAndPrunedLabels(fulfilledHints, prunedLabels)
+    labels: Iterable[LabelName]
+  ): HintsAndHintedLabels = {
+    hints.collect {
+      case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(name))
+        if labels.exists(_.name == name) =>
+        (hint, labels.filter(_.name == name))
+    }.unzip match {
+      case (scanHints, hintedLabels) => HintsAndHintedLabels(scanHints, hintedLabels.flatten)
+    }
   }
 }

@@ -73,9 +73,9 @@ class GraphSchemaOptimizationsTest extends CypherFunSuite with AstConstructionTe
     gso.pruneImpliedLabels(labelInfo("x" -> Set("A", "B", "Other"))) shouldEqual labelInfo("x" -> Set("A", "Other"))
   }
 
-  test("should prune implying labels") {
+  test("should prune constrained labels over 2 layers") {
     val gso = givenImpliedLabels("A" -> Set("B"), "C" -> Set("B", "D"))
-    gso.pruneImplyingLabels(labelNameSeq("A", "B", "C", "Other")) shouldEqual labelNameSeq("B", "Other")
+    gso.pruneConstrainedLabels(labelNameSeq("A", "B", "C", "Other")) shouldEqual labelNameSeq("B", "Other")
   }
 
   test("should not add implied labels if there are none defined") {

@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
-import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.HintsAndPrunedLabels
-import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.getHintsAndPrunedLabels
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.HintsAndHintedLabels
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.getHintsAndHintedLabels
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -84,8 +84,11 @@ case class intersectionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) exten
                 nodeTokenIndex.orderCapability,
                 context.providedOrderFactory
               )
-              val HintsAndPrunedLabels(hints, prunedLabels) =
-                getHintsAndPrunedLabels(qg.hints, variable, context.staticComponents.graphSchemaOptimizations, labels)
+              val HintsAndHintedLabels(hints, hintedLabels) =
+                getHintsAndHintedLabels(qg.hints, variable, labels)
+
+              val prunedLabels =
+                context.staticComponents.graphSchemaOptimizations.pruneImpliedLabels(labels) ++ hintedLabels
 
               // Only plan an intersection scan if we have more than one label left after pruning.
               // Otherwise, the node label scan provider will take over.

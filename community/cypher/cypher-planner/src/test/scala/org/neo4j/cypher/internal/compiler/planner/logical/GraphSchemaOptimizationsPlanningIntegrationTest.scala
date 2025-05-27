@@ -85,7 +85,9 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  test("should plan intersection scan on implying label if that is hinted on") {
+  test(
+    "should plan intersection scan on constrained label implying other label if the constrained label is hinted on"
+  ) {
     val planner = plannerBuilder()
       .setLabelCardinality("Entity", 1500)
       .setLabelCardinality("Person", 1000)
@@ -129,7 +131,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  test("should plan union scan on implied label, ignoring implying labels") {
+  test("should plan union scan on implied label, ignoring the constrained labels") {
     val planner = plannerBuilder()
       .setLabelCardinality("Director", 1500)
       .setLabelCardinality("Person", 1000)
@@ -166,7 +168,8 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
         |RETURN n""".stripMargin
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .subtractionNodeByLabelsScan("n", Seq("Actor"), Seq("StarTrekFan"))
+      // We subtract the largest implied label from the smallest constrained labels.
+      .subtractionNodeByLabelsScan("n", Seq("Actor"), Seq("SciFiFan"))
       .build()
   }
 

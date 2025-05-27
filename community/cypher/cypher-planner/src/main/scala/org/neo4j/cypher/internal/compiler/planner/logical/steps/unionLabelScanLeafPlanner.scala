@@ -19,7 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
-import org.neo4j.cypher.internal.ast.UsingScanHint
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.HintsAndHintedLabels
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.getHintsAndHintedLabels
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -27,7 +28,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrderin
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.Variable
@@ -77,17 +77,12 @@ case class unionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends Leaf
             context.staticComponents.planContext.nodeTokenIndex.flatMap { nodeTokenIndex =>
               // UnionNodeByLabelScan relies on ordering, so we can only use this plan if the nodeTokenIndex is ordered.
               if (nodeTokenIndex.orderCapability == IndexOrderCapability.BOTH) {
-                // The following code is similar to the one in LabelScanLeafPlanner,
-                // but we use pruneImplyingLabels instead of pruneImpliedLabels to cater for the labels being "ORed" together.
-                val (fulfilledHints, hintedLabels) =
-                  qg.hints.collect {
-                    case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(name))
-                      if labels.exists(_.name == name) =>
-                      (hint, labels.filter(_.name == name))
-                  }.unzip
+
+                val HintsAndHintedLabels(fulfilledHints, hintedLabels) =
+                  getHintsAndHintedLabels(qg.hints, variable, labels)
                 val prunedLabels =
-                  context.staticComponents.graphSchemaOptimizations.pruneImplyingLabels(labels) ++
-                    hintedLabels.flatten
+                  context.staticComponents.graphSchemaOptimizations.pruneConstrainedLabels(labels) ++
+                    hintedLabels
 
                 val providedOrder = ResultOrdering.providedOrderForLabelScan(
                   interestingOrderConfig.orderToSolve,

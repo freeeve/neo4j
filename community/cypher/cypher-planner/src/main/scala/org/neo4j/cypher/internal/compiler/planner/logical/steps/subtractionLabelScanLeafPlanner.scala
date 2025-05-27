@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
-import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.HintsAndPrunedLabels
-import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.getHintsAndPrunedLabels
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.HintsAndHintedLabels
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.getHintsAndHintedLabels
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -35,7 +35,6 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability.BOTH
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 case class subtractionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
 
@@ -82,20 +81,18 @@ case class subtractionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extend
       nodeTokenIndex.orderCapability,
       context.providedOrderFactory
     )
-    val HintsAndPrunedLabels(hints, positivePrunedLabels) =
-      getHintsAndPrunedLabels(
+    val HintsAndHintedLabels(hints, positiveHintedLabels) =
+      getHintsAndHintedLabels(
         qg.hints,
         variable,
-        context.staticComponents.graphSchemaOptimizations,
         positiveLabels
       )
-    val HintsAndPrunedLabels(_, negativePrunedLabels) =
-      getHintsAndPrunedLabels(
-        ListSet.empty,
-        variable,
-        context.staticComponents.graphSchemaOptimizations,
-        negativeLabels
-      )
+
+    val positivePrunedLabels =
+      context.staticComponents.graphSchemaOptimizations.pruneImpliedLabels(positiveLabels) ++ positiveHintedLabels
+
+    val negativePrunedLabels =
+      context.staticComponents.graphSchemaOptimizations.pruneConstrainedLabels(negativeLabels.toSeq)
 
     // We use the unpruned labels for the solved predicates, as we solve all the labels but some of them implicitly.
     val negativeLabelPredicates =
@@ -105,7 +102,7 @@ case class subtractionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extend
     context.staticComponents.logicalPlanProducer.planSubtractionNodeByLabelsScan(
       variable,
       positivePrunedLabels.toSeq,
-      negativePrunedLabels.toSeq,
+      negativePrunedLabels,
       solvedPredicates,
       hints.toSeq,
       qg.argumentIds,
