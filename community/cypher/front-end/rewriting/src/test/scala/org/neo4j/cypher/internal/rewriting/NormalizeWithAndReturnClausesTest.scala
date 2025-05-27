@@ -27,10 +27,14 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlHelper
 
 class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest {
+
+  implicit val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
+
   def rewriterUnderTest: Rewriter = NormalizeWithAndReturnClauses(Neo4jCypherExceptionFactory("test", None))
 
   override def rewriterUnderTest(query: String): Rewriter =
