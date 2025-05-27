@@ -158,9 +158,9 @@ public class StoreIdSerialization {
 
     private static void serialize(StoreId storeId, Writer writer) throws IOException {
         byte[] storageEngine = storeId.getStorageEngineName().getBytes(StandardCharsets.UTF_8);
-        byte[] formatFamily = storeId.getFormatName().getBytes(StandardCharsets.UTF_8);
+        byte[] formatName = storeId.getFormatName().getBytes(StandardCharsets.UTF_8);
         Preconditions.requireBetween(storageEngine.length, 0, 256);
-        Preconditions.requireBetween(formatFamily.length, 0, 256);
+        Preconditions.requireBetween(formatName.length, 0, 256);
         // The store id allows beta versions - represented by a negative major version
         Preconditions.requireBetween(storeId.getMajorVersion(), -128, 128);
         // For minor version we can do more restrictive checks
@@ -172,8 +172,8 @@ public class StoreIdSerialization {
         writer.writeLong(storeId.getRandom());
         writer.writeByte((byte) storageEngine.length);
         writer.writeByteArray(storageEngine, storageEngine.length);
-        writer.writeByte((byte) formatFamily.length);
-        writer.writeByteArray(formatFamily, formatFamily.length);
+        writer.writeByte((byte) formatName.length);
+        writer.writeByteArray(formatName, formatName.length);
         writer.writeByte((byte) storeId.getMajorVersion());
         writer.writeByte((byte) storeId.getMinorVersion());
     }
@@ -187,10 +187,10 @@ public class StoreIdSerialization {
         long creationTime = reader.readLong();
         long randomId = reader.readLong();
         String storageEngine = deserializeString(reader);
-        String formatFamily = deserializeString(reader);
+        String formatName = deserializeString(reader);
         int majorVersion = reader.readByte();
         int minorVersion = reader.readByte();
-        return new StoreId(creationTime, randomId, storageEngine, formatFamily, majorVersion, minorVersion);
+        return new StoreId(creationTime, randomId, storageEngine, formatName, majorVersion, minorVersion);
     }
 
     private static String deserializeString(Reader reader) throws IOException {

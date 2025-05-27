@@ -100,7 +100,7 @@ public class BackupMetadataV2 extends BackupMetadataV1 {
         var mapSize = dataStream.readInt();
         for (int i = 0; i < mapSize; i++) {
             String key = readString(dataStream, Integer.MAX_VALUE);
-            var maxValueLength = (key.equals(METADATA_SCRIPT_FIELD)) ? METADATA_SCRIPT_MAX_LENGTH : Integer.MAX_VALUE;
+            var maxValueLength = (METADATA_SCRIPT_FIELD.equals(key)) ? METADATA_SCRIPT_MAX_LENGTH : Integer.MAX_VALUE;
             String value = readString(dataStream, maxValueLength);
             if (value != null) {
                 deserializedMap.put(key, value);
