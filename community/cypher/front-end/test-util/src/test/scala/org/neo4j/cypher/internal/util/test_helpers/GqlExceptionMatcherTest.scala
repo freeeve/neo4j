@@ -96,6 +96,63 @@ class GqlExceptionMatcherTest extends CypherFunSuite {
     }
   }
 
+  test("should pass test on correct message parts, code and status description - exception") {
+    expectSuccess {
+      val exception = the[Exception] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "oops something went wrong")
+      }
+      exception should be(gqlException(
+        Seq("oops", "wrong", "something"),
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."
+        )
+      ))
+    }
+  }
+
+  test("should pass test on empty message parts, with correct code and status description - exception") {
+    expectSuccess {
+      val exception = the[Exception] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "oops something went wrong")
+      }
+      exception should be(gqlException(
+        Seq(),
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."
+        )
+      ))
+    }
+  }
+
+  test("should not pass test on wrong message parts - exception") {
+    expectFailure {
+      val exception = the[Exception] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "oops something went wrong")
+      }
+      exception should be(gqlException(
+        Seq("oops", "not right", "something"),
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."
+        )
+      ))
+    }
+  }
+
   test("should not pass on incorrect code - gqlStatusObject") {
     expectFailure {
       val gqlStatusObject = the[ErrorGqlStatusObject] thrownBy {
@@ -699,6 +756,63 @@ class GqlExceptionMatcherTest extends CypherFunSuite {
       }
       exception should not be gqlException(
         "oops",
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."
+        )
+      )
+    }
+  }
+
+  test("should not pass negation test on correct message parts, code and status description - exception") {
+    expectFailure {
+      val exception = the[Exception] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "oops something went wrong")
+      }
+      exception should not be gqlException(
+        Seq("oops", "wrong", "something"),
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."
+        )
+      )
+    }
+  }
+
+  test("should not pass negation test on empty message parts, with correct code and status description - exception") {
+    expectFailure {
+      val exception = the[Exception] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "oops something went wrong")
+      }
+      exception should not be gqlException(
+        Seq(),
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."
+        )
+      )
+    }
+  }
+
+  test("should pass negation test on wrong message parts - exception") {
+    expectSuccess {
+      val exception = the[Exception] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "oops something went wrong")
+      }
+      exception should not be gqlException(
+        Seq("oops", "not right", "something"),
         gqlStatus(
           GqlStatusInfoCodes.STATUS_00N50,
           "note: successful completion - home database does not exist. The database `foo` does not exist. Verify that the spelling is correct or create the database for the command to take effect."

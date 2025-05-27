@@ -33,15 +33,20 @@ import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.values.storable.VectorValue
+import org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS
+import org.neo4j.values.storable.VectorValue.MIN_VECTOR_DIMENSIONS
 
 object CypherTypeChecking extends SemanticAnalysisTooling {
 
+  // Note: vectors are handled separately below, as there is one CypherType for each dimension and coordinate combo
   private val allowedPropertyTypes = List(
     BooleanType(isNullable = true)(InputPosition.NONE),
     StringType(isNullable = true)(InputPosition.NONE),
@@ -93,6 +98,26 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
     ListType(PointType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE)
   ) ++ allowedPropertyTypes
 
+  private def checkVectorFeatureFlag(propertyType: CypherType): SemanticCheck = {
+    val maybeVector: Option[CypherType] = propertyType match {
+      case v: VectorType => Some(v)
+      // LIST<VECTOR> is not supported anyway, but we want different errors depending on if the feature flag is on
+      case ListType(v: VectorType, _) => Some(v)
+      case c: ClosedDynamicUnionType  => c.sortedInnerTypes.find(v => v.isInstanceOf[VectorType])
+      case _                          => None
+    }
+
+    if (maybeVector.isDefined) {
+      requireFeatureSupport(
+        "Property type constraints for vectors",
+        SemanticFeature.VectorType,
+        maybeVector.get.position
+      )
+    } else {
+      SemanticCheck.success
+    }
+  }
+
   def checkPropertyTypeForConstraint(
     originalPropertyType: CypherType,
     normalizedPropertyType: CypherType,
@@ -128,8 +153,12 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
       val containsPropertyValueType = anyPropertyValueType(originalPropertyType)
 
       val onlyAllowedTypes = normalizedPropertyType match {
+        case v: VectorType => checkVectorAllowed(v)
         case c: ClosedDynamicUnionType =>
-          c.sortedInnerTypes.forall(p => allowedTypes.contains(p.withPosition(InputPosition.NONE)))
+          c.sortedInnerTypes.forall(p =>
+            allowedTypes.contains(p.withPosition(InputPosition.NONE)) ||
+              p.isInstanceOf[VectorType] && checkVectorAllowed(p.asInstanceOf[VectorType])
+          )
         case _ =>
           allowedTypes.contains(normalizedPropertyType.withPosition(InputPosition.NONE))
       }
@@ -150,6 +179,13 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
                 .withParam(GqlParams.StringParam.typeDescription, "a union of types")
                 .build())
             )
+          case ListType(_: VectorType, _) =>
+            (
+              " Lists cannot have a vector as an inner type.",
+              Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+                .withParam(GqlParams.StringParam.typeDescription, "a vector")
+                .build())
+            )
           case ListType(inner, _) if inner.isNullable =>
             (
               " Lists cannot have nullable inner types.",
@@ -157,10 +193,26 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
                 .withParam(GqlParams.StringParam.typeDescription, "a nullable type")
                 .build())
             )
-          case c: ClosedDynamicUnionType if c.sortedInnerTypes.exists(_.isInstanceOf[ListType]) =>
+          case VectorType(inner, dim, _) if inner.isEmpty || dim.isEmpty =>
+            (
+              " Property type constraints for vectors need to define both coordinate type and dimension.",
+              Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBA).build())
+            )
+          case VectorType(_, Some(dim), _) if dim < MIN_VECTOR_DIMENSIONS || dim > MAX_VECTOR_DIMENSIONS =>
+            (
+              s" The dimension of property type constraints for vectors needs to be between $MIN_VECTOR_DIMENSIONS and $MAX_VECTOR_DIMENSIONS.",
+              Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N31)
+                .withParam(GqlParams.StringParam.component, "DIMENSION")
+                .withParam(GqlParams.StringParam.valueType, "INTEGER NOT NULL")
+                .withParam(GqlParams.NumberParam.lower, VectorValue.MIN_VECTOR_DIMENSIONS)
+                .withParam(GqlParams.NumberParam.upper, VectorValue.MAX_VECTOR_DIMENSIONS)
+                .withParam(GqlParams.StringParam.value, dim.toString).build())
+            )
+          case c: ClosedDynamicUnionType
+            if c.sortedInnerTypes.exists(inner => inner.isInstanceOf[ListType] || inner.isInstanceOf[VectorType]) =>
             // If we have lists we want to check them for the above cases as well
             // Unions within unions should have been flattened in parsing so won't be handled here
-            c.sortedInnerTypes.filter(_.isInstanceOf[ListType])
+            c.sortedInnerTypes.filter(inner => inner.isInstanceOf[ListType] || inner.isInstanceOf[VectorType])
               .map(additionalErrorInfo)
               .find(inner => inner._1.nonEmpty)
               .getOrElse(("", None))
@@ -180,13 +232,22 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
 
     // We want run the semantic checks for the types themselves, but the error messages might not make sense in this context
     // There isn't much point telling users to make all their union types NOT NULL if that is not accepted here.
-    CypherTypeName(originalPropertyType).semanticCheck.map {
-      case r @ SemanticCheckResult(_, Nil) => r
-      case SemanticCheckResult(state, _) => SemanticCheckResult(
-          state,
-          Seq(errorFn(originalPropertyType, "", None))
-        )
-    } chain allowedTypesCheck
+    checkVectorFeatureFlag(normalizedPropertyType) chain
+      CypherTypeName(originalPropertyType).semanticCheck.map {
+        case r @ SemanticCheckResult(_, Nil) => r
+        case SemanticCheckResult(state, _) => SemanticCheckResult(
+            state,
+            Seq(errorFn(originalPropertyType, "", None))
+          )
+      } chain allowedTypesCheck
+  }
+
+  private def checkVectorAllowed(vectorType: VectorType): Boolean = {
+    vectorType match {
+      case VectorType(Some(_), Some(dim), true) =>
+        dim >= MIN_VECTOR_DIMENSIONS && dim <= MAX_VECTOR_DIMENSIONS
+      case _ => false
+    }
   }
 
 }

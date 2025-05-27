@@ -38,7 +38,6 @@ trait GqlExceptionMatchers {
     causeMatcher: Option[GqlExceptionMatcher] = None,
     fuzzyMatch: Boolean = false
   ) extends BeMatcher[ErrorGqlStatusObject] {
-
     override def toString(): String = s"GqlExceptionMatcher for $code"
 
     override def apply(left: ErrorGqlStatusObject): MatchResult = {
@@ -246,25 +245,44 @@ trait GqlExceptionMatchers {
     gqlMatcher: GqlExceptionMatcher,
     fuzzyMsg: Boolean = false
   ): BeMatcher[Exception] =
+    gqlExceptionHelper(Seq(legacyMsg), gqlMatcher, fuzzyMsg)
+
+  def gqlException(
+    legacyMsgParts: Seq[String],
+    gqlMatcher: GqlExceptionMatcher
+  ): BeMatcher[Exception] =
+    gqlExceptionHelper(legacyMsgParts, gqlMatcher, fuzzyMsg = true)
+
+  private def gqlExceptionHelper(
+    legacyMsgParts: Seq[String],
+    gqlMatcher: GqlExceptionMatcher,
+    fuzzyMsg: Boolean
+  ): BeMatcher[Exception] =
     BeMatcher {
       (ex: Exception) =>
         {
           val typeMatcher: Matcher[Exception] = be(a[ErrorGqlStatusObject])
           val messageMatcher: Matcher[Exception] = {
-            if (fuzzyMsg) {
+            if (legacyMsgParts.isEmpty) {
+              Matcher {
+                _ => MatchResult(matches = true, "Unreachable", "Did not provide any legacy message to check")
+              }
+            } else if (fuzzyMsg) {
               Matcher { ex =>
                 MatchResult(
-                  ex.getMessage.replace("\r\n", "\n").contains(legacyMsg.replace("\r\n", "\n")),
-                  s"Message '${ex.getMessage}' did not start with '$legacyMsg'",
-                  s"Message started with '$legacyMsg'"
+                  legacyMsgParts.forall(p => ex.getMessage.replace("\r\n", "\n").contains(p.replace("\r\n", "\n"))),
+                  s"Message '${ex.getMessage}' did not contain all of '${legacyMsgParts.mkString("[\"", "\", \"", "\"]")}'",
+                  s"Message contains all of '${legacyMsgParts.mkString("[\"", "\", \"", "\"]")}'"
                 )
               }
             } else {
               Matcher { ex =>
                 MatchResult(
-                  ex.getMessage.replace("\r\n", "\n").equals(legacyMsg.replace("\r\n", "\n")),
-                  s"Message '${ex.getMessage}' did not equal '$legacyMsg'",
-                  s"Message equals '$legacyMsg'"
+                  // It is safe to do legacyMsgParts.head here,
+                  // because if the list does not have exactly one element we would end up in one of the cases above.
+                  ex.getMessage.replace("\r\n", "\n").equals(legacyMsgParts.head.replace("\r\n", "\n")),
+                  s"Message '${ex.getMessage}' did not equal '${legacyMsgParts.head}'",
+                  s"Message equals '${legacyMsgParts.head}'"
                 )
               }
             }

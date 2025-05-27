@@ -1949,6 +1949,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "invalid inner list type",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NBA(
+            new GqlStatus("22NBA"),
+            "Property type constraints for vectors need to define both coordinate type and dimension.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "omitting mandatory field for property type constraints for vectors",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             "",

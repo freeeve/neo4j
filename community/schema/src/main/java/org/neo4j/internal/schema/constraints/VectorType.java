@@ -71,7 +71,7 @@ public final class VectorType implements ConstrainableType {
 
     @Override
     public String userDescription() {
-        return CYPHER_USER_DESCRIPTION.formatted(coordinateType.name(), dimensions);
+        return CYPHER_USER_DESCRIPTION.formatted(coordinateType.normalizedCypherString(), dimensions);
     }
 
     public static VectorType int8Vector(int dimension) {

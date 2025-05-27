@@ -22,13 +22,18 @@ import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
 import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer16Type
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
+import org.neo4j.cypher.internal.util.symbols.Integer8Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.NodeType
 import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
@@ -42,7 +47,8 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
   private val pos4 = InputPosition(37, 8, 9)
   private val pos5 = InputPosition(42, 11, 14)
 
-  private val initialState = SemanticState.clean
+  private val initialStateNoFeatureFlag = SemanticState.clean
+  private val initialState = SemanticState.clean.withFeature(SemanticFeature.VectorType)
 
   test("nullable property type should be valid for property type constraint") {
     val constraintCommand = relPropertyTypeConstraint(IntegerType(isNullable = true)(pos1), pos2)
@@ -59,9 +65,141 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
     assertPropertyTypeConstraintError(constraintCommand, "node", "NODE", pos1)
   }
 
+  // Vector types
+
+  test("vector should be valid for node property type constraint") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      VectorType(Some(IntegerType(isNullable = false)(pos1)), Some(512), isNullable = true)(pos2),
+      pos3
+    )
+    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+  }
+
+  test("vector should be valid for relationship property type constraint") {
+    val constraintCommand = relPropertyTypeConstraint(
+      VectorType(Some(Float32Type(isNullable = false)(pos1)), Some(12), isNullable = true)(pos2),
+      pos3
+    )
+    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+  }
+
+  test("vector with omitted dimension should not be valid for property type constraint") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      VectorType(Some(Integer16Type(isNullable = false)(pos1)), None, isNullable = true)(pos2),
+      pos3
+    )
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "node",
+      "VECTOR<INTEGER16 NOT NULL>",
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBA).build(),
+      "Property type constraints for vectors need to define both coordinate type and dimension.",
+      pos2
+    )
+  }
+
+  test("vector with omitted coordinate type should not be valid for property type constraint") {
+    val constraintCommand = relPropertyTypeConstraint(VectorType(None, Some(42), isNullable = true)(pos1), pos2)
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "relationship",
+      "VECTOR(42)",
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBA).build(),
+      "Property type constraints for vectors need to define both coordinate type and dimension.",
+      pos1
+    )
+  }
+
+  test("vector with omitted dimension and coordinate type should not be valid for property type constraint") {
+    val constraintCommand = nodePropertyTypeConstraint(VectorType(None, None, isNullable = true)(pos1), pos2)
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "node",
+      "VECTOR",
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBA).build(),
+      "Property type constraints for vectors need to define both coordinate type and dimension.",
+      pos1
+    )
+  }
+
+  test("vector with negative dimension should not be valid for property type constraint") {
+    val constraintCommand = relPropertyTypeConstraint(
+      VectorType(Some(FloatType(isNullable = false)(pos1)), Some(-1), isNullable = true)(pos2),
+      pos3
+    )
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "relationship",
+      "VECTOR<FLOAT NOT NULL>(-1)",
+      dimensionErrorCause(-1),
+      "The dimension of property type constraints for vectors needs to be between 1 and 4096.",
+      pos2
+    )
+  }
+
+  test("vector with zero dimension should not be valid for property type constraint") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      VectorType(Some(IntegerType(isNullable = false)(pos1)), Some(0), isNullable = true)(pos2),
+      pos3
+    )
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "node",
+      "VECTOR<INTEGER NOT NULL>(0)",
+      dimensionErrorCause(0),
+      "The dimension of property type constraints for vectors needs to be between 1 and 4096.",
+      pos2
+    )
+  }
+
+  test("vector with one dimension should be valid for property type constraint") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      VectorType(Some(Integer32Type(isNullable = false)(pos1)), Some(1), isNullable = true)(pos2),
+      pos3
+    )
+    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+  }
+
+  test("vector with dimension 4096 should be valid for property type constraint") {
+    val constraintCommand = relPropertyTypeConstraint(
+      VectorType(Some(Integer8Type(isNullable = false)(pos1)), Some(4096), isNullable = true)(pos2),
+      pos3
+    )
+    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+  }
+
+  test("vector with too large dimension should not be valid for property type constraint") {
+    val constraintCommand = relPropertyTypeConstraint(
+      VectorType(Some(Float32Type(isNullable = false)(pos1)), Some(4097), isNullable = true)(pos2),
+      pos3
+    )
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "relationship",
+      "VECTOR<FLOAT32 NOT NULL>(4097)",
+      dimensionErrorCause(4097),
+      "The dimension of property type constraints for vectors needs to be between 1 and 4096.",
+      pos2
+    )
+  }
+
+  test("vector should not be valid for property type constraint without feature flag") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      VectorType(Some(Float32Type(isNullable = false)(pos1)), Some(4), isNullable = true)(pos2),
+      pos3
+    )
+    assertVectorFeatureFlagError(constraintCommand, pos2)
+  }
+
   // List types
 
-  test("nullable list of non-nullable property type should be valid for property type constraint") {
+  test("nullable list of non-nullable, non-vector property type should be valid for property type constraint") {
     val constraintCommand =
       relPropertyTypeConstraint(ListType(StringType(isNullable = false)(pos1), isNullable = true)(pos2), pos3)
 
@@ -90,6 +228,29 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
       expectedCause,
       "Lists cannot have nullable inner types.",
       pos2
+    )
+  }
+
+  test("list of vector should not be valid for property type constraint") {
+    val constraintCommand = relPropertyTypeConstraint(
+      ListType(
+        VectorType(Some(Float32Type(isNullable = false)(pos1)), Some(12), isNullable = false)(pos2),
+        isNullable = true
+      )(pos3),
+      pos4
+    )
+
+    val expectedCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+      .withParam(GqlParams.StringParam.typeDescription, "a vector")
+      .build()
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "relationship",
+      "LIST<VECTOR<FLOAT32 NOT NULL>(12) NOT NULL>",
+      expectedCause,
+      "Lists cannot have a vector as an inner type.",
+      pos3
     )
   }
 
@@ -148,6 +309,68 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
     )
 
     constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+  }
+
+  test("union with vector should be valid for property type constraint") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      ClosedDynamicUnionType(Set(
+        ListType(IntegerType(isNullable = false)(pos1), isNullable = true)(pos2),
+        VectorType(Some(IntegerType(isNullable = false)(pos3)), Some(3), isNullable = true)(pos4)
+      ))(pos5),
+      pos1
+    )
+
+    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+  }
+
+  test("union with vector with omitted dimension should not be valid for property type constraint") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      ClosedDynamicUnionType(Set(
+        ListType(IntegerType(isNullable = false)(pos1), isNullable = true)(pos2),
+        VectorType(Some(IntegerType(isNullable = false)(pos3)), None, isNullable = true)(pos4)
+      ))(pos5),
+      pos1
+    )
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "node",
+      "VECTOR<INTEGER NOT NULL> | LIST<INTEGER NOT NULL>",
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBA).build(),
+      "Property type constraints for vectors need to define both coordinate type and dimension.",
+      pos5
+    )
+  }
+
+  test("union with vector of invalid dimension should not be valid for property type constraint") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      ClosedDynamicUnionType(Set(
+        ListType(IntegerType(isNullable = false)(pos1), isNullable = true)(pos2),
+        VectorType(Some(IntegerType(isNullable = false)(pos3)), Some(0), isNullable = true)(pos4)
+      ))(pos5),
+      pos1
+    )
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "node",
+      "VECTOR<INTEGER NOT NULL>(0) | LIST<INTEGER NOT NULL>",
+      dimensionErrorCause(0),
+      "The dimension of property type constraints for vectors needs to be between 1 and 4096.",
+      pos5
+    )
+  }
+
+  test("union with vector should not be valid for property type constraint without feature flag") {
+    val constraintCommand = nodePropertyTypeConstraint(
+      ClosedDynamicUnionType(Set(
+        ListType(IntegerType(isNullable = false)(pos1), isNullable = true)(pos2),
+        VectorType(Some(IntegerType(isNullable = false)(pos3)), Some(42), isNullable = true)(pos4)
+      ))(pos5),
+      pos1
+    )
+
+    assertVectorFeatureFlagError(constraintCommand, pos4)
   }
 
   test("union with none valid type should not be valid for property type constraint") {
@@ -268,5 +491,37 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           position
         )
       ).errors
+  }
+
+  private def assertVectorFeatureFlagError(
+    constraintCommand: CreateConstraint,
+    position: InputPosition
+  ): Unit = {
+    constraintCommand.semanticCheck.run(
+      initialStateNoFeatureFlag,
+      SemanticCheckContext.default
+    ).errors shouldBe SemanticCheckResult
+      .error(
+        initialStateNoFeatureFlag,
+        FeatureError(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N26)
+            .withParam(GqlParams.StringParam.item, "Property type constraints for vectors")
+            .withParam(GqlParams.StringParam.feat, "new vector type")
+            .build(),
+          "Property type constraints for vectors is not available in this implementation of Cypher due to lack of support for new vector type.",
+          SemanticFeature.VectorType,
+          position
+        )
+      ).errors
+  }
+
+  private def dimensionErrorCause(dimension: Int): ErrorGqlStatusObject = {
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N31)
+      .withParam(GqlParams.StringParam.component, "DIMENSION")
+      .withParam(GqlParams.StringParam.valueType, "INTEGER NOT NULL")
+      .withParam(GqlParams.NumberParam.lower, 1)
+      .withParam(GqlParams.NumberParam.upper, 4096)
+      .withParam(GqlParams.StringParam.value, dimension.toString)
+      .build()
   }
 }

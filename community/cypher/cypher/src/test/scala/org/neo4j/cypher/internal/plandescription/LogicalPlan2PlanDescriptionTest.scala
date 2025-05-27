@@ -471,10 +471,12 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.DurationType
 import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.LocalTimeType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
@@ -7934,6 +7936,27 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Set.empty
       )
     )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          NodePropertyType(VectorType(Some(Integer32Type(isNullable = false)(pos)), Some(3), isNullable = true)(pos)),
+          label("Label"),
+          Seq(prop("x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details("CONSTRAINT FOR (x:Label) REQUIRE (x.prop) IS :: VECTOR<INTEGER32 NOT NULL>(3)")),
+        Set.empty
+      )
+    )
   }
 
   test("CreateRelationshipPropertyTypeConstraint") {
@@ -8020,6 +8043,34 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           )
         ),
         Seq(details("CONSTRAINT FOR ()-[` x`:R]-() REQUIRE (` x`.prop) IS :: DATE | DURATION")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        CreateConstraint(
+          None,
+          RelationshipPropertyType(
+            ClosedDynamicUnionType(Set(
+              ListType(FloatType(isNullable = false)(pos), isNullable = true)(pos),
+              VectorType(Some(FloatType(isNullable = false)(pos)), Some(128), isNullable = true)(pos)
+            ))(pos)
+          ),
+          relType("R"),
+          Seq(prop("x", "prop")),
+          None,
+          NoOptions
+        ),
+        63.2
+      ),
+      planDescription(
+        id,
+        "CreateConstraint",
+        Seq.empty,
+        Seq(details(
+          "CONSTRAINT FOR ()-[x:R]-() REQUIRE (x.prop) IS :: VECTOR<FLOAT NOT NULL>(128) | LIST<FLOAT NOT NULL>"
+        )),
         Set.empty
       )
     )

@@ -27,11 +27,21 @@ public interface Vector {
     CoordinateType coordinateType();
 
     enum CoordinateType {
-        INTEGER8,
-        INTEGER16,
-        INTEGER32,
-        INTEGER64,
-        FLOAT32,
-        FLOAT64
+        INTEGER8("INTEGER8 NOT NULL"),
+        INTEGER16("INTEGER16 NOT NULL"),
+        INTEGER32("INTEGER32 NOT NULL"),
+        INTEGER64("INTEGER NOT NULL"),
+        FLOAT32("FLOAT32 NOT NULL"),
+        FLOAT64("FLOAT NOT NULL");
+
+        private final String normalizedCypherString;
+
+        CoordinateType(String normalizedCypherString) {
+            this.normalizedCypherString = normalizedCypherString;
+        }
+
+        public String normalizedCypherString() {
+            return normalizedCypherString;
+        }
     }
 }
