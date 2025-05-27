@@ -22,7 +22,7 @@ package org.neo4j.kernel.api.impl.schema.populator;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
@@ -39,7 +39,7 @@ public class TextIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<Value
 
     @Override
     protected LuceneDocument updateAsDocument(ValueIndexEntryUpdate update) {
-        return TextDocumentStructure.documentRepresentingProperties(update.getEntityId(), update.values());
+        return LuceneDocumentsFactory.CURRENT.reusableTextDocument(update.getEntityId(), update.values());
     }
 
     @Override

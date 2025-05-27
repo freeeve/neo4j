@@ -81,7 +81,7 @@ public class TrigramIndexAccessor
         protected void addIdempotent(long entityId, Value[] values) {
             try {
                 LuceneDocument document = LuceneDocumentsFactory.CURRENT.createTrigramDocument(entityId, values[0]);
-                writer.updateOrDeleteDocument(LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY, entityId, document);
+                writer.updateOrDeleteDocument(LuceneDocumentsFactory.ENTITY_ID_KEY, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -105,7 +105,7 @@ public class TrigramIndexAccessor
         @Override
         protected void remove(long entityId) {
             try {
-                writer.deleteDocuments(LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY, entityId);
+                writer.deleteDocuments(LuceneDocumentsFactory.ENTITY_ID_KEY, entityId);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

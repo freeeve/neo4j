@@ -19,12 +19,12 @@
  */
 package org.neo4j.kernel.api.impl.schema.populator;
 
-import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
-import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
@@ -63,15 +63,15 @@ public class TextIndexPopulatingUpdater implements IndexUpdater {
             switch (updateMode) {
                 case ADDED ->
                     writer.updateDocument(
-                            NODE_ID_KEY,
+                            ENTITY_ID_KEY,
                             entityId,
-                            TextDocumentStructure.documentRepresentingProperties(entityId, values));
+                            LuceneDocumentsFactory.CURRENT.reusableTextDocument(entityId, values));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
-                            NODE_ID_KEY,
+                            ENTITY_ID_KEY,
                             entityId,
-                            TextDocumentStructure.documentRepresentingProperties(entityId, values));
-                case REMOVED -> writer.deleteDocuments(NODE_ID_KEY, entityId);
+                            LuceneDocumentsFactory.CURRENT.reusableTextDocument(entityId, values));
+                case REMOVED -> writer.deleteDocuments(ENTITY_ID_KEY, entityId);
                 default ->
                     throw new IllegalStateException(
                             "Unknown update mode " + updateMode + " for values " + Arrays.toString(values));

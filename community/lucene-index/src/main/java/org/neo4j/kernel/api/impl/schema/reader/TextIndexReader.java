@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.schema.reader;
 
-import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -66,7 +66,7 @@ public class TextIndexReader extends AbstractTextIndexReader {
 
     @Override
     protected String entityIdFieldKey() {
-        return NODE_ID_KEY;
+        return ENTITY_ID_KEY;
     }
 
     @Override
@@ -79,7 +79,7 @@ public class TextIndexReader extends AbstractTextIndexReader {
             long entityId, CursorContext cursorContext, int[] propertyKeyIds, Value... propertyValues) {
         LuceneIndexSearcher luceneIndexSearcher = getIndexSearcher();
         LuceneQueryContext queryContext = luceneIndexSearcher.newQueryContext();
-        queryContext.addMustTerm(NODE_ID_KEY, String.valueOf(entityId));
+        queryContext.addMustTerm(ENTITY_ID_KEY, String.valueOf(entityId));
         queryContext.addMustSeek(propertyValues);
 
         try {

@@ -62,11 +62,6 @@ public class Lucene9Directory implements LuceneDirectory {
     }
 
     @Override
-    public void sync(Collection<String> names) throws IOException {
-        directory.sync(names);
-    }
-
-    @Override
     public boolean indexExists() throws IOException {
         return DirectoryReader.indexExists(directory);
     }

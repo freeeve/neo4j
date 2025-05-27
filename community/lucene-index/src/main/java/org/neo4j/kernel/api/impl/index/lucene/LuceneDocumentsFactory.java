@@ -28,10 +28,36 @@ import org.neo4j.values.storable.Value;
 public interface LuceneDocumentsFactory {
     LuceneDocumentsFactory CURRENT = Lucene9DocumentsFactory.INSTANCE;
 
-    String TRIGRAM_ENTITY_ID_KEY = "id";
+    String ENTITY_ID_KEY = "id";
+    String TEXT_VALUE_KEY_SUFFIX = "string";
+
     String TRIGRAM_VALUE_KEY = "0";
 
-    String VECTOR_ENTITY_ID_KEY = "id";
+    /**
+     * Get the lucene document field name for a text value.
+     * @param propertyNumber The property index, in case of multiple properties
+     * @return the field name used text indexes.
+     */
+    static String textValueKey(int propertyNumber) {
+        if (propertyNumber == 0) {
+            return TEXT_VALUE_KEY_SUFFIX;
+        }
+        return propertyNumber + TEXT_VALUE_KEY_SUFFIX;
+    }
+
+    static boolean isFirstTextProperty(String fieldName) {
+        return !Character.isDigit(fieldName.charAt(0));
+    }
+
+    /**
+     * Get the node or relationship id from the document.
+     *
+     * @param document document to extract id from.
+     * @return the node or relationship id.
+     */
+    static long getEntityId(LuceneDocument document) {
+        return Long.parseLong(document.get(LuceneDocumentsFactory.ENTITY_ID_KEY));
+    }
 
     LuceneDocument reusableTextDocument(long id, Value... values);
 

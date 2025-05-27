@@ -35,7 +35,7 @@ class Lucene9Document implements LuceneDocument {
         this(new Document());
     }
 
-    public Lucene9Document(Document document) {
+    Lucene9Document(Document document) {
         this.document = document;
     }
 

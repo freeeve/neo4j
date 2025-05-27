@@ -43,6 +43,7 @@ import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryParseException;
 import org.neo4j.kernel.api.impl.schema.LuceneScoredEntityIndexProgressor;
 import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
@@ -169,7 +170,7 @@ public class FulltextIndexReader implements ValueIndexReader {
                             fulltextSearchPredicate.query(), propertyNames, actualQueryAnalyzer);
 
                     yield queryContext;
-                } catch (LuceneQueryContext.QueryParseException parseException) {
+                } catch (LuceneQueryParseException parseException) {
                     throw new RuntimeException(
                             "Could not parse the given fulltext search query: '%s'."
                                     .formatted(fulltextSearchPredicate.query()),

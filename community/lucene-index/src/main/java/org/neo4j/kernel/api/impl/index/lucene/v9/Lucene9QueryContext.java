@@ -44,9 +44,10 @@ import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryParseException;
 import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
 import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
@@ -79,13 +80,13 @@ public class Lucene9QueryContext implements LuceneQueryContext {
 
     @Override
     public Lucene9QueryContext addShouldQueryText(String query, String[] fields, Analyzer analyzer)
-            throws QueryParseException {
+            throws LuceneQueryParseException {
         try {
             ensureBooleanBuilder();
             booleanBuilder.add(parseFulltextQuery(query, fields, analyzer), BooleanClause.Occur.SHOULD);
             return this;
         } catch (ParseException e) {
-            throw new QueryParseException(e);
+            throw new LuceneQueryParseException(e);
         }
     }
 
@@ -127,21 +128,21 @@ public class Lucene9QueryContext implements LuceneQueryContext {
 
     @Override
     public Lucene9QueryContext stringPrefix(String prefix) {
-        Term term = new Term(LuceneStringValueEncoding.key(0), prefix);
+        Term term = new Term(LuceneDocumentsFactory.textValueKey(0), prefix);
         assignSingle(new PrefixMultiTermsQuery(term));
         return this;
     }
 
     @Override
     public Lucene9QueryContext stringContains(String substring) {
-        Term term = new Term(LuceneStringValueEncoding.key(0), substring);
+        Term term = new Term(LuceneDocumentsFactory.textValueKey(0), substring);
         assignSingle(new ContainsMultiTermsQuery(term));
         return this;
     }
 
     @Override
     public Lucene9QueryContext stringSuffix(String suffix) {
-        Term term = new Term(LuceneStringValueEncoding.key(0), suffix);
+        Term term = new Term(LuceneDocumentsFactory.textValueKey(0), suffix);
         assignSingle(new SuffixMultiTermsQuery(term));
         return this;
     }

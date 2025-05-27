@@ -30,75 +30,59 @@ import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.vector_popul
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.vector_standard_merge_factor;
 
 import org.neo4j.configuration.Config;
+import org.neo4j.graphdb.config.Setting;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 
 public enum IndexWriterConfigMode {
-    VECTOR {
-        @Override
-        public LuceneIndexWriterConfig visitWithConfig(LuceneIndexWriterConfig writerConfig, Config config) {
-            return applyCommon(writerConfig, config);
-        }
-
-        @Override
-        public int getMergeFactor(Config config) {
-            return config.get(vector_standard_merge_factor);
-        }
-    },
-    VECTOR_POPULATION {
-        @Override
-        public LuceneIndexWriterConfig visitWithConfig(LuceneIndexWriterConfig writerConfig, Config config) {
-            return applyCommonPopulating(writerConfig, config)
-                    .setRAMBufferSizeMB(config.get(vector_population_ram_buffer_size));
-        }
-
-        @Override
-        public int getMergeFactor(Config config) {
-            return config.get(vector_population_merge_factor);
-        }
-    },
-    TEXT {
-        @Override
-        public LuceneIndexWriterConfig visitWithConfig(LuceneIndexWriterConfig writerConfig, Config config) {
-            return applyCommon(writerConfig, config);
-        }
-    },
-    TEXT_POPULATION {
-        @Override
-        public LuceneIndexWriterConfig visitWithConfig(LuceneIndexWriterConfig writerConfig, Config config) {
-            return applyCommonPopulating(writerConfig, config)
-                    .setRAMBufferSizeMB(config.get(lucene_population_ram_buffer_size));
-        }
-    },
-    TRANSACTION_STATE {
+    VECTOR(false, lucene_writer_max_buffered_docs, lucene_standard_ram_buffer_size, vector_standard_merge_factor),
+    VECTOR_POPULATION(
+            true,
+            lucene_population_max_buffered_docs,
+            vector_population_ram_buffer_size,
+            vector_population_merge_factor),
+    TEXT(false, lucene_writer_max_buffered_docs, lucene_standard_ram_buffer_size, lucene_merge_factor),
+    TEXT_POPULATION(true, lucene_population_max_buffered_docs, lucene_population_ram_buffer_size, lucene_merge_factor),
+    TRANSACTION_STATE(false, lucene_writer_max_buffered_docs, lucene_standard_ram_buffer_size, lucene_merge_factor) {
         @Override
         public LuceneIndexWriterConfig visitWithConfig(LuceneIndexWriterConfig writerConfig, Config config) {
             // Index transaction state is never directly persisted, so never commit it on close.
-            return applyCommon(writerConfig, config).setCommitOnClose(false);
+            return super.visitWithConfig(writerConfig, config).setCommitOnClose(false);
         }
     };
 
+    private final boolean forPopulation;
+    private final Setting<Integer> maxBufferedDocsSetting;
+    private final Setting<Double> ramBufferSizeMBSetting;
+    private final Setting<Integer> mergeFactorSetting;
+
+    IndexWriterConfigMode(
+            boolean forPopulation,
+            Setting<Integer> maxBufferedDocsSetting,
+            Setting<Double> RAMBufferSizeMB,
+            Setting<Integer> mergeFactorSetting) {
+        this.forPopulation = forPopulation;
+        this.maxBufferedDocsSetting = maxBufferedDocsSetting;
+        this.ramBufferSizeMBSetting = RAMBufferSizeMB;
+        this.mergeFactorSetting = mergeFactorSetting;
+    }
+
     public int getMergeFactor(Config config) {
-        return config.get(lucene_merge_factor);
+        return config.get(mergeFactorSetting);
     }
 
-    public abstract LuceneIndexWriterConfig visitWithConfig(LuceneIndexWriterConfig writerConfig, Config config);
+    public LuceneIndexWriterConfig visitWithConfig(LuceneIndexWriterConfig writerConfig, Config config) {
+        writerConfig
+                .setMaxBufferedDocs(config.get(maxBufferedDocsSetting))
+                .setRAMBufferSizeMB(config.get(ramBufferSizeMBSetting));
 
-    private static LuceneIndexWriterConfig applyCommon(LuceneIndexWriterConfig writerConfig, Config config) {
-        return writerConfig
-                .setMaxBufferedDocs(config.get(lucene_writer_max_buffered_docs))
-                .setRAMBufferSizeMB(config.get(lucene_standard_ram_buffer_size));
-    }
-
-    private static LuceneIndexWriterConfig applyCommonPopulating(LuceneIndexWriterConfig writerConfig, Config config) {
-        writerConfig.setMaxBufferedDocs(config.get(lucene_population_max_buffered_docs));
-
-        if (config.get(lucene_population_serial_merge_scheduler)) {
+        if (forPopulation && config.get(lucene_population_serial_merge_scheduler)) {
             // With this setting 'true' we respect the GraphDatabaseInternalSettings.index_population_workers
             // setting and don't use separate lucene threads for merging during population.
             // Population is a background task, and it is probably more important to limit CPU usage than be
             // as fast as possible here.
             writerConfig.useOnThreadConcurrentMergeScheduler();
         }
+
         return writerConfig;
     }
 }

@@ -20,11 +20,11 @@
 package org.neo4j.kernel.api.impl;
 
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.values.storable.Values;
 
 public class LuceneTestUtil {
     public static LuceneDocument documentRepresentingProperties(long nodeId, Object... objects) {
-        return TextDocumentStructure.documentRepresentingProperties(nodeId, Values.values(objects));
+        return LuceneDocumentsFactory.CURRENT.reusableTextDocument(nodeId, Values.values(objects));
     }
 }

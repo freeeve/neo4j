@@ -108,13 +108,13 @@ public class FulltextIndexAccessor
     @Override
     public BoundedIterable<Long> newAllEntriesValueReader(
             long fromIdInclusive, long toIdExclusive, CursorContext cursorContext) {
-        return super.newAllEntriesReader(LuceneFulltextDocumentStructure::getNodeId, fromIdInclusive, toIdExclusive);
+        return super.newAllEntriesReader(LuceneFulltextDocumentStructure::getEntityId, fromIdInclusive, toIdExclusive);
     }
 
     @Override
     public IndexEntriesReader[] newAllEntriesValueReader(int partitions, CursorContext cursorContext) {
         // TODO VECTOR: this doesn't seem to adhere to the contract stipulated in IndexAccessor wrt partitions hint
-        return super.newAllEntriesValueReader(LuceneFulltextDocumentStructure::getNodeId, partitions);
+        return super.newAllEntriesValueReader(LuceneFulltextDocumentStructure::getEntityId, partitions);
     }
 
     @Override

@@ -21,7 +21,7 @@ package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.apache.lucene.document.Field.Store.NO;
 import static org.apache.lucene.document.Field.Store.YES;
-import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 import static org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure.FIELD_ENTITY_ID;
 
 import org.apache.lucene.document.Document;
@@ -30,7 +30,7 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
@@ -86,7 +86,7 @@ abstract class Lucene9ReusableDocWithId {
         private Field[] reusableValueFields = new Field[0];
 
         Lucene9ReusableTextDocWithId() {
-            super(NODE_ID_KEY);
+            super(ENTITY_ID_KEY);
         }
 
         public void setValues(Value... values) {
@@ -104,7 +104,7 @@ abstract class Lucene9ReusableDocWithId {
         }
 
         private Field getFieldWithValue(int propertyNumber, Value value) {
-            String key = LuceneStringValueEncoding.key(propertyNumber);
+            String key = LuceneDocumentsFactory.textValueKey(propertyNumber);
             Field reusableField = reusableValueFields[propertyNumber];
             if (reusableField == null) {
                 reusableField = new StringField(key, value.asObject().toString(), NO);

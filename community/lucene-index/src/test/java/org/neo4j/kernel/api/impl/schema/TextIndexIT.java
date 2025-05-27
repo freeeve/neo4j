@@ -52,6 +52,7 @@ import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.LucenePartitionsAllDocumentsReader;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexAccessor;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexBuilder;
@@ -129,9 +130,9 @@ class TextIndexIT {
 
             index.getIndexWriter()
                     .updateDocument(
-                            TextDocumentStructure.NODE_ID_KEY,
+                            LuceneDocumentsFactory.ENTITY_ID_KEY,
                             100,
-                            TextDocumentStructure.documentRepresentingProperties(100, Values.stringValue("100")));
+                            LuceneDocumentsFactory.CURRENT.reusableTextDocument(100, Values.stringValue("100")));
             index.maybeRefreshBlocking();
 
             long documentsInIndex = Iterators.count(index.allDocumentsReader().iterator());
@@ -221,7 +222,7 @@ class TextIndexIT {
     private static void addDocumentToIndex(DatabaseIndex<ValueIndexReader> index, int documents) throws IOException {
         for (int i = 0; i < documents; i++) {
             index.getIndexWriter()
-                    .addDocument(TextDocumentStructure.documentRepresentingProperties(i, Values.stringValue("" + i)));
+                    .addDocument(LuceneDocumentsFactory.CURRENT.reusableTextDocument(i, Values.stringValue("" + i)));
         }
     }
 

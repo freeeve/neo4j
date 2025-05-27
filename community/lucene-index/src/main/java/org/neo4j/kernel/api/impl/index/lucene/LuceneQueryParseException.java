@@ -19,19 +19,8 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene;
 
-public final class LuceneStringValueEncoding {
-    private static final String KEY = "string";
-
-    private LuceneStringValueEncoding() {}
-
-    public static String key(int propertyNumber) {
-        if (propertyNumber == 0) {
-            return KEY;
-        }
-        return propertyNumber + KEY;
-    }
-
-    public static boolean isFirstProperty(String fieldName) {
-        return !Character.isDigit(fieldName.charAt(0));
+public class LuceneQueryParseException extends Exception {
+    public LuceneQueryParseException(Exception e) {
+        super(e);
     }
 }

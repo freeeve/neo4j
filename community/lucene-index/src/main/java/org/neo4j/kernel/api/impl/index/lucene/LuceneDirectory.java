@@ -46,20 +46,23 @@ public interface LuceneDirectory extends Closeable {
     void deleteFile(String name) throws IOException;
 
     /**
-     * Ensures that any writes to these files are moved to stable storage (made durable).
+     * Check if the directory contains an existing index.
      *
-     * <p>Lucene uses this to properly commit changes to the index, to prevent a machine/OS crash from
-     * corrupting the index.
-     *
+     * @return {@code true} if the directory contains an index, {@code false} otherwise.
+     * @throws IOException in case of I/O error
      */
-    void sync(Collection<String> names) throws IOException;
-
     boolean indexExists() throws IOException;
 
     LuceneDirectoryReader open() throws IOException;
 
     boolean checkIndexIsClean() throws IOException;
 
+    /**
+     * Check if the index in the directory is of a version compatible with it.
+     *
+     * @return {@code true} if the index is compatible, {@code false} otherwise.
+     * @throws IOException
+     */
     boolean validVersion() throws IOException;
 
     boolean hasCommits() throws IOException;
@@ -88,11 +91,6 @@ public interface LuceneDirectory extends Closeable {
         @Override
         public void deleteFile(String name) throws IOException {
             delegate.deleteFile(name);
-        }
-
-        @Override
-        public void sync(Collection<String> names) throws IOException {
-            delegate.sync(names);
         }
 
         @Override

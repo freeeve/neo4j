@@ -39,9 +39,8 @@ public class LuceneFulltextDocumentStructure {
         return LuceneDocumentsFactory.CURRENT.reusableFulltextDocument(id, propertyNames, values);
     }
 
-    static long getNodeId(LuceneDocument from) {
-        String entityId = from.get(FIELD_ENTITY_ID);
-        return Long.parseLong(entityId);
+    static long getEntityId(LuceneDocument from) {
+        return Long.parseLong(from.get(FIELD_ENTITY_ID));
     }
 
     static LuceneQueryContext newCountEntityEntriesQuery(

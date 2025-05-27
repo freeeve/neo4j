@@ -58,7 +58,7 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
 
     @Override
     protected String entityIdFieldKey() {
-        return LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY;
+        return LuceneDocumentsFactory.ENTITY_ID_KEY;
     }
 
     @Override
@@ -78,7 +78,7 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
     public long countIndexedEntities(
             long entityId, CursorContext cursorContext, int[] propertyKeyIds, Value... propertyValues) {
         LuceneQueryContext queryContext = getIndexSearcher().newQueryContext();
-        queryContext.addMustTerm(LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY, String.valueOf(entityId));
+        queryContext.addMustTerm(LuceneDocumentsFactory.ENTITY_ID_KEY, String.valueOf(entityId));
 
         Preconditions.checkState(
                 propertyKeyIds.length == 1,
@@ -96,7 +96,7 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
 
     BoundedIterable<Long> newAllEntriesValueReader(long fromIdInclusive, long toIdExclusive) throws IOException {
         return newAllEntriesValueReaderForPartition(
-                LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY,
+                LuceneDocumentsFactory.ENTITY_ID_KEY,
                 getIndexSearcher(),
                 getIndexSearcher().newQueryContext().matchAll(),
                 fromIdInclusive,

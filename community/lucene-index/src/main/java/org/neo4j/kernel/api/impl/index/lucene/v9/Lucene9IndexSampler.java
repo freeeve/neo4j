@@ -32,8 +32,8 @@ import org.apache.lucene.util.BytesRef;
 import org.neo4j.internal.helpers.CancellationRequest;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
-import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
 import org.neo4j.kernel.api.impl.schema.populator.DefaultNonUniqueIndexSampler;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexSampler;
@@ -112,7 +112,7 @@ class Lucene9IndexSampler implements IndexSampler {
         LeafReader reader = readerContext.reader();
         reader.getFieldInfos().forEach(info -> {
             String name = info.name;
-            if (!TextDocumentStructure.NODE_ID_KEY.equals(name)) {
+            if (!LuceneDocumentsFactory.ENTITY_ID_KEY.equals(name)) {
                 fieldNames.add(name);
             }
         });

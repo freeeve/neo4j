@@ -58,15 +58,10 @@ public interface LuceneQueryContext {
      * @param query A Lucene string query
      * @param fields The fields available to query.
      * @param analyzer The analyzer to use when parsing.
-     * @throws QueryParseException If the provided query could not be parsed.
+     * @throws LuceneQueryParseException If the provided query could not be parsed.
      */
-    LuceneQueryContext addShouldQueryText(String query, String[] fields, Analyzer analyzer) throws QueryParseException;
-
-    class QueryParseException extends Exception {
-        public QueryParseException(Exception e) {
-            super(e);
-        }
-    }
+    LuceneQueryContext addShouldQueryText(String query, String[] fields, Analyzer analyzer)
+            throws LuceneQueryParseException;
 
     /**
      * Query a filed for an exact value.

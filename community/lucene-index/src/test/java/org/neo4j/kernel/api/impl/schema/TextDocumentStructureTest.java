@@ -24,21 +24,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.api.impl.LuceneTestUtil.documentRepresentingProperties;
-import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.useFieldForUniquenessVerification;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
 
 class TextDocumentStructureTest {
     @Test
     void stringWithMaximumLengthShouldBeAllowed() {
         String longestString = RandomStringUtils.randomAscii(LuceneIndexWriter.MAX_TERM_LENGTH);
         LuceneDocument document = documentRepresentingProperties(123, longestString);
-        assertEquals(longestString, document.get(LuceneStringValueEncoding.key(0)));
+        assertEquals(longestString, document.get(LuceneDocumentsFactory.textValueKey(0)));
     }
 
     @Test
@@ -47,8 +47,8 @@ class TextDocumentStructureTest {
         LuceneDocument document = documentRepresentingProperties(123, "hello");
 
         // then
-        assertEquals("123", document.get(NODE_ID_KEY));
-        assertEquals("hello", document.get(LuceneStringValueEncoding.key(0)));
+        assertEquals("123", document.get(ENTITY_ID_KEY));
+        assertEquals("hello", document.get(LuceneDocumentsFactory.textValueKey(0)));
     }
 
     @Test
@@ -58,9 +58,9 @@ class TextDocumentStructureTest {
         LuceneDocument document = documentRepresentingProperties(123, (Object[]) values);
 
         // then
-        assertEquals("123", document.get(NODE_ID_KEY));
-        assertThat(document.get(LuceneStringValueEncoding.key(0))).isEqualTo(values[0]);
-        assertThat(document.get(LuceneStringValueEncoding.key(1))).isEqualTo(values[1]);
+        assertEquals("123", document.get(ENTITY_ID_KEY));
+        assertThat(document.get(LuceneDocumentsFactory.textValueKey(0))).isEqualTo(values[0]);
+        assertThat(document.get(LuceneDocumentsFactory.textValueKey(1))).isEqualTo(values[1]);
     }
 
     @Test

@@ -21,14 +21,12 @@ package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.lucene.index.LeafReaderContext;
@@ -39,7 +37,6 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
-import org.eclipse.collections.api.iterator.LongIterator;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -124,25 +121,9 @@ final class Lucene9DocValuesCollectorTest {
     }
 
     @Test
-    void shouldNotSaveScoresWhenNotRequired() throws Exception {
-        // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(false);
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
-
-        // when
-        collector.doSetNextReader(readerStub.getContext());
-        collector.collect(1);
-
-        // then
-        Lucene9DocValuesCollector.MatchingDocs matchingDocs =
-                collector.getMatchingDocs().get(0);
-        assertNull(matchingDocs.scores);
-    }
-
-    @Test
     void shouldNotSaveScoresForIndexProgressorWhenNotRequired() throws Exception {
         // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(false);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector();
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -159,154 +140,6 @@ final class Lucene9DocValuesCollectorTest {
         AcceptedEntity entity = ref.get();
         assertThat(entity.reference).isEqualTo(1L);
         assertTrue(Float.isNaN(entity.score));
-    }
-
-    @Test
-    void shouldSaveScoresWhenRequired() throws Exception {
-        // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
-
-        // when
-        collector.doSetNextReader(readerStub.getContext());
-        collector.setScorer(constantScorer(13.42f));
-        collector.collect(1);
-
-        // then
-        Lucene9DocValuesCollector.MatchingDocs matchingDocs =
-                collector.getMatchingDocs().get(0);
-        assertArrayEquals(new float[] {13.42f}, matchingDocs.scores, 0.001f);
-    }
-
-    @Test
-    void shouldSaveScoresForIndexProgressorWhenRequired() throws Exception {
-        // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
-        float score1 = 13.42f;
-        float score2 = 3.14f;
-
-        // when
-        collector.doSetNextReader(readerStub.getContext());
-        collector.setScorer(constantScorer(score1));
-        collector.collect(1);
-        collector.doSetNextReader(readerStub.getContext());
-        collector.setScorer(constantScorer(score2));
-        collector.collect(2);
-
-        // then
-        AtomicReference<AcceptedEntity> ref = new AtomicReference<>();
-        IndexProgressor.EntityValueClient client = new EntityValueClientWritingToReference(ref);
-        IndexProgressor progressor = collector.getIndexProgressor("field", client);
-
-        assertTrue(progressor.next());
-        AcceptedEntity entity = ref.getAndSet(null);
-        assertThat(entity.reference).isEqualTo(1L);
-        assertThat(entity.score).isEqualTo(score1);
-
-        assertTrue(progressor.next());
-        entity = ref.get();
-        assertThat(entity.reference).isEqualTo(2L);
-        assertThat(entity.score).isEqualTo(score2);
-
-        assertFalse(progressor.next());
-        progressor.close();
-    }
-
-    @Test
-    void shouldSaveScoresInADenseArray() throws Exception {
-        // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
-
-        // when
-        collector.doSetNextReader(readerStub.getContext());
-        collector.setScorer(constantScorer(1.0f));
-        collector.collect(1);
-        collector.setScorer(constantScorer(41.0f));
-        collector.collect(41);
-
-        // then
-        Lucene9DocValuesCollector.MatchingDocs matchingDocs =
-                collector.getMatchingDocs().get(0);
-        assertArrayEquals(new float[] {1.0f, 41.0f}, matchingDocs.scores, 0.001f);
-    }
-
-    @Test
-    void shouldDynamicallyResizeScoresArray() throws Exception {
-        // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
-
-        // when
-        collector.doSetNextReader(readerStub.getContext());
-        collector.setScorer(constantScorer(1.0f));
-        // scores starts with array size of 32, adding 42 docs forces resize
-        for (int i = 0; i < 42; i++) {
-            collector.collect(i);
-        }
-
-        // then
-        Lucene9DocValuesCollector.MatchingDocs matchingDocs =
-                collector.getMatchingDocs().get(0);
-        float[] scores = new float[42];
-        Arrays.fill(scores, 1.0f);
-        assertArrayEquals(scores, matchingDocs.scores, 0.001f);
-    }
-
-    @Test
-    void shouldReturnDocValuesInRelevanceOrder() throws Exception {
-        // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
-
-        // when
-        collector.doSetNextReader(readerStub.getContext());
-        collector.setScorer(constantScorer(1.0f));
-        collector.collect(1);
-        collector.setScorer(constantScorer(2.0f));
-        collector.collect(2);
-
-        // then
-        LongIterator valuesIterator = collector.getValuesSortedByRelevance("id");
-        assertEquals(2, valuesIterator.next());
-        assertEquals(1, valuesIterator.next());
-        assertFalse(valuesIterator.hasNext());
-    }
-
-    @Test
-    void shouldSilentlyMergeSegmentsWhenReturnDocValuesInOrder() throws Exception {
-        // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
-
-        // when
-        collector.doSetNextReader(readerStub.getContext());
-        collector.setScorer(constantScorer(1.0f));
-        collector.collect(1);
-        collector.doSetNextReader(readerStub.getContext());
-        collector.setScorer(constantScorer(2.0f));
-        collector.collect(2);
-
-        // then
-        LongIterator valuesIterator = collector.getValuesSortedByRelevance("id");
-        assertEquals(2, valuesIterator.next());
-        assertEquals(1, valuesIterator.next());
-        assertFalse(valuesIterator.hasNext());
-    }
-
-    @Test
-    void shouldReturnEmptyIteratorWhenNoDocValuesInOrder() throws Exception {
-        // given
-        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(false);
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
-
-        // when
-        collector.doSetNextReader(readerStub.getContext());
-
-        // then
-        LongIterator valuesIterator = collector.getValuesSortedByRelevance("id");
-        assertFalse(valuesIterator.hasNext());
     }
 
     private static IndexReaderStub indexReaderWithMaxDocs(int maxDocs) {

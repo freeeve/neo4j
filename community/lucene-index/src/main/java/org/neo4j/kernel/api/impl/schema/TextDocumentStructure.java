@@ -19,21 +19,14 @@
  */
 package org.neo4j.kernel.api.impl.schema;
 
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
 import org.neo4j.values.storable.Value;
 
 public class TextDocumentStructure {
-    public static final String NODE_ID_KEY = "id";
 
     private TextDocumentStructure() {}
-
-    public static LuceneDocument documentRepresentingProperties(long nodeId, Value... values) {
-        return LuceneDocumentsFactory.CURRENT.reusableTextDocument(nodeId, values);
-    }
 
     public static LuceneQueryContext newSeekQuery(LuceneIndexSearcher searcher, Value... values) {
         LuceneQueryContext queryContext = searcher.newQueryContext();
@@ -44,16 +37,12 @@ public class TextDocumentStructure {
     public static void seekStrings(Value[] values, LuceneQueryContext queryContext) {
         for (int i = 0; i < values.length; i++) {
             queryContext.addConstantMustTerm(
-                    LuceneStringValueEncoding.key(i), values[i].asObject().toString());
+                    LuceneDocumentsFactory.textValueKey(i), values[i].asObject().toString());
         }
     }
 
-    public static long getNodeId(LuceneDocument from) {
-        return Long.parseLong(from.get(NODE_ID_KEY));
-    }
-
     public static boolean useFieldForUniquenessVerification(String fieldName) {
-        return !TextDocumentStructure.NODE_ID_KEY.equals(fieldName)
-                && LuceneStringValueEncoding.isFirstProperty(fieldName);
+        return !LuceneDocumentsFactory.ENTITY_ID_KEY.equals(fieldName)
+                && LuceneDocumentsFactory.isFirstTextProperty(fieldName);
     }
 }

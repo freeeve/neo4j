@@ -60,15 +60,15 @@ class TrigramIndexPopulatingUpdater implements IndexUpdater {
             switch (updateMode) {
                 case ADDED ->
                     writer.updateDocument(
-                            LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY,
+                            LuceneDocumentsFactory.ENTITY_ID_KEY,
                             entityId,
                             LuceneDocumentsFactory.CURRENT.createTrigramDocument(entityId, value));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
-                            LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY,
+                            LuceneDocumentsFactory.ENTITY_ID_KEY,
                             entityId,
                             LuceneDocumentsFactory.CURRENT.createTrigramDocument(entityId, value));
-                case REMOVED -> writer.deleteDocuments(LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY, entityId);
+                case REMOVED -> writer.deleteDocuments(LuceneDocumentsFactory.ENTITY_ID_KEY, entityId);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
