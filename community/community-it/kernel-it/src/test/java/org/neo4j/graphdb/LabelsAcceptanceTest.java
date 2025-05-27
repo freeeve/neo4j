@@ -76,30 +76,31 @@ class LabelsAcceptanceTest {
     @Test
     void shouldInsertLabelsWithoutDuplicatingThem() {
         // Given
-        Node node;
+        String nodeId;
 
         // When
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            var node = tx.createNode();
             node.addLabel(Labels.MY_LABEL);
+            nodeId = node.getElementId();
 
             tx.commit();
         }
 
         // POST "FOOBAR"
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).addLabel(Labels.MY_LABEL);
+            tx.getNodeByElementId(nodeId).addLabel(Labels.MY_LABEL);
             tx.commit();
         }
 
         // POST ["BAZQUX"]
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).addLabel(label("BAZQUX"));
+            tx.getNodeByElementId(nodeId).addLabel(label("BAZQUX"));
             tx.commit();
         }
         // PUT ["BAZQUX"]
         try (Transaction tx = db.beginTx()) {
-            var labeledNode = tx.getNodeById(node.getId());
+            var labeledNode = tx.getNodeByElementId(nodeId);
             for (Label label : labeledNode.getLabels()) {
                 labeledNode.removeLabel(label);
             }
@@ -110,7 +111,7 @@ class LabelsAcceptanceTest {
         // GET
         List<Label> labels = new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
-            var labeledNode = tx.getNodeById(node.getId());
+            var labeledNode = tx.getNodeByElementId(nodeId);
             for (Label label : labeledNode.getLabels()) {
                 labels.add(label);
             }
@@ -123,19 +124,20 @@ class LabelsAcceptanceTest {
     @Test
     void addingALabelUsingAValidIdentifierShouldSucceed() {
         // Given
-        Node myNode;
+        String myNodeId;
 
         // When
         try (Transaction tx = db.beginTx()) {
-            myNode = tx.createNode();
+            var myNode = tx.createNode();
             myNode.addLabel(Labels.MY_LABEL);
+            myNodeId = myNode.getElementId();
 
             tx.commit();
         }
 
         // Then
         try (Transaction transaction = db.beginTx()) {
-            var node = transaction.getNodeById(myNode.getId());
+            var node = transaction.getNodeByElementId(myNodeId);
             assertTrue(node.hasLabel(Labels.MY_LABEL));
         }
     }
@@ -156,20 +158,21 @@ class LabelsAcceptanceTest {
     @Test
     void addingALabelThatAlreadyExistsBehavesAsNoOp() {
         // Given
-        Node myNode;
+        String myNodeId;
 
         // When
         try (Transaction tx = db.beginTx()) {
-            myNode = tx.createNode();
+            var myNode = tx.createNode();
             myNode.addLabel(Labels.MY_LABEL);
             myNode.addLabel(Labels.MY_LABEL);
+            myNodeId = myNode.getElementId();
 
             tx.commit();
         }
 
         // Then
         try (Transaction transaction = db.beginTx()) {
-            var node = transaction.getNodeById(myNode.getId());
+            var node = transaction.getNodeByElementId(myNodeId);
             assertTrue(node.hasLabel(Labels.MY_LABEL));
         }
     }
@@ -208,17 +211,17 @@ class LabelsAcceptanceTest {
     void removingCommittedLabel() {
         // Given
         Label label = Labels.MY_LABEL;
-        Node myNode = createNode(db, label);
+        String myNode = createNode(db, label);
 
         // When
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(myNode.getId()).removeLabel(label);
+            tx.getNodeByElementId(myNode).removeLabel(label);
             tx.commit();
         }
 
         // Then
         try (Transaction transaction = db.beginTx()) {
-            var node = transaction.getNodeById(myNode.getId());
+            var node = transaction.getNodeByElementId(myNode);
             assertFalse(node.hasLabel(label));
         }
     }
@@ -226,9 +229,9 @@ class LabelsAcceptanceTest {
     @Test
     void createNodeWithLabels() {
         // WHEN
-        Node node;
+        String node;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode(Labels.values());
+            node = tx.createNode(Labels.values()).getElementId();
             tx.commit();
         }
 
@@ -236,7 +239,7 @@ class LabelsAcceptanceTest {
 
         Set<String> names = Stream.of(Labels.values()).map(Labels::name).collect(toSet());
         try (Transaction transaction = db.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(node);
             for (String labelName : names) {
                 assertTrue(n.hasLabel(label(labelName)));
             }
@@ -249,16 +252,17 @@ class LabelsAcceptanceTest {
         Label label = Labels.MY_LABEL;
 
         // When
-        Node myNode;
+        String myNodeId;
         try (Transaction tx = db.beginTx()) {
-            myNode = tx.createNode();
+            var myNode = tx.createNode();
+            myNodeId = myNode.getElementId();
             myNode.removeLabel(label);
             tx.commit();
         }
 
         // THEN
         try (Transaction transaction = db.beginTx()) {
-            var node = transaction.getNodeById(myNode.getId());
+            var node = transaction.getNodeByElementId(myNodeId);
             assertFalse(node.hasLabel(label));
         }
     }
@@ -268,17 +272,17 @@ class LabelsAcceptanceTest {
         // Given
         Label label = Labels.MY_LABEL;
         createNode(db, label);
-        Node myNode = createNode(db);
+        String myNode = createNode(db);
 
         // When
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(myNode.getId()).removeLabel(label);
+            tx.getNodeByElementId(myNode).removeLabel(label);
             tx.commit();
         }
 
         // THEN
         try (Transaction transaction = db.beginTx()) {
-            var node = transaction.getNodeById(myNode.getId());
+            var node = transaction.getNodeByElementId(myNode);
             assertFalse(node.hasLabel(label));
         }
     }
@@ -305,10 +309,11 @@ class LabelsAcceptanceTest {
     @Test
     void shouldBeAbleToListLabelsForANode() {
         // GIVEN
-        Node node;
+        String nodeId;
         Set<String> expected = asSet(Labels.MY_LABEL.name(), Labels.MY_OTHER_LABEL.name());
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            var node = tx.createNode();
+            nodeId = node.getElementId();
             for (String label : expected) {
                 node.addLabel(label(label));
             }
@@ -316,7 +321,7 @@ class LabelsAcceptanceTest {
         }
 
         try (Transaction transaction = db.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             for (String label : expected) {
                 assertTrue(n.hasLabel(label(label)));
             }
@@ -326,11 +331,11 @@ class LabelsAcceptanceTest {
     @Test
     void shouldReturnEmptyListIfNoLabels() {
         // GIVEN
-        Node node = createNode(db);
+        String node = createNode(db);
 
         // WHEN THEN
         try (Transaction transaction = db.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(node);
             assertEquals(0, count(n.getLabels()));
         }
     }
@@ -355,25 +360,20 @@ class LabelsAcceptanceTest {
     @Test
     void getNodesWithLabelsWithTxAddsAndRemoves() {
         // GIVEN
-        Node node1 = createNode(db, Labels.MY_LABEL, Labels.MY_OTHER_LABEL);
-        Node node2 = createNode(db, Labels.MY_LABEL, Labels.MY_OTHER_LABEL);
+        String node1Id = createNode(db, Labels.MY_LABEL, Labels.MY_OTHER_LABEL);
+        String node2Id = createNode(db, Labels.MY_LABEL, Labels.MY_OTHER_LABEL);
 
         // WHEN
-        Node node3;
-        Set<Node> nodesWithMyLabel;
-        Set<Node> nodesWithMyOtherLabel;
         try (Transaction tx = db.beginTx()) {
-            node3 = tx.createNode(Labels.MY_LABEL);
-            tx.getNodeById(node2.getId()).removeLabel(Labels.MY_LABEL);
-            // extracted here to be asserted below
-            nodesWithMyLabel = asSet(tx.findNodes(Labels.MY_LABEL));
-            nodesWithMyOtherLabel = asSet(tx.findNodes(Labels.MY_OTHER_LABEL));
+            Node node1 = tx.getNodeByElementId(node1Id);
+            Node node2 = tx.getNodeByElementId(node2Id);
+            Node node3 = tx.createNode(Labels.MY_LABEL);
+            node2.removeLabel(Labels.MY_LABEL);
+            // THEN
+            assertEquals(asSet(node1, node3), asSet(tx.findNodes(Labels.MY_LABEL)));
+            assertEquals(asSet(node1, node2), asSet(tx.findNodes(Labels.MY_OTHER_LABEL)));
             tx.commit();
         }
-
-        // THEN
-        assertEquals(asSet(node1, node3), nodesWithMyLabel);
-        assertEquals(asSet(node1, node2), nodesWithMyOtherLabel);
     }
 
     @Test
@@ -396,9 +396,9 @@ class LabelsAcceptanceTest {
     void shouldListAllLabelsInUse() {
         // Given
         createNode(db, Labels.MY_LABEL);
-        Node node = createNode(db, Labels.MY_OTHER_LABEL);
+        String node = createNode(db, Labels.MY_OTHER_LABEL);
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).delete();
+            tx.getNodeByElementId(node).delete();
             tx.commit();
         }
 
@@ -418,9 +418,9 @@ class LabelsAcceptanceTest {
         assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
             // Given
             createNode(db, Labels.MY_LABEL);
-            Node node = createNode(db, Labels.MY_OTHER_LABEL);
+            String node = createNode(db, Labels.MY_OTHER_LABEL);
             try (Transaction tx = db.beginTx()) {
-                tx.getNodeById(node.getId()).delete();
+                tx.getNodeByElementId(node).delete();
                 tx.commit();
             }
 
@@ -456,9 +456,10 @@ class LabelsAcceptanceTest {
         assertTimeoutPreemptively(Duration.ofSeconds(30), () -> {
             // Given
             RelationshipType relType = RelationshipType.withName("REL");
-            Node node = createNode(db, Labels.MY_LABEL);
+            String nodeId = createNode(db, Labels.MY_LABEL);
             try (Transaction tx = db.beginTx()) {
-                tx.getNodeById(node.getId()).createRelationshipTo(node, relType).setProperty("prop", "val");
+                var node = tx.getNodeByElementId(nodeId);
+                node.createRelationshipTo(node, relType).setProperty("prop", "val");
                 tx.commit();
             }
 
@@ -553,9 +554,10 @@ class LabelsAcceptanceTest {
         // given
         final int TOTAL_NUMBER_OF_LABELS = 200;
         final int NUMBER_OF_PRESERVED_LABELS = 20;
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            var node = tx.createNode();
+            nodeId = node.getElementId();
             for (int i = 0; i < TOTAL_NUMBER_OF_LABELS; i++) {
                 node.addLabel(label("label:" + i));
             }
@@ -565,7 +567,7 @@ class LabelsAcceptanceTest {
 
         // when
         try (Transaction tx = db.beginTx()) {
-            var labeledNode = tx.getNodeById(node.getId());
+            var labeledNode = tx.getNodeByElementId(nodeId);
             for (int i = NUMBER_OF_PRESERVED_LABELS; i < TOTAL_NUMBER_OF_LABELS; i++) {
                 labeledNode.removeLabel(label("label:" + i));
             }
@@ -576,7 +578,7 @@ class LabelsAcceptanceTest {
         // then
         try (Transaction tx = db.beginTx()) {
             List<String> labels = new ArrayList<>();
-            var labeledNode = tx.getNodeById(node.getId());
+            var labeledNode = tx.getNodeByElementId(nodeId);
             for (Label label : labeledNode.getLabels()) {
                 labels.add(label.name());
             }
@@ -589,9 +591,10 @@ class LabelsAcceptanceTest {
         int propertyCount = 10;
         int labelCount = 15;
 
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            var node = tx.createNode();
+            nodeId = node.getElementId();
             for (int i = 0; i < propertyCount; i++) {
                 node.setProperty("foo" + i, "bar");
             }
@@ -603,12 +606,12 @@ class LabelsAcceptanceTest {
 
         Set<Integer> seenProperties = new HashSet<>();
         Set<Integer> seenLabels = new HashSet<>();
-        try (Transaction tx = db.beginTx()) {
-            KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
+        try (InternalTransaction tx = (InternalTransaction) db.beginTx()) {
+            KernelTransaction ktx = tx.kernelTransaction();
             try (NodeCursor nodes = ktx.cursors().allocateNodeCursor(CursorContext.NULL_CONTEXT);
                     PropertyCursor propertyCursor =
                             ktx.cursors().allocatePropertyCursor(CursorContext.NULL_CONTEXT, INSTANCE)) {
-                ktx.dataRead().singleNode(node.getId(), nodes);
+                ktx.dataRead().singleNode(tx.elementIdMapper().nodeId(nodeId), nodes);
                 while (nodes.next()) {
                     nodes.properties(propertyCursor);
                     while (propertyCursor.next()) {
@@ -632,7 +635,7 @@ class LabelsAcceptanceTest {
     void nodeWithManyLabels() {
         int labels = 500;
         int halveLabels = labels / 2;
-        long nodeId = createNode(db).getId();
+        String nodeId = createNode(db);
 
         addLabels(nodeId, 0, halveLabels);
         addLabels(nodeId, halveLabels, halveLabels);
@@ -646,9 +649,9 @@ class LabelsAcceptanceTest {
         verifyLabels(nodeId, halveLabels - 2, 2);
     }
 
-    private void addLabels(long nodeId, int startLabelIndex, int count) {
+    private void addLabels(String nodeId, int startLabelIndex, int count) {
         try (Transaction tx = db.beginTx()) {
-            Node node = tx.getNodeById(nodeId);
+            Node node = tx.getNodeByElementId(nodeId);
             int endLabelIndex = startLabelIndex + count;
             for (int i = startLabelIndex; i < endLabelIndex; i++) {
                 node.addLabel(labelWithIndex(i));
@@ -657,9 +660,9 @@ class LabelsAcceptanceTest {
         }
     }
 
-    private void verifyLabels(long nodeId, int startLabelIndex, int count) {
+    private void verifyLabels(String nodeId, int startLabelIndex, int count) {
         try (Transaction tx = db.beginTx()) {
-            Node node = tx.getNodeById(nodeId);
+            Node node = tx.getNodeByElementId(nodeId);
             Set<String> labelNames =
                     Iterables.asList(node.getLabels()).stream().map(Label::name).collect(toSet());
 
@@ -672,9 +675,9 @@ class LabelsAcceptanceTest {
         }
     }
 
-    private void removeLabels(long nodeId, int startLabelIndex, int count) {
+    private void removeLabels(String nodeId, int startLabelIndex, int count) {
         try (Transaction tx = db.beginTx()) {
-            Node node = tx.getNodeById(nodeId);
+            Node node = tx.getNodeByElementId(nodeId);
             int endLabelIndex = startLabelIndex + count;
             for (int i = startLabelIndex; i < endLabelIndex; i++) {
                 node.removeLabel(labelWithIndex(i));
@@ -691,9 +694,9 @@ class LabelsAcceptanceTest {
         return "Label-" + index;
     }
 
-    private static Node createNode(GraphDatabaseService db, Label... labels) {
+    private static String createNode(GraphDatabaseService db, Label... labels) {
         try (Transaction tx = db.beginTx()) {
-            Node node = tx.createNode(labels);
+            String node = tx.createNode(labels).getElementId();
             tx.commit();
             return node;
         }

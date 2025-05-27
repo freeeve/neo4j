@@ -26,7 +26,6 @@ import static org.neo4j.graphdb.RelationshipType.withName;
 import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.TokenRead;
@@ -76,19 +75,17 @@ class CompositeCountsTest {
     @Test
     void shouldMaintainCountsOnRelationshipCreate() {
         // given
-        Node foo;
-        Node bar;
+        String foo;
+        String bar;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"));
-            bar = tx.createNode(label("Bar"));
-
+            foo = tx.createNode(label("Foo")).getElementId();
+            bar = tx.createNode(label("Bar")).getElementId();
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(foo.getId()).createRelationshipTo(bar, withName("KNOWS"));
-
+            tx.getNodeByElementId(foo).createRelationshipTo(tx.getNodeByElementId(bar), withName("KNOWS"));
             tx.commit();
         }
 
@@ -102,18 +99,17 @@ class CompositeCountsTest {
     @Test
     void shouldMaintainCountsOnRelationshipDelete() {
         // given
-        Relationship relationship;
+        String relationship;
         try (Transaction tx = db.beginTx()) {
-            relationship =
-                    tx.createNode(label("Foo")).createRelationshipTo(tx.createNode(label("Bar")), withName("KNOWS"));
-
+            relationship = tx.createNode(label("Foo"))
+                    .createRelationshipTo(tx.createNode(label("Bar")), withName("KNOWS"))
+                    .getElementId();
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            tx.getRelationshipById(relationship.getId()).delete();
-
+            tx.getRelationshipByElementId(relationship).delete();
             tx.commit();
         }
 
@@ -127,20 +123,18 @@ class CompositeCountsTest {
     @Test
     void shouldMaintainCountsOnLabelAdd() {
         // given
-        Node foo;
-        Node bar;
+        String fooId;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode();
-            bar = tx.createNode(label("Bar"));
+            Node foo = tx.createNode();
+            fooId = foo.getElementId();
+            Node bar = tx.createNode(label("Bar"));
             foo.createRelationshipTo(bar, withName("KNOWS"));
-
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(foo.getId()).addLabel(label("Foo"));
-
+            tx.getNodeByElementId(fooId).addLabel(label("Foo"));
             tx.commit();
         }
 
@@ -154,20 +148,18 @@ class CompositeCountsTest {
     @Test
     void shouldMaintainCountsOnLabelRemove() {
         // given
-        Node foo;
-        Node bar;
+        String fooId;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"));
-            bar = tx.createNode(label("Bar"));
+            Node foo = tx.createNode(label("Foo"));
+            fooId = foo.getElementId();
+            Node bar = tx.createNode(label("Bar"));
             foo.createRelationshipTo(bar, withName("KNOWS"));
-
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(foo.getId()).removeLabel(label("Foo"));
-
+            tx.getNodeByElementId(fooId).removeLabel(label("Foo"));
             tx.commit();
         }
 
@@ -181,22 +173,20 @@ class CompositeCountsTest {
     @Test
     void shouldMaintainCountsOnLabelAddAndRelationshipCreate() {
         // given
-        Node foo;
-        Node bar;
+        String fooId;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"));
-            bar = tx.createNode(label("Bar"));
+            Node foo = tx.createNode(label("Foo"));
+            fooId = foo.getElementId();
+            Node bar = tx.createNode(label("Bar"));
             foo.createRelationshipTo(bar, withName("KNOWS"));
-
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            foo = tx.getNodeById(foo.getId());
+            Node foo = tx.getNodeByElementId(fooId);
             foo.addLabel(label("Bar"));
             foo.createRelationshipTo(tx.createNode(label("Foo")), withName("KNOWS"));
-
             tx.commit();
         }
 
@@ -210,23 +200,21 @@ class CompositeCountsTest {
     @Test
     void shouldMaintainCountsOnLabelRemoveAndRelationshipDelete() {
         // given
-        Node foo;
-        Node bar;
-        Relationship rel;
+        String fooId;
+        String rel;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"), label("Bar"));
-            bar = tx.createNode(label("Bar"));
+            Node foo = tx.createNode(label("Foo"), label("Bar"));
+            fooId = foo.getElementId();
+            Node bar = tx.createNode(label("Bar"));
             foo.createRelationshipTo(bar, withName("KNOWS"));
-            rel = bar.createRelationshipTo(foo, withName("KNOWS"));
-
+            rel = bar.createRelationshipTo(foo, withName("KNOWS")).getElementId();
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(foo.getId()).removeLabel(label("Bar"));
-            tx.getRelationshipById(rel.getId()).delete();
-
+            tx.getNodeByElementId(fooId).removeLabel(label("Bar"));
+            tx.getRelationshipByElementId(rel).delete();
             tx.commit();
         }
 
@@ -240,23 +228,21 @@ class CompositeCountsTest {
     @Test
     void shouldMaintainCountsOnLabelAddAndRelationshipDelete() {
         // given
-        Node foo;
-        Node bar;
-        Relationship rel;
+        String fooId;
+        String rel;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"));
-            bar = tx.createNode(label("Bar"));
+            Node foo = tx.createNode(label("Foo"));
+            fooId = foo.getElementId();
+            Node bar = tx.createNode(label("Bar"));
             foo.createRelationshipTo(bar, withName("KNOWS"));
-            rel = bar.createRelationshipTo(foo, withName("KNOWS"));
-
+            rel = bar.createRelationshipTo(foo, withName("KNOWS")).getElementId();
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(foo.getId()).addLabel(label("Bar"));
-            tx.getRelationshipById(rel.getId()).delete();
-
+            tx.getNodeByElementId(fooId).addLabel(label("Bar"));
+            tx.getRelationshipByElementId(rel).delete();
             tx.commit();
         }
 
@@ -270,22 +256,20 @@ class CompositeCountsTest {
     @Test
     void shouldMaintainCountsOnLabelRemoveAndRelationshipCreate() {
         // given
-        Node foo;
-        Node bar;
+        String fooId;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"), label("Bar"));
-            bar = tx.createNode(label("Bar"));
+            Node foo = tx.createNode(label("Foo"), label("Bar"));
+            fooId = foo.getElementId();
+            Node bar = tx.createNode(label("Bar"));
             foo.createRelationshipTo(bar, withName("KNOWS"));
-
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            foo = tx.getNodeById(foo.getId());
+            Node foo = tx.getNodeByElementId(fooId);
             foo.removeLabel(label("Bar"));
             foo.createRelationshipTo(tx.createNode(label("Foo")), withName("KNOWS"));
-
             tx.commit();
         }
 
@@ -299,21 +283,19 @@ class CompositeCountsTest {
     @Test
     void shouldNotUpdateCountsIfCreatedRelationshipIsDeletedInSameTransaction() {
         // given
-        Node foo;
-        Node bar;
+        String foo;
+        String bar;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"));
-            bar = tx.createNode(label("Bar"));
-
+            foo = tx.createNode(label("Foo")).getElementId();
+            bar = tx.createNode(label("Bar")).getElementId();
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(foo.getId())
-                    .createRelationshipTo(bar, withName("KNOWS"))
+            tx.getNodeByElementId(foo)
+                    .createRelationshipTo(tx.getNodeByElementId(bar), withName("KNOWS"))
                     .delete();
-
             tx.commit();
         }
 

@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
@@ -38,31 +39,34 @@ class DeleteNodeWithRelationshipsIT {
     @Test
     void shouldGiveHelpfulExceptionWhenDeletingNodeWithRelationships() {
         // Given
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            var node = tx.createNode();
+            nodeId = node.getElementId();
             node.createRelationshipTo(tx.createNode(), RelationshipType.withName("MAYOR_OF"));
             tx.commit();
         }
 
         // And given a transaction deleting just the node
-        Transaction tx = db.beginTx();
-        tx.getNodeById(node.getId()).delete();
+        try (InternalTransaction tx = (InternalTransaction) db.beginTx()) {
+            tx.getNodeByElementId(nodeId).delete();
+            long id = tx.elementIdMapper().nodeId(nodeId);
 
-        ConstraintViolationException ex = assertThrows(ConstraintViolationException.class, tx::commit);
-        assertEquals(
-                "Cannot delete node<" + node.getId() + ">, because it still has relationships. "
-                        + "To delete this node, you must first delete its relationships.",
-                ex.getMessage());
+            ConstraintViolationException ex = assertThrows(ConstraintViolationException.class, tx::commit);
+            assertEquals(
+                    "Cannot delete node<" + id + ">, because it still has relationships. "
+                            + "To delete this node, you must first delete its relationships.",
+                    ex.getMessage());
+        }
     }
 
     @Test
     void shouldDeleteDenseNodeEvenWithTemporarilyCreatedRelationshipsBeforeDeletion() {
         // Given
-        long nodeId;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode();
-            nodeId = node.getId();
+            nodeId = node.getElementId();
             for (int i = 0; i < 200; i++) {
                 node.createRelationshipTo(tx.createNode(), RelationshipType.withName("TYPE_" + i % 3));
             }
@@ -71,7 +75,7 @@ class DeleteNodeWithRelationshipsIT {
 
         // When
         try (Transaction tx = db.beginTx()) {
-            Node node = tx.getNodeById(nodeId);
+            Node node = tx.getNodeByElementId(nodeId);
             // Create temporary relationships of new types, which will be deleted right afterwards
             node.createRelationshipTo(tx.createNode(), RelationshipType.withName("OTHER_TYPE_1"));
             node.createRelationshipTo(tx.createNode(), RelationshipType.withName("OTHER_TYPE_2"));
@@ -82,7 +86,7 @@ class DeleteNodeWithRelationshipsIT {
 
         // Then
         try (Transaction tx = db.beginTx()) {
-            assertThrows(NotFoundException.class, () -> tx.getNodeById(nodeId));
+            assertThrows(NotFoundException.class, () -> tx.getNodeByElementId(nodeId));
             tx.commit();
         }
     }

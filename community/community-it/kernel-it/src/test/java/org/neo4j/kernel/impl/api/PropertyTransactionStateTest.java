@@ -50,15 +50,16 @@ class PropertyTransactionStateTest {
 
     @Test
     void testUpdateDoubleArrayProperty() {
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            Node node = tx.createNode();
+            nodeId = node.getElementId();
             node.setProperty("foo", new double[] {0, 0, 0, 0});
             tx.commit();
         }
 
         try (Transaction tx = db.beginTx()) {
-            node = tx.getNodeById(node.getId());
+            Node node = tx.getNodeByElementId(nodeId);
             for (int i = 0; i < 100; i++) {
                 double[] data = (double[]) node.getProperty("foo");
                 data[2] = i;
@@ -72,15 +73,16 @@ class PropertyTransactionStateTest {
     @Test
     void testStringPropertyUpdate() {
         String key = "foo";
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            Node node = tx.createNode();
+            nodeId = node.getElementId();
             node.setProperty(key, "one");
             tx.commit();
         }
 
         try (Transaction tx = db.beginTx()) {
-            node = tx.getNodeById(node.getId());
+            Node node = tx.getNodeByElementId(nodeId);
             node.setProperty(key, "one");
             node.setProperty(key, "two");
             assertEquals("two", node.getProperty(key));

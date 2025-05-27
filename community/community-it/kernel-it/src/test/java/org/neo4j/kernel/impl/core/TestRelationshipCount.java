@@ -111,6 +111,7 @@ public class TestRelationshipCount {
         init(denseNodeThreshold);
 
         Node node = tx.createNode();
+        String nodeId = node.getElementId();
         EnumMap<MyRelTypes, Set<Relationship>> rels = new EnumMap<>(MyRelTypes.class);
         for (MyRelTypes type : MyRelTypes.values()) {
             rels.put(type, new HashSet<>());
@@ -122,7 +123,7 @@ public class TestRelationshipCount {
             rels.get(type).add(rel);
         }
         newTransaction();
-        node = tx.getNodeById(node.getId());
+        node = tx.getNodeByElementId(nodeId);
         for (int i = 0; i < 1000; i++, expectedRelCount++) {
             node.createRelationshipTo(tx.createNode(), MyRelTypes.TEST);
         }
@@ -165,6 +166,8 @@ public class TestRelationshipCount {
     }
 
     private void testGetRelationshipTypes(Node node, Set<String> expectedTypes) {
+        String nodeId = node.getElementId();
+
         assertExpectedRelationshipTypes(expectedTypes, node, false);
         node.createRelationshipTo(tx.createNode(), RelType.TYPE1);
         expectedTypes.add(RelType.TYPE1.name());
@@ -172,7 +175,7 @@ public class TestRelationshipCount {
         node.createRelationshipTo(tx.createNode(), RelType.TYPE1);
         assertExpectedRelationshipTypes(expectedTypes, node, true);
 
-        node = tx.getNodeById(node.getId());
+        node = tx.getNodeByElementId(nodeId);
         Relationship rel = node.createRelationshipTo(tx.createNode(), RelType.TYPE2);
         expectedTypes.add(RelType.TYPE2.name());
         assertExpectedRelationshipTypes(expectedTypes, node, false);
@@ -180,7 +183,7 @@ public class TestRelationshipCount {
         expectedTypes.remove(RelType.TYPE2.name());
         assertExpectedRelationshipTypes(expectedTypes, node, true);
 
-        node = tx.getNodeById(node.getId());
+        node = tx.getNodeByElementId(nodeId);
         node.createRelationshipTo(tx.createNode(), RelType.TYPE2);
         node.createRelationshipTo(tx.createNode(), RelType.TYPE2);
         expectedTypes.add(RelType.TYPE2.name());
@@ -188,7 +191,7 @@ public class TestRelationshipCount {
         expectedTypes.add(MyRelTypes.TEST.name());
         assertExpectedRelationshipTypes(expectedTypes, node, true);
 
-        node = tx.getNodeById(node.getId());
+        node = tx.getNodeByElementId(nodeId);
         try (ResourceIterable<Relationship> types = node.getRelationships(RelType.TYPE1)) {
             for (final var type : types) {
                 assertExpectedRelationshipTypes(expectedTypes, node, false);
@@ -208,7 +211,8 @@ public class TestRelationshipCount {
         }
         assertEquals(
                 expectedTypes,
-                Iterables.asSet(asStrings(tx.getNodeById(node.getId()).getRelationshipTypes())));
+                Iterables.asSet(
+                        asStrings(tx.getNodeByElementId(node.getElementId()).getRelationshipTypes())));
     }
 
     private static Iterable<String> asStrings(Iterable<RelationshipType> relationshipTypes) {
@@ -226,7 +230,9 @@ public class TestRelationshipCount {
         init(denseNodeThreshold);
 
         Node node1 = tx.createNode();
+        String node1Id = node1.getElementId();
         Node node2 = tx.createNode();
+        String node2Id = node2.getElementId();
         assertEquals(0, node1.getDegree());
         assertEquals(0, node2.getDegree());
         node1.createRelationshipTo(node2, MyRelTypes.TEST);
@@ -237,8 +243,8 @@ public class TestRelationshipCount {
         assertEquals(1, node2.getDegree());
         newTransaction();
 
-        node1 = tx.getNodeById(node1.getId());
-        node2 = tx.getNodeById(node2.getId());
+        node1 = tx.getNodeByElementId(node1Id);
+        node2 = tx.getNodeByElementId(node2Id);
         assertEquals(2, node1.getDegree());
         assertEquals(1, node2.getDegree());
 
@@ -252,13 +258,13 @@ public class TestRelationshipCount {
             assertEquals(i + 1 + 1, node2.getDegree());
             if (i % 10 == 0) {
                 newTransaction();
-                node1 = tx.getNodeById(node1.getId());
-                node2 = tx.getNodeById(node2.getId());
+                node1 = tx.getNodeByElementId(node1Id);
+                node2 = tx.getNodeByElementId(node2Id);
             }
         }
 
-        node1 = tx.getNodeById(node1.getId());
-        node2 = tx.getNodeById(node2.getId());
+        node1 = tx.getNodeByElementId(node1Id);
+        node2 = tx.getNodeByElementId(node2Id);
         for (int i = 0; i < 2; i++) {
             assertEquals(1002, node1.getDegree());
             assertEquals(1002, node1.getDegree(Direction.BOTH));
@@ -273,8 +279,8 @@ public class TestRelationshipCount {
             assertEquals(1, node1.getDegree(MyRelTypes.TEST2, Direction.OUTGOING));
             assertEquals(0, node1.getDegree(MyRelTypes.TEST2, Direction.INCOMING));
             newTransaction();
-            node1 = tx.getNodeById(node1.getId());
-            node2 = tx.getNodeById(node2.getId());
+            node1 = tx.getNodeByElementId(node1Id);
+            node2 = tx.getNodeByElementId(node2Id);
         }
 
         Iterables.forEach(node1.getRelationships(), Relationship::delete);
@@ -295,17 +301,20 @@ public class TestRelationshipCount {
         }
 
         Node node = tx.createNode();
+        String nodeId = node.getElementId();
         assertEquals(0, node.getDegree());
         node.createRelationshipTo(node, MyRelTypes.TEST);
         assertEquals(1, node.getDegree());
         Node otherNode = tx.createNode();
+        String otherNodeId = otherNode.getElementId();
         Relationship rel2 = node.createRelationshipTo(otherNode, MyRelTypes.TEST2);
+        String rel2Id = rel2.getElementId();
         assertEquals(2, node.getDegree());
         assertEquals(1, otherNode.getDegree());
         newTransaction();
-        node = tx.getNodeById(node.getId());
-        otherNode = tx.getNodeById(otherNode.getId());
-        rel2 = tx.getRelationshipById(rel2.getId());
+        node = tx.getNodeByElementId(nodeId);
+        otherNode = tx.getNodeByElementId(otherNodeId);
+        rel2 = tx.getRelationshipByElementId(rel2Id);
         assertEquals(2, node.getDegree());
         Relationship rel3 = node.createRelationshipTo(node, MyRelTypes.TEST_TRAVERSAL);
         assertEquals(3, node.getDegree());
@@ -371,11 +380,12 @@ public class TestRelationshipCount {
             expectedCounts.put(type, new int[3]);
         }
         Node me = tx.createNode();
+        String meId = me.getElementId();
         for (int i = 0; i < initialSize; i++) {
             me.createRelationshipTo(tx.createNode(), RelType.INITIAL);
         }
         newTransaction();
-        me = tx.getNodeById(me.getId());
+        me = tx.getNodeByElementId(meId);
         expectedCounts.get(RelType.INITIAL)[0] = initialSize;
 
         assertCounts(me, expectedCounts);
@@ -407,7 +417,7 @@ public class TestRelationshipCount {
 
         assertCounts(me, expectedCounts);
         newTransaction();
-        me = tx.getNodeById(me.getId());
+        me = tx.getNodeByElementId(meId);
         assertCounts(me, expectedCounts);
 
         // Delete one of each type/direction combination
@@ -444,7 +454,7 @@ public class TestRelationshipCount {
 
         assertCounts(me, expectedCounts);
         newTransaction();
-        me = tx.getNodeById(me.getId());
+        me = tx.getNodeByElementId(meId);
         assertCounts(me, expectedCounts);
 
         // Clean up

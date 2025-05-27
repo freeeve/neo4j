@@ -29,7 +29,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
@@ -55,28 +54,30 @@ class AccidentalUniquenessConstraintViolationIT {
             tx.schema().constraintFor(Foo).assertPropertyIsUnique(BAR).create();
             tx.commit();
         }
-        Node fourtyTwo;
-        Node fourtyOne;
+        String fourtyTwoId;
+        String fourtyOneId;
         try (Transaction tx = db.beginTx()) {
-            fourtyTwo = tx.createNode(Foo);
+            var fourtyTwo = tx.createNode(Foo);
             fourtyTwo.setProperty(BAR, value1);
-            fourtyOne = tx.createNode(Foo);
+            fourtyTwoId = fourtyTwo.getElementId();
+            var fourtyOne = tx.createNode(Foo);
             fourtyOne.setProperty(BAR, value2);
+            fourtyOneId = fourtyOne.getElementId();
             tx.commit();
         }
 
         // when
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(fourtyOne.getId()).delete();
-            tx.getNodeById(fourtyTwo.getId()).setProperty(BAR, value2);
+            tx.getNodeByElementId(fourtyOneId).delete();
+            tx.getNodeByElementId(fourtyTwoId).setProperty(BAR, value2);
             tx.commit();
         }
 
         // then
         try (Transaction tx = db.beginTx()) {
-            fourtyTwo = tx.getNodeById(fourtyTwo.getId());
+            var fourtyTwo = tx.getNodeByElementId(fourtyTwoId);
             assertEquals(value2, fourtyTwo.getProperty(BAR));
-            assertThrows(NotFoundException.class, () -> tx.getNodeById(fourtyOne.getId())
+            assertThrows(NotFoundException.class, () -> tx.getNodeByElementId(fourtyOneId)
                     .getProperty(BAR));
 
             assertEquals(fourtyTwo, tx.findNode(Foo, BAR, value2));

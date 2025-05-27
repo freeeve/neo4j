@@ -40,16 +40,17 @@ class TestShortStringProperties {
 
     @Test
     void canAddMultipleShortStringsToTheSameNode() {
-        Node node;
+        String nodeId;
         try (Transaction transaction = graphdb.beginTx()) {
-            node = transaction.createNode();
+            Node node = transaction.createNode();
+            nodeId = node.getElementId();
             node.setProperty("key", "value");
             node.setProperty("reverse", "esrever");
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             assertEquals("value", n.getProperty("key"));
             assertEquals("esrever", n.getProperty("reverse"));
         }
@@ -57,96 +58,102 @@ class TestShortStringProperties {
 
     @Test
     void canAddShortStringToRelationship() {
-        Relationship rel;
+        String relId;
         try (Transaction transaction = graphdb.beginTx()) {
-            rel = transaction.createNode().createRelationshipTo(transaction.createNode(), withName("REL_TYPE"));
+            Relationship rel =
+                    transaction.createNode().createRelationshipTo(transaction.createNode(), withName("REL_TYPE"));
+            relId = rel.getElementId();
             rel.setProperty("type", "dimsedut");
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            var r = transaction.getRelationshipById(rel.getId());
+            var r = transaction.getRelationshipByElementId(relId);
             assertEquals("dimsedut", r.getProperty("type"));
         }
     }
 
     @Test
     void canUpdateShortStringInplace() {
-        Node node;
+        String nodeId;
         try (Transaction transaction = graphdb.beginTx()) {
-            node = transaction.createNode();
+            Node node = transaction.createNode();
+            nodeId = node.getElementId();
             node.setProperty("key", "value");
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             assertEquals("value", n.getProperty("key"));
             n.setProperty("key", "other");
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             assertEquals("other", n.getProperty("key"));
         }
     }
 
     @Test
     void canReplaceLongStringWithShortString() {
-        Node node;
+        String nodeId;
         try (Transaction transaction = graphdb.beginTx()) {
-            node = transaction.createNode();
+            Node node = transaction.createNode();
+            nodeId = node.getElementId();
             node.setProperty("key", LONG_STRING);
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            node = transaction.getNodeById(node.getId());
+            Node node = transaction.getNodeByElementId(nodeId);
             assertEquals(LONG_STRING, node.getProperty("key"));
             node.setProperty("key", "value");
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             assertEquals("value", n.getProperty("key"));
         }
     }
 
     @Test
     void canReplaceShortStringWithLongString() {
-        Node node;
+        String nodeId;
         try (Transaction transaction = graphdb.beginTx()) {
-            node = transaction.createNode();
+            Node node = transaction.createNode();
+            nodeId = node.getElementId();
             node.setProperty("key", "value");
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            node = transaction.getNodeById(node.getId());
+            Node node = transaction.getNodeByElementId(nodeId);
             assertEquals("value", node.getProperty("key"));
             node.setProperty("key", LONG_STRING);
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             assertEquals(LONG_STRING, n.getProperty("key"));
         }
     }
 
     @Test
     void canRemoveShortStringProperty() {
-        Node node;
+        String nodeId;
         try (Transaction transaction = graphdb.beginTx()) {
-            node = transaction.createNode();
+            Node node = transaction.createNode();
+            nodeId = node.getElementId();
             node.setProperty("key", "value");
             transaction.commit();
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            node = transaction.getNodeById(node.getId());
+            Node node = transaction.getNodeByElementId(nodeId);
             assertEquals("value", node.getProperty("key"));
 
             node.removeProperty("key");
@@ -154,7 +161,7 @@ class TestShortStringProperties {
         }
 
         try (Transaction transaction = graphdb.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             assertFalse(n.hasProperty("key"));
         }
     }

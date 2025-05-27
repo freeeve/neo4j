@@ -199,20 +199,21 @@ class TestTransactionEvents {
         ExpectedTransactionData expectedData = new ExpectedTransactionData();
         VerifyingTransactionEventListener listener = new VerifyingTransactionEventListener(expectedData);
         dbms.registerTransactionEventListener(DEFAULT_DATABASE_NAME, listener);
-        Node node1;
-        Node node2;
-        Node node3;
-        Relationship rel1;
-        Relationship rel2;
+        String node1Id;
+        String node3Id;
+        String rel1Id;
+        String rel2Id;
         try {
             try (Transaction tx = db.beginTx()) {
-                node1 = tx.createNode();
+                Node node1 = tx.createNode();
+                node1Id = node1.getElementId();
                 expectedData.expectedCreatedNodes.add(node1);
 
-                node2 = tx.createNode();
+                Node node2 = tx.createNode();
                 expectedData.expectedCreatedNodes.add(node2);
 
-                rel1 = node1.createRelationshipTo(node2, RelTypes.TXEVENT);
+                Relationship rel1 = node1.createRelationshipTo(node2, RelTypes.TXEVENT);
+                rel1Id = rel1.getElementId();
                 expectedData.expectedCreatedRelationships.add(rel1);
 
                 node1.setProperty("name", "Mattias");
@@ -230,9 +231,11 @@ class TestTransactionEvents {
                 rel1.setProperty("number", 4.5D);
                 expectedData.assignedProperty(rel1, "number", 4.5D, null);
 
-                node3 = tx.createNode();
+                Node node3 = tx.createNode();
+                node3Id = node3.getElementId();
                 expectedData.expectedCreatedNodes.add(node3);
-                rel2 = node3.createRelationshipTo(node2, RelTypes.TXEVENT);
+                Relationship rel2 = node3.createRelationshipTo(node2, RelTypes.TXEVENT);
+                rel2Id = rel2.getElementId();
                 expectedData.expectedCreatedRelationships.add(rel2);
 
                 node3.setProperty("name", "Node 3");
@@ -258,20 +261,20 @@ class TestTransactionEvents {
                 Node newNode = tx.createNode();
                 expectedData.expectedCreatedNodes.add(newNode);
 
+                Node node1 = tx.getNodeByElementId(node1Id);
                 Node tempNode = tx.createNode();
                 Relationship tempRel = tempNode.createRelationshipTo(node1, RelTypes.TXEVENT);
                 tempNode.setProperty("something", "Some value");
                 tempRel.setProperty("someproperty", 101010);
                 tempNode.removeProperty("nothing");
 
-                node3 = tx.getNodeById(node3.getId());
+                Node node3 = tx.getNodeByElementId(node3Id);
                 node3.setProperty("test", "hello");
                 node3.setProperty("name", "No name");
                 node3.delete();
                 expectedData.expectedDeletedNodes.add(node3);
                 expectedData.removedProperty(node3, "name", "Node 3");
 
-                node1 = tx.getNodeById(node1.getId());
                 node1.setProperty("new name", "A name");
                 node1.setProperty("new name", "A better name");
                 expectedData.assignedProperty(node1, "new name", "A better name", null);
@@ -284,11 +287,11 @@ class TestTransactionEvents {
                 node1.setProperty("last name", "Hi");
                 expectedData.assignedProperty(node1, "last name", "Hi", "Persson");
 
-                rel2 = tx.getRelationshipById(rel2.getId());
+                Relationship rel2 = tx.getRelationshipByElementId(rel2Id);
                 rel2.delete();
                 expectedData.expectedDeletedRelationships.add(rel2);
 
-                rel1 = tx.getRelationshipById(rel1.getId());
+                Relationship rel1 = tx.getRelationshipByElementId(rel1Id);
                 rel1.removeProperty("number");
                 expectedData.removedProperty(rel1, "number", 4.5D);
                 rel1.setProperty("description", "Ignored");
@@ -378,13 +381,16 @@ class TestTransactionEvents {
 
     @Test
     void deleteNodeRelTriggerPropertyRemoveEvents() {
-        Node node1;
-        Node node2;
-        Relationship rel;
+        String node1Id;
+        String node2Id;
+        String relId;
         try (Transaction tx = db.beginTx()) {
-            node1 = tx.createNode();
-            node2 = tx.createNode();
-            rel = node1.createRelationshipTo(node2, RelTypes.TXEVENT);
+            Node node1 = tx.createNode();
+            node1Id = node1.getElementId();
+            Node node2 = tx.createNode();
+            node2Id = node2.getElementId();
+            Relationship rel = node1.createRelationshipTo(node2, RelTypes.TXEVENT);
+            relId = rel.getElementId();
             node1.setProperty("test1", "stringvalue");
             node1.setProperty("test2", 1L);
             rel.setProperty("test1", "stringvalue");
@@ -395,9 +401,9 @@ class TestTransactionEvents {
         MyTxEventListener listener = new MyTxEventListener();
         dbms.registerTransactionEventListener(DEFAULT_DATABASE_NAME, listener);
         try (Transaction tx = db.beginTx()) {
-            tx.getRelationshipById(rel.getId()).delete();
-            tx.getNodeById(node1.getId()).delete();
-            tx.getNodeById(node2.getId()).delete();
+            tx.getRelationshipByElementId(relId).delete();
+            tx.getNodeByElementId(node1Id).delete();
+            tx.getNodeByElementId(node2Id).delete();
             tx.commit();
         }
         assertEquals("stringvalue", listener.nodeProps.get("test1"));
@@ -435,8 +441,10 @@ class TestTransactionEvents {
         final Object value1 = "the old value";
         final Object value2 = "the new value";
         final Node node;
+        final String nodeId;
         try (Transaction tx = db.beginTx()) {
             node = tx.createNode();
+            nodeId = node.getElementId();
             node.setProperty(key, "initial value");
             tx.commit();
         }
@@ -456,12 +464,12 @@ class TestTransactionEvents {
 
         try (Transaction tx = db.beginTx()) {
             // When
-            tx.getNodeById(node.getId()).setProperty(key, value1);
+            tx.getNodeByElementId(nodeId).setProperty(key, value1);
             tx.commit();
         }
         // Then
         try (Transaction transaction = db.beginTx()) {
-            var n = transaction.getNodeById(node.getId());
+            var n = transaction.getNodeByElementId(nodeId);
             assertEquals(value2, n.getProperty(key));
         }
         dbms.unregisterTransactionEventListener(DEFAULT_DATABASE_NAME, listener);
@@ -578,13 +586,16 @@ class TestTransactionEvents {
         ChangedLabels labels = new ChangedLabels();
         dbms.registerTransactionEventListener(DEFAULT_DATABASE_NAME, labels);
         try {
-            Node node1;
-            Node node2;
-            Node node3;
+            String node1Id;
+            String node2Id;
+            String node3Id;
             try (Transaction tx = db.beginTx()) {
-                node1 = tx.createNode();
-                node2 = tx.createNode();
-                node3 = tx.createNode();
+                Node node1 = tx.createNode();
+                node1Id = node1.getElementId();
+                Node node2 = tx.createNode();
+                node2Id = node2.getElementId();
+                Node node3 = tx.createNode();
+                node3Id = node3.getElementId();
 
                 labels.add(node1, "Foo");
                 labels.add(node2, "Bar");
@@ -597,10 +608,10 @@ class TestTransactionEvents {
 
             // when
             try (Transaction tx = db.beginTx()) {
-                labels.remove(tx.getNodeById(node1.getId()), "Foo");
-                labels.remove(tx.getNodeById(node2.getId()), "Bar");
-                labels.remove(tx.getNodeById(node3.getId()), "Baz");
-                labels.remove(tx.getNodeById(node3.getId()), "Bar");
+                labels.remove(tx.getNodeByElementId(node1Id), "Foo");
+                labels.remove(tx.getNodeByElementId(node2Id), "Bar");
+                labels.remove(tx.getNodeByElementId(node3Id), "Baz");
+                labels.remove(tx.getNodeByElementId(node3Id), "Bar");
 
                 labels.activate();
                 tx.commit();
@@ -689,7 +700,7 @@ class TestTransactionEvents {
         }
 
         RelationshipType livesIn = withName("LIVES_IN");
-        long relId;
+        String relId;
 
         try (Transaction tx = db.beginTx()) {
             Node person = tx.createNode(label("Person"));
@@ -698,7 +709,7 @@ class TestTransactionEvents {
 
             Relationship rel = person.createRelationshipTo(city, livesIn);
             rel.setProperty("since", 2009);
-            relId = rel.getId();
+            relId = rel.getElementId();
             tx.commit();
         }
 
@@ -717,7 +728,7 @@ class TestTransactionEvents {
         });
 
         try (Transaction tx = db.beginTx()) {
-            Relationship rel = tx.getRelationshipById(relId);
+            Relationship rel = tx.getRelationshipByElementId(relId);
             rel.setProperty("since", 2010);
             tx.commit();
         }
@@ -729,13 +740,13 @@ class TestTransactionEvents {
     @Test
     void shouldNotFireEventForReadOnlyTransaction() {
         // GIVEN
-        Node root = createTree(3, 3);
+        String root = createTree(3, 3);
         dbms.registerTransactionEventListener(
                 DEFAULT_DATABASE_NAME, new ExceptionThrowingEventListener(new RuntimeException("Just failing")));
 
         // WHEN
         try (Transaction tx = db.beginTx()) {
-            count(tx.traversalDescription().traverse(tx.getNodeById(root.getId())));
+            count(tx.traversalDescription().traverse(tx.getNodeByElementId(root)));
             tx.commit();
         }
     }
@@ -796,12 +807,12 @@ class TestTransactionEvents {
     @Test
     void shouldBeAbleToTouchDataOutsideTxDataInAfterCommit() {
         // GIVEN
-        final Node node = createNode("one", "Two", "three", "Four");
+        final String node = createNode("one", "Two", "three", "Four");
         dbms.registerTransactionEventListener(DEFAULT_DATABASE_NAME, new TransactionEventListenerAdapter<>() {
             @Override
             public void afterCommit(TransactionData data, Object nothing, GraphDatabaseService databaseService) {
                 try (Transaction tx = db.beginTx()) {
-                    var listenerNode = tx.getNodeById(node.getId());
+                    var listenerNode = tx.getNodeByElementId(node);
                     for (String key : listenerNode.getPropertyKeys()) { // Just to see if one can reach them
                         listenerNode.getProperty(key);
                     }
@@ -813,7 +824,7 @@ class TestTransactionEvents {
         try (Transaction tx = db.beginTx()) {
             // WHEN/THEN
             tx.createNode();
-            tx.getNodeById(node.getId()).setProperty("five", "Six");
+            tx.getNodeByElementId(node).setProperty("five", "Six");
             tx.commit();
         }
     }
@@ -821,14 +832,14 @@ class TestTransactionEvents {
     @Test
     void shouldAllowToStringOnCreatedRelationshipInAfterCommit() {
         // GIVEN
-        Relationship relationship;
+        String relationship;
         Node startNode;
         Node endNode;
         RelationshipType type = MyRelTypes.TEST;
         try (Transaction tx = db.beginTx()) {
             startNode = tx.createNode();
             endNode = tx.createNode();
-            relationship = startNode.createRelationshipTo(endNode, type);
+            relationship = startNode.createRelationshipTo(endNode, type).getElementId();
             tx.commit();
         }
 
@@ -843,7 +854,7 @@ class TestTransactionEvents {
             }
         });
         try (Transaction tx = db.beginTx()) {
-            tx.getRelationshipById(relationship.getId()).delete();
+            tx.getRelationshipByElementId(relationship).delete();
             tx.commit();
         }
 
@@ -864,18 +875,18 @@ class TestTransactionEvents {
                 called.set(true);
             }
         });
-        long nodeId = 0;
+        String nodeId;
 
         // Must not throw on plain write transactions.
         try (Transaction tx = db.beginTx()) {
-            nodeId = tx.createNode().getId();
+            nodeId = tx.createNode().getElementId();
             tx.commit();
         }
         assertTrue(called.getAndSet(false));
 
         // Must not throw on plain read transactions.
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(nodeId);
+            tx.getNodeByElementId(nodeId);
             tx.commit();
         }
         assertFalse(called.getAndSet(false)); // No afterCommit on pure read transactions.
@@ -1228,23 +1239,25 @@ class TestTransactionEvents {
         }
     }
 
-    private Node createNode(String... properties) {
+    private String createNode(String... properties) {
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode();
+            String nodeId = node.getElementId();
             for (int i = 0; i < properties.length; i++) {
                 node.setProperty(properties[i++], properties[i]);
             }
             tx.commit();
-            return node;
+            return nodeId;
         }
     }
 
-    private Node createTree(int depth, int width) {
+    private String createTree(int depth, int width) {
         try (Transaction tx = db.beginTx()) {
             Node root = tx.createNode(TestLabels.LABEL_ONE);
+            String rootId = root.getElementId();
             createTree(tx, root, depth, width, 0);
             tx.commit();
-            return root;
+            return rootId;
         }
     }
 

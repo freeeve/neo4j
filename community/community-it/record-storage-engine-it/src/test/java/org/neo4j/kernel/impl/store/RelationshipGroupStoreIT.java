@@ -65,9 +65,10 @@ class RelationshipGroupStoreIT {
     void shouldCreateAllTheseRelationshipTypes() {
         shiftHighId();
 
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            Node node = tx.createNode();
+            nodeId = node.getElementId();
             for (int i = 0; i < RELATIONSHIP_COUNT; i++) {
                 node.createRelationshipTo(tx.createNode(), type(i));
             }
@@ -75,7 +76,7 @@ class RelationshipGroupStoreIT {
         }
 
         try (Transaction tx = db.beginTx()) {
-            node = tx.getNodeById(node.getId());
+            Node node = tx.getNodeByElementId(nodeId);
             for (int i = 0; i < RELATIONSHIP_COUNT; i++) {
                 assertEquals(
                         1,
@@ -89,12 +90,12 @@ class RelationshipGroupStoreIT {
     void shouldDeleteDenseNodeIfContainingEmptyGroupsFromPreviousContendedRelationshipDeletions()
             throws ExecutionException, InterruptedException {
         // given
-        long nodeId;
+        String nodeId;
         RelationshipType typeA = RelationshipType.withName("A");
         RelationshipType typeB = RelationshipType.withName("B");
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode();
-            nodeId = node.getId();
+            nodeId = node.getElementId();
             for (int i = 0; i < 200; i++) {
                 node.createRelationshipTo(tx.createNode(), i % 2 == 0 ? typeA : typeB);
             }
@@ -107,7 +108,7 @@ class RelationshipGroupStoreIT {
             barrier = new Barrier.Control();
             Future<Object> t2Future = t2.executeDontWait(() -> {
                 try (TransactionImpl tx = (TransactionImpl) db.beginTx()) {
-                    tx.getNodeById(nodeId).createRelationshipTo(tx.createNode(), typeB);
+                    tx.getNodeByElementId(nodeId).createRelationshipTo(tx.createNode(), typeB);
                     tx.commit(KernelTransaction.Monitor.withBeforeApply(barrier::reached));
                 }
                 return null;
@@ -117,7 +118,7 @@ class RelationshipGroupStoreIT {
 
             // and another transaction which deletes all relationships of type A, and let it commit
             try (Transaction tx = db.beginTx()) {
-                Iterables.forEach(tx.getNodeById(nodeId).getRelationships(typeA), Relationship::delete);
+                Iterables.forEach(tx.getNodeByElementId(nodeId).getRelationships(typeA), Relationship::delete);
                 tx.commit();
             }
             // and letting the first transaction complete
@@ -127,7 +128,7 @@ class RelationshipGroupStoreIT {
 
         // then deleting the node should remove the empty group A, even if it's only deleting relationships of type B
         try (Transaction tx = db.beginTx()) {
-            Node node = tx.getNodeById(nodeId);
+            Node node = tx.getNodeByElementId(nodeId);
             Iterables.forEach(node.getRelationships(), rel -> {
                 assertThat(rel.isType(typeB)).isTrue();
                 rel.delete();
@@ -140,18 +141,18 @@ class RelationshipGroupStoreIT {
     @Test
     void shouldDeleteDenseNodeIfContainingEmptyGroups() throws Exception {
         // given
-        long nodeId;
+        String nodeId;
         RelationshipType typeA = RelationshipType.withName("A");
         RelationshipType typeB = RelationshipType.withName("B");
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode();
-            nodeId = node.getId();
+            nodeId = node.getElementId();
             node.createRelationshipTo(tx.createNode(), typeA);
             for (int i = 0; i < 200; i++) {
                 node.createRelationshipTo(
                         tx.createNode(), typeA); // Type A is created first and will get a lower type ID
             }
-            tx.getNodeById(nodeId).createRelationshipTo(tx.createNode(), typeB);
+            tx.getNodeByElementId(nodeId).createRelationshipTo(tx.createNode(), typeB);
             tx.commit();
         }
 
@@ -161,7 +162,7 @@ class RelationshipGroupStoreIT {
             barrier = new Barrier.Control();
             Future<Object> t2Future = t2.executeDontWait(() -> {
                 try (TransactionImpl tx = (TransactionImpl) db.beginTx()) {
-                    tx.getNodeById(nodeId).createRelationshipTo(tx.createNode(), typeA);
+                    tx.getNodeByElementId(nodeId).createRelationshipTo(tx.createNode(), typeA);
                     tx.commit(KernelTransaction.Monitor.withBeforeApply(barrier::reached));
                 }
                 return null;
@@ -171,7 +172,7 @@ class RelationshipGroupStoreIT {
 
             // and another transaction which deletes all relationships of type B, and let it commit
             try (Transaction tx = db.beginTx()) {
-                Iterables.forEach(tx.getNodeById(nodeId).getRelationships(typeB), Relationship::delete);
+                Iterables.forEach(tx.getNodeByElementId(nodeId).getRelationships(typeB), Relationship::delete);
                 tx.commit(); // This will fail to delete the group B since it can not get exlusive locks
             }
             // and letting the first transaction complete
@@ -180,7 +181,7 @@ class RelationshipGroupStoreIT {
 
             // then removing the remaining relationships of A
             try (Transaction tx = db.beginTx()) {
-                Iterables.forEach(tx.getNodeById(nodeId).getRelationships(typeA), Relationship::delete);
+                Iterables.forEach(tx.getNodeByElementId(nodeId).getRelationships(typeA), Relationship::delete);
                 tx.commit(); // this should only delete group A since B has a higher typeId than A (later in
                 // group-chain)
             }
@@ -188,7 +189,7 @@ class RelationshipGroupStoreIT {
 
         // then deleting the node should also remove the empty group B
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(nodeId).delete();
+            tx.getNodeByElementId(nodeId).delete();
             assertThatCode(tx::commit).doesNotThrowAnyException();
         }
     }

@@ -53,18 +53,17 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
     private static final String string1 = "1";
     private static final String string2 = "2";
     private final int[] array = {1, 2, 3, 4, 5, 6, 7};
-    private long node1Id = -1;
-    private long node2Id = -1;
+    private String node1Id;
+    private String node2Id;
 
     @BeforeEach
     void createTestingGraph() {
-        Node node1 = createNode();
+        node1Id = createNode();
         try (Transaction transaction = getGraphDb().beginTx()) {
             Node node2 = transaction.createNode();
-            node1 = transaction.getNodeById(node1.getId());
+            Node node1 = transaction.getNodeByElementId(node1Id);
             Relationship rel = node1.createRelationshipTo(node2, MyRelTypes.TEST);
-            node1Id = node1.getId();
-            node2Id = node2.getId();
+            node2Id = node2.getElementId();
             node1.setProperty(key1, int1);
             node1.setProperty(key2, string1);
             node2.setProperty(key1, int2);
@@ -77,7 +76,7 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
             transaction.commit();
         }
         try (Transaction transaction = getGraphDb().beginTx()) {
-            assertEquals(1, transaction.getNodeById(node1.getId()).getProperty(key1));
+            assertEquals(1, transaction.getNodeByElementId(node1Id).getProperty(key1));
             transaction.commit();
         }
     }
@@ -85,8 +84,8 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
     @AfterEach
     void deleteTestingGraph() {
         try (Transaction transaction = getGraphDb().beginTx()) {
-            Node node1 = transaction.getNodeById(node1Id);
-            Node node2 = transaction.getNodeById(node2Id);
+            Node node1 = transaction.getNodeByElementId(node1Id);
+            Node node2 = transaction.getNodeByElementId(node2Id);
             node1.getSingleRelationship(MyRelTypes.TEST, Direction.BOTH).delete();
             node1.delete();
             node2.delete();
@@ -99,8 +98,8 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
         String key3 = "key3";
 
         try (Transaction transaction = getGraphDb().beginTx()) {
-            Node node1 = transaction.getNodeById(node1Id);
-            Node node2 = transaction.getNodeById(node2Id);
+            Node node1 = transaction.getNodeByElementId(node1Id);
+            Node node2 = transaction.getNodeByElementId(node2Id);
             Relationship rel = node1.getSingleRelationship(MyRelTypes.TEST, Direction.BOTH);
             // add new property
             node2.setProperty(key3, int1);
@@ -128,8 +127,8 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
     @Test
     void testNodeRemoveProperty() {
         try (Transaction transaction = getGraphDb().beginTx()) {
-            Node node1 = transaction.getNodeById(node1Id);
-            Node node2 = transaction.getNodeById(node2Id);
+            Node node1 = transaction.getNodeByElementId(node1Id);
+            Node node2 = transaction.getNodeByElementId(node2Id);
             Relationship rel = node1.getSingleRelationship(MyRelTypes.TEST, Direction.BOTH);
 
             // test remove property
@@ -149,8 +148,8 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
     @Test
     void testNodeChangeProperty() {
         try (Transaction transaction = getGraphDb().beginTx()) {
-            Node node1 = transaction.getNodeById(node1Id);
-            Node node2 = transaction.getNodeById(node2Id);
+            Node node1 = transaction.getNodeByElementId(node1Id);
+            Node node2 = transaction.getNodeByElementId(node2Id);
             Relationship rel = node1.getSingleRelationship(MyRelTypes.TEST, Direction.BOTH);
 
             // test change property
@@ -168,7 +167,7 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
     @Test
     void testNodeGetProperties() {
         try (Transaction transaction = getGraphDb().beginTx()) {
-            Node node1 = transaction.getNodeById(node1Id);
+            Node node1 = transaction.getNodeByElementId(node1Id);
 
             assertFalse(node1.hasProperty(null));
             Iterator<String> keys = node1.getPropertyKeys().iterator();
@@ -187,12 +186,12 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
     @Test
     void testDirectedRelationship1() {
         try (Transaction transaction = getGraphDb().beginTx()) {
-            Node node1 = transaction.getNodeById(node1Id);
+            Node node1 = transaction.getNodeByElementId(node1Id);
             Relationship rel = node1.getSingleRelationship(MyRelTypes.TEST, Direction.BOTH);
             Node[] nodes = rel.getNodes();
             assertEquals(2, nodes.length);
 
-            Node node2 = transaction.getNodeById(node2Id);
+            Node node2 = transaction.getNodeByElementId(node2Id);
             assertTrue(nodes[0].equals(node1) && nodes[1].equals(node2));
             assertEquals(node1, rel.getStartNode());
             assertEquals(node2, rel.getEndNode());
@@ -227,7 +226,7 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
     @Test
     void testGetDirectedRelationship() {
         try (Transaction transaction = getGraphDb().beginTx()) {
-            Node node1 = transaction.getNodeById(node1Id);
+            Node node1 = transaction.getNodeByElementId(node1Id);
             Relationship rel = node1.getSingleRelationship(MyRelTypes.TEST, OUTGOING);
             assertEquals(int1, rel.getProperty(key1));
             transaction.commit();
@@ -253,22 +252,23 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
 
     @Test
     void testAddCacheCleared() {
-        Node nodeA = createNode();
-        Node nodeB = createNode();
-        Relationship rel;
+        String nodeAId = createNode();
+        String nodeBId = createNode();
+        String relId;
         try (Transaction transaction = getGraphDb().beginTx()) {
-            nodeA = transaction.getNodeById(nodeA.getId());
-            nodeB = transaction.getNodeById(nodeB.getId());
+            Node nodeA = transaction.getNodeByElementId(nodeAId);
+            Node nodeB = transaction.getNodeByElementId(nodeBId);
 
             nodeA.setProperty("1", 1);
-            rel = nodeA.createRelationshipTo(nodeB, MyRelTypes.TEST);
+            Relationship rel = nodeA.createRelationshipTo(nodeB, MyRelTypes.TEST);
+            relId = rel.getElementId();
             rel.setProperty("1", 1);
             transaction.commit();
         }
         try (Transaction transaction = getGraphDb().beginTx()) {
-            nodeA = transaction.getNodeById(nodeA.getId());
-            nodeB = transaction.getNodeById(nodeB.getId());
-            rel = transaction.getRelationshipById(rel.getId());
+            Node nodeA = transaction.getNodeByElementId(nodeAId);
+            Node nodeB = transaction.getNodeByElementId(nodeBId);
+            Relationship rel = transaction.getRelationshipByElementId(relId);
 
             nodeA.createRelationshipTo(nodeB, MyRelTypes.TEST);
             int count = (int) Iterables.count(nodeA.getRelationships(MyRelTypes.TEST));
@@ -278,13 +278,13 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
             rel.setProperty("2", 2);
             assertEquals(1, rel.getProperty("1"));
             // trigger empty load
-            transaction.getNodeById(nodeA.getId());
-            transaction.getRelationshipById(rel.getId());
+            transaction.getNodeByElementId(nodeAId);
+            transaction.getRelationshipByElementId(relId);
             transaction.commit();
         }
         try (Transaction transaction = getGraphDb().beginTx()) {
-            nodeA = transaction.getNodeById(nodeA.getId());
-            rel = transaction.getRelationshipById(rel.getId());
+            Node nodeA = transaction.getNodeByElementId(nodeAId);
+            Relationship rel = transaction.getRelationshipByElementId(relId);
 
             int count = (int) Iterables.count(nodeA.getRelationships(MyRelTypes.TEST));
             assertEquals(2, count);
@@ -298,9 +298,9 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
 
     @Test
     void testNodeMultiRemoveProperty() {
-        Node node = createNode();
+        String nodeId = createNode();
         try (Transaction transaction = getGraphDb().beginTx()) {
-            node = transaction.getNodeById(node.getId());
+            Node node = transaction.getNodeByElementId(nodeId);
             node.setProperty("key0", "0");
             node.setProperty("key1", "1");
             node.setProperty("key2", "2");
@@ -309,7 +309,7 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
             transaction.commit();
         }
         try (Transaction transaction = getGraphDb().beginTx()) {
-            node = transaction.getNodeById(node.getId());
+            Node node = transaction.getNodeByElementId(nodeId);
 
             node.removeProperty("key3");
             node.removeProperty("key2");
@@ -317,7 +317,7 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
             transaction.commit();
         }
         try (Transaction transaction = getGraphDb().beginTx()) {
-            node = transaction.getNodeById(node.getId());
+            Node node = transaction.getNodeByElementId(nodeId);
 
             assertEquals("0", node.getProperty("key0"));
             assertEquals("1", node.getProperty("key1"));
@@ -331,14 +331,15 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
 
     @Test
     void testRelMultiRemoveProperty() {
-        Node node1 = createNode();
-        Node node2 = createNode();
-        Relationship rel;
+        String node1Id = createNode();
+        String node2Id = createNode();
+        String relId;
         try (Transaction transaction = getGraphDb().beginTx()) {
-            node1 = transaction.getNodeById(node1.getId());
-            node2 = transaction.getNodeById(node2.getId());
+            Node node1 = transaction.getNodeByElementId(node1Id);
+            Node node2 = transaction.getNodeByElementId(node2Id);
 
-            rel = node1.createRelationshipTo(node2, MyRelTypes.TEST);
+            Relationship rel = node1.createRelationshipTo(node2, MyRelTypes.TEST);
+            relId = rel.getElementId();
             rel.setProperty("key0", "0");
             rel.setProperty("key1", "1");
             rel.setProperty("key2", "2");
@@ -347,7 +348,7 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
             transaction.commit();
         }
         try (Transaction transaction = getGraphDb().beginTx()) {
-            rel = transaction.getRelationshipById(rel.getId());
+            Relationship rel = transaction.getRelationshipByElementId(relId);
 
             rel.removeProperty("key3");
             rel.removeProperty("key2");
@@ -355,9 +356,9 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
             transaction.commit();
         }
         try (Transaction transaction = getGraphDb().beginTx()) {
-            node1 = transaction.getNodeById(node1.getId());
-            node2 = transaction.getNodeById(node2.getId());
-            rel = transaction.getRelationshipById(rel.getId());
+            Node node1 = transaction.getNodeByElementId(node1Id);
+            Node node2 = transaction.getNodeByElementId(node2Id);
+            Relationship rel = transaction.getRelationshipByElementId(relId);
 
             assertEquals("0", rel.getProperty("key0"));
             assertEquals("1", rel.getProperty("key1"));
@@ -373,11 +374,13 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
 
     @Test
     void testLowGrabSize() {
-        Node node1;
-        Node node2;
+        String node1Id;
+        String node2Id;
         try (Transaction tx = getGraphDb().beginTx()) {
-            node1 = tx.createNode();
-            node2 = tx.createNode();
+            Node node1 = tx.createNode();
+            node1Id = node1.getElementId();
+            Node node2 = tx.createNode();
+            node2Id = node2.getElementId();
             node1.createRelationshipTo(node2, MyRelTypes.TEST);
             node2.createRelationshipTo(node1, MyRelTypes.TEST2);
             node1.createRelationshipTo(node2, MyRelTypes.TEST_TRAVERSAL);
@@ -385,8 +388,8 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
         }
 
         try (Transaction tx = getGraphDb().beginTx()) {
-            node1 = tx.getNodeById(node1.getId());
-            node2 = tx.getNodeById(node2.getId());
+            Node node1 = tx.getNodeByElementId(node1Id);
+            Node node2 = tx.getNodeByElementId(node2Id);
 
             RelationshipType[] types = {MyRelTypes.TEST, MyRelTypes.TEST2, MyRelTypes.TEST_TRAVERSAL};
 
@@ -424,15 +427,15 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
         Collection<Relationship> outgoingOriginal = new HashSet<>();
         Collection<Relationship> incomingOriginal = new HashSet<>();
         Collection<Relationship> loopsOriginal = new HashSet<>();
-        Node node1 = createNode();
-        Node node2 = createNode();
-        Node node3 = createNode();
+        String node1Id = createNode();
+        String node2Id = createNode();
+        String node3Id = createNode();
         int total = 0;
         int totalOneDirection = 0;
         try (Transaction tx = getGraphDb().beginTx()) {
-            node1 = tx.getNodeById(node1.getId());
-            node2 = tx.getNodeById(node2.getId());
-            node3 = tx.getNodeById(node3.getId());
+            Node node1 = tx.getNodeByElementId(node1Id);
+            Node node2 = tx.getNodeByElementId(node2Id);
+            Node node3 = tx.getNodeByElementId(node3Id);
 
             for (int i = 0; i < 33; i++) {
                 if (includeLoops) {
@@ -455,7 +458,7 @@ class TestNeo4jCacheAndPersistence extends AbstractNeo4jTestCase {
         }
 
         try (Transaction tx = getGraphDb().beginTx()) {
-            node2 = tx.getNodeById(node2.getId());
+            Node node2 = tx.getNodeByElementId(node2Id);
             Set<Relationship> rels = new HashSet<>();
 
             Collection<Relationship> outgoing = new HashSet<>(outgoingOriginal);

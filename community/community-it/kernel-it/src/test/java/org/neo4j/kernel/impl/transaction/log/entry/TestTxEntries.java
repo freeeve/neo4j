@@ -62,23 +62,24 @@ class TestTxEntries {
     }
 
     private static void createSomeTransactions(GraphDatabaseService db) {
-        Node node1;
+        String node1Id;
         try (Transaction tx = db.beginTx()) {
-            node1 = tx.createNode();
+            Node node1 = tx.createNode();
+            node1Id = node1.getElementId();
             Node node2 = tx.createNode();
             node1.createRelationshipTo(node2, RelationshipType.withName("relType1"));
             tx.commit();
         }
 
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node1.getId()).delete();
+            tx.getNodeByElementId(node1Id).delete();
             // Will throw exception, causing the tx to be rolledback.
             // InvalidRecordException coming, node1 has rels
             assertThrows(ConstraintViolationException.class, tx::commit);
         }
 
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node1.getId()).setProperty("foo", "bar");
+            tx.getNodeByElementId(node1Id).setProperty("foo", "bar");
             tx.commit();
         }
     }

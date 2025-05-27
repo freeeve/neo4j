@@ -90,18 +90,18 @@ class RelationshipCountsTest {
     @Test
     void shouldAccountForDeletedRelationships() {
         // given
-        Relationship rel;
+        String rel;
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode();
             node.createRelationshipTo(tx.createNode(), withName("KNOWS"));
-            rel = node.createRelationshipTo(tx.createNode(), withName("KNOWS"));
+            rel = node.createRelationshipTo(tx.createNode(), withName("KNOWS")).getElementId();
             node.createRelationshipTo(tx.createNode(), withName("KNOWS"));
             tx.commit();
         }
         long before = numberOfRelationships();
         long during;
         try (Transaction tx = db.beginTx()) {
-            tx.getRelationshipById(rel.getId()).delete();
+            tx.getRelationshipByElementId(rel).delete();
             during = countsForRelationship(tx, null, null, null);
             tx.commit();
         }
@@ -149,11 +149,11 @@ class RelationshipCountsTest {
     @Test
     void shouldNotCountRelationshipsDeletedInOtherTransaction() throws Exception {
         // given
-        final Relationship rel;
+        final String rel;
         try (Transaction tx = db.beginTx()) {
             Node node = tx.createNode();
             node.createRelationshipTo(tx.createNode(), withName("KNOWS"));
-            rel = node.createRelationshipTo(tx.createNode(), withName("KNOWS"));
+            rel = node.createRelationshipTo(tx.createNode(), withName("KNOWS")).getElementId();
             node.createRelationshipTo(tx.createNode(), withName("KNOWS"));
             tx.commit();
         }
@@ -161,7 +161,7 @@ class RelationshipCountsTest {
         long before = numberOfRelationships();
         Future<Long> tx = executor.submit(() -> {
             try (Transaction txn = db.beginTx()) {
-                txn.getRelationshipById(rel.getId()).delete();
+                txn.getRelationshipByElementId(rel).delete();
                 long whatThisThreadSees = countsForRelationship(txn, null, null, null);
                 barrier.reached();
                 txn.commit();
@@ -242,9 +242,10 @@ class RelationshipCountsTest {
     @Test
     void shouldUpdateRelationshipWithLabelCountsWhenDeletingNodeWithRelationship() {
         // given
-        Node foo;
+        String fooId;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"));
+            Node foo = tx.createNode(label("Foo"));
+            fooId = foo.getElementId();
             Node bar = tx.createNode(label("Bar"));
             foo.createRelationshipTo(bar, withName("BAZ"));
 
@@ -254,7 +255,7 @@ class RelationshipCountsTest {
 
         // when
         try (Transaction tx = db.beginTx()) {
-            foo = tx.getNodeById(foo.getId());
+            Node foo = tx.getNodeByElementId(fooId);
             Iterables.forEach(foo.getRelationships(), Relationship::delete);
             foo.delete();
 
@@ -270,14 +271,14 @@ class RelationshipCountsTest {
     void shouldUpdateRelationshipWithLabelCountsWhenDeletingNodesWithRelationships() {
         // given
         int numberOfNodes = 2;
-        Node[] nodes = new Node[numberOfNodes];
+        String[] nodes = new String[numberOfNodes];
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < numberOfNodes; i++) {
                 Node foo = tx.createNode(label("Foo" + i));
                 foo.addLabel(Label.label("Common"));
                 Node bar = tx.createNode(label("Bar" + i));
                 foo.createRelationshipTo(bar, withName("BAZ" + i));
-                nodes[i] = foo;
+                nodes[i] = foo.getElementId();
             }
 
             tx.commit();
@@ -292,8 +293,8 @@ class RelationshipCountsTest {
 
         // when
         try (Transaction tx = db.beginTx()) {
-            for (Node node : nodes) {
-                node = tx.getNodeById(node.getId());
+            for (String nodeId : nodes) {
+                Node node = tx.getNodeByElementId(nodeId);
                 Iterables.forEach(node.getRelationships(), Relationship::delete);
                 node.delete();
             }
@@ -317,9 +318,10 @@ class RelationshipCountsTest {
     @Test
     void shouldUpdateRelationshipWithLabelCountsWhenRemovingLabelAndDeletingRelationship() {
         // given
-        Node foo;
+        String fooId;
         try (Transaction tx = db.beginTx()) {
-            foo = tx.createNode(label("Foo"));
+            Node foo = tx.createNode(label("Foo"));
+            fooId = foo.getElementId();
             Node bar = tx.createNode(label("Bar"));
             foo.createRelationshipTo(bar, withName("BAZ"));
 
@@ -329,7 +331,7 @@ class RelationshipCountsTest {
 
         // when
         try (Transaction tx = db.beginTx()) {
-            foo = tx.getNodeById(foo.getId());
+            Node foo = tx.getNodeByElementId(fooId);
             Iterables.forEach(foo.getRelationships(), Relationship::delete);
             foo.removeLabel(label("Foo"));
 

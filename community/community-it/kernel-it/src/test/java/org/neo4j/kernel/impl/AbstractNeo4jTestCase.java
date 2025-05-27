@@ -25,7 +25,6 @@ import org.junit.jupiter.api.TestInstance;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.internal.id.IdGeneratorFactory;
@@ -72,13 +71,13 @@ public abstract class AbstractNeo4jTestCase {
         return graphDb;
     }
 
-    protected Node createNode() {
-        Node node;
+    protected String createNode() {
+        String nodeId;
         try (Transaction transaction = graphDb.beginTx()) {
-            node = transaction.createNode();
+            nodeId = transaction.createNode().getElementId();
             transaction.commit();
         }
-        return node;
+        return nodeId;
     }
 
     protected IdGenerator getIdGenerator(IdType idType) {

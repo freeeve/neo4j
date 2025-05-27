@@ -117,10 +117,16 @@ class TestReadOnlyNeo4j {
         managementService = dbms();
         GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
 
+        String node1Id;
+        String node2Id;
+        String relId;
         Transaction tx = db.beginTx();
         Node node1 = tx.createNode();
+        node1Id = node1.getElementId();
         Node node2 = tx.createNode();
+        node2Id = node2.getElementId();
         Relationship rel = node1.createRelationshipTo(node2, withName("TEST"));
+        relId = rel.getElementId();
         node1.setProperty("key1", "value1");
         rel.setProperty("key1", "value1");
         tx.commit();
@@ -131,11 +137,11 @@ class TestReadOnlyNeo4j {
         assertThrows(NotInTransactionException.class, () -> rel.removeProperty("key1"));
 
         try (Transaction transaction = db.beginTx()) {
-            assertEquals(node1, transaction.getNodeById(node1.getId()));
-            assertEquals(node2, transaction.getNodeById(node2.getId()));
-            assertEquals(rel, transaction.getRelationshipById(rel.getId()));
+            assertEquals(node1, transaction.getNodeByElementId(node1Id));
+            assertEquals(node2, transaction.getNodeByElementId(node2Id));
+            assertEquals(rel, transaction.getRelationshipByElementId(relId));
 
-            var loadedNode = transaction.getNodeById(node1.getId());
+            var loadedNode = transaction.getNodeByElementId(node1Id);
             assertEquals("value1", loadedNode.getProperty("key1"));
             Relationship loadedRel = loadedNode.getSingleRelationship(withName("TEST"), Direction.OUTGOING);
             assertEquals(rel, loadedRel);

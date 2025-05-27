@@ -68,9 +68,10 @@ class RelationshipChainPointerChasingTest {
     void shouldChaseTheLivingRelationships() throws Exception {
         // GIVEN a sound relationship chain
         int numberOfRelationships = THRESHOLD / 2;
-        Node node;
+        String nodeId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            Node node = tx.createNode();
+            nodeId = node.getElementId();
             for (int i = 0; i < numberOfRelationships; i++) {
                 node.createRelationshipTo(tx.createNode(), MyRelTypes.TEST);
             }
@@ -79,12 +80,12 @@ class RelationshipChainPointerChasingTest {
         Relationship[] relationships;
         try (Transaction tx = db.beginTx()) {
             relationships =
-                    asArray(Relationship.class, tx.getNodeById(node.getId()).getRelationships());
+                    asArray(Relationship.class, tx.getNodeByElementId(nodeId).getRelationships());
             tx.commit();
         }
 
         try (Transaction tx = db.beginTx()) {
-            node = tx.getNodeById(node.getId());
+            Node node = tx.getNodeByElementId(nodeId);
             // WHEN getting the relationship iterator, i.e. starting to traverse this relationship chain,
             // the cursor eagerly goes to the first relationship before we call #hasNexxt/#next.
             try (ResourceIterable<Relationship> nodeRels = node.getRelationships();
@@ -109,22 +110,24 @@ class RelationshipChainPointerChasingTest {
     @Test
     void shouldChaseTheLivingRelationshipGroups() throws Exception {
         // GIVEN
-        Node node;
+        String nodeId;
         Relationship relationshipInTheMiddle;
-        Relationship relationshipInTheEnd;
+        String relationshipInTheEndId;
         try (Transaction tx = db.beginTx()) {
-            node = tx.createNode();
+            Node node = tx.createNode();
+            nodeId = node.getElementId();
             for (int i = 0; i < THRESHOLD; i++) {
                 node.createRelationshipTo(tx.createNode(), MyRelTypes.TEST);
             }
             relationshipInTheMiddle = node.createRelationshipTo(tx.createNode(), MyRelTypes.TEST2);
-            relationshipInTheEnd = node.createRelationshipTo(tx.createNode(), MyRelTypes.TEST_TRAVERSAL);
+            relationshipInTheEndId = node.createRelationshipTo(tx.createNode(), MyRelTypes.TEST_TRAVERSAL)
+                    .getElementId();
             tx.commit();
         }
 
         try (Transaction tx = db.beginTx()) {
-            node = tx.getNodeById(node.getId());
-            relationshipInTheEnd = tx.getRelationshipById(relationshipInTheEnd.getId());
+            Node node = tx.getNodeByElementId(nodeId);
+            Relationship relationshipInTheEnd = tx.getRelationshipByElementId(relationshipInTheEndId);
 
             // WHEN getting the relationship iterator, the first group record will be read and held,
             // already pointing to the next group
