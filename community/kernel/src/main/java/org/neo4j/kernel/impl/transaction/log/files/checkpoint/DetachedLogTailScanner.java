@@ -67,6 +67,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogTailInformation;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
 import org.neo4j.kernel.recovery.LogTailScannerMonitor;
@@ -111,8 +112,9 @@ public class DetachedLogTailScanner {
 
     public LogTailInformation findLogTail() {
         LogFile logFile = logFiles.getLogFile();
-        long highestLogVersion = logFile.getHighestLogVersion();
-        long lowestLogVersion = logFile.getLowestLogVersion();
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        long highestLogVersion = logRangeInfo.highestVersion();
+        long lowestLogVersion = logRangeInfo.lowestVersion();
         try {
             var lastAccessibleCheckpoint = checkpointFile.findLatestCheckpoint();
             if (lastAccessibleCheckpoint.isEmpty()) {
@@ -456,7 +458,7 @@ public class DetachedLogTailScanner {
 
     private void verifyReaderPosition(long version, LogPosition logPosition) throws IOException {
         LogFile logFile = logFiles.getLogFile();
-        long highestLogVersion = logFile.getHighestLogVersion();
+        long highestLogVersion = logFile.getLogRangeInfo().highestVersion();
         try (PhysicalLogVersionedStoreChannel channel = logFile.openForVersion(version)) {
             verifyLogChannel(channel, logPosition, version, highestLogVersion, true, TRANSACTION_LOG_NAME);
         }
@@ -465,7 +467,7 @@ public class DetachedLogTailScanner {
     private void verifyCheckpointPosition(LogPosition lastCheckpointPosition) throws IOException {
         long checkpointLogVersion = lastCheckpointPosition.getLogVersion();
         var checkpointFile = logFiles.getCheckpointFile();
-        long highestLogVersion = checkpointFile.getHighestLogVersion();
+        long highestLogVersion = checkpointFile.getLogRangeInfo().highestVersion();
         try (PhysicalLogVersionedStoreChannel channel = checkpointFile.openForVersion(checkpointLogVersion)) {
             channel.position(lastCheckpointPosition.getByteOffset());
             if (failOnCorruptedLogFiles) {

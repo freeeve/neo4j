@@ -152,7 +152,7 @@ class PhysicalLogicalTransactionStoreTest {
         // create empty transaction log file and clear transaction cache to force re-read
         LogFile logFile = logFiles.getLogFile();
         fileSystem
-                .write(logFile.getLogFileForVersion(logFile.getHighestLogVersion() + 1))
+                .write(logFile.getLogFileForVersion(logFile.getLogRangeInfo().highestVersion() + 1))
                 .close();
         positionCache.clear();
 

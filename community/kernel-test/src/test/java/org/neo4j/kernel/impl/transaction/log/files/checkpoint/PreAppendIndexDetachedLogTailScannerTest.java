@@ -346,7 +346,7 @@ class PreAppendIndexDetachedLogTailScannerTest {
     void twoLogFilesSecondIsCorruptedBeforeCommit(int startLogVersion, int endLogVersion) throws Exception {
         setupLogFiles(endLogVersion, logFile(checkPoint()), logFile(start(), commit(2)));
 
-        Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
+        Path highestLogFile = logFiles.getLogFile().getLogRangeInfo().highestFile();
         fs.truncate(highestLogFile, fs.getFileSize(highestLogFile) - 3);
 
         // when
@@ -362,7 +362,7 @@ class PreAppendIndexDetachedLogTailScannerTest {
         int firstTxId = 2;
         setupLogFiles(endLogVersion, logFile(checkPoint()), logFile(start(), commit(firstTxId), start(), commit(3)));
 
-        Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
+        Path highestLogFile = logFiles.getLogFile().getLogRangeInfo().highestFile();
         fs.truncate(highestLogFile, fs.getFileSize(highestLogFile) - 3);
 
         // when

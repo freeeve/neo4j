@@ -74,6 +74,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFile;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -232,9 +233,11 @@ public class TransactionAppenderConcurrencyTest {
                 TestCommandReaderFactory.INSTANCE, LatestVersions.BINARY_VERSIONS, INSTANCE);
 
         LogFile logFile = logFiles.getLogFile();
-        assertThat(logFile.getLowestLogVersion()).isEqualTo(logFile.getHighestLogVersion());
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        long highestVersion = logRangeInfo.highestVersion();
+        assertThat(logRangeInfo.lowestVersion()).isEqualTo(highestVersion);
 
-        try (var readAheadLogChannel = ReadAheadUtils.newChannel(logFile, logFile.getHighestLogVersion(), INSTANCE);
+        try (var readAheadLogChannel = ReadAheadUtils.newChannel(logFile, highestVersion, INSTANCE);
                 var cursor = new LogEntryCursor(logEntryReader, readAheadLogChannel)) {
             LogEntry entry;
             var numberOfTransactions = 0;

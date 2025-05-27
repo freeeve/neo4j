@@ -45,6 +45,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogTailInformation;
 import org.neo4j.kernel.recovery.RecoveryStartInformationProvider.Monitor;
 import org.neo4j.storageengine.api.TransactionId;
@@ -200,6 +201,7 @@ class RecoveryStartInformationProviderTest {
                         kernelProv,
                         LATEST_LOG_FORMAT,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
+        when(logFiles.getLogFile().getLogRangeInfo()).thenReturn(new LogRangeInfo(0, null, 0, null));
 
         // when
         RecoveryStartInformation recoveryStartInformation =
@@ -238,7 +240,7 @@ class RecoveryStartInformationProviderTest {
     void shouldFailIfThereAreNoCheckPointsAndOldestLogVersionInNotZero() {
         // given
         long oldestLogVersionFound = 1L;
-        when(logFile.getLowestLogVersion()).thenReturn(oldestLogVersionFound);
+        when(logFile.getLogRangeInfo()).thenReturn(new LogRangeInfo(oldestLogVersionFound, null, 100, null));
         when(logFiles.getTailMetadata())
                 .thenReturn(new LogTailInformation(
                         true,

@@ -53,6 +53,7 @@ import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.CommandBatch;
@@ -174,7 +175,8 @@ class EagerlyReversedCommandBatchCursorTest {
         // write transactions we know will span segments and cross file boundaries
         // when on enveloped files
         List<LogPosition> startPositions = writeTransactions(transactionsToGenerate, true);
-        assertTrue(logFile.getLowestLogVersion() < logFile.getHighestLogVersion(), "Failed to roll log files");
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertTrue(logRangeInfo.lowestVersion() < logRangeInfo.highestVersion(), "Failed to roll log files");
         Collections.reverse(startPositions);
 
         int observedTransaction = 0;

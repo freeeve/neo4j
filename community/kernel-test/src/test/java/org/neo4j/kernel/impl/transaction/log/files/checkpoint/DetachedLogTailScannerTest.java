@@ -379,7 +379,7 @@ class DetachedLogTailScannerTest {
     void twoLogFilesSecondIsCorruptedBeforeCommit(int startLogVersion, int endLogVersion) throws Exception {
         setupLogFiles(endLogVersion, logFile(checkPoint()), logFile(start(2), pseudoEndSegment(), start(3)));
 
-        Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
+        Path highestLogFile = logFiles.getLogFile().getLogRangeInfo().highestFile();
         fs.truncate(highestLogFile, fs.getFileSize(highestLogFile) - 1);
 
         // when
@@ -401,7 +401,7 @@ class DetachedLogTailScannerTest {
                 logFile(checkPoint()),
                 logFile(start(firstTxId), commit(firstTxId), start(3), commit(3)));
 
-        Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
+        Path highestLogFile = logFiles.getLogFile().getLogRangeInfo().highestFile();
         fs.truncate(highestLogFile, fs.getFileSize(highestLogFile) - 3);
 
         // when

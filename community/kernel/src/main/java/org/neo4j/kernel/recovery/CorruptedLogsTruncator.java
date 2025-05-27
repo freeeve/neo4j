@@ -47,6 +47,7 @@ import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -109,7 +110,7 @@ public class CorruptedLogsTruncator {
         truncateFilesFromVersion(
                 recoveredTransactionLogVersion,
                 recoveredTransactionOffset,
-                transactionLogFile.getHighestLogVersion(),
+                transactionLogFile.getLogRangeInfo().highestVersion(),
                 transactionLogFile::getLogFileForVersion);
 
         if (checkpointFileInfo.needTruncation) {
@@ -162,7 +163,7 @@ public class CorruptedLogsTruncator {
             copyLogsContent(
                     recoveredTransactionLogVersion,
                     recoveredTransactionOffset,
-                    transactionLogFile.getHighestLogVersion(),
+                    transactionLogFile.getLogRangeInfo().highestVersion(),
                     recoveryContent,
                     bufferScope,
                     transactionLogFile::getLogFileForVersion);
@@ -243,11 +244,11 @@ public class CorruptedLogsTruncator {
     }
 
     private boolean haveMoreRecentLogFiles(long recoveredTransactionLogVersion) {
-        return logFiles.getLogFile().getHighestLogVersion() > recoveredTransactionLogVersion;
+        return logFiles.getLogFile().getLogRangeInfo().highestVersion() > recoveredTransactionLogVersion;
     }
 
     private boolean haveMoreRecentCheckpointLogFiles(long recoveredTransactionLogVersion) {
-        return logFiles.getCheckpointFile().getHighestLogVersion() > recoveredTransactionLogVersion;
+        return logFiles.getCheckpointFile().getLogRangeInfo().highestVersion() > recoveredTransactionLogVersion;
     }
 
     private boolean isRecoveredLogCorrupted(long recoveredTransactionLogVersion, long recoveredTransactionOffset)
@@ -317,11 +318,9 @@ public class CorruptedLogsTruncator {
         // Let's do a best effort to see if there is any garbage in the file to remove.
         if (lastCheckpoint == null && logFiles.getCheckpointFile().getCurrentLogVersion() >= INITIAL_LOG_VERSION) {
             try {
-                long lowestLogVersion = logFiles.getCheckpointFile().getLowestLogVersion();
+                LogRangeInfo logRangeInfo = logFiles.getCheckpointFile().getLogRangeInfo();
                 LogPosition startPosition = LogHeaderReader.readLogHeader(
-                                fs,
-                                logFiles.getCheckpointFile().getLogFileForVersion(lowestLogVersion),
-                                EmptyMemoryTracker.INSTANCE)
+                                fs, logRangeInfo.lowestFile(), EmptyMemoryTracker.INSTANCE)
                         .getStartPosition();
                 if (isRecoveredCheckpointLogCorrupted(startPosition.getLogVersion(), startPosition.getByteOffset())) {
                     return new CheckpointFileInfo(true, startPosition);

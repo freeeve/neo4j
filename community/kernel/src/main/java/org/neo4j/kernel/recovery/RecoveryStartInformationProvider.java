@@ -123,7 +123,7 @@ public class RecoveryStartInformationProvider implements ThrowingSupplier<Recove
     }
 
     private RecoveryStartInformation noCheckpointRecordRecoveryInfo(long appendIndexAfterLastCheckPoint) {
-        long lowestLogVersion = logFiles.getLogFile().getLowestLogVersion();
+        long lowestLogVersion = logFiles.getLogFile().getLogRangeInfo().lowestVersion();
         if (lowestLogVersion != INITIAL_LOG_VERSION) {
             throw new UnderlyingStorageException("No check point found in any log file and transaction log "
                     + "files do not exist from expected version " + INITIAL_LOG_VERSION

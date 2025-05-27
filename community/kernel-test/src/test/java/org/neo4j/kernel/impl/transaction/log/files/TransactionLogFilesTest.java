@@ -167,7 +167,7 @@ class TransactionLogFilesTest {
         fileSystem.write(createTransactionLogFile(databaseLayout, DEFAULT_NAME)).close();
 
         // when
-        final long highestLogVersion = files.getLogFile().getHighestLogVersion();
+        final long highestLogVersion = files.getLogFile().getLogRangeInfo().highestVersion();
 
         // then
         assertEquals(3, highestLogVersion);
@@ -206,7 +206,7 @@ class TransactionLogFilesTest {
         fileSystem.write(databaseLayout.file(Path.of(DEFAULT_NAME))).close();
 
         // when
-        final long highestLogVersion = files.getLogFile().getHighestLogVersion();
+        final long highestLogVersion = files.getLogFile().getLogRangeInfo().highestVersion();
 
         // then
         assertEquals(-1, highestLogVersion);

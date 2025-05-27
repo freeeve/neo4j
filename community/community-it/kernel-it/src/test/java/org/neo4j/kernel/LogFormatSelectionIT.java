@@ -112,11 +112,12 @@ class LogFormatSelectionIT {
     private static void checkLogFormatOfLatestFiles(LogFiles logFiles, KernelVersion gloriousFuture)
             throws IOException {
         assertThat(logFiles.getLogFile()
-                        .extractHeader(logFiles.getLogFile().getHighestLogVersion())
+                        .extractHeader(logFiles.getLogFile().getLogRangeInfo().highestVersion())
                         .getLogFormatVersion())
                 .isEqualTo(LogFormat.fromKernelVersion(gloriousFuture));
         assertThat(logFiles.getCheckpointFile()
-                        .extractHeader(logFiles.getCheckpointFile().getHighestLogVersion())
+                        .extractHeader(
+                                logFiles.getCheckpointFile().getLogRangeInfo().highestVersion())
                         .getLogFormatVersion())
                 .isEqualTo(LogFormat.fromKernelVersion(gloriousFuture));
     }

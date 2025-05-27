@@ -512,7 +512,7 @@ public class Database extends AbstractDatabase {
                 databaseConfig.get(GraphDatabaseInternalSettings.ignore_corrupt_schema)));
         life.add(logFiles);
         life.add(onStart(() -> {
-            long lowestLogVersion = logFiles.getLogFile().getLowestLogVersion();
+            long lowestLogVersion = logFiles.getLogFile().getLogRangeInfo().lowestVersion();
             if (lowestLogVersion != RangeLogVersionVisitor.UNKNOWN) {
                 var header = logFiles.getLogFile().extractHeader(lowestLogVersion);
                 if (header != null) {

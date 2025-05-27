@@ -108,7 +108,9 @@ class VersionAwareLogEntryReaderIT {
                 .build();
         try (Lifespan lifespan = new Lifespan(logFiles)) {
             getLastReadablePosition(logFiles);
-            assertEquals(kibiBytes(256), Files.size(logFiles.getLogFile().getHighestLogFile()));
+            assertEquals(
+                    kibiBytes(256),
+                    Files.size(logFiles.getLogFile().getLogRangeInfo().highestFile()));
             LogPosition logPosition = entryReader.lastPosition();
             assertEquals(0L, logPosition.getLogVersion());
             // this position in a log file before 0's are actually starting
@@ -156,7 +158,8 @@ class VersionAwareLogEntryReaderIT {
             getLastReadablePosition(logFiles);
             LogPosition logPosition = entryReader.lastPosition();
             assertEquals(0L, logPosition.getLogVersion());
-            assertEquals(Files.size(logFiles.getLogFile().getHighestLogFile()), logPosition.getByteOffset());
+            assertEquals(
+                    Files.size(logFiles.getLogFile().getLogRangeInfo().highestFile()), logPosition.getByteOffset());
         }
     }
 

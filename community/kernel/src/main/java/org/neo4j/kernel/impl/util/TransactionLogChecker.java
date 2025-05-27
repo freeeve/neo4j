@@ -51,6 +51,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.VersionedFile;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -87,7 +88,8 @@ public class TransactionLogChecker {
             throws IOException {
 
         LastFileInfo lastFileInfo = new LastFileInfo(KernelVersion.EARLIEST, BASE_APPEND_INDEX);
-        for (long i = logFile.getLowestLogVersion(); i <= logFile.getHighestLogVersion(); i++) {
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        for (long i = logRangeInfo.lowestVersion(); i <= logRangeInfo.highestVersion(); i++) {
             LogHeader logHeader = LogHeaderReader.readLogHeader(fs, logFile.getLogFileForVersion(i), INSTANCE);
             if (logHeader == null) {
                 throw new InconsistentTransactionLogException(

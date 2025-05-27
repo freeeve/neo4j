@@ -58,6 +58,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionException;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogVersionVisitor;
 import org.neo4j.kernel.impl.transaction.log.files.RangeLogVersionVisitor;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
@@ -128,14 +129,13 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     @Override
     public Optional<CheckpointInfo> findLatestCheckpoint(InternalLog log) throws IOException {
-        var versionVisitor = new RangeLogVersionVisitor();
-        fileHelper.accept(versionVisitor);
-        long highestVersion = versionVisitor.getHighestVersion();
+        LogRangeInfo logRangeInfo = getLogRangeInfo();
+        long highestVersion = logRangeInfo.highestVersion();
         if (highestVersion < 0) {
             return Optional.empty();
         }
 
-        long lowestVersion = versionVisitor.getLowestVersion();
+        long lowestVersion = logRangeInfo.lowestVersion();
         long currentVersion = highestVersion;
 
         var checkpointReader =
@@ -253,13 +253,12 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
 
     @Override
     public List<CheckpointInfo> reachableCheckpoints() throws IOException {
-        var versionVisitor = new RangeLogVersionVisitor();
-        fileHelper.accept(versionVisitor);
-        if (versionVisitor.getHighestVersion() < 0) {
+        LogRangeInfo logRangeInfo = getLogRangeInfo();
+        if (logRangeInfo.highestVersion() < 0) {
             return emptyList();
         }
 
-        long currentVersion = versionVisitor.getLowestVersion();
+        long currentVersion = logRangeInfo.lowestVersion();
         var checkpointReader =
                 new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions, context.getMemoryTracker());
         var checkpoints = new ArrayList<CheckpointInfo>();
@@ -324,14 +323,8 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         if (logVersionRepository != null) {
             return logVersionRepository.getCheckpointLogVersion();
         }
-        var versionVisitor = new RangeLogVersionVisitor();
 
-        try {
-            fileHelper.accept(versionVisitor);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-        return versionVisitor.getHighestVersion();
+        return getLogRangeInfo().highestVersion();
     }
 
     @Override
@@ -376,8 +369,8 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
-    public long getLowestLogVersion() {
-        return visitLogFiles(new RangeLogVersionVisitor()).getLowestVersion();
+    public LogRangeInfo getLogRangeInfo() {
+        return visitLogFiles(new RangeLogVersionVisitor()).getLogRangeInfo();
     }
 
     @Override
@@ -396,11 +389,6 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     @Override
     public PhysicalLogVersionedStoreChannel openForVersion(long checkpointLogVersion) throws IOException {
         return channelAllocator.openLogChannel(checkpointLogVersion);
-    }
-
-    @Override
-    public long getHighestLogVersion() {
-        return visitLogFiles(new RangeLogVersionVisitor()).getHighestVersion();
     }
 
     @VisibleForTesting

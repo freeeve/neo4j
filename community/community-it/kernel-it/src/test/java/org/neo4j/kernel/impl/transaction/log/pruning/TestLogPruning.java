@@ -79,7 +79,7 @@ class TestLogPruning {
         }
 
         LogFile logFile = logFiles.getLogFile();
-        long currentVersion = logFile.getHighestLogVersion();
+        long currentVersion = logFile.getLogRangeInfo().highestVersion();
         for (long version = 0; version < currentVersion; version++) {
             assertTrue(
                     fs.fileExists(logFile.getLogFileForVersion(version)),
@@ -292,7 +292,7 @@ class TestLogPruning {
     private int aggregateLogData(Extractor extractor) throws IOException {
         int total = 0;
         LogFile logFile = logFiles.getLogFile();
-        for (long i = logFile.getHighestLogVersion(); i >= 0; i--) {
+        for (long i = logFile.getLogRangeInfo().highestVersion(); i >= 0; i--) {
             if (logFile.versionExists(i)) {
                 total += extractor.extract(i);
             } else {

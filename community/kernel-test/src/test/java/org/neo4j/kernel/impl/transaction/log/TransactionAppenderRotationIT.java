@@ -27,7 +27,6 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.AfterEach;
@@ -51,6 +50,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -117,9 +117,9 @@ class TransactionAppenderRotationIT {
         transactionAppender.append(completeTransaction, logAppendEvent);
 
         LogFile logFile = logFiles.getLogFile();
-        assertEquals(1, logFile.getHighestLogVersion());
-        Path highestLogFile = logFile.getHighestLogFile();
-        LogHeader logHeader = LogHeaderReader.readLogHeader(fileSystem, highestLogFile, INSTANCE);
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertEquals(1, logRangeInfo.highestVersion());
+        LogHeader logHeader = LogHeaderReader.readLogHeader(fileSystem, logRangeInfo.highestFile(), INSTANCE);
         assertEquals(2, logHeader.getLastAppendIndex());
     }
 

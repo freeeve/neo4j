@@ -98,8 +98,6 @@ public interface LogFile extends VersionedFile, RotatableFile {
 
     PhysicalLogVersionedStoreChannel createLogChannelForExistingVersion(long version) throws IOException;
 
-    Path getHighestLogFile();
-
     boolean versionExists(long version);
 
     boolean hasAnyEntries(long version);

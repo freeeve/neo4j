@@ -153,6 +153,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
@@ -356,7 +357,7 @@ class RecoveryIT {
 
         var logFiles = database.getDependencyResolver().resolveDependency(LogFiles.class);
         var checkpointer = database.getDependencyResolver().resolveDependency(CheckPointer.class);
-        var logFileToManipulate = logFiles.getLogFile().getHighestLogFile();
+        var logFileToManipulate = logFiles.getLogFile().getLogRangeInfo().highestFile();
 
         var marker = withName("Type");
         var propertyName = "a";
@@ -399,7 +400,7 @@ class RecoveryIT {
 
         var logFiles = database.getDependencyResolver().resolveDependency(LogFiles.class);
         var checkpointer = database.getDependencyResolver().resolveDependency(CheckPointer.class);
-        var logFileToManipulate = logFiles.getLogFile().getHighestLogFile();
+        var logFileToManipulate = logFiles.getLogFile().getLogRangeInfo().highestFile();
         var positionForCorruption =
                 logFiles.getLogFile().getTransactionLogWriter().getCurrentPosition();
 
@@ -824,8 +825,9 @@ class RecoveryIT {
         managementService.shutdown();
 
         // we did a lot of rotations and now in a range of 10-12 files
-        assertEquals(10, checkpointFile.getLowestLogVersion());
-        assertEquals(12, checkpointFile.getHighestLogVersion());
+        LogRangeInfo logRangeInfo = checkpointFile.getLogRangeInfo();
+        assertEquals(10, logRangeInfo.lowestVersion());
+        assertEquals(12, logRangeInfo.highestVersion());
 
         removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
 

@@ -46,8 +46,10 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.v50.LogEntryDetachedCheckpointV5_0;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
+import org.neo4j.kernel.impl.transaction.log.files.VersionedFile;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointInfoFactory;
 import org.neo4j.logging.AssertableLogProvider;
@@ -171,7 +173,7 @@ class TransactionRangeDiagnosticsTest {
     void shouldLogNoCheckpointFoundForEmptyPresentCheckpointLog() throws IOException {
         // GIVEN
         Database database = databaseWithLogFilesContainingLowestTxId(
-                logs(transactionLogs -> {}, checkpointLogsWithLastCheckpoint(0, 0, null)));
+                logs(this::noFiles, checkpointLogsWithLastCheckpoint(0, 0, null)));
         AssertableLogProvider logProvider = new AssertableLogProvider();
         InternalLog logger = logProvider.getLog(getClass());
 
@@ -238,21 +240,23 @@ class TransactionRangeDiagnosticsTest {
     private ThrowingConsumer<CheckpointFile, IOException> checkpointLogsWithLastCheckpoint(
             long lowVersion, long highVersion, CheckpointInfo lastCheckpoint) {
         return checkpointLogs -> {
-            when(checkpointLogs.getLowestLogVersion()).thenReturn(lowVersion);
-            when(checkpointLogs.getHighestLogVersion()).thenReturn(highVersion);
+            when(checkpointLogs.getLogRangeInfo()).thenReturn(new LogRangeInfo(lowVersion, null, highVersion, null));
             when(checkpointLogs.findLatestCheckpoint()).thenReturn(Optional.ofNullable(lastCheckpoint));
         };
     }
 
+    private void noFiles(VersionedFile file) {
+        when(file.getLogRangeInfo()).thenReturn(new LogRangeInfo(-1, null, -1, null));
+    }
+
     private LogFiles logWithTransactions(long lowVersion, long highVersion, long headerAppendIndex) throws IOException {
-        return logs(transactionLogsWithTransaction(lowVersion, highVersion, headerAppendIndex), checkpointLogs -> {});
+        return logs(transactionLogsWithTransaction(lowVersion, highVersion, headerAppendIndex), this::noFiles);
     }
 
     private ThrowingConsumer<LogFile, IOException> transactionLogsWithTransaction(
             long lowVersion, long highVersion, long headerAppendIndex) {
         return transactionLogs -> {
-            when(transactionLogs.getLowestLogVersion()).thenReturn(lowVersion);
-            when(transactionLogs.getHighestLogVersion()).thenReturn(highVersion);
+            when(transactionLogs.getLogRangeInfo()).thenReturn(new LogRangeInfo(lowVersion, null, highVersion, null));
             TransactionLogFilesHelper helper = TransactionLogFilesHelper.forTransactions(fs, directory.homePath());
             for (long version = lowVersion; version <= highVersion; version++) {
                 when(transactionLogs.hasAnyEntries(version)).thenReturn(true);
@@ -280,9 +284,9 @@ class TransactionRangeDiagnosticsTest {
         return logs(
                 transactionLogs -> {
                     when(transactionLogs.getMatchedFiles()).thenReturn(new Path[0]);
-                    when(transactionLogs.getLowestLogVersion()).thenReturn(-1L);
+                    when(transactionLogs.getLogRangeInfo()).thenReturn(new LogRangeInfo(-1, null, -1, null));
                 },
-                checkpointFiles -> when(checkpointFiles.getLowestLogVersion()).thenReturn(-1L));
+                this::noFiles);
     }
 
     private LogFiles logs(

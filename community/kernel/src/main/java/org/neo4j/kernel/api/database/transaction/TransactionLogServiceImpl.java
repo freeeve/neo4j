@@ -133,7 +133,8 @@ public class TransactionLogServiceImpl implements TransactionLogService {
     public void appendCheckpoint(TransactionId transactionId, long appendIndex, String reason) throws IOException {
         checkState(!availabilityGuard.isAvailable(), "Database should not be available.");
         long appendIndexToLookup = appendIndex + 1;
-        var logHeader = requireNonNull(logFile.extractHeader(logFile.getHighestLogVersion()));
+        var logHeader =
+                requireNonNull(logFile.extractHeader(logFile.getLogRangeInfo().highestVersion()));
 
         var lastHeaderPosition = logHeader.getStartPosition();
         var versionLocator = new AppendedChunkLogVersionLocator(appendIndexToLookup);

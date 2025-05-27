@@ -53,7 +53,7 @@ public final class DefaultReverseCommandBatchCursors implements CommandBatchCurs
         this.reader = reader;
         this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
         this.monitor = monitor;
-        this.currentVersion = logFile.getHighestLogVersion();
+        this.currentVersion = logFile.getLogRangeInfo().highestVersion();
     }
 
     @Override

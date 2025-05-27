@@ -67,6 +67,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
@@ -151,14 +152,17 @@ class CorruptedLogsTruncatorTest {
         LogPosition logPosAfterGeneratingLogs = generateTransactionLogFiles(logFiles);
 
         var logFile = logFiles.getLogFile();
-        long highestLogVersion = logFile.getHighestLogVersion();
-        long expectedFileSizeAfterTruncate = Files.size(logFile.getHighestLogFile());
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        long highestLogVersion = logRangeInfo.highestVersion();
+        long expectedFileSizeAfterTruncate = Files.size(logRangeInfo.highestFile());
         assertEquals(TOTAL_NUMBER_OF_TRANSACTION_LOG_FILES - 1, highestLogVersion);
 
         logPruner.truncate(logPosAfterGeneratingLogs, null);
 
         assertEquals(TOTAL_NUMBER_OF_LOG_FILES, logFiles.logFiles().length);
-        assertEquals(expectedFileSizeAfterTruncate, Files.size(logFile.getHighestLogFile()));
+        assertEquals(
+                expectedFileSizeAfterTruncate,
+                Files.size(logFile.getLogRangeInfo().highestFile()));
         assertTrue(ArrayUtils.isEmpty(databaseDirectory.toFile().listFiles(File::isDirectory)));
     }
 
@@ -176,11 +180,14 @@ class CorruptedLogsTruncatorTest {
             assertNotEquals(logPosAfterGeneratingLogs.getByteOffset(), raw.position());
         }
 
-        long expectedFileSizeAfterTruncate = Files.size(logFile.getHighestLogFile());
+        long expectedFileSizeAfterTruncate =
+                Files.size(logFile.getLogRangeInfo().highestFile());
         logPruner.truncate(logPosAfterGeneratingLogs, null);
 
         assertEquals(TOTAL_NUMBER_OF_LOG_FILES, logFiles.logFiles().length);
-        assertEquals(expectedFileSizeAfterTruncate, Files.size(logFile.getHighestLogFile()));
+        assertEquals(
+                expectedFileSizeAfterTruncate,
+                Files.size(logFile.getLogRangeInfo().highestFile()));
         assertTrue(ArrayUtils.isEmpty(databaseDirectory.toFile().listFiles(File::isDirectory)));
     }
 
@@ -210,7 +217,9 @@ class CorruptedLogsTruncatorTest {
         logPruner.truncate(logPosAfterGeneratingLogs, null);
 
         assertEquals(TOTAL_NUMBER_OF_LOG_FILES, logFiles.logFiles().length);
-        assertEquals(expectedFileSizeAfterTruncate, Files.size(logFile.getHighestLogFile()));
+        assertEquals(
+                expectedFileSizeAfterTruncate,
+                Files.size(logFile.getLogRangeInfo().highestFile()));
 
         Path corruptedLogsDirectory = databaseDirectory.resolve(CORRUPTED_TX_LOGS_BASE_NAME);
         assertTrue(Files.exists(corruptedLogsDirectory));
@@ -226,8 +235,9 @@ class CorruptedLogsTruncatorTest {
         LogPosition logPosAfterGeneratingLogs = generateTransactionLogFiles(logFiles);
 
         var logFile = logFiles.getLogFile();
-        long highestLogVersion = logFile.getHighestLogVersion();
-        Path highestLogFile = logFile.getHighestLogFile();
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        long highestLogVersion = logRangeInfo.highestVersion();
+        Path highestLogFile = logRangeInfo.highestFile();
         int bytesToPrune = 5; // 1 byte for (byte)42 + 4 bytes for the checksum, see generateTransactionLogFiles().
         long byteOffset = logPosAfterGeneratingLogs.getByteOffset() - bytesToPrune;
         LogPosition prunePosition = new LogPosition(highestLogVersion, byteOffset);
@@ -260,7 +270,7 @@ class CorruptedLogsTruncatorTest {
         var logFile = logFiles.getLogFile();
         Path highestCorrectLogFile = logFile.getLogFileForVersion(highestCorrectLogFileIndex);
         long fileSizeBeforePrune = Files.size(highestCorrectLogFile);
-        long highestLogFileLength = Files.size(logFile.getHighestLogFile());
+        long highestLogFileLength = Files.size(logFile.getLogRangeInfo().highestFile());
         int bytesToPrune = 7;
         long byteOffset = fileSizeBeforePrune - bytesToPrune;
         LogPosition prunePosition = new LogPosition(highestCorrectLogFileIndex, byteOffset);
@@ -368,7 +378,7 @@ class CorruptedLogsTruncatorTest {
         FlushableLogPositionAwareChannel writer =
                 logFile.getTransactionLogWriter().getChannel();
         // Fill up all but the last log file
-        while (logFile.getHighestLogVersion() < TOTAL_NUMBER_OF_TRANSACTION_LOG_FILES - 1) {
+        while (logFile.getLogRangeInfo().highestVersion() < TOTAL_NUMBER_OF_TRANSACTION_LOG_FILES - 1) {
             writer.beginChecksumForWriting();
             writer.putVersion(LATEST_KERNEL_VERSION.version());
             writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);

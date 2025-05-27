@@ -73,6 +73,7 @@ import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.AssertableLogProvider;
@@ -306,7 +307,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         }
         writeTransactions(readableTransactions, 1, 1);
         // confirm all in one file
-        assertEquals(0L, logFile.getLowestLogVersion());
+        assertEquals(0L, logFile.getLogRangeInfo().lowestVersion());
         // read back reversed
         validateReversedRead(readableTransactions, true, false);
     }
@@ -318,7 +319,8 @@ class ReversedEnvelopedCommandBatchCursorTest {
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
         // Validate we rolled
-        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
         // read back reversed
         validateReversedRead(readableTransactions + 1, true, false);
     }
@@ -330,9 +332,10 @@ class ReversedEnvelopedCommandBatchCursorTest {
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
         // Validate we rolled
-        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
         // remove all except first file
-        for (long version = logFile.getHighestLogVersion(); version > logFile.getLowestLogVersion(); version--) {
+        for (long version = logRangeInfo.highestVersion(); version > logRangeInfo.lowestVersion(); version--) {
             logFile.delete(version);
         }
         // read back reversed
@@ -346,9 +349,10 @@ class ReversedEnvelopedCommandBatchCursorTest {
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
         // Validate we rolled
-        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
         // corrupt all except first file
-        for (long version = logFile.getHighestLogVersion(); version > logFile.getLowestLogVersion(); version--) {
+        for (long version = logRangeInfo.highestVersion(); version > logRangeInfo.lowestVersion(); version--) {
             try (var channel = logFile.createLogChannelForExistingVersion(version)) {
                 // Skip header
                 channel.position(DEFAULT_LOG_SEGMENT_SIZE);
@@ -371,9 +375,10 @@ class ReversedEnvelopedCommandBatchCursorTest {
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
         // Validate we rolled
-        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
         // truncate the rollover file
-        try (var channel = logFile.createLogChannelForExistingVersion(logFile.getLowestLogVersion() + 1L)) {
+        try (var channel = logFile.createLogChannelForExistingVersion(logRangeInfo.lowestVersion() + 1L)) {
             if (truncateToSegmentBoundary) {
                 // truncate to header plus one segment
                 channel.truncate(2L * DEFAULT_LOG_SEGMENT_SIZE);
@@ -395,7 +400,8 @@ class ReversedEnvelopedCommandBatchCursorTest {
         // Write large enough to bridge into next file
         writeTransactions(1, 200000, 200000);
         // Validate we rolled
-        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertNotEquals(logRangeInfo.lowestVersion(), logRangeInfo.highestVersion());
         // Locate end of final transaction
         TransactionLogWriter writer = logFile.getTransactionLogWriter();
         LogPosition txEnd = writer.getCurrentPosition();

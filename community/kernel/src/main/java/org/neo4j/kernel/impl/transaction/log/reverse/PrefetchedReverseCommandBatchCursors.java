@@ -57,7 +57,7 @@ public class PrefetchedReverseCommandBatchCursors implements CommandBatchCursors
         this.reader = reader;
         this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
         this.monitor = monitor;
-        this.currentVersion = logFile.getHighestLogVersion();
+        this.currentVersion = logFile.getLogRangeInfo().highestVersion();
         monitor.presketchingTransactionLogs();
         executor.execute(this::prepare);
     }

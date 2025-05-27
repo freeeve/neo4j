@@ -479,10 +479,10 @@ class TransactionLogFileTest {
         createFile(additionalSource, 4, kernelVersion);
 
         LogFile logFile = logFiles.getLogFile();
-        assertEquals(1, logFile.getHighestLogVersion());
+        assertEquals(1, logFile.getLogRangeInfo().highestVersion());
 
         logFile.combine(additionalSource);
-        assertEquals(4, logFile.getHighestLogVersion());
+        assertEquals(4, logFile.getLogRangeInfo().highestVersion());
         assertThat(Arrays.stream(logFile.getMatchedFiles())
                         .map(path -> path.getFileName().toString()))
                 .contains(
@@ -505,10 +505,10 @@ class TransactionLogFileTest {
         createFile(additionalSource, 2, kernelVersion);
 
         LogFile logFile = logFiles.getLogFile();
-        assertEquals(1, logFile.getHighestLogVersion());
+        assertEquals(1, logFile.getLogRangeInfo().highestVersion());
 
         logFile.combine(additionalSource);
-        assertEquals(4, logFile.getHighestLogVersion());
+        assertEquals(4, logFile.getLogRangeInfo().highestVersion());
         assertThat(Arrays.stream(logFile.getMatchedFiles())
                         .map(path -> path.getFileName().toString()))
                 .contains(
@@ -534,11 +534,11 @@ class TransactionLogFileTest {
         }
 
         LogFile logFile = logFiles.getLogFile();
-        assertEquals(1, logFile.getHighestLogVersion());
+        assertEquals(1, logFile.getLogRangeInfo().highestVersion());
 
         logFile.combine(additionalSource);
 
-        assertEquals(numberOfAdditionalFile + 1, logFile.getHighestLogVersion());
+        assertEquals(numberOfAdditionalFile + 1, logFile.getLogRangeInfo().highestVersion());
 
         for (int i = 2; i < numberOfAdditionalFile + 2; i++) {
             int expectedCommitIdx = i - 2;
@@ -570,12 +570,12 @@ class TransactionLogFileTest {
         createFile(additionalSource2, 38, kernelVersion);
 
         LogFile logFile = logFiles.getLogFile();
-        assertEquals(1, logFile.getHighestLogVersion());
+        assertEquals(1, logFile.getLogRangeInfo().highestVersion());
 
         logFile.combine(additionalSource1);
         logFile.combine(additionalSource2);
 
-        assertEquals(7, logFile.getHighestLogVersion());
+        assertEquals(7, logFile.getLogRangeInfo().highestVersion());
         assertThat(Arrays.stream(logFile.getMatchedFiles())
                         .map(path -> path.getFileName().toString()))
                 .contains(
@@ -600,7 +600,7 @@ class TransactionLogFileTest {
         logFile.rotate();
         logFile.rotate();
 
-        assertEquals(4, logFile.getHighestLogVersion());
+        assertEquals(4, logFile.getLogRangeInfo().highestVersion());
 
         var channelMap = LongObjectMaps.mutable.<StoreChannel>empty();
         channelMap.put(1, logFile.openForVersion(1));
@@ -645,7 +645,7 @@ class TransactionLogFileTest {
         logFile.rotate();
         logFile.rotate();
 
-        assertEquals(5, logFile.getHighestLogVersion());
+        assertEquals(5, logFile.getLogRangeInfo().highestVersion());
 
         var channelMap = LongObjectMaps.mutable.<StoreChannel>empty();
         channelMap.put(1, logFile.openForVersion(1));
@@ -692,7 +692,7 @@ class TransactionLogFileTest {
         logFile.rotate();
         logFile.rotate();
 
-        assertEquals(4, logFile.getHighestLogVersion());
+        assertEquals(4, logFile.getLogRangeInfo().highestVersion());
 
         var channelMap = LongObjectMaps.mutable.<StoreChannel>empty();
         var channel1 = logFile.openForVersion(1);
@@ -755,13 +755,14 @@ class TransactionLogFileTest {
         logFile.rotate();
         logFile.rotate();
 
-        final var lowestBeforeDelete = logFile.getLowestLogVersion();
-        assertThat(lowestBeforeDelete).isLessThan(logFile.getHighestLogVersion());
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        final var lowestBeforeDelete = logRangeInfo.lowestVersion();
+        assertThat(lowestBeforeDelete).isLessThan(logRangeInfo.highestVersion());
 
         logFile.delete(lowestBeforeDelete);
         assertThat(deletions.toArray()).containsExactly(lowestBeforeDelete);
 
-        final var lowestAfterDelete = logFile.getLowestLogVersion();
+        final var lowestAfterDelete = logFile.getLogRangeInfo().lowestVersion();
         assertThat(lowestBeforeDelete).isLessThan(lowestAfterDelete);
 
         logFile.delete(lowestAfterDelete);
@@ -788,7 +789,7 @@ class TransactionLogFileTest {
 
         final var logFile = logFiles.getLogFile();
 
-        final var lowestLogVersion = logFile.getLowestLogVersion();
+        final var lowestLogVersion = logFile.getLogRangeInfo().lowestVersion();
         logFile.rotate();
         logFile.rotate();
 
@@ -823,7 +824,7 @@ class TransactionLogFileTest {
 
         final var logFile = logFiles.getLogFile();
 
-        final var lowestLogVersion = logFile.getLowestLogVersion();
+        final var lowestLogVersion = logFile.getLogRangeInfo().lowestVersion();
         logFile.rotate(); // lowestLogVersion + 1
         var writer = logFile.getTransactionLogWriter();
         final var filePos = writer.getCurrentPosition(); // truncate to here
@@ -850,7 +851,7 @@ class TransactionLogFileTest {
 
         final var logFile = logFiles.getLogFile();
 
-        final var lowestLogVersion = logFile.getLowestLogVersion();
+        final var lowestLogVersion = logFile.getLogRangeInfo().lowestVersion();
         var writer = logFile.getTransactionLogWriter();
         final var filePos = writer.getCurrentPosition(); // truncate to here
         logFile.rotate();
@@ -883,7 +884,7 @@ class TransactionLogFileTest {
         assertDoesNotThrow(() -> {
             logFile.rotate();
             logFile.rotate();
-            logFile.delete(logFile.getLowestLogVersion());
+            logFile.delete(logFile.getLogRangeInfo().lowestVersion());
         });
     }
 

@@ -41,6 +41,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.impl.transaction.log.LogFileInformation;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFile;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
@@ -69,7 +70,7 @@ class ThresholdBasedPruneConstraintTest {
         Path fileName5 = logFileForVersion(5);
         Path fileName6 = logFileForVersion(6);
 
-        when(logFile.getLowestLogVersion()).thenReturn(0L);
+        when(logFile.getLogRangeInfo()).thenReturn(new LogRangeInfo(0L, null, 6L, null));
 
         when(fileSystem.fileExists(fileName6)).thenReturn(true);
         when(fileSystem.fileExists(fileName5)).thenReturn(true);
@@ -110,7 +111,7 @@ class ThresholdBasedPruneConstraintTest {
         Path fileName5 = logFileForVersion(5);
         Path fileName6 = logFileForVersion(6);
 
-        when(logFile.getLowestLogVersion()).thenReturn(1L);
+        when(logFile.getLogRangeInfo()).thenReturn(new LogRangeInfo(1L, null, 6L, null));
 
         when(fileSystem.getFileSize(any(Path.class))).thenReturn(LATEST_LOG_FORMAT.getHeaderSize() + 1L);
 
@@ -133,7 +134,7 @@ class ThresholdBasedPruneConstraintTest {
 
     @Test
     void minimalAvailableVersionHigherThanRequested() {
-        when(logFile.getLowestLogVersion()).thenReturn(10L);
+        when(logFile.getLogRangeInfo()).thenReturn(new LogRangeInfo(10L, null, 10L, null));
         when(threshold.reached(any(), anyLong(), any())).thenReturn(true);
 
         ThresholdBasedPruneStrategy strategy = new ThresholdBasedPruneStrategy(logFile, threshold);
@@ -146,7 +147,7 @@ class ThresholdBasedPruneConstraintTest {
 
     @Test
     void rangeWithMissingFilesCanBeProduced() {
-        when(logFile.getLowestLogVersion()).thenReturn(10L);
+        when(logFile.getLogRangeInfo()).thenReturn(new LogRangeInfo(10L, null, 20L, null));
         when(threshold.reached(any(), anyLong(), any())).thenReturn(true);
         when(fileSystem.fileExists(any(Path.class))).thenReturn(false);
 
@@ -180,7 +181,7 @@ class ThresholdBasedPruneConstraintTest {
     @Test
     void shouldHandleSizeThresholdForMissingFile() throws IOException {
         // given
-        when(logFile.getLowestLogVersion()).thenReturn(0L);
+        when(logFile.getLogRangeInfo()).thenReturn(new LogRangeInfo(0L, null, 3L, null));
         when(fileSystem.getFileSize(logFileForVersion(0)))
                 .thenThrow(new NoSuchFileException(logFileForVersion(0).toString()));
         setUpFileSizeForLogVersion(1, 25);

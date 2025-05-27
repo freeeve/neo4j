@@ -109,7 +109,7 @@ public class FileLogRotation implements LogRotation {
             throws IOException {
         if (rotatableFile.rotationNeeded()) {
             TransactionLogFile logFile = (TransactionLogFile) rotatableFile;
-            long version = logFile.getHighestLogVersion();
+            long version = logFile.getLogRangeInfo().highestVersion();
             doRotate(
                     logRotateEvents,
                     lastAppendIndex,

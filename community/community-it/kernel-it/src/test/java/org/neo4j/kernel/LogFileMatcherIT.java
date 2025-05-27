@@ -73,6 +73,7 @@ public class LogFileMatcherIT {
         assertFalse(logFilesMatcher.isLogFile(Path.of("foo")));
         assertFalse(logFilesMatcher.isLogFile(logsDirectory));
         assertTrue(logFilesMatcher.isLogFile(logFiles.getCheckpointFile().getCurrentFile()));
-        assertTrue(logFilesMatcher.isLogFile(logFiles.getLogFile().getHighestLogFile()));
+        assertTrue(logFilesMatcher.isLogFile(
+                logFiles.getLogFile().getLogRangeInfo().highestFile()));
     }
 }

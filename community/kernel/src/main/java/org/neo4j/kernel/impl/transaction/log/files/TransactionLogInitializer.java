@@ -140,12 +140,14 @@ public class TransactionLogInitializer {
         try (LogFilesSpan span = buildLogFiles(layout, transactionLogsDirectory)) {
             LogFiles logFiles = span.getLogFiles();
             LogFile logFile = logFiles.getLogFile();
-            for (long version = logFile.getLowestLogVersion(); version <= logFile.getHighestLogVersion(); version++) {
+            LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+            for (long version = logRangeInfo.lowestVersion(); version <= logRangeInfo.highestVersion(); version++) {
                 fs.deleteFile(logFile.getLogFileForVersion(version));
             }
             CheckpointFile checkpointFile = logFiles.getCheckpointFile();
-            for (long version = checkpointFile.getLowestLogVersion();
-                    version <= checkpointFile.getHighestLogVersion();
+            LogRangeInfo checkpointLogVersionRange = checkpointFile.getLogRangeInfo();
+            for (long version = checkpointLogVersionRange.lowestVersion();
+                    version <= checkpointLogVersionRange.highestVersion();
                     version++) {
                 fs.deleteFile(checkpointFile.getLogFileForVersion(version));
             }

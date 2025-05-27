@@ -138,8 +138,9 @@ public class DefaultRecoveryService implements RecoveryService {
         logVersionRepository.setCurrentLogVersion(logVersion);
 
         // cleanup checkpoint log files
-        logVersionRepository.setCheckpointLogVersion(
-                Math.max(INITIAL_LOG_VERSION, logFiles.getCheckpointFile().getHighestLogVersion()));
+        logVersionRepository.setCheckpointLogVersion(Math.max(
+                INITIAL_LOG_VERSION,
+                logFiles.getCheckpointFile().getLogRangeInfo().highestVersion()));
         tryRemoveLegacyCheckpointFiles();
     }
 

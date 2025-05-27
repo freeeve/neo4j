@@ -278,7 +278,7 @@ class LogFilesBuilderTest {
 
         assertEquals(
                 customLogDirectory.resolve(databaseLayout.getDatabaseName()),
-                logFiles.getLogFile().getHighestLogFile().getParent());
+                logFiles.getLogFile().getLogRangeInfo().highestFile().getParent());
         logFiles.shutdown();
     }
 
@@ -311,9 +311,10 @@ class LogFilesBuilderTest {
             final var logFile = logFiles.getLogFile();
             logFile.rotate();
 
-            final var lowestLogVersion = logFile.getLowestLogVersion();
-            final var logPosition = new LogPosition(
-                    lowestLogVersion, fileSystem.getFileSize(logFile.getLogFileForVersion(lowestLogVersion)));
+            LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+            final var lowestLogVersion = logRangeInfo.lowestVersion();
+            final var logPosition =
+                    new LogPosition(lowestLogVersion, fileSystem.getFileSize(logRangeInfo.lowestFile()));
             logFile.delete(lowestLogVersion);
 
             verify(tracker).logDeleted(eq(lowestLogVersion));

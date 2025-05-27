@@ -473,11 +473,6 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     }
 
     @Override
-    public Path getHighestLogFile() {
-        return getLogFileForVersion(getHighestLogVersion());
-    }
-
-    @Override
     public boolean versionExists(long version) {
         return fileSystem.fileExists(getLogFileForVersion(version));
     }
@@ -519,21 +514,14 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         if (logVersionRepository != null) {
             return logVersionRepository.getCurrentLogVersion();
         }
-        return getHighestLogVersion();
+        return getLogRangeInfo().highestVersion();
     }
 
     @Override
-    public long getHighestLogVersion() {
+    public LogRangeInfo getLogRangeInfo() {
         RangeLogVersionVisitor visitor = new RangeLogVersionVisitor();
         accept(visitor);
-        return visitor.getHighestVersion();
-    }
-
-    @Override
-    public long getLowestLogVersion() {
-        RangeLogVersionVisitor visitor = new RangeLogVersionVisitor();
-        accept(visitor);
-        return visitor.getLowestVersion();
+        return visitor.getLogRangeInfo();
     }
 
     @Override
@@ -550,7 +538,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     @Override
     public void accept(LogHeaderVisitor visitor) throws IOException {
         // Start from the where we're currently at and go backwards in time (versions)
-        long logVersion = getHighestLogVersion();
+        long logVersion = getLogRangeInfo().highestVersion();
         long highAppendIndex = context.getLastAppendIndexLogFilesProvider().getLastAppendIndex(logFiles);
         while (versionExists(logVersion)) {
             LogHeader logHeader = extractHeader(logVersion, false);
@@ -577,7 +565,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
     @Override
     public void combine(Path additionalLogFilesDirectory) throws IOException {
-        long highestLogVersion = getHighestLogVersion();
+        long highestLogVersion = getLogRangeInfo().highestVersion();
         var logHelper = TransactionLogFilesHelper.forTransactions(fileSystem, additionalLogFilesDirectory);
         for (Path matchedFile : logHelper.getMatchedFiles()) {
             long newFileVersion = ++highestLogVersion;
@@ -722,7 +710,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         checkArgument(baseLogPosition != LogPosition.UNSPECIFIED, "Base position must exist");
         checkArgument(
                 basePosition.prevAppendIndexAtPosition() > UNKNOWN_APPEND_INDEX, "Base last append index must exist");
-        long highestLogVersion = getHighestLogVersion();
+        long highestLogVersion = getLogRangeInfo().highestVersion();
         long startingLogVersion = baseLogPosition.getLogVersion();
 
         LogPosition safePoint = baseLogPosition;

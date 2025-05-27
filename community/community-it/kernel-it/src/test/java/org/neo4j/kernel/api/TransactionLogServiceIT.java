@@ -489,7 +489,7 @@ class TransactionLogServiceIT {
             ByteBuffers.releaseBuffer(appendData, INSTANCE);
         }
 
-        assertEquals(logVersionBefore, logFiles.getLogFile().getHighestLogVersion());
+        assertEquals(logVersionBefore, logFiles.getLogFile().getLogRangeInfo().highestVersion());
     }
 
     @Test
@@ -513,7 +513,7 @@ class TransactionLogServiceIT {
                 }
                 appendData.rewind();
             }
-            assertThat(logFiles.getLogFile().getHighestLogVersion())
+            assertThat(logFiles.getLogFile().getLogRangeInfo().highestVersion())
                     .isGreaterThanOrEqualTo(firstPosition.getLogVersion());
             logService.restore(firstPosition);
 
@@ -525,7 +525,8 @@ class TransactionLogServiceIT {
                             Optional.of(LATEST_KERNEL_VERSION.version()),
                             BASE_TX_CHECKSUM,
                             UNKNOWN_LOG_OFFSET));
-            assertEquals(logVersionBefore, logFiles.getLogFile().getHighestLogVersion());
+            assertEquals(
+                    logVersionBefore, logFiles.getLogFile().getLogRangeInfo().highestVersion());
         } finally {
             ByteBuffers.releaseBuffer(appendData, INSTANCE);
         }
@@ -927,11 +928,10 @@ class TransactionLogServiceIT {
             logVersion--;
         }
 
+        long highestVersion = logFile.getLogRangeInfo().highestVersion();
         var eofPosition = new LogPosition(
-                logFile.getHighestLogVersion(),
-                logFile.extractHeader(logFile.getHighestLogVersion())
-                        .getStartPosition()
-                        .getByteOffset());
+                highestVersion,
+                logFile.extractHeader(highestVersion).getStartPosition().getByteOffset());
         availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
 
         String testReason = "Checkpoint on empty log files should work since its full story copy.";
@@ -968,11 +968,10 @@ class TransactionLogServiceIT {
             logVersion--;
         }
 
+        long highestVersion = logFile.getLogRangeInfo().highestVersion();
         var eofPosition = new LogPosition(
-                logFile.getHighestLogVersion(),
-                logFile.extractHeader(logFile.getHighestLogVersion())
-                        .getStartPosition()
-                        .getByteOffset());
+                highestVersion,
+                logFile.extractHeader(highestVersion).getStartPosition().getByteOffset());
 
         availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
 

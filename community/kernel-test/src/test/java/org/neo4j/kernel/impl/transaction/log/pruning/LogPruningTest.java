@@ -48,6 +48,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFileInformation;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.logging.AssertableLogProvider;
@@ -107,10 +108,11 @@ class LogPruningTest {
     void mustHaveLogFilesToPruneIfStrategyFindsFiles() {
         when(factory.strategyFromConfigValue(eq(fs), eq(logFiles), eq(logProvider), eq(clock), anyString()))
                 .thenReturn(upTo -> new LogPruneStrategy.VersionRange(3, upTo + 1));
-        when(logFiles.getLogFile().getHighestLogVersion()).thenReturn(4L);
+        when(logFiles.getLogFile().getLogRangeInfo()).thenReturn(new LogRangeInfo(-1L, null, 4L, null));
         LogPruning pruning = new LogPruningImpl(
                 fs, logFiles, logProvider, factory, clock, config, new ReentrantLock(), transactionIdStore);
-        assertTrue(pruning.mightHaveLogsToPrune(logFiles.getLogFile().getHighestLogVersion()));
+        assertTrue(pruning.mightHaveLogsToPrune(
+                logFiles.getLogFile().getLogRangeInfo().highestVersion()));
     }
 
     @Test
@@ -119,7 +121,9 @@ class LogPruningTest {
                 .thenReturn(x -> LogPruneStrategy.EMPTY_RANGE);
         LogPruning pruning = new LogPruningImpl(
                 fs, logFiles, logProvider, factory, clock, config, new ReentrantLock(), transactionIdStore);
-        assertFalse(pruning.mightHaveLogsToPrune(logFiles.getLogFile().getHighestLogVersion()));
+        when(logFiles.getLogFile().getLogRangeInfo()).thenReturn(new LogRangeInfo(-1L, null, 4L, null));
+        assertFalse(pruning.mightHaveLogsToPrune(
+                logFiles.getLogFile().getLogRangeInfo().highestVersion()));
     }
 
     @Test

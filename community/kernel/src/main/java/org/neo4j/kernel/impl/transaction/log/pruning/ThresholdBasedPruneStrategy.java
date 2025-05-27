@@ -47,7 +47,7 @@ public class ThresholdBasedPruneStrategy implements LogPruneStrategy {
         }
 
         threshold.init();
-        long lowestLogVersion = logFile.getLowestLogVersion();
+        long lowestLogVersion = logFile.getLogRangeInfo().lowestVersion();
         for (long version = upToVersion; version >= lowestLogVersion; version--) {
             if (threshold.reached(logFile.getLogFileForVersion(version), version, logFileInformation)) {
                 return new VersionRange(lowestLogVersion, version);

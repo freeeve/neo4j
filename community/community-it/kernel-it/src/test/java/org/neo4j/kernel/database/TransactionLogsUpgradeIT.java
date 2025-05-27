@@ -154,7 +154,7 @@ class TransactionLogsUpgradeIT {
         assertLogHeaderExpectedVersion(
                 fileSystem,
                 logFiles,
-                logFiles.getLogFile().getHighestLogVersion(),
+                logFiles.getLogFile().getLogRangeInfo().highestVersion(),
                 GLORIOUS_FUTURE,
                 firstNewTransaction - 1 /* should point at the upgrade tx */,
                 latestChecksum.get());
@@ -307,7 +307,7 @@ class TransactionLogsUpgradeIT {
                 headerVersionForStartingVersion(),
                 TransactionIdStore.BASE_TX_ID);
         assertLogHeaderExpectedVersion(
-                fileSystem, logFiles, logFiles.getLogFile().getHighestLogVersion(), GLORIOUS_FUTURE);
+                fileSystem, logFiles, logFiles.getLogFile().getLogRangeInfo().highestVersion(), GLORIOUS_FUTURE);
 
         int nbrTxsIn0 = assertWholeTransactionsWithCorrectVersionInSpecificLogVersion(
                 logFiles.getLogFile(), INITIAL_LOG_VERSION, startingKernelVersion(), commandReaderFactory);

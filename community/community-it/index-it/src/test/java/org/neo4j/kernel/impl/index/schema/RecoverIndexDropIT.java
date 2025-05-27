@@ -159,7 +159,8 @@ class RecoverIndexDropIT {
                     storageEngineFactory.commandReaderFactory(), LatestVersions.BINARY_VERSIONS, INSTANCE);
             while (logEntryReader.readLogEntry(reader) != null) {}
             LogPosition position = logEntryReader.lastPosition();
-            Path logFileForVersion = logFile.getLogFileForVersion(logFile.getHighestLogVersion());
+            Path logFileForVersion =
+                    logFile.getLogFileForVersion(logFile.getLogRangeInfo().highestVersion());
             StoreChannel storeChannel = fs.write(logFileForVersion);
             storeChannel.position(position.getByteOffset());
 

@@ -38,11 +38,9 @@ public interface VersionedFile {
 
     Path getLogFileForVersion(long version);
 
-    long getHighestLogVersion();
-
     long getCurrentLogVersion();
 
-    long getLowestLogVersion();
+    LogRangeInfo getLogRangeInfo();
 
     LogHeader extractHeader(long version) throws IOException;
 

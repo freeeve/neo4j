@@ -21,27 +21,4 @@ package org.neo4j.kernel.impl.transaction.log.files;
 
 import java.nio.file.Path;
 
-public class RangeLogVersionVisitor implements LogVersionVisitor {
-    public static final long UNKNOWN = -1;
-
-    private long lowestVersion = UNKNOWN;
-    private Path lowestFile;
-    private long highestVersion = UNKNOWN;
-    private Path highestFile;
-
-    @Override
-    public void visit(Path file, long logVersion) {
-        if (logVersion > highestVersion) {
-            highestVersion = logVersion;
-            highestFile = file;
-        }
-        if (lowestVersion == UNKNOWN || logVersion < lowestVersion) {
-            lowestVersion = logVersion;
-            lowestFile = file;
-        }
-    }
-
-    public LogRangeInfo getLogRangeInfo() {
-        return new LogRangeInfo(lowestVersion, lowestFile, highestVersion, highestFile);
-    }
-}
+public record LogRangeInfo(long lowestVersion, Path lowestFile, long highestVersion, Path highestFile) {}
