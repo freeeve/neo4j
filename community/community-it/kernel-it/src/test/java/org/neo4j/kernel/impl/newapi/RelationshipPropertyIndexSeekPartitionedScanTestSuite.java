@@ -92,7 +92,8 @@ abstract class RelationshipPropertyIndexSeekPartitionedScanTestSuite
                     for (int i = 0; i < propKeyIds.length; i++) {
                         if (propValues.hasNext()) {
                             // when   properties are created
-                            final var prop = createRandomPropertyRecord(random, propKeyIds[i], propValues.next());
+                            final var prop = createRandomPropertyRecord(
+                                    random, propKeyIds[i], propValues.next(), isBlockFormat());
                             write.relationshipSetProperty(relId, prop.id(), prop.value());
                             numberOfCreatedProperties++;
                             assignedProperties[i] = prop;

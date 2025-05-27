@@ -59,9 +59,11 @@ import org.neo4j.kernel.impl.coreapi.schema.SchemaImpl;
 import org.neo4j.kernel.impl.newapi.PartitionedScanFactories.PartitionedScanFactory;
 import org.neo4j.kernel.impl.newapi.PartitionedScanTestSuite.Query;
 import org.neo4j.kernel.impl.newapi.TestUtils.PartitionedScanAPI;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssert;
 import org.neo4j.storageengine.api.StorageEngine;
+import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -122,6 +124,14 @@ abstract class PartitionedScanTestSuite<QUERY extends Query<?>, SESSION, CURSOR 
 
     protected final KernelTransaction beginTx() {
         return ((TransactionImpl) db.beginTx()).kernelTransaction();
+    }
+
+    public final boolean isBlockFormat() {
+        return ((GraphDatabaseAPI) db)
+                .getDependencyResolver()
+                .resolveDependency(StorageEngineFactory.class)
+                .name()
+                .equals("block");
     }
 
     @Test

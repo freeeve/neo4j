@@ -68,7 +68,8 @@ abstract class PropertyIndexSeekPartitionedScanTestSuite<CURSOR extends Cursor>
 
                                 // composite queries
                                 queries(Arrays.stream(propKeyIds)
-                                                .mapToObj(propKeyId -> createRandomPropertyRecord(random, propKeyId, 0))
+                                                .mapToObj(propKeyId -> createRandomPropertyRecord(
+                                                        random, propKeyId, 0, isBlockFormat()))
                                                 .toArray(PropertyRecord[]::new))
                                         .map(query -> new PropertyKeySeekQuery(
                                                 factory.getIndexName(tokenId, propKeyIds), query)))

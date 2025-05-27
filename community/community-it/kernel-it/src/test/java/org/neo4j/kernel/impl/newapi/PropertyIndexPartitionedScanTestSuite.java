@@ -92,8 +92,17 @@ abstract class PropertyIndexPartitionedScanTestSuite<QUERY extends Query<?>, CUR
 
     protected record PropertyRecord(int id, Value value, ValueType type) {}
 
-    protected static PropertyRecord createRandomPropertyRecord(RandomSupport random, int propKeyId, int value) {
-        final var type = random.among(ValueType.values());
+    protected static PropertyRecord createRandomPropertyRecord(
+            RandomSupport random, int propKeyId, int value, boolean blockFormat) {
+        ValueType[] types;
+        if (blockFormat) {
+            types = ValueType.values();
+        } else {
+            types = Arrays.stream(ValueType.values())
+                    .filter(t -> !t.requiresBlockFormat())
+                    .toArray(ValueType[]::new);
+        }
+        final var type = random.among(types);
         return new PropertyRecord(propKeyId, type.toValue(value), type);
     }
 
@@ -183,6 +192,110 @@ abstract class PropertyIndexPartitionedScanTestSuite<QUERY extends Query<?>, CUR
                         .map(Boolean.class::cast)
                         .toArray(Boolean[]::new);
             }
+        },
+
+        INT8_VECTOR {
+            @Override
+            protected byte[] createUnderlyingValue(int value) {
+                byte one = (byte) (value >> 24 & 0xFF);
+                byte two = (byte) (value >> 16 & 0xFF);
+                byte three = (byte) (value >> 8 & 0xFF);
+                byte four = (byte) (value & 0xFF);
+                return new byte[] {one, two, three, four};
+            }
+
+            @Override
+            public Value toValue(int value) {
+                return Values.int8Vector(createUnderlyingValue(value));
+            }
+
+            @Override
+            public boolean requiresBlockFormat() {
+                return true;
+            }
+        },
+        INT16_VECTOR {
+            @Override
+            protected short[] createUnderlyingValue(int value) {
+                short one = (short) (value >> 8 & 0xFFFF);
+                short two = (short) (value & 0xFFFF);
+                return new short[] {one, two};
+            }
+
+            @Override
+            public Value toValue(int value) {
+                return Values.int16Vector(createUnderlyingValue(value));
+            }
+
+            @Override
+            public boolean requiresBlockFormat() {
+                return true;
+            }
+        },
+        INT32_VECTOR {
+            @Override
+            protected int[] createUnderlyingValue(int value) {
+                return new int[] {value};
+            }
+
+            @Override
+            public Value toValue(int value) {
+                return Values.int32Vector(createUnderlyingValue(value));
+            }
+
+            @Override
+            public boolean requiresBlockFormat() {
+                return true;
+            }
+        },
+        INT64_VECTOR {
+            @Override
+            protected long[] createUnderlyingValue(int value) {
+                return new long[] {value};
+            }
+
+            @Override
+            public Value toValue(int value) {
+                return Values.int64Vector(createUnderlyingValue(value));
+            }
+
+            @Override
+            public boolean requiresBlockFormat() {
+                return true;
+            }
+        },
+
+        FLOAT32_VECTOR {
+            @Override
+            protected float[] createUnderlyingValue(int value) {
+                return new float[] {value};
+            }
+
+            @Override
+            public Value toValue(int value) {
+                return Values.float32Vector(createUnderlyingValue(value));
+            }
+
+            @Override
+            public boolean requiresBlockFormat() {
+                return true;
+            }
+        },
+        FLOAT64_VECTOR {
+            @Override
+            protected double[] createUnderlyingValue(int value) {
+                return new double[] {value};
+            }
+
+            @Override
+            public Value toValue(int value) {
+                return Values.float64Vector(createUnderlyingValue(value));
+            }
+
+            @Override
+            public boolean requiresBlockFormat() {
+                return true;
+            }
         };
 
         protected abstract Object createUnderlyingValue(int value);
@@ -196,6 +309,10 @@ abstract class PropertyIndexPartitionedScanTestSuite<QUERY extends Query<?>, CUR
 
         public Value toValue(int value) {
             return Values.of(createUnderlyingValue(value));
+        }
+
+        public boolean requiresBlockFormat() {
+            return false;
         }
     }
 
