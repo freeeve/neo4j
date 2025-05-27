@@ -68,6 +68,7 @@ import java.nio.file.DirectoryNotEmptyException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.ProviderMismatchException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -118,6 +119,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.importer.FileImporter.CsvImportException;
 import org.neo4j.internal.batchimport.cache.idmapping.string.DuplicateInputIdException;
+import org.neo4j.internal.batchimport.input.HeaderException;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.internal.batchimport.input.MissingRelationshipDataException;
 import org.neo4j.internal.batchimport.input.csv.Type;
@@ -2068,6 +2070,31 @@ class ImportCommandTest {
     }
 
     @Test
+    void shouldNotImportVectorDataInRecordStorageEngine() throws Exception {
+        // GIVEN
+        Path dbConfig = prepareDefaultConfigFile();
+
+        // WHEN
+        Path nodeData = createAndWriteFile("nodes.csv", Charset.defaultCharset(), writer -> {
+            writer.println("id:ID,\"int8V:vector{coordinateType:byte,dimensions:3}\"");
+            writer.println("1,123;-2;127");
+            writer.println("2,987;33;0");
+        });
+        var ctx = capturingCtx();
+        // THEN
+        assertThatThrownBy(() -> runImport(
+                        ctx,
+                        "--additional-config",
+                        dbConfig.toAbsolutePath().toString(),
+                        "--format",
+                        "aligned",
+                        "--nodes",
+                        nodeData.toAbsolutePath().toString()))
+                .rootCause()
+                .hasMessageContaining("Record storage engine does not support storing vectors.");
+    }
+
+    @Test
     void shouldNotNormalizeArrayTypes() throws Exception {
         // GIVEN
         Path dbConfig = prepareDefaultConfigFile();
@@ -2262,6 +2289,54 @@ class ImportCommandTest {
                 assertThat(actualGameIds).isEqualTo(expectedGameIds);
             }
         }
+    }
+
+    // Note: This was probably never intended to work, it just slipped through.
+    // The --id-type global setting only supports string and integer.
+    // Now it is in the product and difficult to remove without risking breaking someones workflow.
+    // This test is just here to document this weird behavior.
+    @Test
+    void shouldAllowEsotericIDType() throws Exception {
+        // GIVEN
+        var nodeData1 = createAndWriteFile("persons.csv", Charset.defaultCharset(), writer -> {
+            writer.println("id:ID(GroupOne){id-type:date},name,:LABEL");
+            writer.println("1980-01-01,P1,Person");
+            writer.println("1984-01-01,P2,Person");
+        });
+
+        // WHEN
+        runImport("--nodes", nodeData1.toAbsolutePath().toString());
+
+        // THEN
+        var db = getDatabaseApi();
+        try (var tx = db.beginTx()) {
+            try (var persons = tx.findNodes(label("Person"))) {
+                var expectedPersonIds = Set.of(LocalDate.parse("1980-01-01"), LocalDate.parse("1984-01-01"));
+                var actualPersonIds = new HashSet<LocalDate>();
+                while (persons.hasNext()) {
+                    var node = persons.next();
+                    var id = node.getProperty("id");
+                    assertThat(id).isInstanceOf(LocalDate.class);
+                    actualPersonIds.add((LocalDate) id);
+                }
+                assertThat(actualPersonIds).isEqualTo(expectedPersonIds);
+            }
+        }
+    }
+
+    // We won't allow having vectors as IDs.
+    @Test
+    void shouldNotAllowVectorIDType() throws Exception {
+        var nodeData = createAndWriteFile("persons.csv", Charset.defaultCharset(), writer -> {
+            writer.println("id:ID(GroupOne){id-type:vector},name,:LABEL");
+            writer.println("1;2,P1,Person");
+            writer.println("1;2,P2,Person");
+        });
+
+        assertThatThrownBy(() -> runImport("--nodes", nodeData.toAbsolutePath().toString()))
+                .rootCause()
+                .isInstanceOf(HeaderException.class)
+                .hasMessageContaining("vector is not allowed as an id-type");
     }
 
     @Test

@@ -287,6 +287,14 @@ public class ImportCommand {
         private char arrayDelimiter = DEFAULT_CSV_CONFIG.arrayDelimiter();
 
         @Option(
+                names = "--vector-delimiter",
+                paramLabel = "<char>",
+                converter = EscapedCharacterConverter.class,
+                description = "Delimiter character between vector coordinates within a value in CSV data. "
+                        + "Also accepts 'TAB' and e.g. 'U+20AC' for specifying a character using Unicode.")
+        private char vectorDelimiter = DEFAULT_CSV_CONFIG.vectorDelimiter();
+
+        @Option(
                 names = "--quote",
                 paramLabel = "<char>",
                 converter = EscapedCharacterConverter.class,
@@ -638,6 +646,7 @@ public class ImportCommand {
             final var builder = DEFAULT_CSV_CONFIG.toBuilder()
                     .withDelimiter(delimiter)
                     .withArrayDelimiter(arrayDelimiter)
+                    .withVectorDelimiter(vectorDelimiter)
                     .withQuotationCharacter(quote)
                     .withEmptyQuotedStringsAsNull(ignoreEmptyStrings)
                     .withTrimStrings(trimStrings)

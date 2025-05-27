@@ -85,6 +85,7 @@ class ImportCommandTest {
                 "--legacy-style-quoting",
                 "--delimiter",
                 "--array-delimiter",
+                "--vector-delimiter",
                 "--quote",
                 "--schema",
                 "--read-buffer-size",

@@ -69,7 +69,7 @@ class BufferedCharSeekerTest {
     @Inject
     private RandomSupport random;
 
-    private final Extractors extractors = new Extractors(',');
+    private final Extractors extractors = new Extractors(',', ',');
     private final Mark mark = new Mark();
 
     private CharSeeker seeker;

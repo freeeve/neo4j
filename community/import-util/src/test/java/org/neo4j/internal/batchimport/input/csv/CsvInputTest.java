@@ -154,7 +154,7 @@ class CsvInputTest {
     @Inject
     private TestDirectory directory;
 
-    private final Extractors extractors = new Extractors(',');
+    private final Extractors extractors = new Extractors(',', ',');
 
     private InputEntity visitor = new InputEntity();
     private final Groups groups = new Groups();

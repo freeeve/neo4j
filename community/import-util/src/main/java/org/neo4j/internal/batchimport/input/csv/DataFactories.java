@@ -35,6 +35,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -47,6 +48,7 @@ import org.neo4j.csv.reader.Configuration;
 import org.neo4j.csv.reader.Extractor;
 import org.neo4j.csv.reader.Extractors;
 import org.neo4j.csv.reader.Mark;
+import org.neo4j.csv.reader.VectorExtractor;
 import org.neo4j.function.Factory;
 import org.neo4j.internal.batchimport.input.DuplicateHeaderException;
 import org.neo4j.internal.batchimport.input.Groups;
@@ -66,9 +68,10 @@ import org.neo4j.values.storable.Value;
 public class DataFactories {
     private static final Supplier<ZoneId> DEFAULT_TIME_ZONE = () -> UTC;
 
-    private static final Set<String> POINT_VALUE_CSV_HEADER_TYPES = new HashSet<>(Arrays.asList("Point", "Point[]"));
+    private static final Set<String> POINT_VALUE_CSV_HEADER_TYPES = new HashSet<>(Arrays.asList("point", "point[]"));
     private static final Set<String> TEMPORAL_VALUE_CSV_HEADER_TYPES =
-            new HashSet<>(Arrays.asList("Time", "Time[]", "DateTime", "DateTime[]"));
+            new HashSet<>(Arrays.asList("time", "time[]", "datetime", "datetime[]"));
+    private static final String VECTOR_VALUE_CSV_HEADER_TYPE = "vector";
 
     private DataFactories() {}
 
@@ -188,7 +191,11 @@ public class DataFactories {
         try {
             Mark mark = new Mark();
             Extractors extractors = new Extractors(
-                    config.arrayDelimiter(), config.emptyQuotedStringsAsNull(), config.trimStrings(), defaultTimeZone);
+                    config.arrayDelimiter(),
+                    config.vectorDelimiter(),
+                    config.emptyQuotedStringsAsNull(),
+                    config.trimStrings(),
+                    defaultTimeZone);
             Extractor<?> idExtractor = idExtractor(idType, extractors);
             int delimiter = config.delimiter();
             List<Entry> columns = new ArrayList<>();
@@ -264,8 +271,13 @@ public class DataFactories {
                 throw new HeaderException("Unexpected header type '" + spec.type() + "'");
             } else {
                 type = Type.PROPERTY;
-                extractor = propertyExtractor(sourceDescription, spec.name(), spec.type(), extractors, monitor);
-                optionalParameter = parseOptionalParameter(extractor, spec.options());
+                try {
+                    optionalParameter = parseOptionalParameter(spec.type(), spec.options());
+                } catch (IllegalArgumentException e) {
+                    throw new HeaderException("Unable to parse header. %s".formatted(e.getMessage()), e);
+                }
+                extractor = propertyExtractor(
+                        sourceDescription, spec.name(), spec.type(), optionalParameter, extractors, monitor);
             }
             return new Header.Entry(
                     spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), optionalParameter);
@@ -344,8 +356,13 @@ public class DataFactories {
         }
 
         Extractor<?> propertyExtractor(
-                String sourceDescription, String name, String typeSpec, Extractors extractors, Monitor monitor) {
-            Extractor<?> extractor = parsePropertyType(typeSpec, extractors);
+                String sourceDescription,
+                String name,
+                String typeSpec,
+                CSVHeaderInformation optionalParameter,
+                Extractors extractors,
+                Monitor monitor) {
+            Extractor<?> extractor = parsePropertyType(typeSpec, optionalParameter, extractors);
             if (normalizeTypes) {
                 // This basically mean that e.g. a specified type "float" will actually be "double", "int", "short" and
                 // all that will be "long".
@@ -456,14 +473,18 @@ public class DataFactories {
             // like 'int' or 'string_array' or similar, or empty for 'string' property.
             Type type;
             Extractor<?> extractor;
-            CSVHeaderInformation optionalParameter = null;
             Group group = null;
             if (Type.ID.matches(spec.type())) {
                 type = Type.ID;
                 group = groups.getOrCreate(spec.group(), spec.options().get("id-type"));
-                extractor = group.specificIdType() != null
-                        ? parsePropertyType(group.specificIdType(), extractors)
-                        : defaultIdExtractor;
+                if (group.specificIdType() == null) {
+                    extractor = defaultIdExtractor;
+                } else if (VectorExtractor.COL_NAME.equals(
+                        group.specificIdType().toUpperCase(Locale.ROOT))) {
+                    throw new HeaderException("vector is not allowed as an id-type");
+                } else {
+                    extractor = parsePropertyType(group.specificIdType(), null, extractors);
+                }
             } else if (Type.LABEL.matches(spec.type())) {
                 type = Type.LABEL;
                 extractor = extractors.stringArray();
@@ -473,8 +494,7 @@ public class DataFactories {
             } else {
                 return null;
             }
-            return new Header.Entry(
-                    spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), optionalParameter);
+            return new Header.Entry(spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), null);
         }
     }
 
@@ -495,41 +515,48 @@ public class DataFactories {
                 Monitor monitor) {
             Type type;
             Extractor<?> extractor;
-            CSVHeaderInformation optionalParameter = null;
             Group group = null;
             if (Type.START_ID.matches(spec.type()) || Type.END_ID.matches(spec.type())) {
                 type = Type.START_ID.matches(spec.type()) ? Type.START_ID : Type.END_ID;
                 group = groups.get(spec.group());
-                extractor = group.specificIdType() != null
-                        ? parsePropertyType(group.specificIdType(), extractors)
-                        : defaultIdExtractor;
+
+                // Here we don't need to protect against vector as an id-type, wince we just read
+                // existing groups, we don't create new groups.
+                if (group.specificIdType() == null) {
+                    extractor = defaultIdExtractor;
+                } else {
+                    extractor = parsePropertyType(group.specificIdType(), null, extractors);
+                }
             } else if (Type.TYPE.matches(spec.type())) {
                 type = Type.TYPE;
                 extractor = extractors.string();
             } else {
                 return null;
             }
-            return new Header.Entry(
-                    spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), optionalParameter);
+            return new Header.Entry(spec.rawEntry(), spec.name(), type, group, extractor, spec.options(), null);
         }
     }
 
-    private static CSVHeaderInformation parseOptionalParameter(Extractor<?> extractor, Map<String, String> options) {
+    private static CSVHeaderInformation parseOptionalParameter(String typeSpec, Map<String, String> options) {
+        final var typeSpecLowerCase = typeSpec.toLowerCase(Locale.ROOT);
         if (!options.isEmpty()) {
-            if (POINT_VALUE_CSV_HEADER_TYPES.contains(extractor.name())) {
+            if (POINT_VALUE_CSV_HEADER_TYPES.contains(typeSpecLowerCase)) {
                 return PointValue.parseHeaderInformation(options);
-            } else if (TEMPORAL_VALUE_CSV_HEADER_TYPES.contains(extractor.name())) {
+            } else if (TEMPORAL_VALUE_CSV_HEADER_TYPES.contains(typeSpecLowerCase)) {
                 return TemporalValue.parseHeaderInformation(options);
+            } else if (VECTOR_VALUE_CSV_HEADER_TYPE.equals(typeSpecLowerCase)) {
+                return VectorExtractor.parseHeaderInformation(options);
             }
         }
         return null;
     }
 
-    private static Extractor<?> parsePropertyType(String typeSpec, Extractors extractors) {
+    private static Extractor<?> parsePropertyType(
+            String typeSpec, CSVHeaderInformation optionalParameter, Extractors extractors) {
         try {
-            return extractors.valueOf(typeSpec);
+            return extractors.valueOf(typeSpec, optionalParameter);
         } catch (IllegalArgumentException e) {
-            throw new HeaderException("Unable to parse header, unknown property type '" + typeSpec + "'", e);
+            throw new HeaderException("Unable to parse header. %s".formatted(e.getMessage()), e);
         }
     }
 

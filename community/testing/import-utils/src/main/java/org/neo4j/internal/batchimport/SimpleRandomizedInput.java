@@ -99,7 +99,7 @@ public class SimpleRandomizedInput implements Input {
         this.nodeCount = dataDistribution.nodeCount();
         this.relationshipCount = dataDistribution.relationshipCount();
         var idType = IdType.INTEGER;
-        var extractors = new Extractors(Configuration.COMMAS.arrayDelimiter());
+        var extractors = new Extractors(Configuration.COMMAS.arrayDelimiter(), Configuration.COMMAS.vectorDelimiter());
         var groups = new Groups();
         var group = groups.getOrCreate(null);
 

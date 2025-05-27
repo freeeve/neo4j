@@ -44,7 +44,7 @@ class EagerParserChunkerTest {
         // given
         var groups = new Groups();
         var group = groups.getOrCreate("group");
-        var extractors = new Extractors(';');
+        var extractors = new Extractors(';', ';');
         var header = new Header(
                 new Header.Entry(null, Type.ID, group, extractors.long_()),
                 new Header.Entry("prop", Type.PROPERTY, null, extractors.string()));

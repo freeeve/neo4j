@@ -28,11 +28,17 @@ import org.neo4j.function.Predicates;
  * Configuration options around reading CSV data, or similar.
  */
 public class Configuration {
-    public static final Configuration COMMAS =
-            newBuilder().withDelimiter(',').withArrayDelimiter(';').build();
+    public static final Configuration COMMAS = newBuilder()
+            .withDelimiter(',')
+            .withArrayDelimiter(';')
+            .withVectorDelimiter(';')
+            .build();
 
-    public static final Configuration TABS =
-            newBuilder().withDelimiter('\t').withArrayDelimiter(',').build();
+    public static final Configuration TABS = newBuilder()
+            .withDelimiter('\t')
+            .withArrayDelimiter(',')
+            .withVectorDelimiter(',')
+            .build();
 
     public static final boolean DEFAULT_LEGACY_STYLE_QUOTING = false;
 
@@ -41,6 +47,7 @@ public class Configuration {
     private final char quotationCharacter;
     private final char delimiter;
     private final char arrayDelimiter;
+    private final char vectorDelimiter;
     private final int bufferSize;
     private final Predicate<String> multilineDocuments;
     private final boolean legacyMultilineFields;
@@ -53,6 +60,7 @@ public class Configuration {
         this.quotationCharacter = b.quotationCharacter;
         this.delimiter = b.delimiter;
         this.arrayDelimiter = b.arrayDelimiter;
+        this.vectorDelimiter = b.vectorDelimiter;
         this.bufferSize = b.bufferSize;
         this.multilineDocuments = b.multilineDocuments;
         this.legacyMultilineFields = b.legacyMultilineFields;
@@ -72,6 +80,10 @@ public class Configuration {
 
     public char arrayDelimiter() {
         return arrayDelimiter;
+    }
+
+    public char vectorDelimiter() {
+        return vectorDelimiter;
     }
 
     /**
@@ -135,6 +147,7 @@ public class Configuration {
                 .withQuotationCharacter(quotationCharacter)
                 .withDelimiter(delimiter)
                 .withArrayDelimiter(arrayDelimiter)
+                .withVectorDelimiter(vectorDelimiter)
                 .withBufferSize(bufferSize)
                 .withTrimStrings(trimStrings)
                 .withEmptyQuotedStringsAsNull(emptyQuotedStringsAsNull)
@@ -155,6 +168,7 @@ public class Configuration {
         private char quotationCharacter = '"';
         private char delimiter = ',';
         private char arrayDelimiter = ';';
+        private char vectorDelimiter = ';';
         private int bufferSize = (int) mebiBytes(4);
         private boolean legacyMultilineFields;
         private Predicate<String> multilineDocuments = Predicates.alwaysFalse();
@@ -175,6 +189,11 @@ public class Configuration {
 
         public Builder withArrayDelimiter(char arrayDelimiter) {
             this.arrayDelimiter = arrayDelimiter;
+            return this;
+        }
+
+        public Builder withVectorDelimiter(char vectorDelimiter) {
+            this.vectorDelimiter = vectorDelimiter;
             return this;
         }
 

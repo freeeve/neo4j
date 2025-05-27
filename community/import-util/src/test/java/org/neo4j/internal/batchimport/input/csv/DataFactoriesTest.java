@@ -64,7 +64,7 @@ public class DataFactoriesTest {
         // GIVEN
         CharSeeker seeker = seeker("ID:ID,label-one:label,also-labels:LABEL,name,age:long,location:Point{crs:WGS-84}");
         IdType idType = IdType.STRING;
-        Extractors extractors = new Extractors(',');
+        Extractors extractors = new Extractors(',', ',');
 
         // WHEN
         Header header = defaultFormatNodeFileHeader().create(seeker, COMMAS, idType, groups);
@@ -94,7 +94,7 @@ public class DataFactoriesTest {
                 seeker("ID:ID,longArray:long[],pointArray:Point[]{crs:WGS-84},timeArray:time[]{timezone:+02:00},"
                         + "dateTimeArray:datetime[]{timezone:+02:00}");
         IdType idType = IdType.STRING;
-        Extractors extractors = new Extractors(',');
+        Extractors extractors = new Extractors(',', ',');
 
         // WHEN
         Header header = defaultFormatNodeFileHeader().create(seeker, COMMAS, idType, groups);
@@ -131,7 +131,7 @@ public class DataFactoriesTest {
         // GIVEN
         CharSeeker seeker = seeker(":START_ID\t:END_ID\ttype:TYPE\tdate:long\tmore:long[]");
         IdType idType = IdType.ACTUAL;
-        Extractors extractors = new Extractors('\t');
+        Extractors extractors = new Extractors('\t', '\t');
 
         // WHEN
         Header header = defaultFormatRelationshipFileHeader().create(seeker, TABS, idType, groups);
@@ -154,7 +154,7 @@ public class DataFactoriesTest {
         CharSeeker seeker = seeker(":START_ID\t:END_ID\ttype:TYPE\tlongArray:long[]\tpointArray:Point[]{crs:WGS-84}"
                 + "\ttimeArray:time[]{timezone:+02:00}\tdateTimeArray:datetime[]{timezone:+02:00}");
         IdType idType = IdType.ACTUAL;
-        Extractors extractors = new Extractors('\t');
+        Extractors extractors = new Extractors('\t', '\t');
 
         // WHEN
         Header header = defaultFormatRelationshipFileHeader().create(seeker, TABS, idType, groups);
@@ -193,7 +193,7 @@ public class DataFactoriesTest {
         // GIVEN
         CharSeeker seeker = seeker("one:id\ttwo\t\tdate:long");
         IdType idType = IdType.ACTUAL;
-        Extractors extractors = new Extractors('\t');
+        Extractors extractors = new Extractors('\t', '\t');
 
         // WHEN
         Header header = defaultFormatNodeFileHeader().create(seeker, TABS, idType, groups);
@@ -214,7 +214,7 @@ public class DataFactoriesTest {
         // GIVEN
         CharSeeker seeker = seeker("one:id\tname\tname:long");
         IdType idType = IdType.ACTUAL;
-        Extractors extractors = new Extractors('\t');
+        Extractors extractors = new Extractors('\t', '\t');
 
         var e = assertThrows(DuplicateHeaderException.class, () -> defaultFormatNodeFileHeader()
                 .create(seeker, TABS, idType, groups));
@@ -228,7 +228,7 @@ public class DataFactoriesTest {
         // GIVEN
         CharSeeker seeker = seeker("one:id\tone");
         IdType idType = IdType.STRING;
-        Extractors extractors = new Extractors('\t');
+        Extractors extractors = new Extractors('\t', '\t');
 
         var e = assertThrows(DuplicateHeaderException.class, () -> defaultFormatNodeFileHeader()
                 .create(seeker, TABS, idType, groups));
@@ -242,7 +242,7 @@ public class DataFactoriesTest {
         // GIVEN
         CharSeeker seeker = seeker("one:id\ttwo:id");
         IdType idType = IdType.ACTUAL;
-        Extractors extractors = new Extractors('\t');
+        Extractors extractors = new Extractors('\t', '\t');
 
         var header = defaultFormatNodeFileHeader().create(seeker, TABS, idType, groups);
         assertArrayEquals(
@@ -303,7 +303,7 @@ public class DataFactoriesTest {
         CharSeeker seeker = seeker(
                 ":START_ID(" + groupOneName + ")\t:END_ID(" + groupTwoName + ")\ttype:TYPE\tdate:long\tmore:long[]");
         IdType idType = IdType.ACTUAL;
-        Extractors extractors = new Extractors('\t');
+        Extractors extractors = new Extractors('\t', '\t');
         groups.getOrCreate(groupOneName);
         groups.getOrCreate(groupTwoName);
 

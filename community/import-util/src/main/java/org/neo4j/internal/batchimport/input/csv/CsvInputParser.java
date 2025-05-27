@@ -153,7 +153,7 @@ public class CsvInputParser implements Closeable {
         } catch (final RuntimeException e) {
             String stringValue = null;
             try {
-                Extractors extractors = new Extractors('?');
+                Extractors extractors = new Extractors();
                 stringValue = seeker.tryExtract(mark, extractors.string(), entry.optionalParameter());
             } catch (Exception e1) { // OK
             }

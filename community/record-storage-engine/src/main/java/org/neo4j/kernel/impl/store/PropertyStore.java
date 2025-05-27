@@ -591,32 +591,32 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
 
         @Override
         public void writeInt8Vector(byte[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Cannot write vector values to the property store");
+            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
         }
 
         @Override
         public void writeInt16Vector(short[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Cannot write vector values to the property store");
+            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
         }
 
         @Override
         public void writeInt32Vector(int[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Cannot write vector values to the property store");
+            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
         }
 
         @Override
         public void writeInt64Vector(long[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Cannot write vector values to the property store");
+            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
         }
 
         @Override
         public void writeFloat32Vector(float[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Cannot write vector values to the property store");
+            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
         }
 
         @Override
         public void writeFloat64Vector(double[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Cannot write vector values to the property store");
+            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
         }
     }
 

@@ -57,7 +57,7 @@ class CsvInputIteratorTest {
                 config,
                 new Groups(),
                 EMPTY,
-                new Extractors(config.arrayDelimiter()),
+                new Extractors(config.arrayDelimiter(), config.vectorDelimiter()),
                 0,
                 true,
                 NO_MONITOR)) {

@@ -34,6 +34,7 @@ import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,7 @@ import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.Vector;
 
 class ExtractorsTest {
 
@@ -86,7 +88,46 @@ class ExtractorsTest {
 
         // THEN
         assertThatThrownBy(
-                        () -> extractors.valueOf("long[]").extract(data.toCharArray(), 0, data.length(), false),
+                        () -> extractors.longArray().extract(data.toCharArray(), 0, data.length(), false),
+                        "fails when parsing invalid data type - word when number was expected")
+                .isInstanceOf(NumberFormatException.class);
+    }
+
+    @Test
+    void shouldFailExtractingInt64VectorWhereAnyValueIsEmpty() {
+        // GIVEN
+        Extractors extractors = new Extractors();
+        String data = "112233;4455;;66778899";
+
+        // THEN
+        assertThatThrownBy(
+                        () -> extractors.int64Vector().extract(data.toCharArray(), 0, data.length(), false),
+                        "fails when a value in the middle of the array is empty")
+                .isInstanceOf(NumberFormatException.class);
+    }
+
+    @Test
+    void shouldFailExtractingInt64VectorWhereLastValueIsEmpty() {
+        // GIVEN
+        Extractors extractors = new Extractors();
+        String data = "112233;4455;66778899;";
+
+        // THEN
+        assertThatThrownBy(
+                        () -> extractors.int64Vector().extract(data.toCharArray(), 0, data.length(), false),
+                        "fails when the last value of the array is empty")
+                .isInstanceOf(NumberFormatException.class);
+    }
+
+    @Test
+    void shouldFailExtractingInt64VectorWhereAnyValueIsntReallyANumber() {
+        // GIVEN
+        Extractors extractors = new Extractors();
+        String data = "123;456;abc;789";
+
+        // THEN
+        assertThatThrownBy(
+                        () -> extractors.int64Vector().extract(data.toCharArray(), 0, data.length(), false),
                         "fails when parsing invalid data type - word when number was expected")
                 .isInstanceOf(NumberFormatException.class);
     }
@@ -94,7 +135,7 @@ class ExtractorsTest {
     @Test
     void shouldExtractNullForEmptyQuotedStringIfConfiguredTo() {
         // GIVEN
-        Extractors extractors = new Extractors(';', true);
+        Extractors extractors = new Extractors(';', ';', true);
         Extractor<String> extractor = extractors.string();
 
         // WHEN
@@ -107,7 +148,7 @@ class ExtractorsTest {
     @Test
     void shouldTrimStringArrayIfConfiguredTo() {
         // GIVEN
-        Extractors extractors = new Extractors(';', true, true);
+        Extractors extractors = new Extractors(';', ';', true, true);
         String value = "ab;cd ; ef; gh ";
 
         // WHEN
@@ -122,7 +163,7 @@ class ExtractorsTest {
     @Test
     void shouldNotTrimStringIfNotConfiguredTo() {
         // GIVEN
-        Extractors extractors = new Extractors(';', true, false);
+        Extractors extractors = new Extractors(';', ';', true, false);
         String value = "ab;cd ; ef; gh ";
 
         // WHEN
@@ -134,11 +175,52 @@ class ExtractorsTest {
         assertThat(extractedValue).containsExactly("ab", "cd ", " ef", " gh ");
     }
 
+    static Stream<Arguments> vectorCSVHeaderInformationBehavesAsExpected() {
+        return Stream.of(
+                Arguments.of(Map.of("coordinateType", "byte", "dimensions", "3"), Vector.CoordinateType.INTEGER8, 3),
+                Arguments.of(Map.of("coordinatetype", "shorT", "dimensions", "4"), Vector.CoordinateType.INTEGER16, 4),
+                Arguments.of(Map.of("coordinatetype", "INT", "dimensions", "3"), Vector.CoordinateType.INTEGER32, 3),
+                Arguments.of(Map.of("CoordinateType", "long", "dimensions", "3"), Vector.CoordinateType.INTEGER64, 3),
+                Arguments.of(Map.of("cOordinatetYpe", "FloAt", "dimenSions", "3"), Vector.CoordinateType.FLOAT32, 3),
+                Arguments.of(Map.of("coordinateType", "double", "dimensions", "3"), Vector.CoordinateType.FLOAT64, 3),
+                Arguments.of(
+                        Map.of("coordinateType", "\"double\"", "dimensions", "3"), Vector.CoordinateType.FLOAT64, 3),
+                Arguments.of(
+                        Map.of("coordinateType", "byte", "dimensions", "3", "ignoredKey", "foo"),
+                        Vector.CoordinateType.INTEGER8,
+                        3));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void vectorCSVHeaderInformationBehavesAsExpected(
+            Map<String, String> options, Vector.CoordinateType expectedCoordinateType, int expectedDimensions) {
+        final var headerInformation = VectorExtractor.parseHeaderInformation(options);
+        assertThat(headerInformation.getCoordinateType()).isEqualTo(expectedCoordinateType);
+        assertThat(headerInformation.getDimensions()).isEqualTo(expectedDimensions);
+    }
+
+    @Test
+    void vectorCSVHeaderInformationComplainsOnUnknownCoordinateType() {
+        assertThatThrownBy(() ->
+                        VectorExtractor.parseHeaderInformation(Map.of("coordinateType", "pyte", "dimensions", "3")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("pyte is not a valid coordinate type.");
+    }
+
+    @Test
+    void vectorCSVHeaderInformationComplainsOnNonIntegerDimensions() {
+        assertThatThrownBy(() ->
+                        VectorExtractor.parseHeaderInformation(Map.of("coordinateType", "byte", "dimensions", "three")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("three is not a valid value for dimensions.");
+    }
+
     @MethodSource("extractorTypes")
     @ParameterizedTest(name = "{0}")
     void shouldExtractValue(ExtractorTypeTestCase testCase) {
         // given
-        var extractors = new Extractors();
+        var extractors = new Extractors(';', '§');
         var extractor = testCase.extractorSelector.apply(extractors);
         var input = testCase.input;
 
@@ -157,7 +239,7 @@ class ExtractorsTest {
     @ParameterizedTest(name = "{0}")
     void shouldExtractNormalizedValue(ExtractorTypeTestCase testCase) {
         // given
-        var extractors = new Extractors();
+        var extractors = new Extractors(';', '§');
         var normalizedExtractor = testCase.extractorSelector.apply(extractors).normalize();
         var input = testCase.input;
 
@@ -176,7 +258,7 @@ class ExtractorsTest {
     @ParameterizedTest(name = "{0}")
     void shouldHaveExpectedNormalizationExtractorType(ExtractorTypeTestCase testCase) {
         // given
-        var extractors = new Extractors();
+        var extractors = new Extractors(';', '§');
         var extractor = testCase.extractorSelector.apply(extractors);
         var expectedNormalizedExtractor = testCase.normalizedSelector.apply(extractors);
 
@@ -193,7 +275,7 @@ class ExtractorsTest {
     @ParameterizedTest(name = "{0}")
     void shouldExtractEmptyField(ExtractorTypeTestCase testCase) {
         // given
-        var extractors = new Extractors();
+        var extractors = new Extractors(';', '§');
         var extractor = testCase.extractorSelector.apply(extractors);
 
         // when
@@ -207,7 +289,7 @@ class ExtractorsTest {
     @ParameterizedTest(name = "{0}")
     void shouldHaveCorrectExtractorName(ExtractorTypeTestCase testCase) {
         // given
-        var extractors = new Extractors();
+        var extractors = new Extractors(';', '§');
         var extractor = testCase.extractorSelector.apply(extractors);
 
         // then
@@ -424,6 +506,61 @@ class ExtractorsTest {
                                 array(Duration.of(60, ChronoUnit.SECONDS), Duration.of(2, ChronoUnit.HOURS))),
                         "Duration[]")
                 .build());
+
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Int8Vector Extractor",
+                        Extractors::int8Vector,
+                        "-33§ 0§ 55",
+                        Values.int8Vector(new byte[] {-33, 0, 55}),
+                        "Int8Vector")
+                .withNormalization(Extractors::int8Vector, Values.int8Vector(new byte[] {-33, 0, 55}))
+                .build());
+
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Int16Vector Extractor",
+                        Extractors::int16Vector,
+                        "-33§ 0§ 55",
+                        Values.int16Vector(new short[] {-33, 0, 55}),
+                        "Int16Vector")
+                .withNormalization(Extractors::int16Vector, Values.int16Vector(new short[] {-33, 0, 55}))
+                .build());
+
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Int32Vector Extractor",
+                        Extractors::int32Vector,
+                        "-33§ 0§ 55",
+                        Values.int32Vector(-33, 0, 55),
+                        "Int32Vector")
+                .withNormalization(Extractors::int32Vector, Values.int32Vector(-33, 0, 55))
+                .build());
+
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Int64Vector Extractor",
+                        Extractors::int64Vector,
+                        "-33§ 0§ 55",
+                        Values.int64Vector(-33, 0, 55),
+                        "Int64Vector")
+                .withNormalization(Extractors::int64Vector, Values.int64Vector(-33, 0, 55))
+                .build());
+
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Float32Vector Extractor",
+                        Extractors::float32Vector,
+                        "-33§ 0§ 55",
+                        Values.float32Vector(-33, 0, 55),
+                        "Float32Vector")
+                .withNormalization(Extractors::float32Vector, Values.float32Vector(-33, 0, 55))
+                .build());
+
+        types.add(new ExtractorTypeTestCaseBuilder(
+                        "Float64Vector Extractor",
+                        Extractors::float64Vector,
+                        "-33§ 0§ 55",
+                        Values.float64Vector(-33, 0, 55),
+                        "Float64Vector")
+                .withNormalization(Extractors::float64Vector, Values.float64Vector(-33, 0, 55))
+                .build());
+
         return types.stream();
     }
 

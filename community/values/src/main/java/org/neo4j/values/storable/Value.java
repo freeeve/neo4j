@@ -44,7 +44,7 @@ import org.neo4j.values.TernaryComparator;
 public abstract class Value extends AnyValue {
     private static final Pattern MAP_PATTERN = Pattern.compile("\\{(.*)}");
 
-    static final Pattern QUOTES_PATTERN = Pattern.compile("^[\"']|[\"']$");
+    public static final Pattern QUOTES_PATTERN = Pattern.compile("^[\"']|[\"']$");
 
     @Override
     public boolean equalTo(Object other) {

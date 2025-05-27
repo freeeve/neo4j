@@ -27,7 +27,8 @@ import org.neo4j.csv.reader.Extractors;
 
 class StringDeserializationTest {
     private final Configuration configuration = Configuration.COMMAS;
-    private final Extractors extractors = new Extractors(configuration.arrayDelimiter());
+    private final Extractors extractors =
+            new Extractors(configuration.arrayDelimiter(), configuration.vectorDelimiter());
     private final Header.Entry entry1 = new Header.Entry(null, Type.START_ID, null, extractors.int_());
     private final Header.Entry entry2 = new Header.Entry(null, Type.TYPE, null, extractors.string());
     private final Header.Entry entry3 = new Header.Entry(null, Type.END_ID, null, extractors.int_());

@@ -106,7 +106,7 @@ class CSVResources(resourceManager: ResourceManager) extends ExternalCSVResource
     }
     val delimiter: Char = fieldTerminator.map(_.charAt(0)).getOrElse(CSVResources.DEFAULT_FIELD_TERMINATOR)
     val seeker = CharSeekers.charSeeker(reader, CSVResources.config(legacyCsvQuoteEscaping, bufferSize), false)
-    val extractor = new Extractors(delimiter).textValue()
+    val extractor = new Extractors().textValue()
     val intDelimiter = delimiter.toInt
     val mark = new Mark
 

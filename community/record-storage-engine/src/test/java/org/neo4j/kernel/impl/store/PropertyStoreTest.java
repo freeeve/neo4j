@@ -152,7 +152,7 @@ class PropertyStoreTest {
         PropertyBlock block = new PropertyBlock();
         assertThatThrownBy(() -> PropertyStore.encodeValue(block, 1, vector, null, null, NULL_CONTEXT, INSTANCE))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Cannot write vector values to the property store");
+                .hasMessageContaining("Record storage engine does not support storing vectors.");
     }
 
     private static Stream<Value> vectors() {
