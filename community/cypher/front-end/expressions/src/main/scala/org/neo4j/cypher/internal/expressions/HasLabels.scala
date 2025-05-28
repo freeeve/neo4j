@@ -53,6 +53,17 @@ case class HasLabels(expression: Expression, labels: Seq[LabelName])(val positio
 }
 
 /**
+ * Helper object to express that we assume only one label to be present in a `HasLabels`
+ */
+object HasLabel {
+
+  def unapply(arg: HasLabels): Option[(Expression, LabelName)] = arg match {
+    case HasLabels(expr, Seq(label)) => Some((expr, label))
+    case _                           => None
+  }
+}
+
+/**
  * Checks if expression has all the specified dynamic labels
  */
 case class HasDynamicLabels(expression: Expression, labels: Seq[Expression])(val position: InputPosition)

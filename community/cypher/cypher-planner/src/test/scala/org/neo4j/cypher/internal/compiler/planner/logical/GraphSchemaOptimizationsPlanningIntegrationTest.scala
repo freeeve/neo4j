@@ -20,9 +20,14 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.cypher.internal.ast.Ast.hasLabels
+import org.neo4j.cypher.internal.ast.Ast.prop
+import org.neo4j.cypher.internal.ast.Ast.propEquality
+import org.neo4j.cypher.internal.ast.Ast.propLessThan
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
@@ -34,6 +39,32 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
     super.plannerBuilder().withSetting(GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled, TRUE)
+
+  val plannerWithNodeLabelConstraints: StatisticsBackedLogicalPlanningConfigurationBuilder =
+    plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("X", 800)
+      .setLabelCardinality("Y", 1200)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "X", impliedLabel = "Y")
+      .setAllNodesCardinality(3000)
+      .setAllRelationshipsCardinality(30000)
+      .setRelationshipCardinality("()-[:R]->()", 20000)
+      .setRelationshipCardinality("(:Actor)-[:R]->()", 2000)
+      .setRelationshipCardinality("(:Person)-[:R]->()", 2000)
+      .setRelationshipCardinality("(:X)-[:R]->()", 2000)
+      .setRelationshipCardinality("(:Y)-[:R]->()", 2000)
+      .setRelationshipCardinality("()-[:R]->(:X)", 2000)
+      .setRelationshipCardinality("()-[:R]->(:Y)", 2000)
+      .setRelationshipCardinality("(:Actor)-[:R]->(:X)", 2000)
+      .setRelationshipCardinality("(:Person)-[:R]->(:X)", 2000)
+      .setRelationshipCardinality("(:X)-[:R]->(:X)", 2000)
+      .setRelationshipCardinality("(:Y)-[:R]->(:X)", 2000)
+      .setRelationshipCardinality("(:Actor)-[:R]->(:Y)", 2000)
+      .setRelationshipCardinality("(:Person)-[:R]->(:Y)", 2000)
+      .setRelationshipCardinality("(:X)-[:R]->(:Y)", 2000)
+      .setRelationshipCardinality("(:Y)-[:R]->(:Y)", 2000)
 
   test("should not plan filter for a directly implied label") {
     val planner = plannerBuilder()
@@ -797,5 +828,122 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
 
     val actual = planner.planState(query)
     actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  test(
+    "should not include a label filter in a selection when it can be implied by another label filter on the same expression"
+  ) {
+    val planner = plannerWithNodeLabelConstraints.build()
+
+    val query = "MATCH (n:Actor:Person:X:Y) RETURN n.name AS result"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("n.name AS result")
+      .filter("n:X") // n:X implies n:Y
+      .nodeByLabelScan("n", "Actor") // n:Actor implies n:Person
+      .build()
+  }
+
+  test(
+    "should not include label filters in a selection when it can be implied by other label filters on the same expression"
+  ) {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("X", 800)
+      .setLabelCardinality("Y", 1200)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "X", impliedLabel = "Y")
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query = "MATCH (n:Actor:Person:X:Y)--(m:X:Y) RETURN n.name AS result"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("n.name AS result")
+      .filterExpression(andsReorderable(
+        hasLabels("m", "X"),
+        hasLabels("n", "X"),
+        hasLabels("n", "Actor")
+      )) // m:X implies m:Y, n:X implies n:Y, n:Actor implies n:Person
+      .allRelationshipsScan("(n)-[]-(m)")
+      .build()
+  }
+
+  test(
+    "should not include label filters in a selection when it can be implied by other label filters - multiple selections"
+  ) {
+    val planner = plannerWithNodeLabelConstraints.build()
+
+    val query = "MATCH (n:Actor:Person:X:Y)-[:R]->(m:X:Y) RETURN n.name AS result"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("n.name AS result")
+      .filter("m:X") // m:X implies m:Y
+      .expandAll("(n)-[:R]->(m)")
+      .filter("n:X") // n:X implies n:Y
+      .nodeByLabelScan("n", "Actor") // n:Actor implies n:Person
+      .build()
+  }
+
+  test(
+    "should plan a label filter when it cannot be implied from another label filter on the same expression - n:X implies n:Y but NOT m:Y"
+  ) {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("X", 800)
+      .setLabelCardinality("Y", 1200)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "X", impliedLabel = "Y")
+      .setAllNodesCardinality(3000)
+      .setAllRelationshipsCardinality(10)
+      .build()
+
+    val query = "MATCH (n:Actor:Person:X:Y)--(m:Y) WHERE n.birthYear < 1800 RETURN n.name AS result"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("n.name AS result")
+      .filterExpression(
+        andsReorderable(hasLabels("n", "X"), hasLabels("m", "Y"), hasLabels("n", "Actor")),
+        propLessThan("n", "birthYear", 1800)
+      ) // n:X implies n:Y, n:Actor implies n:Person, m:Y is NOT implied
+      .allRelationshipsScan("(n)-[]-(m)")
+      .build()
+  }
+
+  test(
+    "should plan a label filter when it cannot be implied from another label filter on the same expression - n:X implies n:Y but not m:Y - multiple selections"
+  ) {
+    val planner = plannerWithNodeLabelConstraints.build()
+
+    val query = "MATCH (n:Actor:Person:X:Y)-[:R]->(m:Y) WHERE n.birthYear = m.birthYear RETURN n.name AS result"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("n.name AS result")
+      .filterExpression(
+        hasLabels("m", "Y"),
+        propEquality("n", "birthYear", prop("m", "birthYear"))
+      ) // n:X does NOT imply m:Y
+      .expandAll("(n)-[:R]->(m)")
+      .filter("n:X") // n:X implies n:Y
+      .nodeByLabelScan("n", "Actor") // n:Actor implies n:Person
+      .build()
+  }
+
+  test(
+    "should plan a label filter when it cannot be implied from another label filter on the same expression - m:X implies m:Y but not n:Y - multiple selections"
+  ) {
+    val planner = plannerWithNodeLabelConstraints.build()
+
+    val query = "MATCH (n:Actor:Person:Y)-[:R]->(m:X:Y) RETURN n.name AS result"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("n.name AS result")
+      .filter("m:X") // m:X implies m:Y
+      .expandAll("(n)-[:R]->(m)")
+      .filter("n:Y") // m:X does NOT implies n:Y
+      .nodeByLabelScan("n", "Actor") // n:Actor implies n:Person
+      .build()
   }
 }

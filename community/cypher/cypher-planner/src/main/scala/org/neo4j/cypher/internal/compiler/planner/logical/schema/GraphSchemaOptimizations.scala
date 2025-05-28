@@ -20,6 +20,9 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.schema
 
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.HasLabel
+import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.planner.spi.PlanContext
@@ -73,6 +76,8 @@ sealed trait GraphSchemaOptimizations {
     outRelTypes: Set[DisjunctiveTypes],
     inRelTypes: Set[DisjunctiveTypes]
   ): Boolean
+
+  def partitionImpliedHasLabelsPredicates(unsolvedPredicates: Set[Expression]): (Set[Expression], Set[Expression])
 }
 
 object GraphSchemaOptimizations {
@@ -101,6 +106,9 @@ object GraphSchemaOptimizations {
       inRelTypes: Set[DisjunctiveTypes]
     ): Boolean =
       false
+
+    def partitionImpliedHasLabelsPredicates(unsolvedPredicates: Set[Expression]): (Set[Expression], Set[Expression]) =
+      (Set.empty, unsolvedPredicates)
   }
 
   final class Enabled(planContext: PlanContext) extends GraphSchemaOptimizations {
@@ -154,6 +162,33 @@ object GraphSchemaOptimizations {
       val isImpliedByOutgoingRel = () => impliedByRels(EndpointType.START, outRelsTypes)
       val isImpliedByIncomingRel = () => impliedByRels(EndpointType.END, inRelsTypes)
       isImpliedByOutgoingRel() || isImpliedByIncomingRel()
+    }
+
+    /**
+     * Find the HasLabel-predicates that are implied by another from the set of unsolved predicates
+     *
+     * @param unsolvedPredicates The set of unsolved predicates
+     * @return The set of HasLabels-predicates that can be implied by one of the others and the rest of the unsolved predicates
+     */
+    def partitionImpliedHasLabelsPredicates(unsolvedPredicates: Set[Expression]): (Set[Expression], Set[Expression]) = {
+      val unsolvedHasLabelPredicates = unsolvedPredicates collect {
+        case label: HasLabels => label
+      }
+
+      // A label on node n should not imply a label on node m, therefore we partition by the expression of the HasLabels-predicates
+      val unsolvedHasLabelsPerExpression = unsolvedHasLabelPredicates.groupBy(hasLabels => hasLabels.expression)
+      // Get the set of all implied HasLabel-predicates
+      val impliedUnsolvedLabels = unsolvedHasLabelsPerExpression.map {
+        case (expr: Expression, hasLabelsSet: Set[HasLabels]) =>
+          val labelsOnExpression = hasLabelsSet.flatMap(_.labels)
+          // Find the labels that are implied by one of the others
+          (expr, labelsOnExpression.flatMap(impliedLabels) intersect labelsOnExpression)
+      }
+
+      unsolvedPredicates.partition {
+        case HasLabel(expr, label) => impliedUnsolvedLabels(expr).contains(label)
+        case _                     => false
+      }
     }
   }
 }

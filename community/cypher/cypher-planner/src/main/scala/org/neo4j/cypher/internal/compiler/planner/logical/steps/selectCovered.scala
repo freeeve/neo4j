@@ -44,15 +44,20 @@ case object selectCovered extends SelectionCandidateGenerator {
     if (unsolvedScalarPredicates.isEmpty) {
       Iterator.empty
     } else {
+      val (impliedUnsolvedHasLabelPredicates, nonImpliedUnsolvedScalarPredicates) =
+        context.staticComponents.graphSchemaOptimizations.partitionImpliedHasLabelsPredicates(unsolvedScalarPredicates)
+      val inputWithImpliedHasLabelPredicates =
+        context.staticComponents.logicalPlanProducer.solvePredicates(input, impliedUnsolvedHasLabelPredicates)
+
       val RemoteBatchingSubQueryResult(
         rewrittenExpressionsWithCachedProperties,
         planWithProperties
       ) =
         context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForSelections(
           queryGraph,
-          input,
+          inputWithImpliedHasLabelPredicates,
           context,
-          RewrittenSubQueryPredicates.withNoRewrittenExprs(unsolvedScalarPredicates)
+          RewrittenSubQueryPredicates.withNoRewrittenExprs(nonImpliedUnsolvedScalarPredicates)
         )
 
       val plan = context.staticComponents.logicalPlanProducer.planSelectionWithSolvedPredicates(
