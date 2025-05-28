@@ -160,6 +160,10 @@ public class HeapTrackingIntArrayList implements Resource {
         }
     }
 
+    public boolean addAll(HeapTrackingIntArrayList other) {
+        return addAll(other.elementData);
+    }
+
     public boolean addAll(int... values) {
         int numNew = values.length;
         if (numNew == 0) {
