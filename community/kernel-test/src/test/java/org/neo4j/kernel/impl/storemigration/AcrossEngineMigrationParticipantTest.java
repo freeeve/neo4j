@@ -21,6 +21,8 @@ package org.neo4j.kernel.impl.storemigration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.configuration.Config.defaults;
@@ -94,6 +96,7 @@ class AcrossEngineMigrationParticipantTest {
         when(targetSef.batchImporter(
                         any(),
                         any(),
+                        anyBoolean(),
                         any(),
                         importerConfigurationCaptor.capture(),
                         any(),
@@ -107,6 +110,8 @@ class AcrossEngineMigrationParticipantTest {
                         any(),
                         any(),
                         any(),
+                        any(),
+                        anyInt(),
                         any(),
                         any()))
                 .thenReturn(importer);

@@ -46,7 +46,6 @@ import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
 import org.neo4j.consistency.checking.ConsistencyFlags;
 import org.neo4j.consistency.report.ConsistencySummaryStatistics;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
-import org.neo4j.function.ThrowingSupplier;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.schema.IndexConfigCompleter;
@@ -66,6 +65,7 @@ import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
+import org.neo4j.kernel.impl.transaction.log.LogTailMetadataFactory;
 import org.neo4j.lock.LockService;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
@@ -369,6 +369,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
     public BatchImporter batchImporter(
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
+            boolean overwriteExistingDatabases,
             PageCacheTracer pageCacheTracer,
             Configuration config,
             LogService logService,
@@ -383,10 +384,13 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
+            int numShards,
+            LogTailMetadataFactory logTailMetadataFactory,
             IndexProvidersAccess indexProvidersAccess) {
         return delegate.batchImporter(
                 databaseLayout,
                 fileSystem,
+                overwriteExistingDatabases,
                 pageCacheTracer,
                 config,
                 logService,
@@ -401,6 +405,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 indexImporterFactory,
                 memoryTracker,
                 contextFactory,
+                numShards,
+                logTailMetadataFactory,
                 indexProvidersAccess);
     }
 
@@ -439,7 +445,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             PrintStream progressOutput,
             boolean verboseProgressOutput,
             AdditionalInitialIds additionalInitialIds,
-            ThrowingSupplier<LogTailMetadata, IOException> logTailMetadataSupplier,
+            LogTailMetadataFactory logTailMetadataFactory,
             Config dbConfig,
             Monitor monitor,
             JobScheduler jobScheduler,
@@ -448,7 +454,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
-            IndexProvidersAccess indexProvidersAccess) {
+            IndexProvidersAccess indexProvidersAccess,
+            int numShards) {
         return delegate.incrementalBatchImporter(
                 databaseLayout,
                 fileSystem,
@@ -458,7 +465,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 progressOutput,
                 verboseProgressOutput,
                 additionalInitialIds,
-                logTailMetadataSupplier,
+                logTailMetadataFactory,
                 dbConfig,
                 monitor,
                 jobScheduler,
@@ -467,7 +474,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 indexImporterFactory,
                 memoryTracker,
                 contextFactory,
-                indexProvidersAccess);
+                indexProvidersAccess,
+                numShards);
     }
 
     @Override

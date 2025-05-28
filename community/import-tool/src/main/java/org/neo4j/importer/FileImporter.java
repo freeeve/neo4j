@@ -131,6 +131,7 @@ public class FileImporter {
     private final InternalLogProvider logProvider;
     private final List<SchemaCommand> schemaCommands;
     private final FileInputType fileImportType;
+    private final int numShards;
 
     private FileImporter(Builder b) {
         this.databaseLayout = requireNonNull(b.databaseLayout);
@@ -161,6 +162,7 @@ public class FileImporter {
         this.force = b.force;
         this.schemaCommands = b.schemaCommands;
         this.fileImportType = b.fileInputType;
+        this.numShards = b.numShards;
     }
 
     public void doImport(ImportCommand.Base type) throws IOException {
@@ -235,6 +237,7 @@ public class FileImporter {
             type.doImport(
                     fileSystem,
                     databaseLayout,
+                    force,
                     databaseConfig,
                     storageEngineFactory,
                     jobScheduler,
@@ -249,7 +252,8 @@ public class FileImporter {
                     badCollector,
                     memoryTracker,
                     input,
-                    indexProviders);
+                    indexProviders,
+                    numShards);
             success = true;
         } catch (Exception ex) {
             throw andPrintError(databaseLayout.getDatabaseName(), ex, type.importType(), stdErr);
@@ -463,6 +467,7 @@ public class FileImporter {
         private InternalLogProvider logProvider = NullLogProvider.getInstance();
         private final MutableList<SchemaCommand> schemaCommands = Lists.mutable.empty();
         private FileInputType fileInputType = FileInputType.CSV;
+        private int numShards;
 
         public Builder withDatabaseLayout(DatabaseLayout databaseLayout) {
             this.databaseLayout = databaseLayout;
@@ -619,6 +624,11 @@ public class FileImporter {
 
         public Builder withFileInputType(FileInputType fileInputType) {
             this.fileInputType = fileInputType;
+            return this;
+        }
+
+        public Builder withNumShards(int numShards) {
+            this.numShards = numShards;
             return this;
         }
 

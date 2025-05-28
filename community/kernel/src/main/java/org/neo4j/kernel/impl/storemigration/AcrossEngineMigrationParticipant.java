@@ -52,6 +52,7 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.impl.index.schema.DefaultIndexProvidersAccess;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
+import org.neo4j.kernel.impl.transaction.log.files.LogTailMetadataFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
 import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.internal.LogService;
@@ -161,6 +162,7 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
         BatchImporter importer = targetStorageEngine.batchImporter(
                 migrationLayoutArg,
                 fileSystem,
+                false,
                 pageCacheTracer,
                 // Creating both indexes here. The existing store we are migrating doesn't necessarily
                 // have both, and we could take that into account, but it is easiest to just assume
@@ -201,6 +203,8 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                 indexImporterFactory,
                 memoryTracker,
                 contextFactory,
+                0,
+                new LogTailMetadataFactoryImpl(fileSystem),
                 indexProviders);
 
         // Do the copy

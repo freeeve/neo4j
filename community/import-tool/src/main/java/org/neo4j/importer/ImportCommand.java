@@ -90,6 +90,7 @@ import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.LogTailMetadataFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
 import org.neo4j.kernel.impl.util.Converters;
 import org.neo4j.logging.InternalLogProvider;
@@ -573,6 +574,7 @@ public class ImportCommand {
         protected abstract void doImport(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
+                boolean force,
                 Config databaseConfig,
                 StorageEngineFactory storageEngineFactory,
                 JobScheduler jobScheduler,
@@ -587,7 +589,8 @@ public class ImportCommand {
                 Collector badCollector,
                 MemoryTracker memoryTracker,
                 Input input,
-                IndexProvidersAccess indexProvidersAccess)
+                IndexProvidersAccess indexProvidersAccess,
+                int numShards)
                 throws IOException;
 
         protected IndexConfig customiseIndexConfig(Config databaseConfig, IndexConfig indexConfig) {
@@ -874,6 +877,7 @@ public class ImportCommand {
         protected void doImport(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
+                boolean force,
                 Config databaseConfig,
                 StorageEngineFactory storageEngineFactory,
                 JobScheduler jobScheduler,
@@ -888,12 +892,14 @@ public class ImportCommand {
                 Collector badCollector,
                 MemoryTracker memoryTracker,
                 Input input,
-                IndexProvidersAccess indexProvidersAccess)
+                IndexProvidersAccess indexProvidersAccess,
+                int numShards)
                 throws IOException {
             storageEngineFactory
                     .batchImporter(
                             databaseLayout,
                             fileSystem,
+                            force,
                             pageCacheTracer,
                             importConfig,
                             logService,
@@ -908,6 +914,8 @@ public class ImportCommand {
                             new IndexImporterFactoryImpl(),
                             memoryTracker,
                             contextFactory,
+                            numShards,
+                            new LogTailMetadataFactoryImpl(fileSystem),
                             indexProvidersAccess)
                     .doImport(input);
         }
