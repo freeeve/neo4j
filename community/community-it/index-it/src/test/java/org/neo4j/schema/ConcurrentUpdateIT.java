@@ -58,7 +58,8 @@ class ConcurrentUpdateIT {
         GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         try {
             RandomValues randomValues =
-                    RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(database));
+                    RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(database)
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
             int counter = 1;
             for (int j = 0; j < 100; j++) {
                 try (Transaction transaction = database.beginTx()) {
@@ -128,7 +129,8 @@ class ConcurrentUpdateIT {
         @Override
         public void run() {
             RandomValues randomValues =
-                    RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(databaseService));
+                    RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(databaseService)
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
             awaitLatch(startSignal);
             while (!endSignal.get()) {
                 try (Transaction transaction = databaseService.beginTx()) {
