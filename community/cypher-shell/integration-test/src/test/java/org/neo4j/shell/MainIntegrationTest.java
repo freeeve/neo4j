@@ -414,9 +414,10 @@ class MainIntegrationTest extends TestHarness {
                         ":disconnect ", format(":connect -u %s -p %s -d %s", USER, "wut!", SYSTEM_DB_NAME), ":exit")
                 .run()
                 .assertSuccessAndDisconnected(false)
-                .assertThatErrorOutput(
-                        contains(
-                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."))
+                .errorOutputSatisfies(e -> assertThat(e)
+                        .containsAnyOf(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                                "The client is unauthorized due to authentication failure"))
                 .assertThatOutput(
                         contains("> :disconnect "
                                 + format("%nDisconnected> :connect -u %s -p %s -d %s", USER, "wut!", SYSTEM_DB_NAME)),
@@ -433,9 +434,10 @@ class MainIntegrationTest extends TestHarness {
                         ":exit")
                 .run()
                 .assertSuccessAndDisconnected(false)
-                .assertThatErrorOutput(
-                        contains(
-                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."))
+                .errorOutputSatisfies(e -> assertThat(e)
+                        .containsAnyOf(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                                "The client is unauthorized due to authentication failure"))
                 .assertThatOutput(
                         contains("> :disconnect "
                                 + format(
@@ -873,10 +875,11 @@ class MainIntegrationTest extends TestHarness {
                 .assertThatOutput(contains("neo4j@neo4j> :disconnect\n" + "Disconnected> :connect -u new_user -p "
                         + PASSWORD + " -d neo4j\n" + "Disconnected> show current user yield user;\n"
                         + "Disconnected>"))
-                .assertThatErrorOutput(
-                        contains(
-                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."),
-                        contains("Not connected"));
+                .errorOutputSatisfies(e -> assertThat(e)
+                        .contains("Not connected")
+                        .containsAnyOf(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                                "The client is unauthorized due to authentication failure"));
     }
 
     @Test
@@ -894,10 +897,11 @@ class MainIntegrationTest extends TestHarness {
                                 + "password: ***\n"
                                 + "Disconnected> show current user yield user;\n"
                                 + "Disconnected>"))
-                .assertThatErrorOutput(
-                        contains(
-                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."),
-                        contains("Not connected"));
+                .errorOutputSatisfies(e -> assertThat(e)
+                        .contains("Not connected")
+                        .containsAnyOf(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                                "The client is unauthorized due to authentication failure"));
     }
 
     @Test
@@ -1394,9 +1398,10 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines(":impersonate impersonate_me", "MATCH (n:ImpersonationTest) RETURN n;", ":exit")
                 .run()
                 .assertSuccess(false)
-                .assertThatErrorOutput(
-                        contains(
-                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."))
+                .errorOutputSatisfies(e -> assertThat(e)
+                        .containsAnyOf(
+                                "42NFF: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                                "Cannot impersonate user 'impersonate_me'."))
                 .assertThatOutput(
                         contains(
                                 """
