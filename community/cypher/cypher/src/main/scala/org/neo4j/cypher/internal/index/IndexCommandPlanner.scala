@@ -1,0 +1,378 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.cypher.internal.index
+
+import org.neo4j.common.EntityType
+import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.SchemaCommandRuntime.existingIndexInfo
+import org.neo4j.cypher.internal.SchemaCommandRuntime.fulltextIndexInfo
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getEntityInfo
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getMultipleEntityInfo
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getName
+import org.neo4j.cypher.internal.SchemaCommandRuntime.indexContext
+import org.neo4j.cypher.internal.SchemaCommandRuntime.indexInfo
+import org.neo4j.cypher.internal.SchemaCommandRuntime.lookupIndexInfo
+import org.neo4j.cypher.internal.SchemaCommandRuntime.propertyToId
+import org.neo4j.cypher.internal.SchemaCommandRuntime.vectorIndexVersion
+import org.neo4j.cypher.internal.ast.Options
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.expressions.ElementTypeName
+import org.neo4j.cypher.internal.expressions.LabelName
+import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.optionsmap.CreateFulltextIndexOptionsConverter
+import org.neo4j.cypher.internal.optionsmap.CreateIndexProviderOnlyOptions
+import org.neo4j.cypher.internal.optionsmap.CreateIndexWithFullOptions
+import org.neo4j.cypher.internal.optionsmap.CreateLookupIndexOptionsConverter
+import org.neo4j.cypher.internal.optionsmap.CreatePointIndexOptionsConverter
+import org.neo4j.cypher.internal.optionsmap.CreateRangeIndexOptionsConverter
+import org.neo4j.cypher.internal.optionsmap.CreateTextIndexOptionsConverter
+import org.neo4j.cypher.internal.optionsmap.CreateVectorIndexOptionsConverter
+import org.neo4j.cypher.internal.optionsmap.Nothing
+import org.neo4j.cypher.internal.optionsmap.ParsedOptions
+import org.neo4j.cypher.internal.optionsmap.ParsedWithNotifications
+import org.neo4j.cypher.internal.procs.IgnoredResult
+import org.neo4j.cypher.internal.procs.SchemaExecutionResult
+import org.neo4j.cypher.internal.procs.SuccessResult
+import org.neo4j.cypher.internal.runtime.QueryContext
+import org.neo4j.cypher.internal.util.IndexOrConstraintAlreadyExistsNotification
+import org.neo4j.cypher.internal.util.IndexOrConstraintDoesNotExistNotification
+import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.graphdb.schema.IndexType
+import org.neo4j.graphdb.schema.IndexType.POINT
+import org.neo4j.graphdb.schema.IndexType.RANGE
+import org.neo4j.graphdb.schema.IndexType.TEXT
+import org.neo4j.graphdb.schema.IndexType.VECTOR
+import org.neo4j.internal.schema
+import org.neo4j.values.virtual.MapValue
+
+import scala.util.Try
+
+/**
+ * Create the schema write functions for the index command SchemaExecutionPlan's
+ */
+object IndexCommandPlanner {
+
+  // Create methods
+
+  def createFulltextIndex(
+    entityNames: Either[List[LabelName], List[RelTypeName]],
+    props: List[PropertyKeyName],
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      val (indexProvider, indexConfig, notifications) =
+        CreateFulltextIndexOptionsConverter(indexContext(ctx))
+          .convert(cypherVersion, options, params) match {
+          case Nothing => (None, schema.IndexConfig.empty(), Set.empty[InternalNotification])
+          case ParsedOptions(CreateIndexWithFullOptions(provider, config)) =>
+            (provider, config, Set.empty[InternalNotification])
+          case ParsedWithNotifications(CreateIndexWithFullOptions(provider, config), notifications) =>
+            (provider, config, notifications)
+        }
+      val (entityIds, entityType) = getMultipleEntityInfo(entityNames, ctx)
+      val propertyKeyIds = props.map(p => propertyToId(ctx)(p).id)
+      ctx.addFulltextIndexRule(entityIds, entityType, propertyKeyIds, indexName, indexProvider, indexConfig)
+      SuccessResult(notifications)
+    }
+
+  def createLookupIndex(
+    entityType: EntityType,
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      val (maybeProvider, notifications) = CreateLookupIndexOptionsConverter(indexContext(ctx))
+        .convert(cypherVersion, options, params)
+        .toOptionNotification
+      val provider = maybeProvider.flatMap(_.provider)
+      ctx.addLookupIndexRule(entityType, indexName, provider)
+      SuccessResult(notifications)
+    }
+
+  def createPointIndex(
+    entityName: ElementTypeName,
+    props: List[PropertyKeyName],
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      val (indexProvider, indexConfig, notifications) =
+        CreatePointIndexOptionsConverter(indexContext(ctx))
+          .convert(cypherVersion, options, params) match {
+          case Nothing => (None, schema.IndexConfig.empty(), Set.empty[InternalNotification])
+          case ParsedOptions(CreateIndexWithFullOptions(provider, config)) =>
+            (provider, config, Set.empty[InternalNotification])
+          case ParsedWithNotifications(CreateIndexWithFullOptions(provider, config), notifications) =>
+            (provider, config, notifications)
+        }
+      val (entityId, entityType) = getEntityInfo(entityName, ctx)
+      val propertyKeyIds = props.map(p => propertyToId(ctx)(p).id)
+      ctx.addPointIndexRule(entityId, entityType, propertyKeyIds, indexName, indexProvider, indexConfig)
+      SuccessResult(notifications)
+    }
+
+  def createRangeIndex(
+    entityName: ElementTypeName,
+    props: List[PropertyKeyName],
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      val (entityId, entityType) = getEntityInfo(entityName, ctx)
+      val schemaType = entityType match {
+        case EntityType.NODE         => "range node property index"
+        case EntityType.RELATIONSHIP => "range relationship property index"
+      }
+      val (maybeProvider, notifications) =
+        CreateRangeIndexOptionsConverter(schemaType, indexContext(ctx))
+          .convert(cypherVersion, options, params)
+          .toOptionNotification
+      val provider = maybeProvider.flatMap(_.provider)
+      val propertyKeyIds = props.map(p => propertyToId(ctx)(p).id)
+      ctx.addRangeIndexRule(entityId, entityType, propertyKeyIds, indexName, provider)
+      SuccessResult(notifications)
+    }
+
+  def createTextIndex(
+    entityName: ElementTypeName,
+    props: List[PropertyKeyName],
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      val (maybeProvider: Option[CreateIndexProviderOnlyOptions], notifications) =
+        CreateTextIndexOptionsConverter(indexContext(ctx))
+          .convert(cypherVersion, options, params)
+          .toOptionNotification
+      val provider = maybeProvider.flatMap(_.provider)
+      val (entityId, entityType) = getEntityInfo(entityName, ctx)
+      val propertyKeyIds = props.map(p => propertyToId(ctx)(p).id)
+      ctx.addTextIndexRule(entityId, entityType, propertyKeyIds, indexName, provider)
+      SuccessResult(notifications)
+    }
+
+  def createVectorIndex(
+    entityName: ElementTypeName,
+    props: List[PropertyKeyName],
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      val (indexProvider, indexConfig, notifications) =
+        CreateVectorIndexOptionsConverter(indexContext(ctx), vectorIndexVersion(ctx))
+          .convert(cypherVersion, options, params) match {
+          case Nothing =>
+            (None, schema.IndexConfig.empty(), Set.empty[InternalNotification])
+          case ParsedOptions(CreateIndexWithFullOptions(provider, config)) =>
+            (provider, config, Set.empty[InternalNotification])
+          case ParsedWithNotifications(CreateIndexWithFullOptions(provider, config), notifications) =>
+            (provider, config, notifications)
+        }
+      val (entityId, entityType) = getEntityInfo(entityName, ctx)
+      val propertyKeyIds = props.map(p => propertyToId(ctx)(p).id)
+      ctx.addVectorIndexRule(entityId, entityType, propertyKeyIds, indexName, indexProvider, indexConfig)
+      SuccessResult(notifications)
+    }
+
+  // Drop methods
+
+  def dropIndex(
+    name: Either[String, Parameter],
+    ifExists: Boolean
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      val notifications: Set[InternalNotification] = if (!ifExists || ctx.indexExists(indexName)) {
+        ctx.dropIndexRule(indexName)
+        Set.empty
+      } else {
+        // Notify on non-existing index, replace potential parameter names with their actual value
+        Set(IndexOrConstraintDoesNotExistNotification(
+          s"DROP INDEX ${Prettifier.escapeName(Left(indexName))} IF EXISTS",
+          indexName
+        ))
+      }
+      SuccessResult(notifications)
+    }
+
+  // If exists methods
+
+  def doNothingIfExists(
+    entityName: ElementTypeName,
+    propertyKeyNames: List[PropertyKeyName],
+    indexType: IndexType,
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult = {
+    val (innerIndexType, optionsConverter) = indexType match {
+      case POINT => (schema.IndexType.POINT, CreatePointIndexOptionsConverter)
+      case RANGE => (
+          schema.IndexType.RANGE,
+          (ctx: QueryContext) =>
+            CreateRangeIndexOptionsConverter("range index", indexContext(ctx))
+        )
+      case TEXT => (schema.IndexType.TEXT, CreateTextIndexOptionsConverter)
+      case VECTOR => (
+          schema.IndexType.VECTOR,
+          (ctx: QueryContext) =>
+            CreateVectorIndexOptionsConverter(indexContext(ctx), vectorIndexVersion(ctx))
+        )
+      case it =>
+        throw new IllegalStateException(
+          s"Did not expect index type $it here: only point, range, text or vector indexes."
+        )
+    }
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      // Assert correct options to get errors even if matching index already exists
+      val optionConverterNotifications = optionsConverter(ctx)
+        .convert(cypherVersion, options, params)
+        .toOptionNotification
+        ._2
+
+      val (entityId, entityType) = getEntityInfo(entityName, ctx)
+      val propertyKeyIds = propertyKeyNames.map(p => propertyToId(ctx)(p).id)
+      val existingIndexDescriptor =
+        Try(ctx.indexReference(innerIndexType, entityId, entityType, propertyKeyIds: _*))
+      if (existingIndexDescriptor.isSuccess) {
+        // Notify on pre-existing index, replace potential parameter names with their actual value
+        val indexDescription = indexInfo(indexType.name(), indexName, entityName, propertyKeyNames, options)
+        val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(existingIndexDescriptor.get))
+
+        val notification = IndexOrConstraintAlreadyExistsNotification(
+          s"CREATE $indexDescription",
+          conflictingIndex
+        )
+        IgnoredResult(Set(notification) ++ optionConverterNotifications)
+      } else if (indexName.exists(ctx.indexExists)) {
+        // Notify on pre-existing index, replace potential parameter names with their actual value
+        val indexDescription = indexInfo(indexType.name(), indexName, entityName, propertyKeyNames, options)
+        val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(indexName.get))
+
+        val notification = IndexOrConstraintAlreadyExistsNotification(
+          s"CREATE $indexDescription",
+          conflictingIndex
+        )
+        IgnoredResult(Set(notification) ++ optionConverterNotifications)
+      } else {
+        SuccessResult(optionConverterNotifications)
+      }
+    }
+  }
+
+  def doNothingIfExistsForFulltext(
+    entityNames: Either[List[LabelName], List[RelTypeName]],
+    propertyKeyNames: List[PropertyKeyName],
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      // Assert correct options to get errors even if matching index already exists
+      val optionConverterNotifications = CreateFulltextIndexOptionsConverter(ctx)
+        .convert(cypherVersion, options, params)
+        .toOptionNotification
+        ._2
+
+      val (entityIds, entityType) = getMultipleEntityInfo(entityNames, ctx)
+      val propertyKeyIds = propertyKeyNames.map(p => propertyToId(ctx)(p).id)
+      val existingIndexDescriptor = Try(ctx.fulltextIndexReference(entityIds, entityType, propertyKeyIds: _*))
+      if (existingIndexDescriptor.isSuccess) {
+        // Notify on pre-existing index, replace potential parameter names with their actual value
+        val indexDescription = fulltextIndexInfo(indexName, entityNames, propertyKeyNames, options)
+        val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(existingIndexDescriptor.get))
+
+        val notification = IndexOrConstraintAlreadyExistsNotification(
+          s"CREATE $indexDescription",
+          conflictingIndex
+        )
+        IgnoredResult(Set(notification) ++ optionConverterNotifications)
+      } else if (indexName.exists(ctx.indexExists)) {
+        // Notify on pre-existing index, replace potential parameter names with their actual value
+        val indexDescription = fulltextIndexInfo(indexName, entityNames, propertyKeyNames, options)
+        val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(indexName.get))
+
+        val notification = IndexOrConstraintAlreadyExistsNotification(
+          s"CREATE $indexDescription",
+          conflictingIndex
+        )
+        IgnoredResult(Set(notification) ++ optionConverterNotifications)
+      } else {
+        SuccessResult(optionConverterNotifications)
+      }
+    }
+
+  def doNothingIfExistsForLookup(
+    entityType: EntityType,
+    name: Option[Either[String, Parameter]],
+    options: Options,
+    cypherVersion: CypherVersion
+  ): (QueryContext, MapValue) => SchemaExecutionResult =
+    (ctx, params) => {
+      val indexName = getName(name, params)
+      // Assert correct options to get errors even if matching index already exists
+      val optionConverterNotifications = CreateLookupIndexOptionsConverter(ctx)
+        .convert(cypherVersion, options, params)
+        .toOptionNotification
+        ._2
+
+      val existingIndexDescriptor = Try(ctx.lookupIndexReference(entityType))
+      if (existingIndexDescriptor.isSuccess) {
+        // Notify on pre-existing index, replace potential parameter names with their actual value
+        val indexDescription = lookupIndexInfo(indexName, entityType, options)
+        val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(existingIndexDescriptor.get))
+
+        val notification = IndexOrConstraintAlreadyExistsNotification(
+          s"CREATE $indexDescription",
+          conflictingIndex
+        )
+        IgnoredResult(Set(notification) ++ optionConverterNotifications)
+      } else if (indexName.exists(ctx.indexExists)) {
+        // Notify on pre-existing index, replace potential parameter names with their actual value
+        val indexDescription = lookupIndexInfo(indexName, entityType, options)
+        val conflictingIndex = existingIndexInfo(ctx, () => ctx.getIndexInformation(indexName.get))
+
+        val notification = IndexOrConstraintAlreadyExistsNotification(
+          s"CREATE $indexDescription",
+          conflictingIndex
+        )
+        IgnoredResult(Set(notification) ++ optionConverterNotifications)
+      } else {
+        SuccessResult(optionConverterNotifications)
+      }
+    }
+}
