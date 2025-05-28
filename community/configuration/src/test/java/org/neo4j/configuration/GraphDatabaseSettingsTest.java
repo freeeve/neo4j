@@ -344,4 +344,23 @@ class GraphDatabaseSettingsTest {
             }
         }
     }
+
+    @Test
+    void rememberTestingWhenCypher25IsDefault() {
+        assertThat(default_language.defaultValue())
+                .as(
+                        """
+                        You have set the default query language to Cypher 25.
+                        Do not forget:
+                        - Some nightly test builds runs with `-p default-query-lang-cypher-25`,
+                          these should be updated to run on Cypher 5 now.
+                          Remove usage of the CypherFunSuite.Tags.NoQueryLangOverride tag where it's not needed.
+                          Remove usage of the org.neo4j.test.tags.NoQueryLangOverrideTag tag where it's not needed.
+                        - Make sure org.neo4j.cypher.cucumber.glue.regular.TestConf looks good.
+                          Configurations there probably assume the default is Cypher 5.
+                        - Go though CypherFeatureTests.scala and make sure all versions are covered.
+                        - Update the assertion of this test to pass, to be reminded the next time we update the default.
+                        """)
+                .isEqualTo(GraphDatabaseSettings.CypherVersion.Cypher5);
+    }
 }
