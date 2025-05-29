@@ -46,7 +46,7 @@ public class BasicContext implements Context {
     private final Thread thread;
     private final ProcedureCallContext procedureCallContext;
 
-    private final URLAccessChecker urlAccessChecker;
+    private final Supplier<URLAccessChecker> urlAccessChecker;
 
     private final Supplier<GraphDatabaseAPI> graphDatabaseAPISupplier;
 
@@ -58,7 +58,7 @@ public class BasicContext implements Context {
             ValueMapper<Object> valueMapper,
             Thread thread,
             ProcedureCallContext procedureCallContext,
-            URLAccessChecker urlAccessChecker,
+            Supplier<URLAccessChecker> urlAccessChecker,
             Supplier<GraphDatabaseAPI> graphDatabaseAPISupplier) {
         this.resolver = resolver;
         this.kernelTransaction = kernelTransaction;
@@ -133,7 +133,7 @@ public class BasicContext implements Context {
 
     @Override
     public URLAccessChecker urlAccessChecker() throws ProcedureException {
-        return throwIfNull("URLAccessChecker", urlAccessChecker);
+        return throwIfNull("URLAccessChecker", urlAccessChecker.get());
     }
 
     @Override
@@ -165,7 +165,7 @@ public class BasicContext implements Context {
         private SecurityContext securityContext = SecurityContext.AUTH_DISABLED;
         private ClockContext clockContext;
         private ProcedureCallContext procedureCallContext;
-        private URLAccessChecker urlAccessChecker;
+        private Supplier<URLAccessChecker> urlAccessChecker;
         private Supplier<GraphDatabaseAPI> graphDatabaseAPISupplier;
 
         private ContextBuilder(DependencyResolver resolver, ValueMapper<Object> valueMapper) {
@@ -198,7 +198,7 @@ public class BasicContext implements Context {
             return this;
         }
 
-        public ContextBuilder withUrlAccessChecker(URLAccessChecker urlAccessChecker) {
+        public ContextBuilder withUrlAccessChecker(Supplier<URLAccessChecker> urlAccessChecker) {
             this.urlAccessChecker = urlAccessChecker;
             return this;
         }

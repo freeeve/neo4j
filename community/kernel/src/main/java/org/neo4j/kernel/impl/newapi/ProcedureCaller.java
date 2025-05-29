@@ -59,14 +59,10 @@ public abstract class ProcedureCaller {
 
     final ProcedureView procedureView;
     final DependencyResolver databaseDependencies;
-    private final WebURLAccessRule webURLAccessRule;
 
     private ProcedureCaller(DependencyResolver databaseDependencies, ProcedureView procedureView) {
         this.databaseDependencies = databaseDependencies;
         this.procedureView = procedureView;
-        this.webURLAccessRule = this.databaseDependencies
-                .resolveDependency(URIAccessRules.class)
-                .webAccess();
     }
 
     public AnyValue callFunction(int id, AnyValue[] input, ProcedureCallContext context) throws ProcedureException {
@@ -236,10 +232,6 @@ public abstract class ProcedureCaller {
 
     abstract ClockContext clockContext();
 
-    URLAccessChecker urlAccessChecker() {
-        return new ProcedureUrlAccessChecker(webURLAccessRule, securityAuthorizationHandler(), securityContext());
-    }
-
     abstract ValueMapper<Object> createValueMapper();
 
     public abstract UserAggregationReducer createAggregationFunction(int id, ProcedureCallContext context)
@@ -247,6 +239,15 @@ public abstract class ProcedureCaller {
 
     abstract ResourceRawIterator<AnyValue[], ProcedureException> doCallProcedure(Context ctx, int id, AnyValue[] input)
             throws ProcedureException;
+
+    private Supplier<URLAccessChecker> urlAccessChecker() {
+        return () -> {
+            WebURLAccessRule webURLAccessRule = this.databaseDependencies
+                    .resolveDependency(URIAccessRules.class)
+                    .webAccess();
+            return new ProcedureUrlAccessChecker(webURLAccessRule, securityAuthorizationHandler(), securityContext());
+        };
+    }
 
     public static class ForTransactionScope extends ProcedureCaller {
 
