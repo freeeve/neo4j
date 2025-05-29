@@ -19,8 +19,11 @@
  */
 package org.neo4j.bolt.protocol.common.message;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.neo4j.bolt.fsm.error.BoltException;
 import org.neo4j.bolt.fsm.error.ConnectionTerminating;
@@ -99,20 +102,21 @@ public class Error {
      * @return
      */
     public FailureMessage asBoltMessage() {
-        if (wrappedThrowable != null) {
-            if (wrappedThrowable instanceof ErrorGqlStatusObject wrapped) {
-                return new FailureMessage(
-                        new FailureMetadata(
-                                this.status(),
-                                this.message(),
-                                wrapped.statusDescription(),
-                                wrapped.gqlStatus(),
-                                wrapped.diagnosticRecord(),
-                                wrapped.cause()
-                                        .map(Error::causeAsFailureMetadata)
-                                        .orElse(null)),
-                        this.isFatal());
-            }
+        if (wrappedThrowable instanceof ErrorGqlStatusObject wrapped) {
+            Set<ErrorGqlStatusObject> observedStatuses = Collections.newSetFromMap(new IdentityHashMap<>());
+            observedStatuses.add(wrapped);
+
+            return new FailureMessage(
+                    new FailureMetadata(
+                            this.status(),
+                            this.message(),
+                            wrapped.statusDescription(),
+                            wrapped.gqlStatus(),
+                            wrapped.diagnosticRecord(),
+                            wrapped.cause()
+                                    .map(cause -> causeAsFailureMetadata(cause, observedStatuses))
+                                    .orElse(null)),
+                    this.isFatal());
         }
         return new FailureMessage(
                 new FailureMetadata(
@@ -125,7 +129,8 @@ public class Error {
                 this.isFatal());
     }
 
-    private static <E extends ErrorGqlStatusObject> FailureMetadata causeAsFailureMetadata(ErrorGqlStatusObject error) {
+    private static FailureMetadata causeAsFailureMetadata(
+            ErrorGqlStatusObject error, Set<ErrorGqlStatusObject> observedStatuses) {
         Status status = Status.General.UnknownError;
         if (error instanceof Status.HasStatus errorWithStatus) {
             status = errorWithStatus.status();
@@ -136,7 +141,14 @@ public class Error {
                 error.statusDescription(),
                 error.gqlStatus(),
                 error.diagnosticRecord(),
-                error.cause().map(Error::causeAsFailureMetadata).orElse(null));
+                error.cause()
+                        .map(cause -> {
+                            if (observedStatuses.add(cause)) {
+                                return causeAsFailureMetadata(cause, observedStatuses);
+                            }
+                            return null;
+                        })
+                        .orElse(null));
     }
 
     @Override

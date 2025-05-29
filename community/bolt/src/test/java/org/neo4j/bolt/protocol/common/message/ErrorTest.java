@@ -20,8 +20,10 @@
 package org.neo4j.bolt.protocol.common.message;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.neo4j.gqlstatus.ErrorClassification.TRANSIENT_ERROR;
 
 import org.junit.jupiter.api.Nested;
@@ -34,6 +36,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.DatabaseShutdownException;
+import org.neo4j.graphdb.TransientTransactionFailureException;
 import org.neo4j.kernel.DeadlockDetectedException;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -72,14 +75,36 @@ class ErrorTest {
         // GQL info
         assertInstanceOf(ErrorGqlStatusObject.class, error.wrappedThrowable());
         var gqlError = (ErrorGqlStatusObject) error.wrappedThrowable();
-        assertEquals(gqlError.gqlStatus(), "08N09");
+        assertEquals("08N09", gqlError.gqlStatus());
         assertEquals(
-                gqlError.statusDescription(),
-                "error: connection exception - database unavailable. The database `neo4j` is currently unavailable. Check the database status. Retry your request at a later time.");
+                "error: connection exception - database unavailable. The database `neo4j` is currently unavailable. Check the database status. Retry your request at a later time.",
+                gqlError.statusDescription());
     }
 
     @Nested
     class TestAsBoltMessage {
+
+        @Test
+        void doNotFailWithStackOverflowWhenCausesFormCircle() {
+            // those two exceptions form the simplest loop
+            var shutdownException =
+                    DatabaseShutdownException.databaseUnavailable(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
+            var transientException = new TransientTransactionFailureException(
+                    shutdownException.gqlStatusObject(),
+                    Status.Transaction.DeadlockDetected,
+                    "test",
+                    shutdownException);
+
+            ErrorGqlStatusObject errorGqlStatusObject =
+                    transientException.cause().orElseThrow();
+            ErrorGqlStatusObject causedErrorObject =
+                    errorGqlStatusObject.cause().orElseThrow();
+            assertSame(errorGqlStatusObject, causedErrorObject);
+
+            Error boltError = Error.from(transientException);
+            assertThat(assertDoesNotThrow(boltError::asBoltMessage).metadata().description())
+                    .contains("he database `neo4j` is currently unavailable.");
+        }
 
         @Test
         void shouldAssignUnknownStatusToUnpredictedException() {
