@@ -21,12 +21,17 @@ package org.neo4j.cli;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import org.neo4j.commandline.dbms.CannotWriteException;
 import org.neo4j.configuration.Config;
+import org.neo4j.io.locker.Locker;
 import org.neo4j.kernel.diagnostics.providers.SystemDiagnostics;
 import org.neo4j.kernel.internal.Version;
 import picocli.CommandLine.Command;
@@ -89,6 +94,9 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
+        String potentialPermissionProblem = collectAndPrintPermissionProblems(ctx.homeDir());
+        Path reportedPermissionProblemFile = potentialPermissionProblem != null ? ctx.homeDir() : null;
+
         if (verbose) {
             printVerboseHeader();
             printConfigInformation();
@@ -96,6 +104,10 @@ public abstract class AbstractCommand implements Callable<Integer> {
         try {
             wrappedExecute();
         } catch (Throwable e) {
+            Path problematicFile = findFileForPotentialPermissionProblems(e);
+            if (problematicFile != null && !problematicFile.equals(reportedPermissionProblemFile)) {
+                collectAndPrintPermissionProblems(problematicFile);
+            }
             if (verbose) {
                 e.printStackTrace(ctx.err());
             } else {
@@ -105,6 +117,39 @@ public abstract class AbstractCommand implements Callable<Integer> {
             return e instanceof CommandFailedException cfe ? cfe.getExitCode() : ExitCode.FAIL;
         }
         return ExitCode.OK;
+    }
+
+    private String collectAndPrintPermissionProblems(Path file) {
+        String problems = Locker.tryCollectPermissionInformation(ctx.fs(), file);
+        if (problems != null) {
+            ctx.err().println(problems);
+        }
+        return problems;
+    }
+
+    /**
+     * Look for causes in this exception for traces of file related problems so that there can be a
+     * permission analysis for it.
+     * @param e the exception the command ran into.
+     * @return {@code null} if there's no
+     */
+    private Path findFileForPotentialPermissionProblems(Throwable e) {
+        Throwable t = e;
+        Set<Throwable> seen = new HashSet<>();
+        while (t != null) {
+            // Guard for circular causes
+            if (!seen.add(t)) {
+                break;
+            }
+            if (t instanceof IOException) {
+                return ctx.homeDir();
+            }
+            if (t instanceof CannotWriteException cwe) {
+                return cwe.getFile();
+            }
+            t = t.getCause();
+        }
+        return null;
     }
 
     private void printVerboseHeader() {

@@ -24,7 +24,14 @@ import static java.lang.String.format;
 import java.nio.file.Path;
 
 public class CannotWriteException extends Exception {
+    private final Path file;
+
     public CannotWriteException(Path file) {
         super(format("Could not write to: %s", file.toAbsolutePath()));
+        this.file = file;
+    }
+
+    public Path getFile() {
+        return file;
     }
 }

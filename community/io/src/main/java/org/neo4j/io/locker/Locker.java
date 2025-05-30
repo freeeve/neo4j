@@ -89,45 +89,44 @@ public class Locker implements Closeable {
             // so in this case try to figure out as much as possible about the state of the file and directory and
             // include that
             // in the error message given to the user.
-            throw unableToObtainLockException(tryCollectPermissionInformation(), e);
+            throw unableToObtainLockException(tryCollectPermissionInformation(fileSystemAbstraction, lockFile), e);
         }
     }
 
-    private String tryCollectPermissionInformation() {
-        String processUserName = System.getProperty("user.name");
-        String additionalInformation = null;
-        if (processUserName != null) {
-            Path lockPath = lockFile;
+    public static String tryCollectPermissionInformation(FileSystemAbstraction fs, Path file) {
+        String processUserName = ProcessHandle.current().info().user().orElse(System.getProperty("user.name"));
+        // The user.name can be "?" in some linux setups
+        if (processUserName != null && !processUserName.equals("?")) {
+            String filePermissionInformation = null;
             try {
-                String lockFileOwner = Files.getOwner(lockPath).getName();
-                if (!processUserName.equals(lockFileOwner)) {
-                    additionalInformation = String.format(
-                            "Owner of the lock file '%s' and user running this process '%s' differs, which means this could be a file permission problem. "
-                                    + "Ensure that the lock file has the same owner, or at least has write access for the user running the Neo4j process "
-                                    + "trying to lock it",
-                            lockFileOwner, processUserName);
-                }
-                // else no useful additional information can be provided
-            } catch (IOException fe) {
-                // We tried to get the owner of the lock file, but we couldn't. Perhaps we couldn't even create the lock
-                // file, let's check the folder
+                filePermissionInformation = tryCollectPermissionInformation(processUserName, file);
+            } catch (IOException e) {
+                // We tried to get the owner of the file, but we couldn't. Let's check the folder, if this was a file.
+            }
+
+            if (filePermissionInformation == null && !fs.isDirectory(file)) {
                 try {
-                    String lockDirectoryOwner =
-                            Files.getOwner(lockPath.getParent()).getName();
-                    if (!processUserName.equals(lockDirectoryOwner)) {
-                        additionalInformation = String.format(
-                                "Owner of the directory of the lock file '%s' and user running this process '%s' differs, which means this could be a "
-                                        + "file permission problem. Ensure that the lock file directory (and lock file it it exists) has the same owner, "
-                                        + "or at least has write access for the user running the Neo4j process trying to lock it",
-                                lockDirectoryOwner, processUserName);
-                    }
-                    // else no useful additional information can be provided
-                } catch (IOException de) {
-                    // We tried to get the owner of the lock directory, but couldn't. There's not much more we can do
+                    filePermissionInformation = tryCollectPermissionInformation(processUserName, file.getParent());
+                } catch (IOException ex) {
+                    // We tried to get the owner of the directory, but couldn't. There's not much more we can do
                 }
             }
+            return filePermissionInformation;
         }
-        return additionalInformation;
+        return null;
+    }
+
+    private static String tryCollectPermissionInformation(String processUserName, Path file) throws IOException {
+        String fileOwner = Files.getOwner(file).getName();
+        if (!processUserName.equals(fileOwner)) {
+            return String.format(
+                    "Owner '%s' of '%s' and user running this process '%s' differs, potentially resulting in a file permission problem. "
+                            + "Ensure that the file has the same owner, or at least has write access for the user running the Neo4j process "
+                            + "trying to use it.",
+                    fileOwner, file, processUserName);
+        }
+        // else no useful additional information can be provided
+        return null;
     }
 
     protected boolean haveLockAlready() {
