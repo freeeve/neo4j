@@ -22,7 +22,7 @@ package org.neo4j.kernel.api.vector;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.VectorCandidate;
 
-public interface VectorSimilarityFunction {
+public interface VectorSimilarityFunction extends VectorDistanceFunction {
     String name();
 
     /**
@@ -46,4 +46,14 @@ public interface VectorSimilarityFunction {
     float[] toValidVector(VectorCandidate candidate);
 
     float compare(float[] vector1, float[] vector2);
+
+    @Override
+    default float distance(VectorCandidate vector1, VectorCandidate vector2) {
+        return -compare(toValidVector(vector1), toValidVector(vector2));
+    }
+
+    @Override
+    default boolean valid(VectorCandidate vector) {
+        return maybeToValidVector(vector) != null;
+    }
 }

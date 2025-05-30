@@ -78,5 +78,10 @@ public interface VectorCandidate {
         public int dimensions() {
             return sequence.intSize();
         }
+
+        @Override
+        public String toString() {
+            return sequence.toString();
+        }
     }
 }
