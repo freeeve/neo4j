@@ -45,8 +45,8 @@ import org.neo4j.cypher.internal.plandescription.Arguments.Rows
 import org.neo4j.cypher.internal.plandescription.Arguments.Runtime
 import org.neo4j.cypher.internal.plandescription.Arguments.RuntimeVersion
 import org.neo4j.cypher.internal.plandescription.Arguments.Time
-import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTest.details
-import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTest.planDescription
+import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTestBase.details
+import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescriptionTestBase.planDescription
 import org.neo4j.cypher.internal.plandescription.asPrettyString.distinctness
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
