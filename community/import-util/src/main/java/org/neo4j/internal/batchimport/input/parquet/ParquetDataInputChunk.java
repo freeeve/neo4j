@@ -29,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
@@ -67,7 +68,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             parquetDataFile = reader.getParquetDataFile();
             groups = reader.getGroups();
             defaultTimezoneSupplier = reader.getDefaultTimezoneSupplier();
-            arrayDelimiter = reader.getArrayDelimiter();
+            arrayDelimiter = Pattern.quote(reader.getArrayDelimiter());
             idType = reader.getIdType();
             filteredLabelsOrTypes = filterEmptyLabelsAndTrim(parquetDataFile.labelsOrType());
             return true;

@@ -19,7 +19,6 @@
  */
 package org.neo4j.internal.batchimport.input.parquet;
 
-import static java.lang.String.format;
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,22 +39,18 @@ import static org.neo4j.internal.helpers.ArrayUtil.union;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 
 import blue.strategic.parquet.ParquetWriter;
-import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -1666,6 +1661,56 @@ class ParquetInputTest {
     }
 
     @Test
+    void shouldUseOverriddenArrayDelimiterWithSpecialCharacter() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("prop:int[]")),
+                Collections.singletonList(new Object[] {1, "1?23"}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR,
+                Configuration.newBuilder().withArrayDelimiter('?').build());
+
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 1L, properties("prop", new int[] {1, 23}), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldUseOverriddenArrayDelimiterWithSpecialCharacterForMultipleLabels() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":LABEL")),
+                Collections.singletonList(new Object[] {1, "Foo?Bar"}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR,
+                Configuration.newBuilder().withArrayDelimiter('?').build());
+
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 1L, properties(), labels("Foo", "Bar"));
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
     void shouldNotIncludeEmptyArraysInEntities() throws Exception {
         // GIVEN
         Path nodeFile = createParquetFile(
@@ -2241,14 +2286,23 @@ class ParquetInputTest {
             IdType idType,
             Groups idGroups,
             ParquetMonitor parquetMonitor) {
-        return new ParquetInput(
+        return createParquetInput(
                 nodeFiles,
                 relationshipFiles,
-                List.of(),
                 idType,
-                Configuration.newBuilder().build(),
                 idGroups,
-                parquetMonitor);
+                parquetMonitor,
+                Configuration.newBuilder().build());
+    }
+
+    private static ParquetInput createParquetInput(
+            Map<Set<String>, List<Path[]>> nodeFiles,
+            Map<String, List<Path[]>> relationshipFiles,
+            IdType idType,
+            Groups idGroups,
+            ParquetMonitor parquetMonitor,
+            Configuration csvConfig) {
+        return new ParquetInput(nodeFiles, relationshipFiles, List.of(), idType, csvConfig, idGroups, parquetMonitor);
     }
 
     private Path createNonParquetFile() throws Exception {
@@ -2299,63 +2353,6 @@ class ParquetInputTest {
                 .map(e -> new NamedToken(e.getKey(), e.getValue()))
                 .toList());
         return tokenHolder;
-    }
-
-    private static void assertEstimatesEquals(Input.Estimates a, Input.Estimates b, double errorMargin) {
-        assertEquals(a.numberOfNodes(), b.numberOfNodes(), a.numberOfNodes() * errorMargin);
-        assertEquals(a.numberOfNodeLabels(), b.numberOfNodeLabels(), a.numberOfNodeLabels() * errorMargin);
-        assertEquals(a.numberOfNodeProperties(), b.numberOfNodeProperties(), a.numberOfNodeProperties() * errorMargin);
-        assertEquals(a.numberOfRelationships(), b.numberOfRelationships(), a.numberOfRelationships() * errorMargin);
-        assertEquals(
-                a.numberOfRelationshipProperties(),
-                b.numberOfRelationshipProperties(),
-                a.numberOfRelationshipProperties() * errorMargin);
-        assertEquals(a.sizeOfNodeProperties(), b.sizeOfNodeProperties(), a.sizeOfNodeProperties() * errorMargin);
-        assertEquals(
-                a.sizeOfRelationshipProperties(),
-                b.sizeOfRelationshipProperties(),
-                a.sizeOfRelationshipProperties() * errorMargin);
-    }
-
-    private static Input.Estimates calculateEstimatesOnSingleFileNodeData(IdType idType, Path nodeDataFile)
-            throws IOException {
-        Input input = createParquetInput(Map.of(), Map.of(), INTEGER, new Groups(), MONITOR);
-        // We don't care about correct value size calculation really, as long as it's consistent
-        return input.validateAndEstimate((values, tracer, memTracker) ->
-                Stream.of(values).mapToInt(v -> v.toString().length()).sum());
-    }
-
-    private Path createNodeInputDataFile(long roughSize) throws FileNotFoundException {
-        Path file = directory.file("data-file");
-        MutableLong bytesWritten = new MutableLong();
-        BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(file.toFile())) {
-            @Override
-            public synchronized void write(byte[] b, int off, int len) throws IOException {
-                super.write(b, off, len);
-                bytesWritten.add(len);
-            }
-
-            @Override
-            public synchronized void write(int b) throws IOException {
-                super.write(b);
-                bytesWritten.add(1);
-            }
-
-            @Override
-            public void write(byte[] b) throws IOException {
-                super.write(b);
-                bytesWritten.add(b.length);
-            }
-        };
-        try (PrintWriter writer = new PrintWriter(out)) {
-            writer.println(":ID,name:string,prop:int");
-            while (bytesWritten.longValue() < roughSize) {
-                writer.println(format(
-                        "%s,%s,%d",
-                        random.nextAlphaNumericString(6, 6), random.nextAlphaNumericString(5, 20), random.nextInt()));
-            }
-        }
-        return file;
     }
 
     private void assertNextRelationship(
