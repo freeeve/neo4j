@@ -258,7 +258,7 @@ class VectorUtilSupportTest {
         final float[] vector = new float[dimensions];
         for (int i = 0; i < dimensions; i++) {
             final float element = randomFloatFor(random, dimensions);
-            origin &= element != 0.f;
+            origin &= element == 0.f;
             vector[i] = element;
         }
         if (origin) {
