@@ -185,6 +185,8 @@ import org.neo4j.storageengine.api.enrichment.EnrichmentMode;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor.Decorator;
+import org.neo4j.storageengine.api.txstate.memory.MultiVersionTxStateMemoryConsumer;
+import org.neo4j.storageengine.api.txstate.memory.TxStateMemoryConsumer;
 import org.neo4j.storageengine.api.txstate.validation.TransactionValidator;
 import org.neo4j.storageengine.api.txstate.validation.TransactionValidatorFactory;
 import org.neo4j.storageengine.api.txstate.validation.ValidationLockDumper;
@@ -315,6 +317,7 @@ public class KernelTransactionImplementation
     private final ChunkedTransactionSink txStateWriter;
     private final DatabaseSerialGuard databaseSerialGuard;
     private final SerialExecutionGuard serialExecutionGuard;
+    private final TxStateMemoryConsumer txStateMemoryConsumer;
     private boolean failedCleanup = false;
 
     public KernelTransactionImplementation(
@@ -492,6 +495,7 @@ public class KernelTransactionImplementation
         this.committer = createCommitter(commitmentFactory, multiVersioned, mode);
         this.transactionEventListeners = new TransactionEventListeners(transactionEventListeners, this, storageReader);
         this.txStateWriter = createChunkWriter(multiVersioned);
+        this.txStateMemoryConsumer = createMemoryConsumer(multiVersioned, config);
         registerConfigChangeListeners(config);
     }
 
@@ -694,6 +698,7 @@ public class KernelTransactionImplementation
         this.operations.initialize(cursorContext);
         this.initializationTrace = traceProvider.getTraceInfo();
         this.transactionMemoryPool.setLimit(transactionHeapBytesLimit);
+        this.txStateMemoryConsumer.initialize();
         this.innerTransactionHandler = new InnerTransactionHandlerImpl(kernelTransactions);
         this.procedureView = procedureView;
         this.procedures.initialize(procedureView);
@@ -1065,6 +1070,7 @@ public class KernelTransactionImplementation
                     transactionStateBehaviour,
                     enrichmentStrategy,
                     txStateWriter,
+                    txStateMemoryConsumer,
                     transactionEvent);
         }
         return txState;
@@ -1800,6 +1806,10 @@ public class KernelTransactionImplementation
         return multiVersioned
                 ? new TransactionSerialExecutionGuard(databaseSerialGuard, this)
                 : SerialExecutionGuard.EMPTY_GUARD;
+    }
+
+    private TxStateMemoryConsumer createMemoryConsumer(boolean multiVersioned, LocalConfig config) {
+        return multiVersioned ? new MultiVersionTxStateMemoryConsumer(config) : TxStateMemoryConsumer.EMPTY_CONSUMER;
     }
 
     private ChunkedTransactionSink createChunkWriter(boolean multiVersioned) {

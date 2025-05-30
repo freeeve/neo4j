@@ -1338,6 +1338,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Enable ability of transaction visibility refresh.")
+    public static final Setting<Long> multi_version_deletion_additional_reservation_size = newBuilder(
+                    "internal.db.multiversion.transaction.deletion.reservation.size", BYTES, 256L)
+            .dynamic()
+            .build();
+
+    @Internal
     @Description("Page Cache Warmer blocks database start until it's completed")
     public static final Setting<Boolean> pagecache_warmup_blocking = newBuilder(
                     "internal.db.memory.pagecache.warmup.blocking_enabled", BOOL, false)

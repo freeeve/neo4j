@@ -104,6 +104,7 @@ import org.neo4j.storageengine.api.enrichment.ApplyEnrichmentStrategy;
 import org.neo4j.storageengine.api.txstate.RelationshipModifications;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
+import org.neo4j.storageengine.api.txstate.memory.TxStateMemoryConsumer;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
@@ -134,6 +135,7 @@ class TxStateTest {
                 TransactionStateBehaviour.DEFAULT_BEHAVIOUR,
                 ApplyEnrichmentStrategy.NO_ENRICHMENT,
                 ChunkedTransactionSink.EMPTY,
+                TxStateMemoryConsumer.EMPTY_CONSUMER,
                 TransactionEvent.NULL);
     }
 
@@ -1112,6 +1114,7 @@ class TxStateTest {
                 },
                 ApplyEnrichmentStrategy.NO_ENRICHMENT,
                 ChunkedTransactionSink.EMPTY,
+                TxStateMemoryConsumer.EMPTY_CONSUMER,
                 TransactionEvent.NULL);
         long id = 9;
         int type = 10;

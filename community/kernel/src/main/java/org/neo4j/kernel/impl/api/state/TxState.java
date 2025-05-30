@@ -84,6 +84,7 @@ import org.neo4j.storageengine.api.txstate.RelationshipModifications.NodeRelatio
 import org.neo4j.storageengine.api.txstate.RelationshipState;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
+import org.neo4j.storageengine.api.txstate.memory.TxStateMemoryConsumer;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
@@ -133,6 +134,7 @@ public class TxState implements TransactionState {
     private long dataRevision;
     private final TransactionEvent transactionEvent;
     private boolean isMultiChunk;
+    private final TxStateMemoryConsumer txStateMemoryConsumer;
 
     @VisibleForTesting
     public TxState() {
@@ -142,6 +144,7 @@ public class TxState implements TransactionState {
                 TransactionStateBehaviour.DEFAULT_BEHAVIOUR,
                 ApplyEnrichmentStrategy.NO_ENRICHMENT,
                 ChunkedTransactionSink.EMPTY,
+                TxStateMemoryConsumer.EMPTY_CONSUMER,
                 TransactionEvent.NULL);
     }
 
@@ -151,6 +154,7 @@ public class TxState implements TransactionState {
             TransactionStateBehaviour behaviour,
             ApplyEnrichmentStrategy enrichmentStrategy,
             ChunkedTransactionSink chunkWriter,
+            TxStateMemoryConsumer txStateMemoryConsumer,
             TransactionEvent transactionEvent) {
         transactionTracker.allocateHeap(SHALLOW_SIZE);
         this.chunkWriter = chunkWriter;
@@ -158,6 +162,7 @@ public class TxState implements TransactionState {
         this.stateMemoryTracker = new DefaultScopedMemoryTracker(transactionTracker);
         this.behaviour = behaviour;
         this.enrichmentStrategy = enrichmentStrategy;
+        this.txStateMemoryConsumer = txStateMemoryConsumer;
         this.transactionEvent = transactionEvent;
     }
 
@@ -395,6 +400,7 @@ public class TxState implements TransactionState {
     @Override
     public void nodeDoDelete(long nodeId) {
         nodes().remove(nodeId);
+        txStateMemoryConsumer.consume(stateMemoryTracker);
 
         if (nodeStatesMap != null) {
             // Previously this node state was removed completely and its state cleared. Was that to reduce memory
@@ -453,6 +459,7 @@ public class TxState implements TransactionState {
         RemovalsCountingDiffSets relationships = relationships();
         boolean wasAddedInThisBatch = relationships.isAdded(id);
         relationships.remove(id);
+        txStateMemoryConsumer.consume(stateMemoryTracker);
 
         if (startNodeId == endNodeId) {
             getOrCreateNodeState(startNodeId).removeRelationship(id, type, RelationshipDirection.LOOP);
