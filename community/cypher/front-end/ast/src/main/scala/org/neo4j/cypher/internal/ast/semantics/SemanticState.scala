@@ -356,6 +356,9 @@ object SemanticState {
     ): ScopeLocation =
       location.replace(scope.updateVariable(variable, types, definition, uses, unionVariable))
 
+    /**
+     * Calculates the declarations and dependencies based on the symbol tables in scope and parent scope.
+     */
     def declarationsAndDependenciesForExpressions: DeclarationsAndDependencies = {
       val allDefinitions = scope.children.flatMap(_.allSymbolDefinitions.values.flatten).toSet
       val parentDefinitions = parent.get.availableSymbolDefinitions

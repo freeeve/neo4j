@@ -4427,8 +4427,8 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val indexVar = "  UNNAMED0"
 
     val nestedPlan = planner.subPlanBuilder()
-      .expandInto("(`  c@13`)-[]->(`  a@12`)")
-      .projection(s"`  a@6`[`$indexVar`] AS `  a@12`", s"`  c@7`[`$indexVar`] AS `  c@13`")
+      .expandInto("(`  c@12`)-[]->(`  a@13`)")
+      .projection(s"`  a@6`[`$indexVar`] AS `  a@13`", s"`  c@7`[`$indexVar`] AS `  c@12`")
       .argument("  a@6", "  c@7", indexVar)
       .build()
 

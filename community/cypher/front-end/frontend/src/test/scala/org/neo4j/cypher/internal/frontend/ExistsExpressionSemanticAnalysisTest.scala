@@ -16,10 +16,12 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.UnmappedUnion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.GqlHelper.getGql42001_42I58
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N07
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N39
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N57
@@ -513,6 +515,34 @@ class ExistsExpressionSemanticAnalysisTest
         getGql42001_42N39(UnmappedUnion.errorParam, 105, 8, 5),
         "All sub queries in an UNION must have the same return column names",
         p(105, 8, 5)
+      )
+    )
+  }
+
+  test("should raise an error on cross reference in graph pattern with exists expression") {
+    run(
+      """CREATE (a), (b {prop: EXISTS { MATCH (n) WHERE n.prop = a.prop } })
+        |RETURN a""".stripMargin,
+      disabledVersions = Set(CypherVersion.Cypher5)
+    ).hasErrors(
+      SemanticError(
+        getGql42001_42I58("a", 56, 1, 57),
+        "Creating an entity (a) and referencing that entity in a property definition in the same CREATE is not allowed. Only reference variables created in earlier clauses.",
+        p(56, 1, 57)
+      )
+    )
+  }
+
+  test("should raise an error on cross reference in graph pattern without exists expression") {
+    run(
+      """CREATE (a), (b {prop: a.prop})
+        |RETURN a""".stripMargin,
+      disabledVersions = Set(CypherVersion.Cypher5)
+    ).hasErrors(
+      SemanticError(
+        getGql42001_42I58("a", 22, 1, 23),
+        "Creating an entity (a) and referencing that entity in a property definition in the same CREATE is not allowed. Only reference variables created in earlier clauses.",
+        p(22, 1, 23)
       )
     )
   }

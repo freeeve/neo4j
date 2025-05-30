@@ -353,10 +353,13 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN TRANSACTIONS OF size(()--()) ROWS
          |""".stripMargin
-    run(query).hasError(
-      GqlHelper.getGql42001_42N28("OF ... ROWS", 40, 3, 22),
-      "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
-      p(40, 3, 22)
+    run(query).hasErrors(
+      SemanticError(
+        GqlHelper.getGql42001_42N28("OF ... ROWS", 40, 3, 22),
+        "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
+        p(40, 3, 22)
+      ),
+      SemanticError.patternExpressionInSize(p(45, 3, 27))
     )
   }
 
@@ -377,7 +380,8 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         "List<Integer>",
         "Type mismatch: expected Integer but was List<Integer>",
         p(40, 3, 22)
-      )
+      ),
+      SemanticError.invalidUseOfPatternExpression(p(49, 3, 31))
     )
   }
 
@@ -540,10 +544,13 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN size(()--()) CONCURRENT TRANSACTIONS
          |""".stripMargin
-    run(query).hasError(
-      GqlHelper.getGql42001_42N28("IN ... CONCURRENT", 24, 3, 6),
-      "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
-      p(24, 3, 6)
+    run(query).hasErrors(
+      SemanticError(
+        GqlHelper.getGql42001_42N28("IN ... CONCURRENT", 24, 3, 6),
+        "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
+        p(24, 3, 6)
+      ),
+      SemanticError.patternExpressionInSize(p(29, 3, 11))
     )
   }
 
@@ -564,7 +571,8 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         "List<Integer>",
         "Type mismatch: expected Integer but was List<Integer>",
         p(24, 3, 6)
-      )
+      ),
+      SemanticError.invalidUseOfPatternExpression(p(33, 3, 15))
     )
   }
 

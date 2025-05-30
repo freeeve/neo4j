@@ -218,7 +218,7 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
     run().hasErrorMessages("Variable length relationships must not use relationship type expressions.")
   }
 
-  test("MATCH (n), (m) WITH (n)-[IS A*]->(m) AS p RETURN p AS result") {
+  test("MATCH (n), (m) WITH COLLECT { MATCH p = (n)-[IS A*]->(m) RETURN p } AS p RETURN p AS result") {
     run().hasNoErrors
   }
 

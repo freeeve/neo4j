@@ -64,7 +64,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
     run().hasNoErrors
   }
 
-  test("MATCH (n), (m) WITH (n)-[:!A&!B*]->(m) AS p RETURN p AS result") {
+  test("MATCH (n), (m) WITH COLLECT { MATCH p = (n)-[:!A&!B*]->(m) RETURN p } AS p RETURN p AS result") {
     run().hasErrorMessages("Variable length relationships must not use relationship type expressions.")
   }
 
@@ -138,10 +138,7 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
     )
   }
 
-  // Ignored since changing this would break backwards compatibility.
-  // See the "GPM Sync Rolling Agenda" notes for Nov 23, 2023
-  // Mixed label specification in same statements
-  test(
+  ignore(
     """
       |CALL {
       |  CREATE (n:A&B)
@@ -150,16 +147,15 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |""".stripMargin
   ) {
     run()
-      // .hasErrorMessages(
-      //  "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as multiple comma separated items which one Label each."
-      // )
-      .hasNoErrors
+      .hasErrorMessages(
+        "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as multiple comma separated items which one Label each."
+      )
   }
 
   // Ignored since changing this would break backwards compatibility.
   // See the "GPM Sync Rolling Agenda" notes for Nov 23, 2023
   // Mixed label specification in same statements
-  test(
+  ignore(
     """
       |CALL {
       |  CREATE (n:A&B)
@@ -168,10 +164,9 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |""".stripMargin
   ) {
     run()
-      // .hasErrorMessages(
-      //  "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as multiple comma separated items which one Label each."
-      // )
-      .hasNoErrors
+      .hasErrorMessages(
+        "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as multiple comma separated items which one Label each."
+      )
   }
 
   // Ignored since changing this would break backwards compatibility.
@@ -186,10 +181,9 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |""".stripMargin
   ) {
     run()
-      // .hasErrorMessages(
-      //  "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
-      // )
-      .hasNoErrors
+      .hasErrorMessages(
+        "Mixing variable-length relationships ('-[*]-') with quantified relationships ('()-->*()') or quantified path patterns ('(()-->())*') is not allowed."
+      )
   }
 
   test(

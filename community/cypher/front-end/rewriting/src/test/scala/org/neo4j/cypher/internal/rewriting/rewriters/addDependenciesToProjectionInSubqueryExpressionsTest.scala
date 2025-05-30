@@ -77,7 +77,7 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
         |WHERE EXISTS {
         | MATCH (person)-[:HAS_DOG]->(d:Dog)
         | WHERE EXISTS {
-        |  WITH "Ozzy" as x, person AS person, d AS d
+        |  WITH "Ozzy" as x, d AS d, person AS person
         |  MATCH (person)-[:HAS_DOG]->(d:Dog)
         |  WHERE d.name = x
         |  RETURN person AS person
@@ -146,12 +146,12 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
         |WHERE EXISTS {
         | MATCH (person)-[:HAS_DOG]->(d:Dog)
         | WHERE EXISTS {
-        |  WITH "Ozzy" AS dogName, d AS d, person AS person
+        |  WITH "Ozzy" AS dogName, person AS person
         |  MATCH (person)-[:HAS_DOG]->(dog:Dog)
         |  WHERE dog.name = dogName
         |  RETURN dog AS pet
         |  UNION
-        |  WITH "Sylvester" AS catName, d AS d, person AS person
+        |  WITH "Sylvester" AS catName, person AS person
         |  MATCH (person)-[:HAS_CAT]->(cat:Cat)
         |  WHERE cat.name = catName
         |  RETURN cat AS pet
@@ -185,12 +185,12 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
         |WHERE EXISTS {
         | MATCH (person)-[:HAS_DOG]->(d:Dog)
         | WHERE EXISTS {
-        |  WITH "Ozzy" AS dogName, d AS d, person AS person
+        |  WITH "Ozzy" AS dogName, person AS person
         |  MATCH (person)-[:HAS_DOG]->(dog:Dog)
         |  WHERE dog.name = dogName
         |  RETURN dog AS pet
         |  UNION ALL
-        |  WITH "Sylvester" AS catName, d AS d, person AS person
+        |  WITH "Sylvester" AS catName, person AS person
         |  MATCH (person)-[:HAS_CAT]->(cat:Cat)
         |  WHERE cat.name = catName
         |  RETURN cat AS pet
@@ -293,7 +293,7 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
         |WHERE COUNT {
         | MATCH (person)-[:HAS_DOG]->(d:Dog)
         | WHERE COUNT {
-        |  WITH "Ozzy" as x, person AS person, d AS d
+        |  WITH "Ozzy" as x, d AS d, person AS person
         |  MATCH (person)-[:HAS_DOG]->(d:Dog)
         |  WHERE d.name = x
         |  RETURN person AS person
@@ -362,12 +362,12 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
         |WHERE COUNT {
         | MATCH (person)-[:HAS_DOG]->(d:Dog)
         | WHERE COUNT {
-        |  WITH "Ozzy" AS dogName, d AS d, person AS person
+        |  WITH "Ozzy" AS dogName, person AS person
         |  MATCH (person)-[:HAS_DOG]->(dog:Dog)
         |  WHERE dog.name = dogName
         |  RETURN dog AS pet
         |  UNION
-        |  WITH "Sylvester" AS catName, d AS d, person AS person
+        |  WITH "Sylvester" AS catName, person AS person
         |  MATCH (person)-[:HAS_CAT]->(cat:Cat)
         |  WHERE cat.name = catName
         |  RETURN cat AS pet
@@ -401,12 +401,12 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
         |WHERE COUNT {
         | MATCH (person)-[:HAS_DOG]->(d:Dog)
         | WHERE COUNT {
-        |  WITH "Ozzy" AS dogName, d AS d, person AS person
+        |  WITH "Ozzy" AS dogName, person AS person
         |  MATCH (person)-[:HAS_DOG]->(dog:Dog)
         |  WHERE dog.name = dogName
         |  RETURN dog AS pet
         |  UNION ALL
-        |  WITH "Sylvester" AS catName, d AS d, person AS person
+        |  WITH "Sylvester" AS catName, person AS person
         |  MATCH (person)-[:HAS_CAT]->(cat:Cat)
         |  WHERE cat.name = catName
         |  RETURN cat AS pet

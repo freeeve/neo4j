@@ -1564,10 +1564,13 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
     }
 
     test(s"$phrase with PatternExpression should complain") {
-      run(s"RETURN 1 $phrase size(()-->())").hasError(
-        GqlHelper.getGql42001_42N28(phrase, 10 + phrase.length, 1, 11 + phrase.length),
-        s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
-        p(10 + phrase.length, 1, 11 + phrase.length)
+      run(s"RETURN 1 $phrase size(()-->())").hasErrors(
+        SemanticError(
+          GqlHelper.getGql42001_42N28(phrase, 10 + phrase.length, 1, 11 + phrase.length),
+          s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
+          p(10 + phrase.length, 1, 11 + phrase.length)
+        ),
+        SemanticError.patternExpressionInSize(p(15 + phrase.length, 1, 16 + phrase.length))
       )
     }
 

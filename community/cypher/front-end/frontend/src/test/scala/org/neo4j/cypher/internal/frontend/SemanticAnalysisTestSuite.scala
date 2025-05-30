@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
@@ -116,7 +117,8 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
   def pipelineWithSemanticFeatures(semanticFeatures: SemanticFeature*): Pipeline =
     PreparatoryRewriting andThen
       SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
-      SemanticAnalysis(warn = Some(false), semanticFeatures: _*)
+      SemanticAnalysis(warn = Some(false), semanticFeatures: _*) andThen
+      SemanticTypeCheck
 
   case class Analyse(
     query: String,
