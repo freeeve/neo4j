@@ -19,6 +19,7 @@
  */
 package org.neo4j.consistency;
 
+import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import static org.neo4j.configuration.GraphDatabaseSettings.memory_tracking;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.readOnly;
 import static org.neo4j.io.ByteUnit.bytesToString;
@@ -503,6 +504,7 @@ public class ConsistencyCheckService {
                 String format = storageEngineFactory
                         .retrieveStoreId(fileSystem, databaseLayout, pageCache, cursorContext)
                         .getFormatName();
+                config.set(db_format, format);
                 String databaseName = databaseLayout.getDatabaseName();
                 if (storageEngineFactory.isDeprecated(format)) {
                     outLog.warn(DeprecatedFormatWarning.getFormatWarning(databaseName, format));
