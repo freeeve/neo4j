@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -45,6 +46,7 @@ import static org.neo4j.kernel.impl.index.schema.Types.SIZE_ZONED_TIME;
 import static org.neo4j.test.TestLabels.LABEL_ONE;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +80,8 @@ import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.tags.MultiVersionedTag;
 import org.neo4j.test.utils.TestDirectory;
+import org.neo4j.values.storable.RandomValuesUtils;
+import org.neo4j.values.storable.VectorValue;
 
 @Neo4jLayoutExtension
 @ExtendWith(RandomExtension.class)
@@ -104,6 +108,7 @@ public class RangeIndexKeySizeValidationIT {
     private GraphDatabaseAPI db;
     private JobScheduler scheduler;
     private PageCache pageCache;
+    private boolean includeVectorTypes = false;
 
     @AfterEach
     void cleanup() throws Exception {
@@ -136,7 +141,11 @@ public class RangeIndexKeySizeValidationIT {
         startDb(pageSize);
         List<String> failureMessages = new ArrayList<>();
         NamedDynamicValueGenerator[] dynamicValueGenerators = NamedDynamicValueGenerator.values();
+        var sb = new StringBuilder();
         for (NamedDynamicValueGenerator generator : dynamicValueGenerators) {
+            if (!includeVectorTypes && generator.isVectorType) {
+                continue;
+            }
             int expectedMax = generator.expectedMax;
             String propKey = PROP_KEYS[0] + generator.name();
             createIndex(propKey);
@@ -146,6 +155,7 @@ public class RangeIndexKeySizeValidationIT {
 
             while (!binarySearch.finished()) {
                 propValue = generator.dynamicValue(random, binarySearch.arrayLength);
+                sb.append(propKey.getClass().getSimpleName()).append("\n====\n");
                 long expectedNodeId = -1;
 
                 // Write
@@ -155,7 +165,17 @@ public class RangeIndexKeySizeValidationIT {
                     node.setProperty(propKey, propValue);
                     expectedNodeId = node.getId();
                     tx.commit();
-                } catch (Exception e) {
+                    sb.append("Testing: ")
+                            .append(binarySearch.arrayLength)
+                            .append(" = true")
+                            .append('\n');
+                } catch (IllegalArgumentException e) {
+                    assertThat(e.getMessage()).contains("Property value is too large to index");
+                    sb.append("Testing: ")
+                            .append(binarySearch.arrayLength)
+                            .append(" = ")
+                            .append(e.getMessage())
+                            .append("\n");
                     wasAbleToWrite = false;
                 }
 
@@ -166,6 +186,7 @@ public class RangeIndexKeySizeValidationIT {
                 binarySearch.progress(wasAbleToWrite);
             }
             if (expectedMax != binarySearch.longestSuccessful) {
+                failureMessages.add(sb.toString());
                 failureMessages.add(
                         generator.name() + ": expected=" + expectedMax + ", actual=" + binarySearch.longestSuccessful);
             }
@@ -300,8 +321,13 @@ public class RangeIndexKeySizeValidationIT {
 
     private Object[] generatePropertyValues(String[] propKeys, int keySizeLimitPerSlot, int wiggleRoomPerSlot) {
         Object[] propValues = new Object[propKeys.length];
+        List<NamedDynamicValueGenerator> generators =
+                new ArrayList<>(Arrays.asList(NamedDynamicValueGenerator.values()));
+        if (!includeVectorTypes) {
+            generators.removeIf(NamedDynamicValueGenerator::isVectorType);
+        }
         for (int propKey = 0; propKey < propKeys.length; propKey++) {
-            NamedDynamicValueGenerator among = random.among(NamedDynamicValueGenerator.values());
+            NamedDynamicValueGenerator among = random.among(generators.toArray(NamedDynamicValueGenerator[]::new));
             propValues[propKey] = among.dynamicValue(random, keySizeLimitPerSlot, wiggleRoomPerSlot);
         }
         return propValues;
@@ -355,6 +381,8 @@ public class RangeIndexKeySizeValidationIT {
 
         dbms = builder.build();
         db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
+        includeVectorTypes =
+                RandomValuesUtils.selectStorageEngineDependentConfiguration(db).includeVectorTypes();
     }
 
     private static class SuccessAndFail {
@@ -421,17 +449,75 @@ public class RangeIndexKeySizeValidationIT {
         geographic3DPointArray(
                 SIZE_GEOMETRY_DERIVED_SPACE_FILLING_CURVE_VALUE, 340, (random, i) -> random.randomValues()
                         .nextGeographic3DPointArray(i, i)
-                        .asObjectCopy());
+                        .asObjectCopy()),
+        // NOTE: All Int8Vector in [MIN_VECTOR_DIM, MAX_VECTOR_DIM] fits into a page, no need to test this.
+        vectorInt16(
+                Types.VECTOR_INT16.elementSize,
+                4081,
+                (random, i) -> {
+                    int dim = Math.clamp(i, VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS);
+                    return random.randomValues().nextInt16Vector(dim, dim);
+                },
+                true),
+        vectorInt32(
+                Types.VECTOR_INT32.elementSize,
+                2040,
+                (random, i) -> {
+                    int dim = Math.clamp(i, VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS);
+                    return random.randomValues().nextInt32Vector(dim, dim);
+                },
+                true),
+        vectorInt64(
+                Types.VECTOR_INT64.elementSize,
+                1020,
+                (random, i) -> {
+                    int dim = Math.clamp(i, VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS);
+                    return random.randomValues().nextInt64Vector(dim, dim);
+                },
+                true),
+        vectorFloat32(
+                Types.VECTOR_FLOAT32.elementSize,
+                2040,
+                (random, i) -> {
+                    int dim = Math.clamp(i, VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS);
+                    return random.randomValues().nextFloat32Vector(dim, dim);
+                },
+                true),
+        vectorFloat64(
+                Types.VECTOR_FLOAT64.elementSize,
+                1020,
+                (random, i) -> {
+                    int dim = Math.clamp(i, VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS);
+                    return random.randomValues().nextFloat64Vector(dim, dim);
+                },
+                true);
 
         private final int singleArrayEntrySize;
         private final DynamicValueGenerator generator;
         private final int expectedMax;
+        private final boolean isVectorType;
 
         NamedDynamicValueGenerator(
                 int singleArrayEntrySize, int expectedLongestArrayLength, DynamicValueGenerator generator) {
             this.singleArrayEntrySize = singleArrayEntrySize;
             this.expectedMax = expectedLongestArrayLength;
             this.generator = generator;
+            this.isVectorType = false;
+        }
+
+        NamedDynamicValueGenerator(
+                int singleArrayEntrySize,
+                int expectedLongestArrayLength,
+                DynamicValueGenerator generator,
+                boolean isVectorType) {
+            this.singleArrayEntrySize = singleArrayEntrySize;
+            this.expectedMax = expectedLongestArrayLength;
+            this.generator = generator;
+            this.isVectorType = isVectorType;
+        }
+
+        boolean isVectorType() {
+            return isVectorType;
         }
 
         Object dynamicValue(RandomSupport random, int length) {

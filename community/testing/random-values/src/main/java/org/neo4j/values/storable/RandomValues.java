@@ -375,40 +375,68 @@ public class RandomValues {
         }
     }
 
-    private Int8Vector nextInt8Vector() {
-        int maxDimension = Math.min(maxVectorNumBytes(), MAX_VECTOR_DIMENSIONS);
-        byte[] array = nextByteArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
-        return Values.int8Vector(array);
+    public Int8Vector nextInt8Vector(int minDim, int maxDim) {
+        assert MIN_VECTOR_DIMENSIONS <= minDim && minDim <= maxDim && maxDim <= MAX_VECTOR_DIMENSIONS
+                : "Require (%d,%d) in [%d, %d]".formatted(minDim, maxDim, MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.int8Vector(nextByteArrayRaw(minDim, maxDim));
     }
 
-    private Int16Vector nextInt16Vector() {
-        int maxDimension = Math.min(maxVectorNumBytes() / Short.BYTES, MAX_VECTOR_DIMENSIONS);
-        short[] array = nextShortArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
-        return Values.int16Vector(array);
+    public Int8Vector nextInt8Vector() {
+        return nextInt8Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Byte.BYTES));
     }
 
-    private Int32Vector nextInt32Vector() {
-        int maxDimension = Math.min(maxVectorNumBytes() / Integer.BYTES, MAX_VECTOR_DIMENSIONS);
-        int[] array = nextIntArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
-        return Values.int32Vector(array);
+    public Int16Vector nextInt16Vector(int minDim, int maxDim) {
+        assert MIN_VECTOR_DIMENSIONS <= minDim && minDim <= maxDim && maxDim <= MAX_VECTOR_DIMENSIONS
+                : "Require (%d,%d) in [%d, %d]".formatted(minDim, maxDim, MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.int16Vector(nextShortArrayRaw(minDim, maxDim));
     }
 
-    private Int64Vector nextInt64Vector() {
-        int maxDimension = Math.min(maxVectorNumBytes() / Long.BYTES, MAX_VECTOR_DIMENSIONS);
-        long[] array = nextLongArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
-        return Values.int64Vector(array);
+    public Int16Vector nextInt16Vector() {
+        return nextInt16Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Short.BYTES));
     }
 
-    private Float32Vector nextFloat32Vector() {
-        int maxDimension = Math.min(maxVectorNumBytes() / Float.BYTES, MAX_VECTOR_DIMENSIONS);
-        float[] array = nextFloatArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
-        return Values.float32Vector(array);
+    public Int32Vector nextInt32Vector(int minDim, int maxDim) {
+        assert MIN_VECTOR_DIMENSIONS <= minDim && minDim <= maxDim && maxDim <= MAX_VECTOR_DIMENSIONS
+                : "Require (%d,%d) in [%d, %d]".formatted(minDim, maxDim, MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.int32Vector(nextIntArrayRaw(minDim, maxDim));
     }
 
-    private Float64Vector nextFloat64Vector() {
-        int maxDimension = Math.min(maxVectorNumBytes() / Double.BYTES, MAX_VECTOR_DIMENSIONS);
-        double[] array = nextDoubleArrayRaw(MIN_VECTOR_DIMENSIONS, maxDimension);
-        return Values.float64Vector(array);
+    public Int32Vector nextInt32Vector() {
+        return nextInt32Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Integer.BYTES));
+    }
+
+    public Int64Vector nextInt64Vector(int minDim, int maxDim) {
+        assert MIN_VECTOR_DIMENSIONS <= minDim && minDim <= maxDim && maxDim <= MAX_VECTOR_DIMENSIONS
+                : "Require (%d,%d) in [%d, %d]".formatted(minDim, maxDim, MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.int64Vector(nextLongArrayRaw(minDim, maxDim));
+    }
+
+    public Int64Vector nextInt64Vector() {
+        return nextInt64Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Long.BYTES));
+    }
+
+    public Float32Vector nextFloat32Vector(int minDim, int maxDim) {
+        assert MIN_VECTOR_DIMENSIONS <= minDim && minDim <= maxDim && maxDim <= MAX_VECTOR_DIMENSIONS
+                : "Require (%d,%d) in [%d, %d]".formatted(minDim, maxDim, MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.float32Vector(nextFloatArrayRaw(minDim, maxDim));
+    }
+
+    public Float32Vector nextFloat32Vector() {
+        return nextFloat32Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Float.BYTES));
+    }
+
+    public Float64Vector nextFloat64Vector(int minDim, int maxDim) {
+        assert MIN_VECTOR_DIMENSIONS <= minDim && minDim <= maxDim && maxDim <= MAX_VECTOR_DIMENSIONS
+                : "Require (%d,%d) in [%d, %d]".formatted(minDim, maxDim, MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.float64Vector(nextDoubleArrayRaw(minDim, maxDim));
+    }
+
+    public Float64Vector nextFloat64Vector() {
+        return nextFloat64Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Double.BYTES));
+    }
+
+    private int maxDimensions(int size) {
+        return Math.min(maxVectorNumBytes() / size, MAX_VECTOR_DIMENSIONS);
     }
 
     /**
