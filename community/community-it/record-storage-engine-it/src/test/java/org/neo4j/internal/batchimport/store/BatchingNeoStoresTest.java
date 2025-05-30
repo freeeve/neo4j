@@ -684,7 +684,12 @@ class BatchingNeoStoresTest {
 
             TransactionLogInitializer.getLogFilesInitializer()
                     .initializeLogFiles(
-                            databaseLayout, neoStores.getMetaDataStore(), versionRepository, fileSystem, "testing");
+                            databaseLayout,
+                            neoStores.getMetaDataStore(),
+                            versionRepository,
+                            fileSystem,
+                            "testing",
+                            Config.defaults());
         }
     }
 

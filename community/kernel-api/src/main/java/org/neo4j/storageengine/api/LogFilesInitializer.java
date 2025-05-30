@@ -19,6 +19,7 @@
  */
 package org.neo4j.storageengine.api;
 
+import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.database.MetadataCache;
@@ -34,7 +35,8 @@ public interface LogFilesInitializer {
                 MetadataProvider store,
                 MetadataCache metadataCache,
                 FileSystemAbstraction fileSystem,
-                String checkpointReason) {}
+                String checkpointReason,
+                Config config) {}
 
         @Override
         public void clearHistoryAndInitializeLogFiles(
@@ -54,7 +56,8 @@ public interface LogFilesInitializer {
             MetadataProvider store,
             MetadataCache metadataCache,
             FileSystemAbstraction fileSystem,
-            String checkpointReason);
+            String checkpointReason,
+            Config config);
 
     /**
      * Clears existing log files (transactions and checkpoints) and initializes new ones.

@@ -71,6 +71,7 @@ class SingleFilePageSwapper implements PageSwapper {
     private final boolean canDoVectorizedIO;
     private final int swapperId;
     private final PageFileSwapperTracer fileSwapperTracer;
+    private final boolean doForceOperations;
     private final BlockSwapper blockSwapper;
     private final NativeAccess nativeAccess;
     private final EvictionBouncer evictionBouncer;
@@ -94,12 +95,14 @@ class SingleFilePageSwapper implements PageSwapper {
             PageFileSwapperTracer fileSwapperTracer,
             BlockSwapper blockSwapper,
             NativeAccessFactory nativeAccessFactory,
-            EvictionBouncer evictionBouncer)
+            EvictionBouncer evictionBouncer,
+            boolean doForceOperations)
             throws IOException {
         this.fs = fs;
         this.path = path;
         this.ioController = ioController;
         this.fileSwapperTracer = fileSwapperTracer;
+        this.doForceOperations = doForceOperations;
 
         var options = new ArrayList<>(WRITE_OPTIONS);
         if (useDirectIO) {
@@ -515,6 +518,10 @@ class SingleFilePageSwapper implements PageSwapper {
 
     @Override
     public void force() throws IOException {
+        if (!doForceOperations) {
+            return;
+        }
+
         try (Retry retry = new Retry()) {
             do {
                 try {

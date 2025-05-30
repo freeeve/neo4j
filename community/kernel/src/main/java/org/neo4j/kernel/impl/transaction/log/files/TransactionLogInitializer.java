@@ -74,7 +74,8 @@ public class TransactionLogInitializer {
                     MetadataProvider metadataProvider,
                     MetadataCache metadataCache,
                     FileSystemAbstraction fileSystem,
-                    String checkpointReason) {
+                    String checkpointReason,
+                    Config config) {
                 try {
                     TransactionLogInitializer initializer = new TransactionLogInitializer(
                             fileSystem,
@@ -83,7 +84,7 @@ public class TransactionLogInitializer {
                                     .orElseThrow(),
                             metadataCache);
                     initializer.initializeEmptyLogFile(
-                            databaseLayout, databaseLayout.getTransactionLogsDirectory(), checkpointReason);
+                            databaseLayout, databaseLayout.getTransactionLogsDirectory(), checkpointReason, config);
                 } catch (IOException e) {
                     throw new UnderlyingStorageException("Failed to initialize transaction log files.", e);
                 }
@@ -104,7 +105,10 @@ public class TransactionLogInitializer {
                                     .orElseThrow(),
                             metadataCache);
                     initializer.migrateExistingLogFiles(
-                            databaseLayout, databaseLayout.getTransactionLogsDirectory(), checkpointReason);
+                            databaseLayout,
+                            databaseLayout.getTransactionLogsDirectory(),
+                            checkpointReason,
+                            Config.defaults());
                 } catch (Exception e) {
                     throw new UnderlyingStorageException(
                             "Failed to clear history and initialize transaction log files.", e);
@@ -127,17 +131,19 @@ public class TransactionLogInitializer {
     /**
      * Create new empty log files in the given transaction logs directory, for a database that doesn't have any already.
      */
-    public long initializeEmptyLogFile(DatabaseLayout layout, Path transactionLogsDirectory, String checkpointReason)
+    public long initializeEmptyLogFile(
+            DatabaseLayout layout, Path transactionLogsDirectory, String checkpointReason, Config config)
             throws IOException {
-        try (LogFilesSpan span = buildLogFiles(layout, transactionLogsDirectory)) {
+        try (LogFilesSpan span = buildLogFiles(layout, transactionLogsDirectory, config)) {
             LogFiles logFiles = span.getLogFiles();
             return appendEmptyTransactionAndCheckPoint(logFiles, checkpointReason);
         }
     }
 
-    public long migrateExistingLogFiles(DatabaseLayout layout, Path transactionLogsDirectory, String checkpointReason)
+    public long migrateExistingLogFiles(
+            DatabaseLayout layout, Path transactionLogsDirectory, String checkpointReason, Config config)
             throws Exception {
-        try (LogFilesSpan span = buildLogFiles(layout, transactionLogsDirectory)) {
+        try (LogFilesSpan span = buildLogFiles(layout, transactionLogsDirectory, config)) {
             LogFiles logFiles = span.getLogFiles();
             LogFile logFile = logFiles.getLogFile();
             LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
@@ -157,7 +163,8 @@ public class TransactionLogInitializer {
         }
     }
 
-    private LogFilesSpan buildLogFiles(DatabaseLayout layout, Path transactionLogsDirectory) throws IOException {
+    private LogFilesSpan buildLogFiles(DatabaseLayout layout, Path transactionLogsDirectory, Config config)
+            throws IOException {
         LogFilesBuilder builder = LogFilesBuilder.builder(layout, fs, metadataCache, metadataCache)
                 .withLogVersionRepository(metadataProvider)
                 .withTransactionIdStore(metadataProvider)
@@ -165,6 +172,7 @@ public class TransactionLogInitializer {
                 .withStoreId(metadataProvider.getStoreId())
                 .withLogsDirectory(transactionLogsDirectory)
                 .withStorageEngineFactory(storageEngineFactory)
+                .withConfig(config)
                 .withDatabaseHealth(new DatabaseHealth(HealthEventGenerator.NO_OP, NullLog.getInstance()));
         if (metadataCache.kernelVersion() == KernelVersion.GLORIOUS_FUTURE) {
             builder.withConfig(Config.defaults(

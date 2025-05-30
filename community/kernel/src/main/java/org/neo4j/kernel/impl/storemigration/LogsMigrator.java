@@ -126,12 +126,12 @@ class LogsMigrator {
                     return new MigrationTransactionIds(
                             TransactionIdStore.BASE_TX_ID,
                             logInitializer.initializeEmptyLogFile(
-                                    databaseLayout, transactionLogsDirectory, MIGRATION_CHECKPOINT));
+                                    databaseLayout, transactionLogsDirectory, MIGRATION_CHECKPOINT, config));
                 } else {
                     return new MigrationTransactionIds(
                             lastTxId,
                             logInitializer.migrateExistingLogFiles(
-                                    databaseLayout, transactionLogsDirectory, MIGRATION_CHECKPOINT));
+                                    databaseLayout, transactionLogsDirectory, MIGRATION_CHECKPOINT, config));
                 }
             } catch (Exception exception) {
                 throw new UnableToMigrateException(
@@ -155,7 +155,7 @@ class LogsMigrator {
                 return new MigrationTransactionIds(
                         TransactionIdStore.BASE_TX_ID,
                         logInitializer.initializeEmptyLogFile(
-                                databaseLayout, transactionLogsDirectory, MIGRATION_CHECKPOINT));
+                                databaseLayout, transactionLogsDirectory, MIGRATION_CHECKPOINT, config));
             } catch (Exception exception) {
                 throw new UnableToMigrateException(
                         "Failure on attempt to upgrade transaction logs to new version.", exception);

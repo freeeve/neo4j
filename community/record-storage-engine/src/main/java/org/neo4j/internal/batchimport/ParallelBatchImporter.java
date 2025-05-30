@@ -149,7 +149,8 @@ public class ParallelBatchImporter implements BatchImporter {
                     store.getNeoStores().getMetaDataStore(),
                     new MetadataCache(logTailMetadata),
                     fileSystem,
-                    BATCH_IMPORTER_CHECKPOINT);
+                    BATCH_IMPORTER_CHECKPOINT,
+                    dbConfig);
             logic.buildAuxiliaryStores();
             logic.success();
         }

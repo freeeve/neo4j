@@ -43,12 +43,22 @@ public class SingleFilePageSwapperFactory implements PageSwapperFactory {
     private final FileSystemAbstraction fs;
     private final PageCacheTracer pageCacheTracer;
     private final BlockSwapper blockSwapper;
+    private final boolean doForceOperations;
 
     public SingleFilePageSwapperFactory(
             FileSystemAbstraction fs, PageCacheTracer pageCacheTracer, MemoryTracker memoryTracker) {
+        this(fs, pageCacheTracer, memoryTracker, true);
+    }
+
+    public SingleFilePageSwapperFactory(
+            FileSystemAbstraction fs,
+            PageCacheTracer pageCacheTracer,
+            MemoryTracker memoryTracker,
+            boolean doForceOperations) {
         this.fs = fs;
         this.pageCacheTracer = pageCacheTracer;
         this.blockSwapper = createBlockSwapper(memoryTracker);
+        this.doForceOperations = doForceOperations;
     }
 
     @Override
@@ -76,7 +86,8 @@ public class SingleFilePageSwapperFactory implements PageSwapperFactory {
                 pageCacheTracer.createFileSwapperTracer(),
                 blockSwapper,
                 nativeAccessFactory(),
-                evictionBouncer);
+                evictionBouncer,
+                doForceOperations);
     }
 
     private static BlockSwapper createBlockSwapper(MemoryTracker memoryTracker) {
