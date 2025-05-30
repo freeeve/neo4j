@@ -102,7 +102,8 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
             tx.commit();
         }
 
-        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb);
+        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb)
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY);
         randomRule.withConfiguration(configuration);
         randomRule.reset();
 

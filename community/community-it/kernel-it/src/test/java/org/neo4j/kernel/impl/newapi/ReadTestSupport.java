@@ -73,7 +73,9 @@ public class ReadTestSupport implements KernelAPIReadTestSupport {
 
     @Override
     public void tearDown() {
-        managementService.shutdown();
+        if (managementService != null) {
+            managementService.shutdown();
+        }
         db = null;
     }
 }

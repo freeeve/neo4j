@@ -129,6 +129,9 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @Inject
     RandomSupport random;
 
+    static final int MIN_NUM_SLOTS = 2;
+    static final int MAX_NUM_SLOTS = 5;
+
     @BeforeEach
     void setupRandomConfig() {
         random = random.withConfiguration(RandomValues.defaults()
@@ -136,7 +139,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
                 .stringMaxLength(50)
                 .arrayMinLength(0)
                 .maxCodePoint(RandomValues.MAX_BMP_CODE_POINT)
-                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / MAX_NUM_SLOTS));
         random.reset();
     }
 
@@ -167,7 +170,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @MethodSource("validValueGenerators")
     void readWhatIsWrittenCompositeKey(ValueGenerator valueGenerator) {
         // Given
-        int nbrOfSlots = random.nextInt(2, 5);
+        int nbrOfSlots = random.nextInt(MIN_NUM_SLOTS, MAX_NUM_SLOTS);
         PageCursor cursor = newPageCursor();
         Layout<KEY> layout = newLayout(nbrOfSlots);
         KEY writeState = layout.newKey();
@@ -212,7 +215,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @MethodSource("validValueGenerators")
     void copyShouldCopyCompositeKey(ValueGenerator valueGenerator) {
         // Given
-        int nbrOfSlots = random.nextInt(2, 5);
+        int nbrOfSlots = random.nextInt(MIN_NUM_SLOTS, MAX_NUM_SLOTS);
         Layout<KEY> layout = newLayout(nbrOfSlots);
         KEY from = layout.newKey();
         Value[] values = generateValuesForCompositeKey(nbrOfSlots, valueGenerator);
@@ -275,7 +278,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @ParameterizedTest
     @MethodSource("validComparableValueGenerators")
     void compositeKeyCompareToMustAlignWithValuesCompareTo(ValueGenerator valueGenerator) {
-        int nbrOfSlots = random.nextInt(2, 5);
+        int nbrOfSlots = random.nextInt(MIN_NUM_SLOTS, MAX_NUM_SLOTS);
         List<KEY> states = new ArrayList<>();
         Layout<KEY> layout = newLayout(nbrOfSlots);
         for (int i = 0; i < 10; i++) {
@@ -397,7 +400,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @ParameterizedTest
     @MethodSource("validComparableValueGenerators")
     void mustProduceValidMinimalSplittersCompositeKey(ValueGenerator valueGenerator) {
-        int nbrOfSlots = random.nextInt(2, 5);
+        int nbrOfSlots = random.nextInt(MIN_NUM_SLOTS, MAX_NUM_SLOTS);
         Layout<KEY> layout = newLayout(nbrOfSlots);
         KEY key1 = layout.newKey();
         Value[] values1 = generateValuesForCompositeKey(nbrOfSlots, valueGenerator);
@@ -432,7 +435,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @ParameterizedTest
     @MethodSource("validValueGenerators")
     void mustProduceValidMinimalSplittersWhenValuesAreEqualCompositeKey(ValueGenerator valueGenerator) {
-        int nbrOfSlots = random.nextInt(2, 5);
+        int nbrOfSlots = random.nextInt(MIN_NUM_SLOTS, MAX_NUM_SLOTS);
         Layout<KEY> layout = newLayout(nbrOfSlots);
         KEY leftState = layout.newKey();
         KEY rightState = layout.newKey();
@@ -475,7 +478,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @MethodSource("validValueGenerators")
     void mustReportCorrectSizeCompositeKey(ValueGenerator valueGenerator) {
         // Given
-        int nbrOfSlots = random.nextInt(2, 5);
+        int nbrOfSlots = random.nextInt(MIN_NUM_SLOTS, MAX_NUM_SLOTS);
         PageCursor cursor = newPageCursor();
         Layout<KEY> layout = newLayout(nbrOfSlots);
         KEY state = layout.newKey();
@@ -743,7 +746,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @MethodSource("validValueGenerators")
     void minimalSplitterForSameValueShouldDivideLeftAndRightCompositeKey(ValueGenerator valueGenerator) {
         // Given composite keys with same set of values
-        int nbrOfSlots = random.nextInt(2, 5);
+        int nbrOfSlots = random.nextInt(MIN_NUM_SLOTS, MAX_NUM_SLOTS);
         Layout<KEY> layout = newLayout(nbrOfSlots);
         KEY left = layout.newKey();
         KEY right = layout.newKey();
@@ -776,7 +779,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @MethodSource("validValueGenerators")
     void minimalSplitterShouldRemoveEntityIdIfPossibleCompositeKey(ValueGenerator valueGenerator) {
         // Given
-        int nbrOfSlots = random.nextInt(2, 5);
+        int nbrOfSlots = random.nextInt(MIN_NUM_SLOTS, MAX_NUM_SLOTS);
         int differingSlot = random.nextInt(nbrOfSlots);
         Layout<KEY> layout = newLayout(nbrOfSlots);
         KEY left = layout.newKey();

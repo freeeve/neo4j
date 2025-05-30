@@ -120,6 +120,11 @@ public class RandomExtension extends StatefulFieldExtension<RandomSupport>
         handleException(context, t);
     }
 
+    @Override
+    public void handleBeforeAllMethodExecutionException(ExtensionContext context, Throwable t) {
+        handleException(context, t);
+    }
+
     private void handleException(ExtensionContext context, Throwable t) {
         if (t instanceof TestAbortedException aborted) {
             throw aborted;
