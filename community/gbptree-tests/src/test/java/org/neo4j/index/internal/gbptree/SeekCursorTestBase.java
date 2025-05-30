@@ -803,6 +803,37 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
     }
 
     @Test
+    void mustContinueToNextLeafWhenLeafIsSplitWithFullRangeGoingToTheRight() throws Exception {
+        // GIVEN
+        List<Long> expected = new ArrayList<>();
+        long maxKeyCount = fullLeaf(expected);
+        long fromInclusive = maxKeyCount * 3 / 4;
+        long toExclusive = maxKeyCount + 1; // We will add maxKeyCount later
+
+        // WHEN
+        PageAwareByteArrayCursor seekCursor = cursor.duplicate();
+        seekCursor.next();
+        try (SeekCursor<KEY, VALUE> cursor = seekCursor(fromInclusive, toExclusive, seekCursor)) {
+            int readKeys = (int) fromInclusive;
+            cursor.next();
+            assertKeyAndValue(cursor, expected.get(readKeys));
+            readKeys++;
+
+            // Seeker pauses and writer insert new key which causes a split
+            expected.add(maxKeyCount);
+            insert(maxKeyCount);
+
+            seekCursor.forceRetry();
+
+            while (cursor.next()) {
+                assertKeyAndValue(cursor, expected.get(readKeys));
+                readKeys++;
+            }
+            assertEquals(expected.size(), readKeys);
+        }
+    }
+
+    @Test
     void mustContinueToNextLeafWhenRangeIsSplitIntoRightLeafAndPosToRightBackwards() throws Exception {
         // GIVEN
         List<Long> expected = new ArrayList<>();
