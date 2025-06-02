@@ -25,6 +25,8 @@ import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.readOnly;
 import static org.neo4j.io.ByteUnit.bytesToString;
+import static org.neo4j.kernel.database.DatabaseReferenceImpl.GraphShard.isGraphShardName;
+import static org.neo4j.kernel.database.DatabaseReferenceImpl.PropertyShard.isPropertyShardName;
 import static org.neo4j.kernel.impl.pagecache.ConfigurableStandalonePageCacheFactory.createPageCache;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
@@ -33,6 +35,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.StringJoiner;
@@ -256,6 +259,10 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
                     DatabaseLayout databaseLayout = Neo4jLayout.of(config).databaseLayout(dbName);
                     checkDatabaseExistence(databaseLayout);
 
+                    if (isGraphShardName(dbName) || isPropertyShardName(dbName)) {
+                        throw new CommandFailedException("Can't migrate a sharded database");
+                    }
+
                     resultLog.info("Store size: "
                             + bytesToString(FileSystemUtils.size(fs, databaseLayout.databaseDirectory())));
 
@@ -270,6 +277,10 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
 
                             checkAllowedToMigrateSystemDb(
                                     currentStorageEngineFactory, fs, databaseLayout, pageCache, contextFactory);
+                        }
+
+                        if (Objects.equals(formatForDb, "spd_block")) {
+                            throw new CommandFailedException("Can't migrate to a sharded database");
                         }
 
                         StorageEngineFactory targetStorageEngineFactory = formatForDb == null
