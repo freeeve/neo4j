@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.physicalplanning
 import org.neo4j.cypher.internal
 import org.neo4j.cypher.internal.ast.ProcedureResultItem
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.hasRetry
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -299,6 +300,27 @@ class SingleQuerySlotAllocator private[physicalplanning] (
     allocateArgumentSlots && plan.isInstanceOf[CartesianProduct]
 
   /**
+   * We need an additional nested argument row id slot for some plans
+   */
+  private def nestedArgumentRowIdSlotNeeded(plan: LogicalPlan): Boolean = {
+    allocateArgumentSlots && {
+      plan match {
+        // Repeat requires 2 arguments: one per incoming LHS row (regular ApplyPlan case), and one per RHS invocation (QPP repetition)
+        case _: Repeat =>
+          true
+        // TransactionApply with retry need an explicit argument slot for batch id
+        case p: TransactionApply =>
+          hasRetry(p.onErrorBehaviour)
+        // TransactionForeach with retry need an explicit argument slot for batch id
+        case p: TransactionForeach =>
+          hasRetry(p.onErrorBehaviour)
+        case _ =>
+          false
+      }
+    }
+  }
+
+  /**
    * Allocate slot for every operator in the logical plan tree `lp`.
    *
    * @param lp the logical plan to process.
@@ -403,14 +425,10 @@ class SingleQuerySlotAllocator private[physicalplanning] (
           val trailPlan = if (current.isInstanceOf[RepeatTrail] || current.isInstanceOf[RepeatWalk]) current.id
           else argument.trailPlan
           if (allocateArgumentSlots) {
-            current match {
-              case _: Repeat =>
-                // Repeat requires 2 arguments: one per incoming LHS row (regular ApplyPlan case), and one per RHS invocation (QPP repetition)
-                argumentSlots.newNestedArgument(current.id)
-                argumentSlots.newArgument(current.id)
-              case _ =>
-                argumentSlots.newArgument(current.id)
+            if (nestedArgumentRowIdSlotNeeded(current)) {
+              argumentSlots.newNestedArgument(current.id)
             }
+            argumentSlots.newArgument(current.id)
           }
           allocateLhsOfApply(current, nullable, argumentSlots, semanticTable)
           val lhsSlots = allocations.get(left.id)

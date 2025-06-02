@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.options
 
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.configuration.GraphDatabaseInternalSettings.CypherPipelinedBatchSizePreset
 import org.neo4j.configuration.GraphDatabaseInternalSettings.HeapEstimatorCachePreset
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
@@ -56,6 +57,7 @@ case class CypherQueryOptions(
   inferSchemaParts: CypherInferSchemaPartsOption,
   statefulShortestPlanningModeOption: CypherStatefulShortestPlanningModeOption,
   planVarExpandInto: CypherPlanVarExpandInto,
+  pipelinedBatchSizePresetOption: CypherPipelinedBatchSizePresetOption,
   heapEstimatorCacheOption: CypherHeapEstimatorCacheOption
 ) {
 
@@ -106,6 +108,26 @@ case class CypherQueryOptions(
   def logicalPlanCacheKey: String = CypherQueryOptions.logicalPlanCacheKey.logicalPlanCacheKey(this)
 }
 
+case class CypherDerivedQueryOptions(
+  pipelinedBatchSize: CypherPipelinedBatchSize,
+  heapEstimatorCacheConfig: HeapEstimatorCacheConfig
+) {
+
+  /**
+   * Cache key used for executableQueryCache, astCache, and exeuctionPlanCache.
+   */
+  def cacheKey: String = {
+    pipelinedBatchSize.cacheKey
+  }
+
+  /**
+   * Cache key used for logicalPlanCache.
+   */
+  def logicalPlanCacheKey: String = {
+    pipelinedBatchSize.cacheKey
+  }
+}
+
 object CypherQueryOptions {
 
   private val hasDefault = OptionDefault.derive[CypherQueryOptions]
@@ -134,6 +156,24 @@ object CypherQueryOptions {
         }
         options
     }
+  }
+
+  def derivedOptions(queryOptions: CypherQueryOptions, config: CypherConfiguration): CypherDerivedQueryOptions = {
+    val batchSize = CypherPipelinedBatchSizePresetOption.batchSizeConfigFrom(
+      queryOptions.pipelinedBatchSizePresetOption,
+      config.pipelinedBatchSizeSmall,
+      config.pipelinedBatchSizeBig
+    )
+    val heapEstimatorCacheConfig = CypherHeapEstimatorCacheOption.heapEstimatorCacheConfigFrom(
+      queryOptions.heapEstimatorCacheOption,
+      config
+    )
+    CypherDerivedQueryOptions(batchSize, heapEstimatorCacheConfig)
+  }
+
+  // Test-only
+  def defaultDerivedOptions: CypherDerivedQueryOptions = {
+    derivedOptions(defaultOptions, CypherConfiguration.fromConfig(Config.defaults()))
   }
 
   final private def ILLEGAL_EXPRESSION_ENGINE_RUNTIME_COMBINATIONS
@@ -679,6 +719,95 @@ case object CypherPlanVarExpandInto
     OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
   implicit val reader: OptionReader[CypherPlanVarExpandInto] = singleOptionReader()
 
+}
+
+sealed abstract class CypherPipelinedBatchSizePresetOption(val preset: String) extends CypherKeyValueOption(preset) {
+  override def companion: CypherPipelinedBatchSizePresetOption.type = CypherPipelinedBatchSizePresetOption
+  override def cacheKey: String = "" // This is option only has effect via derivedOptionsCacheKey
+
+  override def relevantForLogicalPlanCacheKey: Boolean =
+    false // This is option only has effect via derivedOptionsCacheKey
+}
+
+case object CypherPipelinedBatchSizePresetOption extends CypherOptionCompanion[CypherPipelinedBatchSizePresetOption](
+      name = "batchSizePreset",
+      setting = Some(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_preset),
+      cypherConfigField = Some(_.pipelinedBatchSizePreset)
+    ) {
+  case object default extends CypherPipelinedBatchSizePresetOption("default")
+  case object disabled extends CypherPipelinedBatchSizePresetOption("disabled")
+  case object small extends CypherPipelinedBatchSizePresetOption("small")
+  case object medium extends CypherPipelinedBatchSizePresetOption("medium")
+  case object large extends CypherPipelinedBatchSizePresetOption("large")
+  case object custom extends CypherPipelinedBatchSizePresetOption("custom")
+
+  def values: Set[CypherPipelinedBatchSizePresetOption] = Set(default, disabled, small, medium, large, custom)
+
+  implicit val hasDefault: OptionDefault[CypherPipelinedBatchSizePresetOption] = OptionDefault.create(default)
+  implicit val renderer: OptionRenderer[CypherPipelinedBatchSizePresetOption] = OptionRenderer.create(_.render)
+  implicit val cacheKey: OptionCacheKey[CypherPipelinedBatchSizePresetOption] = OptionCacheKey.create(_.cacheKey)
+
+  implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherPipelinedBatchSizePresetOption] =
+    OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
+  implicit val reader: OptionReader[CypherPipelinedBatchSizePresetOption] = singleOptionReader()
+
+  override def fromConfig(configuration: Config): CypherPipelinedBatchSizePresetOption = {
+    configuration.get(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_preset) match {
+      case CypherPipelinedBatchSizePreset.DEFAULT =>
+        CypherPipelinedBatchSizePresetOption.default
+      case CypherPipelinedBatchSizePreset.DISABLED =>
+        CypherPipelinedBatchSizePresetOption.disabled
+      case CypherPipelinedBatchSizePreset.SMALL =>
+        CypherPipelinedBatchSizePresetOption.small
+      case CypherPipelinedBatchSizePreset.MEDIUM =>
+        CypherPipelinedBatchSizePresetOption.medium
+      case CypherPipelinedBatchSizePreset.LARGE =>
+        CypherPipelinedBatchSizePresetOption.large
+      case CypherPipelinedBatchSizePreset.CUSTOM =>
+        CypherPipelinedBatchSizePresetOption.custom
+    }
+  }
+
+  // This is included in derivedOptionsCacheKey
+  def batchSizeConfigFrom(
+    option: CypherPipelinedBatchSizePresetOption,
+    defaultBatchSizeSmall: Int,
+    defaultBatchSizeBig: Int
+  ): CypherPipelinedBatchSize = {
+    option match {
+      case CypherPipelinedBatchSizePresetOption.default | CypherPipelinedBatchSizePresetOption.custom =>
+        CypherPipelinedBatchSize(defaultBatchSizeSmall, defaultBatchSizeBig)
+      case CypherPipelinedBatchSizePresetOption.disabled =>
+        CypherPipelinedBatchSize(1, 1)
+      case CypherPipelinedBatchSizePresetOption.small =>
+        CypherPipelinedBatchSize(128, 128)
+      case CypherPipelinedBatchSizePresetOption.medium =>
+        CypherPipelinedBatchSize(1024, 1024)
+      case CypherPipelinedBatchSizePresetOption.large =>
+        CypherPipelinedBatchSize(16384, 16384)
+    }
+  }
+}
+
+object CypherPipelinedBatchSize {
+
+  // Used to avoid polluting the cache key when nothing has been reconfigured.
+  final val defaultDefaultBatchSize: CypherPipelinedBatchSize =
+    CypherPipelinedBatchSize(
+      GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small.defaultValue(),
+      GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big.defaultValue()
+    )
+}
+
+case class CypherPipelinedBatchSize(small: Int, big: Int) {
+
+  def cacheKey: String = {
+    if (this == CypherPipelinedBatchSize.defaultDefaultBatchSize) {
+      "" // Do not pollute the cache key with default values
+    } else {
+      String.format("BatchSize(%s,%s)", small, big)
+    }
+  }
 }
 
 sealed abstract class CypherHeapEstimatorCacheOption(val preset: String) extends CypherKeyValueOption(preset) {

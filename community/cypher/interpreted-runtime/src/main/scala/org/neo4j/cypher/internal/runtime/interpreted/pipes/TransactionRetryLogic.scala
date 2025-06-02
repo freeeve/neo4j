@@ -95,8 +95,8 @@ case class ExponentialBackoffRetryLogic(
 
 object ExponentialBackoffRetryLogic {
   final val DEFAULT_MAX_RETRY_TIME_NANOS: Long = SECONDS.toNanos(30)
-  final val INITIAL_RETRY_DELAY_NANOS = MILLISECONDS.toNanos(10)
-  final val RETRY_DELAY_MULTIPLIER = 2.0
+  final val INITIAL_RETRY_DELAY_NANOS = MILLISECONDS.toNanos(1)
+  final val RETRY_DELAY_MULTIPLIER = 1.5
   final val RETRY_DELAY_JITTER_FACTOR = 0.2
   final val MAX_RETRY_DELAY_NANOS = Long.MaxValue / 2
 
@@ -133,7 +133,10 @@ object ExponentialBackoffRetryLogic {
       val ts = retryTimestamp
       val now = System.nanoTime()
       val nanosUntilRetry = ts - now
-      nanosUntilRetry
+      if (nanosUntilRetry >= 0)
+        nanosUntilRetry
+      else
+        0L
     }
 
     override def retryTimeout: Duration = Duration.fromNanos(config.maxRetryTimeNanos)

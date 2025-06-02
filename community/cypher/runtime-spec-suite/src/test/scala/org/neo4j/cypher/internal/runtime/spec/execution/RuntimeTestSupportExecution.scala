@@ -46,7 +46,7 @@ trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] extends RuntimeExec
   protected def defaultTestPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty
 
   protected def defaultQueryRuntimeConfig: QueryRuntimeConfig =
-    runtimeTestSupport.edition.defaultQueryRuntimeConfig
+    runtimeTestSupport.runtimeContextManager.defaultQueryRuntimeConfig
   protected def defaultReadOnly: Boolean = true
   protected def defaultImplicitTx: Boolean = false
   protected def defaultInputStream: InputDataStream = NoInput

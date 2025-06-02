@@ -135,11 +135,10 @@ object ExecutionModel {
         ) =>
         val builder = Seq.newBuilder[Any]
 
-        if (GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small.dynamic())
-          builder.addOne(smallBatchSize)
-
-        if (GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big.dynamic())
-          builder.addOne(bigBatchSize)
+        // NOTE: GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small and
+        //       GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big are dynamic settings,
+        //       that are included in the cache key via derived query options.
+        //       We do not add them here as the assertion would fail.
 
         builder.result()
     }
@@ -165,11 +164,10 @@ object ExecutionModel {
         ) =>
         val builder = Seq.newBuilder[Any]
 
-        if (GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small.dynamic())
-          builder.addOne(smallBatchSize)
-
-        if (GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big.dynamic())
-          builder.addOne(bigBatchSize)
+        // NOTE: GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small and
+        //       GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big are dynamic settings,
+        //       that are included in the cache key via derived query options.
+        //       We do not add them here as the assertion would fail.
 
         if (GraphDatabaseInternalSettings.parallel_runtime_config.dynamic())
           builder.addOne(providedOrderPreserving)

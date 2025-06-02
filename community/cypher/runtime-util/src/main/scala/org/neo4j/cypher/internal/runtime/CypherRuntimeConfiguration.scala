@@ -48,8 +48,9 @@ object CypherRuntimeConfiguration {
       expressionEngineOption = config.expressionEngineOption,
       spdBatchSize = config.shardedPropertyBatchSize,
       warnOnAggregationSkipNull = config.warnOnAggregationSkipNull,
-      errorIfShortestPathHasCommonNodesAtRuntime = config.errorIfShortestPathHasCommonNodesAtRuntime
-    )
+      errorIfShortestPathHasCommonNodesAtRuntime = config.errorIfShortestPathHasCommonNodesAtRuntime,
+      pipelinedSubqueryTransactionRetryEnabled = config.pipelinedSubqueryTransactionRetryEnabled
+    )(config)
   }
 
   def defaultConfiguration: CypherRuntimeConfiguration =
@@ -57,8 +58,8 @@ object CypherRuntimeConfiguration {
 }
 
 case class CypherRuntimeConfiguration(
-  pipelinedBatchSizeSmall: Int,
-  pipelinedBatchSizeBig: Int,
+  pipelinedBatchSizeSmall: Int, // NOTE: Only used when no ExecutionModel is provided in the LogicalQuery
+  pipelinedBatchSizeBig: Int, // NOTE: Only used when no ExecutionModel is provided in the LogicalQuery
   operatorFusionOverPipelineLimit: Int,
   operatorFusionLowerLimit: Int,
   schedulerTracing: SchedulerTracingConfiguration,
@@ -74,14 +75,22 @@ case class CypherRuntimeConfiguration(
   expressionEngineOption: CypherExpressionEngineOption,
   spdBatchSize: Int,
   warnOnAggregationSkipNull: Boolean,
-  errorIfShortestPathHasCommonNodesAtRuntime: Boolean
-) {
+  errorIfShortestPathHasCommonNodesAtRuntime: Boolean,
+  pipelinedSubqueryTransactionRetryEnabled: Boolean
+)(val cypherConfiguration: CypherConfiguration = null) {
 
   Preconditions.checkArgument(
     pipelinedBatchSizeSmall <= pipelinedBatchSizeBig,
-    s"pipelinedBatchSizeSmall (got $pipelinedBatchSizeSmall) must be <= pipelinedBatchSizeBig (got $pipelinedBatchSizeBig)"
+    s"pipelinedBatchSizeSmall (got ${pipelinedBatchSizeSmall}) must be <= pipelinedBatchSizeBig (got ${pipelinedBatchSizeBig})"
   )
 
+  def snapshot(): CypherRuntimeConfiguration = {
+    if (cypherConfiguration != null) {
+      CypherRuntimeConfiguration.fromCypherConfiguration(cypherConfiguration)
+    } else {
+      this.copy()(null)
+    }
+  }
 }
 
 object SchedulerTracingConfiguration {

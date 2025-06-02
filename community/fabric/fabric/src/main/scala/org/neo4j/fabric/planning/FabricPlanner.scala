@@ -195,7 +195,7 @@ case class FabricPlanner(
         case CypherVersion.Cypher25 => CypherVersionOption.cypher25
       }
       if (useHelper.fragmentTargetsCompositeContext(fragment)) {
-        val defaultOptions = QueryOptions.default(query.resolvedLanguage)
+        val defaultOptions = QueryOptions.default(cypherConfig, query.resolvedLanguage)
         defaultOptions.copy(
           queryOptions = defaultOptions.queryOptions.copy(
             runtime = CypherRuntimeOption.slotted,

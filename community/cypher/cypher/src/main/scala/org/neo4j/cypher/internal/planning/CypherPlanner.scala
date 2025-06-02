@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches.LogicalPlanCache.Cachea
 import org.neo4j.cypher.internal.compiler
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
+import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedSingleThreaded
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -80,6 +81,9 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ProcedureCall
 import org.neo4j.cypher.internal.logical.plans.SystemProcedureCall
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
+import org.neo4j.cypher.internal.options.CypherPipelinedBatchSize
+import org.neo4j.cypher.internal.options.CypherPipelinedBatchSizePresetOption
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.options.CypherUpdateStrategy
@@ -188,6 +192,21 @@ object CypherPlanner {
     IDPQueryGraphSolver(singleComponentPlanner, componentConnectorPlanner, existsSubqueryPlanner)(monitor)
   }
 
+  def selectExecutionModel(
+    runtimeOption: CypherRuntimeOption,
+    containsUpdates: Boolean,
+    getParallelRuntimeConfigOption: () => CypherParallelRuntimeConfigOption,
+    getBatchSize: () => CypherPipelinedBatchSize
+  ): ExecutionModel = runtimeOption match {
+    case CypherRuntimeOption.pipelined =>
+      val batchSize = getBatchSize()
+      BatchedSingleThreaded(batchSize.small, batchSize.big)
+    case CypherRuntimeOption.parallel if !containsUpdates =>
+      val batchSize = getBatchSize()
+      val inferredRuntimeConfig = getParallelRuntimeConfigOption()
+      BatchedParallel(batchSize.small, batchSize.big, inferredRuntimeConfig.leverageOrder)
+    case _ => Volcano
+  }
 }
 
 /**
@@ -362,6 +381,14 @@ case class CypherPlanner(
     notificationLogger: InternalNotificationLogger,
     rawQueryText: String
   ): LogicalPlanResult = {
+    def getBatchSize: CypherPipelinedBatchSize = {
+      CypherPipelinedBatchSizePresetOption.batchSizeConfigFrom(
+        options.queryOptions.pipelinedBatchSizePresetOption,
+        plannerConfig.pipelinedBatchSizeSmall(),
+        plannerConfig.pipelinedBatchSizeBig()
+      )
+    }
+
     // Context used for db communication during planning
     val createPlanContext = CypherPlanner.customPlanContextCreator.getOrElse(TransactionBoundPlanContext.apply _)
 
@@ -393,19 +420,9 @@ case class CypherPlanner(
       case x                           => x
     }
     val containsUpdates: Boolean = syntacticQuery.statement().containsUpdates
-    val executionModel = inferredRuntime match {
-      case CypherRuntimeOption.pipelined =>
-        BatchedSingleThreaded(plannerConfig.pipelinedBatchSizeSmall(), plannerConfig.pipelinedBatchSizeBig())
-      case CypherRuntimeOption.parallel if !containsUpdates =>
-        val inferredRuntimeConfig = options.queryOptions.parallelRuntimeConfigOption
-
-        BatchedParallel(
-          plannerConfig.pipelinedBatchSizeSmall(),
-          plannerConfig.pipelinedBatchSizeBig(),
-          inferredRuntimeConfig.leverageOrder
-        )
-      case _ => Volcano
-    }
+    val inferredRuntimeConfig = () => options.queryOptions.parallelRuntimeConfigOption
+    val executionModel =
+      CypherPlanner.selectExecutionModel(inferredRuntime, containsUpdates, inferredRuntimeConfig, () => getBatchSize)
     val maybeUpdateStrategy: Option[UpdateStrategy] = options.queryOptions.updateStrategy match {
       case CypherUpdateStrategy.eager => Some(eagerUpdateStrategy)
       case _                          => None

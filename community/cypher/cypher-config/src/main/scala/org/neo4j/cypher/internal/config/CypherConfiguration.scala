@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeSupportOption
+import org.neo4j.cypher.internal.options.CypherPipelinedBatchSizePresetOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
@@ -132,8 +133,11 @@ class CypherConfiguration private (val config: Config) {
   val csvBufferSize: Int = config.get(GraphDatabaseSettings.csv_buffer_size).intValue()
   val expressionEngineOption: CypherExpressionEngineOption = CypherExpressionEngineOption.fromConfig(config)
   val lenientCreateRelationship: Boolean = config.get(GraphDatabaseSettings.cypher_lenient_create_relationship)
-  val pipelinedBatchSizeSmall: Int = config.get(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small)
-  val pipelinedBatchSizeBig: Int = config.get(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big)
+
+  def pipelinedBatchSizePreset: CypherPipelinedBatchSizePresetOption =
+    CypherPipelinedBatchSizePresetOption.fromConfig(config)
+  def pipelinedBatchSizeSmall: Int = config.get(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small)
+  def pipelinedBatchSizeBig: Int = config.get(GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big)
   val doSchedulerTracing: Boolean = config.get(GraphDatabaseInternalSettings.enable_pipelined_runtime_trace)
   val schedulerTracingFile: File = config.get(GraphDatabaseInternalSettings.pipelined_scheduler_trace_filename).toFile
   val recompilationLimit: Int = config.get(GraphDatabaseInternalSettings.cypher_expression_recompilation_limit)
@@ -182,6 +186,9 @@ class CypherConfiguration private (val config: Config) {
   val extractLiterals: ExtractLiteral = config.get(GraphDatabaseInternalSettings.extract_literals)
 
   val allowSourceGeneration: Boolean = config.get(GraphDatabaseInternalSettings.cypher_allow_source_generation)
+
+  val pipelinedSubqueryTransactionRetryEnabled: Boolean =
+    config.get(GraphDatabaseInternalSettings.cypher_pipelined_subquery_transaction_retry_enabled)
 
   val useParameterSizeHint: Boolean = config.get(GraphDatabaseInternalSettings.cypher_size_hint_parameters)
 

@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.MasterCompiler
 import org.neo4j.cypher.internal.ResourceManagerFactory
 import org.neo4j.cypher.internal.RuntimeContext
-import org.neo4j.cypher.internal.RuntimeContextManager
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedSingleThreaded
@@ -38,6 +37,7 @@ import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionBuilder
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.NoInput
@@ -107,7 +107,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
   private val lifeSupport = new LifeSupport
   private val resolver: DependencyResolver = cypherGraphDb.getDependencyResolver
 
-  protected val runtimeContextManager: RuntimeContextManager[CONTEXT] =
+  val runtimeContextManager: TestRuntimeContextManager[CONTEXT] =
     edition.newRuntimeContextManager(resolver, lifeSupport, logProvider)
   private val monitors = resolver.resolveDependency(classOf[Monitors])
 
@@ -524,7 +524,8 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     runtime: CypherRuntime[CONTEXT],
     parameters: Map[String, Any],
     testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty,
-    queryConfig: QueryRuntimeConfig = edition.defaultQueryRuntimeConfig,
+    queryConfig: QueryRuntimeConfig =
+      runtimeContextManager.defaultQueryRuntimeConfig,
     profileAssertion: Option[QueryProfile => Unit] = None,
     prePopulateResults: Boolean = true
   ): IndexedSeq[Array[AnyValue]] = {
@@ -561,7 +562,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     timeOutSeconds: Int,
     prePopulateResults: Boolean = true,
     testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty[TestPlanCombinationRewriterHint],
-    queryConfig: QueryRuntimeConfig = edition.defaultQueryRuntimeConfig
+    queryConfig: QueryRuntimeConfig = runtimeContextManager.defaultQueryRuntimeConfig
   ): IndexedSeq[Array[AnyValue]] = {
     val subscriber = newRecordingQuerySubscriber
     runTransactionallyWithTimeOut(
@@ -1061,31 +1062,36 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
 
   protected def wrapTransactionContext(ctx: TransactionalContext): TransactionalContext = ctx
 
+  private def selectExecutionModel(queryOptions: QueryOptions): ExecutionModel = {
+    if (RuntimeTestSuite.isParallel(runtime)) {
+      queryOptions.queryOptions.parallelRuntimeConfigOption match {
+        case CypherParallelRuntimeConfigOption.none =>
+          BatchedParallel(
+            runtimeContextManager.cypherConfig.pipelinedBatchSizeSmall,
+            runtimeContextManager.cypherConfig.pipelinedBatchSizeBig,
+            providedOrderPreserving = false
+          )
+        case CypherParallelRuntimeConfigOption.leverageOrder =>
+          BatchedParallel(
+            runtimeContextManager.cypherConfig.pipelinedBatchSizeSmall,
+            runtimeContextManager.cypherConfig.pipelinedBatchSizeBig,
+            providedOrderPreserving = true
+          )
+      }
+    } else if (RuntimeTestSuite.isPipelined(runtime)) {
+      BatchedSingleThreaded(
+        runtimeContextManager.cypherConfig.pipelinedBatchSizeSmall,
+        runtimeContextManager.cypherConfig.pipelinedBatchSizeBig
+      )
+    } else {
+      ExecutionModel.Volcano
+    }
+  }
+
   protected def newRuntimeContext(queryContext: QueryContext, dbDefaultLanguage: CypherVersion): CONTEXT = {
 
-    val queryOptions = edition.defaultQueryOptions.copy(defaultLanguage = dbDefaultLanguage)
-
-    val executionModel = runtime.name.toUpperCase(Locale.ROOT) match {
-      case "PARALLEL" =>
-        queryOptions.queryOptions.parallelRuntimeConfigOption match {
-          case CypherParallelRuntimeConfigOption.none =>
-            BatchedParallel(
-              edition.cypherConfig.pipelinedBatchSizeSmall,
-              edition.cypherConfig.pipelinedBatchSizeBig,
-              providedOrderPreserving = false
-            )
-          case CypherParallelRuntimeConfigOption.leverageOrder =>
-            BatchedParallel(
-              edition.cypherConfig.pipelinedBatchSizeSmall,
-              edition.cypherConfig.pipelinedBatchSizeBig,
-              providedOrderPreserving = true
-            )
-        }
-
-      case "PIPELINED" =>
-        BatchedSingleThreaded(edition.cypherConfig.pipelinedBatchSizeSmall, edition.cypherConfig.pipelinedBatchSizeBig)
-      case _ => ExecutionModel.Volcano
-    }
+    val queryOptions = runtimeContextManager.defaultQueryOptions.copy(defaultLanguage = dbDefaultLanguage)
+    val executionModel = selectExecutionModel(queryOptions)
 
     runtimeContextManager.create(
       queryOptions.resolvedLanguage,

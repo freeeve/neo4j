@@ -1717,7 +1717,7 @@ class SlotAllocationTest extends CypherFunSuite with LogicalPlanningTestSupport2
       semanticTable,
       BREAK_FOR_LEAFS,
       NO_EXPR_VARS,
-      config.copy(lenientCreateRelationship = true),
+      config.copy(lenientCreateRelationship = true)(config.cypherConfiguration),
       new AnonymousVariableNameGenerator()
     ).slotConfigurations
 

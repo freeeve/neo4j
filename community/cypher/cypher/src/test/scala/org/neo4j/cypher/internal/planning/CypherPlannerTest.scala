@@ -270,8 +270,9 @@ class CypherPlannerTest extends CypherFunSuite {
 
     val monitors = new monitoring.Monitors()
 
+    val cypherConfig = CypherConfiguration.fromConfig(Config.defaults())
     val caches = new CypherQueryCaches(
-      CypherQueryCaches.Config.fromCypherConfiguration(CypherConfiguration.fromConfig(Config.defaults())),
+      CypherQueryCaches.Config.fromCypherConfiguration(cypherConfig),
       getTx,
       TestExecutorCaffeineCacheFactory,
       Clock.systemUTC(),
@@ -298,7 +299,7 @@ class CypherPlannerTest extends CypherFunSuite {
         |MATCH (a)-[r]-(b)-[q*]-(c)
         |RETURN result
         |""".stripMargin
-    val preParserQuery = PreParsedQuery(query, query, QueryOptions.default(CypherVersion.Default))
+    val preParserQuery = PreParsedQuery(query, query, QueryOptions.default(cypherConfig, CypherVersion.Default))
 
     val tc = mock[TransactionalContext](org.mockito.Mockito.RETURNS_DEEP_STUBS)
 

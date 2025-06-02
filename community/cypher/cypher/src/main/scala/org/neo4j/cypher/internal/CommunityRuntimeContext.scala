@@ -76,7 +76,7 @@ case class CommunityRuntimeContextManager(log: InternalLog, config: CypherRuntim
       schemaRead,
       procedures,
       log,
-      config,
+      config.snapshot(),
       anonymousVariableNameGenerator,
       assertOpen
     )

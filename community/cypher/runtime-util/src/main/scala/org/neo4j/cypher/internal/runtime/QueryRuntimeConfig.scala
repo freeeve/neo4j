@@ -20,7 +20,7 @@
 package org.neo4j.cypher.internal.runtime
 
 import org.neo4j.cypher.internal.config.CypherConfiguration
-import org.neo4j.cypher.internal.options.CypherHeapEstimatorCacheOption
+import org.neo4j.cypher.internal.options.CypherDerivedQueryOptions
 import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.memory.HeapEstimatorCacheConfig
 
@@ -35,9 +35,13 @@ case class QueryRuntimeConfig(
 
 object QueryRuntimeConfig {
 
-  def createFrom(queryOptions: CypherQueryOptions, config: CypherConfiguration): QueryRuntimeConfig = {
+  def createFrom(
+    queryOptions: CypherQueryOptions,
+    derivedOptions: CypherDerivedQueryOptions,
+    config: CypherConfiguration
+  ): QueryRuntimeConfig = {
     QueryRuntimeConfig(
-      CypherHeapEstimatorCacheOption.heapEstimatorCacheConfigFrom(queryOptions.heapEstimatorCacheOption, config)
+      derivedOptions.heapEstimatorCacheConfig
     )
   }
 

@@ -20,14 +20,25 @@
 package org.neo4j.cypher.internal.runtime.spec
 
 import org.neo4j.cypher.internal.LogicalQuery
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
+import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.pos
 import org.neo4j.cypher.internal.logical.builder.Resolver
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LeveragedOrders
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
+import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder.randomErrorBehaviour
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.EffectiveCardinality
 import org.neo4j.cypher.internal.util.attribution.Default
@@ -84,7 +95,63 @@ class LogicalQueryBuilder(
       hasLoadCsv,
       idGen,
       doProfile = false,
-      executionPlanCacheKeyHash = 0
+      executionPlanCacheKeyHash = 0,
+      executionModel = None
     )
+  }
+
+  def transactionApplyRandomErrorBehaviour(randomValuesTestSupport: RandomValuesTestSupport)(
+    batchSize: Int = randomValuesTestSupport.random.between(1, 16),
+    maybeReportAs: Option[String] = None
+  ): LogicalQueryBuilder = {
+    val (errorBehaviour, retryParameters) = randomErrorBehaviour(randomValuesTestSupport, maybeReportAs)
+    transactionApply(
+      batchSize,
+      onErrorBehaviour = errorBehaviour,
+      maybeRetryParameters = retryParameters,
+      maybeReportAs = maybeReportAs
+    )
+  }
+
+  def transactionForeachRandomErrorBehaviour(randomValuesTestSupport: RandomValuesTestSupport)(
+    batchSize: Int = randomValuesTestSupport.random.between(1, 16),
+    maybeReportAs: Option[String] = None
+  ): LogicalQueryBuilder = {
+    val (errorBehaviour, retryParameters) = randomErrorBehaviour(randomValuesTestSupport, maybeReportAs)
+    transactionForeach(
+      batchSize,
+      onErrorBehaviour = errorBehaviour,
+      maybeRetryParameters = retryParameters,
+      maybeReportAs = maybeReportAs
+    )
+  }
+}
+
+object LogicalQueryBuilder {
+
+  def randomErrorBehaviour(
+    randomValuesTestSupport: RandomValuesTestSupport,
+    maybeReportAs: Option[String] = None
+  ): (InTransactionsOnErrorBehaviour, Option[InTransactionsRetryParameters]) = {
+    val options = Seq(
+      (OnErrorContinue, None),
+      (OnErrorBreak, None),
+      (OnErrorRetryThenContinue, randomRetryParameters(randomValuesTestSupport)),
+      (OnErrorRetryThenBreak, randomRetryParameters(randomValuesTestSupport))
+    ) ++ (if (maybeReportAs.isEmpty) Seq(
+            // ON ERROR FAIL does not support status report
+            (OnErrorFail, None),
+            (OnErrorRetryThenFail, randomRetryParameters(randomValuesTestSupport))
+          )
+          else Seq.empty)
+    randomValuesTestSupport.randomAmong(options)
+  }
+
+  def randomRetryParameters(randomValuesTestSupport: RandomValuesTestSupport): Option[InTransactionsRetryParameters] = {
+    val timeout = randomValuesTestSupport.random.between(1.0, 10.0)
+    randomValuesTestSupport.randomAmong(Seq(
+      None,
+      Some(InTransactionsRetryParameters(Some(DecimalDoubleLiteral(timeout.toString)(pos)))(pos))
+    ))
   }
 }

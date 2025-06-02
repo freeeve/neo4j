@@ -19,8 +19,12 @@
  */
 package org.neo4j.cypher.internal.preparser
 
+import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.configuration.helpers.QueryLanguageConverter
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.options.CypherDerivedQueryOptions
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
@@ -131,6 +135,7 @@ case class FullyParsedQuery(state: BaseState, options: QueryOptions) extends Inp
 case class QueryOptions(
   offset: InputPosition,
   queryOptions: CypherQueryOptions,
+  derivedOptions: CypherDerivedQueryOptions,
   recompilationLimitReached: Boolean = false,
   materializedEntitiesMode: Boolean = false,
   private[preparser] val defaultLanguage: CypherVersion // The db default language (NOT the version to use)
@@ -171,7 +176,9 @@ case class QueryOptions(
    */
   def cacheKey: String = {
     val key = queryOptions.cacheKey
-    if (key.isBlank) key else "CYPHER " + key
+    val derivedKey = derivedOptions.cacheKey
+    val combinedKey = key + derivedKey
+    if (key.isBlank) combinedKey else "CYPHER " + combinedKey
   }
 
   /**
@@ -185,7 +192,7 @@ case class QueryOptions(
    * Cache key used for logicalPlanCache.
    */
   def logicalPlanCacheKey: String = {
-    queryOptions.logicalPlanCacheKey
+    queryOptions.logicalPlanCacheKey + derivedOptions.logicalPlanCacheKey
   }
 
   def render: Option[String] = {
@@ -199,10 +206,30 @@ case class QueryOptions(
 
 object QueryOptions {
 
-  def default(defaultLanguage: CypherVersion): QueryOptions = QueryOptions(
+  def default(cypherConfig: CypherConfiguration, defaultLanguage: CypherVersion): QueryOptions = QueryOptions(
     offset = InputPosition.NONE,
     queryOptions = CypherQueryOptions.defaultOptions,
+    derivedOptions = CypherQueryOptions.derivedOptions(CypherQueryOptions.defaultOptions, cypherConfig),
     defaultLanguage = defaultLanguage
   )
 
+  // Test-only
+  def default(defaultLanguage: CypherVersion): QueryOptions = {
+    QueryOptions(
+      offset = InputPosition.NONE,
+      queryOptions = CypherQueryOptions.defaultOptions,
+      derivedOptions = CypherQueryOptions.defaultDerivedOptions,
+      defaultLanguage = defaultLanguage
+    )
+  }
+
+  // Test-only (called from Java, which doesn't like default() as a method name)
+  def defaultJava(defaultLanguage: CypherVersion): QueryOptions = {
+    default(defaultLanguage)
+  }
+
+  // Test-only
+  def defaultDefault(): QueryOptions = {
+    default(QueryLanguageConverter.toInternal(GraphDatabaseSettings.default_language.defaultValue()))
+  }
 }

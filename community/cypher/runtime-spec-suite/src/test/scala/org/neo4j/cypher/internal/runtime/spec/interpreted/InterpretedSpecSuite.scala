@@ -184,6 +184,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.TransactionForeachDbHitsTest
 import org.neo4j.cypher.internal.runtime.spec.tests.TransactionForeachMemoryManagementTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.TransactionForeachProfileRowsTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.TransactionForeachTestBase
+import org.neo4j.cypher.internal.runtime.spec.tests.TransactionRetryTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.TransactionTerminationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.TriadicSelectionTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.UndirectedRelationshipByElementIdSeekTestBase
@@ -524,6 +525,9 @@ class InterpretedSetDynamicLabelsTest extends SetDynamicLabelsTestBase(COMMUNITY
 class InterpretedForEachTest extends ForeachTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedForEachApplyTest extends ForeachApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedSubqueryForeachTest extends SubqueryForeachTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+
+class InterpretedTransactionRetryTest
+    extends TransactionRetryTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 
 class InterpretedTransactionForeachTest
     extends TransactionForeachTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)

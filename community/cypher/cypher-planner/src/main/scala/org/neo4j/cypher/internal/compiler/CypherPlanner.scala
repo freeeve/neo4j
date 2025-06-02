@@ -243,16 +243,12 @@ class CypherPlannerConfiguration(
   }
 
   val pipelinedBatchSizeSmall: () => Int = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-      !GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small.dynamic()
-    )
+    // NOTE: Dynamic setting that affects cache keys
     () => config.pipelinedBatchSizeSmall
   }
 
   val pipelinedBatchSizeBig: () => Int = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-      !GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big.dynamic()
-    )
+    // NOTE: Dynamic setting that affects cache keys
     () => config.pipelinedBatchSizeBig
   }
 

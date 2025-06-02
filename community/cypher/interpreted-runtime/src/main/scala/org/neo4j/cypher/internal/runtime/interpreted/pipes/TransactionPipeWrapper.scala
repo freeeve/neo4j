@@ -329,6 +329,26 @@ object RetryDecision {
   case object RetryTimeout extends RetryDecision
   case object NotRetryable extends RetryDecision
   case object NotApplicable extends RetryDecision
+
+  def decide(error: Throwable): RetryDecision = {
+    if (RetryableCypherError.isRetryable(error)) {
+      ShouldRetry // in the absence of an existing RetryState, always retry at least once
+    } else {
+      NotRetryable
+    }
+  }
+
+  def decide(error: Throwable, state: RetryState): RetryDecision = {
+    if (RetryableCypherError.isRetryable(error)) {
+      if (state.shouldRetryAgain()) {
+        ShouldRetry
+      } else {
+        RetryTimeout
+      }
+    } else {
+      NotRetryable
+    }
+  }
 }
 
 sealed trait TransactionStatus {

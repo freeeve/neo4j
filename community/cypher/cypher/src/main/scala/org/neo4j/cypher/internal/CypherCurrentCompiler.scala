@@ -230,21 +230,22 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     queryType: InternalQueryType,
     executionPlanCacheKeyHash: Int
   ): CachedExecutionPlan = {
-    val runtimeContext = contextManager.create(
-      query.resolvedLanguage,
-      logicalPlanResult.plannerContext.planContext,
-      transactionalContext.kernelTransaction().schemaRead(),
-      transactionalContext.kernelTransaction().procedures(),
-      logicalPlanResult.plannerContext.clock,
-      logicalPlanResult.plannerContext.debugOptions,
-      query.options.useCompiledExpressions,
-      query.options.materializedEntitiesMode,
-      query.options.queryOptions.operatorEngine,
-      query.options.queryOptions.interpretedPipesFallback,
-      planState.anonymousVariableNameGenerator,
-      transactionalContext.kernelTransaction(),
-      logicalPlanResult.plannerContext.executionModel
-    )
+    val runtimeContext =
+      contextManager.create(
+        query.resolvedLanguage,
+        logicalPlanResult.plannerContext.planContext,
+        transactionalContext.kernelTransaction().schemaRead(),
+        transactionalContext.kernelTransaction().procedures(),
+        logicalPlanResult.plannerContext.clock,
+        logicalPlanResult.plannerContext.debugOptions,
+        query.options.useCompiledExpressions,
+        query.options.materializedEntitiesMode,
+        query.options.queryOptions.operatorEngine,
+        query.options.queryOptions.interpretedPipesFallback,
+        planState.anonymousVariableNameGenerator,
+        transactionalContext.kernelTransaction(),
+        logicalPlanResult.plannerContext.executionModel
+      )
 
     val planningAttributesCopy = planState.planningAttributes
       // Make copy, so per-runtime logical plan rewriting does not mutate cached attributes.
@@ -265,7 +266,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       planState.hasLoadCSV,
       new SequentialIdGen(planningAttributesCopy.effectiveCardinalities.size),
       query.options.queryOptions.executionMode == CypherExecutionMode.profile,
-      executionPlanCacheKeyHash
+      executionPlanCacheKeyHash,
+      Some(logicalPlanResult.plannerContext.executionModel)
     )
 
     try {

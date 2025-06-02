@@ -22,28 +22,57 @@ package org.neo4j.cypher.internal.runtime.spec
 import org.neo4j.common.DependencyResolver
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.internal.CommunityRuntimeContext
 import org.neo4j.cypher.internal.CommunityRuntimeContextManager
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.RuntimeContextManager
+import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.options.CypherDebugOptions
+import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
+import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
+import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.spec.Edition.Dbms
 import org.neo4j.cypher.internal.runtime.spec.Edition.SpdConfig
+import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.graphdb.config.Setting
+import org.neo4j.internal.kernel.api.Procedures
+import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction
+import org.neo4j.kernel.api.AssertOpen
 import org.neo4j.kernel.lifecycle.LifeSupport
 import org.neo4j.logging.InternalLogProvider
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
 
 import java.lang.Boolean.TRUE
+import java.time.Clock
 
-import scala.jdk.CollectionConverters.MapHasAsJava
+trait TestRuntimeContextManager[+CONTEXT <: RuntimeContext] extends RuntimeContextManager[CONTEXT] {
+  final val cypherConfig: CypherConfiguration = config.cypherConfiguration
+
+  val defaultQueryOptions: QueryOptions = {
+    val queryOptions = CypherQueryOptions.fromValues(cypherConfig, Set.empty)
+    QueryOptions(
+      offset = InputPosition.NONE,
+      queryOptions = queryOptions,
+      derivedOptions = CypherQueryOptions.derivedOptions(queryOptions, cypherConfig),
+      defaultLanguage = CypherVersion.Default
+    )
+  }
+
+  def defaultQueryRuntimeConfig: QueryRuntimeConfig = {
+    QueryRuntimeConfig.createFrom(defaultQueryOptions.queryOptions, defaultQueryOptions.derivedOptions, cypherConfig)
+  }
+
+  def defaultExecutionModel: ExecutionModel
+}
 
 trait RuntimeContextManagerFactory[CONTEXT <: RuntimeContext] {
 
@@ -52,7 +81,7 @@ trait RuntimeContextManagerFactory[CONTEXT <: RuntimeContext] {
     dependencyResolver: DependencyResolver,
     lifeSupport: LifeSupport,
     logProvider: InternalLogProvider
-  ): RuntimeContextManager[CONTEXT]
+  ): TestRuntimeContextManager[CONTEXT]
 }
 
 class Edition[CONTEXT <: RuntimeContext](
@@ -106,28 +135,17 @@ class Edition[CONTEXT <: RuntimeContext](
     resolver: DependencyResolver,
     lifeSupport: LifeSupport,
     logProvider: InternalLogProvider
-  ): RuntimeContextManager[CONTEXT] =
-    runtimeContextManagerFactory.newRuntimeContextManager(runtimeConfig, resolver, lifeSupport, logProvider)
-
-  def runtimeConfig: CypherRuntimeConfiguration = {
-    CypherRuntimeConfiguration.fromCypherConfiguration(cypherConfig)
+  ): TestRuntimeContextManager[CONTEXT] = {
+    val config = resolver.resolveDependency(classOf[Config])
+    runtimeContextManagerFactory.newRuntimeContextManager(runtimeConfig(config), resolver, lifeSupport, logProvider)
   }
 
-  val cypherConfig: CypherConfiguration = {
-    val config = Config.defaults(configs.toMap.asJava)
+  def runtimeConfig(config: Config): CypherRuntimeConfiguration = {
+    CypherRuntimeConfiguration.fromCypherConfiguration(cypherConfig(config))
+  }
+
+  def cypherConfig(config: Config): CypherConfiguration = {
     CypherConfiguration.fromConfig(config)
-  }
-
-  val defaultQueryOptions: QueryOptions = {
-    QueryOptions(
-      offset = InputPosition.NONE,
-      queryOptions = CypherQueryOptions.fromValues(cypherConfig, Set.empty),
-      defaultLanguage = CypherVersion.Default
-    )
-  }
-
-  def defaultQueryRuntimeConfig: QueryRuntimeConfig = {
-    QueryRuntimeConfig.createFrom(defaultQueryOptions.queryOptions, cypherConfig)
   }
 }
 
@@ -138,11 +156,65 @@ object Edition {
 
 object COMMUNITY {
 
+  object CommunityRuntimeContextManagerFactory extends RuntimeContextManagerFactory[CommunityRuntimeContext] {
+
+    override def newRuntimeContextManager(
+      runtimeConfig: CypherRuntimeConfiguration,
+      resolver: DependencyResolver,
+      lifeSupport: LifeSupport,
+      logProvider: InternalLogProvider
+    ): TestRuntimeContextManager[CommunityRuntimeContext] = {
+      CommunityTestRuntimeContextManager(CommunityRuntimeContextManager(logProvider.getLog("test"), runtimeConfig))
+    }
+  }
+
   val EDITION = new Edition(
     () => new TestDatabaseManagementServiceBuilder,
-    (runtimeConfig, _, _, logProvider) => CommunityRuntimeContextManager(logProvider.getLog("test"), runtimeConfig),
+    CommunityRuntimeContextManagerFactory,
     CommunityRuntimeTestUtils,
     spd = None,
     GraphDatabaseSettings.cypher_hints_error -> TRUE
   )
+
+  case class CommunityTestRuntimeContextManager(delegate: CommunityRuntimeContextManager)
+      extends TestRuntimeContextManager[CommunityRuntimeContext] {
+
+    override def create(
+      cypherVersion: CypherVersion,
+      tokenContext: ReadTokenContext,
+      schemaRead: SchemaRead,
+      procedures: Procedures,
+      clock: Clock,
+      debugOptions: CypherDebugOptions,
+      compileExpressions: Boolean,
+      materializedEntitiesMode: Boolean,
+      operatorEngine: CypherOperatorEngineOption,
+      interpretedPipesFallback: CypherInterpretedPipesFallbackOption,
+      anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
+      assertOpen: AssertOpen,
+      executionModel: ExecutionModel
+    ): CommunityRuntimeContext = {
+      delegate.create(
+        cypherVersion,
+        tokenContext,
+        schemaRead,
+        procedures,
+        clock,
+        debugOptions,
+        compileExpressions,
+        materializedEntitiesMode,
+        operatorEngine,
+        interpretedPipesFallback,
+        anonymousVariableNameGenerator,
+        assertOpen,
+        executionModel
+      )
+    }
+
+    override def config: CypherRuntimeConfiguration = delegate.config
+    override def assertAllReleased(): Unit = delegate.assertAllReleased()
+    override def waitForWorkersToIdle(timeoutMs: Int): Boolean = delegate.waitForWorkersToIdle(timeoutMs)
+
+    override def defaultExecutionModel: ExecutionModel = ExecutionModel.Volcano
+  }
 }

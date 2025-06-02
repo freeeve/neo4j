@@ -195,6 +195,8 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
   }
 
   protected def restartDB(): Unit = {
+    require(managementService == null)
+    require(runtimeTestSupport == null)
     logProvider = new AssertableLogProvider()
     val dbms = edition.newGraphManagementService(logProvider)
 
@@ -253,6 +255,7 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
   }
 
   protected def createRuntimeTestSupport(): Unit = {
+    require(runtimeTestSupport == null)
     logProvider.clear()
     runtimeTestSupport = createRuntimeTestSupport(graphDb, edition, runtime, workloadMode, logProvider)
     if (runtimeTestParameters != null) {
@@ -260,6 +263,18 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
     }
     runtimeTestSupport.start()
     runtimeTestSupport.startTx()
+  }
+
+  protected def closeRuntimeTestSupport(): Unit = {
+    if (runtimeTestSupport != null) {
+      try {
+        logProvider.clear()
+        runtimeTestSupport.stopTx()
+        runtimeTestSupport.stop()
+      } finally {
+        runtimeTestSupport = null
+      }
+    }
   }
 
   private def augmentedRuntimeTestParameters: RuntimeTestParameters = {
@@ -290,21 +305,24 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
 
   protected def shutdownDatabase(): Unit = {
     try {
-      if (managementService != null) {
-        runtimeTestSupport.stop()
-        managementService.shutdown()
-      }
+      closeRuntimeTestSupport()
     } finally {
-      managementService = null
-      dbmsFileSystem = null
-      runtimeTestSupport = null
-      kernel = null
-      graphDb = null
-      systemDb = null
-      // NOTE: AssertFusingSucceeded relies on logProvider not being null, so delay setting it to null
-      //       in case a test case explicitly calls shutdownDatabase() (looking at you, SchedulerTracerTestBase...)
-      if (logProvider != null) {
-        logProvider.clear()
+      try {
+        if (managementService != null) {
+          managementService.shutdown()
+        }
+      } finally {
+        managementService = null
+        dbmsFileSystem = null
+        runtimeTestSupport = null // Should already be null, but just in case
+        kernel = null
+        graphDb = null
+        systemDb = null
+        // NOTE: AssertFusingSucceeded relies on logProvider not being null, so delay setting it to null
+        //       in case a test case explicitly calls shutdownDatabase() (looking at you, SchedulerTracerTestBase...)
+        if (logProvider != null) {
+          logProvider.clear()
+        }
       }
     }
   }
@@ -313,9 +331,7 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
     super.test(testName, Tag(runtime.name) +: testTags: _*)({
       testFun
       // Close the transaction here so that any errors resulting from that will be visible as test failures
-      if (runtimeTestSupport != null) {
-        runtimeTestSupport.stopTx()
-      }
+      closeRuntimeTestSupport()
     })
   }
 
@@ -495,9 +511,7 @@ abstract class RuntimeTestSuite[CONTEXT <: RuntimeContext](
 
   override protected def afterEach(): Unit = {
     try {
-      if (runtimeTestSupport != null) {
-        runtimeTestSupport.stopTx()
-      }
+      closeRuntimeTestSupport()
       DebugSupport.TIMELINE.log("")
     } finally {
       try {
@@ -537,7 +551,7 @@ abstract class StaticGraphRuntimeTestSuite[CONTEXT <: RuntimeContext](
 
   override protected def afterEach(): Unit = {
     if (shouldSetup) {
-      runtimeTestSupport.stopTx()
+      closeRuntimeTestSupport()
       DebugSupport.TIMELINE.log("")
     }
     super.afterEach()
@@ -547,7 +561,11 @@ abstract class StaticGraphRuntimeTestSuite[CONTEXT <: RuntimeContext](
     if (shouldSetup) {
       restartDB()
       createRuntimeTestSupport()
-      createGraph()
+      try {
+        createGraph()
+      } finally {
+        closeRuntimeTestSupport()
+      }
     }
     super.beforeAll()
   }

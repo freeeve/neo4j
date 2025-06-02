@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeSupportOption
+import org.neo4j.cypher.internal.options.CypherPipelinedBatchSizePresetOption
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
@@ -1073,31 +1074,34 @@ class FabricPlannerTest
       val inner = inst.plan.query.as[Fragment.Exec].input.as[Fragment.Apply].inner.as[Fragment.Exec]
       val last = inst.plan.query.as[Fragment.Exec]
 
+      val queryOptions = CypherQueryOptions(
+        cypherVersion = cypherConfig.systemDefaultLanguage match {
+          case CypherVersion.Cypher5  => CypherVersionOption.cypher5
+          case CypherVersion.Cypher25 => CypherVersionOption.cypher25
+        },
+        executionMode = CypherExecutionMode.default,
+        planner = CypherPlannerOption.cost,
+        runtime = CypherRuntimeOption.parallel,
+        updateStrategy = CypherUpdateStrategy.eager,
+        expressionEngine = CypherExpressionEngineOption.compiled,
+        operatorEngine = CypherOperatorEngineOption.interpreted,
+        interpretedPipesFallback = CypherInterpretedPipesFallbackOption.disabled,
+        replan = CypherReplanOption.force,
+        connectComponentsPlanner = CypherConnectComponentsPlannerOption.greedy,
+        debugOptions = CypherDebugOptions(Set(CypherDebugOption.tostring)),
+        parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.all,
+        parallelRuntimeConfigOption = CypherParallelRuntimeConfigOption.none,
+        eagerAnalyzer = CypherEagerAnalyzerOption.lp,
+        inferSchemaParts = CypherInferSchemaPartsOption.default,
+        statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.default,
+        planVarExpandInto = CypherPlanVarExpandInto.default,
+        pipelinedBatchSizePresetOption = CypherPipelinedBatchSizePresetOption.default,
+        heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.default
+      )
       val expectedInner = QueryOptions(
         offset = InputPosition.NONE,
-        queryOptions = CypherQueryOptions(
-          cypherVersion = cypherConfig.systemDefaultLanguage match {
-            case CypherVersion.Cypher5  => CypherVersionOption.cypher5
-            case CypherVersion.Cypher25 => CypherVersionOption.cypher25
-          },
-          executionMode = CypherExecutionMode.default,
-          planner = CypherPlannerOption.cost,
-          runtime = CypherRuntimeOption.parallel,
-          updateStrategy = CypherUpdateStrategy.eager,
-          expressionEngine = CypherExpressionEngineOption.compiled,
-          operatorEngine = CypherOperatorEngineOption.interpreted,
-          interpretedPipesFallback = CypherInterpretedPipesFallbackOption.disabled,
-          replan = CypherReplanOption.force,
-          connectComponentsPlanner = CypherConnectComponentsPlannerOption.greedy,
-          debugOptions = CypherDebugOptions(Set(CypherDebugOption.tostring)),
-          parallelRuntimeSupportOption = CypherParallelRuntimeSupportOption.all,
-          parallelRuntimeConfigOption = CypherParallelRuntimeConfigOption.none,
-          eagerAnalyzer = CypherEagerAnalyzerOption.lp,
-          inferSchemaParts = CypherInferSchemaPartsOption.default,
-          statefulShortestPlanningModeOption = CypherStatefulShortestPlanningModeOption.default,
-          planVarExpandInto = CypherPlanVarExpandInto.default,
-          heapEstimatorCacheOption = CypherHeapEstimatorCacheOption.default
-        ),
+        queryOptions = queryOptions,
+        derivedOptions = CypherQueryOptions.derivedOptions(queryOptions, cypherConfig),
         defaultLanguage = cypherConfig.systemDefaultLanguage
       )
 
@@ -1146,14 +1150,16 @@ class FabricPlannerTest
       val inner = inst.plan.query.as[Fragment.Exec].input.as[Fragment.Apply].inner.as[Fragment.Exec]
       val last = inst.plan.query.as[Fragment.Exec]
 
+      val queryOptions = CypherQueryOptions.defaultOptions.copy(
+        cypherVersion = cypherConfig.systemDefaultLanguage match {
+          case CypherVersion.Cypher5  => CypherVersionOption.cypher5
+          case CypherVersion.Cypher25 => CypherVersionOption.cypher25
+        }
+      )
       val expectedInner = QueryOptions(
         offset = InputPosition.NONE,
-        queryOptions = CypherQueryOptions.defaultOptions.copy(
-          cypherVersion = cypherConfig.systemDefaultLanguage match {
-            case CypherVersion.Cypher5  => CypherVersionOption.cypher5
-            case CypherVersion.Cypher25 => CypherVersionOption.cypher25
-          }
-        ),
+        queryOptions = queryOptions,
+        derivedOptions = CypherQueryOptions.derivedOptions(queryOptions, cypherConfig),
         defaultLanguage = cypherConfig.systemDefaultLanguage
       )
 

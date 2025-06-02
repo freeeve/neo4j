@@ -258,9 +258,14 @@ object PreParser {
     preparsed: PreParsedStatement,
     configuration: CypherConfiguration,
     defaultVersion: CypherVersion
-  ): QueryOptions = QueryOptions(
-    offset = preparsed.offset,
-    queryOptions = CypherQueryOptions.fromValues(configuration, preparsed.options.map(o => (o.key, o.value)).toSet),
-    defaultLanguage = defaultVersion
-  )
+  ): QueryOptions = {
+    val queryOptions = CypherQueryOptions.fromValues(configuration, preparsed.options.map(o => (o.key, o.value)).toSet)
+    val derivedOptions = CypherQueryOptions.derivedOptions(queryOptions, configuration)
+    QueryOptions(
+      offset = preparsed.offset,
+      queryOptions = queryOptions,
+      derivedOptions = derivedOptions,
+      defaultLanguage = defaultVersion
+    )
+  }
 }

@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.runtime.debug
 
 object DebugSupport {
 
+  final val DEBUG_ENABLED = false
+
   /** DEBUG CONFIGURATION **/
 
   final val DEBUG_PHYSICAL_PLANNING = false
@@ -103,7 +105,7 @@ object DebugSupport {
   }
 
   def logPipelines(rows: => collection.Seq[String]): Unit = {
-    if (DEBUG_PIPELINES) {
+    if (DEBUG_ENABLED && DEBUG_PIPELINES) {
       for (row <- rows) {
         print(s"       || $row\n")
       }
@@ -111,6 +113,8 @@ object DebugSupport {
   }
 
   final class DebugLog(private[this] var enabled: Boolean, val color: String, val filter: String => Boolean = null) {
+
+    def isEnabled: Boolean = DEBUG_ENABLED && enabled
 
     def enable(): Unit = {
       enabled = true
@@ -123,46 +127,46 @@ object DebugSupport {
     // Not using println because that is synchronized and can hide
     // parallel problems.
     def log(str: String): Unit = {
-      if (enabled) {
-        val s = s"        $color$str$Reset\n"
+      if (isEnabled) {
+        val s = s"        $color$str$Reset"
         if (filter == null || filter(s)) {
-          print(s)
+          print(s.replace("\n", "\n        ") + "\n")
         }
       }
     }
 
     def log(str: String, x: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         log(str.format(x))
       }
 
     def log(str: String, x1: Any, x2: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         log(str.format(x1, x2))
       }
 
     def log(str: String, x1: Any, x2: Any, x3: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         log(str.format(x1, x2, x3))
       }
 
     def log(str: String, x1: Any, x2: Any, x3: Any, x4: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         log(str.format(x1, x2, x3, x4))
       }
 
     def log(str: String, x1: Any, x2: Any, x3: Any, x4: Any, x5: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         log(str.format(x1, x2, x3, x4, x5))
       }
 
     def log(str: String, x1: Any, x2: Any, x3: Any, x4: Any, x5: Any, x6: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         log(str.format(x1, x2, x3, x4, x5, x6))
       }
 
     def log(throwable: Throwable): Unit = {
-      if (enabled) {
+      if (isEnabled) {
         throwable.printStackTrace()
       }
     }
@@ -170,11 +174,13 @@ object DebugSupport {
 
   final class DebugTimeline(private[this] val enabled: Boolean) {
 
+    def isEnabled: Boolean = DEBUG_ENABLED && enabled
+
     private var t0: Long = 0L
     private var tn: Long = 0L
 
     def beginTime(): Unit =
-      if (enabled) {
+      if (isEnabled) {
         println("")
         println("            ~= BEGINNING OF TIME =~")
         t0 = System.currentTimeMillis()
@@ -182,31 +188,31 @@ object DebugSupport {
       }
 
     def log(str: String): Unit =
-      if (enabled) {
+      if (isEnabled) {
         tn = System.currentTimeMillis()
         println("[%6d ms] %s".format(tn - t0, str))
       }
 
     def log(str: String, x: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         tn = System.currentTimeMillis()
         println("[%6d ms] %s".format(tn - t0, str.format(x)))
       }
 
     def log(str: String, x1: Any, x2: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         tn = System.currentTimeMillis()
         println("[%6d ms] %s".format(tn - t0, str.format(x1, x2)))
       }
 
     def log(str: String, x1: Any, x2: Any, x3: Any): Unit =
-      if (enabled) {
+      if (isEnabled) {
         tn = System.currentTimeMillis()
         println("[%6d ms] %s".format(tn - t0, str.format(x1, x2, x3)))
       }
 
     def logDiff(str: String): Unit =
-      if (enabled) {
+      if (isEnabled) {
         val tPrev = tn
         tn = System.currentTimeMillis()
         println("     %+4d ms: %s".format(tn - tPrev, str))

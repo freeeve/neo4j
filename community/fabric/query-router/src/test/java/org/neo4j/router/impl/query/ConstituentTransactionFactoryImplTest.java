@@ -38,6 +38,7 @@ import org.neo4j.configuration.helpers.QueryLanguageConverter;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
+import org.neo4j.cypher.internal.options.CypherDerivedQueryOptions;
 import org.neo4j.cypher.internal.options.CypherQueryOptions;
 import org.neo4j.cypher.internal.preparser.QueryOptions;
 import org.neo4j.cypher.internal.util.CancellationChecker;
@@ -153,6 +154,8 @@ class ConstituentTransactionFactoryImplTest {
 
     private ConstituentTransactionFactory getConstituentTransactionFactory(
             CypherQueryOptions cypherQueryOptions, DatabaseTransaction innerTransaction) {
+        CypherDerivedQueryOptions derivedQueryOptions = CypherQueryOptions.derivedOptions(
+                cypherQueryOptions, CypherConfiguration.fromConfig(Config.defaults()));
         LocationService locationService = (databaseReference) -> mock(Location.Local.class);
         TransactionInfo transactionInfo = mock(TransactionInfo.class);
         when(transactionInfo.defaultQueryLanguageScope()).thenReturn(mock(DefaultQueryLanguageScope.class));
@@ -170,8 +173,8 @@ class ConstituentTransactionFactoryImplTest {
         when(context.sessionDatabaseReference()).thenReturn(sessionDatabase);
 
         QueryProcessor queryProcessor = mock(QueryProcessor.class);
-        QueryOptions queryOptions =
-                QueryOptions.apply(InputPosition.NONE(), cypherQueryOptions, false, false, systemDefaultLanguage);
+        QueryOptions queryOptions = QueryOptions.apply(
+                InputPosition.NONE(), cypherQueryOptions, derivedQueryOptions, false, false, systemDefaultLanguage);
         StatementType statementType = StatementType.of(StatementType.Query());
         QueryProcessor.ProcessedQueryInfo processedQueryInfo = mock(QueryProcessor.ProcessedQueryInfo.class);
         when(queryProcessor.processQuery(any(), any(), any(), any(), any(), any()))

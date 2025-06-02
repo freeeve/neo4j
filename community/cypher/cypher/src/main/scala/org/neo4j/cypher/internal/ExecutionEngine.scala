@@ -289,7 +289,7 @@ abstract class ExecutionEngine(
       )
     }
 
-    val queryConfig = QueryRuntimeConfig.createFrom(query.options.queryOptions, config)
+    val queryConfig = QueryRuntimeConfig.createFrom(query.options.queryOptions, query.options.derivedOptions, config)
     executableQuery.execute(
       context,
       isOutermostQuery,

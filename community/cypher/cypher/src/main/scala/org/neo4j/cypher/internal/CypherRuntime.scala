@@ -87,6 +87,7 @@ trait CypherRuntime[-CONTEXT <: RuntimeContext] {
  * @param hasLoadCSV a flag showing if the query contains a load csv, used for tracking line numbers
  * @param doProfile `true` if a profiling query otherwise `false`
  * @param executionPlanCacheKeyHash The 32-bit hash of the cache key used to cache the execution plan
+ * @param executionModel The execution model used to plan this query
  */
 case class LogicalQuery(
   logicalPlan: LogicalPlan,
@@ -100,7 +101,8 @@ case class LogicalQuery(
   hasLoadCSV: Boolean,
   idGen: IdGen,
   doProfile: Boolean,
-  executionPlanCacheKeyHash: Int
+  executionPlanCacheKeyHash: Int,
+  executionModel: Option[ExecutionModel]
 )
 
 /**

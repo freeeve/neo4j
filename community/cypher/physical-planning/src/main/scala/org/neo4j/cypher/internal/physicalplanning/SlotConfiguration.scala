@@ -294,4 +294,20 @@ trait SlotView[S] {
     case Id.INVALID_ID => TopLevelArgument.SLOT_OFFSET
     case id            => getSlot(OuterNestedApplyPlanSlotKey(id)).getOrElse(throw missingNestedArg(id)).offset
   }
+
+  /**
+   * Returns the batch id argument slot for a batching [[ApplyPlan]] that needs an explicit id,
+   * E.g. [[TransactionApply]] or [[TransactionForeach]] with retry.
+   * If the plan does not have a batch id slot allocated, it returns TopLevelArgument.SLOT_OFFSET instead of failing.
+   */
+  final def batchOffset(batchingApplyPlanId: Id): Int = batchingApplyPlanId match {
+    case Id.INVALID_ID => TopLevelArgument.UNDEFINED_SLOT_OFFSET
+    case id =>
+      getSlot(OuterNestedApplyPlanSlotKey(id)) match {
+        case Some(slot) =>
+          slot.offset
+        case _ =>
+          TopLevelArgument.UNDEFINED_SLOT_OFFSET
+      }
+  }
 }

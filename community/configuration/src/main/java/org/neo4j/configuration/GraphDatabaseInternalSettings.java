@@ -393,10 +393,32 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("The preset for deciding the size of batches in the pipelined runtime."
+            + "The default value uses the two settings `internal.cypher.pipelined.batch_size_small` "
+            + "and `internal.cypher.pipelined.batch_size_big` to decide the batch size based on "
+            + "the maximum number of intermediate rows estimated at query planning time.")
+    public static final Setting<CypherPipelinedBatchSizePreset> cypher_pipelined_batch_size_preset = newBuilder(
+                    "internal.cypher.pipelined.batch_size_preset",
+                    ofEnum(CypherPipelinedBatchSizePreset.class),
+                    CypherPipelinedBatchSizePreset.DEFAULT)
+            .dynamic()
+            .build();
+
+    public enum CypherPipelinedBatchSizePreset {
+        DEFAULT,
+        DISABLED,
+        SMALL,
+        MEDIUM,
+        LARGE,
+        CUSTOM
+    }
+
+    @Internal
     @Description("The size of batches in the pipelined runtime for queries which work with few rows.")
     public static final Setting<Integer> cypher_pipelined_batch_size_small = newBuilder(
                     "internal.cypher.pipelined.batch_size_small", INT, 128)
             .addConstraint(min(1))
+            .dynamic()
             .build();
 
     @Internal
@@ -404,6 +426,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     public static final Setting<Integer> cypher_pipelined_batch_size_big = newBuilder(
                     "internal.cypher.pipelined.batch_size_big", INT, 1024)
             .addConstraint(min(1))
+            .dynamic()
             .build();
 
     @Internal
@@ -483,6 +506,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description("If set to true we can force source code generation by appending debug=generate_java_source to query")
     public static final Setting<Boolean> cypher_allow_source_generation = newBuilder(
                     "internal.cypher.pipelined.allow_source_generation", BOOL, false)
+            .build();
+
+    @Internal
+    @Description("If set to true we support CALL {...} IN TRANSACTIONS ON ERROR RETRY with pipelined runtime. "
+            + "If set to false we will fall back to using slotted runtime instead.")
+    public static final Setting<Boolean> cypher_pipelined_subquery_transaction_retry_enabled = newBuilder(
+                    "internal.cypher.pipelined.subquery_transaction_retry_enabled", BOOL, true)
             .build();
 
     @Internal

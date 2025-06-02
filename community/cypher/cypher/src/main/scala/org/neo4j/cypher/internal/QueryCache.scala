@@ -222,7 +222,7 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
      * This wakes up all Threads that were wating on the computation.
      * @param e the thrown exception.
      */
-    def failed(e: Exception): Unit = future.completeExceptionally(e)
+    def failed(e: Throwable): Unit = future.completeExceptionally(e)
   }
 
   /**
@@ -601,14 +601,20 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
         miss(executingQuery, queryKey, newExecutableQuery, metaData)
       }
     } catch {
-      case e: Exception =>
+      case e: Throwable if (beingComputed.isDefined) =>
         // In case there is a `beingComputed`, we need to complete it with the thrown exception,
         // to wake up other Threads.
-        beingComputed.foreach { bc =>
+        try {
           // We must not leave the beingComputed instance in the cache, otherwise the query can never succeed again on transient errors.
           inner.invalidate(queryKey)
           // Wake up Threads waiting for this computation.
-          bc.failed(e)
+          beingComputed.get.failed(e)
+        } catch {
+          case e2: Throwable =>
+            // Another error occurred during cache invalidation
+            if (e != e2) {
+              e.addSuppressed(e2)
+            }
         }
         throw e
     }
