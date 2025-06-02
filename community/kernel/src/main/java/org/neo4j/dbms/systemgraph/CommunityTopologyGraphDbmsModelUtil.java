@@ -28,6 +28,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_INDEX_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IS_MIRROR_OF_RELATIONSHIP;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.MIRROR_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.SPD_LABEL;
@@ -70,7 +71,7 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                 .filter(node -> !node.hasLabel(SPD_LABEL))
                 .filter(node -> !node.hasLabel(GRAPH_SHARD_LABEL))
                 .filter(node -> !node.hasLabel(PROPERTY_SHARD_LABEL))
-                .filter(node -> node.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) == 0)
+                .filter(node -> !node.hasLabel(MIRROR_LABEL))
                 .map(node -> new Internal(
                         new NormalizedDatabaseName(getDatabaseId(node).name()), getDatabaseId(node), true));
     }

@@ -88,12 +88,21 @@ public class DatabaseNotFoundHelper {
         return new DatabaseNotFoundException(gql, "Default database not found: " + defaultDatabaseName);
     }
 
-    public static DatabaseNotFoundException failedToRecreateDatabaseNotFound(String databaseName) {
+    public static DatabaseNotFoundException databaseNotFoundForRecreate(String databaseName) {
         var gql = GqlHelper.getGql22000_22N51(databaseName);
         return new DatabaseNotFoundException(
                 gql,
                 format(
                         "Failed to recreate the specified database '%s': No database exists with that name or alias.",
+                        databaseName));
+    }
+
+    public static DatabaseNotFoundException upstreamDatabaseNotFound(String databaseName) {
+        var gql = GqlHelper.getGql22000_22N51(databaseName);
+        return new DatabaseNotFoundException(
+                gql,
+                format(
+                        "Failed to use the specified database '%s' as an upstream: No database exists with that name or alias.",
                         databaseName));
     }
 

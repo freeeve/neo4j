@@ -79,6 +79,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IS_MIRROR_OF_REL
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IV_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.InstanceStatus.ENABLED;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.LATEST_SUPPORTED_COMPONENT_VERSIONS_RELATIONSHIP;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.MIRROR_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
@@ -461,6 +462,7 @@ public abstract class BaseTopologyGraphDbmsModelIT {
                     DATABASE_UUID_PROPERTY,
                     upstream.databaseId().uuid().toString());
             node.createRelationshipTo(otherDatabase, IS_MIRROR_OF_RELATIONSHIP);
+            node.addLabel(MIRROR_LABEL);
             return this;
         }
 

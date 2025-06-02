@@ -215,7 +215,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     private Stream<DatabaseReferenceImpl.Mirror> getAllMirrorReferencesInRoot() {
         return getAllAliasNodesInRoot()
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
-                        .filter(db -> db.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) > 0)
+                        .filter(db -> db.hasLabel(MIRROR_LABEL))
                         .flatMap(db -> createMirrorReference(alias, db))
                         .stream());
     }
@@ -230,7 +230,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
 
     private Optional<DatabaseReferenceImpl.Mirror> getMirrorReferences(Stream<Node> aliases) {
         return aliases.flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
-                        .filter(db -> db.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) > 0)
+                        .filter(db -> db.hasLabel(MIRROR_LABEL))
                         .flatMap(db -> createMirrorReference(alias, db))
                         .stream())
                 .findFirst();
@@ -448,7 +448,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                         .filter(node -> !node.hasLabel(SPD_LABEL))
                         .filter(node -> !node.hasLabel(GRAPH_SHARD_LABEL))
                         .filter(node -> !node.hasLabel(PROPERTY_SHARD_LABEL))
-                        .filter(node -> node.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) == 0)
+                        .filter(node -> !node.hasLabel(MIRROR_LABEL))
                         .map(CommunityTopologyGraphDbmsModelUtil::getDatabaseId)
                         .flatMap(db -> CommunityTopologyGraphDbmsModelUtil.createInternalReference(alias, db))
                         .stream());
