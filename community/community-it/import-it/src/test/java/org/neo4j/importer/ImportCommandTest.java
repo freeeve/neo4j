@@ -2291,12 +2291,19 @@ class ImportCommandTest {
         }
     }
 
-    // Note: This was probably never intended to work, it just slipped through.
+    // Note: This was probably never intended to work, it just slipped through (only in record format - not block).
     // The --id-type global setting only supports string and integer.
     // Now it is in the product and difficult to remove without risking breaking someones workflow.
     // This test is just here to document this weird behavior.
     @Test
     void shouldAllowEsotericIDType() throws Exception {
+        final var confDir = testDirectory.absolutePath().resolve("conf");
+        final var config = Config.newBuilder()
+                .fromFileNoThrow(confDir.resolve(Config.DEFAULT_CONFIG_FILE_NAME))
+                .build();
+        final var dbFormat = config.get(GraphDatabaseSettings.db_format);
+        assumeThat(dbFormat).isNotEqualTo("block");
+
         // GIVEN
         var nodeData1 = createAndWriteFile("persons.csv", Charset.defaultCharset(), writer -> {
             writer.println("id:ID(GroupOne){id-type:date},name,:LABEL");
