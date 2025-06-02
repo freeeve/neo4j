@@ -30,6 +30,8 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.BestPlans
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
 import org.neo4j.time.Stopwatch
 
 import scala.collection.CypherPlannerBitSetOptimizations
@@ -115,7 +117,8 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
     kit: QueryPlannerKit
   ): BestPlans = {
     val orderRequirement = extraRequirementForInterestingOrder(context, interestingOrderConfig)
-    val (goalBitAllocation, initialTodo) = GoalBitAllocation.create(components.map(_.queryGraph), queryGraph)
+    val (goalBitAllocation, initialTodo) =
+      GoalBitAllocation.create(components.map(_.queryGraph), queryGraph.optionalMatches.toListSet)
 
     val joinSolverSteps =
       joinConnectors.map(_.solverStep(goalBitAllocation, queryGraph, interestingOrderConfig, kit, context))
@@ -191,14 +194,17 @@ object GoalBitAllocation {
   private val startComponents = 1 // we start at 1, since 0 used to be a reserved bit.
 
   /**
-   * Given the components and the overall query graph, return a [[GoalBitAllocation]] and the initialTodo for the [[IDPSolver]].
+   * Given the components and optional matches, return a [[GoalBitAllocation]] and the initialTodo for the [[IDPSolver]].
    * Capture all dependencies from optional matches.
    */
-  def create(components: Set[QueryGraph], queryGraph: QueryGraph): (GoalBitAllocation, Seq[QueryGraph]) = {
-    val initialTodo = components.toSeq ++ queryGraph.optionalMatches
+  def create(
+    components: Set[QueryGraph],
+    optionalMatches: ListSet[QueryGraph]
+  ): (GoalBitAllocation, Seq[QueryGraph]) = {
+    val initialTodo = components.toSeq ++ optionalMatches
 
     // For each optional match, find dependencies to components and other optional matches
-    val optionalMatchDependencies: IndexedSeq[BitSet] = queryGraph.optionalMatches.map { om =>
+    val optionalMatchDependencies: IndexedSeq[BitSet] = optionalMatches.toVector.map { om =>
       om.argumentIds.iterator.map { arg =>
         val index = initialTodo.indexWhere(x => x.idsWithoutOptionalMatchesOrUpdates.contains(arg))
         AssertMacros.checkOnlyWhenAssertionsAreEnabled(
@@ -211,7 +217,7 @@ object GoalBitAllocation {
 
     val gba = GoalBitAllocation(
       numComponents = components.size,
-      numOptionalMatches = queryGraph.optionalMatches.size,
+      numOptionalMatches = optionalMatches.size,
       optionalMatchDependencies
     )
 
