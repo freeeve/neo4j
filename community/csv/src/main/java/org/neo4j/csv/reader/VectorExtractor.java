@@ -20,6 +20,8 @@
 package org.neo4j.csv.reader;
 
 import static org.neo4j.values.storable.Value.QUOTES_PATTERN;
+import static org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS;
+import static org.neo4j.values.storable.VectorValue.MIN_VECTOR_DIMENSIONS;
 
 import java.util.Locale;
 import java.util.Map;
@@ -73,7 +75,7 @@ public interface VectorExtractor<T> extends Extractor<T> {
 
             switch (key.toLowerCase(Locale.ROOT)) {
                 case "coordinatetype" -> {
-                    checkUnassigned(coordinateType);
+                    checkUnassigned("coordinateType", coordinateType);
                     final String normalized =
                             QUOTES_PATTERN.matcher(strValue).replaceAll("").toLowerCase(Locale.ROOT);
                     coordinateType = switch (normalized) {
@@ -90,7 +92,7 @@ public interface VectorExtractor<T> extends Extractor<T> {
                 }
 
                 case "dimensions" -> {
-                    checkUnassigned(dimensions);
+                    checkUnassigned("dimensions", dimensions);
                     int result;
                     try {
                         result = Integer.parseInt(strValue);
@@ -99,14 +101,16 @@ public interface VectorExtractor<T> extends Extractor<T> {
                                 "%s is not a valid value for dimensions.".formatted(strValue));
                     }
                     dimensions = result;
+                    if (dimensions < MIN_VECTOR_DIMENSIONS || dimensions > MAX_VECTOR_DIMENSIONS) {
+                        throw new IllegalArgumentException("Invalid vector dimensions: " + dimensions);
+                    }
                 }
             }
         }
 
-        private static void checkUnassigned(Object key) {
-            if (key != null) {
-                throw new IllegalStateException(
-                        "`Value.parseStringMap` should already have detected duplicate key %s".formatted(key));
+        private static void checkUnassigned(String key, Object value) {
+            if (value != null) {
+                throw new IllegalArgumentException("Duplicate field '%s'".formatted(key));
             }
         }
 

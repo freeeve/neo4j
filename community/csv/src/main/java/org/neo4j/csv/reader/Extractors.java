@@ -1057,7 +1057,7 @@ public final class Extractors {
         protected T convertListToArrayValue(E values) {
             final var vectorValue = delegate.convertListToArrayValue(values);
             if (vectorValue.dimensions() != expectedDimensions) {
-                throw new IllegalStateException("Header specified %d dimensions, but vector has %d dimensions: %s"
+                throw new IllegalArgumentException("Header specified %d dimensions, but vector has %d dimensions: %s"
                         .formatted(expectedDimensions, vectorValue.dimensions(), vectorValue));
             }
             return vectorValue;
