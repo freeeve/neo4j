@@ -53,6 +53,7 @@ import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
 import org.neo4j.cypher.internal.util.CartesianOrdering
 import org.neo4j.cypher.internal.util.Cost
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.exceptions.InternalException
 
 import scala.annotation.tailrec
@@ -109,8 +110,8 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     @tailrec
     def recurse(
       plans: Set[PlannedComponent],
-      optionalMatches: Seq[QueryGraph]
-    ): (Set[PlannedComponent], Seq[QueryGraph]) = {
+      optionalMatches: ListSet[QueryGraph]
+    ): (Set[PlannedComponent], ListSet[QueryGraph]) = {
       if (optionalMatches.nonEmpty) {
         // If we have optional matches left to solve - start with that
         val firstOptionalMatch = optionalMatches.head

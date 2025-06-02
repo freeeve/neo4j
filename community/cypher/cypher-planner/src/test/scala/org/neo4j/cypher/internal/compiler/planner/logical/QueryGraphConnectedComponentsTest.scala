@@ -149,7 +149,7 @@ class QueryGraphConnectedComponentsTest
   test("two nodes connected through an optional QG") {
     val graph = QueryGraph(
       patternNodes = Set(A, B),
-      optionalMatches = Vector(
+      optionalMatches = ListSet(
         QueryGraph(
           patternNodes = Set(A, B),
           argumentIds = Set(A, B),
@@ -268,7 +268,7 @@ class QueryGraphConnectedComponentsTest
       argumentIds = Set(X),
       patternNodes = Set(A, B, X),
       patternRelationships = Set(B_to_X),
-      optionalMatches = Vector(
+      optionalMatches = ListSet(
         QueryGraph(
           patternNodes = Set(A, B),
           argumentIds = Set(A, B),

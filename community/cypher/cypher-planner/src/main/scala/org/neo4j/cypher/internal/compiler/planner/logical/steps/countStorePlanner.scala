@@ -88,7 +88,7 @@ case object countStorePlanner {
           patternNodes,
           argumentIds,
           selections,
-          Seq(),
+          SetExtractor(),
           hints,
           shortestRelationshipPatterns,
           _,

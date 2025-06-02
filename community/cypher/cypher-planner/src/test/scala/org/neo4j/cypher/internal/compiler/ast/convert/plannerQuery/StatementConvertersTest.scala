@@ -81,6 +81,7 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -1651,8 +1652,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       projections = Map(v"x" -> function("coalesce", v"b", v"c"))
     ))
 
-    val optionalMatch1 = query.queryGraph.optionalMatches(0)
-    val optionalMatch2 = query.queryGraph.optionalMatches(1)
+    val optionalMatch1 = query.queryGraph.optionalMatches.head
+    val optionalMatch2 = query.queryGraph.optionalMatches.tail.head
 
     optionalMatch1.argumentIds should equal(Set(v"a"))
     optionalMatch1.patternNodes should equal(Set(v"a", v"b"))
@@ -1675,7 +1676,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     query.queryGraph.patternNodes should equal(Set(v"a", v"a0"))
     query.queryGraph.patternRelationships should equal(Set.empty)
 
-    val optionalMatch = query.queryGraph.optionalMatches(0)
+    val optionalMatch = query.queryGraph.optionalMatches.head
 
     optionalMatch.argumentIds should equal(Set(v"a", v"p"))
   }
@@ -1697,7 +1698,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     query should equal(RegularSinglePlannerQuery(
       QueryGraph(
         patternNodes = Set(v"a"),
-        optionalMatches = IndexedSeq(
+        optionalMatches = ListSet(
           QueryGraph(
             argumentIds = Set(v"a"),
             patternNodes = Set(v"a", v"b"),
@@ -1751,7 +1752,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     query should equal(RegularSinglePlannerQuery(
       QueryGraph(
         patternNodes = Set(v"a"),
-        optionalMatches = IndexedSeq(
+        optionalMatches = ListSet(
           QueryGraph(
             argumentIds = Set(v"a"),
             patternNodes = Set(v"a", v"b"),
@@ -1767,7 +1768,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
         RegularSinglePlannerQuery(
           QueryGraph(
             argumentIds = Set(v"a", v"b"),
-            optionalMatches = IndexedSeq(
+            optionalMatches = ListSet(
               QueryGraph(
                 argumentIds = Set(v"a"),
                 patternNodes = Set(v"a", v"c"),
@@ -2199,7 +2200,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
   test("should convert a single quantified pattern in OPTIONAL MATCH") {
     val query = buildSinglePlannerQuery("OPTIONAL MATCH ((n)-[r]->(m))+ RETURN 1")
     query.queryGraph shouldBe QueryGraph(
-      optionalMatches = Vector(QueryGraph(
+      optionalMatches = ListSet(QueryGraph(
         patternNodes = Set(v"anon_0", v"anon_1"),
         quantifiedPathPatterns = Set(
           QuantifiedPathPattern(

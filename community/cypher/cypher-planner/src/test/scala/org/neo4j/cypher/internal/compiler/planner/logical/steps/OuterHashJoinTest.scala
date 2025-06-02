@@ -79,7 +79,7 @@ class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport w
       patternRelationships = Set(r1Rel),
       argumentIds = Set(aNode)
     )
-    val enclosingQg = QueryGraph(optionalMatches = IndexedSeq(optionalQg))
+    val enclosingQg = QueryGraph(optionalMatches = ListSet(optionalQg))
 
     val factory = newMockedMetricsFactory
 
@@ -125,7 +125,7 @@ class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport w
       hints = theHint,
       argumentIds = Set(aNode)
     )
-    val enclosingQg = QueryGraph(optionalMatches = IndexedSeq(optionalQg))
+    val enclosingQg = QueryGraph(optionalMatches = ListSet(optionalQg))
 
     val factory = newMockedMetricsFactory
     when(factory.newCostModel(ExecutionModel.default, CancellationChecker.neverCancelled())).thenReturn((
@@ -173,7 +173,7 @@ class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport w
       patternRelationships = Set(r1Rel),
       argumentIds = Set(aNode)
     )
-    val enclosingQg = QueryGraph(optionalMatches = IndexedSeq(optionalQg))
+    val enclosingQg = QueryGraph(optionalMatches = ListSet(optionalQg))
 
     val factory = newMockedMetricsFactory
     when(factory.newCostModel(ExecutionModel.default, CancellationChecker.neverCancelled())).thenReturn((

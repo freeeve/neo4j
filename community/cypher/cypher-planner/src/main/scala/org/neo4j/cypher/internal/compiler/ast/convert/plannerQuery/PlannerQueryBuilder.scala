@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
 
 case class PlannerQueryBuilder(
   q: SinglePlannerQuery,
@@ -169,12 +170,12 @@ object PlannerQueryBuilder {
     def fixArgumentIdsOnOptionalMatch(plannerQuery: SinglePlannerQuery): SinglePlannerQuery = {
       val optionalMatches = plannerQuery.queryGraph.optionalMatches
       val (_, newOptionalMatches) =
-        optionalMatches.foldMap(plannerQuery.queryGraph.idsWithoutOptionalMatchesOrUpdates) {
+        optionalMatches.toVector.foldMap(plannerQuery.queryGraph.idsWithoutOptionalMatchesOrUpdates) {
           case (args, qg) =>
             (args ++ qg.allCoveredIds, qg.withArgumentIds(args intersect qg.dependencies))
         }
       plannerQuery
-        .amendQueryGraph(_.withOptionalMatches(newOptionalMatches.toIndexedSeq))
+        .amendQueryGraph(_.withOptionalMatches(newOptionalMatches.toListSet))
         .updateTail(fixArgumentIdsOnOptionalMatch)
     }
 

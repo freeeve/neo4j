@@ -60,6 +60,7 @@ import org.neo4j.cypher.internal.logical.plans.ProjectEndpoints
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.util.Cardinality
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.exceptions.TestFailedException
@@ -847,7 +848,7 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
       queryGraphSolver = createQueryGraphSolver(monitor, DefaultIDPSolverConfig)
       qg = QueryGraph( // MATCH a OPTIONAL MATCH (a)-[r]-(b)
         patternNodes = Set(v"a"),
-        optionalMatches = Vector(QueryGraph(
+        optionalMatches = ListSet(QueryGraph(
           patternNodes = Set(v"a", v"b"),
           argumentIds = Set(v"a"),
           patternRelationships =
@@ -922,7 +923,7 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
       queryGraphSolver = createQueryGraphSolver(monitor = monitor, solverConfig = EmptySolverConfig())
       qg = QueryGraph( // MATCH a, b OPTIONAL MATCH a-[r]->b
         patternNodes = Set(v"a", v"b"),
-        optionalMatches = Vector(QueryGraph(
+        optionalMatches = ListSet(QueryGraph(
           patternNodes = Set(v"a", v"b"),
           argumentIds = Set(v"a", v"b"),
           patternRelationships =
@@ -951,7 +952,7 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
       qg = QueryGraph( // OPTIONAL MATCH a-->b RETURN b a
         patternNodes = Set.empty,
         argumentIds = Set.empty,
-        optionalMatches = Vector(QueryGraph(
+        optionalMatches = ListSet(QueryGraph(
           patternNodes = Set(v"a", v"b"),
           argumentIds = Set.empty,
           patternRelationships =

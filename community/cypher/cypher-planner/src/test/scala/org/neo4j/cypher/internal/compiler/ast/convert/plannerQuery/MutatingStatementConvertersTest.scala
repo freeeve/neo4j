@@ -176,7 +176,7 @@ class MutatingStatementConvertersTest extends CypherFunSuite with LogicalPlannin
             Set.empty,
             Set.empty,
             Selections(Set.empty),
-            Vector.empty,
+            ListSet.empty,
             ListSet.empty,
             Set.empty,
             IndexedSeq(CreatePattern(nodes("a")))

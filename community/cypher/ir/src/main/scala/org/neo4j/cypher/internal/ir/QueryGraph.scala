@@ -66,7 +66,7 @@ final case class QueryGraph private (
   patternNodes: Set[LogicalVariable] = Set.empty,
   argumentIds: Set[LogicalVariable] = Set.empty,
   selections: Selections = Selections(),
-  optionalMatches: IndexedSeq[QueryGraph] = Vector.empty,
+  optionalMatches: ListSet[QueryGraph] = ListSet.empty,
   hints: ListSet[Hint] = ListSet.empty,
   shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = Set.empty,
   mutatingPatterns: IndexedSeq[MutatingPattern] = IndexedSeq.empty,
@@ -81,7 +81,7 @@ final case class QueryGraph private (
     patternNodes: Set[LogicalVariable] = patternNodes,
     argumentIds: Set[LogicalVariable] = argumentIds,
     selections: Selections = selections,
-    optionalMatches: IndexedSeq[QueryGraph] = optionalMatches,
+    optionalMatches: ListSet[QueryGraph] = optionalMatches,
     hints: ListSet[Hint] = hints,
     shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = shortestRelationshipPatterns,
     mutatingPatterns: IndexedSeq[MutatingPattern] = mutatingPatterns,
@@ -127,7 +127,7 @@ final case class QueryGraph private (
 
   def withArgumentIds(newArgumentIds: Set[LogicalVariable]): QueryGraph = copy(argumentIds = newArgumentIds)
 
-  def withOptionalMatches(optionalMatches: IndexedSeq[QueryGraph]): QueryGraph = copy(optionalMatches = optionalMatches)
+  def withOptionalMatches(optionalMatches: ListSet[QueryGraph]): QueryGraph = copy(optionalMatches = optionalMatches)
 
   def withSelections(selections: Selections): QueryGraph = copy(selections = selections)
 
@@ -274,7 +274,7 @@ final case class QueryGraph private (
 
   def addOptionalMatch(optionalMatch: QueryGraph): QueryGraph = {
     val argumentIds = allCoveredIds intersect optionalMatch.allCoveredIds
-    copy(optionalMatches = optionalMatches :+ optionalMatch.addArgumentIds(argumentIds.toIndexedSeq))
+    copy(optionalMatches = optionalMatches + optionalMatch.addArgumentIds(argumentIds.toIndexedSeq))
   }
 
   def addMutatingPatterns(pattern: MutatingPattern): QueryGraph = {
@@ -723,7 +723,7 @@ final case class QueryGraph private (
           patternNodes == otherPatternNodes &&
           argumentIds == otherArgumentIds &&
           selections == otherSelections &&
-          optionalMatches.toSet == otherOptionalMatches.toSet &&
+          optionalMatches == otherOptionalMatches &&
           hints == otherHints &&
           shortestRelationshipPatterns == otherShortestRelationshipPatterns &&
           mutatingPatterns == otherMutatingPatterns &&
@@ -744,7 +744,7 @@ final case class QueryGraph private (
         patternNodes,
         argumentIds,
         selections,
-        optionalMatches.toSet,
+        optionalMatches,
         hints.groupBy(identity),
         shortestRelationshipPatterns,
         mutatingPatterns,
@@ -764,7 +764,7 @@ object QueryGraph {
     patternNodes: Set[LogicalVariable] = Set.empty,
     argumentIds: Set[LogicalVariable] = Set.empty,
     selections: Selections = Selections(),
-    optionalMatches: IndexedSeq[QueryGraph] = Vector.empty,
+    optionalMatches: ListSet[QueryGraph] = ListSet.empty,
     hints: ListSet[Hint] = ListSet.empty,
     shortestRelationshipPatterns: Set[ShortestRelationshipPattern] = Set.empty,
     mutatingPatterns: IndexedSeq[MutatingPattern] = IndexedSeq.empty,

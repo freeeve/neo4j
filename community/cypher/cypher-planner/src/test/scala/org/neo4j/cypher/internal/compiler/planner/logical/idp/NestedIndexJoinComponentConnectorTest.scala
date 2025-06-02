@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.IndexSeek.nodeIndexSeek
 import org.neo4j.cypher.internal.logical.plans.IndexSeek.relationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -252,7 +253,7 @@ class NestedIndexJoinComponentConnectorTest extends CypherFunSuite with LogicalP
       val nQg = QueryGraph(patternNodes = Set(v"n")).addPredicates(labelNPred)
       val mQg = QueryGraph(
         patternNodes = Set(v"m"),
-        optionalMatches = IndexedSeq(QueryGraph(patternNodes = Set(v"o")))
+        optionalMatches = ListSet(QueryGraph(patternNodes = Set(v"o")))
       ).addPredicates(labelMPred)
       val fullQg = (nQg ++ mQg).addPredicates(joinPred)
 

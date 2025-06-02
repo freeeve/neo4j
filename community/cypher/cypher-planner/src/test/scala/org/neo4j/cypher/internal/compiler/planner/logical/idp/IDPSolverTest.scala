@@ -27,6 +27,8 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ProjectingSelector
 import org.neo4j.cypher.internal.compiler.planner.logical.SelectorHeuristic
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.time.FakeClock
 import org.neo4j.time.Stopwatch
@@ -61,7 +63,7 @@ class IDPSolverTest extends CypherFunSuite {
       SolvableItemWithExtraRequirements(Set('d'), isSorted = false, hasPrefetchedProperties = false) -> "d"
     )
 
-    val solution = solver(seed, Seq('a', 'b', 'c', 'd'), context)
+    val solution = solver(seed, ListSet('a', 'b', 'c', 'd'), context)
 
     solution should equal(BestResults("abcd", None, None))
     verify(monitor).foundPlanAfter(1)
@@ -89,7 +91,7 @@ class IDPSolverTest extends CypherFunSuite {
       SolvableItemWithExtraRequirements(Set('d'), isSorted = false, hasPrefetchedProperties = false) -> "d"
     )
 
-    val solution = solver(seed, Seq('a', 'b', 'c', 'd'), context)
+    val solution = solver(seed, ListSet('a', 'b', 'c', 'd'), context)
 
     solution should equal(BestResults("ABCD", Some("ABCD"), None))
     verify(monitor).foundPlanAfter(1)
@@ -117,7 +119,7 @@ class IDPSolverTest extends CypherFunSuite {
       SolvableItemWithExtraRequirements(Set('D'), isSorted = false, hasPrefetchedProperties = false) -> "D"
     )
 
-    val solution = solver(seed, Seq('A', 'B', 'C', 'D'), context)
+    val solution = solver(seed, ListSet('A', 'B', 'C', 'D'), context)
 
     solution should equal(BestResults("ABCD", Some("abcd"), None))
     verify(monitor).foundPlanAfter(1)
@@ -146,7 +148,7 @@ class IDPSolverTest extends CypherFunSuite {
       SolvableItemWithExtraRequirements(Set('D'), isSorted = false, hasPrefetchedProperties = false) -> "D"
     )
 
-    val solution = solver(seed, Seq('A', 'B', 'C', 'D'), context)
+    val solution = solver(seed, ListSet('A', 'B', 'C', 'D'), context)
 
     solution should equal(BestResults("ABCD", None, Some("0123")))
     verify(monitor).foundPlanAfter(1)
@@ -173,7 +175,7 @@ class IDPSolverTest extends CypherFunSuite {
       SolvableItemWithExtraRequirements(Set('D'), isSorted = false, hasPrefetchedProperties = false) -> "D"
     )
 
-    val solution = solver(seed, Seq('A', 'B', 'C', 'D'), context)
+    val solution = solver(seed, ListSet('A', 'B', 'C', 'D'), context)
 
     solution should equal(BestResults("0123", None, Some("0123")))
     verify(monitor).foundPlanAfter(1)
@@ -201,7 +203,7 @@ class IDPSolverTest extends CypherFunSuite {
       SolvableItemWithExtraRequirements(Set('D'), isSorted = false, hasPrefetchedProperties = false) -> "D"
     )
 
-    val solution = solver(seed, Seq('A', 'B', 'C', 'D'), context)
+    val solution = solver(seed, ListSet('A', 'B', 'C', 'D'), context)
 
     solution should equal(BestResults("ABCD", Some("abcd"), Some("0123")))
     verify(monitor).foundPlanAfter(2)
@@ -232,7 +234,7 @@ class IDPSolverTest extends CypherFunSuite {
 
     val todo = Seq('b', 'a', 'd', 'c')
 
-    solver(seed, todo, context)
+    solver(seed, todo.toListSet, context)
 
     // Offset by one due to the bit representing sorted
     todo.indices.flatMap(i => registry.lookup(i + 1)) should equal(todo)
@@ -268,7 +270,7 @@ class IDPSolverTest extends CypherFunSuite {
       SolvableItemWithExtraRequirements(Set('h'), isSorted = false, hasPrefetchedProperties = false) -> "h"
     )
 
-    solver(seed, Seq('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'), context)
+    solver(seed, ListSet('a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'), context)
 
     verify(monitor).startIteration(1)
     verify(monitor).endIteration(1, 2, 16)
@@ -331,7 +333,7 @@ class IDPSolverTest extends CypherFunSuite {
           hasPrefetchedProperties = false
         ) -> c.toString)
       }
-    val result = seed.foldLeft(Seq.empty[Char]) { (acc, t) =>
+    val result = seed.foldLeft(ListSet.empty[Char]) { (acc, t) =>
       acc ++ t._1.goal
     }
 
@@ -368,7 +370,7 @@ class IDPSolverTest extends CypherFunSuite {
         SolvableItemWithExtraRequirements[Char](Set('d'), isSorted = false, hasPrefetchedProperties = false) -> "d"
       )
 
-      val solution = solver(seed, Seq('a', 'b', 'c', 'd'), context)
+      val solution = solver(seed, ListSet('a', 'b', 'c', 'd'), context)
       solution should equal(BestResults("abcd", None, None))
     }
 

@@ -265,7 +265,7 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
             patternNodes,
             _,
             Selections.empty,
-            IndexedSeq(),
+            SetExtractor(),
             SetExtractor(),
             SetExtractor(),
             IndexedSeq(),

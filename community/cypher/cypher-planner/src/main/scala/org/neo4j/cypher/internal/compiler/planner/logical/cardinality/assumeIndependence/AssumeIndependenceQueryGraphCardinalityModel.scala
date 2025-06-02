@@ -71,6 +71,7 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
     val optionalMatchesCardinality =
       queryGraph
         .optionalMatches
+        .toVector
         // calculate the cardinality of each optional match, accumulating labels and threading them through
         .foldMap(moreLabelInfo)(getBaseQueryGraphCardinality(context, _, _))
         ._2 // we only care about cardinality, we can ditch the accumulated labels at this point

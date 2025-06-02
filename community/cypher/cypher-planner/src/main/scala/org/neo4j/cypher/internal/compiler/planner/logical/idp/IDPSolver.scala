@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Selector
 import org.neo4j.cypher.internal.compiler.planner.logical.SelectorHeuristic
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPCache.SatisfiedExtraRequirements
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.exceptions.InternalException
 import org.neo4j.time.Stopwatch
 
@@ -98,7 +99,7 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
   idpLogger: IDPLogger = IDPLogger.NoLogging
 ) {
 
-  def apply(seed: Seed[Solvable, Result], initialToDo: Seq[Solvable], context: Context): BestResults[Result] = {
+  def apply(seed: Seed[Solvable, Result], initialToDo: ListSet[Solvable], context: Context): BestResults[Result] = {
     idpLogger.markScope("IDP") {
       run(seed, initialToDo, context)
     }
@@ -109,24 +110,14 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
    *
    * The Goal which is created from initialTodo will have the bits in the same order as initialTodo.
    */
-  private def run(seed: Seed[Solvable, Result], initialToDo: Seq[Solvable], context: Context): BestResults[Result] = {
+  private def run(
+    seed: Seed[Solvable, Result],
+    initialToDo: ListSet[Solvable],
+    context: Context
+  ): BestResults[Result] = {
     val registry = registryFactory()
     var toDo = Goal(registry.registerAll(initialToDo))
     val table = tableFactory(registry, seed)
-
-    // utility functions
-    def candidateSelector(resolved: => String): Selector[Result] =
-      projectingSelector.apply[Result](identity[Result], _, resolved)
-    def goalSelector(resolved: => String): Selector[(Goal, Result)] =
-      projectingSelector.applyWithResolvedPerPlan[(Goal, Result)](
-        // project the result
-        _._2,
-        _,
-        resolved,
-        _ => "",
-        SelectorHeuristic.constant,
-        planDescriptor = { case (goal, _) => Some(s"Goal: ${goal.bitSet}") }
-      )
 
     def generateBestCandidates(maxBlockSize: Int): Int = {
       var largestFinishedIteration = 0
@@ -271,6 +262,20 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
       singleOrEmptyResult(plansFulfillingExtraProperties)
     )
   }
+
+  private def candidateSelector(resolved: => String): Selector[Result] =
+    projectingSelector.apply[Result](identity[Result], _, resolved)
+
+  private def goalSelector(resolved: => String): Selector[(Goal, Result)] =
+    projectingSelector.applyWithResolvedPerPlan[(Goal, Result)](
+      // project the result
+      _._2,
+      _,
+      resolved,
+      _ => "",
+      SelectorHeuristic.constant,
+      planDescriptor = { case (goal, _) => Some(s"Goal: ${goal.bitSet}") }
+    )
 
   private def singleResult(vector: Vector[(IDPCache.SatisfiedExtraRequirements, Result)]): Result = vector match {
     case Vector(t) => t._2

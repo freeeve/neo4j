@@ -62,7 +62,6 @@ import org.neo4j.cypher.internal.util.topDown
 
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.util.control.TailCalls
 import scala.util.control.TailCalls.TailRec
 
@@ -148,11 +147,11 @@ case object OptionalMatchRemover extends PlannerQueryRewriter with StepSequencer
     val dependencies = projectionDeps.toSet ++ updateDeps
 
     val optionalMatches = graph.optionalMatches.flatMapWithTail {
-      (original: QueryGraph, tail: Seq[QueryGraph]) =>
+      (original: QueryGraph, tail: ListSet[QueryGraph]) =>
         // The dependencies on an optional match are:
         val allDeps =
           // dependencies from optional matches listed later in the query
-          tail.flatMap(g => g.argumentIds ++ g.selections.variableDependencies).toSet ++
+          tail.flatMap(g => g.argumentIds ++ g.selections.variableDependencies) ++
             // any dependencies from the next horizon
             dependencies --
             // But we don't need to solve variables already present by the non-optional part of the QG
@@ -391,26 +390,26 @@ case object OptionalMatchRemover extends PlannerQueryRewriter with StepSequencer
     )
   }
 
-  implicit class FlatMapWithTailable(in: IndexedSeq[QueryGraph]) {
+  implicit class FlatMapWithTailable(in: ListSet[QueryGraph]) {
 
-    def flatMapWithTail(f: (QueryGraph, Seq[QueryGraph]) => IterableOnce[QueryGraph]): IndexedSeq[QueryGraph] = {
+    def flatMapWithTail(f: (QueryGraph, ListSet[QueryGraph]) => IterableOnce[QueryGraph]): ListSet[QueryGraph] = {
 
       @tailrec
       def recurse(
         that: QueryGraph,
-        rest: Seq[QueryGraph],
-        builder: mutable.Builder[QueryGraph, ListBuffer[QueryGraph]]
+        rest: ListSet[QueryGraph],
+        builder: mutable.Builder[QueryGraph, ListSet[QueryGraph]]
       ): Unit = {
         builder ++= f(that, rest)
         if (rest.nonEmpty)
           recurse(rest.head, rest.tail, builder)
       }
       if (in.isEmpty)
-        IndexedSeq.empty
+        ListSet.empty
       else {
-        val builder = ListBuffer.newBuilder[QueryGraph]
+        val builder = ListSet.newBuilder[QueryGraph]
         recurse(in.head, in.tail, builder)
-        builder.result().toIndexedSeq
+        builder.result()
       }
     }
   }

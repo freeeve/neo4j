@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.ir.NodeConnection
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
 import org.neo4j.exceptions.InternalException
 import org.neo4j.time.Stopwatch
 
@@ -137,7 +138,7 @@ case class SingleComponentPlanner(
             componentInterestingOrderConfig
           )
         monitor.startIDPIterationFor(qg)
-        val result = solver(seed, qg.nodeConnections.toSeq, context)
+        val result = solver(seed, qg.nodeConnections.toListSet, context)
         monitor.endIDPIterationFor(qg, result.bestResult)
 
         BestResults(result.bestResult, result.bestSortedResult, result.bestExtraPropertiesResult)

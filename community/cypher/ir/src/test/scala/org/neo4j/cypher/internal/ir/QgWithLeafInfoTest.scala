@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ir.QgWithLeafInfo.UnstableIdentifier
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.ir.ast.ListIRExpression
 import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConverter
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class QgWithLeafInfoTest extends CypherFunSuite with AstConstructionTestSupport {
@@ -51,7 +52,7 @@ class QgWithLeafInfoTest extends CypherFunSuite with AstConstructionTestSupport 
     val qg = QueryGraph(
       patternNodes = Set(v"a"),
       patternRelationships = Set(r),
-      optionalMatches = IndexedSeq(QueryGraph(patternNodes = Set(v"b")))
+      optionalMatches = ListSet(QueryGraph(patternNodes = Set(v"b")))
     )
     val qgWithLeafInfo = QgWithLeafInfo(qg, Set.empty, Set.empty, None, isTerminatingProjection = false)
     qgWithLeafInfo.unstablePatternNodes should equal(Set(v"a", v"b"))
@@ -75,7 +76,7 @@ class QgWithLeafInfoTest extends CypherFunSuite with AstConstructionTestSupport 
     val qg = QueryGraph(
       patternNodes = Set(v"a", v"b", v"c"),
       patternRelationships = Set(r),
-      optionalMatches = IndexedSeq(QueryGraph(patternRelationships = Set(r2)))
+      optionalMatches = ListSet(QueryGraph(patternRelationships = Set(r2)))
     )
     val qgWithLeafInfo = QgWithLeafInfo(qg, Set.empty, Set.empty, None, isTerminatingProjection = false)
     qgWithLeafInfo.unstablePatternRelationships should equal(Set(r, r2))
@@ -207,7 +208,7 @@ class QgWithLeafInfoTest extends CypherFunSuite with AstConstructionTestSupport 
     val qg = QueryGraph(
       patternNodes = Set(v"a", v"b", v"c"),
       patternRelationships = Set(r),
-      optionalMatches = IndexedSeq(QueryGraph(
+      optionalMatches = ListSet(QueryGraph(
         patternNodes = Set(v"a"),
         selections = Selections.from(hasLabels("a", "A"))
       ))
@@ -295,7 +296,7 @@ class QgWithLeafInfoTest extends CypherFunSuite with AstConstructionTestSupport 
     val qg = QueryGraph(
       patternNodes = Set(v"a", v"b", v"c"),
       patternRelationships = Set(r),
-      optionalMatches = IndexedSeq(QueryGraph(
+      optionalMatches = ListSet(QueryGraph(
         patternNodes = Set(v"a"),
         selections = Selections.from(hasTypes("r", "R"))
       ))
@@ -341,7 +342,7 @@ class QgWithLeafInfoTest extends CypherFunSuite with AstConstructionTestSupport 
     val qg = QueryGraph(
       patternNodes = Set(v"a", v"b", v"c"),
       patternRelationships = Set(r),
-      optionalMatches = IndexedSeq(QueryGraph(
+      optionalMatches = ListSet(QueryGraph(
         patternNodes = Set(v"a"),
         selections = Selections.from(equals(prop("a", "prop"), literalInt(5)))
       ))

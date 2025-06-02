@@ -251,8 +251,9 @@ class GoalBitAllocationTest extends CypherFunSuite with AstConstructionTestSuppo
         BitSet(2, 3)
       )
     ))
-    initialTodo.take(components.size).toSet should equal(components)
-    initialTodo.drop(components.size) should equal(optionalMatches.toSeq)
+
+    initialTodo.take(components.size) shouldEqual components
+    initialTodo.drop(components.size).toSeq shouldEqual optionalMatches.toSeq
   }
 
   test("GoalBitAllocation.create should handle duplicate optional matches") {

@@ -118,7 +118,7 @@ case class ComponentConnectorPlanner(singleComponentPlanner: SingleComponentPlan
   ): BestPlans = {
     val orderRequirement = extraRequirementForInterestingOrder(context, interestingOrderConfig)
     val (goalBitAllocation, initialTodo) =
-      GoalBitAllocation.create(components.map(_.queryGraph), queryGraph.optionalMatches.toListSet)
+      GoalBitAllocation.create(components.map(_.queryGraph), queryGraph.optionalMatches)
 
     val joinSolverSteps =
       joinConnectors.map(_.solverStep(goalBitAllocation, queryGraph, interestingOrderConfig, kit, context))
@@ -200,13 +200,13 @@ object GoalBitAllocation {
   def create(
     components: Set[QueryGraph],
     optionalMatches: ListSet[QueryGraph]
-  ): (GoalBitAllocation, Seq[QueryGraph]) = {
-    val initialTodo = components.toSeq ++ optionalMatches
+  ): (GoalBitAllocation, ListSet[QueryGraph]) = {
+    val initialTodo = components.toListSet ++ optionalMatches
 
     // For each optional match, find dependencies to components and other optional matches
     val optionalMatchDependencies: IndexedSeq[BitSet] = optionalMatches.toVector.map { om =>
       om.argumentIds.iterator.map { arg =>
-        val index = initialTodo.indexWhere(x => x.idsWithoutOptionalMatchesOrUpdates.contains(arg))
+        val index = initialTodo.iterator.indexWhere(x => x.idsWithoutOptionalMatchesOrUpdates.contains(arg))
         AssertMacros.checkOnlyWhenAssertionsAreEnabled(
           index >= 0,
           "Did not find which QG introduces dependency of optional match."
