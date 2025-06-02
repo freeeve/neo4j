@@ -26,7 +26,7 @@ public enum ConnectorType {
     HTTPS(3, HttpsConnector.NAME),
     PROMETHEUS(4, "prometheus"),
     RAFT(5, "raft-server"),
-    CLUSTER(6, "catchup-server"),
+    CLUSTER(6, "cluster-server"),
     BACKUP(7, "backup-server");
 
     private final byte code;
