@@ -65,6 +65,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
@@ -183,7 +184,7 @@ public interface StorageEngineFactory {
             throws IOException;
 
     /**
-     * Lists files of a specific storage location. This is a lenient version of {@link #checkStoreFileState(FileSystemAbstraction, DatabaseLayout, PageCache)}
+     * Lists files of a specific storage location. This is a lenient version of {@link #checkStoreFileState(FileSystemAbstraction, DatabaseLayout, PageCache, KernelVersionProvider)}
      * which doesn't take into account which files are expected to be there.
      *
      * @param fileSystem {@link FileSystemAbstraction} this storage is on.
@@ -336,12 +337,17 @@ public interface StorageEngineFactory {
      * Asks this storage engine about the state of a specific store before opening it. If this specific store is missing optional or
      * even perhaps mandatory files in order to properly open it, this is the place to report that.
      *
-     * @param fs {@link FileSystemAbstraction} to use for file operations.
-     * @param databaseLayout {@link DatabaseLayout} for the location of the database in the file system.
-     * @param pageCache {@link PageCache} for any data reading needs.
+     * @param fs                    {@link FileSystemAbstraction} to use for file operations.
+     * @param databaseLayout        {@link DatabaseLayout} for the location of the database in the file system.
+     * @param pageCache             {@link PageCache} for any data reading needs.
+     * @param kernelVersionProvider Provides the kernel version of the store to check.
      * @return the state of the storage files.
      */
-    StorageFilesState checkStoreFileState(FileSystemAbstraction fs, DatabaseLayout databaseLayout, PageCache pageCache);
+    StorageFilesState checkStoreFileState(
+            FileSystemAbstraction fs,
+            DatabaseLayout databaseLayout,
+            PageCache pageCache,
+            KernelVersionProvider kernelVersionProvider);
 
     /**
      * @return a {@link CommandReaderFactory} capable of handing out {@link CommandReader} for specific versions. Generally kernel will take care

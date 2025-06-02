@@ -254,9 +254,9 @@ class RecoveryIT {
                 new DatabaseTracers(checkpointTracer, LockTracer.NONE, PageCacheTracer.NULL, VersionStorageTracer.NULL);
         recoverDatabase(tracers);
 
-        // we should have only one pass over log tails during recovery. 2 checks is tail scan to see if recovery is
+        // we should have only one pass over log tails during recovery. 1 check is tail scan to see if recovery is
         // required
-        assertEquals(1 + 2, checkpointTracer.getCheckpointOpenCounter());
+        assertEquals(1 + 1, checkpointTracer.getCheckpointOpenCounter());
     }
 
     @Test

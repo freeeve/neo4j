@@ -97,6 +97,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
 import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
@@ -689,7 +690,10 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
 
     @Override
     public StorageFilesState checkStoreFileState(
-            FileSystemAbstraction fs, DatabaseLayout databaseLayout, PageCache pageCache) {
+            FileSystemAbstraction fs,
+            DatabaseLayout databaseLayout,
+            PageCache pageCache,
+            KernelVersionProvider kernelVersionProvider) {
         RecordDatabaseLayout recordLayout = formatSpecificDatabaseLayout(databaseLayout);
 
         Set<Path> storeFiles = Arrays.stream(RecordDatabaseFile.values())

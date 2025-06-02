@@ -513,6 +513,16 @@ public final class Recovery {
             RecoveryMode mode)
             throws IOException {
         InternalLog recoveryLog = logProvider.getLog(Recovery.class);
+
+        LogTailMetadata logTailMetadata = providedLogTail.orElseGet(() -> loadLogTail(
+                fs,
+                tracers,
+                config,
+                databaseLayout,
+                storageEngineFactory,
+                memoryTracker,
+                emptyLogsFallbackKernelVersion));
+
         if (!forceRunRecovery
                 && !isRecoveryRequired(
                         fs,
@@ -520,12 +530,12 @@ public final class Recovery {
                         databaseLayout,
                         storageEngineFactory,
                         config,
-                        providedLogTail,
+                        Optional.of(logTailMetadata),
                         memoryTracker,
                         tracers)) {
             return false;
         }
-        checkAllFilesPresence(databaseLayout, fs, pageCache, storageEngineFactory);
+        checkAllFilesPresence(databaseLayout, fs, pageCache, storageEngineFactory, logTailMetadata);
         LifeSupport recoveryLife = new LifeSupport();
         var namedDatabaseId = createRecoveryDatabaseId(fs, pageCache, databaseLayout, storageEngineFactory);
         Monitors monitors = new Monitors(globalMonitors, logProvider);
@@ -597,14 +607,6 @@ public final class Recovery {
                 tracers.getPageCacheTracer(),
                 indexDependencies));
 
-        LogTailMetadata logTailMetadata = providedLogTail.orElseGet(() -> loadLogTail(
-                fs,
-                tracers,
-                config,
-                databaseLayout,
-                storageEngineFactory,
-                memoryTracker,
-                emptyLogsFallbackKernelVersion));
         MetadataCache recoveryMetaDataCache = new MetadataCache(logTailMetadata);
         StorageEngine storageEngine = storageEngineFactory.instantiate(
                 fs,
@@ -876,8 +878,10 @@ public final class Recovery {
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fs,
             PageCache pageCache,
-            StorageEngineFactory storageEngineFactory) {
-        StorageFilesState state = storageEngineFactory.checkStoreFileState(fs, databaseLayout, pageCache);
+            StorageEngineFactory storageEngineFactory,
+            KernelVersionProvider kernelVersionProvider) {
+        StorageFilesState state =
+                storageEngineFactory.checkStoreFileState(fs, databaseLayout, pageCache, kernelVersionProvider);
         if (state.recoveryState() == RecoveryState.UNRECOVERABLE) {
             throw new RuntimeException(format(
                     "Store files %s is(are) missing and recovery is not possible. Please restore from a consistent backup.",
