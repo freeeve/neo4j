@@ -443,6 +443,24 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test(
+    "REPEATABLE ELEMENTS ALL SHORTEST ((b)-[r2*2..3]->(c) WHERE b.p=a.p), (a)-[*0..2]-(b)"
+  ) {
+    // selective path pattern has a predicate referring to another path pattern in the same graph pattern - reference to variable in later path pattern
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasError(
+      GqlHelper.getGql42001_42I21(
+        java.util.List.of("a"),
+        "ALL SHORTEST PATHS ((b)-[r2*2..3]->(c) WHERE b.p = a.p)",
+        69,
+        1,
+        70
+      ),
+      """From within a selective path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+        |In this case, `a` is defined in the same `MATCH` clause as ALL SHORTEST PATHS ((b)-[r2*2..3]->(c) WHERE b.p = a.p).""".stripMargin,
+      p(69, 1, 70)
+    )
+  }
+
+  test(
     "(a)--(b) MATCH REPEATABLE ELEMENTS ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE a.p=c.p)"
   ) {
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
@@ -465,6 +483,15 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
     "(a)-[:R]->(e) MATCH REPEATABLE ELEMENTS (a)--(b), ALL SHORTEST ((b)--{2,3}(c) WHERE c.p=a.p)"
   ) {
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
+  }
+
+  test("should accept var-length relationship without node variables inside repeatable shortest") {
+    runWith(
+      """MATCH REPEATABLE ELEMENTS SHORTEST 1 PATH (p = ()-[*1..1]->())
+        |RETURN p""".stripMargin,
+      disabledCypherVersions = Set(CypherVersion.Cypher5),
+      MatchModes
+    ).hasNoErrors
   }
 
   test(

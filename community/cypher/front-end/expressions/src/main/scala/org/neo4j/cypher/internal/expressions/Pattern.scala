@@ -219,7 +219,9 @@ object PatternPart {
     val count: Either[PathLengthQuantifier, Parameter]
   }
 
-  sealed trait SelectiveSelector extends Selector
+  sealed trait SelectiveSelector extends Selector {
+    override def isSelective: Boolean = true
+  }
 
   case class AnyPath(count: Either[PathLengthQuantifier, Parameter])(val position: InputPosition)
       extends SelectiveSelector
@@ -229,8 +231,6 @@ object PatternPart {
       case Left(n)  => s"ANY ${n.value} PATHS"
       case Right(p) => s"ANY $$${p.name} PATHS"
     }
-
-    override def isSelective: Boolean = true
   }
 
   case class AllPaths()(val position: InputPosition) extends Selector {
@@ -249,12 +249,10 @@ object PatternPart {
       case Left(n)  => s"SHORTEST ${n.value} PATHS"
       case Right(p) => s"SHORTEST $$${p.name} PATHS"
     }
-    override def isSelective: Boolean = true
   }
 
   case class AllShortestPaths()(val position: InputPosition) extends SelectiveSelector {
     override def prettified: String = "ALL SHORTEST PATHS"
-    override def isSelective: Boolean = true
   }
 
   case class ShortestGroups(count: Either[
@@ -268,7 +266,6 @@ object PatternPart {
       case Left(n)  => s"SHORTEST ${n.value} PATH GROUPS"
       case Right(p) => s"SHORTEST $$${p.name} PATH GROUPS"
     }
-    override def isSelective: Boolean = true
   }
 }
 
@@ -447,7 +444,7 @@ object PatternElement {
       // Either we have a simple pattern
       case pattern: SimplePattern =>
         val allVars = pattern.allTopLevelVariablesLeftToRight
-        Set(allVars.head, allVars.last)
+        Set.empty ++ allVars.headOption ++ allVars.lastOption
       // or non-simple patterns (QPPs) have been padded (see QppsHavePaddedNodes)
       case PathConcatenation(factors) =>
         val left = factors.head.asInstanceOf[SimplePattern].allTopLevelVariablesLeftToRight.headOption
