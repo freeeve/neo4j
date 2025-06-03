@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 import org.scalatest.Assertion
 
 import scala.collection.immutable.ArraySeq
@@ -87,14 +88,13 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
         keyConstraint(edgeTypeRefByLabel("REL1"), ArraySeq(prop(varFor("r"), "name"))),
         uniquenessConstraint(identifyingEdgeTypeRef("REL2"), ArraySeq(prop(varFor("r2"), "name")))
       )
-    ) shouldStringifyTo (
+    ) shouldStringifyTo
       """{
         | CONSTRAINT FOR (:`Person` =>) REQUIRE (`p`.`name`) IS KEY,
         | CONSTRAINT FOR (:`City`) REQUIRE (`n`.`name`) IS UNIQUE,
         | CONSTRAINT FOR ()-[:`REL2` =>]->() REQUIRE (`r2`.`name`) IS UNIQUE,
         | CONSTRAINT FOR ()-[:`REL1`]->() REQUIRE (`r`.`name`) IS KEY
         |}""".stripMargin
-    )
   }
 
   test("sort order for refs should be identifying label, variable, label") {
@@ -105,13 +105,12 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
         keyConstraint(nodeTypeRefByLabel("Person", "Person"), ArraySeq(prop(varFor("Person"), "name"))),
         keyConstraint(identifyingNodeTypeRef("Person", "Person"), ArraySeq(prop(varFor("Person"), "name")))
       )
-    ) shouldStringifyTo (
+    ) shouldStringifyTo
       """{
         | CONSTRAINT FOR (`Person`:`Person` =>) REQUIRE (`Person`.`name`) IS KEY,
         | CONSTRAINT FOR (`Person`) REQUIRE (`Person`.`name`) IS KEY,
         | CONSTRAINT FOR (`Person`:`Person`) REQUIRE (`Person`.`name`) IS KEY
         |}""".stripMargin
-    )
   }
 
   test("sort order for properties lists of differing lengths") {
@@ -128,13 +127,12 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
         ),
         keyConstraint(identifyingNodeTypeRef("L4", "n"), ArraySeq(prop(varFor("n"), "p2"), prop(varFor("n"), "p1")))
       )
-    ) shouldStringifyTo (
+    ) shouldStringifyTo
       """{
         | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`) IS UNIQUE,
         | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`, `n`.`p3`) IS KEY,
         | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p2`, `n`.`p1`) IS KEY
         |}""".stripMargin
-    )
   }
 
   GraphTypeTestCase.testcases.collect { case GraphTypeTestCase(name, _, ast, Some(prettifiedCypher)) =>
@@ -145,8 +143,11 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
 
   implicit private class GraphTypeMatchers(graphType: GraphType) {
 
+    implicit val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
+
     def shouldStringifyTo(expected: String): Assertion = {
-      GraphTypeStringifier.apply(graphType) should be(expected)
+      // using `equal` instead of `be` for the windows line endings
+      GraphTypeStringifier.apply(graphType) should equal(expected)
     }
   }
 
