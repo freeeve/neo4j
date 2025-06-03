@@ -145,7 +145,7 @@ public enum Group {
 
     QUERY_ROUTER_WORKER("QueryRouterWorker", ExecutorServiceFactory.newVirtualThreadPerTask()),
 
-    SPD_WORKER("SpdWorker"),
+    SPD_WORKER("SpdWorker", ExecutorServiceFactory.newVirtualThreadPerTask()),
 
     // SECURITY
     AUTH_CACHE("AuthCache", ExecutorServiceFactory.workStealing()),
