@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
-import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -205,7 +204,6 @@ object Parser {
       // Special handling of PatternPartWithSelector because it happens to not include an argument for InputPosition.
       // If more cases ends up being added this should probably be refactored. But that is left as an exercise to the reader.
       case x: PatternPartWithSelector => x
-      case x: CaseExpression.Operand  => x
       case a: ASTNode                 => a.dup(a.treeChildren.toSeq :+ AbstractLogicalPlanBuilder.pos)
     })
 

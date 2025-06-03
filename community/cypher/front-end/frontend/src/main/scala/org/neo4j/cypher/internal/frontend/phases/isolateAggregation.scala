@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.expressions.AnonymousScopeExpression
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IsAggregate
@@ -157,12 +156,6 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
             // Weird way of doing it to make scalac happy
             Set(e.expression) ++ predicate.dependencies - e.variable
 
-          case e @ AnonymousScopeExpression(_, scopeVarExp) if HasAggregateButIsNotAggregate(e)(cancellationChecker) =>
-            // The `innerExp` is evaluated in a scope where `scopeVar` is bound,
-            // we can't move `scopeVar` for this reason.
-            // To avoid this we use deAnonymisedInnerExpression, where scopeVar has been re-writed away.
-            Set(e.deAnonymisedInnerExpression, scopeVarExp)
-
           case e if HasAggregateButIsNotAggregate(e)(cancellationChecker) =>
             e.arguments
 
@@ -186,7 +179,6 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
   override def preConditions: Set[StepSequencer.Condition] = Set(
     // Otherwise it might rewrite ambiguous symbols incorrectly, e.g. when a grouping variable is shadowed in for-comprehension.
     Namespacer.completed
-      // Note, CaseExpressions.Operand must be gone (condition CaseExpressionsAreIsolated)
   )
 
   override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(AggregationsAreIsolated))

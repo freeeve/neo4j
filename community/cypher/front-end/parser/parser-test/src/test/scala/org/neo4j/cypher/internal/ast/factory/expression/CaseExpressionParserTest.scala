@@ -471,7 +471,7 @@ class CaseExpressionParserTest extends AstParsingTestBase {
   )(p: InputPosition = pos) =
     CaseExpression(
       Some(candidate),
-      alts.map(_.apply(CaseExpression.Operand())).toIndexedSeq,
+      alts.map(_.apply(candidate)).toIndexedSeq,
       default
     )(p)
 }

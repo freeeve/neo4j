@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphFunctionReference
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
-import org.neo4j.cypher.internal.expressions.AnonymousScopeExpression
 import org.neo4j.cypher.internal.expressions.AssertIsNode
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
@@ -558,13 +557,7 @@ case class CommunityExpressionConverter(
       case GraphFunctionReference(GraphByElementId(elementId), _) =>
         IdExpressionGraphReference(self.toCommandExpression(id, elementId))
       case TraversalEndpoint(v, _) => variable(v)
-      case AnonymousScopeExpression(scope, variableExp) => commands.expressions.AnonymousScopeExpression(
-          scope.scopeVariable.name,
-          ExpressionVariable.cast(scope.scopeVariable).offset,
-          self.toCommandExpression(id, variableExp),
-          self.toCommandExpression(id, scope.innerExpression)
-        )
-      case _ => null
+      case _                       => null
     }
 
     Option(result)

@@ -45,17 +45,6 @@ object CaseExpression {
   )(position: InputPosition): CaseExpression =
     CaseExpression(expression, alternatives.toIndexedSeq, default)(position)
 
-  /**
-   * Placeholder expression that will be rewritten away.
-   * Important! This expression must only exist as children of case expressions,
-   * and specifically in the "when" expression.
-   * Rewrites that might move expressions around needs to happen after these are gone.
-   */
-  case class Operand() extends Expression {
-    override def position: InputPosition = InputPosition.NONE
-    override def isConstantForQuery: Boolean = true
-  }
-
   // WHEN is :: TYPE
   // WHEN contains + x
   // WHEN contains - x

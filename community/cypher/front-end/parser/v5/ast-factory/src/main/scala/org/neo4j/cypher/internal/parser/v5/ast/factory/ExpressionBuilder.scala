@@ -556,7 +556,7 @@ trait ExpressionBuilder extends Cypher5ParserListener {
     val caseExp = astChild[Expression](ctx, 1)
     ctx.ast = CaseExpression(
       expression = Some(caseExp),
-      alternatives = extendedCaseAlts(CaseExpression.Operand(), ctx.extendedCaseAlternative()),
+      alternatives = extendedCaseAlts(caseExp, ctx.extendedCaseAlternative()),
       default = astOpt(ctx.elseExp)
     )(pos(ctx))
   }
