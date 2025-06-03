@@ -133,6 +133,7 @@ public enum Group {
     RAFTED_STATUS_CHECKS("RaftedStatusChecks"),
     COMMIT_COORDINATOR("CommitCoordinator"),
     METADATA_SCRIPT_PROVIDER("MetadataScriptProvider"),
+    RAFT_UPGRADE_SERVICE("RaftUpgradeService"),
 
     /** Rolls back idle transactions on the server. */
     SERVER_TRANSACTION_TIMEOUT("ServerTransactionTimeout"),
