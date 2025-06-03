@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateOrInsert
 import org.neo4j.cypher.internal.ast.Insert
+import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UpdateClause
@@ -75,7 +76,8 @@ case object SemanticTypeCheck extends VisitorPhase[BaseContext, BaseState]
     patternExpressionInNonExistenceCheck,
     SelfReferenceCheckWithinPatternPart.check,
     SelfReferenceCheckAcrossPatternParts.check,
-    listCoercedToBooleanCheck
+    listCoercedToBooleanCheck,
+    MatchChecks.checkMatchMode
   )
 
   override def visit(from: BaseState, context: BaseContext): Unit = {
@@ -285,4 +287,22 @@ object ListCoercedToBooleanCheck extends ExpectedBooleanTypeCheck {
   }
 
   val errorMessage: String = "Coercion of list to boolean is not allowed. Please use `NOT isEmpty(...)` instead."
+}
+
+/**
+ * Checks on Match clauses that can be done separately from Semantic Analysis.
+ */
+object MatchChecks {
+
+  def checkMatchMode: SemanticErrorCheck = (baseState: BaseState, baseContext) => {
+    val matchClauses =
+      baseState.statement().folder.treeFold(Seq.empty[Match]) {
+        case clause: Match =>
+          clauses => SkipChildren(clauses :+ clause)
+      }
+
+    matchClauses.flatMap { clause =>
+      clause.checkMatchMode(baseState.semantics(), baseContext.cypherVersion)
+    }
+  }
 }

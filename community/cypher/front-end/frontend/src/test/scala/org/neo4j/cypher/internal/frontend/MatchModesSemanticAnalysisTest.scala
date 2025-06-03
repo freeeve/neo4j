@@ -466,4 +466,70 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   ) {
     runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
+
+  test(
+    "should accept subquery expression inside shortest inside REPEATABLE ELEMENTS"
+  ) {
+    val query =
+      """MATCH REPEATABLE ELEMENTS
+        |  ANY (s)( (m)-[:R]->(n)
+        |    WHERE NOT EXISTS {
+        |      (n)-[:S]->(:X)
+        |    } ){1,10} (endPoint)
+        |RETURN count(*) AS result""".stripMargin
+
+    runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
+  }
+
+  test(
+    "should accept subquery expression inside shortest inside REPEATABLE ELEMENTS with reference to previously bound variable"
+  ) {
+    val query =
+      """  MATCH (q)
+        |  MATCH REPEATABLE ELEMENTS
+        |        ANY (s)( (m)-[:R]->(n)
+        |        WHERE NOT EXISTS {
+        |            (n)-[:S]->(q:X)
+        |        } ){1,3} (endPoint)
+        |  RETURN count(*) AS result""".stripMargin
+
+    runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
+  }
+
+  test(
+    "should reject subquery expression inside shortest inside REPEATABLE ELEMENTS that references a variable defined in the same MATCH clause"
+  ) {
+    val shortestPathPattern = "p2 = ALL SHORTEST ((a)-->{,10}(b)-->{,10}(c) WHERE EXISTS { (b) WHERE b.p = x.p })"
+    val otherPathPattern = "p1 = (x)-->{,10}(y)-->{,10}(z)"
+    Seq(
+      (shortestPathPattern, otherPathPattern, p(105, 2, 80)),
+      (otherPathPattern, shortestPathPattern, p(140, 3, 80))
+    ).foreach { case (first, second, errorPosition) =>
+      val query =
+        s"""MATCH REPEATABLE ELEMENTS
+           |   $first,
+           |   $second
+           | RETURN count(*) AS result
+           |""".stripMargin
+
+      withClue(query) {
+
+        runWith(query, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes)
+          .hasError(
+            GqlHelper.getGql42001_42I21(
+              java.util.List.of("x"),
+              """p2 = ALL SHORTEST PATHS ((a) (()-->()){, 10} (b) (()-->()){, 10} (c) WHERE EXISTS { MATCH (b)
+                |  WHERE b.p = x.p })""".stripMargin,
+              errorPosition.offset,
+              errorPosition.line,
+              errorPosition.column
+            ),
+            """From within a selective path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+              |In this case, `x` is defined in the same `MATCH` clause as p2 = ALL SHORTEST PATHS ((a) (()-->()){, 10} (b) (()-->()){, 10} (c) WHERE EXISTS { MATCH (b)
+              |  WHERE b.p = x.p }).""".stripMargin,
+            errorPosition
+          )
+      }
+    }
+  }
 }

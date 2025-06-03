@@ -20,17 +20,22 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap.ASTAnnotationMap
+import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.semantics.Scope.DeclarationsAndDependencies
 import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeLocation
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.PatternComprehension
+import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.CrossCompilation
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.Ref
+import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.helpers.TreeElem
 import org.neo4j.cypher.internal.util.helpers.TreeZipper
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -39,6 +44,7 @@ import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.MapType
 import org.neo4j.cypher.internal.util.symbols.TypeRange
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.cypher.internal.util.topDown
 
 import scala.collection.immutable.HashMap
 
@@ -196,6 +202,58 @@ object Scope {
   val empty: Scope = Scope(symbolTable = HashMap.empty, children = Vector())
 
   case class DeclarationsAndDependencies(declarations: Set[SymbolUse], dependencies: Set[SymbolUse])
+
+  object DeclarationsAndDependencies {
+
+    /**
+     * [[ExpressionWithComputedDependencies]] do not carry their dependencies directly. Instead, the dependencies are stored in the recorded scopes in the semantic state.
+     *
+     * This rewriter allows to - on the fly - insert the dependencies into the expression. It does skip declarations though.
+     * @see [[computeDependenciesForExpressions]]
+     */
+    def dependenciesRewriter(semanticState: SemanticState): Rewriter =
+      topDown(Rewriter.lift {
+        case x: ExpressionWithComputedDependencies =>
+          val dependencies = getForExpression(semanticState, x).dependencies
+          x.withComputedScopeDependencies(dependencies.map(_.asVariable))
+      })
+
+    def rewriter(semanticState: SemanticState): Rewriter =
+      topDown(Rewriter.lift {
+        case x: ExpressionWithComputedDependencies =>
+          val DeclarationsAndDependencies(declarations, dependencies) =
+            getForExpression(semanticState, x)
+          x.withComputedIntroducedVariables(declarations.map(_.asVariable))
+            .withComputedScopeDependencies(dependencies.map(_.asVariable))
+      })
+
+    private def getForExpression(
+      semanticState: SemanticState,
+      x: ExpressionWithComputedDependencies
+    ): DeclarationsAndDependencies = {
+      val scope = semanticState.recordedScopes(x.subqueryAstNode)
+      val DeclarationsAndDependencies(declarations, dependencyDefinitions) =
+        x match {
+          case _: FullSubqueryExpression                      => scope.declarationsAndDependenciesForExpressions
+          case _: PatternExpression | _: PatternComprehension => scope.declarationsAndDependencies
+          case _                                              =>
+            // ExpressionWithComputedDependencies but not SubqueryExpression currently means IRExpression,
+            // which should not be present before IR generation.
+            throw new IllegalStateException(s"Unexpected expression during semantic analysis post processing: $x")
+        }
+
+      // Because the dependencies returned by declarationsAndDependenciesForExpressions are calculated using the
+      // definition in the symbol table and therefore have the position of the original definition, we need to find the
+      // variables in our expression that reference these definitions to be able to report errors in the right position.
+      val dependencyVariableNames = dependencyDefinitions.map(_.name)
+      val dependencies =
+        x.subqueryAstNode.folder.treeCollect {
+          case variable: Variable if dependencyVariableNames.contains(variable.name) =>
+            SymbolUse(variable)
+        }
+      DeclarationsAndDependencies(declarations, dependencies.toSet)
+    }
+  }
 }
 
 final case class Scope(symbolTable: Map[String, Symbol], children: Seq[Scope]) extends TreeElem[Scope] {

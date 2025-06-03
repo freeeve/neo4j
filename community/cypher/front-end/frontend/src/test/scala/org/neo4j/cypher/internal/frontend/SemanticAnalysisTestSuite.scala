@@ -170,9 +170,14 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     def hasNoErrors: Self = hasErrors()
 
     def hasErrors(expected: SemanticError*): Self =
-      assert(
-        _.errors should contain theSameElementsAs expected
-      )
+      assert { result =>
+        (result.errors, expected) match {
+          case (Seq(error), Seq(expected)) =>
+            error shouldEqual expected
+          case (actual, expected) =>
+            actual should contain theSameElementsAs expected
+        }
+      }
 
     def hasErrors(gql1: GqlError, msg1: String, p1: Pos, gql2: GqlError, msg2: String, p2: Pos): Self =
       hasErrors(SemanticError(gql1, msg1, p1), SemanticError(gql2, msg2, p2))

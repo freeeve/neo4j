@@ -33,7 +33,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo.variableAlreadyDeclaredError
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
@@ -764,7 +763,6 @@ case class Match(
       ) ifOkChain {
         hints.semanticCheck chain
           uniqueHints chain
-          checkMatchMode chain
           where.semanticCheck chain
           checkHints chain
           checkForCartesianProducts
@@ -890,29 +888,24 @@ case class Match(
     semantics.SemanticCheckResult(newState, Seq.empty)
   }
 
-  private def checkMatchMode: SemanticCheck = {
-    fromContext(semanticCheckContext =>
-      if (semanticCheckContext.cypherVersion == CypherVersion.Cypher5) {
-        // Explicit match modes are not supported in Cypher5
-        matchMode match {
-          case mode: DifferentRelationships if mode.implicitlyCreated => checkDifferentRelationships(_)
-          case _ => error(SemanticError.matchModesNotSupportedInCypher5(matchMode.prettified, matchMode.position))
-        }
-      } else {
-        // Explicit match modes in Cypher25 are behind a feature flag
-        whenState(!_.features.contains(SemanticFeature.MatchModes)) {
-          matchMode match {
-            case mode: DifferentRelationships if mode.implicitlyCreated => SemanticCheckResult.success(_)
-            case _ => error(SemanticError.matchModesNotSupported(matchMode.prettified, matchMode.position))
-          }
-        } ifOkChain {
-          matchMode match {
-            case _: RepeatableElements     => checkRepeatableElements(_)
-            case _: DifferentRelationships => checkDifferentRelationships(_)
-          }
-        }
-      }
-    )
+  def checkMatchMode(state: SemanticState, cypherVersion: CypherVersion): Seq[SemanticError] = {
+    val scopeLocation = state.recordedScopes.getOrElse(this, state.currentScope)
+    val features = state.features
+    (matchMode, features, cypherVersion) match {
+      case (mode: DifferentRelationships, _, _) if mode.implicitlyCreated =>
+        // Implicitly created match modes are always allowed
+        checkDifferentRelationships(features)
+      case (_, _, CypherVersion.Cypher5) =>
+        // explicit match mode but Cypher 5
+        Seq(SemanticError.matchModesNotSupportedInCypher5(matchMode.prettified, matchMode.position))
+      case (_, features, _) if !features.contains(SemanticFeature.MatchModes) =>
+        // explicit match mode but no feature flag enabled
+        Seq(SemanticError.matchModesNotSupported(matchMode.prettified, matchMode.position))
+      case (_: RepeatableElements, _, _) =>
+        checkRepeatableElements(scopeLocation)
+      case (_: DifferentRelationships, _, _) =>
+        checkDifferentRelationships(features)
+    }
   }
 
   /**
@@ -920,27 +913,23 @@ case class Match(
    * loops if there is a path pattern with unbounded quantifiers. As a result, we consider patterns
    * with unbounded quantifiers — with or without selective path search — to be unsafe under REPEATABLE ELEMENTS.
    */
-  private def checkRepeatableElements(state: SemanticState): SemanticCheckResult = {
+  private def checkRepeatableElements(scopeLocation: ScopeLocation): Seq[SemanticError] = {
     val unboundedQuantifiersErrors = pattern.patternParts.collect {
       case part if !part.isBounded => SemanticError.unsafeUsageOfRepeatableElements(part.position)
     }
 
-    val interiorVariableErrors = checkStrictInteriorVariableOverlap(state)
+    val interiorVariableErrors = checkStrictInteriorVariableOverlap(scopeLocation)
     val selectivePathPatternPredicateErrors =
-      checkSelectivePathPatternPredicates(state)
+      checkSelectivePathPatternPredicates(scopeLocation)
 
-    semantics.SemanticCheckResult(
-      state,
-      unboundedQuantifiersErrors ++ interiorVariableErrors ++ selectivePathPatternPredicateErrors
-    )
+    unboundedQuantifiersErrors ++ interiorVariableErrors ++ selectivePathPatternPredicateErrors
   }
 
   /**
    * a strict interior variable of a shortest path pattern may not overlap with any other part of the pattern.
    */
-  private def checkStrictInteriorVariableOverlap(state: SemanticState)
-    : Seq[SemanticError] = {
-    val symbolDefinitions = state.currentScope.availableSymbolDefinitions
+  private def checkStrictInteriorVariableOverlap(scope: ScopeLocation): Seq[SemanticError] = {
+    val symbolDefinitions = scope.availableSymbolDefinitions
     val variablesInPattern = pattern.patternParts.flatMap(_.allVariables).toSet
     val variablesInPatternDeclaredInPreviousClause =
       variablesInPattern.filterNot(symbolDefinitions contains SymbolUse(_))
@@ -1002,12 +991,10 @@ case class Match(
    * A selective path pattern is not allowed to have predicates referencing element variables that are defined in another path pattern in the same graph pattern.
    * It is allowed when the referenced variable is already bound by a previous clause.
    */
-  private def checkSelectivePathPatternPredicates(
-    state: SemanticState
-  ): Seq[SemanticError] = {
+  private def checkSelectivePathPatternPredicates(scope: ScopeLocation): Seq[SemanticError] = {
     case class PatternPartWithReferences(patternString: String, invalidReferences: Set[LogicalVariable])
 
-    val symbolDefinitions = state.currentScope.availableSymbolDefinitions
+    val symbolDefinitions = scope.availableSymbolDefinitions
     val variablesInPattern = pattern.patternParts.flatMap(_.allVariables).toSet
 
     val variablesDefinedInPreviousClauses = symbolDefinitions.filterNot(variablesInPattern.map(SymbolUse(_)))
@@ -1060,13 +1047,13 @@ case class Match(
    * Therefore, once there is at least one path pattern with a selective selector, then we need to make sure
    * that there is no other path pattern beside it.
    */
-  private def checkDifferentRelationships(state: SemanticState): SemanticCheckResult = {
-    val errors = if (pattern.patternParts.size > 1) {
+  private def checkDifferentRelationships(features: Set[SemanticFeature]): Seq[SemanticError] = {
+    if (pattern.patternParts.size > 1) {
       pattern.patternParts
         .find(_.isSelective)
         .map(selectivePattern =>
           SemanticError.invalidUseOfMultiplePathPatterns(
-            state.features.contains(SemanticFeature.MatchModes),
+            features.contains(SemanticFeature.MatchModes),
             selectivePattern.position
           )
         )
@@ -1074,7 +1061,6 @@ case class Match(
     } else {
       Seq.empty
     }
-    semantics.SemanticCheckResult(state, errors)
   }
 
   private def checkHints: SemanticCheck = SemanticCheck.fromFunctionWithContext { (semanticState, context) =>

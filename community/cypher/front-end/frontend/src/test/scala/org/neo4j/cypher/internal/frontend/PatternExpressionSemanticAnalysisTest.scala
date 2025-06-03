@@ -16,6 +16,9 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.expressions.PatternComprehension
+import org.neo4j.cypher.internal.expressions.PatternExpression
+
 class PatternExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
 
   // Pattern comprehensions
@@ -30,9 +33,29 @@ class PatternExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTes
       .failsWithMessageContaining("Invalid input")
   }
 
+  test("MATCH (n) RETURN [ (n)--() | n ] as paths") {
+    run().assert { result =>
+      result.errors shouldBe empty
+      val expression =
+        result.state
+          .statement().folder
+          .treeFindByClass[PatternComprehension]
+          .get
+      expression.dependencies.map(_.name) shouldBe Set("n")
+    }
+  }
+
   // Pattern expressions
   test("MATCH (n) WHERE (n)--() RETURN count(*)") {
-    run().hasNoErrors
+    run().assert { result =>
+      result.errors shouldBe empty
+      val expression =
+        result.state
+          .statement().folder
+          .treeFindByClass[PatternExpression]
+          .get
+      expression.dependencies.map(_.name) shouldBe Set("n")
+    }
   }
 
   // we need the property in the second pattern expression to differentiate it from a parenthesized variable

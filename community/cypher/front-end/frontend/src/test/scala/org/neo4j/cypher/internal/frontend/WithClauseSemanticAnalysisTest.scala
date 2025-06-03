@@ -77,4 +77,24 @@ class WithClauseSemanticAnalysisTest
       ))
     }
   }
+
+  test("Importing WITH with subquery expression") {
+    for {
+      reference <- Seq("()", "(n)")
+      expression <- Seq(s"EXISTS { MATCH $reference }", s"[p = $reference--() | p]")
+    } {
+      val query =
+        s"""MATCH (n)
+           |CALL {
+           |  WITH *, $expression AS x
+           |  RETURN x
+           |} RETURN x
+           |""".stripMargin
+      withClue(query) {
+        run(query).hasErrors(
+          SemanticError.invalidImportingWithAliasOrExpression(s"$expression AS x", p(19, 3, 3))
+        )
+      }
+    }
+  }
 }

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.UnmappedUnion.errorParam
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.Scope
+import org.neo4j.cypher.internal.ast.semantics.Scope.DeclarationsAndDependencies
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
@@ -41,15 +42,12 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.Symbol
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
-import org.neo4j.cypher.internal.util.topDown
 import org.neo4j.gqlstatus.GqlHelper
 
 sealed trait QueryUtils {
@@ -340,18 +338,12 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       val resultState = wth.returnItems.items.foldSemanticCheck(_.semanticCheck)
         .run(state, SemanticCheckContext.empty)
 
-      // [[ExpressionWithComputedDependencies]] do not carry their dependencies directly. Instead the dependencies are stored in the recorded scopes in the semantic state.
-      // See also: [[computeDependenciesForExpressions]]
-      val rewriter = topDown(Rewriter.lift {
-        case x: ExpressionWithComputedDependencies =>
-          val dependencies =
-            resultState.state.recordedScopes(x.subqueryAstNode).declarationsAndDependencies.dependencies
-          x.withComputedScopeDependencies(dependencies.map(_.asVariable))
-      })
-
       val hasImports = wth.returnItems.includeExisting || wth.returnItems.items.exists {
         item =>
-          rewriter.apply(item.expression).asInstanceOf[Expression].dependencies.nonEmpty
+          item.expression
+            .endoRewrite(DeclarationsAndDependencies.dependenciesRewriter(resultState.state))
+            .dependencies
+            .nonEmpty
       }
       when(hasImports) {
         checkReturnItems chain

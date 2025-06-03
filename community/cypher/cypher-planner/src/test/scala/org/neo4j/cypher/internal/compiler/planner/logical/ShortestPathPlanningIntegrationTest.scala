@@ -5183,4 +5183,79 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         .build()
     )
   }
+
+  testVersionsExcept5(
+    "should plan subquery expression inside shortest path with repeatable elements"
+  ) { version =>
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("X", 100)
+      .setRelationshipCardinality("()-[:S]->()", 400)
+      .setRelationshipCardinality("()-[:S]->(:X)", 200)
+      .setRelationshipCardinality("()-[:R]->()", 500)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    val query =
+      """MATCH REPEATABLE ELEMENTS
+        |  ANY (s)( (m)-[:R]->(n)
+        |    WHERE NOT EXISTS {
+        |      (n)-[:S]->(:X)
+        |    } ){1,3} (endPoint)
+        |RETURN count(*) AS result
+        |""".stripMargin
+
+    val nestedPlan =
+      planner.subPlanBuilder()
+        .filter("anon_1:X")
+        .expand("(n)-[anon_0:S]->(anon_1)")
+        .argument("n")
+        .build()
+    val patternExpressionPredicate =
+      NestedPlanExistsExpression(
+        plan = nestedPlan,
+        solvedExpressionAsString =
+          """EXISTS { MATCH (`n`)-[`anon_0`:S]->(`anon_1`)
+            |  WHERE `anon_1`:X }""".stripMargin
+      )(pos)
+    val toPredicate = VariablePredicate(v"n", not(patternExpressionPredicate))
+    val nfa =
+      new TestNFABuilder(0, "s")
+        .addTransition(0, 1, "(s) (m)")
+        .addTransition(1, 2, "(m)-[anon_2:R]->(n)", maybeToPredicate = Some(toPredicate))
+        .addTransition(2, 3, "(n) (m)")
+        .addTransition(2, 7, "(n) (endPoint)")
+        .addTransition(3, 4, "(m)-[anon_2:R]->(n)", maybeToPredicate = Some(toPredicate))
+        .addTransition(4, 5, "(n) (m)")
+        .addTransition(4, 7, "(n) (endPoint)")
+        .addTransition(5, 6, "(m)-[anon_2:R]->(n)", maybeToPredicate = Some(toPredicate))
+        .addTransition(6, 7, "(n) (endPoint)")
+        .setFinalState(7)
+        .build()
+
+    planner.plan(version, query) should equal(
+      planner.planBuilder()
+        .produceResults("result")
+        .aggregation(Seq(), Seq("count(*) AS result"))
+        .statefulShortestPath(
+          "s",
+          "endPoint",
+          "ANY 1 (s) ((`m`)-[`anon_2`]->(`n`)){1, 3} (endPoint)",
+          None,
+          Set.empty,
+          Set.empty,
+          Set(("endPoint", "endPoint")),
+          Set.empty,
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
+          nfa,
+          ExpandAll,
+          false,
+          1,
+          Some(3),
+          Walk
+        )
+        .allNodeScan("s")
+        .build()
+    )
+  }
 }
