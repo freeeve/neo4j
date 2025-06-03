@@ -304,7 +304,8 @@ public class RecordStorageReader implements StorageReader {
     }
 
     @Override
-    public boolean relationshipExists(long id, StoreCursors storeCursors) {
+    public boolean relationshipExists(
+            long id, StoreCursors storeCursors, CursorContext ignored1, MemoryTracker ignored2) {
         return relationshipStore.isInUse(id, storeCursors.readCursor(RecordCursorTypes.RELATIONSHIP_CURSOR));
     }
 

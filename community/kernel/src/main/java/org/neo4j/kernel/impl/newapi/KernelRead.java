@@ -911,7 +911,8 @@ public class KernelRead implements Read {
                 return true;
             }
         }
-        boolean existsInRelStore = storageReader.relationshipExists(reference, storageCursors);
+        boolean existsInRelStore = storageReader.relationshipExists(
+                reference, storageCursors, queryContext.cursorContext(), memoryTracker);
         if (getAccessMode().allowsTraverseAllRelTypes()) {
             return existsInRelStore;
         } else if (!existsInRelStore) {

@@ -321,7 +321,8 @@ public class StubStorageCursors implements StorageReader {
     }
 
     @Override
-    public boolean relationshipExists(long id, StoreCursors storeCursors) {
+    public boolean relationshipExists(
+            long id, StoreCursors storeCursors, CursorContext context, MemoryTracker memoryTracker) {
         throw new UnsupportedOperationException("Not implemented yet");
     }
 
