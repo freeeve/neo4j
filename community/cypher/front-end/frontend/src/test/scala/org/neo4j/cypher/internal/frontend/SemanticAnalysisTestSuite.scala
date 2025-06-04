@@ -230,6 +230,9 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     def hasSemanticErrorsIn(f: CypherVersion => Seq[SemanticError]): Self =
       assertIn(v => r => r.errors should contain theSameElementsAs f(v))
 
+    def hasErrorMessagesIn(f: CypherVersion => Seq[String]): Self =
+      assertIn(v => r => r.errorMessages should contain theSameElementsAs f(v))
+
     def hasErrorsIn(f: CypherVersion => Seq[(String, Pos)]): Self =
       assertIn(v => r => r.errors should contain theSameElementsAs f(v).map(toSemErr))
 

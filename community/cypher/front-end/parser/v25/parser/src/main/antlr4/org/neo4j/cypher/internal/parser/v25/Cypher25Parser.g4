@@ -567,6 +567,7 @@ expression1
    | listLiteral
    | patternComprehension
    | reduceExpression
+   | allReduceExpression
    | listItemsPredicate
    | normalizeFunction
    | vectorFunction
@@ -634,6 +635,10 @@ patternComprehension
 
 reduceExpression
    : REDUCE LPAREN variable EQ expression COMMA variable IN expression BAR expression RPAREN
+   ;
+
+allReduceExpression
+   : ALLREDUCE LPAREN variable EQ expression COMMA expression COMMA expression RPAREN
    ;
 
 listItemsPredicate
@@ -1981,6 +1986,7 @@ unescapedSymbolicNameString_
    | ALIASES
    | ALL_SHORTEST_PATHS
    | ALL
+   | ALLREDUCE
    | ALTER
    | AND
    | ANY

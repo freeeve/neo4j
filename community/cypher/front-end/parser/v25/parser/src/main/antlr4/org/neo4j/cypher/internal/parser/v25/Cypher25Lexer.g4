@@ -135,6 +135,10 @@ ALL
    : A L L
    ;
 
+ALLREDUCE
+  : A L L R E D U C E
+  ;
+
 ALTER
    : A L T E R
    ;

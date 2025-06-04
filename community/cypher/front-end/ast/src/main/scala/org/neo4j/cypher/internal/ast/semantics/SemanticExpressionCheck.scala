@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.TokenType
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.checkValidLabels
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
@@ -932,6 +933,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           specifyType(CTList(CTAny).covariant, x)
 
       // FALLBACK
+
+      case x: AllReducePredicate =>
+        requireFeatureSupport("allReduce() function", SemanticFeature.AllReduceFunctionAvailable, x.position)
+
       case x: Expression => semanticCheckFallback(ctx, x)
     }
   }

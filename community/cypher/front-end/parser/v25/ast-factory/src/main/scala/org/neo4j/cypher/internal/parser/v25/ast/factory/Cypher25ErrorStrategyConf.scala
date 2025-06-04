@@ -64,6 +64,7 @@ class Cypher25ErrorStrategyConf extends CypherErrorStrategy.Conf {
     Cypher25Parser.SHORTEST_PATH -> "'shortestPath'",
     Cypher25Parser.LIMITROWS -> "'LIMIT'",
     Cypher25Parser.SKIPROWS -> "'SKIP'",
+    Cypher25Parser.ALLREDUCE -> "'allReduce'",
     Token.EOF -> "<EOF>"
   )
 

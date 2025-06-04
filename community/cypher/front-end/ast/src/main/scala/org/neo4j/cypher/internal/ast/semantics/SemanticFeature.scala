@@ -88,6 +88,10 @@ object SemanticFeature {
     override def name: String = "Allow mixing old and new label expression syntax in clauses"
   }
 
+  case object AllReduceFunctionAvailable extends SemanticFeature with FeatureToString {
+    override def name: String = "allReduce() function"
+  }
+
   private val allSemanticFeatures = Set(
     MultipleDatabases,
     MultipleGraphs,
@@ -100,7 +104,8 @@ object SemanticFeature {
     ExperimentalCypherVersions,
     RelationshipPropertyValueAccessRules,
     VectorType,
-    AllowClauseWithMixedLabelSyntax
+    AllowClauseWithMixedLabelSyntax,
+    AllReduceFunctionAvailable
   )
 
   def fromString(str: String): SemanticFeature =

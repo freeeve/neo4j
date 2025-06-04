@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
@@ -695,6 +696,17 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     val init = ctxChild(ctx, 4).ast[Expression]()
     val collection = ctxChild(ctx, 8).ast[Expression]()
     ctx.ast = ReduceExpression(ReduceScope(accumulator, variable, expression)(pos(ctx)), init, collection)(pos(ctx))
+  }
+
+  final override def exitAllReduceExpression(
+    ctx: Cypher25Parser.AllReduceExpressionContext
+  ): Unit = {
+    val accumulator = ctxChild(ctx, 2).ast[LogicalVariable]()
+    val init = ctxChild(ctx, 4).ast[Expression]()
+    val reductionStep = ctxChild(ctx, 6).ast[Expression]()
+    val predicate = ctxChild(ctx, 8).ast[Expression]()
+
+    ctx.ast = AllReducePredicate(accumulator, init, reductionStep, predicate)(pos(ctx))
   }
 
   final override def exitListItemsPredicate(ctx: Cypher25Parser.ListItemsPredicateContext): Unit = {
