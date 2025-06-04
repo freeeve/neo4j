@@ -157,7 +157,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     private static ErrorGqlStatusObject getIdxGql(MapValue itemsMap, java.util.List<String> validConfigSettingNames) {
         var prettyVal = new PrettyPrinter();
         itemsMap.writeTo(prettyVal);
-        return GqlHelper.getGql42001_22N04(prettyVal.value(), "config options", validConfigSettingNames);
+        return GqlHelper.getGql42001_22N04(prettyVal.value(), "index config", validConfigSettingNames);
     }
 
     private static String invalidConfigValueString(PrettyPrinter pp, AnyValue value, String schemaType) {
@@ -177,7 +177,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
 
     public static InvalidArgumentsException invalidIndexConfig(
             String schemaType, String indexConfigOptions, String indexType) {
-        var gql = GqlHelper.getGql42001_22N04("indexConfig", "config option", List.of("indexProvider"));
+        var gql = GqlHelper.getGql42001_22N04(indexConfigOptions, "index config", List.of());
         return new InvalidArgumentsException(
                 gql,
                 String.format(
@@ -224,7 +224,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
             List<String> indexProviders) {
         var indexProvidersString =
                 "[" + indexProviders.stream().map(format -> "'" + format + "'").collect(Collectors.joining(", ")) + "]";
-        var gql = GqlHelper.getGql42001_22N04(providerString, "index provider type", indexProviders);
+        var gql = GqlHelper.getGql42001_22N04(providerString, "index provider", indexProviders);
         return new InvalidArgumentsException(
                 gql,
                 String.format(
@@ -247,7 +247,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
             List<String> indexProviders) {
         var indexProvidersString =
                 "[" + indexProviders.stream().map(format -> "'" + format + "'").collect(Collectors.joining(", ")) + "]";
-        var gql = GqlHelper.getGql42001_22N04(providerString, "index provider type", indexProviders);
+        var gql = GqlHelper.getGql42001_22N04(providerString, "index provider", indexProviders);
         var message = correctCypherVersion
                         && (providerString.equalsIgnoreCase("native-btree-1.0")
                                 || providerString.equalsIgnoreCase("lucene+native-3.0"))

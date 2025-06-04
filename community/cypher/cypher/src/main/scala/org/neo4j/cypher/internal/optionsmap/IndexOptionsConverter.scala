@@ -134,12 +134,14 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
     SPATIAL_WGS84_3D_MAX
   )
 
-  def getValidConfigNames(idxType: IndexType): java.util.List[String] = {
+  private def getValidConfigNames(idxType: IndexType): java.util.List[String] = {
     idxType match {
       case IndexType.FULLTEXT => validFulltextConfigSettingNames.toList.asJava
       case IndexType.VECTOR   => validVectorConfigSettingNames.toList.asJava
       case IndexType.POINT    => validPointConfigSettingNames.toList.asJava
-      case _ => java.util.List.of("no values") // this should not happen if the method is called correctly
+      // No other index types have valid settings,
+      // but we get here if you give fulltext, vector or point in their configs
+      case _ => java.util.List.of()
     }
   }
 
