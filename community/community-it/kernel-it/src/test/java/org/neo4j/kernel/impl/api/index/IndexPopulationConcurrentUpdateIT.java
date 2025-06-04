@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.api.index;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -49,11 +50,15 @@ import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.id.IdController;
 import org.neo4j.internal.kernel.api.InternalIndexState;
+import org.neo4j.internal.kernel.api.PopulationProgress;
+import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
@@ -63,7 +68,9 @@ import org.neo4j.kernel.api.index.TokenIndexReader;
 import org.neo4j.kernel.extension.ExtensionFactory;
 import org.neo4j.kernel.extension.ExtensionType;
 import org.neo4j.kernel.extension.context.ExtensionContext;
+import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -77,7 +84,7 @@ import org.neo4j.values.ElementIdMapper;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
 @SkipOnSpd
-public class IndexPopulationMissConcurrentUpdateIT {
+public class IndexPopulationConcurrentUpdateIT {
     private static final String NAME_PROPERTY = "name";
     private static final long INITIAL_CREATION_NODE_ID_THRESHOLD = 30;
     private static final long SCAN_BARRIER_NODE_ID_THRESHOLD = 10;
@@ -138,7 +145,7 @@ public class IndexPopulationMissConcurrentUpdateIT {
             tx.commit();
         }
 
-        index.barrier.await();
+        index.addBarrier.await();
         // Now the index population has come some way into the first bit-set entry of the label index
         try (Transaction tx = db.beginTx()) {
             Node node;
@@ -151,7 +158,8 @@ public class IndexPopulationMissConcurrentUpdateIT {
             // bit-set of the label index reader
             tx.commit();
         }
-        index.barrier.release();
+        index.addBarrier.release();
+        index.completeBarrier.release();
         try (Transaction tx = db.beginTx()) {
             tx.schema().awaitIndexesOnline(2, MINUTES);
             tx.commit();
@@ -169,11 +177,65 @@ public class IndexPopulationMissConcurrentUpdateIT {
         }
     }
 
+    @Test
+    public void shouldNotGiveTooMuchProgressEvenIfThereAreConcurrentUpdates() throws Exception {
+        int nextId = 0;
+        try (Transaction tx = db.beginTx()) {
+            for (int i = 0; i < 1000; i++) {
+                tx.createNode(LABEL_ONE).setProperty(NAME_PROPERTY, nextId++);
+            }
+            tx.commit();
+        }
+        idController.maintenance();
+
+        IndexDescriptor indexDescriptor;
+        // when
+        try (TransactionImpl tx = (TransactionImpl) db.beginTx()) {
+            indexDescriptor = IndexingTestUtil.createNodePropIndexWithSpecifiedProvider(
+                    tx, ControlledSchemaIndexProvider.INDEX_PROVIDER, LABEL_ONE, NAME_PROPERTY);
+            tx.commit();
+        }
+
+        index.addBarrier.await();
+        // Now the index population has come some way add more nodes
+        try (Transaction tx = db.beginTx()) {
+            Node node;
+            for (int i = 0; i < 100; i++) {
+                node = tx.createNode(LABEL_ONE);
+                node.setProperty(NAME_PROPERTY, nextId++);
+            }
+            tx.commit();
+        }
+        index.addBarrier.release();
+
+        // Now await that the scan is about to complete
+        index.completeBarrier.await();
+
+        try (InternalTransaction tx =
+                ((GraphDatabaseAPI) db).beginTransaction(KernelTransaction.Type.EXPLICIT, LoginContext.AUTH_DISABLED)) {
+            var ktx = tx.kernelTransaction();
+            PopulationProgress progress = ktx.schemaRead().indexGetPopulationProgress(indexDescriptor);
+            index.completeBarrier.release();
+            assertThatCode(() -> {
+                        var indexProgress = progress.toIndexPopulationProgress();
+                        assertThat(indexProgress.getCompletedPercentage()).isLessThanOrEqualTo(100);
+                    })
+                    .as("Should give a valid progress where completed isn't more than total")
+                    .doesNotThrowAnyException();
+        }
+
+        try (Transaction tx = db.beginTx()) {
+            tx.schema().awaitIndexesOnline(2, MINUTES);
+            tx.commit();
+        }
+    }
+
     /**
      * A very specific {@link IndexProvider} which can be paused and continued at juuust the right places.
      */
     private static class ControlledSchemaIndexProvider extends ExtensionFactory<Supplier> {
-        private final Barrier.Control barrier = new Barrier.Control();
+        private final Barrier.Control addBarrier = new Barrier.Control();
+        private final Barrier.Control completeBarrier = new Barrier.Control();
         private final Set<Long> entitiesByScan = new ConcurrentSkipListSet<>();
         private final Set<Long> entitiesByUpdater = new ConcurrentSkipListSet<>();
         private volatile long populationAtId;
@@ -210,9 +272,19 @@ public class IndexPopulationMissConcurrentUpdateIT {
                                 assertTrue(added); // scans should never see multiple updates from the same entityId
                                 if (update.getEntityId() > SCAN_BARRIER_NODE_ID_THRESHOLD) {
                                     populationAtId = update.getEntityId();
-                                    barrier.reached();
+                                    addBarrier.reached();
                                 }
                             }
+                        }
+
+                        @Override
+                        public void scanCompleted(
+                                PhaseTracker phaseTracker,
+                                PopulationWorkScheduler populationWorkScheduler,
+                                CursorContext cursorContext)
+                                throws IndexEntryConflictException {
+                            completeBarrier.reached();
+                            super.scanCompleted(phaseTracker, populationWorkScheduler, cursorContext);
                         }
 
                         @Override

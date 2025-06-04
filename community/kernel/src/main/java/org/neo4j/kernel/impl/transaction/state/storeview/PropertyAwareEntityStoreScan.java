@@ -149,7 +149,8 @@ public abstract class PropertyAwareEntityStoreScan<CURSOR extends StorageEntityS
         StoreScanStage<CURSOR> observedStage = stage;
         if (totalCount > 0 || observedStage == null) {
             return PopulationProgress.single(
-                    observedStage != null ? observedStage.numberOfCompletedEntities() : 0, totalCount);
+                    observedStage != null ? Math.min(observedStage.numberOfCompletedEntities(), totalCount) : 0,
+                    totalCount);
         }
 
         // nothing to do 100% completed
