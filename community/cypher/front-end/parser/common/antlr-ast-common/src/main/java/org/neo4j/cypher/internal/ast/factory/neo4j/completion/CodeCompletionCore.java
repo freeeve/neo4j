@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.factory.neo4j.completion;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -24,10 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.antlr.v4.runtime.BufferedTokenStream;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.TokenStream;
 import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.atn.ATN;
 import org.antlr.v4.runtime.atn.ATNState;
@@ -121,7 +122,7 @@ public class CodeCompletionCore {
 
     // A mapping of rule index to token stream position to end token positions.
     // A rule which has been visited before with the same input position will always produce the same output positions.
-    private final Map<Integer, Map<Integer, Set<Integer>>> shortcutMap = new HashMap<>();
+    private final RuleIndexCache<Map<Integer, Set<Integer>>> shortcutMap = new RuleIndexCache<>();
 
     private final CandidatesCollection candidates =
             new CandidatesCollection(); // The collected candidates (rules and tokens).
@@ -162,17 +163,19 @@ public class CodeCompletionCore {
         this.statesProcessed = 0;
 
         this.tokenStartIndex = context != null ? context.start.getTokenIndex() : 0;
-        TokenStream tokenStream = this.parser.getInputStream();
+        final var tokenStream = (BufferedTokenStream) this.parser.getInputStream();
 
         int currentIndex = tokenStream.index();
         tokenStream.seek(this.tokenStartIndex);
-        this.tokens = new LinkedList<>();
-        int offset = 1;
-        while (true) {
-            Token token = tokenStream.LT(offset++);
-            this.tokens.add(token);
-            if (token.getTokenIndex() >= caretTokenIndex || token.getType() == Token.EOF) {
-                break;
+        this.tokens = new ArrayList<>();
+        final var tokenSize = tokenStream.size();
+        for (int offset = this.tokenStartIndex; offset < tokenSize; ++offset) {
+            Token token = tokenStream.get(offset);
+            if (token.getChannel() == Token.DEFAULT_CHANNEL) {
+                this.tokens.add(token);
+                if (token.getTokenIndex() >= caretTokenIndex || token.getType() == Token.EOF) {
+                    break;
+                }
             }
         }
         tokenStream.seek(currentIndex);
@@ -556,5 +559,25 @@ public class CodeCompletionCore {
         positionMap.put(tokenIndex, result);
 
         return result;
+    }
+}
+
+class RuleIndexCache<T> {
+    // This list will at most have the same size as the number of rules in the grammar (currently 369 in Cypher 25).
+    private final ArrayList<T> map = new ArrayList<>();
+
+    public void clear() {
+        map.clear();
+    }
+
+    public T get(int ruleIndex) {
+        return ruleIndex >= 0 && ruleIndex < map.size() ? map.get(ruleIndex) : null;
+    }
+
+    public void put(int ruleIndex, T positionMap) {
+        if (ruleIndex < 0) return; // Rule index can't be negative, but let's be safe
+        map.ensureCapacity(ruleIndex + 1);
+        while (map.size() <= ruleIndex) map.add(null);
+        map.set(ruleIndex, positionMap);
     }
 }
