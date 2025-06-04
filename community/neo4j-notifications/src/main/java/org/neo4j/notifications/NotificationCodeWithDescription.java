@@ -239,10 +239,10 @@ public enum NotificationCodeWithDescription {
             GqlStatusInfoCodes.STATUS_01N00,
             "Databases and aliases with unescaped `.` are deprecated unless to indicate that they belong to a composite database. "
                     + "Names containing `.` should be escaped. (%s)"),
-    DEPRECATED_PARSED_DATABASE_NAME(
+    DEPRECATED_QUOTED_GRAPH_BY_NAME_ARGUMENT(
             Status.Statement.FeatureDeprecationWarning,
-            GqlStatusInfoCodes.STATUS_01N00,
-            "The graph name `%s` will no longer resolve to the same graph in future versions. Databases and aliases with unescaped dot (.) are deprecated unless to indicate that they belong to a composite database. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters, for example, composite.`a.b`, composite.`1` or composite.`a``b`."),
+            GqlStatusInfoCodes.STATUS_01N01,
+            "%s is deprecated. It is replaced by %s."),
     UNSATISFIABLE_RELATIONSHIP_TYPE_EXPRESSION(
             Status.Statement.UnsatisfiableRelationshipTypeExpression,
             GqlStatusInfoCodes.STATUS_01N61,
@@ -721,12 +721,14 @@ public enum NotificationCodeWithDescription {
         });
     }
 
-    public static NotificationImplementation deprecatedParsedDatabaseName(InputPosition position, String param) {
-        return DEPRECATED_PARSED_DATABASE_NAME.notificationWithParameters(position, new String[] {param}, new String[] {
-            String.format(
-                    "The graph name `%s` will no longer resolve to the same graph in future versions. Databases and aliases with unescaped dot (.) are deprecated unless to indicate that they belong to a composite database. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters, for example, composite.`a.b`, composite.`1` or composite.`a``b`.",
-                    param)
-        });
+    public static NotificationImplementation deprecatedQuotedGraphByNameArgument(
+            InputPosition position, String param1, String param2) {
+        String quotedGraphName = String.format("The graph name `%s`", param1);
+        String quotedFutureGraphName = String.format("`%s`", param2);
+        return DEPRECATED_QUOTED_GRAPH_BY_NAME_ARGUMENT.notificationWithParameters(
+                position,
+                new String[] {quotedGraphName, quotedFutureGraphName},
+                new String[] {quotedGraphName, quotedFutureGraphName});
     }
 
     public static NotificationImplementation unsatisfiableRelationshipTypeExpression(

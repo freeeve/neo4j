@@ -145,8 +145,9 @@ public class FabricExecutor {
             var evaluator =
                     StaticEvaluation.from(procedures, plannerInstance.query().resolvedLanguage());
             var statementResult = fabricTransaction.execute(ctx -> {
-                var useEvaluator =
-                        useEvaluation.instance(evaluator, plannerInstance.signatureResolver(), statement, catalog);
+                var cypher25Enabled = planner.cypherConfig().enableExperimentalCypherVersions();
+                var useEvaluator = useEvaluation.instance(
+                        evaluator, plannerInstance.signatureResolver(), statement, catalog, cypher25Enabled);
                 FabricStatementExecution execution;
                 if (plan.debugOptions().logRecords()) {
                     execution = new FabricLoggingStatementExecution(

@@ -26,6 +26,7 @@ import org.neo4j.fabric.eval.Catalog.Graph
 import org.neo4j.fabric.eval.Catalog.normalize
 import org.neo4j.fabric.util.Errors
 import org.neo4j.fabric.util.Errors.show
+import org.neo4j.graphdb.InputPosition
 import org.neo4j.internal.kernel.api.security.SecurityContext
 import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.database.DatabaseReference
@@ -33,6 +34,7 @@ import org.neo4j.kernel.database.DatabaseReferenceImpl
 import org.neo4j.kernel.database.DatabaseReferenceImpl.External
 import org.neo4j.kernel.database.NormalizedCatalogEntry
 import org.neo4j.kernel.database.NormalizedDatabaseName
+import org.neo4j.notifications.NotificationCodeWithDescription
 import org.neo4j.notifications.NotificationImplementation
 import org.neo4j.values.AnyValue
 import org.neo4j.values.ElementIdDecoder
@@ -86,7 +88,8 @@ object Catalog {
       args: Seq[AnyValue],
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      parseArguments: Option[Boolean]
+      resolveByDisplayName: Option[Boolean],
+      cypher25Enabled: Boolean
     ): GraphWithNotification
 
     def checkArity(args: Seq[AnyValue]): Unit =
@@ -110,17 +113,19 @@ object Catalog {
       args: Seq[AnyValue],
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      resolveByDisplayName: Option[Boolean]
+      resolveByDisplayName: Option[Boolean],
+      cypher25Enabled: Boolean
     ): GraphWithNotification = {
       checkArity(args)
-      eval(cast(a1, args(0), args), catalog, sessionDb, resolveByDisplayName)
+      eval(cast(a1, args(0), args), catalog, sessionDb, resolveByDisplayName, cypher25Enabled)
     }
 
     def eval(
       a1Value: A1,
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      parseArguments: Option[Boolean]
+      resolveByDisplayName: Option[Boolean],
+      cypher25Enabled: Boolean
     ): GraphWithNotification
 
   }
@@ -163,7 +168,8 @@ object Catalog {
       arg: StringValue,
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      resolveByDisplayName: Option[Boolean]
+      resolveByDisplayName: Option[Boolean],
+      cypher25Enabled: Boolean
     ): GraphWithNotification = {
       val graphName = arg.stringValue()
       if (resolveByDisplayName.isDefined && resolveByDisplayName.get) {
@@ -171,7 +177,23 @@ object Catalog {
         GraphWithNotification(resolved, None)
       } else {
         val resolved = catalog.resolveGraphByNameString(graphName, simplified = false)
-        GraphWithNotification(resolved, None) // TODO: add deprecation if needed
+        val needsDeprecation =
+          try {
+            val cypher25Resolved = catalog.resolveGraphByNameString(graphName, simplified = true)
+            !resolved.equals(cypher25Resolved)
+          } catch {
+            case _: Throwable => true
+          }
+        val notification = if (needsDeprecation && cypher25Enabled) {
+          Some(NotificationCodeWithDescription.deprecatedQuotedGraphByNameArgument(
+            InputPosition.empty,
+            graphName,
+            resolved.reference.fullName().name()
+          ))
+        } else {
+          None
+        }
+        GraphWithNotification(resolved, notification)
       }
     }
 
@@ -196,7 +218,8 @@ object Catalog {
       arg: StringValue,
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      parseArguments: Option[Boolean]
+      parseArguments: Option[Boolean],
+      cypher25Enabled: Boolean
     ): GraphWithNotification = {
       val elementIdText = arg.stringValue()
       val aliases = catalog.resolveNamespacedGraph(
@@ -302,13 +325,15 @@ case class Catalog(
     name: CatalogName,
     args: Seq[AnyValue],
     sessionDb: DatabaseReference,
-    resolveByDisplayName: Option[Boolean]
+    resolveByDisplayName: Option[Boolean],
+    cypher25Enabled: Boolean
   ): Catalog.GraphWithNotification =
     resolveViewOption(
       name,
       args,
       sessionDb,
-      resolveByDisplayName
+      resolveByDisplayName,
+      cypher25Enabled
     ).getOrElse(throw EntityNotFoundException.databaseNotFound(
       "View",
       show(name)
@@ -318,9 +343,10 @@ case class Catalog(
     name: CatalogName,
     args: Seq[AnyValue],
     sessionDb: DatabaseReference,
-    resolveByDisplayName: Option[Boolean]
+    resolveByDisplayName: Option[Boolean],
+    cypher25Enabled: Boolean
   ): Option[Catalog.GraphWithNotification] =
-    views.get(normalize(name)).map(v => v.eval(args, this, sessionDb, resolveByDisplayName))
+    views.get(normalize(name)).map(v => v.eval(args, this, sessionDb, resolveByDisplayName, cypher25Enabled))
 
   def graphNamesIn(namespace: String, securityContext: SecurityContext, queryLanguage: QueryLanguage): Array[String] = {
     graphs.collect {

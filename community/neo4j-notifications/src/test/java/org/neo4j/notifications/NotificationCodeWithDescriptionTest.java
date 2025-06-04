@@ -47,12 +47,12 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.deprecated
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedKeywordVariableInWhenOperand;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedNodeOrRelationshipOnRhsSetClause;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedOptionInOptionMap;
-import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedParsedDatabaseName;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPrecedenceOfLabelExpressionPredicate;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureWithReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureWithoutReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPropertyReferenceInCreate;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPropertyReferenceInMerge;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedQuotedGraphByNameArgument;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedRelationshipTypeSeparator;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedRuntimeOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedSeedingOption;
@@ -1218,11 +1218,12 @@ class NotificationCodeWithDescriptionTest {
     }
 
     @Test
-    void shouldConstructNotificationsFor_DEPRECATED_PARSED_DATABASE_NAME() {
-        NotificationImplementation notification = deprecatedParsedDatabaseName(InputPosition.empty, "db.one");
+    void shouldConstructNotificationsFor_DEPRECATED_QUOTED_GRAPH_BY_NAME_GRAPH_BY_NAME() {
+        NotificationImplementation notification = deprecatedQuotedGraphByNameArgument(
+                InputPosition.empty, "`alice's.composite`.alias", "alice's.composite.alias");
 
         String message =
-                "The graph name `db.one` will no longer resolve to the same graph in future versions. Databases and aliases with unescaped dot (.) are deprecated unless to indicate that they belong to a composite database. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters, for example, composite.`a.b`, composite.`1` or composite.`a``b`.";
+                "The graph name ``alice's.composite`.alias` is deprecated. It is replaced by `alice's.composite.alias`.";
         verifyNotification(
                 notification,
                 "This feature is deprecated and will be removed in future versions.",
@@ -1231,11 +1232,11 @@ class NotificationCodeWithDescriptionTest {
                 message,
                 NotificationCategory.DEPRECATION,
                 NotificationClassification.DEPRECATION,
-                "01N00",
+                "01N01",
                 new DiagnosticRecord(
                                 warning, NotificationClassification.DEPRECATION, -1, -1, -1, Map.of("item", message))
                         .asMap(),
-                String.format("warn: feature deprecated. %s", message));
+                String.format("warn: feature deprecated with replacement. %s".formatted(message), message));
     }
 
     @Test
@@ -2153,8 +2154,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -97, 47, 97, -67, 58, 52, 5, -124, 31, 79, -15, 113, 111, 88, -58, 60, 49, -66, 1, -49, 32, 119, 37, 25,
-            -77, 24, -4, -69, 105, 14, 73, 52
+            53, 21, -86, 42, 121, -13, 46, -30, -86, 24, 40, 88, 108, -84, -2, 54, 43, -99, 33, -119, 69, -39, 127, 31,
+            17, -117, 109, 119, 81, 15, 46, 69
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {
