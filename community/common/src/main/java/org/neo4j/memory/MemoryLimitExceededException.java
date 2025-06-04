@@ -67,17 +67,15 @@ public class MemoryLimitExceededException extends GqlRuntimeException implements
     }
 
     public static ErrorGqlStatusObject getTransactionMemoryLimitExceededGqlStatus(String settingName) {
-        var gqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N73)
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N73)
                 .withParam(GqlParams.StringParam.cfgSetting, settingName)
                 .build();
-        return gqlStatusObject;
     }
 
     public static ErrorGqlStatusObject getPoolOutOfMemoryGqlStatus(String settingName) {
-        var gqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N72)
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N72)
                 .withParam(GqlParams.StringParam.cfgSetting, settingName)
                 .build();
-        return gqlStatusObject;
     }
 
     @Override
