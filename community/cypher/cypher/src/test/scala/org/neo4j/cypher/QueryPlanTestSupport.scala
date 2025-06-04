@@ -52,9 +52,9 @@ trait QueryPlanTestSupport {
 
     def aPlan(name: String): PlanMatcher = ExactPlan().withName(name)
 
-    def aSourcePlan: PlanMatcher = ExactPlan(skipCachingPlans = true)
+    def aSourcePlan: PlanMatcher = ExactPlan.ignoringCachedProperties()
 
-    def aSourcePlan(name: String): PlanMatcher = ExactPlan(skipCachingPlans = true).withName(name)
+    def aSourcePlan(name: String): PlanMatcher = ExactPlan.ignoringCachedProperties().withName(name)
   }
 
   /**

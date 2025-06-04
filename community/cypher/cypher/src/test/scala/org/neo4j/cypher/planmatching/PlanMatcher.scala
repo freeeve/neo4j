@@ -150,6 +150,8 @@ trait PlanMatcher extends Matcher[InternalPlanDescription] {
   def withChildren(a: PlanMatcher, b: PlanMatcher): PlanMatcher
 
   def onTopOf(plan: PlanMatcher): PlanMatcher = withLHS(plan)
+
+  def ignoringPlan(planName: String): PlanMatcher
 }
 
 /**
@@ -232,6 +234,8 @@ case class PlanInTree(inner: PlanMatcher) extends PlanMatcher {
   override def withRHS(rhs: PlanMatcher): PlanMatcher = copy(inner = inner.withRHS(rhs))
 
   override def withChildren(a: PlanMatcher, b: PlanMatcher): PlanMatcher = copy(inner = inner.withChildren(a, b))
+
+  override def ignoringPlan(planName: String): PlanMatcher = copy(inner = inner.ignoringPlan(planName))
 }
 
 /**
@@ -321,6 +325,8 @@ case class CountInTree(expectedCount: Int, inner: PlanMatcher, atLeast: Boolean 
   override def withRHS(rhs: PlanMatcher): PlanMatcher = copy(inner = inner.withRHS(rhs))
 
   override def withChildren(a: PlanMatcher, b: PlanMatcher): PlanMatcher = copy(inner = inner.withChildren(a, b))
+
+  override def ignoringPlan(planName: String): PlanMatcher = copy(inner = inner.ignoringPlan(planName))
 }
 
 /**
@@ -342,7 +348,7 @@ case class ExactPlan(
   lhs: Option[PlanMatcher] = None,
   rhs: Option[PlanMatcher] = None,
   children: Option[(PlanMatcher, PlanMatcher)] = None,
-  skipCachingPlans: Boolean = false
+  skipPlans: Set[String] = Set.empty
 ) extends PlanMatcher {
 
   override def apply(plan: InternalPlanDescription): MatchResult = {
@@ -362,7 +368,7 @@ case class ExactPlan(
     val maybeLhsPlan = {
       val maybeLhsChildPlan = plan.children.toIndexedSeq.headOption
       maybeLhsChildPlan match {
-        case Some(lhsPlan) if skipCachingPlans && lhsPlan.name == CacheProperties.toString =>
+        case Some(lhsPlan) if skipPlans.contains(lhsPlan.name) =>
           lhsPlan.children.toIndexedSeq.headOption
         case _ =>
           maybeLhsChildPlan
@@ -605,6 +611,13 @@ case class ExactPlan(
   override def withChildren(a: PlanMatcher, b: PlanMatcher): PlanMatcher = this.rhs.fold(copy(children = Some((a, b))))(
     _ => throw new IllegalArgumentException("cannot have more than one assertion on children")
   )
+
+  override def ignoringPlan(planName: String): PlanMatcher =
+    copy(skipPlans = skipPlans + planName)
+}
+
+object ExactPlan {
+  def ignoringCachedProperties(): ExactPlan = ExactPlan(skipPlans = Set(CacheProperties.toString))
 }
 
 /**
