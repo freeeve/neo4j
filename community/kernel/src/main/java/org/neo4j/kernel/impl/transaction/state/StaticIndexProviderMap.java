@@ -22,6 +22,8 @@ package org.neo4j.kernel.impl.transaction.state;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,95 +33,62 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
-import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexProvider;
-import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
-import org.neo4j.kernel.api.impl.schema.trigram.TrigramIndexProvider;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexProvider;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.IndexProviderNotFoundException;
-import org.neo4j.kernel.impl.index.schema.PointIndexProvider;
-import org.neo4j.kernel.impl.index.schema.RangeIndexProvider;
-import org.neo4j.kernel.impl.index.schema.TokenIndexProvider;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
 public class StaticIndexProviderMap extends LifecycleAdapter implements IndexProviderMap {
+    private static final Comparator<IndexProvider> DESCENDING_MINIMUM_KERNEL_VERSION =
+            Comparator.comparing(IndexProvider::getMinimumRequiredVersion).reversed();
+
     private final Map<IndexProviderDescriptor, IndexProvider> indexProvidersByDescriptor = new HashMap<>();
     private final Map<String, IndexProvider> indexProvidersByName = new HashMap<>();
-    private final Map<IndexType, List<IndexProvider>> indexProvidersByType = new HashMap<>();
-    private final IndexProvider tokenIndexProvider;
-    private final IndexProvider rangeIndexProvider;
-    private final IndexProvider pointIndexProvider;
-    private final IndexProvider textIndexProvider;
-    private final IndexProvider trigramIndexProvider;
-    private final IndexProvider fulltextIndexProvider;
-    private final IndexProvider vectorV1IndexProvider;
-    private final IndexProvider vectorV2IndexProvider;
+    private final EnumMap<IndexType, List<IndexProvider>> indexProvidersByType = new EnumMap<>(IndexType.class);
     private final DependencyResolver dependencies;
 
-    public StaticIndexProviderMap(
-            TokenIndexProvider tokenIndexProvider,
-            RangeIndexProvider rangeIndexProvider,
-            PointIndexProvider pointIndexProvider,
-            TextIndexProvider textIndexProvider,
-            TrigramIndexProvider trigramIndexProvider,
-            FulltextIndexProvider fulltextIndexProvider,
-            VectorIndexProvider vectorV1IndexProvider,
-            VectorIndexProvider vectorV2IndexProvider,
-            DependencyResolver dependencies) {
-        this.tokenIndexProvider = tokenIndexProvider;
-        this.rangeIndexProvider = rangeIndexProvider;
-        this.pointIndexProvider = pointIndexProvider;
-        this.textIndexProvider = textIndexProvider;
-        this.trigramIndexProvider = trigramIndexProvider;
-        this.fulltextIndexProvider = fulltextIndexProvider;
-        this.vectorV1IndexProvider = vectorV1IndexProvider;
-        this.vectorV2IndexProvider = vectorV2IndexProvider;
+    public StaticIndexProviderMap(DependencyResolver dependencies, IndexProvider... indexProviders) {
         this.dependencies = dependencies;
+        for (var provider : indexProviders) {
+            add(provider);
+        }
     }
 
     @Override
     public void init() throws Exception {
-        add(
-                tokenIndexProvider,
-                rangeIndexProvider,
-                pointIndexProvider,
-                textIndexProvider,
-                trigramIndexProvider,
-                fulltextIndexProvider,
-                vectorV1IndexProvider,
-                vectorV2IndexProvider);
+        // Add providers loaded by extensions
         dependencies.resolveTypeDependencies(IndexProvider.class).forEach(this::add);
     }
 
     @Override
-    public IndexProvider getTokenIndexProvider() {
-        return tokenIndexProvider;
+    public IndexProvider getTokenIndexProvider(KernelVersion kernelVersion) {
+        return getIndexProvider(IndexType.LOOKUP, kernelVersion);
     }
 
     @Override
-    public IndexProvider getDefaultProvider() {
-        return rangeIndexProvider;
+    public IndexProvider getDefaultProvider(KernelVersion kernelVersion) {
+        return getIndexProvider(IndexType.RANGE, kernelVersion);
     }
 
     @Override
-    public IndexProvider getPointIndexProvider() {
-        return pointIndexProvider;
+    public IndexProvider getPointIndexProvider(KernelVersion kernelVersion) {
+        return getIndexProvider(IndexType.POINT, kernelVersion);
     }
 
     @Override
-    public IndexProvider getTextIndexProvider() {
-        return trigramIndexProvider;
+    public IndexProvider getTextIndexProvider(KernelVersion kernelVersion) {
+        return getIndexProvider(IndexType.TEXT, kernelVersion);
     }
 
     @Override
-    public IndexProvider getFulltextProvider() {
-        return fulltextIndexProvider;
+    public IndexProvider getFulltextProvider(KernelVersion kernelVersion) {
+        return getIndexProvider(IndexType.FULLTEXT, kernelVersion);
     }
 
     @Override
-    public IndexProvider getVectorIndexProvider() {
-        return vectorV2IndexProvider != null ? vectorV2IndexProvider : vectorV1IndexProvider;
+    public IndexProvider getVectorIndexProvider(KernelVersion kernelVersion) {
+        return getIndexProvider(IndexType.VECTOR, kernelVersion);
     }
 
     @Override
@@ -148,12 +117,22 @@ public class StaticIndexProviderMap extends LifecycleAdapter implements IndexPro
         indexProvidersByDescriptor.values().forEach(visitor);
     }
 
+    private IndexProvider getIndexProvider(IndexType indexType, KernelVersion kernelVersion) {
+        List<IndexProvider> providers = indexProvidersByType.get(indexType);
+        for (IndexProvider provider : providers) {
+            if (kernelVersion.isAtLeast(provider.getMinimumRequiredVersion())) {
+                return provider;
+            }
+        }
+        throw new IndexProviderNotFoundException(
+                "No provider for type " + indexType + " and version " + kernelVersion + " found.");
+    }
+
     private void assertProviderFound(IndexProvider provider, String providerDescriptorName) {
         if (provider == null) {
-            throw new IndexProviderNotFoundException("Tried to get index provider with name " + providerDescriptorName
-                    + " whereas available providers in this session being "
-                    + indexProvidersByName.keySet() + ", and default being "
-                    + rangeIndexProvider.getProviderDescriptor().name());
+            throw new IndexProviderNotFoundException(
+                    "Tried to get index provider with name %s whereas available providers in this session being %s."
+                            .formatted(providerDescriptorName, indexProvidersByName.keySet()));
         }
     }
 
@@ -161,9 +140,9 @@ public class StaticIndexProviderMap extends LifecycleAdapter implements IndexPro
         if (indexProviders == null) {
             var providerNamesByType = indexProvidersByType.entrySet().stream()
                     .map(entry -> {
-                        var type = entry.getKey();
-                        var providers = entry.getValue();
-                        return "" + type + "="
+                        IndexType type = entry.getKey();
+                        List<IndexProvider> providers = entry.getValue();
+                        return type + "="
                                 + providers.stream()
                                         .map(provider ->
                                                 provider.getProviderDescriptor().name())
@@ -196,14 +175,9 @@ public class StaticIndexProviderMap extends LifecycleAdapter implements IndexPro
                             + providerDescriptor + ". First loaded " + existing + " then " + provider);
         }
         indexProvidersByName.putIfAbsent(providerDescriptor.name(), provider);
-        indexProvidersByType
-                .computeIfAbsent(provider.getIndexType(), it -> new ArrayList<>())
-                .add(provider);
-    }
-
-    private void add(IndexProvider... providers) {
-        for (var provider : providers) {
-            add(provider);
-        }
+        List<IndexProvider> providersForType =
+                indexProvidersByType.computeIfAbsent(provider.getIndexType(), it -> new ArrayList<>());
+        providersForType.add(provider);
+        providersForType.sort(DESCENDING_MINIMUM_KERNEL_VERSION);
     }
 }

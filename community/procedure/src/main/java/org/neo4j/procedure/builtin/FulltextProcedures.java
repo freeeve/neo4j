@@ -47,9 +47,10 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor;
 import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.api.impl.schema.fulltext.FulltextAdapter;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexProvider;
 import org.neo4j.kernel.api.procedure.SystemProcedure;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.kernel.impl.api.index.IndexingService;
@@ -82,9 +83,6 @@ public class FulltextProcedures {
     public DependencyResolver resolver;
 
     @Context
-    public FulltextAdapter accessor;
-
-    @Context
     public ProcedureCallContext callContext;
 
     @Context
@@ -94,7 +92,11 @@ public class FulltextProcedures {
     @Description("List the available analyzers that the full-text indexes can be configured with.")
     @Procedure(name = "db.index.fulltext.listAvailableAnalyzers", mode = READ)
     public Stream<AvailableAnalyzer> listAvailableAnalyzers() {
-        return accessor.listAvailableAnalyzers().map(AvailableAnalyzer::new);
+        IndexingService indexingService = resolver.resolveDependency(IndexingService.class);
+        IndexProviderDescriptor fulltextProvider = indexingService.getFulltextProvider();
+        FulltextIndexProvider indexProvider =
+                (FulltextIndexProvider) indexingService.getIndexProvider(fulltextProvider);
+        return indexProvider.listAvailableAnalyzers().map(AvailableAnalyzer::new);
     }
 
     @SystemProcedure
@@ -107,7 +109,6 @@ public class FulltextProcedures {
             return;
         }
 
-        accessor.awaitRefresh();
         resolver.resolveDependency(IndexingService.class).awaitFulltextIndexRefresh();
     }
 

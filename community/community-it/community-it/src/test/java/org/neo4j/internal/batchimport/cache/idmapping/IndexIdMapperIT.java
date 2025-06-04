@@ -29,6 +29,7 @@ import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
 import static org.neo4j.storageengine.api.StorageEngineFactory.defaultStorageEngine;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.token.ReadOnlyTokenCreator.READ_ONLY;
 
 import java.io.IOException;
@@ -319,7 +320,7 @@ class IndexIdMapperIT {
 
     private void buildInitialIndex(Group group, long indexId, int labelId, int propertyKeyId, Map<Object, Long> data)
             throws IOException, IndexEntryConflictException {
-        var indexProvider = indexProviders.getDefaultProvider();
+        var indexProvider = indexProviders.getDefaultProvider(LATEST_KERNEL_VERSION);
         var descriptor = IndexPrototype.uniqueForSchema(SchemaDescriptors.forLabel(labelId, propertyKeyId))
                 .withName(group.descriptiveName())
                 .withIndexProvider(indexProvider.getProviderDescriptor())

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
 import static org.neo4j.io.fs.FileUtils.copyDirectory;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.TestLabels.LABEL_ONE;
 import static org.neo4j.test.TestLabels.LABEL_THREE;
 import static org.neo4j.test.TestLabels.LABEL_TWO;
@@ -111,8 +112,10 @@ class IndexConsistencyIT {
         someData(entityType);
         checkPointer.forceCheckPoint(new SimpleTriggerInfo("forcedCheckpoint"));
         Path indexesCopy = databaseLayout.file(Path.of("indexesCopy"));
-        Path indexSources =
-                indexProviderMap.getDefaultProvider().directoryStructure().rootDirectory();
+        Path indexSources = indexProviderMap
+                .getDefaultProvider(LATEST_KERNEL_VERSION)
+                .directoryStructure()
+                .rootDirectory();
         copyDirectory(indexSources, indexesCopy, SOURCE_COPY_FILE_FILTER);
 
         try (Transaction tx = db.beginTx()) {
@@ -139,8 +142,10 @@ class IndexConsistencyIT {
         someData(entityType);
         checkPointer.forceCheckPoint(new SimpleTriggerInfo("forcedCheckpoint"));
         Path indexesCopy = databaseLayout.file(Path.of("indexesCopy"));
-        Path indexSources =
-                indexProviderMap.getDefaultProvider().directoryStructure().rootDirectory();
+        Path indexSources = indexProviderMap
+                .getDefaultProvider(LATEST_KERNEL_VERSION)
+                .directoryStructure()
+                .rootDirectory();
         copyDirectory(indexSources, indexesCopy, SOURCE_COPY_FILE_FILTER);
 
         managementService.shutdown();

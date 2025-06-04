@@ -27,6 +27,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.index.IndexProvider;
 
 /**
@@ -63,40 +64,48 @@ public interface IndexProviderMap extends IndexConfigCompleter {
     /**
      * There's always a token index provider, this method returns it.
      *
+     * @param kernelVersion kernel version to limit providers to.
      * @return token index provider for this instance
      */
-    IndexProvider getTokenIndexProvider();
+    IndexProvider getTokenIndexProvider(KernelVersion kernelVersion);
 
     /**
      * There's always a default {@link IndexProvider}, this method returns it.
      *
+     * @param kernelVersion kernel version to limit providers to.
      * @return the default index provider for this instance.
      */
-    IndexProvider getDefaultProvider();
+    IndexProvider getDefaultProvider(KernelVersion kernelVersion);
 
     /**
+     * @param kernelVersion kernel version to limit providers to.
      * The preferred {@link IndexProvider} for handling point indexes.
      */
-    IndexProvider getPointIndexProvider();
+    IndexProvider getPointIndexProvider(KernelVersion kernelVersion);
 
     /**
      * The preferred {@link IndexProvider} for handling text indexes.
      *
+     * @param kernelVersion kernel version to limit providers to.
      * @return the default or preferred index provider for full-text indexes.
      */
-    IndexProvider getTextIndexProvider();
+    IndexProvider getTextIndexProvider(KernelVersion kernelVersion);
 
     /**
      * The preferred {@link IndexProvider} for handling full-text indexes.
      *
+     * @param kernelVersion kernel version to limit providers to.
      * @return the default or preferred index provider for full-text indexes.
      */
-    IndexProvider getFulltextProvider();
+    IndexProvider getFulltextProvider(KernelVersion kernelVersion);
 
     /**
      * The preferred {@link IndexProvider} for handling vector indexes.
+     *
+     * @param kernelVersion kernel version to limit providers to.
+     * @return the default or preferred index provider for vector indexes.
      */
-    IndexProvider getVectorIndexProvider();
+    IndexProvider getVectorIndexProvider(KernelVersion kernelVersion);
 
     /**
      * Visits all the {@link IndexProvider} with the visitor.
@@ -128,32 +137,32 @@ public interface IndexProviderMap extends IndexConfigCompleter {
         }
 
         @Override
-        public IndexProvider getTokenIndexProvider() {
+        public IndexProvider getTokenIndexProvider(KernelVersion kernelVersion) {
             return IndexProvider.EMPTY;
         }
 
         @Override
-        public IndexProvider getDefaultProvider() {
+        public IndexProvider getDefaultProvider(KernelVersion kernelVersion) {
             return IndexProvider.EMPTY;
         }
 
         @Override
-        public IndexProvider getPointIndexProvider() {
+        public IndexProvider getPointIndexProvider(KernelVersion kernelVersion) {
             return IndexProvider.EMPTY;
         }
 
         @Override
-        public IndexProvider getTextIndexProvider() {
+        public IndexProvider getTextIndexProvider(KernelVersion kernelVersion) {
             return IndexProvider.EMPTY;
         }
 
         @Override
-        public IndexProvider getFulltextProvider() {
+        public IndexProvider getFulltextProvider(KernelVersion kernelVersion) {
             return IndexProvider.EMPTY;
         }
 
         @Override
-        public IndexProvider getVectorIndexProvider() {
+        public IndexProvider getVectorIndexProvider(KernelVersion kernelVersion) {
             return IndexProvider.EMPTY;
         }
 

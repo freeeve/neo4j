@@ -26,6 +26,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
@@ -40,32 +41,32 @@ public class MockIndexProviderMap extends LifecycleAdapter implements IndexProvi
     public void init() {}
 
     @Override
-    public IndexProvider getTokenIndexProvider() {
+    public IndexProvider getTokenIndexProvider(KernelVersion kernelVersion) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public IndexProvider getDefaultProvider() {
+    public IndexProvider getDefaultProvider(KernelVersion kernelVersion) {
         return indexProvider;
     }
 
     @Override
-    public IndexProvider getPointIndexProvider() {
+    public IndexProvider getPointIndexProvider(KernelVersion kernelVersion) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public IndexProvider getTextIndexProvider() {
+    public IndexProvider getTextIndexProvider(KernelVersion kernelVersion) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public IndexProvider getFulltextProvider() {
+    public IndexProvider getFulltextProvider(KernelVersion kernelVersion) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public IndexProvider getVectorIndexProvider() {
+    public IndexProvider getVectorIndexProvider(KernelVersion kernelVersion) {
         throw new UnsupportedOperationException();
     }
 

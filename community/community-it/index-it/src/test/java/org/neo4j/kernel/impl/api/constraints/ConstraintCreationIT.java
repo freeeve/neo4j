@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -86,8 +87,10 @@ class ConstraintCreationIT {
         attemptAndFailConstraintCreation();
 
         // then
-        Path indexDir =
-                indexProviderMap.getDefaultProvider().directoryStructure().directoryForIndex(indexId);
+        Path indexDir = indexProviderMap
+                .getDefaultProvider(LATEST_KERNEL_VERSION)
+                .directoryStructure()
+                .directoryForIndex(indexId);
 
         assertFalse(Files.exists(indexDir));
     }

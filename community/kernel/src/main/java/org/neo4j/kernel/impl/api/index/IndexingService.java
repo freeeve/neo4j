@@ -85,6 +85,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexProvider;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.TransactionVisibilityProvider;
@@ -275,7 +276,7 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     }
 
     private void validateDefaultProviderExisting() {
-        if (providerMap == null || providerMap.getDefaultProvider() == null) {
+        if (providerMap == null || providerMap.getDefaultProvider(kernelVersionProvider.kernelVersion()) == null) {
             throw new IllegalStateException("You cannot run the database without an index provider, "
                     + "please make sure that a valid provider (subclass of "
                     + IndexProvider.class.getName() + ") is on your classpath.");
@@ -385,6 +386,12 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
      * Ensures all eventually consistent fulltext indexes to be refreshed up to this point.
      */
     public void awaitFulltextIndexRefresh() {
+        // Drain all individual update sinks
+        for (IndexProvider indexProvider : providerMap.lookup(IndexType.FULLTEXT)) {
+            ((FulltextIndexProvider) indexProvider).awaitRefresh();
+        }
+
+        // Wait for refresh
         Duration interval = config.get(FulltextSettings.eventually_consistent_refresh_interval);
         if (!interval.isZero()) {
             for (IndexProxy indexProxy : indexMapRef.getAllIndexProxies()) {
@@ -537,12 +544,16 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
 
     @Override
     public IndexProviderDescriptor getDefaultProvider() {
-        return providerMap.getDefaultProvider().getProviderDescriptor();
+        return providerMap
+                .getDefaultProvider(kernelVersionProvider.kernelVersion())
+                .getProviderDescriptor();
     }
 
     @Override
     public IndexProviderDescriptor getFulltextProvider() {
-        return providerMap.getFulltextProvider().getProviderDescriptor();
+        return providerMap
+                .getFulltextProvider(kernelVersionProvider.kernelVersion())
+                .getProviderDescriptor();
     }
 
     @Override
@@ -554,22 +565,30 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
 
     @Override
     public IndexProviderDescriptor getTokenIndexProvider() {
-        return providerMap.getTokenIndexProvider().getProviderDescriptor();
+        return providerMap
+                .getTokenIndexProvider(kernelVersionProvider.kernelVersion())
+                .getProviderDescriptor();
     }
 
     @Override
     public IndexProviderDescriptor getTextIndexProvider() {
-        return providerMap.getTextIndexProvider().getProviderDescriptor();
+        return providerMap
+                .getTextIndexProvider(kernelVersionProvider.kernelVersion())
+                .getProviderDescriptor();
     }
 
     @Override
     public IndexProviderDescriptor getPointIndexProvider() {
-        return providerMap.getPointIndexProvider().getProviderDescriptor();
+        return providerMap
+                .getPointIndexProvider(kernelVersionProvider.kernelVersion())
+                .getProviderDescriptor();
     }
 
     @Override
     public IndexProviderDescriptor getVectorIndexProvider() {
-        return providerMap.getVectorIndexProvider().getProviderDescriptor();
+        return providerMap
+                .getVectorIndexProvider(kernelVersionProvider.kernelVersion())
+                .getProviderDescriptor();
     }
 
     @Override

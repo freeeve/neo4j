@@ -48,6 +48,7 @@ import static org.neo4j.logging.AssertableLogProvider.Level.INFO;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.PageCacheTracerAssertions.assertThatTracing;
 import static org.neo4j.test.PageCacheTracerAssertions.pins;
 
@@ -863,7 +864,7 @@ class IndexPopulationJobTest {
         IndexSamplingConfig samplingConfig = new IndexSamplingConfig(Config.defaults());
         IndexProvider indexProvider = db.getDependencyResolver()
                 .resolveDependency(IndexProviderMap.class)
-                .getDefaultProvider();
+                .getDefaultProvider(LATEST_KERNEL_VERSION);
         var completeDescriptor =
                 indexProvider.completeConfiguration(indexDescriptor, storageEngine.indexingBehaviour());
         return indexProvider.getPopulator(

@@ -1375,7 +1375,7 @@ class IndexingServiceTest {
         IndexProviderMap indexProviderMap = mock(IndexProviderMap.class);
         when(indexProviderMap.lookup(anyString())).thenReturn(indexProvider);
         when(indexProviderMap.lookup(any(IndexProviderDescriptor.class))).thenReturn(indexProvider);
-        when(indexProviderMap.getDefaultProvider()).thenReturn(indexProvider);
+        when(indexProviderMap.getDefaultProvider(any())).thenReturn(indexProvider);
         NullLogProvider logProvider = NullLogProvider.getInstance();
         IndexMapReference indexMapReference = new IndexMapReference();
         IndexProxyCreator indexProxyCreator = mock(IndexProxyCreator.class);

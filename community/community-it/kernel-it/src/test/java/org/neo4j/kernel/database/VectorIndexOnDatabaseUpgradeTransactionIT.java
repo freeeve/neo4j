@@ -99,8 +99,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                 })
                 .isInstanceOf(UnsupportedOperationException.class)
                 .hasMessageContainingAll(
-                        "Failed to create index with provider",
-                        indexVersion.descriptor().name(),
+                        "Failed to create",
                         "Version was",
                         previousVersion.name(),
                         "but required version for operation is",

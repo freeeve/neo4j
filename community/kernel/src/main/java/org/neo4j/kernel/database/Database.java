@@ -71,7 +71,6 @@ import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
-import org.neo4j.internal.schema.SchemaNameUtil;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.fs.watcher.DatabaseLayoutWatcher;
@@ -90,8 +89,6 @@ import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.Kernel;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.database.transaction.TransactionLogServiceImpl;
-import org.neo4j.kernel.api.impl.schema.fulltext.DefaultFulltextAdapter;
-import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexProvider;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.availability.AvailabilityGuard;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
@@ -672,12 +669,7 @@ public class Database extends AbstractDatabase {
 
     private void createLookupIndex(KernelTransaction tx, EntityType entityType) throws KernelException {
         var descriptor = SchemaDescriptors.forAnyEntityTokens(entityType);
-
-        IndexPrototype prototype = IndexPrototype.forSchema(descriptor)
-                .withIndexType(LOOKUP)
-                .withIndexProvider(indexProviderMap.getTokenIndexProvider().getProviderDescriptor());
-        prototype = prototype.withName(SchemaNameUtil.generateName(prototype));
-
+        IndexPrototype prototype = IndexPrototype.forSchema(descriptor).withIndexType(LOOKUP);
         tx.schemaWrite().indexCreate(prototype);
     }
 
@@ -774,9 +766,6 @@ public class Database extends AbstractDatabase {
                 dependencies);
         this.indexProviderMap = indexProvidersLife.add(indexProviderMap);
         dependencies.satisfyDependency(this.indexProviderMap);
-        // fulltextadapter for FulltextProcedures
-        dependencies.satisfyDependency(
-                new DefaultFulltextAdapter((FulltextIndexProvider) this.indexProviderMap.getFulltextProvider()));
         indexProvidersLife.init();
         return indexProvidersLife;
     }

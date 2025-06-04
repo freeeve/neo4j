@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.api;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.logging.AssertableLogProvider.Level.INFO;
 import static org.neo4j.logging.LogAssertions.assertThat;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
@@ -64,7 +65,7 @@ class SchemaLoggingIT {
         long indexId = createIndex(db, labelName, property, indexName);
 
         // then
-        IndexProvider defaultProvider = indexProviderMap.getDefaultProvider();
+        IndexProvider defaultProvider = indexProviderMap.getDefaultProvider(LATEST_KERNEL_VERSION);
         IndexProviderDescriptor providerDescriptor = defaultProvider.getProviderDescriptor();
         String indexDescription = "Index( id=" + indexId + ", name='" + indexName + "', type='RANGE', "
                 + "schema=(:User {name}), indexProvider='" + providerDescriptor.name() + "' )";

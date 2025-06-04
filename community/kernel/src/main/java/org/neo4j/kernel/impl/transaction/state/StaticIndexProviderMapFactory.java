@@ -232,6 +232,7 @@ public class StaticIndexProviderMapFactory {
                         dependencies));
 
         return new StaticIndexProviderMap(
+                dependencies,
                 tokenIndexProvider,
                 rangeIndexProvider,
                 pointIndexProvider,
@@ -239,7 +240,6 @@ public class StaticIndexProviderMapFactory {
                 trigramIndexProvider,
                 fulltextIndexProvider,
                 vectorV1IndexProvider,
-                vectorV2IndexProvider,
-                dependencies);
+                vectorV2IndexProvider);
     }
 }
