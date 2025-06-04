@@ -1199,14 +1199,14 @@ object SemanticError {
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N58)
         .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.NumberParam.count, count)
-        .withParam(GqlParams.NumberParam.upper, 100)
+        .withParam(GqlParams.NumberParam.upper, 1000)
         .withParam(GqlParams.StringParam.context, "shards")
         .build())
       .build()
 
     SemanticError(
       gql,
-      s"Failed to $command with `$topologyString`, COUNT must be greater than 0.",
+      s"Failed to $command with `$topologyString`, COUNT must be between 1 and 1000.",
       position
     )
   }

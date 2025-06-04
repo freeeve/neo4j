@@ -1514,8 +1514,8 @@ case class ShardDefinition(
 
   def semanticCheck(command: String, position: InputPosition): SemanticCheck = {
 
-    def numShardsGreaterThanZero(shardCount: Int): SemanticCheck = {
-      if (shardCount < 1) {
+    def numShardsInRange(shardCount: Int): SemanticCheck = {
+      if (shardCount < 1 || shardCount > 1000) {
         error(SemanticError.numShardsOutOfRange(shardCount, command, s"COUNT $shardCount", position))
       } else success
     }
@@ -1530,7 +1530,7 @@ case class ShardDefinition(
       }
 
     topologyCheck(graphShardTopology, command, position) chain
-      numShardsGreaterThanZero(propertyShardCount) chain
+      numShardsInRange(propertyShardCount) chain
       numReplicasGreaterThanZero(propertyShardReplicaCount)
   }
 
