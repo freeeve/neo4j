@@ -169,8 +169,8 @@ case class RepeatToVarExpandRewriter(
     VarExpand(
       source = repeat.left,
       from = repeat.start,
-      to = repeat.end,
-      relName = expandRel,
+      maybeTo = Some(repeat.end),
+      maybeRelName = Some(expandRel),
       dir = repeatExpand.dir,
       projectedDir = getProjectedDir,
       types = repeatExpand.types,

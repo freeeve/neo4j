@@ -395,7 +395,7 @@ object LogicalPlanToPlanBuilderString {
         val lenStr = s"${length.min}..${length.max.getOrElse("")}"
 
         params(
-          s"(${from.name})$dirStrA[${relName.name}$typeStr*$lenStr]$dirStrB(${to.name})".quoted,
+          s"(${name(from)})$dirStrA[${name(relName)}$typeStr*$lenStr]$dirStrB(${name(to)})".quoted,
           "expandMode" -> objectName(mode),
           "projectedDir" -> objectName(pDir),
           "nodePredicates" -> nodePredicates,
@@ -420,7 +420,7 @@ object LogicalPlanToPlanBuilderString {
         val typeStr = relTypeStr(types)
         val lenStr = s"${length.min}..${length.max.getOrElse("")}"
         params(
-          s"(${from.name})$dirStrA[${relName.name}$typeStr*$lenStr]$dirStrB(${to.name})".quoted,
+          s"(${name(from)})$dirStrA[${relName.name}$typeStr*$lenStr]$dirStrB(${to.name})".quoted,
           "projectedDir" -> objectName(projectedDir),
           "nodePredicates" -> nodePredicates,
           "relationshipPredicates" -> relationshipPredicates
@@ -446,7 +446,7 @@ object LogicalPlanToPlanBuilderString {
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(types)
         params(
-          s"(${from.name})$dirStrA[${relName.name}$typeStr$lenStr]$dirStrB(${to.name})".quoted,
+          s"(${name(from)})$dirStrA[${relName.name}$typeStr$lenStr]$dirStrB(${to.name})".quoted,
           "pathName" -> optional(maybePathName.map(_.some)),
           "all" -> conditional(!single)(true),
           "nodePredicates" -> nodePredicates,
@@ -508,7 +508,7 @@ object LogicalPlanToPlanBuilderString {
         val typeStr = relTypeStr(types)
         val lenStr = s"$minLength..$maxLength"
         params(
-          s"(${from.name})$dirStrA[$typeStr*$lenStr]$dirStrB(${to.name})".quoted,
+          s"(${name(from)})$dirStrA[$typeStr*$lenStr]$dirStrB(${name(to)})".quoted,
           "nodePredicates" -> nodePredicates,
           "relationshipPredicates" -> relationshipPredicates,
           "pathMode" -> pathMode
@@ -533,7 +533,7 @@ object LogicalPlanToPlanBuilderString {
         val minLength = if (includeStartNode) 0 else 1
         val lenStr = s"$minLength..$maxLength"
         params(
-          s"(${from.name})$dirStrA[$typeStr*$lenStr]$dirStrB(${to.name})".quoted,
+          s"(${name(from)})$dirStrA[$typeStr*$lenStr]$dirStrB(${name(to)})".quoted,
           "nodePredicates" -> nodePredicates,
           "relationshipPredicates" -> relationshipPredicates,
           "depthName" -> optional(depthName.map(_.some)),
@@ -828,13 +828,13 @@ object LogicalPlanToPlanBuilderString {
         params(idName, argumentIds, ids)
       case UndirectedRelationshipByIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
         params(
-          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}]-(${rightNode.map(_.name).getOrElse("")})".quoted,
+          s"(${name(leftNode)})-[${name(idName)}]-(${name(rightNode)})".quoted,
           argumentIds,
           ids
         )
       case UndirectedRelationshipByElementIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
         params(
-          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}]-(${rightNode.map(_.name).getOrElse("")})".quoted,
+          s"(${name(leftNode)})-[${name(idName)}]-(${name(rightNode)})".quoted,
           argumentIds,
           ids
         )
@@ -1603,7 +1603,7 @@ object LogicalPlanToPlanBuilderString {
       case typeList => typeList.mkString(":", "|", "")
     }
 
-    s"(${start.map(_.name).getOrElse("")})$dirA[${idName.map(_.name).getOrElse("")}$relTypes]$dirB(${end.map(_.name).getOrElse("")})".quoted
+    s"(${name(start)})$dirA[${name(idName)}$relTypes]$dirB(${name(end)})".quoted
   }
 
   /**
@@ -1907,6 +1907,9 @@ object LogicalPlanToPlanBuilderString {
     }
   }
 
+  private def name(variable: LogicalVariable): String = variable.name
+  private def name(variable: Option[LogicalVariable]): String = variable.map(name).getOrElse("")
+
   private def switchInequalitySign(s: String): String = switchInequalitySign(s.head) +: s.tail
 
   private def switchInequalitySign(c: Char): Char = c match {
@@ -1969,9 +1972,9 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse(
+      s"(${name(start)})-[${idName.map(_.name).getOrElse(
           ""
-        )}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+        )}:${typeToken.name}($parenthesesContent)]$rarrow(${name(end)})".quoted,
       "indexOrder" -> indexOrder,
       "paramExpr" -> paramExpr,
       "argumentIds" -> argumentIds,
@@ -1995,9 +1998,9 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse(
+      s"(${name(start)})-[${idName.map(_.name).getOrElse(
           ""
-        )}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+        )}:${typeToken.name}($parenthesesContent)]$rarrow(${name(end)})".quoted,
       "argumentIds" -> argumentIds,
       "getValue" -> Param.mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
       "indexType" -> indexType
@@ -2066,9 +2069,9 @@ object LogicalPlanToPlanBuilderString {
     val propName = properties.map(_.propertyKeyToken.name).head
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse(
+      s"(${name(start)})-[${idName.map(_.name).getOrElse(
           ""
-        )}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+        )}:${typeToken.name}($propName)]$rarrow(${name(end)})".quoted,
       lowerLeft.quoted,
       upperRight.quoted,
       "indexOrder" -> indexOrder,
@@ -2095,9 +2098,9 @@ object LogicalPlanToPlanBuilderString {
     val propName = properties.map(_.propertyKeyToken.name).head
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse(
+      s"(${name(start)})-[${idName.map(_.name).getOrElse(
           ""
-        )}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+        )}:${typeToken.name}($propName)]$rarrow(${name(end)})".quoted,
       point.quoted,
       distance,
       "inclusive" -> inclusive,

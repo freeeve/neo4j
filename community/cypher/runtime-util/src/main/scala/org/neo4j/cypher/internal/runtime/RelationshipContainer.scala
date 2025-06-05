@@ -40,45 +40,60 @@ object RelationshipContainer {
    * Utility class that has constant time `append`, `contains`, and `size` methods
    */
   private class TrailModeRelationshipContainer private[RelationshipContainer] (
-    val asList: ListValue,
+    private val maybeList: Option[ListValue],
     val size: Int,
     set: HeapTrackingLongImmutableSet
   ) extends RelationshipContainer {
 
+    override def asList: ListValue = maybeList.get
+
     override def append(rel: VirtualRelationshipValue): RelationshipContainer = {
-      new TrailModeRelationshipContainer(asList.append(rel), size + 1, set + rel.id())
+      new TrailModeRelationshipContainer(maybeList.map(_.append(rel)), size + 1, set + rel.id())
     }
     override def canAdd(rel: VirtualRelationshipValue): Boolean = !set.contains(rel.id())
     override def canAdd(relId: Long): Boolean = !set.contains(relId)
 
-    override def reverse: RelationshipContainer = new TrailModeRelationshipContainer(asList.reverse(), size, set)
+    override def reverse: RelationshipContainer =
+      new TrailModeRelationshipContainer(maybeList.map(_.reverse()), size, set)
 
     override def close(): Unit = {
       set.close()
     }
   }
 
-  private class WalkModeRelationshipContainer private[RelationshipContainer] (val asList: ListValue, val size: Int)
-      extends RelationshipContainer {
+  private class WalkModeRelationshipContainer private[RelationshipContainer] (
+    private val maybeList: Option[ListValue],
+    val size: Int
+  ) extends RelationshipContainer {
+
+    override def asList: ListValue = maybeList.get
 
     override def append(rel: VirtualRelationshipValue): RelationshipContainer = {
-      new WalkModeRelationshipContainer(asList.append(rel), size + 1)
+      new WalkModeRelationshipContainer(maybeList.map(_.append(rel)), size + 1)
     }
     override def canAdd(rel: VirtualRelationshipValue): Boolean = true
     override def canAdd(relId: Long): Boolean = true
 
-    override def reverse: RelationshipContainer = new WalkModeRelationshipContainer(asList.reverse(), size)
+    override def reverse: RelationshipContainer = new WalkModeRelationshipContainer(maybeList.map(_.reverse()), size)
 
     override def close(): Unit = {
       // nothing to close
     }
   }
 
-  def empty(memoryTracker: MemoryTracker, traversalPathMode: TraversalPathMode): RelationshipContainer =
-    traversalPathMode match {
-      case TraversalPathMode.Walk =>
-        new WalkModeRelationshipContainer(EMPTY_LIST, 0)
-      case TraversalPathMode.Trail =>
-        new TrailModeRelationshipContainer(EMPTY_LIST, 0, HeapTrackingLongImmutableSet.emptySet(memoryTracker))
+  def empty(
+    memoryTracker: MemoryTracker,
+    traversalPathMode: TraversalPathMode,
+    storeList: Boolean
+  ): RelationshipContainer =
+    (traversalPathMode, storeList) match {
+      case (TraversalPathMode.Walk, true) =>
+        new WalkModeRelationshipContainer(Some(EMPTY_LIST), 0)
+      case (TraversalPathMode.Walk, false) =>
+        new WalkModeRelationshipContainer(None, 0)
+      case (TraversalPathMode.Trail, true) =>
+        new TrailModeRelationshipContainer(Some(EMPTY_LIST), 0, HeapTrackingLongImmutableSet.emptySet(memoryTracker))
+      case (TraversalPathMode.Trail, false) =>
+        new TrailModeRelationshipContainer(None, 0, HeapTrackingLongImmutableSet.emptySet(memoryTracker))
     }
 }

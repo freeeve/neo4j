@@ -92,8 +92,8 @@ class VarLengthExpandPipeTest extends CypherFunSuite {
     val pipe = VarLengthExpandPipe(
       input,
       "a",
-      "r",
-      "b",
+      Some("r"),
+      Some("b"),
       SemanticDirection.OUTGOING,
       SemanticDirection.OUTGOING,
       new EagerTypes(Array(0)),
@@ -128,8 +128,8 @@ class VarLengthExpandPipeTest extends CypherFunSuite {
     val pipe = VarLengthExpandPipe(
       input,
       "a",
-      "r",
-      "b",
+      Some("r"),
+      Some("b"),
       SemanticDirection.OUTGOING,
       SemanticDirection.OUTGOING,
       new EagerTypes(Array(0)),

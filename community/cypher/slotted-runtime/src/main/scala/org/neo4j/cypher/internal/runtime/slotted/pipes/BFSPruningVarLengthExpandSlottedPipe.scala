@@ -45,7 +45,7 @@ import org.neo4j.values.storable.Values
 case class BFSPruningVarLengthExpandSlottedPipe(
   source: Pipe,
   fromSlot: Slot,
-  toSlot: Slot,
+  maybeToSlot: Option[Slot],
   maybeDepthOffset: Option[Int],
   types: RelationshipTypes,
   dir: SemanticDirection,
@@ -62,10 +62,22 @@ case class BFSPruningVarLengthExpandSlottedPipe(
 
   private val getToNodeFunction =
     if (expansionMode == ExpandAll) NO_ENTITY_FUNCTION // We only need this getter in the ExpandInto case
-    else makeGetPrimitiveNodeFromSlotFunctionFor(toSlot, throwOnTypeError = false)
+    else makeGetPrimitiveNodeFromSlotFunctionFor(maybeToSlot.get, throwOnTypeError = false)
 
-  private val emitDepth: Boolean = maybeDepthOffset.nonEmpty
-  private val depthOffset: Int = maybeDepthOffset.getOrElse(-1)
+  private val writer: (CypherRow, Long, Int) => CypherRow = (maybeDepthOffset, maybeToSlot) match {
+    case (Some(depthOffset), Some(to)) =>
+      (row: CypherRow, endNode: Long, depth: Int) =>
+        row.setLongAt(to.offset, endNode)
+        row.setRefAt(depthOffset, Values.intValue(depth))
+        row
+    case (None, Some(to)) =>
+      (row: CypherRow, endNode: Long, _: Int) =>
+        row.setLongAt(to.offset, endNode)
+        row
+    case _ =>
+      (row: CypherRow, _: Long, _: Int) =>
+        row
+  }
 
   override protected def internalCreateResults(
     input: ClosingIterator[CypherRow],
@@ -102,11 +114,7 @@ case class BFSPruningVarLengthExpandSlottedPipe(
                 endNode => {
                   val outputRow = SlottedRow(slots)
                   outputRow.copyAllFrom(inputRow)
-                  outputRow.setLongAt(toSlot.offset, endNode)
-                  if (emitDepth) {
-                    outputRow.setRefAt(depthOffset, Values.intValue(expand.currentDepth))
-                  }
-                  outputRow
+                  writer(outputRow, endNode, expand.currentDepth)
                 }
               )
             } else {

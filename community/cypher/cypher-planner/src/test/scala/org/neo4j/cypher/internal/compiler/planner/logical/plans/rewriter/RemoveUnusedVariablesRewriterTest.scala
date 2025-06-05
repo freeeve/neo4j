@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedVariablesRewriterTest.beRewrittenTo
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedVariablesRewriterTest.notBeRewritten
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedVariablesRewriterTest.thePlan
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.matchers.MatchResult
@@ -148,6 +149,94 @@ class RemoveUnusedVariablesRewriterTest extends CypherFunSuite with LogicalPlann
         .optionalExpandAll("(a)-[r]->()")
         .allNodeScan("a")
     )
+  }
+
+  test("remove end-node and relationship from var-expand") {
+    thePlan(
+      _.produceResults("a")
+        .expand("(a)-[r*]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a")
+        .expand("(a)-[*]->()")
+        .allNodeScan("a")
+    )
+  }
+
+  test("remove relationship from var-expand") {
+    thePlan(
+      _.produceResults("a")
+        .expand("(a)-[r*..77]->(b)", ExpandInto)
+        .cartesianProduct()
+        .|.allNodeScan("b")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a")
+        .expand("(a)-[*..77]->(b)", ExpandInto)
+        .cartesianProduct()
+        .|.allNodeScan("b")
+        .allNodeScan("a")
+    )
+  }
+
+  test("remove end-node from var-expand") {
+    thePlan(
+      _.produceResults("a", "r")
+        .expand("(a)-[r*]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a", "r")
+        .expand("(a)-[r*]->()")
+        .allNodeScan("a")
+    )
+  }
+
+  test("don't remove anything from var-expand if variables are used") {
+    thePlan(
+      _.produceResults("a", "b", "r")
+        .expand("(a)-[r*]->(b)")
+        .allNodeScan("a")
+    ) should notBeRewritten
+  }
+
+  test("remove end-node from bfs-pruning-var-expand") {
+    thePlan(
+      _.produceResults("a", "r")
+        .bfsPruningVarExpand("(a)-[r*]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a", "r")
+        .bfsPruningVarExpand("(a)-[r*]->()")
+        .allNodeScan("a")
+    )
+  }
+
+  test("don't remove anything from bfs-pruning-var-expand if used") {
+    thePlan(
+      _.produceResults("a", "b", "r")
+        .bfsPruningVarExpand("(a)-[r*]->(b)")
+        .allNodeScan("a")
+    ) should notBeRewritten
+  }
+
+  test("remove end-node from pruning-var-expand") {
+    thePlan(
+      _.produceResults("a", "r")
+        .pruningVarExpand("(a)-[r*2..7]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a", "r")
+        .pruningVarExpand("(a)-[r*2..7]->()")
+        .allNodeScan("a")
+    )
+  }
+
+  test("don't remove anything from pruning-var-expand if used") {
+    thePlan(
+      _.produceResults("a", "b", "r")
+        .pruningVarExpand("(a)-[r*2..7]->(b)")
+        .allNodeScan("a")
+    ) should notBeRewritten
   }
 }
 

@@ -576,8 +576,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             p.dir,
             projectedDir,
             p.relTypes,
-            varFor(p.to),
-            varFor(p.relName),
+            varFor(p.maybeTo),
+            varFor(p.maybeRelName),
             varPatternLength,
             expandMode,
             nodePredicates,
@@ -819,7 +819,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             varFor(p.from),
             p.dir,
             p.relTypes,
-            varFor(p.to),
+            varFor(p.maybeTo),
             min,
             max,
             nodePredicates.map(_.asVariablePredicate),
@@ -862,7 +862,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
     if (mode == ExpandAll) {
-      newNode(varFor(p.to))
+      newNode(varFor(p.maybeTo))
     }
     p.length match {
       case VarPatternLength(min, maybeMax) if min <= 1 =>
@@ -872,7 +872,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             varFor(p.from),
             p.dir,
             p.relTypes,
-            varFor(p.to),
+            varFor(p.maybeTo),
             min == 0,
             maxLength = maybeMax.getOrElse(Int.MaxValue),
             depthName.map(varFor),

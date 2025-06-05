@@ -38,13 +38,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("simplest possible query that can use PruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*2..3]-(to)")
+      .expand("(from)-[r*2..3]-(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .pruningVarExpand("(from)-[*2..3]-(to)")
+      .pruningVarExpand("(from)-[r*2..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -54,13 +54,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should keep walk mode in PruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*2..3]-(to)", pathMode = TraversalPathMode.Walk)
+      .expand("(from)-[r*2..3]-(to)", pathMode = TraversalPathMode.Walk)
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .pruningVarExpand("(from)-[*2..3]-(to)", pathMode = TraversalPathMode.Walk)
+      .pruningVarExpand("(from)-[r*2..3]-(to)", pathMode = TraversalPathMode.Walk)
       .allNodeScan("from")
       .build()
 
@@ -70,13 +70,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("simplest possible query that can use BFSPruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*1..3]->(to)")
+      .expand("(from)-[r*1..3]->(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .bfsPruningVarExpand("(from)-[*1..3]->(to)")
+      .bfsPruningVarExpand("(from)-[r*1..3]->(to)")
       .allNodeScan("from")
       .build()
 
@@ -86,13 +86,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should keep walk mode BFSPruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*1..3]->(to)", pathMode = TraversalPathMode.Walk)
+      .expand("(from)-[r*1..3]->(to)", pathMode = TraversalPathMode.Walk)
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .bfsPruningVarExpand("(from)-[*1..3]->(to)", pathMode = TraversalPathMode.Walk)
+      .bfsPruningVarExpand("(from)-[r*1..3]->(to)", pathMode = TraversalPathMode.Walk)
       .allNodeScan("from")
       .build()
 
@@ -102,7 +102,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should not rewrite simplest possible VarExpandInto plan with DFS policy") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expandInto("(from)-[*1..3]->(to)")
+      .expandInto("(from)-[r*1..3]->(to)")
       .allNodeScan("from")
       .build()
 
@@ -112,13 +112,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should rewrite simplest possible VarExpandInto plan with BFS policy") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expandInto("(from)-[*1..3]->(to)")
+      .expandInto("(from)-[r*1..3]->(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .bfsPruningVarExpand("(from)-[*1..3]->(to)", mode = ExpandInto)
+      .bfsPruningVarExpand("(from)-[r*1..3]->(to)", mode = ExpandInto)
       .allNodeScan("from")
       .build()
 
@@ -128,13 +128,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("do use BFSPruningVarExpand for undirected search when min depth is 0") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*0..3]-(to)")
+      .expand("(from)-[r*0..3]-(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .bfsPruningVarExpand("(from)-[*0..3]-(to)")
+      .bfsPruningVarExpand("(from)-[r*0..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -144,13 +144,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("use BFSPruningVarExpand for undirected search when min depth is 1") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*1..3]-(to)")
+      .expand("(from)-[r*1..3]-(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .bfsPruningVarExpand("(from)-[*1..3]-(to)")
+      .bfsPruningVarExpand("(from)-[r*1..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -160,13 +160,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("ordered distinct with pruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .orderedDistinct(Seq("a"), "a AS a")
-      .expandAll("(a)-[*2..3]->(b)")
+      .expandAll("(a)-[r*2..3]->(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .orderedDistinct(Seq("a"), "a AS a")
-      .pruningVarExpand("(a)-[*2..3]->(b)")
+      .pruningVarExpand("(a)-[r*2..3]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -176,13 +176,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("ordered distinct with BFSPruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .orderedDistinct(Seq("a"), "a AS a")
-      .expandAll("(a)-[*1..3]->(b)")
+      .expandAll("(a)-[r*1..3]->(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .orderedDistinct(Seq("a"), "a AS a")
-      .bfsPruningVarExpand("(a)-[*1..3]->(b)")
+      .bfsPruningVarExpand("(a)-[r*1..3]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -192,13 +192,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("query with distinct aggregation") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq.empty, Seq("count(DISTINCT to) AS x"))
-      .expand("(from)-[*2..3]-(to)")
+      .expand("(from)-[r*2..3]-(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq.empty, Seq("count(DISTINCT to) AS x"))
-      .pruningVarExpand("(from)-[*2..3]-(to)")
+      .pruningVarExpand("(from)-[r*2..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -208,13 +208,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("query with distinct aggregation and BFSPruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq.empty, Seq("count(DISTINCT to) AS x"))
-      .expand("(from)<-[*1..3]-(to)")
+      .expand("(from)<-[r*1..3]-(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq.empty, Seq("count(DISTINCT to) AS x"))
-      .bfsPruningVarExpand("(from)<-[*1..3]-(to)")
+      .bfsPruningVarExpand("(from)<-[r*1..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -224,7 +224,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should not rewrite expand into query with distinct aggregation with DFS policy") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq.empty, Seq("count(DISTINCT to) AS x"))
-      .expandInto("(from)<-[*1..3]-(to)")
+      .expandInto("(from)<-[r*1..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -234,13 +234,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should rewrite expand into query with distinct aggregation with BFS policy") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq.empty, Seq("count(DISTINCT to) AS x"))
-      .expandInto("(from)<-[*1..3]-(to)")
+      .expandInto("(from)<-[r*1..3]-(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq.empty, Seq("count(DISTINCT to) AS x"))
-      .bfsPruningVarExpand("(from)<-[*1..3]-(to)", mode = ExpandInto)
+      .bfsPruningVarExpand("(from)<-[r*1..3]-(to)", mode = ExpandInto)
       .allNodeScan("from")
       .build()
 
@@ -250,13 +250,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("ordered grouping aggregation") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .orderedAggregation(Seq("a AS a"), Seq("count(distinct b) AS c"), Seq("a"))
-      .expand("(a)-[*2..3]->(b)")
+      .expand("(a)-[r*2..3]->(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .orderedAggregation(Seq("a AS a"), Seq("count(distinct b) AS c"), Seq("a"))
-      .pruningVarExpand("(a)-[*2..3]->(b)")
+      .pruningVarExpand("(a)-[r*2..3]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -267,14 +267,14 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
       .filter("to:X")
-      .expand("(from)-[*2..3]-(to)")
+      .expand("(from)-[r*2..3]-(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
       .filter("to:X")
-      .pruningVarExpand("(from)-[*2..3]-(to)")
+      .pruningVarExpand("(from)-[r*2..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -285,14 +285,14 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
       .filter("to:X")
-      .expand("(from)-[*1..3]->(to)")
+      .expand("(from)-[r*1..3]->(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
       .filter("to:X")
-      .bfsPruningVarExpand("(from)-[*1..3]->(to)")
+      .bfsPruningVarExpand("(from)-[r*1..3]->(to)")
       .allNodeScan("from")
       .build()
 
@@ -302,7 +302,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("Query that aggregates before making the result DISTINCT") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq.empty, Seq("count(*) AS count"))
-      .expand("(from)-[*1..3]-(to)")
+      .expand("(from)-[r*1..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -312,15 +312,15 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("Double var expand with distinct result to both pruning") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
-      .expand("(b)-[:T*2..3]-(c)")
-      .expand("(a)-[:R*2..3]-(b)")
+      .expand("(b)-[r2:T*2..3]-(c)")
+      .expand("(a)-[r1:R*2..3]-(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
-      .pruningVarExpand("(b)-[:T*2..3]-(c)")
-      .pruningVarExpand("(a)-[:R*2..3]-(b)")
+      .pruningVarExpand("(b)-[r2:T*2..3]-(c)")
+      .pruningVarExpand("(a)-[r1:R*2..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -330,15 +330,15 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("Double var expand with distinct result to both BFSPruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
-      .expand("(b)-[:T*1..3]->(c)")
-      .expand("(a)-[:R*1..3]->(b)")
+      .expand("(b)-[r2:T*1..3]->(c)")
+      .expand("(a)-[r1:R*1..3]->(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
-      .bfsPruningVarExpand("(b)-[:T*1..3]->(c)")
-      .bfsPruningVarExpand("(a)-[:R*1..3]->(b)")
+      .bfsPruningVarExpand("(b)-[r2:T*1..3]->(c)")
+      .bfsPruningVarExpand("(a)-[r1:R*1..3]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -348,15 +348,15 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("var expand followed by normal expand to first pruning") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
-      .expand("(b)-[:T]-(c)")
-      .expand("(a)-[:R*2..3]-(b)")
+      .expand("(b)-[r2:T]-(c)")
+      .expand("(a)-[r1:R*2..3]-(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
-      .expand("(b)-[:T]-(c)")
-      .pruningVarExpand("(a)-[:R*2..3]-(b)")
+      .expand("(b)-[r2:T]-(c)")
+      .pruningVarExpand("(a)-[r1:R*2..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -366,15 +366,15 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("var expand followed by normal expand to first BFSPruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
-      .expand("(b)<-[:T]-(c)")
-      .expand("(a)<-[:R*1..3]-(b)")
+      .expand("(b)<-[r2:T]-(c)")
+      .expand("(a)<-[r1:R*1..3]-(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
-      .expand("(b)<-[:T]-(c)")
-      .bfsPruningVarExpand("(a)<-[:R*1..3]-(b)")
+      .expand("(b)<-[r2:T]-(c)")
+      .bfsPruningVarExpand("(a)<-[r1:R*1..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -384,15 +384,15 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("double var expand with grouping aggregation to one pruning") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("c AS c"), Seq("min(size(r)) AS distance"))
-      .expand("(b)-[*2..3]-(c)")
-      .expand("(a)-[r*2..]-(b)")
+      .expand("(b)-[r2*2..3]-(c)")
+      .expand("(a)-[r1*2..]-(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("c AS c"), Seq("min(size(r)) AS distance"))
-      .pruningVarExpand("(b)-[*2..3]-(c)")
-      .expand("(a)-[r*2..]-(b)")
+      .pruningVarExpand("(b)-[r2*2..3]-(c)")
+      .expand("(a)-[r1*2..]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -439,9 +439,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
 
   test("double var expand with grouping aggregation to bfs and pruning when min depth is 0") {
     val before = new LogicalPlanBuilder(wholePlan = false)
-      .aggregation(Seq("c AS c"), Seq("min(size(r)) AS distance"))
-      .expand("(b)-[*2..3]-(c)")
-      .expand("(a)-[r*0..]-(b)")
+      .aggregation(Seq("c AS c"), Seq("min(size(r1)) AS distance"))
+      .expand("(b)-[r2*2..3]-(c)")
+      .expand("(a)-[r1*0..]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -450,7 +450,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("c AS c"), Seq(s"min(`${depthNameStr}`) AS distance"))
       .pruningVarExpand("(b)-[*2..3]-(c)")
-      .bfsPruningVarExpand("(a)-[r*0..]-(b)", depthName = Some(depthNameStr))
+      .bfsPruningVarExpand("(a)-[*0..]-(b)", depthName = Some(depthNameStr))
       .allNodeScan("a")
       .build()
 
@@ -461,16 +461,16 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
 
   test("double var expand with grouping aggregation to bfs and pruning when min depth is 1") {
     val before = new LogicalPlanBuilder(wholePlan = false)
-      .aggregation(Seq("c AS c"), Seq("min(size(r)) AS distance"))
-      .expand("(b)-[*2..3]-(c)")
-      .expand("(a)-[r*1..]-(b)")
+      .aggregation(Seq("c AS c"), Seq("min(size(r1)) AS distance"))
+      .expand("(b)-[r2*2..3]-(c)")
+      .expand("(a)-[r1*1..]-(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("c AS c"), Seq(s"min(`${depthStr}`) AS distance"))
-      .pruningVarExpand("(b)-[*2..3]-(c)")
-      .bfsPruningVarExpand("(a)-[r*1..]-(b)", depthName = Some(depthStr))
+      .pruningVarExpand("(b)-[r2*2..3]-(c)")
+      .bfsPruningVarExpand("(a)-[r1*1..]-(b)", depthName = Some(depthStr))
       .allNodeScan("a")
       .build()
 
@@ -480,15 +480,15 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("double var expand with grouping aggregation to both pruning") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("a AS a"), Seq("collect(distinct b) AS aggB", "collect(distinct c) AS aggC"))
-      .expand("(b)-[*2..3]-(c)")
-      .expand("(a)-[*2..2]-(b)")
+      .expand("(b)-[r2*2..3]-(c)")
+      .expand("(a)-[r1*2..2]-(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("a AS a"), Seq("collect(distinct b) AS aggB", "collect(distinct c) AS aggC"))
-      .pruningVarExpand("(b)-[*2..3]-(c)")
-      .pruningVarExpand("(a)-[*2..2]-(b)")
+      .pruningVarExpand("(b)-[r2*2..3]-(c)")
+      .pruningVarExpand("(a)-[r1*2..2]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -518,8 +518,8 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
         Seq("a AS a"),
         Seq(s"min(`$r1DepthNameStr`) AS agg1", s"min(`$r2DepthNameStr`) AS agg2", s"min(`$r2DepthNameStr`) AS agg3")
       )
-      .bfsPruningVarExpand("(b)-[*0..3]-(c)", depthName = Some(r1DepthNameStr))
-      .bfsPruningVarExpand("(a)-[*0..]-(b)", depthName = Some(r2DepthNameStr))
+      .bfsPruningVarExpand("(b)-[r2*0..3]-(c)", depthName = Some(r1DepthNameStr))
+      .bfsPruningVarExpand("(a)-[r1*0..]-(b)", depthName = Some(r2DepthNameStr))
       .allNodeScan("a")
       .build()
 
@@ -549,8 +549,8 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
         Seq("a AS a"),
         Seq(s"min(`$r1DepthNameStr`) AS agg1", s"min(`$r2DepthNameStr`) AS agg2", s"min(`$r2DepthNameStr`) AS agg3")
       )
-      .bfsPruningVarExpand("(b)-[*1..3]-(c)", depthName = Some(r1DepthNameStr))
-      .bfsPruningVarExpand("(a)-[*1..]-(b)", depthName = Some(r2DepthNameStr))
+      .bfsPruningVarExpand("(b)-[r2*1..3]-(c)", depthName = Some(r1DepthNameStr))
+      .bfsPruningVarExpand("(a)-[r1*1..]-(b)", depthName = Some(r2DepthNameStr))
       .allNodeScan("a")
       .build()
 
@@ -562,7 +562,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("b AS b")
       .apply()
       .|.optional("a")
-      .|.expand("(a)-[:R*2..3]-(b)")
+      .|.expand("(a)-[r:R*2..3]-(b)")
       .|.argument("a")
       .allNodeScan("a")
       .build()
@@ -571,7 +571,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("b AS b")
       .apply()
       .|.optional("a")
-      .|.pruningVarExpand("(a)-[:R*2..3]-(b)")
+      .|.pruningVarExpand("(a)-[r:R*2..3]-(b)")
       .|.argument("a")
       .allNodeScan("a")
       .build()
@@ -584,7 +584,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("b AS b")
       .apply()
       .|.optional("a")
-      .|.expand("(a)-[:R*1..3]->(b)")
+      .|.expand("(a)-[r:R*1..3]->(b)")
       .|.argument("a")
       .allNodeScan("a")
       .build()
@@ -593,7 +593,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("b AS b")
       .apply()
       .|.optional("a")
-      .|.bfsPruningVarExpand("(a)-[:R*1..3]->(b)")
+      .|.bfsPruningVarExpand("(a)-[r:R*1..3]->(b)")
       .|.argument("a")
       .allNodeScan("a")
       .build()
@@ -605,7 +605,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .nodeHashJoin("a")
-      .|.expand("(b)-[:R*2..3]-(a)")
+      .|.expand("(b)-[r:R*2..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -613,7 +613,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .nodeHashJoin("a")
-      .|.pruningVarExpand("(b)-[:R*2..3]-(a)")
+      .|.pruningVarExpand("(b)-[r:R*2..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -627,7 +627,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .nodeHashJoin("a")
-      .|.expand("(b)-[:R*0..3]-(a)")
+      .|.expand("(b)-[r:R*0..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -635,7 +635,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .nodeHashJoin("a")
-      .|.bfsPruningVarExpand("(b)-[:R*0..3]-(a)")
+      .|.bfsPruningVarExpand("(b)-[r:R*0..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -649,7 +649,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .nodeHashJoin("a")
-      .|.expand("(b)-[:R*1..3]-(a)")
+      .|.expand("(b)-[r:R*1..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -657,7 +657,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .nodeHashJoin("a")
-      .|.bfsPruningVarExpand("(b)-[:R*1..3]-(a)")
+      .|.bfsPruningVarExpand("(b)-[r:R*1..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -669,7 +669,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .valueHashJoin("a=b")
-      .|.expand("(b)-[:R*2..3]-(a)")
+      .|.expand("(b)-[r:R*2..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -677,7 +677,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .valueHashJoin("a=b")
-      .|.pruningVarExpand("(b)-[:R*2..3]-(a)")
+      .|.pruningVarExpand("(b)-[r:R*2..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -691,7 +691,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .valueHashJoin("a=b")
-      .|.expand("(b)-[:R*0..3]-(a)")
+      .|.expand("(b)-[r:R*0..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -713,7 +713,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("a AS a")
       .valueHashJoin("a=b")
-      .|.expand("(b)-[:R*1..3]-(a)")
+      .|.expand("(b)-[r:R*1..3]-(a)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -784,7 +784,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("a AS a")
       .nodeHashJoin("a")
       .|.allNodeScan("b")
-      .expand("(b)-[:R*2..3]-(a)")
+      .expand("(b)-[r:R*2..3]-(a)")
       .allNodeScan("a")
       .build()
 
@@ -806,7 +806,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("a AS a")
       .nodeHashJoin("a")
       .|.allNodeScan("b")
-      .expand("(b)-[:R*0..3]-(a)")
+      .expand("(b)-[r:R*0..3]-(a)")
       .allNodeScan("a")
       .build()
 
@@ -828,7 +828,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("a AS a")
       .nodeHashJoin("a")
       .|.allNodeScan("b")
-      .expand("(b)-[:R*1..3]-(a)")
+      .expand("(b)-[r:R*1..3]-(a)")
       .allNodeScan("a")
       .build()
 
@@ -848,7 +848,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("b AS b")
       .valueHashJoin("b=c")
       .|.allNodeScan("c")
-      .expand("(a)-[:R*2..3]-(b)")
+      .expand("(a)-[r:R*2..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -870,7 +870,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("b AS b")
       .valueHashJoin("b=c")
       .|.allNodeScan("c")
-      .expand("(a)-[:R*0..3]-(b)")
+      .expand("(a)-[r:R*0..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -892,7 +892,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("b AS b")
       .valueHashJoin("b=c")
       .|.allNodeScan("c")
-      .expand("(a)-[:R*1..3]-(b)")
+      .expand("(a)-[r:R*1..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -935,9 +935,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b", "c AS c")
       .apply()
-      .|.expand("(a)-[:R*2..3]-(c)")
+      .|.expand("(a)-[r2:R*2..3]-(c)")
       .|.argument("a")
-      .expand("(a)-[:R*2..3]-(b)")
+      .expand("(a)-[r1:R*2..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -946,7 +946,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .apply()
       .|.pruningVarExpand("(a)-[:R*2..3]-(c)")
       .|.argument("a")
-      .expand("(a)-[:R*2..3]-(b)")
+      .expand("(a)-[r1:R*2..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -959,9 +959,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b", "c AS c")
       .apply()
-      .|.expand("(a)-[:R*0..3]-(c)")
+      .|.expand("(a)-[r2:R*0..3]-(c)")
       .|.argument("a")
-      .expand("(a)-[:R*0..3]-(b)")
+      .expand("(a)-[r1:R*0..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -970,7 +970,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .apply()
       .|.bfsPruningVarExpand("(a)-[:R*0..3]-(c)")
       .|.argument("a")
-      .expand("(a)-[:R*0..3]-(b)")
+      .expand("(a)-[r1:R*0..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -983,9 +983,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b", "c AS c")
       .apply()
-      .|.expand("(a)-[:R*1..3]-(c)")
+      .|.expand("(a)-[r2:R*1..3]-(c)")
       .|.argument("a")
-      .expand("(a)-[:R*1..3]-(b)")
+      .expand("(a)-[r1:R*1..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -994,7 +994,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .apply()
       .|.bfsPruningVarExpand("(a)-[:R*1..3]-(c)")
       .|.argument("a")
-      .expand("(a)-[:R*1..3]-(b)")
+      .expand("(a)-[r1:R*1..3]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -1004,7 +1004,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("can solve with PruningVarExpand when VarExpand is on RHS of SemiApply") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .semiApply()
-      .|.expand("(a)-[:R*2..3]-(b)")
+      .|.expand("(a)-[r:R*2..3]-(b)")
       .|.argument("a")
       .allNodeScan("a")
       .build()
@@ -1023,7 +1023,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
       .semiApply()
-      .|.expand("(a)-[:R*0..3]-(b)")
+      .|.expand("(a)-[r:R*0..3]-(b)")
       .|.argument("a")
       .allNodeScan("a")
       .build()
@@ -1043,7 +1043,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
       .semiApply()
-      .|.expand("(a)-[:R*1..3]-(b)")
+      .|.expand("(a)-[r:R*1..3]-(b)")
       .|.argument("a")
       .allNodeScan("a")
       .build()
@@ -1087,11 +1087,11 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
 
   test("should not rewrite when doing non-distinct aggregation") {
     // Should not be rewritten since it's asking for a count of all paths leading to a node
-    // match (a)-[*1..3]-(b) return b, count(*)
+    // match (a)-[r*1..3]-(b) return b, count(*)
 
     val before = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("to AS to"), Seq("count(*) AS count"))
-      .expand("(from)-[*1..3]-(to)")
+      .expand("(from)-[r*1..3]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -1101,13 +1101,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("on longer var-lengths, we also use PruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*4..5]-(to)")
+      .expand("(from)-[r*4..5]-(to)")
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .pruningVarExpand("(from)-[*4..5]-(to)")
+      .pruningVarExpand("(from)-[r*4..5]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -1117,7 +1117,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("do not use pruning for length=1") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*1..1]-(to)")
+      .expand("(from)-[r*1..1]-(to)")
       .allNodeScan("from")
       .build()
 
@@ -1146,7 +1146,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   ) {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*1..3]-(to)", expandMode = ExpandInto)
+      .expand("(from)-[r*1..3]-(to)", expandMode = ExpandInto)
       .cartesianProduct()
       .|.allNodeScan("to")
       .allNodeScan("from")
@@ -1158,7 +1158,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("use pruning-varexpand when both sides of the var-length-relationship are already known with BFS policy") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*1..3]-(to)", expandMode = ExpandInto)
+      .expand("(from)-[r*1..3]-(to)", expandMode = ExpandInto)
       .cartesianProduct()
       .|.allNodeScan("to")
       .allNodeScan("from")
@@ -1166,7 +1166,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .bfsPruningVarExpand("(from)-[*1..3]-(to)", mode = ExpandInto)
+      .bfsPruningVarExpand("(from)-[r*1..3]-(to)", mode = ExpandInto)
       .cartesianProduct()
       .|.allNodeScan("to")
       .allNodeScan("from")
@@ -1190,7 +1190,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("c AS c")
       .cartesianProduct()
       .|.allNodeScan("a")
-      .expand("(b)-[:R*2..3]-(c)")
+      .expand("(b)-[r:R*2..3]-(c)")
       .allNodeScan("b")
       .build()
 
@@ -1210,7 +1210,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("c AS c")
       .cartesianProduct()
       .|.allNodeScan("a")
-      .expand("(b)-[:R*0..3]-(c)")
+      .expand("(b)-[r:R*0..3]-(c)")
       .allNodeScan("b")
       .build()
 
@@ -1230,7 +1230,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("c AS c")
       .cartesianProduct()
       .|.allNodeScan("a")
-      .expand("(b)-[:R*1..3]-(c)")
+      .expand("(b)-[r:R*1..3]-(c)")
       .allNodeScan("b")
       .build()
 
@@ -1249,7 +1249,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
       .cartesianProduct()
-      .|.expand("(b)-[:R*2..3]-(c)")
+      .|.expand("(b)-[r:R*2..3]-(c)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -1269,7 +1269,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
       .cartesianProduct()
-      .|.expand("(b)-[:R*0..3]-(c)")
+      .|.expand("(b)-[r:R*0..3]-(c)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -1289,7 +1289,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
       .cartesianProduct()
-      .|.expand("(b)-[:R*1..3]-(c)")
+      .|.expand("(b)-[r:R*1..3]-(c)")
       .|.allNodeScan("b")
       .allNodeScan("a")
       .build()
@@ -1309,9 +1309,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c1 AS c1", "c2 AS c2")
       .cartesianProduct()
-      .|.expand("(a)-[:R*2..3]-(c2)")
+      .|.expand("(a)-[r2:R*2..3]-(c2)")
       .|.allNodeScan("a")
-      .expand("(b)-[:R*2..3]-(c1)")
+      .expand("(b)-[r1:R*2..3]-(c1)")
       .allNodeScan("b")
       .build()
 
@@ -1331,9 +1331,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c1 AS c1", "c2 AS c2")
       .cartesianProduct()
-      .|.expand("(a)-[:R*0..3]-(c2)")
+      .|.expand("(a)-[r2:R*0..3]-(c2)")
       .|.allNodeScan("a")
-      .expand("(b)-[:R*0..3]-(c1)")
+      .expand("(b)-[r1:R*0..3]-(c1)")
       .allNodeScan("b")
       .build()
 
@@ -1355,9 +1355,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c1 AS c1", "c2 AS c2")
       .cartesianProduct()
-      .|.expand("(a)-[:R*1..3]-(c2)")
+      .|.expand("(a)-[r2:R*1..3]-(c2)")
       .|.allNodeScan("a")
-      .expand("(b)-[:R*1..3]-(c1)")
+      .expand("(b)-[r1:R*1..3]-(c1)")
       .allNodeScan("b")
       .build()
 
@@ -1408,7 +1408,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("c AS c")
       .union()
       .|.allNodeScan("a")
-      .expand("(b)-[:R*2..3]-(c)")
+      .expand("(b)-[r:R*2..3]-(c)")
       .allNodeScan("b")
       .build()
 
@@ -1428,7 +1428,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("c AS c")
       .union()
       .|.allNodeScan("a")
-      .expand("(b)-[:R*0..3]-(c)")
+      .expand("(b)-[r:R*0..3]-(c)")
       .allNodeScan("b")
       .build()
 
@@ -1448,7 +1448,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
       .distinct("c AS c")
       .union()
       .|.allNodeScan("a")
-      .expand("(b)-[:R*1..3]-(c)")
+      .expand("(b)-[r:R*1..3]-(c)")
       .allNodeScan("b")
       .build()
 
@@ -1467,7 +1467,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
       .union()
-      .|.expand("(b)-[:R*2..3]-(c)")
+      .|.expand("(b)-[r:R*2..3]-(c)")
       .|.allNodeScan("a")
       .allNodeScan("b")
       .build()
@@ -1487,7 +1487,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
       .union()
-      .|.expand("(b)-[:R*0..3]-(c)")
+      .|.expand("(b)-[r:R*0..3]-(c)")
       .|.allNodeScan("a")
       .allNodeScan("b")
       .build()
@@ -1507,7 +1507,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c AS c")
       .union()
-      .|.expand("(b)-[:R*1..3]-(c)")
+      .|.expand("(b)-[r:R*1..3]-(c)")
       .|.allNodeScan("a")
       .allNodeScan("b")
       .build()
@@ -1527,9 +1527,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c1 AS c1", "c2 AS c2")
       .union()
-      .|.expand("(a)-[:R*2..3]-(c2)")
+      .|.expand("(a)-[r2:R*2..3]-(c2)")
       .|.allNodeScan("a")
-      .expand("(b)-[:R*2..3]-(c1)")
+      .expand("(b)-[r1:R*2..3]-(c1)")
       .allNodeScan("b")
       .build()
 
@@ -1549,9 +1549,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c1 AS c1", "c2 AS c2")
       .union()
-      .|.expand("(a)-[:R*0..3]-(c2)")
+      .|.expand("(a)-[r2:R*0..3]-(c2)")
       .|.allNodeScan("a")
-      .expand("(b)-[:R*0..3]-(c1)")
+      .expand("(b)-[r1:R*0..3]-(c1)")
       .allNodeScan("b")
       .build()
 
@@ -1571,9 +1571,9 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("c1 AS c1", "c2 AS c2")
       .union()
-      .|.expand("(a)-[:R*1..3]-(c2)")
+      .|.expand("(a)-[r2:R*1..3]-(c2)")
       .|.allNodeScan("a")
-      .expand("(b)-[:R*1..3]-(c1)")
+      .expand("(b)-[r1:R*1..3]-(c1)")
       .allNodeScan("b")
       .build()
 
@@ -1630,7 +1630,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("do not use pruning when upper limit is not specified") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .expand("(a)-[*2..]-(b)")
+      .expand("(a)-[r*2..]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -1640,13 +1640,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("use bfs pruning even when upper limit is not specified when min depth is 0") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .expand("(a)-[*0..]-(b)")
+      .expand("(a)-[r*0..]-(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .bfsPruningVarExpand("(a)-[*0..]-(b)")
+      .bfsPruningVarExpand("(a)-[r*0..]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -1656,13 +1656,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("use bfs pruning even when upper limit is not specified when min depth is 1") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .expand("(a)-[*1..]-(b)")
+      .expand("(a)-[r*1..]-(b)")
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .bfsPruningVarExpand("(a)-[*1..]-(b)")
+      .bfsPruningVarExpand("(a)-[r*1..]-(b)")
       .allNodeScan("a")
       .build()
 
@@ -1738,7 +1738,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("a AS a"), Seq(s"min(`$depthNameStr`) AS distance"))
-      .bfsPruningVarExpand("(a)-[*0..]-(b)", depthName = Some(depthNameStr))
+      .bfsPruningVarExpand("(a)-[r*0..]-(b)", depthName = Some(depthNameStr))
       .allNodeScan("a")
       .build()
 
@@ -1761,7 +1761,7 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .aggregation(Seq("a AS a"), Seq(s"min(`$depthNameStr`) AS distance"))
-      .bfsPruningVarExpand("(a)-[*1..]-(b)", depthName = Some(depthNameStr))
+      .bfsPruningVarExpand("(a)-[r*1..]-(b)", depthName = Some(depthNameStr))
       .allNodeScan("a")
       .build()
 
@@ -1888,14 +1888,14 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should not rewrite to pruning when relationships variable is used in predicate of another var expand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .expand("(b)-[*2..3]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
+      .expand("(b)-[r*2..3]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
       .expand("(a)-[r:R*2..3]-(b)") // Should not get rewritten
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .pruningVarExpand("(b)-[*2..3]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
+      .pruningVarExpand("(b)-[r*2..3]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
       .expand("(a)-[r:R*2..3]-(b)") // Should not get rewritten
       .allNodeScan("a")
       .build()
@@ -1908,14 +1908,14 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   ) {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .expand("(b)-[*0..]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
+      .expand("(b)-[r*0..]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
       .expand("(a)-[r:R*0..3]-(b)") // Should not get rewritten
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .bfsPruningVarExpand("(b)-[*0..]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
+      .bfsPruningVarExpand("(b)-[r*0..]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
       .expand("(a)-[r:R*0..3]-(b)") // Should not get rewritten
       .allNodeScan("a")
       .build()
@@ -1928,14 +1928,14 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   ) {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .expand("(b)-[*]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
+      .expand("(b)-[r*]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
       .expand("(a)-[r:R*1..3]-(b)") // Should not get rewritten
       .allNodeScan("a")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("b AS b")
-      .bfsPruningVarExpand("(b)-[*1..]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
+      .bfsPruningVarExpand("(b)-[r*1..]-(c)", nodePredicates = Seq(Predicate("n", "n.prop > head(r).prop")))
       .expand("(a)-[r:R*1..3]-(b)") // Should not get rewritten
       .allNodeScan("a")
       .build()

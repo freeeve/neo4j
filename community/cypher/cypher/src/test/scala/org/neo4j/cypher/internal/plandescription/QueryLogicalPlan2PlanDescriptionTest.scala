@@ -4460,7 +4460,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           varFor("a"),
           SemanticDirection.OUTGOING,
           Seq(relType("R")),
-          varFor("y"),
+          Some(varFor("y")),
           1,
           4,
           Seq(nodePredicate),
@@ -4487,7 +4487,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           varFor("a"),
           SemanticDirection.OUTGOING,
           Seq(relType("R")),
-          varFor("y"),
+          Some(varFor("y")),
           2,
           4,
           Seq(nodePredicate),
@@ -4512,7 +4512,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           varFor("a"),
           SemanticDirection.OUTGOING,
           Seq(relType("R")),
-          varFor("y"),
+          Some(varFor("y")),
           2,
           4,
           Seq(nodePredicate, nodePredicate2),
@@ -4534,7 +4534,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     // Without predicates, without relationship type
     assertGood(
       attach(
-        PruningVarExpand(lhsLP, varFor("a"), SemanticDirection.OUTGOING, Seq(), varFor("y"), 2, 4, Seq(), Seq()),
+        PruningVarExpand(lhsLP, varFor("a"), SemanticDirection.OUTGOING, Seq(), Some(varFor("y")), 2, 4, Seq(), Seq()),
         1.0
       ),
       planDescription(
@@ -4543,6 +4543,20 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq(lhsPD),
         Seq(details("(a)-[*2..4]->(y)")),
         Set("a", "y")
+      )
+    )
+    // with to node removed
+    assertGood(
+      attach(
+        PruningVarExpand(lhsLP, varFor("a"), SemanticDirection.OUTGOING, Seq(), None, 2, 4, Seq(), Seq()),
+        1.0
+      ),
+      planDescription(
+        id,
+        "VarLengthExpand(Pruning)",
+        Seq(lhsPD),
+        Seq(details("(a)-[*2..4]->()")),
+        Set("a")
       )
     )
 
@@ -4556,7 +4570,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           varFor("a"),
           SemanticDirection.OUTGOING,
           Seq(relType("R")),
-          varFor("y"),
+          Some(varFor("y")),
           includeStartNode = false,
           maxLength = 4,
           depthName = Some(varFor("depth")),
@@ -4585,7 +4599,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           varFor("a"),
           SemanticDirection.OUTGOING,
           Seq(relType("R")),
-          varFor("y"),
+          Some(varFor("y")),
           includeStartNode = true,
           4,
           depthName = Some(varFor("depth")),
@@ -4612,7 +4626,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           varFor("a"),
           SemanticDirection.OUTGOING,
           Seq(),
-          varFor("y"),
+          Some(varFor("y")),
           includeStartNode = false,
           4,
           depthName = Some(varFor("depth")),
@@ -4631,6 +4645,33 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       )
     )
 
+    // with to node removed
+    assertGood(
+      attach(
+        BFSPruningVarExpand(
+          lhsLP,
+          varFor("a"),
+          SemanticDirection.OUTGOING,
+          Seq(),
+          None,
+          includeStartNode = false,
+          4,
+          depthName = Some(varFor("depth")),
+          expansionMode = ExpandInto,
+          Seq(),
+          Seq()
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "VarLengthExpand(Pruning,BFS,Into)",
+        Seq(lhsPD),
+        Seq(details("(a)-[*..4]->() depth")),
+        Set("a", "depth")
+      )
+    )
+
     // -- VarExpand --
 
     // With unnamed variables, without predicates
@@ -4642,8 +4683,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           INCOMING,
           INCOMING,
           Seq(relType("LIKES"), relType("LOVES")),
-          varFor("  UNNAMED123"),
-          varFor("  UNNAMED99"),
+          Some(varFor("  UNNAMED123")),
+          Some(varFor("  UNNAMED99")),
           VarPatternLength(1, Some(1)),
           ExpandAll
         ),
@@ -4667,8 +4708,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           INCOMING,
           INCOMING,
           Seq(relType("LIKES"), relType("LOVES")),
-          varFor("to"),
-          varFor("rel"),
+          Some(varFor("to")),
+          Some(varFor("rel")),
           VarPatternLength(1, Some(1)),
           ExpandAll,
           Seq(nodePredicate),
@@ -4697,8 +4738,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           INCOMING,
           INCOMING,
           Seq(relType("LIKES"), relType("LOVES")),
-          varFor("to"),
-          varFor("rel"),
+          Some(varFor("to")),
+          Some(varFor("rel")),
           VarPatternLength(2, Some(3)),
           ExpandAll,
           Seq(nodePredicate)
@@ -4723,8 +4764,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           OUTGOING,
           OUTGOING,
           Seq(relType("LIKES"), relType("LOVES")),
-          varFor("to"),
-          varFor("rel"),
+          Some(varFor("to")),
+          Some(varFor("rel")),
           VarPatternLength(2, None),
           ExpandAll
         ),
@@ -4748,8 +4789,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           OUTGOING,
           OUTGOING,
           Seq(relType("LIKES"), relType("LOVES")),
-          varFor("to"),
-          varFor("rel"),
+          Some(varFor("to")),
+          Some(varFor("rel")),
           VarPatternLength(2, Some(2)),
           ExpandAll
         ),
@@ -4761,6 +4802,31 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq(lhsPD),
         Seq(details("(a)-[rel:LIKES|LOVES*2]->(to)")),
         Set("a", "to", "rel")
+      )
+    )
+
+    // with to and rel removed
+    assertGood(
+      attach(
+        VarExpand(
+          lhsLP,
+          varFor("a"),
+          OUTGOING,
+          OUTGOING,
+          Seq(relType("LIKES"), relType("LOVES")),
+          None,
+          None,
+          VarPatternLength(2, Some(2)),
+          ExpandAll
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "VarLengthExpand(All)",
+        Seq(lhsPD),
+        Seq(details("(a)-[:LIKES|LOVES*2]->()")),
+        Set("a")
       )
     )
   }

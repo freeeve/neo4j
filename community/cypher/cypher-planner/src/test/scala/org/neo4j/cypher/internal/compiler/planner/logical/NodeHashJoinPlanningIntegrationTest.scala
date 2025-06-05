@@ -133,7 +133,7 @@ class NodeHashJoinPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val plan = planner.plan(query).stripProduceResults
     plan should equal(planner.subPlanBuilder()
       .nodeHashJoin("a")
-      .|.expand("(b)-[anon_0*1..2]-(a)", projectedDir = INCOMING)
+      .|.expand("(b)-[*1..2]-(a)", projectedDir = INCOMING)
       .|.nodeByIdSeek("b", Set(), 0)
       .nodeByIdSeek("a", Set(), 0)
       .build())
@@ -157,7 +157,7 @@ class NodeHashJoinPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     plan should equal(planner.subPlanBuilder()
       .apply()
       .|.nodeHashJoin("a")
-      .|.|.expand("(b)-[anon_0*1..2]-(a)", projectedDir = INCOMING)
+      .|.|.expand("(b)-[*1..2]-(a)", projectedDir = INCOMING)
       .|.|.filter("b.prop = nbr")
       .|.|.nodeByIdSeek("b", Set("nbr"), 0)
       .|.nodeByIdSeek("a", Set("nbr"), 0)
@@ -240,7 +240,7 @@ class NodeHashJoinPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val plan = planner.plan(query).stripProduceResults
     plan should equal(planner.subPlanBuilder()
       .nodeHashJoin("a")
-      .|.expand("(b)-[anon_0*1..2]-(a)", projectedDir = INCOMING)
+      .|.expand("(b)-[*1..2]-(a)", projectedDir = INCOMING)
       .|.sort("1 ASC")
       .|.projection("1 AS 1")
       .|.nodeByIdSeek("b", Set(), 0)

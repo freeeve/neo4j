@@ -525,8 +525,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
       SemanticDirection.INCOMING,
       SemanticDirection.INCOMING,
       Seq.empty,
-      varFor("z"),
-      varFor("r"),
+      Some(varFor("z")),
+      Some(varFor("r")),
       varLength,
       ExpandAll
     )
@@ -552,8 +552,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
     pipe should equal(VarLengthExpandSlottedPipe(
       AllNodesScanSlottedPipe("x", allNodeScanSlots)(),
       xNodeSlot,
-      rRelSlot.offset,
-      zNodeSlot,
+      Some(rRelSlot.offset),
+      Some(zNodeSlot),
       SemanticDirection.INCOMING,
       SemanticDirection.INCOMING,
       RelationshipTypes.empty,
@@ -579,8 +579,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
       SemanticDirection.INCOMING,
       SemanticDirection.INCOMING,
       Seq.empty,
-      varFor("z"),
-      varFor("r2"),
+      Some(varFor("z")),
+      Some(varFor("r2")),
       varLength,
       ExpandInto
     )
@@ -623,8 +623,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
           expandSlots
         )(),
         xNodeSlot,
-        r2RelSlot.offset,
-        zNodeSlot,
+        Some(r2RelSlot.offset),
+        Some(zNodeSlot),
         SemanticDirection.INCOMING,
         SemanticDirection.INCOMING,
         RelationshipTypes.empty,
@@ -922,8 +922,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
       SemanticDirection.INCOMING,
       SemanticDirection.INCOMING,
       Seq.empty,
-      varFor("z"),
-      varFor("r"),
+      Some(varFor("z")),
+      Some(varFor("r")),
       varLength,
       ExpandAll
     )

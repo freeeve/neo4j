@@ -304,7 +304,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
     plan shouldEqual planner.planBuilder()
       .produceResults("a", "r")
       .filter("NONE(anon_0 IN r2 WHERE anon_0 IN r)")
-      .expand("(b)-[r2*]-(c)")
+      .expand("(b)-[r2*]-()")
       .expand("(a)<-[r*]-(b)", projectedDir = INCOMING)
       .nodeByLabelScan("a", "A")
       .build()

@@ -20,9 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.logical.plans.BFSPruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
+import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.RelationshipLogicalLeafPlan
+import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Rewriter
@@ -60,6 +63,12 @@ case object RemoveUnusedVariablesRewriter extends Rewriter {
         expand.copy(maybeTo = remove(expand.maybeTo), maybeRelName = remove(expand.maybeRelName))(SameId(expand.id))
       case expand: OptionalExpand =>
         expand.copy(maybeTo = remove(expand.maybeTo), maybeRelName = remove(expand.maybeRelName))(SameId(expand.id))
+      case expand: VarExpand =>
+        expand.copy(maybeTo = remove(expand.maybeTo), maybeRelName = remove(expand.maybeRelName))(SameId(expand.id))
+      case expand: BFSPruningVarExpand =>
+        expand.copy(maybeTo = remove(expand.maybeTo))(SameId(expand.id))
+      case expand: PruningVarExpand =>
+        expand.copy(maybeTo = remove(expand.maybeTo))(SameId(expand.id))
 
     })(value)
   }

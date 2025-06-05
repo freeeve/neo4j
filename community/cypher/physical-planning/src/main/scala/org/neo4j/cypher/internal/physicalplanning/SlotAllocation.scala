@@ -887,15 +887,15 @@ class SingleQuerySlotAllocator private[physicalplanning] (
 
       case VarExpand(_, _, _, _, _, to, relationship, _, expansionMode, _, _, _) =>
         if (expansionMode == ExpandAll) {
-          slots.newLong(to, nullable, CTNode)
+          to.foreach(slots.newLong(_, nullable, CTNode))
         }
-        slots.newReference(relationship, nullable, CTList(CTRelationship))
+        relationship.foreach(slots.newReference(_, nullable, CTList(CTRelationship)))
 
       case PruningVarExpand(_, _, _, _, to, _, _, _, _, _) =>
-        slots.newLong(to, nullable, CTNode)
+        to.foreach(slots.newLong(_, nullable, CTNode))
 
       case expand: BFSPruningVarExpand =>
-        slots.newLong(expand.to, nullable, CTNode)
+        expand.maybeTo.foreach(slots.newLong(_, nullable, CTNode))
         expand.depthName.foreach(name => slots.newReference(name, nullable, CTInteger))
 
       case c: Create =>

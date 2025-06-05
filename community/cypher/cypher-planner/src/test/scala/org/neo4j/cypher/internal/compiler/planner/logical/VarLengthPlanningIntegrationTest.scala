@@ -198,8 +198,8 @@ class VarLengthPlanningIntegrationTest
          |RETURN e""".stripMargin
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .projectEndpoints("(anon_1)-[e*2..2]->(anon_2)", startInScope = false, endInScope = false)
-      .expand("(n)-[e*2..2]->(anon_0)")
+      .projectEndpoints("(anon_0)-[e*2..2]->(anon_1)", startInScope = false, endInScope = false)
+      .expand("(n)-[e*2..2]->()")
       .nodeByLabelScan("n", "A", IndexOrderNone)
       .build()
   }
@@ -221,10 +221,10 @@ class VarLengthPlanningIntegrationTest
          |RETURN e""".stripMargin
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .projectEndpoints("(anon_2)-[e*3..3]->(anon_3)", startInScope = false, endInScope = false)
+      .projectEndpoints("(anon_1)-[e*3..3]->(anon_2)", startInScope = false, endInScope = false)
       .filter("m:B")
-      .projectEndpoints("(m)-[e*3..3]->(anon_1)", startInScope = false, endInScope = false)
-      .expand("(n)-[e*3..3]->(anon_0)")
+      .projectEndpoints("(m)-[e*3..3]->(anon_0)", startInScope = false, endInScope = false)
+      .expand("(n)-[e*3..3]->()")
       .nodeByLabelScan("n", "A", IndexOrderNone)
       .build()
   }
@@ -249,19 +249,19 @@ class VarLengthPlanningIntegrationTest
     plan shouldEqual planner.planBuilder()
       .produceResults("e")
       .apply()
-      .|.projectEndpoints("(anon_2)-[e*3..4]->(anon_3)", startInScope = false, endInScope = false)
+      .|.projectEndpoints("(anon_1)-[e*3..4]->(anon_2)", startInScope = false, endInScope = false)
       .|.filter("m:B")
-      .|.projectEndpoints("(m)-[e*3..4]->(anon_1)", startInScope = false, endInScope = false)
+      .|.projectEndpoints("(m)-[e*3..4]->(anon_0)", startInScope = false, endInScope = false)
       .|.filter(
         "size(e) >= 3",
         "size(e) <= 4",
         "size(e) <= 5",
         "size(e) >= 2",
-        "all(anon_4 IN e WHERE single(anon_5 IN e WHERE anon_4 = anon_5))"
+        "all(anon_3 IN e WHERE single(anon_4 IN e WHERE anon_3 = anon_4))"
       )
       .|.argument("e", "n")
       .skip(0)
-      .expand("(n)-[e*1..3]->(anon_0)")
+      .expand("(n)-[e*1..3]->()")
       .nodeByLabelScan("n", "A", IndexOrderNone)
       .build()
   }
@@ -279,10 +279,10 @@ class VarLengthPlanningIntegrationTest
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .semiApply()
-      .|.projectEndpoints("(anon_2)-[e*2..3]->(anon_3)", startInScope = false, endInScope = false)
-      .|.filter("all(anon_4 IN e WHERE single(anon_5 IN e WHERE anon_4 = anon_5))", "size(e) >= 2", "size(e) <= 3")
+      .|.projectEndpoints("(anon_1)-[e*2..3]->(anon_2)", startInScope = false, endInScope = false)
+      .|.filter("all(anon_3 IN e WHERE single(anon_4 IN e WHERE anon_3 = anon_4))", "size(e) >= 2", "size(e) <= 3")
       .|.argument("e")
-      .expand("(anon_0)-[e*1..2]->(anon_1)")
+      .expand("(anon_0)-[e*1..2]->()")
       .allNodeScan("anon_0")
       .build()
   }
@@ -300,10 +300,10 @@ class VarLengthPlanningIntegrationTest
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .semiApply()
-      .|.projectEndpoints("(anon_2)-[e*2..3]->(anon_3)", startInScope = false, endInScope = false)
-      .|.filter("all(anon_4 IN e WHERE single(anon_5 IN e WHERE anon_4 = anon_5))", "size(e) >= 2", "size(e) <= 3")
+      .|.projectEndpoints("(anon_1)-[e*2..3]->(anon_2)", startInScope = false, endInScope = false)
+      .|.filter("all(anon_3 IN e WHERE single(anon_4 IN e WHERE anon_3 = anon_4))", "size(e) >= 2", "size(e) <= 3")
       .|.argument("e")
-      .expand("(anon_0)-[e*1..2]->(anon_1)")
+      .expand("(anon_0)-[e*1..2]->()")
       .allNodeScan("anon_0")
       .build()
   }
@@ -367,8 +367,8 @@ class VarLengthPlanningIntegrationTest
          |RETURN e""".stripMargin
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .projectEndpoints("(anon_1)-[e*3..2]->(anon_2)", startInScope = false, endInScope = false)
-      .expand("(n)-[e*3..2]->(anon_0)")
+      .projectEndpoints("(anon_0)-[e*3..2]->(anon_1)", startInScope = false, endInScope = false)
+      .expand("(n)-[e*3..2]->()")
       .nodeByLabelScan("n", "A", IndexOrderNone)
       .build()
   }
@@ -387,11 +387,11 @@ class VarLengthPlanningIntegrationTest
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .apply()
-      .|.projectEndpoints("(anon_2)-[e*2..3]->(anon_3)", startInScope = false, endInScope = false)
-      .|.filter("all(anon_4 IN e WHERE single(anon_5 IN e WHERE anon_4 = anon_5))", "size(e) >= 2", "size(e) <= 3")
+      .|.projectEndpoints("(anon_1)-[e*2..3]->(anon_2)", startInScope = false, endInScope = false)
+      .|.filter("all(anon_3 IN e WHERE single(anon_4 IN e WHERE anon_3 = anon_4))", "size(e) >= 2", "size(e) <= 3")
       .|.argument("e")
       .skip(0)
-      .expand("(anon_0)-[e*1..2]->(anon_1)")
+      .expand("(anon_0)-[e*1..2]->()")
       .allNodeScan("anon_0")
       .build()
   }
@@ -449,11 +449,11 @@ class VarLengthPlanningIntegrationTest
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .apply()
-      .|.projectEndpoints("(anon_2)-[e:Type*2..3]->(anon_3)", startInScope = false, endInScope = false)
-      .|.filter("all(anon_4 IN e WHERE single(anon_5 IN e WHERE anon_4 = anon_5))", "size(e) >= 2", "size(e) <= 3")
+      .|.projectEndpoints("(anon_1)-[e:Type*2..3]->(anon_2)", startInScope = false, endInScope = false)
+      .|.filter("all(anon_3 IN e WHERE single(anon_4 IN e WHERE anon_3 = anon_4))", "size(e) >= 2", "size(e) <= 3")
       .|.argument("e", "dummy")
       .projection("1 AS dummy")
-      .expand("(anon_0)-[e*1..2]->(anon_1)")
+      .expand("(anon_0)-[e*1..2]->()")
       .allNodeScan("anon_0")
       .build()
   }
@@ -481,7 +481,7 @@ class VarLengthPlanningIntegrationTest
       val relPredicates = Seq(Predicate("y", "not y.prop = 'hello'"), Predicate("t", "not t.otherProp IS NULL"))
       plan shouldEqual planner.subPlanBuilder()
         .aggregation(Seq(), Seq("count(*) AS result"))
-        .expand("(a)-[r*1..]->(b)", nodePredicates = nodePredicates, relationshipPredicates = relPredicates)
+        .expand("(a)-[*1..]->()", nodePredicates = nodePredicates, relationshipPredicates = relPredicates)
         .allNodeScan("a")
         .build()
     }
@@ -496,7 +496,7 @@ class VarLengthPlanningIntegrationTest
     planner.plan("MATCH (a)-[r* {prop: 42}]->(b) RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .expand("(a)-[r*1..]->(b)", relationshipPredicates = Seq(Predicate("anon_0", "anon_0.prop = 42")))
+        .expand("(a)-[r*1..]->()", relationshipPredicates = Seq(Predicate("anon_0", "anon_0.prop = 42")))
         .allNodeScan("a")
         .build()
     )
@@ -511,7 +511,7 @@ class VarLengthPlanningIntegrationTest
     planner.plan("MATCH (a {})-[r* {}]->(b) RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .expand("(a)-[r*1..]->(b)")
+        .expand("(a)-[r*1..]->()")
         .allNodeScan("a")
         .build()
     )
@@ -531,7 +531,7 @@ class VarLengthPlanningIntegrationTest
     ) should equal(
       planner.planBuilder()
         .produceResults("r")
-        .expand("(anon_0)-[r*3..5]-(anon_1)", pathMode = TraversalPathMode.Walk)
+        .expand("(anon_0)-[r*3..5]-()", pathMode = TraversalPathMode.Walk)
         .allNodeScan("anon_0")
         .build()
     )
@@ -550,7 +550,7 @@ class VarLengthPlanningIntegrationTest
     ) should equal(
       planner.planBuilder()
         .produceResults("r")
-        .expand("(anon_0)-[r*3..5]-(anon_1)", pathMode = TraversalPathMode.Trail)
+        .expand("(anon_0)-[r*3..5]-()", pathMode = TraversalPathMode.Trail)
         .allNodeScan("anon_0")
         .build()
     )
@@ -572,7 +572,7 @@ class VarLengthPlanningIntegrationTest
         planner.planBuilder()
           .produceResults("s")
           .distinct("s AS s")
-          .pruningVarExpand("(s)-[r*3..5]-(anon_0)", pathMode = TraversalPathMode.Walk)
+          .pruningVarExpand("(s)-[r*3..5]-()", pathMode = TraversalPathMode.Walk)
           .allNodeScan("s")
           .build()
       )
@@ -592,7 +592,7 @@ class VarLengthPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("s")
         .distinct("s AS s")
-        .pruningVarExpand("(s)-[r*3..5]-(anon_0)", pathMode = TraversalPathMode.Trail)
+        .pruningVarExpand("(s)-[r*3..5]-()", pathMode = TraversalPathMode.Trail)
         .allNodeScan("s")
         .build()
     )
@@ -614,7 +614,7 @@ class VarLengthPlanningIntegrationTest
         planner.planBuilder()
           .produceResults("s")
           .distinct("s AS s")
-          .bfsPruningVarExpand("(s)-[r*1..5]-(anon_0)", pathMode = TraversalPathMode.Walk)
+          .bfsPruningVarExpand("(s)-[r*1..5]-()", pathMode = TraversalPathMode.Walk)
           .allNodeScan("s")
           .build()
       )
@@ -634,7 +634,7 @@ class VarLengthPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("s")
         .distinct("s AS s")
-        .bfsPruningVarExpand("(s)-[r*1..5]-(anon_0)", pathMode = TraversalPathMode.Trail)
+        .bfsPruningVarExpand("(s)-[r*1..5]-()", pathMode = TraversalPathMode.Trail)
         .allNodeScan("s")
         .build()
     )

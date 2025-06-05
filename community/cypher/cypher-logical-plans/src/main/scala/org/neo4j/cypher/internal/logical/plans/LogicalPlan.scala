@@ -658,11 +658,12 @@ sealed trait ProjectingPlan extends LogicalUnaryPlan {
 sealed abstract class AbstractVarExpand(
   val from: LogicalVariable,
   val types: Seq[RelTypeName],
-  val to: LogicalVariable,
+  val maybeTo: Option[LogicalVariable],
   val nodePredicates: Seq[VariablePredicate],
   val relationshipPredicates: Seq[VariablePredicate],
   idGen: IdGen
 ) extends LogicalUnaryPlan(idGen) {
+  def to: LogicalVariable = LogicalPlan.safeGet(maybeTo)
 
   def withNewPredicates(
     newNodePredicates: Seq[VariablePredicate],
@@ -2557,16 +2558,19 @@ case class VarExpand(
   dir: SemanticDirection,
   projectedDir: SemanticDirection,
   override val types: Seq[RelTypeName],
-  override val to: LogicalVariable,
-  relName: LogicalVariable,
+  override val maybeTo: Option[LogicalVariable],
+  maybeRelName: Option[LogicalVariable],
   length: VarPatternLength,
   expansionMode: ExpansionMode = ExpandAll,
   override val nodePredicates: Seq[VariablePredicate] = Seq.empty,
   override val relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
   pathMode: TraversalPathMode = TraversalPathMode.Trail
-)(implicit idGen: IdGen) extends AbstractVarExpand(from, types, to, nodePredicates, relationshipPredicates, idGen) {
+)(implicit idGen: IdGen)
+    extends AbstractVarExpand(from, types, maybeTo, nodePredicates, relationshipPredicates, idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
-  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + relName + to
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ maybeRelName ++ maybeTo
+
+  def relName: LogicalVariable = safeGet(maybeRelName)
 
   override def withNewPredicates(
     newNodePredicates: Seq[VariablePredicate],
@@ -2574,6 +2578,30 @@ case class VarExpand(
   )(idGen: IdGen): VarExpand =
     copy(nodePredicates = newNodePredicates, relationshipPredicates = newRelationshipPredicates)(idGen)
 
+}
+
+object VarExpand {
+
+  def apply(
+    source: LogicalPlan,
+    from: LogicalVariable,
+    dir: SemanticDirection,
+    projectedDir: SemanticDirection,
+    types: Seq[RelTypeName],
+    to: LogicalVariable,
+    relName: LogicalVariable,
+    length: VarPatternLength
+  )(implicit idGen: IdGen): VarExpand =
+    new VarExpand(
+      source,
+      from,
+      dir,
+      projectedDir,
+      types,
+      Some(to),
+      Some(relName),
+      length
+    )(idGen)
 }
 
 /**
@@ -2589,22 +2617,35 @@ case class PruningVarExpand(
   override val from: LogicalVariable,
   dir: SemanticDirection,
   override val types: Seq[RelTypeName],
-  override val to: LogicalVariable,
+  override val maybeTo: Option[LogicalVariable],
   minLength: Int,
   maxLength: Int,
   override val nodePredicates: Seq[VariablePredicate] = Seq.empty,
   override val relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
   traversalPathMode: TraversalPathMode = TraversalPathMode.Trail
 )(implicit idGen: IdGen)
-    extends AbstractVarExpand(from, types, to, nodePredicates, relationshipPredicates, idGen) {
+    extends AbstractVarExpand(from, types, maybeTo, nodePredicates, relationshipPredicates, idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
-  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + to
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ maybeTo
 
   override def withNewPredicates(
     newNodePredicates: Seq[VariablePredicate],
     newRelationshipPredicates: Seq[VariablePredicate]
   )(idGen: IdGen): PruningVarExpand =
     copy(nodePredicates = newNodePredicates, relationshipPredicates = newRelationshipPredicates)(idGen)
+}
+
+object PruningVarExpand {
+
+  def apply(
+    source: LogicalPlan,
+    from: LogicalVariable,
+    dir: SemanticDirection,
+    types: Seq[RelTypeName],
+    to: LogicalVariable,
+    minLength: Int,
+    maxLength: Int
+  )(implicit idGen: IdGen) = new PruningVarExpand(source, from, dir, types, Some(to), minLength, maxLength)
 }
 
 /**
@@ -2620,7 +2661,7 @@ case class BFSPruningVarExpand(
   override val from: LogicalVariable,
   dir: SemanticDirection,
   override val types: Seq[RelTypeName],
-  override val to: LogicalVariable,
+  override val maybeTo: Option[LogicalVariable],
   includeStartNode: Boolean,
   maxLength: Int,
   depthName: Option[LogicalVariable],
@@ -2629,10 +2670,10 @@ case class BFSPruningVarExpand(
   override val relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
   traversalPathMode: TraversalPathMode = TraversalPathMode.Trail
 )(implicit idGen: IdGen)
-    extends AbstractVarExpand(from, types, to, nodePredicates, relationshipPredicates, idGen) {
+    extends AbstractVarExpand(from, types, maybeTo, nodePredicates, relationshipPredicates, idGen) {
 
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
-  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + to ++ depthName
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ maybeTo ++ depthName
 
   override def withNewPredicates(
     newNodePredicates: Seq[VariablePredicate],

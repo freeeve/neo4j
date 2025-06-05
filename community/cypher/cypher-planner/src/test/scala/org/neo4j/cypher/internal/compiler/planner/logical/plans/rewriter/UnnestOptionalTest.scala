@@ -61,8 +61,8 @@ class UnnestOptionalTest extends CypherFunSuite with LogicalPlanningTestSupport 
       SemanticDirection.OUTGOING,
       SemanticDirection.OUTGOING,
       Seq.empty,
-      v"b",
-      v"r",
+      Some(v"b"),
+      Some(v"r"),
       VarPatternLength(1, None),
       ExpandAll
     )

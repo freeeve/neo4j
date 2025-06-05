@@ -299,7 +299,7 @@ class CartesianProductPlanningIntegrationTest extends CypherFunSuite with Logica
     val plan = planner.plan(query).stripProduceResults
     plan should equal(
       planner.subPlanBuilder()
-        .expandInto("(a)-[anon_0*1..2]-(b)")
+        .expandInto("(a)-[*1..2]-(b)")
         .cartesianProduct()
         .|.nodeByIdSeek("b", Set(), 0)
         .nodeByIdSeek("a", Set(), 0)
@@ -328,7 +328,7 @@ class CartesianProductPlanningIntegrationTest extends CypherFunSuite with Logica
         .sort("1 ASC")
         .projection("1 AS 1")
         .aggregation(Seq(), Seq("count(b) AS `count(b)`"))
-        .expandInto("(a)-[anon_0*1..2]-(b)")
+        .expandInto("(a)-[*1..2]-(b)")
         .cartesianProduct()
         .|.nodeByIdSeek("b", Set(), 0)
         .nodeByIdSeek("a", Set(), 0)
@@ -351,7 +351,7 @@ class CartesianProductPlanningIntegrationTest extends CypherFunSuite with Logica
 
     val plan = planner.plan(query).stripProduceResults
     plan should (equal(planner.subPlanBuilder()
-      .expandInto("(a)-[anon_0*1..2]-(b)")
+      .expandInto("(a)-[*1..2]-(b)")
       .cartesianProduct()
       .|.nodeByIdSeek("b", Set(), 0)
       .sort("1 ASC")
@@ -361,7 +361,7 @@ class CartesianProductPlanningIntegrationTest extends CypherFunSuite with Logica
       equal(planner.subPlanBuilder()
         .sort("1 ASC")
         .projection("1 AS 1")
-        .expandInto("(a)-[anon_0*1..2]-(b)")
+        .expandInto("(a)-[*1..2]-(b)")
         .cartesianProduct()
         .|.nodeByIdSeek("a", Set(), 0)
         .sort("1 ASC")
@@ -385,7 +385,7 @@ class CartesianProductPlanningIntegrationTest extends CypherFunSuite with Logica
 
     val plan = planner.plan(query).stripProduceResults
     plan should equal(planner.subPlanBuilder()
-      .expandInto("(a)-[anon_0*1..2]-(b)")
+      .expandInto("(a)-[*1..2]-(b)")
       .cartesianProduct()
       .|.nodeByIdSeek("a", Set(), 0)
       .sort("`b.prop` ASC")
@@ -430,7 +430,7 @@ class CartesianProductPlanningIntegrationTest extends CypherFunSuite with Logica
     val plan = planner.plan(query).stripProduceResults
     plan should equal(
       planner.subPlanBuilder()
-        .expandInto("(a)-[anon_0*1..2]-(b)")
+        .expandInto("(a)-[*1..2]-(b)")
         .filter("labels(a) = labels(b)")
         .cartesianProduct()
         .|.nodeByIdSeek("b", Set(), 0)

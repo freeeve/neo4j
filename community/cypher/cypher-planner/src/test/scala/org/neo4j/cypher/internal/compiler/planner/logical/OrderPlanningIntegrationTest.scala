@@ -2815,7 +2815,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         .produceResults("`n.prop`")
         .projection(Map("n.prop" -> cachedNodeProp("a", "prop", "n")))
         .filter("anon_0:B")
-        .expand("(a)-[anon_1:R*1..]->(anon_0)")
+        .expand("(a)-[:R*1..]->(anon_0)")
         .sort("`n{prop: n.prop}` ASC")
         .projection(Map("n{prop: n.prop}" -> mapProjection))
         .projection("a AS n")

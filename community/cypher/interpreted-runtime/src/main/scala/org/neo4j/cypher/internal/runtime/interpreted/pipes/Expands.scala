@@ -92,7 +92,7 @@ object Expands {
           row: CypherRow,
           rel: AnyValue,
           endNode: AnyValue
-        ): CypherRow = row
+        ): CypherRow = rowFactory.copyWith(row)
       }
   }
 }

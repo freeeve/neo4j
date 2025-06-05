@@ -40,7 +40,7 @@ import org.neo4j.values.virtual.VirtualValues
 case class PruningVarLengthExpandPipe(
   source: Pipe,
   fromName: String,
-  toName: String,
+  maybeToName: Option[String],
   types: RelationshipTypes,
   dir: SemanticDirection,
   min: Int,
@@ -292,6 +292,12 @@ case class PruningVarLengthExpandPipe(
     memoryTracker.allocateHeap(HeapEstimator.shallowSizeOfObjectArray(nodeState.length) + HeapEstimator.sizeOf(path))
     private var depth = -1
 
+    private val writer = self.maybeToName match {
+      case Some(toName) =>
+        (endNode: VirtualNodeValue) => rowFactory.copyWith(inputRow, toName, endNode)
+      case None => (_: VirtualNodeValue) => rowFactory.copyWith(inputRow)
+    }
+
     def startRow(inputRow: CypherRow): Unit = {
       memoryTracker.reset() // We build up a new state for each input row
       this.inputRow = inputRow
@@ -328,7 +334,7 @@ case class PruningVarLengthExpandPipe(
       if (endNode == null) {
         inputRow = null
         null
-      } else rowFactory.copyWith(inputRow, self.toName, endNode)
+      } else writer(endNode)
     }
 
     def pushStartNode(node: VirtualNodeValue): VirtualNodeValue = {

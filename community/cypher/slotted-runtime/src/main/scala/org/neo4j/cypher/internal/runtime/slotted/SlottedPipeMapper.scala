@@ -1210,8 +1210,8 @@ class SlottedPipeMapper(
           case ExpandInto => false
         }
         val fromSlot = slots(fromName).slot
-        val relOffset = slots.refOffset(relName)
-        val toSlot = slots(toName).slot
+        val relOffset = relName.map(slots.refOffset)
+        val toSlot = toName.map(slots(_).slot)
 
         // The node/relationship predicates are evaluated on the source pipeline, not the produced one
         val sourceSlots = physicalPlan.slotConfigurations(sourcePlan.id)
@@ -1255,7 +1255,7 @@ class SlottedPipeMapper(
           matchMode
         ) =>
         val fromSlot = slots(from).slot
-        val toSlot = slots(to).slot
+        val toSlot = to.map(slots(_).slot)
         val depthOffset = depthName.map(slots.refOffset)
 
         // The node/relationship predicates are evaluated on the source pipeline, not the produced one

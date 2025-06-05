@@ -619,7 +619,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
           "cacheNFromStore[friend.firstName]",
           "cacheNFromStore[friend.lastName]"
         )("cacheNFromStore[person.firstName] = friend.firstName")
-        .expand("(person)-[knows:KNOWS*1..2]-(friend)", expandMode = ExpandAll, projectedDir = OUTGOING)
+        .expand("(person)-[:KNOWS*1..2]-(friend)", expandMode = ExpandAll, projectedDir = OUTGOING)
         .remoteBatchProperties("cacheNFromStore[person.firstName]")
         .nodeIndexOperator(
           "person:Person(id = ???)",
@@ -646,7 +646,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .planBuilder()
         .produceResults("firstName", "lastName")
         .projection("cacheN[person.firstName] AS firstName", "cacheN[person.lastName] AS lastName")
-        .expand("(person)-[knows:KNOWS*1..2]-(friend)")
+        .expand("(person)-[:KNOWS*1..2]-()")
         .remoteBatchProperties(
           "cacheNFromStore[person.firstName]",
           "cacheNFromStore[person.lastName]"
@@ -789,7 +789,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "cacheNFromStore[friend.firstName]",
         "cacheNFromStore[friend.lastName]"
       )("NOT cacheNFromStore[person.id] = friend.id")
-      .expand("(person)-[anon_0:KNOWS*1..2]-(friend)")
+      .expand("(person)-[:KNOWS*1..2]-(friend)")
       .nodeIndexOperator(
         "person:Person(id = ???)",
         paramExpr = Some(ExplicitParameter("Person", CTAny)(InputPosition.NONE)),
@@ -908,7 +908,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .___CONDITION_END___()
       .aggregation(Seq("person AS person"), Seq("count(post) AS threadCount", "count(reply) AS messageCount"))
       .remoteBatchPropertiesWithFilter("cacheNFromStore[reply.creationDate]")("reply.creationDate <= $endDate")
-      .expand("(post)<-[anon_0:REPLY_OF*0..]-(reply)", expandMode = ExpandAll, projectedDir = INCOMING)
+      .expand("(post)<-[:REPLY_OF*0..]-(reply)", expandMode = ExpandAll, projectedDir = INCOMING)
       .filter("person:Person")
       .expandAll("(post)-[:POST_HAS_CREATOR]->(person)")
       .nodeIndexOperator(
@@ -1826,7 +1826,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .expandAll("(poster)<-[:POST_HAS_CREATOR]-(post)")
       .remoteBatchProperties("cacheNFromStore[poster.name]")
       .filter("poster:Person")
-      .expand("(p)-[anon_0:KNOWS*1..3]-(poster)")
+      .expand("(p)-[:KNOWS*1..3]-(poster)")
       .nodeIndexOperator(
         "p:Person(id = ???)",
         paramExpr = Some(parameter("id", CTAny)),

@@ -71,7 +71,7 @@ class ApplyPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIn
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .distinct("cacheN[simplePort.name] AS sp_name")
-      .bfsPruningVarExpand("(simplePort)<-[:HAS*1..9]-(otherEndParentDevice)")
+      .bfsPruningVarExpand("(simplePort)<-[:HAS*1..9]-()")
       .cacheProperties("cacheNFromStore[simplePort.name]")
       .apply()
       .|.allNodeScan("simplePort", "x")

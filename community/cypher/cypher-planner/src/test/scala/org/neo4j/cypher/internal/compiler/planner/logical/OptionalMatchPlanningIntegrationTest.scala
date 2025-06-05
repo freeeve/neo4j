@@ -1082,7 +1082,7 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
     plan shouldEqual planner.subPlanBuilder()
       .distinct("u AS u")
       .optional()
-      .bfsPruningVarExpand("(u)-[anon_7*0..]->(anon_0)")
+      .bfsPruningVarExpand("(u)-[*0..]->()")
       .allNodeScan("u")
       .build()
   }

@@ -1355,8 +1355,8 @@ case class InterpretedPipeMapper(
         VarLengthExpandPipe(
           source,
           fromName.name,
-          relName.name,
-          toName.name,
+          relName.map(_.name),
+          toName.map(_.name),
           dir,
           projectedDir,
           RelationshipTypes(types.toArray),
@@ -1386,7 +1386,7 @@ case class InterpretedPipeMapper(
         PruningVarLengthExpandPipe(
           source,
           from.name,
-          toName.name,
+          toName.map(_.name),
           RelationshipTypes(types.toArray),
           dir,
           minLength,
@@ -1413,7 +1413,7 @@ case class InterpretedPipeMapper(
         BFSPruningVarLengthExpandPipe(
           source,
           from.name,
-          to.name,
+          to.map(_.name),
           depthName.map(_.name),
           RelationshipTypes(types.toArray),
           dir,

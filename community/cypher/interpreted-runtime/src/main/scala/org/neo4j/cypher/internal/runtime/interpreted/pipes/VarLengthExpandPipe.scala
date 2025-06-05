@@ -38,8 +38,8 @@ import org.neo4j.values.virtual.VirtualValues
 case class VarLengthExpandPipe(
   source: Pipe,
   fromName: String,
-  relName: String,
-  toName: String,
+  maybeRelName: Option[String],
+  maybeToName: Option[String],
   dir: SemanticDirection,
   projectedDir: SemanticDirection,
   types: RelationshipTypes,
@@ -49,6 +49,25 @@ case class VarLengthExpandPipe(
   traversalPathMode: TraversalPathMode,
   filteringStep: TraversalPredicates = TraversalPredicates.NONE
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
+
+  private val writer = (maybeRelName, maybeToName) match {
+    case (Some(relName), Some(toName)) =>
+      (row: CypherRow, rels: RelationshipContainer, node: VirtualNodeValue) =>
+        rowFactory.copyWith(row, relName, rels.asList, toName, node)
+
+    case (None, Some(toName)) =>
+      (row: CypherRow, _: RelationshipContainer, node: VirtualNodeValue) =>
+        rowFactory.copyWith(row, toName, node)
+
+    case (Some(relName), None) =>
+      (row: CypherRow, rels: RelationshipContainer, _: VirtualNodeValue) =>
+        rowFactory.copyWith(row, relName, rels.asList)
+
+    case (None, None) =>
+      (row: CypherRow, _: RelationshipContainer, _: VirtualNodeValue) =>
+        rowFactory.copyWith(row)
+
+  }
 
   private def varLengthExpand(
     node: VirtualNodeValue,
@@ -60,7 +79,7 @@ case class VarLengthExpandPipe(
     val stack = HeapTrackingCollections.newArrayDeque[(VirtualNodeValue, RelationshipContainer)](
       EmptyMemoryTracker.INSTANCE
     )
-    stack.push((node, RelationshipContainer.empty(memoryTracker, traversalPathMode)))
+    stack.push((node, RelationshipContainer.empty(memoryTracker, traversalPathMode, maybeRelName.isDefined)))
 
     new ClosingIterator[(VirtualNodeValue, RelationshipContainer)] {
       def next(): (VirtualNodeValue, RelationshipContainer) = {
@@ -110,7 +129,7 @@ case class VarLengthExpandPipe(
         val paths = varLengthExpand(n, state, max, row)
         paths.collect {
           case (node, rels) if rels.size >= min && isToNodeValid(row, node) =>
-            rowFactory.copyWith(row, relName, rels.asList, toName, node)
+            writer(row, rels, node)
         }
       } else {
         ClosingIterator.empty
@@ -144,11 +163,15 @@ case class VarLengthExpandPipe(
 
   private def isToNodeValid(row: CypherRow, node: VirtualNodeValue) =
     !nodeInScope || {
-      row.getByName(toName) match {
-        case toNode: VirtualNodeValue =>
-          toNode.id == node.id
-        case _ =>
-          false
+      maybeToName match {
+        case Some(toName) =>
+          row.getByName(toName) match {
+            case toNode: VirtualNodeValue =>
+              toNode.id == node.id
+            case _ =>
+              false
+          }
+        case None => false
       }
     }
 }
