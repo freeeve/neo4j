@@ -80,6 +80,7 @@ import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Values;
 
 @TestDirectoryExtension
@@ -99,8 +100,6 @@ class FulltextIndexConsistencyCheckIT {
 
     @BeforeEach
     void before() {
-        random.withConfiguration(RandomValues.defaults().includeVectorTypes(false) /* TODO: Vector pointer issue */);
-        random.reset();
         builder = new TestDatabaseManagementServiceBuilder(testDirectory.homePath());
     }
 
@@ -594,7 +593,8 @@ class FulltextIndexConsistencyCheckIT {
                 .mapToObj(i -> RelationshipType.withName("REL" + i))
                 .toArray(RelationshipType[]::new);
         String[] propertyKeys = IntStream.range(1, 7).mapToObj(i -> "PROP" + i).toArray(String[]::new);
-        RandomValues randomValues = random.randomValues();
+        RandomValues randomValues =
+                RandomValues.create(random.random(), RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
 
         try (Transaction tx = db.beginTx()) {
             int nodeCount = 1000;
