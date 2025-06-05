@@ -630,7 +630,11 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                     () -> writersMustEagerlyFlush,
                     structureWriteLog);
             this.rootLayer = rootLayerConfiguration.buildRootLayer(
-                    rootLayerSupport, layout, treeNodeSelector, dependencyResolver);
+                    rootLayerSupport,
+                    layout,
+                    treeNodeSelector,
+                    dependencyResolver,
+                    engineOpenOptions.contains(MULTI_VERSIONED));
 
             // Create or load state
             if (created) {

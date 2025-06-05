@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.index.internal.gbptree.RootMappingLayout.RootMappingValue;
+import org.neo4j.index.internal.gbptree.ValueMerger.MergeResult;
 import org.neo4j.internal.helpers.collection.LfuCache;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PagedFile;
@@ -77,6 +78,7 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
     private final Layout<DATA_KEY, DATA_VALUE> dataLayout;
     private final LeafNodeBehaviour<DATA_KEY, DATA_VALUE> dataLeafNode;
     private final InternalNodeBehaviour<DATA_KEY> dataInternalNode;
+    private final boolean multiVersioned;
 
     MultiRootLayer(
             RootLayerSupport support,
@@ -84,8 +86,10 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
             Layout<DATA_KEY, DATA_VALUE> dataLayout,
             int rootCacheSizeInBytes,
             TreeNodeSelector treeNodeSelector,
-            DependencyResolver dependencyResolver) {
+            DependencyResolver dependencyResolver,
+            boolean multiVersioned) {
         super(support, treeNodeSelector);
+        this.multiVersioned = multiVersioned;
         Preconditions.checkState(
                 hashCodeSeemsImplemented(rootLayout), "Root layout doesn't seem to have a hashCode() implementation");
 
@@ -153,7 +157,12 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
                     support.initializeNewRoot(dataRoot, dataLeafNode, DATA_LAYER_FLAG, cursorContext);
                     // Write it to the root mapping tree
                     rootMappingWriter.merge(
-                            dataRootKey, new RootMappingValue().initialize(dataRoot), DONT_ALLOW_CREATE_EXISTING_ROOT);
+                            dataRootKey,
+                            new RootMappingValue().initialize(dataRoot),
+                            multiVersioned
+                                    ? createMultiVersionMerger(
+                                            stableGeneration, unstableGeneration, rootId, cursorCreator)
+                                    : DONT_ALLOW_CREATE_EXISTING_ROOT);
                     support.structureWriteLog().createRoot(unstableGeneration, rootId);
                 } catch (DataTreeAlreadyExistsException e) {
                     support.idProvider().releaseId(stableGeneration, unstableGeneration, rootId, cursorCreator);
@@ -334,6 +343,20 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
         } catch (ExecutionException | InterruptedException e) {
             throw new IOException(e);
         }
+    }
+
+    private ValueMerger<ROOT_KEY, RootMappingValue> createMultiVersionMerger(
+            long stableGeneration, long unstableGeneration, long rootId, CursorCreator cursorCreator) {
+        // In multi version we allow duplicate creates in the root layer, resulting in the old root staying unchanged
+        // when this happens the id that was allocated for this duplicate create is not used, so we release it!
+        return (ignored1, ignored2, ignored3, ignored4) -> {
+            try {
+                support.idProvider().releaseId(stableGeneration, unstableGeneration, rootId, cursorCreator);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            return MergeResult.UNCHANGED;
+        };
     }
 
     private Future<Void> submitDataTreeRootBatch(
