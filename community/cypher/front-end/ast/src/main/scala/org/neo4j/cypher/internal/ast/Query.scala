@@ -413,8 +413,6 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
         val sequenceErrors = clauses.sliding(2).foldLeft(Vector.empty[SemanticError]) {
           case (semanticErrors, pair) =>
             val optError = pair match {
-              case Seq(match1: Match, match2: Match) if match1.optional && !match2.optional =>
-                Some(SemanticError.invalidUseOfMatch(match2.position))
               case Seq(clause: Return, _) =>
                 Some(SemanticError.invalidPositionOfClause(clause.name, clause.position))
               case Seq(clause: Finish, _) =>

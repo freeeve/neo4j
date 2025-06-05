@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandCallWhere
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandShowWhere
-import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.InsertWithBetweenOptionalMatchAndMatch
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.MergeInPredicates
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NullIfFunctionRewriter
@@ -56,7 +55,6 @@ case object PreparatoryRewriting extends Phase[BaseContext, BaseState, BaseState
       Set(
         ExpandCallWhere,
         ExpandShowWhere,
-        InsertWithBetweenOptionalMatchAndMatch,
         MergeInPredicates,
         NormalizeWithAndReturnClauses,
         NullIfFunctionRewriter,

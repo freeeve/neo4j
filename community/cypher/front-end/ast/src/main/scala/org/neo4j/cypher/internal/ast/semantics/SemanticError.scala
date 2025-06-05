@@ -718,21 +718,6 @@ object SemanticError {
     SemanticError(gql, "RETURN * is not allowed when there are no variables in scope", position)
   }
 
-  def invalidUseOfMatch(position: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.offset, position.line, position.column)
-      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I31)
-        .atPosition(position.offset, position.line, position.column)
-        .build())
-      .build()
-
-    SemanticError(
-      gql,
-      "MATCH cannot follow OPTIONAL MATCH (perhaps use a WITH clause between them)",
-      position
-    )
-  }
-
   def invalidReferenceToGroupingExpression(variables: Seq[String], position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)

@@ -2574,14 +2574,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid use of label expressions",
             ErrorClassification.CLIENT_ERROR),
-    STATUS_42I31(
-            new GqlStatus("42I31"),
-            "'MATCH ...' cannot directly follow an 'OPTIONAL MATCH ...'. Use a WITH clause between them.",
-            new GqlParams.GqlParam[] {},
-            emptyMap(),
-            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "invalid use of MATCH",
-            ErrorClassification.CLIENT_ERROR),
     STATUS_42I32(
             new GqlStatus("42I32"),
             "Node and relationship pattern predicates cannot be used in { %s }. They can only be used in a `MATCH` clause or inside a pattern comprehension.",

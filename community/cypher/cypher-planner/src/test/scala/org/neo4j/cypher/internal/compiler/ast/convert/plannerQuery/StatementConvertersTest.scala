@@ -55,6 +55,7 @@ import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.DistinctQueryProjection
 import org.neo4j.cypher.internal.ir.ExhaustivePathPattern
 import org.neo4j.cypher.internal.ir.NodeBinding
+import org.neo4j.cypher.internal.ir.PassthroughAllHorizon
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.Predicate
@@ -3120,6 +3121,48 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           case proj: QueryProjection => proj.importedExposedSymbols shouldBe Set(v"x")
         }
     }
+  }
+
+  test("should introduce a horizon after OPTIONAL MATCH followed by MATCH") {
+    val query = buildSinglePlannerQuery("OPTIONAL MATCH (a) MATCH (b) RETURN a, b")
+    query shouldEqual RegularSinglePlannerQuery(
+      queryGraph = QueryGraph.empty.addOptionalMatch(QueryGraph.empty.addPatternNodes(v"a")),
+      horizon = PassthroughAllHorizon(),
+      tail = Some(RegularSinglePlannerQuery(
+        queryGraph = QueryGraph.empty.addPatternNodes(v"b").addArgumentId(v"a"),
+        horizon = RegularQueryProjection(Map(v"a" -> v"a", v"b" -> v"b")).markAsFinal
+      ))
+    )
+  }
+
+  test("should introduce a horizon after MATCH + OPTIONAL MATCH followed by MATCH") {
+    val query = buildSinglePlannerQuery("MATCH (a) OPTIONAL MATCH (b) MATCH (c) RETURN a, b, c")
+    query shouldEqual RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(v"a")
+          .addOptionalMatch(QueryGraph.empty.addPatternNodes(v"b")),
+      horizon = PassthroughAllHorizon(),
+      tail = Some(RegularSinglePlannerQuery(
+        queryGraph = QueryGraph.empty.addPatternNodes(v"c").withArgumentIds(Set(v"a", v"b")),
+        horizon = RegularQueryProjection(Map(v"a" -> v"a", v"b" -> v"b", v"c" -> v"c")).markAsFinal
+      ))
+    )
+  }
+
+  test("should introduce a horizon after multiple OPTIONAL MATCHes followed MATCH") {
+    val query = buildSinglePlannerQuery("OPTIONAL MATCH (a) OPTIONAL MATCH (b) MATCH (c) RETURN a, b, c")
+    query shouldEqual RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addOptionalMatch(QueryGraph.empty.addPatternNodes(v"a"))
+          .addOptionalMatch(QueryGraph.empty.addPatternNodes(v"b")),
+      horizon = PassthroughAllHorizon(),
+      tail = Some(RegularSinglePlannerQuery(
+        queryGraph = QueryGraph.empty.addPatternNodes(v"c").withArgumentIds(Set(v"a", v"b")),
+        horizon = RegularQueryProjection(Map(v"a" -> v"a", v"b" -> v"b", v"c" -> v"c")).markAsFinal
+      ))
+    )
   }
 
   // Note! Parses with default language.

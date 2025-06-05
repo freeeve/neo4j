@@ -40,7 +40,6 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressio
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeExistsPatternExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
-import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.InsertWithBetweenOptionalMatchAndMatch
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -75,8 +74,7 @@ class OptionalMatchRemoverTest extends CypherFunSuite with PlannerQueryRewriterT
       NormalizeExistsPatternExpressions(orgAstState),
       NormalizeHasLabelsAndHasType(orgAstState),
       AddUniquenessPredicates.rewriter,
-      flattenBooleanOperators.instance(CancellationChecker.NeverCancelled),
-      InsertWithBetweenOptionalMatchAndMatch.instance
+      flattenBooleanOperators.instance(CancellationChecker.NeverCancelled)
     ))
     // computeDependenciesForExpressions needs a new run of SemanticChecker after normalizeExistsPatternExpressions
     ast_0.endoRewrite(computeDependenciesForExpressions(SemanticChecker.check(ast_0).state))
