@@ -219,6 +219,52 @@ class RemoteBatchPropertiesPlanningIntegrationTest
         .nodeByLabelScan("person", "Person", IndexOrderAscending)
         .build())
   }
+
+  test("pushing limit below remoteBatchProperties should preserve interesting order from node index scan") {
+    val query =
+      """
+        |MATCH (p:Person)-[r]->(x)
+        |WHERE p.id IS NOT NULL
+        |ORDER BY p.id ASC
+        |LIMIT 1
+        |UNWIND range(1, 100) AS increaseCardinality
+        |RETURN x.prop AS prop
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[x.prop] AS prop")
+      .unwind("range(1, 100) AS increaseCardinality")
+      .remoteBatchProperties("cacheNFromStore[x.prop]")
+      .limit(1)
+      .expandAll("(p)-[]->(x)")
+      .nodeIndexOperator("p:Person(id)", Map("id" -> GetValue), indexOrder = IndexOrderAscending)
+      .build()
+  }
+
+  test("pushing limit below remoteBatchProperties should preserve interesting order from relationship index scan") {
+    val query =
+      """
+        |MATCH (comment)-[r:COMMENT_HAS_CREATOR]->(creator)
+        |WHERE r.id IS NOT NULL
+        |ORDER BY r.id ASC LIMIT 1
+        |UNWIND range(1, 100) AS increaseCardinality
+        |RETURN creator.prop AS prop
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[creator.prop] AS prop")
+      .unwind("range(1, 100) AS increaseCardinality")
+      .remoteBatchProperties("cacheNFromStore[creator.prop]")
+      .limit(1)
+      .relationshipIndexOperator(
+        "()-[:COMMENT_HAS_CREATOR(id)]->(creator)",
+        getValue = Map("id" -> GetValue),
+        indexOrder = IndexOrderAscending
+      )
+      .build()
+  }
 }
 
 class ParallelRuntimeRemoteBatchPropertiesPlanningIntegrationTest

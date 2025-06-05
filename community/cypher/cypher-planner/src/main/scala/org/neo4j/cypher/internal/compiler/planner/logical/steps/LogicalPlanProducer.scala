@@ -3878,7 +3878,13 @@ case class LogicalPlanProducer(
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val newRemoteBatchProperties = RemoteBatchProperties(newInner, currentRemoteBatchProperties.properties)
-    val solved = solveds.get(newInner.id)
+
+    val solved =
+      solveds.get(newInner.id).asSinglePlannerQuery
+        .updateTailOrSelf(_.withInterestingOrder(
+          solveds.get(currentRemoteBatchProperties.id).asSinglePlannerQuery.interestingOrder
+        ))
+
     annotate(
       newRemoteBatchProperties,
       solved,
