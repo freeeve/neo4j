@@ -129,7 +129,7 @@ public interface StorageReader extends AutoCloseable, StorageSchemaReader {
 
     boolean nodeExists(long id, StoreCursors storeCursors);
 
-    boolean relationshipExists(long id, StoreCursors storeCursors, CursorContext context, MemoryTracker memoryTracker);
+    boolean relationshipExists(long id, StoreCursors storeCursors, CursorContext context);
 
     <T> T getOrCreateSchemaDependantState(Class<T> type, Function<StorageReader, T> factory);
 
