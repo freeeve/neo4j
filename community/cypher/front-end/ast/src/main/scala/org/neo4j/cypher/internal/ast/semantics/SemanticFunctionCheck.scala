@@ -151,9 +151,13 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
               (invocation.arguments.head match {
                 case _: PatternExpression => None
                 case _: Property | _: ContainerIndex =>
+                  val position = invocation.position
+                  val message =
+                    "The property existence syntax `... exists(variable.property)` is no longer supported. Please use `variable.property IS NOT NULL` instead."
                   Some(SemanticError(
-                    "The property existence syntax `... exists(variable.property)` is no longer supported. Please use `variable.property IS NOT NULL` instead.",
-                    invocation.position
+                    GqlHelper.getGql42001_42I52(message, position.offset, position.line, position.column),
+                    message,
+                    position
                   ))
                 case e =>
                   Some(SemanticError.invalidEntityType(
