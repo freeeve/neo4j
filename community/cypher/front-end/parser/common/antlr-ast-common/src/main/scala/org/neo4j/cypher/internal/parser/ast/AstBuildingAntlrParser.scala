@@ -36,6 +36,7 @@ trait AstBuildingAntlrParser extends Parser {
   private[this] var checker: SyntaxChecker = _
   private[this] var hasFailed: Boolean = false
   private[this] var bailErrors: Boolean = false
+  val jsSemanticAnalysis: Boolean = false
 
   def createSyntaxChecker(): SyntaxChecker
   def createAstBuilder(): ParseTreeListener
@@ -44,6 +45,17 @@ trait AstBuildingAntlrParser extends Parser {
   final override def exitRule(): Unit = {
     val localCtx = getContext
     super.exitRule()
+
+    // If we are in the JS semantic analysis, try to build the AST for the query, even if it's in a partial state
+    // If that fails
+    if (this.jsSemanticAnalysis) {
+      try {
+        buildAstWithErrorHandling(localCtx)
+      } catch {
+        case _: Exception | _: Error =>
+      }
+      return
+    }
 
     if (bailErrors) {
       // In this mode we care more about speed than correct error handling

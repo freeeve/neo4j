@@ -36,7 +36,7 @@ import scala.util.control.NonFatal
 
 /** Helper trait for all antlr based [[AstParser]]s. */
 trait AntlrAstParser[P <: AstBuildingAntlrParser] extends AstParser {
-  protected def keepCst: Boolean
+  protected def jsSemanticAnalysis: Boolean
   protected def newParser(tokens: TokenStream): P
   protected def newLexer(fullTokens: Boolean): Lexer
   protected def exceptionFactory: CypherExceptionFactory

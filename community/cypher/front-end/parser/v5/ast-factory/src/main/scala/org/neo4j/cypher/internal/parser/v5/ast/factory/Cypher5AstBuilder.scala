@@ -33,8 +33,9 @@ import org.neo4j.cypher.internal.util.InternalNotificationLogger
  */
 final class Cypher5AstBuilder(
   override val notificationLogger: Option[InternalNotificationLogger],
-  override val exceptionFactory: CypherExceptionFactory
-) extends AbstractCypher5AstBuilder
+  override val exceptionFactory: CypherExceptionFactory,
+  jsSemanticAnalysis: Boolean
+) extends AbstractCypher5AstBuilder(jsSemanticAnalysis)
     with LiteralBuilder
     with LabelExpressionBuilder
     with DdlBuilder

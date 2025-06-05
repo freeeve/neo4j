@@ -39,7 +39,7 @@ final class Cypher25AstParser(
   query: String,
   override val exceptionFactory: CypherExceptionFactory,
   notificationLogger: Option[InternalNotificationLogger],
-  override val keepCst: Boolean = false
+  override val jsSemanticAnalysis: Boolean = false
 ) extends AntlrAstParser[CypherAstBuildingAntlrParser] {
 
   override def statements(): Statements = parse(_.statements())
@@ -55,7 +55,7 @@ final class Cypher25AstParser(
   }
 
   override protected def newParser(tokens: TokenStream): CypherAstBuildingAntlrParser =
-    new CypherAstBuildingAntlrParser(tokens, exceptionFactory, notificationLogger, keepCst)
+    new CypherAstBuildingAntlrParser(tokens, exceptionFactory, notificationLogger, jsSemanticAnalysis)
 
   override protected def newLexer(fullTokens: Boolean): Lexer = Cypher25AstLexer.fromString(query, fullTokens)
   override protected def errorStrategyConf: CypherErrorStrategy.Conf = new Cypher25ErrorStrategyConf
@@ -70,13 +70,15 @@ final protected class CypherAstBuildingAntlrParser(
   input: TokenStream,
   exceptionFactory: CypherExceptionFactory,
   notificationLogger: Option[InternalNotificationLogger],
-  keepCst: Boolean = false
+  override val jsSemanticAnalysis: Boolean = false
 ) extends Cypher25Parser(input) with AstBuildingAntlrParser {
 
   removeErrorListeners() // Avoid printing errors to stdout
 
   override def createSyntaxChecker(): SyntaxChecker = new Cypher25SyntaxChecker(exceptionFactory)
-  override def createAstBuilder(): ParseTreeListener = new Cypher25AstBuilder(notificationLogger, exceptionFactory)
+
+  override def createAstBuilder(): ParseTreeListener =
+    new Cypher25AstBuilder(notificationLogger, exceptionFactory, jsSemanticAnalysis)
 
   override def isSafeToFreeChildren(ctx: ParserRuleContext): Boolean = ctx.getRuleIndex match {
     case Cypher25Parser.RULE_allPrivilegeTarget           => false
@@ -127,6 +129,6 @@ final protected class CypherAstBuildingAntlrParser(
     case Cypher25Parser.RULE_edgeTypeReference            => false
     case Cypher25Parser.RULE_edgeTypeInSituReference      => false
     case Cypher25Parser.RULE_arcTypePointingRight         => false
-    case _                                                => !keepCst
+    case _                                                => !jsSemanticAnalysis
   }
 }
