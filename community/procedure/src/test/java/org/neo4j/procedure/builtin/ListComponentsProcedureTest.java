@@ -39,7 +39,11 @@ class ListComponentsProcedureTest {
         // Given
         var customConfigVersion = "5.27.0";
         var procedure = new ListComponentsProcedure(
-                new QualifiedName(new String[] {"dbms"}, "components"), "2025.01.0", "community", customConfigVersion);
+                new QualifiedName(new String[] {"dbms"}, "components"),
+                "2025.01.0",
+                "community",
+                customConfigVersion,
+                false);
 
         // When
         try (var result = procedure.apply(null, new AnyValue[0], null)) {
@@ -57,7 +61,11 @@ class ListComponentsProcedureTest {
     void listCypherVersions() throws ProcedureException {
         var customConfigVersion = "5.27.0";
         var procedure = new ListComponentsProcedure(
-                new QualifiedName(new String[] {"dbms"}, "components"), "2025.01.0", "community", customConfigVersion);
+                new QualifiedName(new String[] {"dbms"}, "components"),
+                "2025.01.0",
+                "community",
+                customConfigVersion,
+                false);
 
         try (var result = procedure.apply(null, new AnyValue[0], null)) {
             var row = filterByComponentName(Iterators.asList(result), "Cypher");
@@ -65,6 +73,27 @@ class ListComponentsProcedureTest {
             var versions = (ListValue) row[1];
             assertEquals(1, versions.intSize());
             assertEquals("5", ((TextValue) versions.value(0)).stringValue());
+            assertEquals("", ((TextValue) row[2]).stringValue());
+        }
+    }
+
+    @Test
+    void listCypherVersionsIncluding25() throws ProcedureException {
+        var customConfigVersion = "5.27.0";
+        var procedure = new ListComponentsProcedure(
+                new QualifiedName(new String[] {"dbms"}, "components"),
+                "2025.01.0",
+                "community",
+                customConfigVersion,
+                true);
+
+        try (var result = procedure.apply(null, new AnyValue[0], null)) {
+            var row = filterByComponentName(Iterators.asList(result), "Cypher");
+
+            var versions = (ListValue) row[1];
+            assertEquals(2, versions.intSize());
+            assertEquals("5", ((TextValue) versions.value(0)).stringValue());
+            assertEquals("25", ((TextValue) versions.value(1)).stringValue());
             assertEquals("", ((TextValue) row[2]).stringValue());
         }
     }

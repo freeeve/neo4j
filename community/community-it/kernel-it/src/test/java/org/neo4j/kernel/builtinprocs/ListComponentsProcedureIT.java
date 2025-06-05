@@ -45,6 +45,12 @@ public class ListComponentsProcedureIT {
         builder.setConfig(GraphDatabaseInternalSettings.custom_kernel_version, kernelVersion);
     }
 
+    @ExtensionCallback
+    void configureEnableCypherVersions(TestDatabaseManagementServiceBuilder builder) {
+        builder.setConfig(GraphDatabaseInternalSettings.custom_kernel_version, kernelVersion);
+        builder.setConfig(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
+    }
+
     @Test
     void shouldReturnConfiguredKernelVersion() {
         List<Map<String, Object>> components;
@@ -61,7 +67,44 @@ public class ListComponentsProcedureIT {
         assertThat(version).isEqualTo(List.of(kernelVersion));
     }
 
+    @Test
+    void shouldReturnCypherVersions5Only() {
+        List<Map<String, Object>> components;
+        try (var tx = databaseAPI.beginTx()) {
+            var result = tx.execute("CALL dbms.components()");
+            components = result.stream().toList();
+            tx.commit();
+        }
+        assertThat(components).isNotEmpty();
+        var cypherComponent =
+                components.stream().filter(this::isCypherComponent).findAny();
+        assertThat(cypherComponent).isPresent();
+        var version = cypherComponent.get().get(ListComponentsProcedure.VERSIONS_COLUMN);
+        assertThat(version).isEqualTo(List.of("5"));
+    }
+
+    @DbmsExtension(configurationCallback = "configureEnableCypherVersions")
+    @Test
+    void shouldReturnCypherVersions5And25() {
+        List<Map<String, Object>> components;
+        try (var tx = databaseAPI.beginTx()) {
+            var result = tx.execute("CALL dbms.components()");
+            components = result.stream().toList();
+            tx.commit();
+        }
+        assertThat(components).isNotEmpty();
+        var cypherComponent =
+                components.stream().filter(this::isCypherComponent).findAny();
+        assertThat(cypherComponent).isPresent();
+        var version = cypherComponent.get().get(ListComponentsProcedure.VERSIONS_COLUMN);
+        assertThat(version).isEqualTo(List.of("5", "25"));
+    }
+
     private boolean isKernelComponent(Map<String, Object> component) {
         return component.get(ListComponentsProcedure.NAME_COLUMN).equals(ListComponentsProcedure.KERNEL_COMPONENT_NAME);
+    }
+
+    private boolean isCypherComponent(Map<String, Object> component) {
+        return component.get(ListComponentsProcedure.NAME_COLUMN).equals("Cypher");
     }
 }

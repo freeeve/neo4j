@@ -19,6 +19,8 @@
  */
 package org.neo4j.procedure.builtin;
 
+import static org.neo4j.configuration.helpers.CypherVersionClassification.isExperimental;
+import static org.neo4j.configuration.helpers.CypherVersionClassification.shortName;
 import static org.neo4j.internal.helpers.collection.Iterators.asRawIterator;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTList;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTString;
@@ -28,8 +30,11 @@ import static org.neo4j.values.storable.Values.stringValue;
 import static org.neo4j.values.storable.Values.utf8Value;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.neo4j.collection.ResourceRawIterator;
+import org.neo4j.configuration.GraphDatabaseSettings.CypherVersion;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.ResourceMonitor;
@@ -67,11 +72,18 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
 
     private static final TextValue NEO4J_KERNEL = utf8Value(KERNEL_COMPONENT_NAME);
     private static final TextValue CYPHER = utf8Value("Cypher");
-    private static final ListValue cypherVersions = VirtualValues.list(stringValue("5"));
+    private static final CypherVersion[] ALL_CYPHER_VERSIONS = CypherVersion.values();
+    private static final ListValue CYPHER_VERSIONS_EXCL_EXPERIMENTAL = cypherVersions(false);
+    private static final ListValue CYPHER_VERSIONS_INCL_EXPERIMENTAL = cypherVersions(true);
+
     private final List<AnyValue[]> components;
 
     public ListComponentsProcedure(
-            QualifiedName name, String neo4jVersion, String neo4jEdition, String customVersionConfig) {
+            QualifiedName name,
+            String neo4jVersion,
+            String neo4jEdition,
+            String customVersionConfig,
+            Boolean cypherExperimentalVersionsEnabled) {
         super(procedureSignature(name)
                 .out(NAME_COLUMN, NTString, "The name of the component.")
                 // Since Bolt, Cypher and other components support multiple versions
@@ -82,7 +94,8 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
                 .description("List DBMS components and their versions.")
                 .systemProcedure()
                 .build());
-        this.components = createComponentsList(neo4jVersion, customVersionConfig, neo4jEdition);
+        this.components = createComponentsList(
+                neo4jVersion, customVersionConfig, neo4jEdition, cypherExperimentalVersionsEnabled);
     }
 
     @Override
@@ -92,7 +105,10 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
     }
 
     private static List<AnyValue[]> createComponentsList(
-            String neo4jVersion, String customVersionConfig, String neo4jEdition) {
+            String neo4jVersion,
+            String customVersionConfig,
+            String neo4jEdition,
+            Boolean cypherExperimentalVersionsEnabled) {
         var version = customVersionConfig != null ? stringValue(customVersionConfig) : stringValue(neo4jVersion);
         var edition = stringValue(neo4jEdition);
 
@@ -101,7 +117,18 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
         if (Boolean.getBoolean(SKIP_CYPHER_VERSION)) {
             return components;
         }
+
+        var cypherVersions = cypherExperimentalVersionsEnabled
+                ? CYPHER_VERSIONS_INCL_EXPERIMENTAL
+                : CYPHER_VERSIONS_EXCL_EXPERIMENTAL;
         components.add(new AnyValue[] {CYPHER, cypherVersions, EMPTY_STRING});
         return components;
+    }
+
+    private static ListValue cypherVersions(boolean includeExperimental) {
+        return VirtualValues.fromList(Arrays.stream(ALL_CYPHER_VERSIONS)
+                .filter(v -> includeExperimental || !isExperimental(v))
+                .map(v -> stringValue(shortName(v)))
+                .collect(Collectors.toList()));
     }
 }

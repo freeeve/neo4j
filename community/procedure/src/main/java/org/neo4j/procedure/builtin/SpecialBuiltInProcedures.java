@@ -42,9 +42,15 @@ public class SpecialBuiltInProcedures implements Supplier<List<CallableProcedure
 
     public static SpecialBuiltInProcedures from(String neo4jVersion, String neo4jEdition, Config config) {
         var customVersionConfig = config.get(GraphDatabaseInternalSettings.custom_kernel_version);
+        var cypherExperimentalVersionsEnabled =
+                config.get(GraphDatabaseInternalSettings.enable_experimental_cypher_versions);
         return new SpecialBuiltInProcedures(List.of(
                 new ListComponentsProcedure(
-                        new QualifiedName("dbms", "components"), neo4jVersion, neo4jEdition, customVersionConfig),
+                        new QualifiedName("dbms", "components"),
+                        neo4jVersion,
+                        neo4jEdition,
+                        customVersionConfig,
+                        cypherExperimentalVersionsEnabled),
                 new JmxQueryProcedure(
                         new QualifiedName("dbms", "queryJmx"), ManagementFactory.getPlatformMBeanServer())));
     }
