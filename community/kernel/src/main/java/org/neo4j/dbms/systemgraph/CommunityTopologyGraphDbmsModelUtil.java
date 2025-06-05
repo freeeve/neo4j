@@ -24,9 +24,9 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABA
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD_LABEL;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_INDEX_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IS_MIRROR_OF_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.MIRROR_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD_LABEL;
@@ -132,11 +132,11 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                     alias,
                     TopologyGraphDbmsModel.PRIMARY_PROPERTY,
                     Boolean.class);
-            var graphShardNode = spdNode.getSingleRelationship(HAS_GRAPH_SHARD, Direction.OUTGOING)
+            var graphShardNode = spdNode.getSingleRelationship(HAS_GRAPH_SHARD_RELATIONSHIP, Direction.OUTGOING)
                     .getEndNode();
             var propertyShards = StreamSupport.stream(
                             graphShardNode
-                                    .getRelationships(Direction.OUTGOING, HAS_PROPERTY_SHARD)
+                                    .getRelationships(Direction.OUTGOING, HAS_PROPERTY_SHARD_RELATIONSHIP)
                                     .spliterator(),
                             false)
                     .flatMap(rel -> createSPDPropertyShardReference(aliasName.name(), rel.getEndNode()).stream()
@@ -464,7 +464,7 @@ public final class CommunityTopologyGraphDbmsModelUtil {
 
     public static Optional<String> readGraphShardOwningDatabase(Node graphShardDb) {
         return ignoreConcurrentDeletes(() -> {
-            var virtualSpd = graphShardDb.getRelationships(Direction.INCOMING, HAS_GRAPH_SHARD).stream()
+            var virtualSpd = graphShardDb.getRelationships(Direction.INCOMING, HAS_GRAPH_SHARD_RELATIONSHIP).stream()
                     .map(Relationship::getStartNode)
                     .toList();
             if (virtualSpd.isEmpty()) {
@@ -480,9 +480,10 @@ public final class CommunityTopologyGraphDbmsModelUtil {
 
     public static Optional<String> readPropertyShardOwningDatabase(Node propertyShardDb) {
         return ignoreConcurrentDeletes(() -> {
-            var graphShard = propertyShardDb.getRelationships(Direction.INCOMING, HAS_PROPERTY_SHARD).stream()
-                    .map(Relationship::getStartNode)
-                    .toList(); // exhaust cursor
+            var graphShard =
+                    propertyShardDb.getRelationships(Direction.INCOMING, HAS_PROPERTY_SHARD_RELATIONSHIP).stream()
+                            .map(Relationship::getStartNode)
+                            .toList(); // exhaust cursor
             if (graphShard.isEmpty()) {
                 return Optional.empty();
             }

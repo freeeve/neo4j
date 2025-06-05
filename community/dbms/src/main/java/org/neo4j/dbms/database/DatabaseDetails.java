@@ -46,19 +46,22 @@ public record DatabaseDetails(
         Map<String, String> options,
         Optional<StoreId> storeId,
         Optional<ExternalStoreId> externalStoreId,
-        int actualPrimariesCount,
-        int actualSecondariesCount) {
+        Integer actualPrimariesCount,
+        Integer actualSecondariesCount) {
 
     public static final String ROLE_PRIMARY = "primary";
     public static final String ROLE_SECONDARY = "secondary";
 
     public static final String STATUS_UNKNOWN = "unknown";
+    public static final String STATUS_MIXED = "mixed";
     public static final String STATUS_MESSAGE_UNKNOWN = "Server is unavailable";
     public static final String STATUS_MESSAGE_ORPHANED = "Database not currently allocated to any servers";
 
     public static final String TYPE_SYSTEM = "system";
     public static final String TYPE_STANDARD = "standard";
     public static final String TYPE_COMPOSITE = "composite";
+    public static final String TYPE_GRAPH_SHARD = "graph shard";
+    public static final String TYPE_PROPERTY_SHARD = "property shard";
 
     public String databaseType() {
         return type;

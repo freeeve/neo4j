@@ -61,9 +61,9 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PRO
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DRIVER_SETTINGS_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseStatus.OFFLINE;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD_LABEL;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_INDEX_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HOSTED_ON_INITIAL_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HOSTED_ON_MODE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HOSTED_ON_RAFT_MEMBER_ID_PROPERTY;
@@ -376,7 +376,7 @@ public abstract class BaseTopologyGraphDbmsModelIT {
                     DATABASE_LABEL,
                     DATABASE_UUID_PROPERTY,
                     databaseId.databaseId().uuid().toString());
-            node.createRelationshipTo(otherDatabase, HAS_GRAPH_SHARD);
+            node.createRelationshipTo(otherDatabase, HAS_GRAPH_SHARD_RELATIONSHIP);
             return this;
         }
 
@@ -450,7 +450,7 @@ public abstract class BaseTopologyGraphDbmsModelIT {
                         DATABASE_LABEL,
                         DATABASE_UUID_PROPERTY,
                         databaseId.databaseId().uuid().toString());
-                var relationship = node.createRelationshipTo(otherDatabase, HAS_PROPERTY_SHARD);
+                var relationship = node.createRelationshipTo(otherDatabase, HAS_PROPERTY_SHARD_RELATIONSHIP);
                 relationship.setProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY, index++);
             }
             return this;
@@ -592,13 +592,14 @@ public abstract class BaseTopologyGraphDbmsModelIT {
         graphShardDatabaseNameNode.createRelationshipTo(graphShardDatabaseNode, TARGETS_RELATIONSHIP);
 
         // (spdDatabaseNode)-[HAS_GRAPH_SHARD]->(graphShard)
-        spdDatabaseNode.createRelationshipTo(graphShardDatabaseNode, HAS_GRAPH_SHARD);
+        spdDatabaseNode.createRelationshipTo(graphShardDatabaseNode, HAS_GRAPH_SHARD_RELATIONSHIP);
 
         propertyShards.forEach(shard -> {
             var propertyShardDatabaseNode = findDatabase(shard.other(), tx);
             propertyShardDatabaseNode.addLabel(PROPERTY_SHARD_LABEL);
             // (graphShardDatabaseNode)-[HAS_PROPERTY_SHARD {index: <int>}]->(propertyShard)
-            var targets = graphShardDatabaseNode.createRelationshipTo(propertyShardDatabaseNode, HAS_PROPERTY_SHARD);
+            var targets = graphShardDatabaseNode.createRelationshipTo(
+                    propertyShardDatabaseNode, HAS_PROPERTY_SHARD_RELATIONSHIP);
             targets.setProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY, shard.first());
 
             // create databaseNameLabel

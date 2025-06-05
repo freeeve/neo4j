@@ -369,8 +369,17 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
-  test("ensure variables are aliased for SHOW DATABASES") {
+  test("ensure variables are aliased for SHOW DATABASES - Cypher 5") {
     assertRewrite(
+      CypherVersion.Cypher5,
+      "SHOW DATABASES YIELD name",
+      "SHOW DATABASES YIELD name AS name"
+    )
+  }
+
+  test("ensure variables are aliased for SHOW DATABASES - Cypher 25") {
+    assertRewrite(
+      CypherVersion.Cypher25,
       "SHOW DATABASES YIELD name",
       "SHOW DATABASES YIELD name AS name"
     )

@@ -86,8 +86,10 @@ object DatabaseDetailsMapper {
         Values.stringValue(databaseDetails.statusMessage()),
         databaseDetails.readableExternalStoreId().map[AnyValue](s => Values.stringValue(s)).orElse(Values.NO_VALUE),
         databaseDetails.serverId().map[AnyValue](s => Values.stringValue(s.uuid().toString)).orElse(Values.NO_VALUE),
-        Values.longValue(databaseDetails.actualPrimariesCount()),
-        Values.longValue(databaseDetails.actualSecondariesCount()),
+        if (databaseDetails.actualPrimariesCount() == null) Values.NO_VALUE
+        else Values.longValue(databaseDetails.actualPrimariesCount().intValue()),
+        if (databaseDetails.actualSecondariesCount() == null) Values.NO_VALUE
+        else Values.longValue(databaseDetails.actualSecondariesCount().intValue()),
         databaseDetails.readableStoreId().map[AnyValue](s => Values.stringValue(s)).orElse(Values.NO_VALUE),
         databaseDetails.lastCommittedTxId().map[AnyValue](s => Values.longValue(s)).orElse(Values.NO_VALUE),
         databaseDetails.txCommitLag().map[AnyValue](s => Values.longValue(s)).orElse(Values.NO_VALUE), {

@@ -343,25 +343,28 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Optional<DatabaseReferenceImpl.VirtualSPD> createVirtualSPDReference(Node alias, Node db) {
-        return CommunityTopologyGraphDbmsModelUtil.ignoreConcurrentDeletes(() -> {
-            var spdAliasName = CommunityTopologyGraphDbmsModelUtil.getNameProperty(DATABASE_NAME, alias);
-            NamedDatabaseId spdNamedDatabaseId = CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db);
+        return CommunityTopologyGraphDbmsModelUtil.ignoreConcurrentDeletes(
+                () -> {
+                    var spdAliasName = CommunityTopologyGraphDbmsModelUtil.getNameProperty(DATABASE_NAME, alias);
+                    NamedDatabaseId spdNamedDatabaseId = CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db);
 
-            var graphShard = db.getRelationships(Direction.OUTGOING, TopologyGraphDbmsModel.HAS_GRAPH_SHARD).stream()
-                    .flatMap(rel -> createSPDGraphShardReference(rel.getEndNode()).stream())
-                    .toList();
-            if (graphShard.isEmpty()) {
-                return Optional.empty();
-            }
+                    var graphShard = db
+                            .getRelationships(Direction.OUTGOING, TopologyGraphDbmsModel.HAS_GRAPH_SHARD_RELATIONSHIP)
+                            .stream()
+                            .flatMap(rel -> createSPDGraphShardReference(rel.getEndNode()).stream())
+                            .toList();
+                    if (graphShard.isEmpty()) {
+                        return Optional.empty();
+                    }
 
-            boolean isPrimary = (boolean) alias.getProperty(PRIMARY_PROPERTY);
-            return Optional.of(new DatabaseReferenceImpl.VirtualSPD(
-                    spdAliasName,
-                    new NormalizedDatabaseName((String) alias.getProperty(NAMESPACE_PROPERTY)),
-                    spdNamedDatabaseId,
-                    graphShard.getFirst(),
-                    isPrimary));
-        });
+                    boolean isPrimary = (boolean) alias.getProperty(PRIMARY_PROPERTY);
+                    return Optional.of(new DatabaseReferenceImpl.VirtualSPD(
+                            spdAliasName,
+                            new NormalizedDatabaseName((String) alias.getProperty(NAMESPACE_PROPERTY)),
+                            spdNamedDatabaseId,
+                            graphShard.getFirst(),
+                            isPrimary));
+                });
     }
 
     private Optional<DatabaseReferenceImpl.GraphShard> createSPDGraphShardReference(Node alias, Node db) {
@@ -369,7 +372,8 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
             var aliasName = CommunityTopologyGraphDbmsModelUtil.getNameProperty(DATABASE_NAME, alias);
             var databaseId = CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db);
             var shards = StreamSupport.stream(
-                            db.getRelationships(Direction.OUTGOING, TopologyGraphDbmsModel.HAS_PROPERTY_SHARD)
+                            db.getRelationships(
+                                            Direction.OUTGOING, TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_RELATIONSHIP)
                                     .spliterator(),
                             false)
                     .flatMap(rel -> getDatabaseRefByAlias(
@@ -390,7 +394,8 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         return CommunityTopologyGraphDbmsModelUtil.ignoreConcurrentDeletes(() -> {
             var databaseId = CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db);
             var shards = StreamSupport.stream(
-                            db.getRelationships(Direction.OUTGOING, TopologyGraphDbmsModel.HAS_PROPERTY_SHARD)
+                            db.getRelationships(
+                                            Direction.OUTGOING, TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_RELATIONSHIP)
                                     .spliterator(),
                             false)
                     .flatMap(rel -> getDatabaseRefByAlias(

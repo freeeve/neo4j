@@ -283,8 +283,10 @@ public interface TopologyGraphDbmsModel {
     String SUPPORTED_COMPONENT_VERSIONS_UUID_PROPERTY = "__uuid";
     RelationshipType LATEST_SUPPORTED_COMPONENT_VERSIONS_RELATIONSHIP =
             RelationshipType.withName("LATEST_SUPPORTED_VERSIONS");
-    RelationshipType HAS_PROPERTY_SHARD = RelationshipType.withName("HAS_PROPERTY_SHARD");
-    RelationshipType HAS_GRAPH_SHARD = RelationshipType.withName("HAS_GRAPH_SHARD");
+    String HAS_PROPERTY_SHARD = "HAS_PROPERTY_SHARD";
+    RelationshipType HAS_PROPERTY_SHARD_RELATIONSHIP = RelationshipType.withName(HAS_PROPERTY_SHARD);
+    String HAS_GRAPH_SHARD = "HAS_GRAPH_SHARD";
+    RelationshipType HAS_GRAPH_SHARD_RELATIONSHIP = RelationshipType.withName(HAS_GRAPH_SHARD);
     String HAS_PROPERTY_SHARD_INDEX_PROPERTY = "index";
     Label ALLOCATION_HINTS_LABEL = Label.label("AllocationHints");
     RelationshipType HAS_ALLOCATION_HINTS_RELATIONSHIP = RelationshipType.withName("HAS_ALLOCATION_HINTS");

@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.dbms.database.DatabaseDetails
+import org.neo4j.dbms.database.DatabaseDetails.STATUS_MIXED
 import org.neo4j.dbms.database.TopologyInfoService
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.graphdb.Transaction
@@ -51,6 +52,7 @@ import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.kernel.database.DefaultDatabaseResolver
+import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
@@ -62,6 +64,7 @@ import java.util
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsJava
+import scala.jdk.OptionConverters.RichOption
 
 class DatabaseListParameterTransformerFunction(
   referenceResolver: DatabaseReferenceRepository,
@@ -94,16 +97,60 @@ class DatabaseListParameterTransformerFunction(
         (allReferences, Set.empty)
     }
 
-    val spdDatabases = filteredReferences.collect {
+    val spdWithGraphShards: Set[(NamedDatabaseId, NamedDatabaseId, Set[NamedDatabaseId])] = filteredReferences.collect {
       case ref: DatabaseReferenceImpl.VirtualSPD
         if ref.isPrimary && securityContext.databaseAccessMode().canSeeDatabase(ref) =>
-        DatabaseIdFactory.from(ref.alias().name(), ref.graphShard().id())
+        (
+          DatabaseIdFactory.from(ref.alias().name(), ref.id()),
+          DatabaseIdFactory.from(ref.graphShard().name(), ref.graphShard().id()),
+          ref.graphShard().propertyShards().values().asScala.map(propertyShard =>
+            DatabaseIdFactory.from(propertyShard.name(), propertyShard.id())
+          ).toSet
+        )
     }
 
-    val spdMetadata: List[AnyValue] = {
-      val dbInfos: util.Set[DatabaseDetails] =
-        infoService.databases(transaction, spdDatabases.asJava, detailLevels(verbose, maybeYield))
-      dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)).toList
+    val spdMetadata: List[AnyValue] = spdWithGraphShards.toList.flatMap {
+      case (spd: NamedDatabaseId, graphShard: NamedDatabaseId, propertyShards: Set[NamedDatabaseId]) =>
+        val graphShardInfos =
+          infoService.databases(transaction, Set(graphShard).asJava, detailLevels(verbose, maybeYield)).asScala
+
+        val propertyShardInfos =
+          infoService.databases(transaction, propertyShards.asJava, TopologyInfoService.RequestedExtras.NONE).asScala
+
+        val groupedStatus = (graphShardInfos ++ propertyShardInfos).map(databaseDetail =>
+          databaseDetail.status()
+        ).groupBy(identity).view.mapValues(_.size)
+        val (status, statusMessage) = if (groupedStatus.size == 1) {
+          (groupedStatus.head._1, "")
+        } else {
+          val statusMessage = groupedStatus.map(group => s"${group._1}(${group._2})").mkString(", ")
+          (STATUS_MIXED, statusMessage)
+        }
+
+        graphShardInfos.map(databaseDetails =>
+          new DatabaseDetails(
+            databaseDetails.serverId(),
+            databaseDetails.databaseAccess(),
+            databaseDetails.boltAddress(),
+            databaseDetails.role,
+            databaseDetails.writer(),
+            status,
+            statusMessage,
+            Option.empty.toJava,
+            Option.empty.toJava,
+            // database level values - will be the same for all members
+            spd, // replace with spd
+            DatabaseDetails.TYPE_STANDARD,
+            databaseDetails.options,
+            Option.empty.toJava,
+            databaseDetails.externalStoreId(),
+            null,
+            null
+          )
+        ).map(info =>
+          DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)
+        )
+          .toList
     }
 
     val accessibleDatabases = filteredReferences
