@@ -182,6 +182,11 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
 
     @Override
     void delete(ROOT_KEY dataRootKey, CursorContext cursorContext) throws IOException {
+        if (multiVersioned) {
+            // In MVCC we let the tree be accessible for the readers that still have the node visible.
+            // TODO: delayed mechanism for deleting these roots when no one needs access to the data tree any more
+            return;
+        }
         try (var rootMappingMerger = new RootDeleteValueMerger(cursorContext, dataRootKey)) {
             try (Writer<ROOT_KEY, RootMappingValue> rootMappingWriter = support.internalParallelWriter(
                     rootLayout,
