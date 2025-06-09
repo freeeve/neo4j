@@ -49,12 +49,6 @@ public class TransientTransactionFailureException extends TransientFailureExcept
         this.status = status;
     }
 
-    @Deprecated
-    public TransientTransactionFailureException(Status status, String message, Throwable cause) {
-        super(message, cause);
-        this.status = status;
-    }
-
     public TransientTransactionFailureException(
             ErrorGqlStatusObject gqlStatusObject, Status status, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);

@@ -62,11 +62,6 @@ public class ProcedureException extends KernelException {
         super(gqlStatusObject, statusCode, cause, message, parameters);
     }
 
-    @Deprecated
-    public ProcedureException(Status statusCode, String message, Object... parameters) {
-        super(statusCode, message, parameters);
-    }
-
     protected ProcedureException(
             ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Object... parameters) {
         super(gqlStatusObject, statusCode, message, parameters);

@@ -33,10 +33,6 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.logging.Log;
 
 public class TransactionFailureException extends KernelException {
-    @Deprecated
-    public TransactionFailureException(Status statusCode, Throwable cause, String message, Object... parameters) {
-        super(statusCode, cause, message, parameters);
-    }
 
     protected TransactionFailureException(
             ErrorGqlStatusObject gqlStatusObject,
