@@ -48,10 +48,9 @@ public record Version(int major, int minor, int patch, Optional<Integer> preRele
 
     @Override
     public String toString() {
-        if (preRelease.isPresent()) {
-            return format("%d.%d.%d-%d", major, minor, patch, preRelease);
-        }
-        return format("%d.%d.%d", major, minor, patch);
+        return preRelease
+                .map(integer -> format("%d.%d.%d-%d", major, minor, patch, integer))
+                .orElseGet(() -> format("%d.%d.%d", major, minor, patch));
     }
 
     public String majorMinorString() {

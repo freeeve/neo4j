@@ -149,16 +149,14 @@ class DbInfoIntegrationTest extends TestHarness {
 
         assertNever(
                 () -> dbInfo,
-                db -> {
-                    return dbInfo.labels.contains("A")
-                            || dbInfo.propertyKeys.contains("name")
-                            || dbInfo.functions.get(CypherVersion.Cypher5).contains("abs")
-                            || dbInfo.procedures.containsKey("dbms.info")
-                            || dbInfo.aliasNames.contains("nacho")
-                            || dbInfo.roleNames.contains("PUBLIC")
-                            || dbInfo.databaseNames.contains("neo4j")
-                            || dbInfo.userNames.contains("foo");
-                },
+                db -> dbInfo.labels.contains("A")
+                        || dbInfo.propertyKeys.contains("name")
+                        || dbInfo.functions.get(CypherVersion.Cypher5).contains("abs")
+                        || dbInfo.procedures.get(CypherVersion.Cypher5).containsKey("dbms.info")
+                        || dbInfo.aliasNames.contains("nacho")
+                        || dbInfo.roleNames.contains("PUBLIC")
+                        || dbInfo.databaseNames.contains("neo4j")
+                        || dbInfo.userNames.contains("foo"),
                 30,
                 SECONDS);
     }
@@ -181,16 +179,14 @@ class DbInfoIntegrationTest extends TestHarness {
         var dbInfo = testBuilder.dbInfo;
         assertNever(
                 () -> dbInfo,
-                db -> {
-                    return db.labels.contains("A")
-                            || db.propertyKeys.contains("name")
-                            || db.functions.get(CypherVersion.Cypher5).contains("abs")
-                            || db.procedures.containsKey("dbms.info")
-                            || db.aliasNames.contains("nacho")
-                            || db.roleNames.contains("PUBLIC")
-                            || db.databaseNames.contains("neo4j")
-                            || db.userNames.contains("foo");
-                },
+                db -> db.labels.contains("A")
+                        || db.propertyKeys.contains("name")
+                        || db.functions.get(CypherVersion.Cypher5).contains("abs")
+                        || db.procedures.get(CypherVersion.Cypher5).containsKey("dbms.info")
+                        || db.aliasNames.contains("nacho")
+                        || db.roleNames.contains("PUBLIC")
+                        || db.databaseNames.contains("neo4j")
+                        || db.userNames.contains("foo"),
                 30,
                 SECONDS);
     }
