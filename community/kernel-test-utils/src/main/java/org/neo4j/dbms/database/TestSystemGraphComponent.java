@@ -20,6 +20,8 @@
 package org.neo4j.dbms.database;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 
 public class TestSystemGraphComponent implements SystemGraphComponentWithVersion {
@@ -60,6 +62,15 @@ public class TestSystemGraphComponent implements SystemGraphComponentWithVersion
 
     @Override
     public void initializeSystemGraph(GraphDatabaseService system, boolean firstInitialization) throws Exception {
+        try (Transaction tx = system.beginTx()) {
+            try (ResourceIterator<Node> nodes = tx.findNodes(VERSION_LABEL)) {
+                if (nodes.hasNext()) {
+                    Node node = nodes.next();
+                    node.setProperty(component.name(), version);
+                }
+            }
+            tx.commit();
+        }
         if (status == Status.UNINITIALIZED) {
             if (onInit == null) {
                 status = Status.CURRENT;
