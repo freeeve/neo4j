@@ -94,9 +94,6 @@ public abstract class AbstractCommand implements Callable<Integer> {
 
     @Override
     public Integer call() throws Exception {
-        String potentialPermissionProblem = collectAndPrintPermissionProblems(ctx.homeDir());
-        Path reportedPermissionProblemFile = potentialPermissionProblem != null ? ctx.homeDir() : null;
-
         if (verbose) {
             printVerboseHeader();
             printConfigInformation();
@@ -105,9 +102,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
             wrappedExecute();
         } catch (Throwable e) {
             Path problematicFile = findFileForPotentialPermissionProblems(e);
-            if (problematicFile != null && !problematicFile.equals(reportedPermissionProblemFile)) {
-                collectAndPrintPermissionProblems(problematicFile);
-            }
+            problematicFile = problematicFile != null ? problematicFile : ctx.homeDir();
+            collectAndPrintPermissionProblems(problematicFile);
             if (verbose) {
                 e.printStackTrace(ctx.err());
             } else {
@@ -119,12 +115,11 @@ public abstract class AbstractCommand implements Callable<Integer> {
         return ExitCode.OK;
     }
 
-    private String collectAndPrintPermissionProblems(Path file) {
+    private void collectAndPrintPermissionProblems(Path file) {
         String problems = Locker.tryCollectPermissionInformation(ctx.fs(), file);
         if (problems != null) {
             ctx.err().println(problems);
         }
-        return problems;
     }
 
     /**
