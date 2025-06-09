@@ -297,12 +297,6 @@ public interface Status {
                 "Adding a schema index may speed up this query.",
                 SeverityLevel.INFORMATION,
                 NotificationCategory.PERFORMANCE),
-        @Deprecated
-        SuboptimalIndexForWildcardQuery(
-                ClientNotification,
-                "Index cannot execute wildcard query efficiently",
-                SeverityLevel.INFORMATION,
-                NotificationCategory.PERFORMANCE),
         UnboundedVariableLengthPattern(
                 ClientNotification,
                 "The provided pattern is unbounded, consider adding an upper limit to the number of node hops.",
@@ -315,14 +309,6 @@ public interface Status {
                         + "might be used in order to find the requested shortest path.",
                 SeverityLevel.INFORMATION,
                 NotificationCategory.PERFORMANCE),
-
-        @Deprecated
-        SideEffectVisibility(
-                ClientNotification,
-                "Using a subquery expression within a mutating statement has implications for its side-effect visibility",
-                SeverityLevel.WARNING,
-                NotificationCategory.DEPRECATION),
-
         // client notifications (not supported/deprecated)
         RuntimeUnsupportedWarning(
                 ClientNotification,
@@ -334,12 +320,6 @@ public interface Status {
                 "This feature is deprecated and will be removed in future versions.",
                 SeverityLevel.WARNING,
                 NotificationCategory.DEPRECATION),
-        @Deprecated
-        RuntimeExperimental(
-                ClientNotification,
-                "This feature is experimental and should not be used in production systems.",
-                SeverityLevel.WARNING,
-                NotificationCategory.UNSUPPORTED),
         UnsupportedAdministrationCommand(ClientError, "This administration command is not supported."),
 
         // client notifications (unknown tokens)
@@ -776,24 +756,6 @@ public interface Status {
                 SeverityLevel severity,
                 NotificationCategory category) {
             this.code = new NotificationCode(classification, this, description, severity, category);
-        }
-    }
-
-    enum Fabric implements Status {
-        @Deprecated
-        RemoteExecutionFailed(DatabaseError, "The database was unable to execute a remote part of the statement."),
-        @Deprecated
-        AccessMode(ClientError, "The request could not be completed due to access mode violation");
-
-        private final Code code;
-
-        @Override
-        public Code code() {
-            return code;
-        }
-
-        Fabric(Classification classification, String description) {
-            this.code = new Code(classification, this, description);
         }
     }
 
