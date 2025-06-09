@@ -35,8 +35,10 @@ class ParquetInputIterator implements Closeable {
             Groups groups,
             IdType idType,
             Supplier<ZoneId> defaultTimezoneSupplier,
-            String arrayDelimiter) {
-        this.reader = new ParquetDataReader(parquetData, groups, idType, defaultTimezoneSupplier, arrayDelimiter);
+            String arrayDelimiter,
+            String vectorDelimiter) {
+        this.reader = new ParquetDataReader(
+                parquetData, groups, idType, defaultTimezoneSupplier, arrayDelimiter, vectorDelimiter);
     }
 
     @Override

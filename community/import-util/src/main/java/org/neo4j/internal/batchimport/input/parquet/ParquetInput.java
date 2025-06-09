@@ -84,6 +84,7 @@ public class ParquetInput implements Input {
     private final Map<String, List<Path[]>> relationshipFiles;
     private final Map<Path, List<ParquetColumn>> verifiedColumns;
     private final String arrayDelimiter;
+    private final String vectorDelimiter;
     private final String csvDelimiter;
 
     public ParquetInput(
@@ -98,6 +99,7 @@ public class ParquetInput implements Input {
         this.groups = groups;
         this.monitor = monitor;
         this.arrayDelimiter = ((Character) csvConfig.arrayDelimiter()).toString();
+        this.vectorDelimiter = ((Character) csvConfig.vectorDelimiter()).toString();
         this.csvDelimiter = ((Character) csvConfig.delimiter()).toString();
         this.nodeFiles = nodeFiles;
         this.relationshipFiles = relationshipFiles;
@@ -110,12 +112,12 @@ public class ParquetInput implements Input {
 
     @Override
     public InputIterable nodes(Collector badCollector) {
-        return () -> new ParquetGroupInputIterator(nodeDatas, groups, idType, arrayDelimiter);
+        return () -> new ParquetGroupInputIterator(nodeDatas, groups, idType, arrayDelimiter, vectorDelimiter);
     }
 
     @Override
     public InputIterable relationships(Collector badCollector) {
-        return () -> new ParquetGroupInputIterator(relationshipDatas, groups, idType, arrayDelimiter);
+        return () -> new ParquetGroupInputIterator(relationshipDatas, groups, idType, arrayDelimiter, vectorDelimiter);
     }
 
     @Override
@@ -333,9 +335,11 @@ public class ParquetInput implements Input {
                                 structColumns.add(propertyName);
                             }
                         } catch (IllegalArgumentException e) {
-                            throw new InputException("Column name " + columnName
-                                    + " is used as a special type but is unknown. Allowed types are "
-                                    + ParquetColumn.getReservedColumns(EntityType.NODE));
+                            throw new InputException(
+                                    "Column name " + columnName
+                                            + " is used as a special type but is unknown. Allowed types are "
+                                            + ParquetColumn.getReservedColumns(EntityType.NODE),
+                                    e);
                         }
                     }
                     if (!hasLabelColumn) {

@@ -111,6 +111,7 @@ class ParquetColumnTest {
                 Arguments.of("short", ParquetColumnType.SHORT),
                 Arguments.of("SHORT[]", ParquetColumnType.SHORT),
                 Arguments.of("char", ParquetColumnType.CHAR),
-                Arguments.of("CHAR[]", ParquetColumnType.CHAR));
+                Arguments.of("CHAR[]", ParquetColumnType.CHAR),
+                Arguments.of("vector", ParquetColumnType.VECTOR));
     }
 }

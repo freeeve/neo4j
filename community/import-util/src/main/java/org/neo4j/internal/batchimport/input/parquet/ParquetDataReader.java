@@ -56,6 +56,7 @@ class ParquetDataReader implements Closeable {
     private final IdType idType;
     private final Supplier<ZoneId> defaultTimezoneSupplier;
     private final String arrayDelimiter;
+    private final String vectorDelimiter;
     private final ParquetFileReader reader;
     private final AtomicInteger blockCounter;
     private final MessageType schema;
@@ -68,12 +69,14 @@ class ParquetDataReader implements Closeable {
             Groups groups,
             IdType idType,
             Supplier<ZoneId> defaultTimezoneSupplier,
-            String arrayDelimiter) {
+            String arrayDelimiter,
+            String vectorDelimiter) {
         this.parquetDataFile = parquetDataFile;
         this.groups = groups;
         this.idType = idType;
         this.defaultTimezoneSupplier = defaultTimezoneSupplier;
         this.arrayDelimiter = arrayDelimiter;
+        this.vectorDelimiter = vectorDelimiter;
         var path = parquetDataFile.file();
 
         try {
@@ -125,6 +128,10 @@ class ParquetDataReader implements Closeable {
 
     public String getArrayDelimiter() {
         return arrayDelimiter;
+    }
+
+    public String getVectorDelimiter() {
+        return vectorDelimiter;
     }
 
     private class ParquetRowGroupReader implements Iterator<List<Object>> {

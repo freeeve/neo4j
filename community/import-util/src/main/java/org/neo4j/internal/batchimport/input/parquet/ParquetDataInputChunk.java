@@ -33,6 +33,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
+import org.neo4j.csv.reader.VectorExtractor;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.values.storable.DateTimeValue;
@@ -42,6 +43,9 @@ import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.Vector;
+import org.neo4j.values.storable.VectorValue;
 
 /**
  * The data chunk to be stuck to a Parquet reader.
@@ -52,6 +56,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
     private Groups groups;
     private Supplier<ZoneId> defaultTimezoneSupplier;
     private String arrayDelimiter;
+    private String vectorDelimiter;
     private IdType idType;
     private Iterator<List<Object>> iterator;
     private Collection<String> filteredLabelsOrTypes;
@@ -69,6 +74,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             groups = reader.getGroups();
             defaultTimezoneSupplier = reader.getDefaultTimezoneSupplier();
             arrayDelimiter = Pattern.quote(reader.getArrayDelimiter());
+            vectorDelimiter = Pattern.quote(reader.getVectorDelimiter());
             idType = reader.getIdType();
             filteredLabelsOrTypes = filterEmptyLabelsAndTrim(parquetDataFile.labelsOrType());
             return true;
@@ -183,6 +189,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                     values[i] = convertType(parts[i], nonArrayType);
                 }
                 return values;
+            } else if (parquetColumn.columnType() == ParquetColumnType.VECTOR) {
+                return convertVectorType(object, parquetColumn);
             } else if (object instanceof List) {
                 return object;
             }
@@ -214,8 +222,74 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             };
         } catch (RuntimeException e) {
             throw new InputException(
-                    "could not convert %s to %s".formatted(object.toString(), parquetColumn.columnType()), e);
+                    "could not convert %s to %s: %s"
+                            .formatted(object.toString(), parquetColumn.columnType(), e.getMessage()),
+                    e);
         }
+    }
+
+    private VectorValue convertVectorType(Object object, ParquetColumn parquetColumn) {
+        final String[] parts = object.toString().split(vectorDelimiter);
+
+        final var headerInformation = VectorExtractor.parseHeaderInformation(parquetColumn.configuration());
+        final var dimensions = headerInformation.getDimensions();
+        final var coordinateType = headerInformation.getCoordinateType();
+
+        if (dimensions != parts.length) {
+            throw new IllegalArgumentException("Header specified %d dimensions, but vector has %d dimensions: %s"
+                    .formatted(dimensions, parts.length, object));
+        }
+
+        return switch (coordinateType) {
+            case Vector.CoordinateType.INTEGER8 -> {
+                final var innerColumn = parquetColumn.withColumnType(ParquetColumnType.resolve("byte"));
+                final byte[] values = new byte[dimensions];
+                for (int i = 0; i < dimensions; i++) {
+                    values[i] = (byte) convertType(parts[i], innerColumn);
+                }
+                yield Values.int8Vector(values);
+            }
+            case Vector.CoordinateType.INTEGER16 -> {
+                final var innerColumn = parquetColumn.withColumnType(ParquetColumnType.resolve("short"));
+                short[] values = new short[dimensions];
+                for (int i = 0; i < dimensions; i++) {
+                    values[i] = (short) convertType(parts[i], innerColumn);
+                }
+                yield Values.int16Vector(values);
+            }
+            case Vector.CoordinateType.INTEGER32 -> {
+                final var innerColumn = parquetColumn.withColumnType(ParquetColumnType.resolve("int"));
+                int[] values = new int[parts.length];
+                for (int i = 0; i < parts.length; i++) {
+                    values[i] = (int) convertType(parts[i], innerColumn);
+                }
+                yield Values.int32Vector(values);
+            }
+            case Vector.CoordinateType.INTEGER64 -> {
+                final var innerColumn = parquetColumn.withColumnType(ParquetColumnType.resolve("long"));
+                long[] values = new long[dimensions];
+                for (int i = 0; i < dimensions; i++) {
+                    values[i] = (long) convertType(parts[i], innerColumn);
+                }
+                yield Values.int64Vector(values);
+            }
+            case Vector.CoordinateType.FLOAT32 -> {
+                final var innerColumn = parquetColumn.withColumnType(ParquetColumnType.resolve("float"));
+                float[] values = new float[dimensions];
+                for (int i = 0; i < dimensions; i++) {
+                    values[i] = (float) convertType(parts[i], innerColumn);
+                }
+                yield Values.float32Vector(values);
+            }
+            case Vector.CoordinateType.FLOAT64 -> {
+                final var innerColumn = parquetColumn.withColumnType(ParquetColumnType.resolve("double"));
+                double[] values = new double[dimensions];
+                for (int i = 0; i < dimensions; i++) {
+                    values[i] = (double) convertType(parts[i], innerColumn);
+                }
+                yield Values.float64Vector(values);
+            }
+        };
     }
 
     private boolean isEmptyString(Object object) {

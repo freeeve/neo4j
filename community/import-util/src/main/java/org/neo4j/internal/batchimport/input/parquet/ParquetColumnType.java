@@ -42,7 +42,8 @@ public enum ParquetColumnType {
     FLOAT("FLOAT", DOUBLE),
     BYTE("BYTE", LONG),
     SHORT("SHORT", LONG),
-    CHAR("CHAR", STRING);
+    CHAR("CHAR", STRING),
+    VECTOR("VECTOR", null);
 
     private final String reservedWord;
     private final ParquetColumnType convertedType;

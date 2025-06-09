@@ -50,6 +50,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.MessageType;
@@ -94,6 +95,7 @@ import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
@@ -310,7 +312,7 @@ class ParquetInputTest {
                                 .named(":Label")),
                 List.<Object[]>of(new Object[] {456L, "SomeoneElse", "HACKER"}));
 
-        Path headerFile = createHeaderFile(List.of(":ID,new_name,:Label"), List.of(":ID,name,:Label"));
+        Path headerFile = createHeaderFile(List.of(":ID", "new_name", ":Label"), List.of(":ID", "name", ":Label"));
 
         Input input = createParquetInput(
                 Map.of(
@@ -1735,6 +1737,410 @@ class ParquetInputTest {
         }
     }
 
+    static Stream<Arguments> shouldImportVectors() {
+        return Stream.of(
+                Arguments.of(
+                        "vector{coordinateType:byte,dimensions:2}", "1;23", Values.int8Vector((byte) 1, (byte) 23)),
+                Arguments.of(
+                        "vector{coordinateType:short,dimensions:2}", "1;23", Values.int16Vector((short) 1, (short) 23)),
+                Arguments.of("vector{coordinateType:int,dimensions:2}", "1;23", Values.int32Vector(1, 23)),
+                Arguments.of("vector{coordinateType:long,dimensions:2}", "1;23", Values.int64Vector(1, 23)),
+                Arguments.of("vector{coordinateType:float,dimensions:2}", "1;23", Values.float32Vector(1, 23)),
+                Arguments.of("vector{coordinateType:double,dimensions:2}", "1;23", Values.float64Vector(1, 23)));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void shouldImportVectors(String header, String stringValue, VectorValue expectedValue) throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:%s".formatted(header))),
+                Collections.singletonList(new Object[] {1, stringValue}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource("shouldImportVectors")
+    void shouldImportVectorsWithHeaderFiles(String header, String stringValue, VectorValue expectedValue)
+            throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop")),
+                Collections.singletonList(new Object[] {1, stringValue}));
+        Path headerFile = createHeaderFile(List.of(":ID", "vprop:" + header), List.of(":ID", "vprop"), ";");
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR,
+                Configuration.newBuilder().withDelimiter(';').build());
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldNotUseOverriddenArrayDelimiterForVectors() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{coordinateType:int,dimensions:2}")),
+                Collections.singletonList(new Object[] {1, "1;23"}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR,
+                Configuration.newBuilder().withArrayDelimiter('§').build());
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 1L, properties("vprop", Values.int32Vector(1, 23)), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldUseOverriddenVectorDelimiter() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{coordinateType:int,dimensions:2}")),
+                Collections.singletonList(new Object[] {1, "1§23"}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR,
+                Configuration.newBuilder().withVectorDelimiter('§').build());
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 1L, properties("vprop", Values.int32Vector(1, 23)), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    private static Stream<Arguments> dimensionMismatchedVectors() {
+        return Stream.of(
+                Arguments.of("vector{coordinateType:byte,dimensions:3}", "123;-2"),
+                Arguments.of("vector{coordinateType:short,dimensions:3}", "123;-2"),
+                Arguments.of("vector{coordinateType:int,dimensions:3}", "123;-2"),
+                Arguments.of("vector{coordinateType:long,dimensions:3}", "123;-2"),
+                Arguments.of("vector{coordinateType:float,dimensions:3}", "123;-2"),
+                Arguments.of("vector{coordinateType:double,dimensions:3}", "123;-2"));
+    }
+
+    @ParameterizedTest
+    @MethodSource("dimensionMismatchedVectors")
+    void shouldFailImportOnVectorDataDimensionMismatch(String header, String stringValue) throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:%s".formatted(header))),
+                Collections.singletonList(new Object[] {1, stringValue}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("Header specified 3 dimensions, but vector has 2 dimensions");
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorDataDimensionMissing() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{coordinateType:int}")),
+                Collections.singletonList(new Object[] {1, "1;23"}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("vector must specify dimensions");
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorDataCoordinateTypeMissing() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{dimensions:2}")),
+                Collections.singletonList(new Object[] {1, "1;23"}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("vector must specify coordinate type");
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorDataDimensionAndCoordinateTypeMissing() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector")),
+                Collections.singletonList(new Object[] {1, "1;23"}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("vector must specify");
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorDataCoordinateTypeSpecifiedTwice() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{coordinateType:byte, coordinateType:int}")),
+                Collections.singletonList(new Object[] {1, "1;23"}));
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR))
+                .hasMessageContaining("Duplicate field 'coordinateType'");
+    }
+
+    @Test
+    void shouldFailImportOnVectorDataCoordinateTypeSpecifiedTwiceWithDifferentCasing() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{coordinateType:byte, coordinatetype:int}")),
+                Collections.singletonList(new Object[] {1, "1;23"}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("Duplicate field 'coordinateType'");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "vector{coordinateType:byte,dimensions:3}",
+                "vector{coordinateType:short,dimensions:3}",
+                "vector{coordinateType:int,dimensions:3}",
+                "vector{coordinateType:long,dimensions:3}",
+                "vector{coordinateType:float,dimensions:3}",
+                "vector{coordinateType:double,dimensions:3}"
+            })
+    void shouldWriteNullForVectorsWhenInputIsEmpty(String header) throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:%s".formatted(header))),
+                Collections.singletonList(new Object[] {1, ""}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 1L, properties(), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorWithMissingValue() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{dimensions: 3, coordinateType:int}")),
+                Collections.singletonList(new Object[] {1, "1;;23"}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("could not convert 1;;23 to VECTOR");
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorWithMissingValueLast() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{dimensions: 3, coordinateType:int}")),
+                Collections.singletonList(new Object[] {1, "1;23;"}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("could not convert 1;23; to VECTOR");
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorWithNonNumericValue() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{dimensions: 3, coordinateType:int}")),
+                Collections.singletonList(new Object[] {1, "1;abc;23"}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("could not convert 1;abc;23 to VECTOR");
+        }
+    }
+
+    static Stream<Arguments> shouldAllowDifferentCapitalizationOfVectorInfo() {
+        return Stream.of(
+                Arguments.of(
+                        "vEcToR{coordinateType:byte,dimensions:2}", "1;23", Values.int8Vector((byte) 1, (byte) 23)),
+                Arguments.of(
+                        "vector{Coordinatetype:sHort,dimensions:2}", "1;23", Values.int16Vector((short) 1, (short) 23)),
+                Arguments.of("vector{coordinateType:inT,DIMENSIONS:2}", "1;23", Values.int32Vector(1, 23)),
+                Arguments.of("vector{coordinateType:lOng,dImensions:2}", "1;23", Values.int64Vector(1, 23)));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void shouldAllowDifferentCapitalizationOfVectorInfo(String header, String stringValue, VectorValue expectedValue)
+            throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:%s".formatted(header))),
+                Collections.singletonList(new Object[] {1, stringValue}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorWithUnknownPropertyType() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{dimensions: 3, coordinateType:pyte}")),
+                Collections.singletonList(new Object[] {1, "1;2;23"}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("pyte is not a valid coordinate type.");
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorWithNonIntegerDimension() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{dimensions: three, coordinateType:byte}")),
+                Collections.singletonList(new Object[] {1, "1;2;23"}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("three is not a valid value for dimensions.");
+        }
+    }
+
+    @Test
+    void shouldFailImportOnVectorWithTooLargeDimension() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("vprop:vector{dimensions: 5000, coordinateType:byte}")),
+                Collections.singletonList(
+                        new Object[] {1, Stream.generate(() -> "1").limit(5000).collect(Collectors.joining(";"))}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertThatThrownBy(() -> readNext(nodes))
+                    .isInstanceOf(InputException.class)
+                    .hasMessageContaining("Invalid vector dimensions: 5000");
+        }
+    }
+
     @Test
     void shouldNotIncludeNullArraysInEntities() throws Exception {
         // GIVEN
@@ -2335,12 +2741,17 @@ class ParquetInputTest {
     }
 
     private Path createHeaderFile(List<String> columnNames, List<String> originalColumnNames) throws Exception {
+        return createHeaderFile(columnNames, originalColumnNames, ",");
+    }
+
+    private Path createHeaderFile(List<String> columnNames, List<String> originalColumnNames, String delimiter)
+            throws Exception {
         Path path = directory.file("header.csv");
         try (var writer = new BufferedWriter(new FileWriter(path.toFile()))) {
-            writer.write(String.join(",", columnNames));
+            writer.write(String.join(delimiter, columnNames));
             writer.newLine();
             if (!originalColumnNames.isEmpty()) {
-                writer.write(String.join(",", originalColumnNames));
+                writer.write(String.join(delimiter, originalColumnNames));
                 writer.newLine();
             }
         }

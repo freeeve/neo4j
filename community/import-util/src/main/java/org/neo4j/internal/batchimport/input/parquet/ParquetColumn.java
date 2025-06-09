@@ -193,6 +193,19 @@ record ParquetColumn(
                 configuration());
     }
 
+    ParquetColumn withColumnType(ParquetColumnType columnType) {
+        return new ParquetColumn(
+                columnName(),
+                headerDefinition(),
+                propertyName(),
+                groupName(),
+                logicalColumnType(),
+                columnType,
+                isArray(),
+                rawConfiguration(),
+                configuration());
+    }
+
     boolean hasPropertyName() {
         return propertyName != null && !propertyName.isBlank();
     }
