@@ -117,12 +117,14 @@ import org.neo4j.test.DoubleLatch;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 @ImpermanentDbmsExtension
+@SkipOnSpd(reason = "We use dependencies from graph-shard and won't add anything to index since that has no properties")
 class IndexPopulationJobTest {
     private static final CursorContextFactory CONTEXT_FACTORY =
             new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER);

@@ -49,6 +49,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
@@ -77,6 +78,7 @@ class IndexStatisticsIT {
         managementService.shutdown();
     }
 
+    @SkipOnSpd(reason = "Gets the IndexStatisticsStore for the graphDb and asserts on size will be wrong")
     @Test
     void shouldRecoverIndexCountsBySamplingThemOnStartup() {
         // given some aliens in a database

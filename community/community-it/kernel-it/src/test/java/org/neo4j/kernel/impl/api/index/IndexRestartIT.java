@@ -48,6 +48,7 @@ import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.test.Barrier;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
@@ -109,6 +110,7 @@ class IndexRestartIT {
         }
     }
 
+    @SkipOnSpd(reason = "Asserts on specific num calls to provider, with shards we get more calls")
     @Test
     void shouldHandleRestartOfOnlineIndex() throws KernelException {
         // Given
@@ -134,6 +136,7 @@ class IndexRestartIT {
         assertEquals(2, provider.writerCallCount.get());
     }
 
+    @SkipOnSpd(reason = "Asserts on specific num calls to provider, with shards we get more calls")
     @Test
     void shouldHandleRestartIndexThatHasNotComeOnlineYet() throws KernelException {
         // Given
