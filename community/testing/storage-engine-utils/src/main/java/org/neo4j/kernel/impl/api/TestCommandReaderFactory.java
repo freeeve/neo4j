@@ -52,6 +52,7 @@ public class TestCommandReaderFactory implements CommandReaderFactory {
         @Override
         public StorageCommand read(ReadableChannel channel, MemoryTracker memoryTracker) throws IOException {
             int length = channel.getInt();
+            memoryTracker.allocateHeap(length);
             byte[] bytes = new byte[length];
             channel.get(bytes, length);
             return new TestCommand(bytes);
