@@ -23,6 +23,7 @@ import static java.lang.Boolean.TRUE;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -214,6 +215,8 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
         var bootstrap = new ServerBootstrap()
                 .channel(channelType())
                 .group(bossGroup(), workerGroup())
+                .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                 .childHandler(channelInitializer());
 
         configureServer(bootstrap);
