@@ -16,10 +16,14 @@
  */
 package org.neo4j.cypher.internal.expressions.functions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNumber
+import org.neo4j.cypher.internal.util.symbols.CTVector
+import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 
 case object VectorSimilarityCosine extends Function {
   override def name = "vector.similarity.cosine"
@@ -35,6 +39,22 @@ case object VectorSimilarityCosine extends Function {
       category = Category.VECTOR,
       argumentDescriptions =
         Map("a" -> "A list representing the first vector.", "b" -> "A list representing the second vector.")
+    ),
+    FunctionTypeSignature(
+      function = this,
+      names = Vector("a", "b"),
+      argumentTypes = Vector(
+        ClosedDynamicUnionType(Set(CTList(CTNumber), CTVector))(InputPosition.NONE),
+        ClosedDynamicUnionType(Set(CTList(CTNumber), CTVector))(InputPosition.NONE)
+      ),
+      outputType = CTFloat,
+      description =
+        "Returns a `FLOAT` representing the similarity between the argument vectors based on their cosine.",
+      category = Category.VECTOR,
+      argumentDescriptions =
+        Map("a" -> "A value representing the first vector.", "b" -> "A value representing the second vector."),
+      scopes = Set(CypherVersion.Cypher25),
+      internal = true // Remove when the vector type is ready to be released
     )
   )
 }

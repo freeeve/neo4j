@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.runtime.ImplicitValueConversion.toPathValue
 import org.neo4j.cypher.internal.runtime.ImplicitValueConversion.toStringValue
 import org.neo4j.cypher.internal.runtime.PathImpl
 import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
-import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SizeFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SizeFunctionCypher25
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Variable
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.VectorDimensionCountFunction
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -49,7 +49,7 @@ class SizeFunctionTest extends CypherFunSuite {
     // given
     val l = Seq("it", "was", "the")
     val m = CypherRow.from("l" -> l)
-    val sizeFunction = SizeFunction(Variable("l"))
+    val sizeFunction = SizeFunctionCypher25(Variable("l"))
 
     // when
     val result = sizeFunction.apply(m, QueryStateHelper.empty)
@@ -62,7 +62,7 @@ class SizeFunctionTest extends CypherFunSuite {
     // given
     val s = "it was the"
     val m = CypherRow.from("s" -> s)
-    val sizeFunction = SizeFunction(Variable("s"))
+    val sizeFunction = SizeFunctionCypher25(Variable("s"))
 
     // when
     val result = sizeFunction.apply(m, QueryStateHelper.empty)
@@ -83,7 +83,7 @@ class SizeFunctionTest extends CypherFunSuite {
     )
     vectors.forEach { v =>
       val m = CypherRow.from("v" -> v)
-      val sizeFunction = SizeFunction(Variable("v"))
+      val sizeFunction = SizeFunctionCypher25(Variable("v"))
       val vectorDimensionCountFunction = VectorDimensionCountFunction(Variable("v"))
 
       // when
@@ -100,12 +100,12 @@ class SizeFunctionTest extends CypherFunSuite {
     // given
     val p = PathImpl(mockNode(), mock[Relationship], mockNode())
     val m = CypherRow.from("p" -> p)
-    val sizeFunction = SizeFunction(Variable("p"))
+    val sizeFunction = SizeFunctionCypher25(Variable("p"))
 
     // when/then
     val e = intercept[CypherTypeException](sizeFunction.apply(m, QueryStateHelper.empty))
     e should be(functionArgumentGqlException(
-      "Invalid input for function 'size()': Expected a String or List, got: Path{(0)-[0]-(0)}",
+      "Invalid input for function 'size()': Expected a String, Vector or List, got: Path{(0)-[0]-(0)}",
       "size()",
       "Expected the value (id=0)-[id=1]->(id=0) to be of type STRING, VECTOR or LIST<ANY>, but was of type PATH NOT NULL."
     ))
@@ -114,12 +114,12 @@ class SizeFunctionTest extends CypherFunSuite {
   test("size cannot be used on integers") {
     // given
     val m = CypherRow.from("p" -> Values.of(33))
-    val sizeFunction = SizeFunction(Variable("p"))
+    val sizeFunction = SizeFunctionCypher25(Variable("p"))
 
     // when/then
     val e = intercept[CypherTypeException](sizeFunction.apply(m, QueryStateHelper.empty))
     e should be(functionArgumentGqlException(
-      "Invalid input for function 'size()': Expected a String or List, got: Int(33)",
+      "Invalid input for function 'size()': Expected a String, Vector or List, got: Int(33)",
       "size()",
       "Expected the value 33 to be of type STRING, VECTOR or LIST<ANY>, but was of type INTEGER NOT NULL."
     ))

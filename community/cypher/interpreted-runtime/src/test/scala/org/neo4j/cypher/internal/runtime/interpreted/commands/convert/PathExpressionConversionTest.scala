@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.commands.convert
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.NilPathStep
@@ -49,7 +50,8 @@ class PathExpressionConversionTest extends CypherFunSuite with AstConstructionTe
         ReadTokenContext.EMPTY,
         new AnonymousVariableNameGenerator(),
         new SelectivityTrackerRegistrator(),
-        CypherRuntimeConfiguration.defaultConfiguration
+        CypherRuntimeConfiguration.defaultConfiguration,
+        CypherVersion.Default
       )
     )
 

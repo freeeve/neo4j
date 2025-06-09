@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.runtime.interpreted.commands.convert
 
 import org.neo4j.cypher.internal
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphFunctionReference
@@ -195,7 +196,8 @@ case class CommunityExpressionConverter(
   tokenContext: ReadTokenContext,
   anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
   selectivityTrackerRegistrator: SelectivityTrackerRegistrator,
-  runtimeConfig: CypherRuntimeConfiguration
+  runtimeConfig: CypherRuntimeConfiguration,
+  cypherVersion: CypherVersion
 ) extends ExpressionConverter {
 
   override def toCommandProjection(
@@ -781,7 +783,13 @@ case class CommunityExpressionConverter(
       case Sign => commands.expressions.SignFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Sin  => commands.expressions.SinFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Sinh => commands.expressions.SinhFunction(self.toCommandExpression(id, invocation.arguments.head))
-      case Size => commands.expressions.SizeFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Size =>
+        cypherVersion match {
+          case CypherVersion.Cypher5 =>
+            commands.expressions.SizeFunctionCypher5(self.toCommandExpression(id, invocation.arguments.head))
+          case CypherVersion.Cypher25 =>
+            commands.expressions.SizeFunctionCypher25(self.toCommandExpression(id, invocation.arguments.head))
+        }
       case Split =>
         commands.expressions.SplitFunction(
           self.toCommandExpression(id, invocation.arguments.head),
@@ -830,12 +838,23 @@ case class CommunityExpressionConverter(
         commands.expressions.ToBooleanOrNullFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ToFloat => commands.expressions.ToFloatFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ToFloatList =>
-        commands.expressions.ToFloatListFunction(self.toCommandExpression(id, invocation.arguments.head))
+        cypherVersion match {
+          case CypherVersion.Cypher5 =>
+            commands.expressions.ToFloatListFunctionCypher5(self.toCommandExpression(id, invocation.arguments.head))
+          case CypherVersion.Cypher25 =>
+            commands.expressions.ToFloatListFunctionCypher25(self.toCommandExpression(id, invocation.arguments.head))
+        }
       case ToFloatOrNull =>
         commands.expressions.ToFloatOrNullFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ToInteger => commands.expressions.ToIntegerFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ToIntegerList =>
-        commands.expressions.ToIntegerListFunction(self.toCommandExpression(id, invocation.arguments.head))
+        cypherVersion match {
+          case CypherVersion.Cypher5 =>
+            commands.expressions.ToIntegerListFunctionCypher5(self.toCommandExpression(id, invocation.arguments.head))
+          case CypherVersion.Cypher25 =>
+            commands.expressions.ToIntegerListFunctionCypher25(self.toCommandExpression(id, invocation.arguments.head))
+        }
+
       case ToIntegerOrNull =>
         commands.expressions.ToIntegerOrNullFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ToLower  => commands.expressions.ToLowerFunction(self.toCommandExpression(id, invocation.arguments.head))

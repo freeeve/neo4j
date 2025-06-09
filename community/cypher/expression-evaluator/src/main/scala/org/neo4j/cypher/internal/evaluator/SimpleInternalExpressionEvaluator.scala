@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.evaluator
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator.CONVERTERS
 import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator.NULL_CURSOR_FACTORY
 import org.neo4j.cypher.internal.expressions.Expression
@@ -144,7 +145,8 @@ object SimpleInternalExpressionEvaluator {
         ReadTokenContext.EMPTY,
         new AnonymousVariableNameGenerator(),
         noopSelectivityTrackerRegistrator,
-        CypherRuntimeConfiguration.defaultConfiguration
+        CypherRuntimeConfiguration.defaultConfiguration,
+        CypherVersion.Default
       )
     )
 

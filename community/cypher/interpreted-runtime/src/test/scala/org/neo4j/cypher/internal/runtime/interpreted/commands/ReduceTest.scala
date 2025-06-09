@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Add
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ExpressionVariable
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.LengthFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ReduceFunction
-import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SizeFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SizeFunctionCypher25
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Variable
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.values.storable.Values.NO_VALUE
@@ -37,7 +37,7 @@ class ReduceTest extends CypherFunSuite {
 
   test("canReturnSomethingFromAnIterable") {
     val l = Seq("x", "xxx", "xx")
-    val expression = Add(ExpressionVariable(0, "acc"), SizeFunction(ExpressionVariable(1, "n")))
+    val expression = Add(ExpressionVariable(0, "acc"), SizeFunctionCypher25(ExpressionVariable(1, "n")))
     val collection = Variable("l")
     val m = CypherRow.from("l" -> l)
     val s = QueryStateHelper.emptyWith(expressionVariables = new Array(2))

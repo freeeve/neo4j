@@ -30,6 +30,12 @@ import org.neo4j.values.storable.CoordinateReferenceSystem
 import org.neo4j.values.storable.LongValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.NO_VALUE
+import org.neo4j.values.storable.Values.float32Vector
+import org.neo4j.values.storable.Values.float64Vector
+import org.neo4j.values.storable.Values.int16Vector
+import org.neo4j.values.storable.Values.int32Vector
+import org.neo4j.values.storable.Values.int64Vector
+import org.neo4j.values.storable.Values.int8Vector
 import org.neo4j.values.storable.Values.longValue
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualValues
@@ -79,6 +85,15 @@ class ToIntegerListFunctionTest extends CypherFunSuite with CypherScalaCheckDriv
     assert(toIntegerList(Seq(true, false)) === Values.intArray(Array(1, 0)))
   }
 
+  test("should convert a vector value to a list of integers") {
+    assert(toIntegerList(int8Vector(1, 2, 3, 4, 5)) === Values.intArray(Array(1, 2, 3, 4, 5)))
+    assert(toIntegerList(int16Vector(1, 2, 3, 4, 5)) === Values.intArray(Array(1, 2, 3, 4, 5)))
+    assert(toIntegerList(int32Vector(1, 2, 3, 4, 5)) === Values.intArray(Array(1, 2, 3, 4, 5)))
+    assert(toIntegerList(int64Vector(1, 2, 3, 4, 5)) === Values.intArray(Array(1, 2, 3, 4, 5)))
+    assert(toIntegerList(float32Vector(1, 2, 3, 4, 5)) === Values.intArray(Array(1, 2, 3, 4, 5)))
+    assert(toIntegerList(float64Vector(1, 2, 3, 4, 5)) === Values.intArray(Array(1, 2, 3, 4, 5)))
+  }
+
   test("should convert a list with a large number to a list of integers") {
     assert(toIntegerList(Seq("1", "10508455564958384115", "8589934592.0")) == VirtualValues.list(
       longValue(1),
@@ -96,9 +111,9 @@ class ToIntegerListFunctionTest extends CypherFunSuite with CypherScalaCheckDriv
   test("should throw an exception if the list argument contains a non-list") {
     val caughtException = the[CypherTypeException] thrownBy toIntegerList("foo")
     caughtException should be(functionArgumentGqlException(
-      "Invalid input for function 'toIntegerList()': Expected a List, got: String(\"foo\")",
+      "Invalid input for function 'toIntegerList()': Expected a List or Vector, got: String(\"foo\")",
       "toIntegerList()",
-      "Expected the value \"foo\" to be of type LIST<ANY>, but was of type STRING NOT NULL."
+      "Expected the value \"foo\" to be of type LIST<ANY> or VECTOR, but was of type STRING NOT NULL."
     ))
   }
 
@@ -114,6 +129,6 @@ class ToIntegerListFunctionTest extends CypherFunSuite with CypherScalaCheckDriv
   }
 
   private def toIntegerList(orig: Any) = {
-    ToIntegerListFunction(literal(orig))(CypherRow.empty, QueryStateHelper.empty)
+    ToIntegerListFunctionCypher25(literal(orig))(CypherRow.empty, QueryStateHelper.empty)
   }
 }

@@ -2028,10 +2028,27 @@ public final class CypherFunctions {
             return longValue(vector.dimensions());
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    "Invalid input for function 'size()': Expected a String or List, got: " + item,
+                    "Invalid input for function 'size()': Expected a String, Vector or List, got: " + item,
                     "size",
                     item.prettify(),
                     List.of("STRING", "VECTOR", "LIST<ANY>"),
+                    CypherTypeValueMapper.valueType(item));
+        }
+    }
+
+    public static AnyValue sizeCypher5(AnyValue item) {
+        if (item == NO_VALUE) {
+            return NO_VALUE;
+        } else if (item instanceof TextValue textValue) {
+            return longValue(textValue.length());
+        } else if (item instanceof SequenceValue list) {
+            return longValue(list.actualSize());
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'size()': Expected a String or List, got: " + item,
+                    "size",
+                    item.prettify(),
+                    List.of("STRING", "LIST<ANY>"),
                     CypherTypeValueMapper.valueType(item));
         }
     }
@@ -2154,6 +2171,29 @@ public final class CypherFunctions {
             return StreamSupport.stream(sv.spliterator(), false)
                     .map(entry -> entry == NO_VALUE ? NO_VALUE : toFloatOrNull(entry))
                     .collect(ListValueBuilder.collector());
+        } else if (in instanceof VectorValue v) {
+            var list = ListValueBuilder.newListBuilder(v.dimensions());
+            for (int i = 0; i < v.dimensions(); i++) {
+                list.add(Values.doubleValue(v.doubleValue(i)));
+            }
+            return list.build();
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format("Invalid input for function 'toFloatList()': Expected a List or Vector, got: %s", in),
+                    "toFloatList",
+                    in.prettify(),
+                    List.of("LIST<ANY>", "VECTOR"),
+                    CypherTypeValueMapper.valueType(in));
+        }
+    }
+
+    public static AnyValue toFloatListCypher5(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof SequenceValue sv) {
+            return StreamSupport.stream(sv.spliterator(), false)
+                    .map(entry -> entry == NO_VALUE ? NO_VALUE : toFloatOrNull(entry))
+                    .collect(ListValueBuilder.collector());
         } else {
             throw CypherTypeException.functionArgumentWrongType(
                     String.format("Invalid input for function 'toFloatList()': Expected a List, got: %s", in),
@@ -2205,6 +2245,32 @@ public final class CypherFunctions {
     }
 
     public static AnyValue toIntegerList(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof IntegralArray array) {
+            return VirtualValues.fromArray(array);
+        } else if (in instanceof FloatingPointArray array) {
+            return toIntegerList(array);
+        } else if (in instanceof SequenceValue sequence) {
+            return toIntegerList(sequence);
+        } else if (in instanceof VectorValue v) {
+            var list = ListValueBuilder.newListBuilder(v.dimensions());
+            for (int i = 0; i < v.dimensions(); i++) {
+                list.add(Values.longValue((long) v.doubleValue(i)));
+            }
+            return list.build();
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    String.format(
+                            "Invalid input for function 'toIntegerList()': Expected a List or Vector, got: %s", in),
+                    "toIntegerList",
+                    in.prettify(),
+                    List.of("LIST<ANY>", "VECTOR"),
+                    CypherTypeValueMapper.valueType(in));
+        }
+    }
+
+    public static AnyValue toIntegerListCypher5(AnyValue in) {
         if (in == NO_VALUE) {
             return NO_VALUE;
         } else if (in instanceof IntegralArray array) {

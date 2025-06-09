@@ -16,10 +16,14 @@
  */
 package org.neo4j.cypher.internal.expressions.functions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTList
+import org.neo4j.cypher.internal.util.symbols.CTVector
+import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 
 case object ToFloatList extends Function {
   override def name = "toFloatList"
@@ -34,6 +38,18 @@ case object ToFloatList extends Function {
         "Converts a `LIST<ANY>` to a `LIST<FLOAT>` values. If any values are not convertible to `FLOAT` they will be null in the `LIST<FLOAT>` returned.",
       category = Category.LIST,
       argumentDescriptions = Map("input" -> "A list of values to be converted into a list of floats.")
+    ),
+    FunctionTypeSignature(
+      this,
+      names = Vector("input"),
+      argumentTypes = Vector(ClosedDynamicUnionType(Set(CTList(CTAny), CTVector))(InputPosition.NONE)),
+      outputType = CTList(CTFloat),
+      description =
+        "Converts a `LIST<ANY> | VECTOR` to a `LIST<FLOAT>` values. If any values are not convertible to `FLOAT` they will be null in the `LIST<FLOAT>` returned.",
+      category = Category.LIST,
+      argumentDescriptions = Map("input" -> "A list of values or vector to be converted into a list of floats."),
+      scopes = Set(CypherVersion.Cypher25),
+      internal = true // Remove when the vector type is ready to be released
     )
   )
 }

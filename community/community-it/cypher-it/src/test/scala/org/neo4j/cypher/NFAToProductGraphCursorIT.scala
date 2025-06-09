@@ -21,6 +21,7 @@ package org.neo4j.cypher
 
 import org.neo4j.cypher.NFAToProductGraphCursorIT.NFABuilderWrapper
 import org.neo4j.cypher.NFAToProductGraphCursorIT.NFAStateWrapper
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -302,7 +303,8 @@ class NFAToProductGraphCursorIT extends ExecutionEngineFunSuite {
                   ReadTokenContext.EMPTY,
                   new AnonymousVariableNameGenerator(),
                   new SelectivityTrackerRegistrator,
-                  CypherRuntimeConfiguration.defaultConfiguration
+                  CypherRuntimeConfiguration.defaultConfiguration,
+                  CypherVersion.Default
                 )
               )
 

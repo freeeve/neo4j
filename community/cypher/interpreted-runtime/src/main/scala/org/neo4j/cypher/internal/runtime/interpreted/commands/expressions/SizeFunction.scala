@@ -25,16 +25,32 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.values.AnyValue
 
-case class SizeFunction(inner: Expression)
+abstract class SizeFunction(inner: Expression)
     extends Expression {
-
-  override def apply(ctx: ReadableRow, state: QueryState): AnyValue = CypherFunctions.size(inner(ctx, state))
-
-  override def rewrite(f: Expression => Expression): Expression = f(SizeFunction(inner.rewrite(f)))
 
   override def arguments: Seq[Expression] = Seq(inner)
 
   override def children: Seq[AstNode[_]] = Seq(inner)
 
   override def toString = s"size($inner)"
+}
+
+case class SizeFunctionCypher25(inner: Expression)
+    extends SizeFunction(inner) {
+
+  override def apply(ctx: ReadableRow, state: QueryState): AnyValue = CypherFunctions.size(inner(ctx, state))
+
+  override def rewrite(f: Expression => Expression): Expression = f(SizeFunctionCypher25(inner.rewrite(f)))
+
+  override def toString = s"size($inner)"
+}
+
+case class SizeFunctionCypher5(inner: Expression)
+    extends SizeFunction(inner) {
+
+  override def apply(ctx: ReadableRow, state: QueryState): AnyValue = CypherFunctions.sizeCypher5(inner(ctx, state))
+
+  override def rewrite(f: Expression => Expression): Expression = f(SizeFunctionCypher5(inner.rewrite(f)))
+
+  override def toString = s"sizeCypher5($inner)"
 }

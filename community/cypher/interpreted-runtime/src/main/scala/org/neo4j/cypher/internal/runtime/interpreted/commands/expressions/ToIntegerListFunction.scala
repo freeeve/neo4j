@@ -25,14 +25,23 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.values.AnyValue
 
-case class ToIntegerListFunction(arg: Expression) extends Expression {
+abstract class ToIntegerListFunction(arg: Expression) extends Expression {
 
   override def arguments: Seq[Expression] = Seq(arg)
 
-  override def rewrite(f: Expression => Expression): Expression = f(ToIntegerListFunction(arg.rewrite(f)))
+  override def children: Seq[AstNode[_]] = Seq(arg)
+}
+
+case class ToIntegerListFunctionCypher5(arg: Expression) extends ToIntegerListFunction(arg) {
+  override def rewrite(f: Expression => Expression): Expression = f(ToIntegerListFunctionCypher5(arg.rewrite(f)))
+
+  override def apply(ctx: ReadableRow, state: QueryState): AnyValue =
+    CypherFunctions.toIntegerListCypher5(arg(ctx, state))
+}
+
+case class ToIntegerListFunctionCypher25(arg: Expression) extends ToIntegerListFunction(arg) {
+  override def rewrite(f: Expression => Expression): Expression = f(ToIntegerListFunctionCypher25(arg.rewrite(f)))
 
   override def apply(ctx: ReadableRow, state: QueryState): AnyValue =
     CypherFunctions.toIntegerList(arg(ctx, state))
-
-  override def children: Seq[AstNode[_]] = Seq(arg)
 }
