@@ -240,8 +240,9 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
     versions: Seq[CypherVersion] = CypherVersion.values()
   )(f: Query => Unit): Unit = {
     versions.foreach { version =>
-      val parsed = AstParserFactory(version)(queryText, Neo4jCypherExceptionFactory(queryText, None), None)
-        .singleStatement()
+      val parsed =
+        AstParserFactory(version)(queryText, Neo4jCypherExceptionFactory(queryText, None), None, Seq())
+          .singleStatement()
       val rewriter = LabelExpressionPredicateNormalizer.instance andThen
         NormalizeHasLabelsAndHasType(SemanticChecker.check(parsed).state)
       rewriter(parsed) match {

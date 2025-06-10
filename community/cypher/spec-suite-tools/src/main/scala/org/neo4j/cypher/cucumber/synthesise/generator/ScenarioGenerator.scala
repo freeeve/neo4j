@@ -125,8 +125,9 @@ class CachingParser(version: CypherVersion) {
   private def doParse(version: CypherVersion, cypher: String): ParsedQuery =
     try {
       val statement = preparser.preParse(cypher, version).statement
-      val ast = AstParserFactory(version)(statement, Neo4jCypherExceptionFactory(statement, None), None)
-        .singleStatement()
+      val ast =
+        AstParserFactory(version)(statement, Neo4jCypherExceptionFactory(statement, None), None, Seq())
+          .singleStatement()
       ParsedQuery(cypher, statement, ast)
     } catch {
       case throwable: Throwable => throw new RuntimeException(

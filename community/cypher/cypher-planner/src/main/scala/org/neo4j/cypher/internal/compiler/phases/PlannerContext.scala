@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.phases
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.SyntaxExceptionCreator
@@ -64,7 +65,8 @@ class BaseContextImpl(
   override val monitors: Monitors,
   override val cancellationChecker: CancellationChecker,
   override val internalUsageStats: InternalUsageStats,
-  val sessionDatabase: DatabaseReference
+  val sessionDatabase: DatabaseReference,
+  override val semanticFeatures: Seq[SemanticFeature]
 ) extends BaseContext {
 
   override val errorHandler: Seq[SemanticErrorDef] => Unit =
@@ -84,7 +86,8 @@ object BaseContextImpl {
     monitors: Monitors,
     cancellationChecker: CancellationChecker,
     internalSyntaxUsageStats: InternalUsageStats,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    semanticFeatures: Seq[SemanticFeature]
   ): BaseContextImpl = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
     new BaseContextImpl(
@@ -95,7 +98,8 @@ object BaseContextImpl {
       monitors,
       cancellationChecker,
       internalSyntaxUsageStats,
-      sessionDatabase
+      sessionDatabase,
+      semanticFeatures
     )
   }
 }
@@ -126,7 +130,8 @@ class PlannerContext(
   val internalNotificationStats: InternalNotificationStats,
   internalSyntaxUsageStats: InternalUsageStats,
   val labelInferenceStrategy: LabelInferenceStrategy,
-  override val sessionDatabase: DatabaseReference
+  override val sessionDatabase: DatabaseReference,
+  override val semanticFeatures: Seq[SemanticFeature] = Seq()
 ) extends BaseContextImpl(
       cypherVersion,
       cypherExceptionFactory,
@@ -135,7 +140,8 @@ class PlannerContext(
       monitors,
       cancellationChecker,
       internalSyntaxUsageStats,
-      sessionDatabase
+      sessionDatabase,
+      semanticFeatures
     ) {
 
   /**

@@ -115,7 +115,8 @@ object GraphCountsJson {
     val mapExpression = AstParserFactory(CypherVersion.Default)(
       mapString,
       Neo4jCypherExceptionFactory(mapString, None),
-      None
+      None,
+      Seq()
     ).expression()
     val json = mapLiteralToJson(mapExpression)
     GraphCountsJson.parseAsGraphCountDataFromString(json)

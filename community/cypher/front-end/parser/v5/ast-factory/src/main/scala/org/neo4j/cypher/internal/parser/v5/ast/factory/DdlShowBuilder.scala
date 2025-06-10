@@ -578,7 +578,8 @@ trait DdlShowBuilder extends Cypher5ParserListener {
     ctx.ast = ShowDatabase(
       dbScope,
       astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
-      cypher5ColumnsOnly = true
+      cypher5ColumnsOnly = true,
+      spdEnabled = false
     )(pos(ctx.getParent))
   }
 

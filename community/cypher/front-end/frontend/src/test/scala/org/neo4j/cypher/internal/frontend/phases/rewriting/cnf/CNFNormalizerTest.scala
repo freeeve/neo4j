@@ -285,4 +285,5 @@ class TestContext(
   override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
   override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
   override def sessionDatabase: DatabaseReference = null
+  override def semanticFeatures: Seq[SemanticFeature] = Seq()
 }

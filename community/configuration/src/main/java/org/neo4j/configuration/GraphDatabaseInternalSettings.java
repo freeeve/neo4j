@@ -1198,6 +1198,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
     @Internal
     @Description(
+            "By default, the sharded property database is disabled. This setting is a feature toggle behind which sharded property database is developed.")
+    public static final Setting<Boolean> spd_enabled = newBuilder(
+                    "internal.dbms.sharded_property_database.enabled", BOOL, false)
+            .build();
+
+    @Internal
+    @Description(
             "Limits the maximum amount of off-heap memory the consistency checker will allocate. The value is given as a factor between 0.1 .. 1 "
                     + "and will be multiplied with actual available memory to get the effectively available amount of memory taken into consideration")
     public static final Setting<Double> consistency_check_memory_limit_factor = newBuilder(

@@ -150,7 +150,8 @@ trait PrettifierTestUtils extends Matchers {
   }
 
   private def parseAndClearCache(cypherVersion: CypherVersion, query: String): Statement = {
-    val parser: AstParser = AstParserFactory(cypherVersion)(query, Neo4jCypherExceptionFactory(query, None), None)
+    val parser: AstParser =
+      AstParserFactory(cypherVersion)(query, Neo4jCypherExceptionFactory(query, None), None, Seq())
     val statement = parser.singleStatement()
 
     // Clear the parser DFA cache occasionally to not go OOM but not too often as it makes the test slower

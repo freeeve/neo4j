@@ -147,7 +147,12 @@ object Parser {
       override def useClause(cypher: String): UseGraph = parser(cypher).parse(_.useClause())
 
       private def parser(cypher: String) =
-        AstParserFactory(CypherVersion.Cypher5)(cypher, Neo4jCypherExceptionFactory(cypher, None), None)
+        AstParserFactory(CypherVersion.Cypher5)(
+          cypher,
+          Neo4jCypherExceptionFactory(cypher, None),
+          None,
+          Seq()
+        )
           .asInstanceOf[Cypher5AstParser]
     }
   }
@@ -161,7 +166,12 @@ object Parser {
       override def useClause(cypher: String): UseGraph = parser(cypher).parse(_.useClause())
 
       private def parser(cypher: String) =
-        AstParserFactory(CypherVersion.Cypher25)(cypher, Neo4jCypherExceptionFactory(cypher, None), None)
+        AstParserFactory(CypherVersion.Cypher25)(
+          cypher,
+          Neo4jCypherExceptionFactory(cypher, None),
+          None,
+          Seq()
+        )
           .asInstanceOf[Cypher25AstParser]
     }
   }

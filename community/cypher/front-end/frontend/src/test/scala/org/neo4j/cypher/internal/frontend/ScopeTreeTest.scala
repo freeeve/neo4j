@@ -432,7 +432,7 @@ class ScopeTreeTest extends CypherFunSuite {
   }
 
   def parse(version: CypherVersion, query: String): Statement = {
-    AstParserFactory(version)(query, Neo4jCypherExceptionFactory(query, None), None)
+    AstParserFactory(version)(query, Neo4jCypherExceptionFactory(query, None), None, Seq())
       .singleStatement()
       // We have to project unions to materialize the UnionMappings so that we can find the Variables in them.
       .endoRewrite(Namespacer.projectUnions)

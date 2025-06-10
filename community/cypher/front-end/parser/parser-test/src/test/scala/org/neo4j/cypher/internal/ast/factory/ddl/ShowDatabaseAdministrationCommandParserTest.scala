@@ -32,54 +32,64 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
   Seq(
-    ("DATABASE", ShowDatabase.apply(AllDatabasesScope()(pos), _: YieldOrWhere, _: Boolean) _),
-    ("DATABASES", ShowDatabase.apply(AllDatabasesScope()(pos), _: YieldOrWhere, _: Boolean) _),
-    ("DEFAULT DATABASE", ShowDatabase.apply(DefaultDatabaseScope()(pos), _: YieldOrWhere, _: Boolean) _),
-    ("HOME DATABASE", ShowDatabase.apply(HomeDatabaseScope()(pos), _: YieldOrWhere, _: Boolean) _),
+    ("DATABASE", ShowDatabase.apply(AllDatabasesScope()(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _),
+    ("DATABASES", ShowDatabase.apply(AllDatabasesScope()(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _),
+    ("DEFAULT DATABASE", ShowDatabase.apply(DefaultDatabaseScope()(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _),
+    ("HOME DATABASE", ShowDatabase.apply(HomeDatabaseScope()(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _),
     (
       "DATABASE $db",
-      ShowDatabase.apply(SingleNamedDatabaseScope(stringParamName("db"))(pos), _: YieldOrWhere, _: Boolean) _
+      ShowDatabase.apply(
+        SingleNamedDatabaseScope(stringParamName("db"))(pos),
+        _: YieldOrWhere,
+        _: Boolean,
+        _: Boolean
+      ) _
     ),
     (
       "DATABASES $db",
-      ShowDatabase.apply(SingleNamedDatabaseScope(stringParamName("db"))(pos), _: YieldOrWhere, _: Boolean) _
+      ShowDatabase.apply(
+        SingleNamedDatabaseScope(stringParamName("db"))(pos),
+        _: YieldOrWhere,
+        _: Boolean,
+        _: Boolean
+      ) _
     ),
     (
       "DATABASE neo4j",
-      ShowDatabase.apply(SingleNamedDatabaseScope(literal("neo4j"))(pos), _: YieldOrWhere, _: Boolean) _
+      ShowDatabase.apply(SingleNamedDatabaseScope(literal("neo4j"))(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _
     ),
     (
       "DATABASES neo4j",
-      ShowDatabase.apply(SingleNamedDatabaseScope(literal("neo4j"))(pos), _: YieldOrWhere, _: Boolean) _
+      ShowDatabase.apply(SingleNamedDatabaseScope(literal("neo4j"))(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _
     ),
     // vvv naming the database yield/where should not fail either vvv
     (
       "DATABASE yield",
-      ShowDatabase.apply(SingleNamedDatabaseScope(literal("yield"))(pos), _: YieldOrWhere, _: Boolean) _
+      ShowDatabase.apply(SingleNamedDatabaseScope(literal("yield"))(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _
     ),
     (
       "DATABASES yield",
-      ShowDatabase.apply(SingleNamedDatabaseScope(literal("yield"))(pos), _: YieldOrWhere, _: Boolean) _
+      ShowDatabase.apply(SingleNamedDatabaseScope(literal("yield"))(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _
     ),
     (
       "DATABASE where",
-      ShowDatabase.apply(SingleNamedDatabaseScope(literal("where"))(pos), _: YieldOrWhere, _: Boolean) _
+      ShowDatabase.apply(SingleNamedDatabaseScope(literal("where"))(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _
     ),
     (
       "DATABASES where",
-      ShowDatabase.apply(SingleNamedDatabaseScope(literal("where"))(pos), _: YieldOrWhere, _: Boolean) _
+      ShowDatabase.apply(SingleNamedDatabaseScope(literal("where"))(pos), _: YieldOrWhere, _: Boolean, _: Boolean) _
     )
   ).foreach { case (dbType, command) =>
     test(s"SHOW $dbType") {
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(None, true)(pos))
-        case _       => _.toAst(command(None, false)(pos))
+        case Cypher5 => _.toAst(command(None, true, false)(pos))
+        case _       => _.toAst(command(None, false, false)(pos))
       }
     }
 
     test(s"USE system SHOW $dbType") {
       def expected(resolveStrictly: Boolean, showCypher5ColumnsOnly: Boolean): AdministrationCommand = {
-        command(None, showCypher5ColumnsOnly)(pos)
+        command(None, showCypher5ColumnsOnly, false)(pos)
           .withGraph(Some(use(List("system"), resolveStrictly)))
       }
 
@@ -91,8 +101,8 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
 
     test(s"SHOW $dbType WHERE access = 'GRANTED'") {
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(Some(Right(where(equals(accessVar, grantedString)))), true)(pos))
-        case _       => _.toAst(command(Some(Right(where(equals(accessVar, grantedString)))), false)(pos))
+        case Cypher5 => _.toAst(command(Some(Right(where(equals(accessVar, grantedString)))), true, false)(pos))
+        case _       => _.toAst(command(Some(Right(where(equals(accessVar, grantedString)))), false, false)(pos))
       }
     }
 
@@ -100,8 +110,8 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       val accessPredicate = equals(accessVar, grantedString)
       val matchPredicate = equals(varFor(actionString), literalString("match"))
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(Some(Right(where(and(accessPredicate, matchPredicate)))), true)(pos))
-        case _       => _.toAst(command(Some(Right(where(and(accessPredicate, matchPredicate)))), false)(pos))
+        case Cypher5 => _.toAst(command(Some(Right(where(and(accessPredicate, matchPredicate)))), true, false)(pos))
+        case _       => _.toAst(command(Some(Right(where(and(accessPredicate, matchPredicate)))), false, false)(pos))
       }
     }
 
@@ -109,8 +119,8 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       val orderByClause = orderBy(sortItem(accessVar))
       val columns = yieldClause(returnItems(variableReturnItem(accessString)), Some(orderByClause))
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true)(pos))
-        case _       => _.toAst(command(Some(Left((columns, None))), false)(pos))
+        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true, false)(pos))
+        case _       => _.toAst(command(Some(Left((columns, None))), false, false)(pos))
       }
     }
 
@@ -121,8 +131,8 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
         yieldClause(returnItems(variableReturnItem(accessString)), Some(orderByClause), where = Some(whereClause))
 
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true)(pos))
-        case _       => _.toAst(command(Some(Left((columns, None))), false)(pos))
+        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true, false)(pos))
+        case _       => _.toAst(command(Some(Left((columns, None))), false, false)(pos))
       }
     }
 
@@ -137,8 +147,8 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
         Some(whereClause)
       )
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true)(pos))
-        case _       => _.toAst(command(Some(Left((columns, None))), false)(pos))
+        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true, false)(pos))
+        case _       => _.toAst(command(Some(Left((columns, None))), false, false)(pos))
       }
     }
 
@@ -153,16 +163,16 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
         Some(whereClause)
       )
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true)(pos))
-        case _       => _.toAst(command(Some(Left((columns, None))), false)(pos))
+        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true, false)(pos))
+        case _       => _.toAst(command(Some(Left((columns, None))), false, false)(pos))
       }
     }
 
     test(s"SHOW $dbType YIELD access SKIP -1") {
       val columns = yieldClause(returnItems(variableReturnItem(accessString)), skip = Some(skip(-1)))
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true)(pos))
-        case _       => _.toAst(command(Some(Left((columns, None))), false)(pos))
+        case Cypher5 => _.toAst(command(Some(Left((columns, None))), true, false)(pos))
+        case _       => _.toAst(command(Some(Left((columns, None))), false, false)(pos))
       }
     }
 
@@ -170,8 +180,8 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       val columns = yieldClause(returnItems(variableReturnItem(accessString)), skip = Some(skip(-1)))
       val yieldOrWhere = Some(Left((columns, None)))
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(yieldOrWhere, true)(pos))
-        case _       => _.toAst(command(yieldOrWhere, false)(pos))
+        case Cypher5 => _.toAst(command(yieldOrWhere, true, false)(pos))
+        case _       => _.toAst(command(yieldOrWhere, false, false)(pos))
       }
     }
 
@@ -181,16 +191,16 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
         Some(returnClause(returnItems(variableReturnItem(accessString))))
       )))
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(yieldOrWhere, true)(pos))
-        case _       => _.toAst(command(yieldOrWhere, false)(pos))
+        case Cypher5 => _.toAst(command(yieldOrWhere, true, false)(pos))
+        case _       => _.toAst(command(yieldOrWhere, false, false)(pos))
       }
     }
 
     test(s"SHOW $dbType YIELD * RETURN *") {
       val yieldOrWhere = Some(Left((yieldClause(returnAllItems), Some(returnClause(returnAllItems)))))
       parsesIn[Statement] {
-        case Cypher5 => _.toAst(command(yieldOrWhere, true)(pos))
-        case _       => _.toAst(command(yieldOrWhere, false)(pos))
+        case Cypher5 => _.toAst(command(yieldOrWhere, true, false)(pos))
+        case _       => _.toAst(command(yieldOrWhere, false, false)(pos))
       }
     }
 
@@ -204,12 +214,14 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       case Cypher5 => _.toAst(ShowDatabase(
           SingleNamedDatabaseScope(namespacedName("foo.bar"))(pos),
           None,
-          cypher5ColumnsOnly = true
+          cypher5ColumnsOnly = true,
+          spdEnabled = false
         )(pos))
       case _ => _.toAst(ShowDatabase(
           SingleNamedDatabaseScope(namespacedName("foo.bar"))(pos),
           None,
-          cypher5ColumnsOnly = false
+          cypher5ColumnsOnly = false,
+          spdEnabled = false
         )(pos))
     }
   }
@@ -219,12 +231,14 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       case Cypher5 => _.toAst(ShowDatabase(
           SingleNamedDatabaseScope(namespacedName("foo", "bar"))(pos),
           None,
-          cypher5ColumnsOnly = true
+          cypher5ColumnsOnly = true,
+          spdEnabled = false
         )(pos))
       case _ => _.toAst(ShowDatabase(
           SingleNamedDatabaseScope(namespacedName("foo", "bar"))(pos),
           None,
-          cypher5ColumnsOnly = false
+          cypher5ColumnsOnly = false,
+          spdEnabled = false
         )(pos))
     }
   }

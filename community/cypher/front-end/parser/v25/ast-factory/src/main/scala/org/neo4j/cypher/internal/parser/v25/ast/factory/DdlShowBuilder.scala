@@ -92,6 +92,8 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.ast.YieldOrWhere
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ShardedPropertyDatabase
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.StringLiteral
@@ -110,6 +112,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import scala.collection.immutable.ArraySeq
 
 trait DdlShowBuilder extends Cypher25ParserListener {
+  def semanticFeatures: Seq[SemanticFeature]
 
   final override def exitShowCommand(
     ctx: Cypher25Parser.ShowCommandContext
@@ -529,9 +532,7 @@ trait DdlShowBuilder extends Cypher25ParserListener {
     ctx.ast = (ctx.AS() != null, ctx.REVOKE() != null)
   }
 
-  final override def exitShowDatabase(
-    ctx: Cypher25Parser.ShowDatabaseContext
-  ): Unit = {
+  override def exitShowDatabase(ctx: Cypher25Parser.ShowDatabaseContext): Unit = {
     val dbName = ctx.symbolicAliasNameOrParameter()
     val dbScope =
       if (dbName != null) SingleNamedDatabaseScope(dbName.ast[DatabaseName]())(pos(ctx))
@@ -541,7 +542,8 @@ trait DdlShowBuilder extends Cypher25ParserListener {
     ctx.ast = ShowDatabase(
       dbScope,
       astOpt[Either[(Yield, Option[Return]), Where]](ctx.showCommandYield()),
-      cypher5ColumnsOnly = false
+      cypher5ColumnsOnly = false,
+      semanticFeatures.contains(ShardedPropertyDatabase)
     )(pos(ctx.getParent))
   }
 

@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.TokenStream
 import org.antlr.v4.runtime.tree.ParseTreeListener
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.NumberLiteral
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy
@@ -39,6 +40,7 @@ final class Cypher25AstParser(
   query: String,
   override val exceptionFactory: CypherExceptionFactory,
   notificationLogger: Option[InternalNotificationLogger],
+  semanticFeatures: Seq[SemanticFeature],
   override val jsSemanticAnalysis: Boolean = false
 ) extends AntlrAstParser[CypherAstBuildingAntlrParser] {
 
@@ -55,7 +57,7 @@ final class Cypher25AstParser(
   }
 
   override protected def newParser(tokens: TokenStream): CypherAstBuildingAntlrParser =
-    new CypherAstBuildingAntlrParser(tokens, exceptionFactory, notificationLogger, jsSemanticAnalysis)
+    new CypherAstBuildingAntlrParser(tokens, exceptionFactory, notificationLogger, semanticFeatures, jsSemanticAnalysis)
 
   override protected def newLexer(fullTokens: Boolean): Lexer = Cypher25AstLexer.fromString(query, fullTokens)
   override protected def errorStrategyConf: CypherErrorStrategy.Conf = new Cypher25ErrorStrategyConf
@@ -70,6 +72,7 @@ final protected class CypherAstBuildingAntlrParser(
   input: TokenStream,
   exceptionFactory: CypherExceptionFactory,
   notificationLogger: Option[InternalNotificationLogger],
+  semanticFeatures: Seq[SemanticFeature],
   override val jsSemanticAnalysis: Boolean = false
 ) extends Cypher25Parser(input) with AstBuildingAntlrParser {
 
@@ -78,7 +81,7 @@ final protected class CypherAstBuildingAntlrParser(
   override def createSyntaxChecker(): SyntaxChecker = new Cypher25SyntaxChecker(exceptionFactory)
 
   override def createAstBuilder(): ParseTreeListener =
-    new Cypher25AstBuilder(notificationLogger, exceptionFactory, jsSemanticAnalysis)
+    new Cypher25AstBuilder(notificationLogger, exceptionFactory, semanticFeatures, jsSemanticAnalysis)
 
   override def isSafeToFreeChildren(ctx: ParserRuleContext): Boolean = ctx.getRuleIndex match {
     case Cypher25Parser.RULE_allPrivilegeTarget           => false

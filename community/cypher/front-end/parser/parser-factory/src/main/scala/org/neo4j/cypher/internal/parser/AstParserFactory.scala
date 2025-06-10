@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.parser
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.parser.ast.AstParser
 import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstParser
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstParser
@@ -25,10 +26,18 @@ import org.neo4j.cypher.internal.util.InternalNotificationLogger
 
 trait AstParserFactory {
 
+  @deprecated("Forward semantic features to parser", since = "2025-06")
   def apply(
     query: String,
     cypherExceptionFactory: CypherExceptionFactory,
     notificationLogger: Option[InternalNotificationLogger]
+  ): AstParser
+
+  def apply(
+    query: String,
+    cypherExceptionFactory: CypherExceptionFactory,
+    notificationLogger: Option[InternalNotificationLogger],
+    semanticFeatures: Seq[SemanticFeature]
   ): AstParser
 }
 
@@ -42,18 +51,34 @@ object AstParserFactory {
 
 object Cypher5AstParserFactory extends AstParserFactory {
 
+  @deprecated("Forward semantic features to parser", since = "2025-06")
   override def apply(
     query: String,
     cypherExceptionFactory: CypherExceptionFactory,
     notificationLogger: Option[InternalNotificationLogger]
   ): AstParser = new Cypher5AstParser(query, cypherExceptionFactory, notificationLogger)
-}
-
-object Cypher25AstParserFactory extends AstParserFactory {
 
   override def apply(
     query: String,
     cypherExceptionFactory: CypherExceptionFactory,
+    notificationLogger: Option[InternalNotificationLogger],
+    semanticFeatures: Seq[SemanticFeature]
+  ): AstParser = new Cypher5AstParser(query, cypherExceptionFactory, notificationLogger)
+}
+
+object Cypher25AstParserFactory extends AstParserFactory {
+
+  @deprecated("Forward semantic features to parser", since = "2025-06")
+  override def apply(
+    query: String,
+    cypherExceptionFactory: CypherExceptionFactory,
     notificationLogger: Option[InternalNotificationLogger]
-  ): AstParser = new Cypher25AstParser(query, cypherExceptionFactory, notificationLogger)
+  ): AstParser = new Cypher25AstParser(query, cypherExceptionFactory, notificationLogger, Seq())
+
+  override def apply(
+    query: String,
+    cypherExceptionFactory: CypherExceptionFactory,
+    notificationLogger: Option[InternalNotificationLogger],
+    semanticFeatures: Seq[SemanticFeature]
+  ): AstParser = new Cypher25AstParser(query, cypherExceptionFactory, notificationLogger, semanticFeatures)
 }

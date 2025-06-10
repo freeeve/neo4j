@@ -193,5 +193,5 @@ class ExpressionStringifierIT extends CypherFunSuite {
   }
 
   private def parseAntlr(version: CypherVersion, cypher: String): Expression =
-    AstParserFactory(version)(cypher, Neo4jCypherExceptionFactory(cypher, None), None).expression()
+    AstParserFactory(version)(cypher, Neo4jCypherExceptionFactory(cypher, None), None, Seq()).expression()
 }

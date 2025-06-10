@@ -97,7 +97,7 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   private def parse(version: CypherVersion, cypher: String): Statement = {
     val preparsed = preParser.preParse(cypher, version)
     AstParserFactory(version)
-      .apply(preparsed.statement, Neo4jCypherExceptionFactory(cypher, None), None)
+      .apply(preparsed.statement, Neo4jCypherExceptionFactory(cypher, None), None, Seq())
       .singleStatement()
       .endoRewrite(testRewriter)
   }

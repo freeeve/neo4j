@@ -168,7 +168,12 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   }
 
   def parse(version: CypherVersion, query: String, exceptionFactory: CypherExceptionFactory): Statement =
-    rewriteASTDifferences(AstParserFactory(version)(query, exceptionFactory, None).singleStatement())
+    rewriteASTDifferences(AstParserFactory(version)(
+      query,
+      exceptionFactory,
+      None,
+      Seq()
+    ).singleStatement())
 
   /**
    * There are some AST changes done at the parser level for semantic analysis that won't affect the plan.

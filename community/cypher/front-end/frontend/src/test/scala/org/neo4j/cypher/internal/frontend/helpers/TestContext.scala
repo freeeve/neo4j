@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.helpers
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
@@ -35,7 +36,8 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 case class TestContext(
   override val cypherVersion: CypherVersion = CypherVersion.Default,
   override val notificationLogger: InternalNotificationLogger = mock[InternalNotificationLogger],
-  override val sessionDatabase: DatabaseReference = null
+  override val sessionDatabase: DatabaseReference = null,
+  override val semanticFeatures: Seq[SemanticFeature] = Seq()
 ) extends BaseContext {
 
   override def tracer = CompilationPhaseTracer.NO_TRACING

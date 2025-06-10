@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.NO_TRACING
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -54,6 +55,8 @@ object ContextHelper extends MockitoSugar {
       override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
 
       override def sessionDatabase: DatabaseReference = sessionDatabaseReference
+
+      override def semanticFeatures: Seq[SemanticFeature] = Seq()
     }
   }
 }

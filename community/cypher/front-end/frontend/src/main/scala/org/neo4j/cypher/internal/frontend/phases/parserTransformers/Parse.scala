@@ -48,7 +48,12 @@ case object Parse extends Phase[BaseContext, BaseState, BaseState]
     val query = in.queryText
     val exceptionFactory = context.cypherExceptionFactory
     val notificationLogger = context.notificationLogger
-    AstParserFactory(context.cypherVersion)(query, exceptionFactory, Some(notificationLogger)).singleStatement()
+    AstParserFactory(context.cypherVersion)(
+      query,
+      exceptionFactory,
+      Some(notificationLogger),
+      context.semanticFeatures
+    ).singleStatement()
   }
 
   override val phase = PARSING

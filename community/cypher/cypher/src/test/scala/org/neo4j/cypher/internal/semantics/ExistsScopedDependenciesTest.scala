@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.ParsingConfig
 import org.neo4j.cypher.internal.frontend.phases
@@ -76,6 +77,7 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
     override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
     override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
     override def sessionDatabase: DatabaseReference = null
+    override def semanticFeatures: Seq[SemanticFeature] = Seq()
   }
 
   test(

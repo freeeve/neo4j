@@ -77,6 +77,10 @@ object SemanticFeature {
     override def name: String = "new vector type"
   }
 
+  case object ShardedPropertyDatabase extends SemanticFeature with FeatureToString {
+    override def name: String = "`sharded property database"
+  }
+
   /**
    * Normally it's not allowed to mix old and new label expression syntax within a clause.
    * The implementation of this check has had bugs in the past, can be inconvenient for users
@@ -104,6 +108,7 @@ object SemanticFeature {
     ExperimentalCypherVersions,
     RelationshipPropertyValueAccessRules,
     VectorType,
+    ShardedPropertyDatabase,
     AllowClauseWithMixedLabelSyntax,
     AllReduceFunctionAvailable
   )

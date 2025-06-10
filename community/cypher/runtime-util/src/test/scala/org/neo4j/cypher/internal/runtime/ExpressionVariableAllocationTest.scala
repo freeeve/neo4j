@@ -569,5 +569,5 @@ class ExpressionParser {
   }
 
   def parse(version: CypherVersion, text: String): Expression =
-    AstParserFactory(version)(text, Neo4jCypherExceptionFactory(text, None), None).expression()
+    AstParserFactory(version)(text, Neo4jCypherExceptionFactory(text, None), None, Seq()).expression()
 }

@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.parser.v25.ast.factory
 import org.antlr.v4.runtime.ParserRuleContext
 import org.antlr.v4.runtime.tree.ErrorNode
 import org.antlr.v4.runtime.tree.TerminalNode
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.parser.v25.AbstractCypher25AstBuilder
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -34,6 +35,7 @@ import org.neo4j.cypher.internal.util.InternalNotificationLogger
 final class Cypher25AstBuilder(
   override val notificationLogger: Option[InternalNotificationLogger],
   override val exceptionFactory: CypherExceptionFactory,
+  val semanticFeatures: Seq[SemanticFeature],
   jsSemanticAnalysis: Boolean
 ) extends AbstractCypher25AstBuilder(jsSemanticAnalysis)
     with LiteralBuilder

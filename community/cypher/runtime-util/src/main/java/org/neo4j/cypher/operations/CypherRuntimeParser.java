@@ -23,10 +23,12 @@ import static org.neo4j.cypher.operations.VectorUtils.assertNoOverflow;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.longValue;
+import static scala.jdk.CollectionConverters.CollectionHasAsScala;
 
 import java.math.BigDecimal;
 import java.util.List;
 import org.neo4j.cypher.internal.CypherVersion;
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature;
 import org.neo4j.cypher.internal.expressions.Expression;
 import org.neo4j.cypher.internal.expressions.ListLiteral;
 import org.neo4j.cypher.internal.expressions.Literal;
@@ -223,8 +225,12 @@ abstract class CypherRuntimeParser {
     }
 
     private static AstParser parser(String expression) {
+        List<SemanticFeature> semanticFeatures = List.of();
         return parserFactory.apply(
-                expression, new Neo4jCypherExceptionFactory(expression, Option.empty()), Option.empty());
+                expression,
+                new Neo4jCypherExceptionFactory(expression, Option.empty()),
+                Option.empty(),
+                CollectionHasAsScala(semanticFeatures).asScala().toSeq());
     }
 
     private static CypherTypeException invalidVectorType(Expression badInput) {

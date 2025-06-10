@@ -287,7 +287,7 @@ object DataCollectorMatchers {
     val version = CypherVersion.Default
 
     private def parse(version: CypherVersion, query: String, exceptionFactory: CypherExceptionFactory): Statement = {
-      AstParserFactory(version)(query, exceptionFactory, None).singleStatement()
+      AstParserFactory(version)(query, exceptionFactory, None, Seq()).singleStatement()
     }
 
     private val preParsedQuery: PreParsedQuery = preParser.preParseQuery(expected, devNullLogger, version)

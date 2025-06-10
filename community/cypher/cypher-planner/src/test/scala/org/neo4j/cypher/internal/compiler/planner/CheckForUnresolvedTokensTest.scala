@@ -330,7 +330,12 @@ class CheckForUnresolvedTokensTest extends CypherFunSuite
   }
 
   private def parse(version: CypherVersion, query: String): Query = {
-    AstParserFactory(version)(query, Neo4jCypherExceptionFactory(query, None), None).singleStatement() match {
+    AstParserFactory(version)(
+      query,
+      Neo4jCypherExceptionFactory(query, None),
+      None,
+      Seq()
+    ).singleStatement() match {
       case q: Query => q
       case _        => fail(s"Must be a Query, it's not in $version")
     }

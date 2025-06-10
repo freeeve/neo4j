@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.generator.AstGenerator
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleGraphs
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.UseAsMultipleGraphsSelector
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases
@@ -149,6 +150,7 @@ class FabricParsingPropertyTest extends CypherFunSuite
           override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
 
           override def sessionDatabase: DatabaseReference = null
+          override def semanticFeatures: Seq[SemanticFeature] = Seq()
         }
 
         try {

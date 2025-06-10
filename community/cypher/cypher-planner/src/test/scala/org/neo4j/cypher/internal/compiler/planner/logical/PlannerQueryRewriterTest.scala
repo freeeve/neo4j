@@ -68,7 +68,7 @@ trait PlannerQueryRewriterTest {
   }
 
   private def parse(version: CypherVersion, query: String, exceptionFactory: CypherExceptionFactory): Statement = {
-    AstParserFactory(version)(query, exceptionFactory, None).singleStatement()
+    AstParserFactory(version)(query, exceptionFactory, None, Seq()).singleStatement()
   }
 
   def rewriter(anonymousVariableNameGenerator: AnonymousVariableNameGenerator): Rewriter

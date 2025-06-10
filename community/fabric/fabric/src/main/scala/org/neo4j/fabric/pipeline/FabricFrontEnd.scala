@@ -112,18 +112,6 @@ case class FabricFrontEnd(
     def traceStart(): CompilationTracer.QueryCompilationEvent =
       compilationTracer.compileQuery(query.description)
 
-    private val context: BaseContext = BaseContextImpl(
-      query.resolvedLanguage,
-      CompilationPhaseTracer.NO_TRACING,
-      notificationLogger,
-      query.rawStatement,
-      Some(query.options.offset),
-      WrappedMonitors(kernelMonitors),
-      cancellationChecker,
-      internalSyntaxUsageStats,
-      sessionDatabase
-    )
-
     private val semanticFeatures = Seq(
       MultipleGraphs,
       UseAsMultipleGraphsSelector
@@ -139,11 +127,25 @@ case class FabricFrontEnd(
             GraphDatabaseInternalSettings.composable_commands -> SemanticFeature.ComposableCommands.productPrefix,
             GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix,
             GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
-            GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix
+            GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
+            GraphDatabaseInternalSettings.spd_enabled -> SemanticFeature.ShardedPropertyDatabase.productPrefix
           ))
         ) ++ semanticFeatures,
       obfuscateLiterals = cypherConfig.obfuscateLiterals,
       resolveSimpleDynamicExpressions = cypherConfig.resolveSimpleDynamicExpressions
+    )
+
+    private val context: BaseContext = BaseContextImpl(
+      query.resolvedLanguage,
+      CompilationPhaseTracer.NO_TRACING,
+      notificationLogger,
+      query.rawStatement,
+      Some(query.options.offset),
+      WrappedMonitors(kernelMonitors),
+      cancellationChecker,
+      internalSyntaxUsageStats,
+      sessionDatabase,
+      parsingConfig.semanticFeatures
     )
 
     object parseAndPrepare {

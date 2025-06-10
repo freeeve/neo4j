@@ -65,7 +65,7 @@ object IdAnonymizer {
 case class IdAnonymizer(tokens: TokenRead) extends QueryAnonymizer {
 
   private def parse(version: CypherVersion, query: String, exceptionFactory: CypherExceptionFactory): Statement = {
-    AstParserFactory(version)(query, exceptionFactory, None).singleStatement()
+    AstParserFactory(version)(query, exceptionFactory, None, Seq()).singleStatement()
   }
 
   private val prettifier = Prettifier(ExpressionStringifier(_.asCanonicalStringVal))

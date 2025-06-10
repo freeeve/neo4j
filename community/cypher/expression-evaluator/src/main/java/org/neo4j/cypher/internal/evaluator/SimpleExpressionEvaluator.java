@@ -19,7 +19,11 @@
  */
 package org.neo4j.cypher.internal.evaluator;
 
+import static scala.jdk.CollectionConverters.CollectionHasAsScala;
+
+import java.util.List;
 import org.neo4j.cypher.internal.CypherVersion;
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature;
 import org.neo4j.cypher.internal.expressions.Expression;
 import org.neo4j.cypher.internal.parser.AstParserFactory$;
 import org.neo4j.cypher.internal.runtime.CypherRow;
@@ -81,9 +85,14 @@ class SimpleExpressionEvaluator implements ExpressionEvaluator {
 
     private AnyValue parseAndEvaluate(String expression) throws EvaluationException {
         try {
+            final List<SemanticFeature> semanticFeatures = List.of();
             final var parsed = AstParserFactory$.MODULE$
                     .apply(cypherVersion)
-                    .apply(expression, new Neo4jCypherExceptionFactory(expression, Option.empty()), Option.empty())
+                    .apply(
+                            expression,
+                            new Neo4jCypherExceptionFactory(expression, Option.empty()),
+                            Option.empty(),
+                            CollectionHasAsScala(semanticFeatures).asScala().toSeq())
                     .expression();
             return evaluator.evaluate(parsed, MapValue.EMPTY, CypherRow.empty());
         } catch (Exception e) {

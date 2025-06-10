@@ -3635,7 +3635,12 @@ class PrettifierIT extends CypherFunSuite {
   }
 
   private def parseAntlr(version: CypherVersion, cypher: String): Statement =
-    AstParserFactory(version)(cypher, Neo4jCypherExceptionFactory(cypher, None), None).singleStatement()
+    AstParserFactory(version)(
+      cypher,
+      Neo4jCypherExceptionFactory(cypher, None),
+      None,
+      Seq()
+    ).singleStatement()
 
 }
 

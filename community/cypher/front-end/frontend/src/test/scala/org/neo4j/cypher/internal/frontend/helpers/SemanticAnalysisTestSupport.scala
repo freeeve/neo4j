@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend.helpers
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
@@ -39,7 +40,8 @@ class ErrorCollectingContext(
   override val cypherVersion: CypherVersion,
   val isComposite: Boolean = false,
   databaseName: String = "mock",
-  query: String = "mock"
+  query: String = "mock",
+  override val semanticFeatures: Seq[SemanticFeature] = Seq()
 ) extends BaseContext {
 
   var errors: Seq[SemanticErrorDef] = Seq.empty

@@ -20,6 +20,7 @@
 package org.neo4j.importer;
 
 import static java.util.Objects.requireNonNull;
+import static scala.jdk.CollectionConverters.CollectionHasAsScala;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -31,6 +32,7 @@ import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.PreParser;
 import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext;
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature;
 import org.neo4j.cypher.internal.ast.semantics.SemanticState;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
 import org.neo4j.cypher.internal.parser.AstParserFactory$;
@@ -90,9 +92,14 @@ public class SchemaCommandReader {
         final var exceptionFactory = new Neo4jCypherExceptionFactory(
                 cypherText, Option.apply(preParsedQuery.options().offset()));
 
+        final List<SemanticFeature> semanticFeatures = List.of();
         final var statements = AstParserFactory$.MODULE$
                 .apply(cypherVersion)
-                .apply(preParsedQuery.statement(), exceptionFactory, Option.apply(NOTIFICATION_LOGGER))
+                .apply(
+                        preParsedQuery.statement(),
+                        exceptionFactory,
+                        Option.apply(NOTIFICATION_LOGGER),
+                        CollectionHasAsScala(semanticFeatures).asScala().toSeq())
                 .statements();
 
         final var changesBuilder = new SchemaCommandsBuilder(readerConfig, cypherVersion);

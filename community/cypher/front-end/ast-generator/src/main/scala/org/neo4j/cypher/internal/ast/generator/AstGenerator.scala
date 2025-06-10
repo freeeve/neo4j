@@ -3497,7 +3497,8 @@ class AstGenerator(
     )
     cypher5ColumnsOnly <- boolean
     yields <- _eitherYieldOrWhere
-  } yield ShowDatabase(scope, yields, cypher5ColumnsOnly)(pos)
+    spdEnabled <- false
+  } yield ShowDatabase(scope, yields, cypher5ColumnsOnly, spdEnabled)(pos)
 
   def _createDatabase: Gen[CreateDatabase] = for {
     dbName <- _databaseNameNoNamespace

@@ -235,7 +235,7 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
   private def parseAndRewrite(version: CypherVersion, queryText: String, features: SemanticFeature*): Statement = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, None)
     val nameGenerator = new AnonymousVariableNameGenerator
-    val parsedAst = AstParserFactory(version)(queryText, exceptionFactory, None).singleStatement()
+    val parsedAst = AstParserFactory(version)(queryText, exceptionFactory, None, Seq()).singleStatement()
     val cleanedAst = parsedAst.endoRewrite(NormalizeWithAndReturnClauses(exceptionFactory))
     if (astRewriteAndAnalyze) {
       val semanticState = cleanedAst.semanticStateWithCypherVersion(version, semanticFeatures ++ features: _*)

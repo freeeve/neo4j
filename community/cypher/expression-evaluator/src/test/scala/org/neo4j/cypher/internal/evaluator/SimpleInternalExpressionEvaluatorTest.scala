@@ -111,7 +111,7 @@ class SimpleInternalExpressionEvaluatorTest extends AnyFunSuiteLike with Matcher
   private def parse(cypher: String): Expression =
     AstParserFactory
       .apply(CypherVersion.Default)
-      .apply(cypher, Neo4jCypherExceptionFactory(cypher, None), None)
+      .apply(cypher, Neo4jCypherExceptionFactory(cypher, None), None, Seq())
       .expression()
 
   private def evaluate(cypher: String): AnyValue = evaluator.evaluate(parse(cypher))
