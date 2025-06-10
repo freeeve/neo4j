@@ -1631,13 +1631,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     "internal.db.idcontroller.maintenance_interval", DURATION, ofSeconds(1))
             .build();
 
-    @Internal
-    @Description("Maximum time to download metadata when seeding metadata during CREATE DATABASE. "
-            + "It is recommended to keep this low, since a system transaction is kept open during this time.")
-    public static final Setting<Duration> seed_with_metadata_timeout = newBuilder(
-                    "internal.dbms.seed_with_metadata_timeout", DURATION, Duration.ofSeconds(60))
-            .build();
-
     public enum RemoteBatchPropertiesImplementation {
         PLANNER,
         SKIP_REMOTE_BATCHING
