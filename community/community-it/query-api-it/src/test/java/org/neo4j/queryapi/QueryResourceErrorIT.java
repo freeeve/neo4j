@@ -34,6 +34,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
+import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 
 class QueryResourceErrorIT {
 
@@ -197,9 +199,11 @@ class QueryResourceErrorIT {
 
         assertThat(response.statusCode()).isEqualTo(404);
         assertThat(response.headers().allValues(HttpHeaders.CONTENT_TYPE)).contains(MediaType.APPLICATION_JSON);
-        assertThat(response.body())
-                .isEqualTo("{\"errors\":[{\"code\":\"Neo.ClientError.Database.DatabaseNotFound\","
-                        + "\"message\":\"Graph not found: thisdbisalie\"}]}");
+        var possibleBodies = Lists.newArrayList(
+                "{\"errors\":[{\"code\":\"Neo.ClientError.Database.DatabaseNotFound\",\"message\":\"Graph not found: thisdbisalie\"}]}",
+                // we get this result in SPD running non-community
+                "{\"errors\":[{\"code\":\"Neo.ClientError.Database.DatabaseNotFound\",\"message\":\"Database does not exist. Database name: 'thisDbisALie'.\"}]}");
+        assertThat(response.body()).isIn(possibleBodies);
     }
 
     @Test
@@ -265,6 +269,7 @@ class QueryResourceErrorIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD is enterprise and accepts system commands")
     void systemCommandsDontWork() throws IOException, InterruptedException {
         var response =
                 QueryApiTestUtil.simpleRequest(client, queryEndpoint, "{\"statement\": \"CREATE DATABASE foo\"}");

@@ -22,7 +22,6 @@ package org.neo4j.queryapi;
 import static org.assertj.core.api.Fail.fail;
 import static org.neo4j.internal.kernel.api.procs.ProcedureSignature.procedureSignature;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -48,8 +47,6 @@ import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.IntegralValue;
 
 public final class QueryApiTestUtil {
-
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static HttpRequest.Builder baseRequestBuilder(String endpoint, String databaseName) {
         return HttpRequest.newBuilder()

@@ -174,7 +174,8 @@ class QueryResourceConfigIT {
         assertThat(response.statusCode()).isEqualTo(202);
         var parsedJson = MAPPER.readTree(response.body());
 
-        assertThat(parsedJson.get(QUERY_PLAN_KEY).get("operatorType").asText()).isEqualTo("ProduceResults@neo4j");
+        var dbName = dbms.database("neo4j").databaseName();
+        assertThat(parsedJson.get(QUERY_PLAN_KEY).get("operatorType").asText()).isEqualTo("ProduceResults@" + dbName);
         assertNotNull(parsedJson.get(QUERY_PLAN_KEY).get("arguments"));
         assertThat(parsedJson.get(QUERY_PLAN_KEY).get("identifiers").size()).isEqualTo(1);
         assertThat(parsedJson.get(QUERY_PLAN_KEY).get("identifiers").get(0).asText())
@@ -183,7 +184,7 @@ class QueryResourceConfigIT {
 
         var childPlan = parsedJson.get(QUERY_PLAN_KEY).get("children").get(0);
 
-        assertThat(childPlan.get("operatorType").asText()).isEqualTo("Projection@neo4j");
+        assertThat(childPlan.get("operatorType").asText()).isEqualTo("Projection@" + dbName);
         assertNotNull(childPlan.get("arguments"));
         assertThat(childPlan.get("identifiers").size()).isEqualTo(1);
         assertThat(parsedJson.get(QUERY_PLAN_KEY).get("identifiers").get(0).asText())
@@ -213,7 +214,8 @@ class QueryResourceConfigIT {
         assertThat(parsedJson.get(PROFILE_KEY).get("pageCacheMisses").asInt()).isEqualTo(0);
         assertThat(parsedJson.get(PROFILE_KEY).get("pageCacheHitRatio").asDouble())
                 .isEqualTo(0);
-        assertThat(parsedJson.get(PROFILE_KEY).get("operatorType").asText()).isEqualTo("ProduceResults@neo4j");
+        var dbName = dbms.database("neo4j").databaseName(); // names changes in SPD
+        assertThat(parsedJson.get(PROFILE_KEY).get("operatorType").asText()).isEqualTo("ProduceResults@" + dbName);
         assertNotNull(parsedJson.get(PROFILE_KEY).get("arguments"));
         assertThat(parsedJson.get(PROFILE_KEY).get("identifiers").size()).isEqualTo(1);
         assertThat(parsedJson.get(PROFILE_KEY).get("identifiers").get(0).asText())
@@ -232,7 +234,7 @@ class QueryResourceConfigIT {
         assertThat(childProfile.get(0).get("pageCacheMisses").asInt()).isEqualTo(0);
         assertThat(childProfile.get(0).get("pageCacheHitRatio").asDouble()).isEqualTo(0);
         assertThat(childProfile.get(0).get("time").asInt()).isEqualTo(0);
-        assertThat(childProfile.get(0).get("operatorType").asText()).isEqualTo("Projection@neo4j");
+        assertThat(childProfile.get(0).get("operatorType").asText()).isEqualTo("Projection@" + dbName);
         assertNotNull(childProfile.get(0).get("arguments"));
         assertThat(childProfile.get(0).get("identifiers").size()).isEqualTo(1);
         assertThat(childProfile.get(0).get("identifiers").get(0).asText()).isEqualTo("`1`");

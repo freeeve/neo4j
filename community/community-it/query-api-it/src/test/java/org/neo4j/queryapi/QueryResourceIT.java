@@ -252,12 +252,13 @@ class QueryResourceIT {
         var responseA = QueryApiTestUtil.simpleRequest(
                 client, queryEndpoint, "{\"statement\": \"RETURN 1\", \"bookmarks\" : [\"" + expectedBookmark + "\"]}");
 
+        var dbName = dbms.database("neo4j").databaseName();
         // initial request times out
         assertThat(responseA.statusCode()).isEqualTo(400);
         assertThat(responseA.body())
                 .isEqualTo("{\"errors\":[{\"code\":\"Neo.TransientError.Transaction.BookmarkTimeout\","
                         + "\"mes"
-                        + "sage\":\"Database 'neo4j' not up to the requested version: " + nextTxId
+                        + "sage\":\"Database '" + dbName + "' not up to the requested version: " + nextTxId
                         + ". Latest database version is " + lastTxId + "\"}]}");
 
         var createNodeRequest =

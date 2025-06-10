@@ -41,6 +41,7 @@ import org.neo4j.configuration.connectors.HttpConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 
 class QueryResourceErrorWithAuthIT {
 
@@ -72,6 +73,7 @@ class QueryResourceErrorWithAuthIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD doesn't run community")
     void impersonationOnCommunityEditionAuthEnabled() throws IOException, InterruptedException {
 
         var body = """
