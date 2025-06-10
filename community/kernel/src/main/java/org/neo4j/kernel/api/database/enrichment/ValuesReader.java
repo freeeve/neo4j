@@ -53,8 +53,14 @@ import org.neo4j.values.storable.DoubleArray;
 import org.neo4j.values.storable.DoubleValue;
 import org.neo4j.values.storable.DurationArray;
 import org.neo4j.values.storable.DurationValue;
+import org.neo4j.values.storable.Float32Vector;
+import org.neo4j.values.storable.Float64Vector;
 import org.neo4j.values.storable.FloatArray;
 import org.neo4j.values.storable.FloatValue;
+import org.neo4j.values.storable.Int16Vector;
+import org.neo4j.values.storable.Int32Vector;
+import org.neo4j.values.storable.Int64Vector;
+import org.neo4j.values.storable.Int8Vector;
 import org.neo4j.values.storable.IntArray;
 import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.LocalDateTimeArray;
@@ -77,6 +83,7 @@ import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.TimeZones;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.NodeValue;
@@ -129,8 +136,14 @@ public enum ValuesReader {
     NODE((byte) 35, VirtualNodeValue.class, ValuesReader::readNode),
     RELATIONSHIP((byte) 36, VirtualRelationshipValue.class, ValuesReader::readRelationship),
     LIST((byte) 37, ListValue.class, ValuesReader::readList),
-    MAP((byte) 38, MapValue.class, ValuesReader::readMap);
-    // TODO: Vector cdc support
+    MAP((byte) 38, MapValue.class, ValuesReader::readMap),
+    // Vectors
+    VECTOR_INT8((byte) 39, Int8Vector.class, ValuesReader::readInt8Vector),
+    VECTOR_INT16((byte) 40, Int16Vector.class, ValuesReader::readInt16Vector),
+    VECTOR_INT32((byte) 41, Int32Vector.class, ValuesReader::readInt32Vector),
+    VECTOR_INT64((byte) 42, Int64Vector.class, ValuesReader::readInt64Vector),
+    VECTOR_FLOAT32((byte) 43, Float32Vector.class, ValuesReader::readFloat32Vector),
+    VECTOR_FLOAT64((byte) 44, Float64Vector.class, ValuesReader::readFloat64Vector);
 
     public static final ImmutableByteObjectMap<ValuesReader> BY_ID =
             ByteObjectMaps.immutable.from(List.of(ValuesReader.values()), ValuesReader::id, v -> v);
@@ -511,6 +524,59 @@ public enum ValuesReader {
         // otherwise it's a shifted offset seconds value
         // preserve sign-bit for negative offsets
         return zoneOffsetOfTotalSeconds(z >> 1);
+    }
+
+    private static Int8Vector readInt8Vector(ByteBuffer buffer) {
+        var dimensions = buffer.getShort();
+        VectorValue.ensureValidDimensions(dimensions);
+        final byte[] coordinates = new byte[dimensions];
+        buffer.get(coordinates);
+        return Values.int8Vector(coordinates);
+    }
+
+    private static Int16Vector readInt16Vector(ByteBuffer buffer) {
+        var dimensions = buffer.getShort();
+        VectorValue.ensureValidDimensions(dimensions);
+        final short[] coordinates = new short[dimensions];
+        buffer.asShortBuffer().get(coordinates);
+        buffer.position(buffer.position() + dimensions * Short.BYTES);
+        return Values.int16Vector(coordinates);
+    }
+
+    private static Int32Vector readInt32Vector(ByteBuffer buffer) {
+        var dimensions = buffer.getShort();
+        VectorValue.ensureValidDimensions(dimensions);
+        final int[] coordinates = new int[dimensions];
+        buffer.asIntBuffer().get(coordinates);
+        buffer.position(buffer.position() + dimensions * Integer.BYTES);
+        return Values.int32Vector(coordinates);
+    }
+
+    private static Int64Vector readInt64Vector(ByteBuffer buffer) {
+        var dimensions = buffer.getShort();
+        VectorValue.ensureValidDimensions(dimensions);
+        final long[] coordinates = new long[dimensions];
+        buffer.asLongBuffer().get(coordinates);
+        buffer.position(buffer.position() + dimensions * Long.BYTES);
+        return Values.int64Vector(coordinates);
+    }
+
+    private static Float32Vector readFloat32Vector(ByteBuffer buffer) {
+        var dimensions = buffer.getShort();
+        VectorValue.ensureValidDimensions(dimensions);
+        final float[] coordinates = new float[dimensions];
+        buffer.asFloatBuffer().get(coordinates);
+        buffer.position(buffer.position() + dimensions * Float.BYTES);
+        return Values.float32Vector(coordinates);
+    }
+
+    private static Float64Vector readFloat64Vector(ByteBuffer buffer) {
+        var dimensions = buffer.getShort();
+        VectorValue.ensureValidDimensions(dimensions);
+        final double[] coordinates = new double[dimensions];
+        buffer.asDoubleBuffer().get(coordinates);
+        buffer.position(buffer.position() + dimensions * Double.BYTES);
+        return Values.float64Vector(coordinates);
     }
 
     public byte id() {

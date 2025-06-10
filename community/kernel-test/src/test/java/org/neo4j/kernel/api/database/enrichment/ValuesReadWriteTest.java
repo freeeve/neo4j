@@ -20,6 +20,7 @@
 package org.neo4j.kernel.api.database.enrichment;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.storageengine.api.enrichment.WriteEnrichmentChannel.CHUNK_SIZE;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -55,18 +56,16 @@ class ValuesReadWriteTest {
     @Inject
     private RandomSupport random;
 
+    private static final int MAX_NUM_WRITES = 666;
+
     @BeforeEach
     void setup() {
-        random.withConfiguration(RandomValues.defaults().includeVectorTypes(false) /* TODO: Vector cdc support */);
+        random.withConfiguration(RandomValues.defaults().maxVectorNumBytes(CHUNK_SIZE / MAX_NUM_WRITES));
         random.reset();
     }
 
     @ParameterizedTest
-    @EnumSource(
-            value = ValueType.class,
-            // TODO: Vector cdc support
-            names = {"INT8VECTOR", "INT16VECTOR", "INT32VECTOR", "INT64VECTOR", "FLOAT32VECTOR", "FLOAT64VECTOR"},
-            mode = EnumSource.Mode.EXCLUDE)
+    @EnumSource(value = ValueType.class)
     void valueRoundTrips(ValueType type) throws IOException {
         doRoundTrips(random.randomValues().nextValueOfType(type));
     }
@@ -78,7 +77,7 @@ class ValuesReadWriteTest {
     }
 
     private void doRoundTrips(AnyValue value) throws IOException {
-        final var positions = new int[random.nextInt(50, 666)];
+        final var positions = new int[random.nextInt(50, MAX_NUM_WRITES)];
         try (var writeChannel = new WriteEnrichmentChannel(EmptyMemoryTracker.INSTANCE)) {
             final var writer = new ValuesWriter(writeChannel);
             for (var i = 0; i < positions.length; i++) {

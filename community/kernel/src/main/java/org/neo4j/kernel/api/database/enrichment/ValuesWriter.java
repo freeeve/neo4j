@@ -38,6 +38,7 @@ import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeZones;
 import org.neo4j.values.storable.Value;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.utils.TemporalUtil;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
@@ -208,32 +209,54 @@ public record ValuesWriter(WriteEnrichmentChannel channel) implements AnyValueWr
 
     @Override
     public void writeInt8Vector(byte[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        VectorValue.ensureValidDimensions(values.length);
+        channel.putShort((short) values.length);
+        channel.put(values);
     }
 
     @Override
     public void writeInt16Vector(short[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        VectorValue.ensureValidDimensions(values.length);
+        channel.putShort((short) values.length);
+        for (var value : values) {
+            channel.putShort(value);
+        }
     }
 
     @Override
     public void writeInt32Vector(int[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        VectorValue.ensureValidDimensions(values.length);
+        channel.putShort((short) values.length);
+        for (var value : values) {
+            channel.putInt(value);
+        }
     }
 
     @Override
     public void writeInt64Vector(long[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        VectorValue.ensureValidDimensions(values.length);
+        channel.putShort((short) values.length);
+        for (var value : values) {
+            channel.putLong(value);
+        }
     }
 
     @Override
     public void writeFloat32Vector(float[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        VectorValue.ensureValidDimensions(values.length);
+        channel.putShort((short) values.length);
+        for (var value : values) {
+            channel.putFloat(value);
+        }
     }
 
     @Override
     public void writeFloat64Vector(double[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
+        VectorValue.ensureValidDimensions(values.length);
+        channel.putShort((short) values.length);
+        for (var value : values) {
+            channel.putDouble(value);
+        }
     }
 
     @Override

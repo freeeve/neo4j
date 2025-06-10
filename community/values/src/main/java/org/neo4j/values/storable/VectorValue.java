@@ -79,4 +79,11 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
         }
         return hash;
     }
+
+    public static void ensureValidDimensions(int dimensions) {
+        if (dimensions < VectorValue.MIN_VECTOR_DIMENSIONS || dimensions > VectorValue.MAX_VECTOR_DIMENSIONS) {
+            throw new IllegalArgumentException("Expected vector dimension in [%d, %d], but was %d"
+                    .formatted(VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS, dimensions));
+        }
+    }
 }
