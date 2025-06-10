@@ -53,6 +53,7 @@ import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.kernel.ZippedStore;
 import org.neo4j.kernel.ZippedStoreCommunity;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 import picocli.CommandLine;
 
 public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
@@ -92,6 +93,7 @@ public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD doesn't run community")
     public void shouldSelectCommunityVersionOfMigrateCommand() {
         ExecutionContext executionContext = new ExecutionContext(Path.of("hej"), Path.of("something"));
         CommandLine commandLine = AdminTool.getCommandLine(executionContext);
@@ -103,6 +105,7 @@ public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
 
     @ParameterizedTest
     @MethodSource("migrations")
+    @SkipOnSpd(reason = "We don't support pre 5.0 migrations for system (subset of input requires it)")
     void shouldMigrateDatabase(ZippedStore zippedStore, String toRecordFormat)
             throws IOException, ConsistencyCheckIncompleteException {
         doShouldMigrateDatabase(zippedStore, toRecordFormat, false);
@@ -110,6 +113,7 @@ public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
 
     @ParameterizedTest
     @MethodSource("systemDbMigrations")
+    @SkipOnSpd(reason = "We don't support pre 5.0 migrations for system")
     void shouldMigrateSystemDatabase(SystemDbMigration systemDbMigration)
             throws IOException, ConsistencyCheckIncompleteException {
         doShouldMigrateSystemDatabase(systemDbMigration);
@@ -117,6 +121,7 @@ public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
 
     @ParameterizedTest
     @MethodSource("systemDbMigrations")
+    @SkipOnSpd(reason = "We don't support pre 5.0 migrations for system")
     void shouldMigrateSystemDatabaseAndOthers(SystemDbMigration systemDbMigration)
             throws IOException, ConsistencyCheckIncompleteException {
         doShouldMigrateSystemDatabaseAndOthers(systemDbMigration);
