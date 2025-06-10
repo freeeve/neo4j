@@ -69,6 +69,8 @@ import org.neo4j.internal.schema
 import org.neo4j.internal.schema.ConstraintDescriptor
 import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.GraphTypeDependence
+import org.neo4j.internal.schema.constraints.PropertyTypeSet
+import org.neo4j.internal.schema.constraints.TypeRepresentation
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
@@ -155,7 +157,7 @@ case class ShowConstraintsCommand(
               requestedColumnsNames.contains(createStatementColumn))
           )
             Some(
-              constraintDescriptor.asPropertyTypeConstraint().propertyType().userDescription()
+              constraintDescriptor.asPropertyTypeConstraint().propertyType()
             )
           else None
         // These don't really have a default/fallback and is used in multiple columns
@@ -214,7 +216,8 @@ case class ShowConstraintsCommand(
             ownedIndexColumn -> ownedIndex
           // The Cypher type this constraint restricts its property to
           case `propertyTypeColumn` =>
-            propertyTypeColumn -> propertyType.map(Values.stringValue).getOrElse(Values.NO_VALUE)
+            propertyTypeColumn ->
+              propertyType.map(p => Values.stringValue(p.userDescription())).getOrElse(Values.NO_VALUE)
           // The options for this constraint, shows index provider and config of the backing index
           case `optionsColumn` => optionsColumn -> getOptions(constraintDescriptor, constraintInfo)
           // The statement to recreate the constraint, or null for dependent constraints
@@ -266,7 +269,7 @@ object ShowConstraintsCommand {
     constraintType: ShowConstraintType,
     labelsOrTypes: List[String],
     properties: List[String],
-    propertyType: Option[String],
+    maybePropertyType: Option[PropertyTypeSet],
     graphTypeDependence: GraphTypeDependence,
     returnCypher5Values: Boolean
   ): String = {
@@ -287,15 +290,19 @@ object ShowConstraintsCommand {
       case _: RelPropExistsConstraints =>
         createRelConstraintCommand(name, labelsOrTypes, properties, "IS NOT NULL")
       case NodePropTypeConstraints =>
-        val typeString = propertyType.getOrElse(
-          throw new IllegalArgumentException(s"Expected a property type for $constraintType constraint.")
-        )
-        createNodeConstraintCommand(name, labelsOrTypes, properties, s"IS :: $typeString")
+        maybePropertyType match {
+          case Some(typeSet) if TypeRepresentation.hasVectorTypes(typeSet) && returnCypher5Values => null
+          case Some(typeSet) =>
+            createNodeConstraintCommand(name, labelsOrTypes, properties, s"IS :: ${typeSet.userDescription()}")
+          case _ => throw new IllegalArgumentException(s"Expected a property type for $constraintType constraint.")
+        }
       case RelPropTypeConstraints =>
-        val typeString = propertyType.getOrElse(
-          throw new IllegalArgumentException(s"Expected a property type for $constraintType constraint.")
-        )
-        createRelConstraintCommand(name, labelsOrTypes, properties, s"IS :: $typeString")
+        maybePropertyType match {
+          case Some(typeSet) if TypeRepresentation.hasVectorTypes(typeSet) && returnCypher5Values => null
+          case Some(typeSet) =>
+            createRelConstraintCommand(name, labelsOrTypes, properties, s"IS :: ${typeSet.userDescription()}")
+          case _ => throw new IllegalArgumentException(s"Expected a property type for $constraintType constraint.")
+        }
       case RelationshipSourceLabelConstraints =>
         // Should not get here as they are always dependent, but lets have the cases anyway for security
         // and if we ever want to add them as independent constraints as well

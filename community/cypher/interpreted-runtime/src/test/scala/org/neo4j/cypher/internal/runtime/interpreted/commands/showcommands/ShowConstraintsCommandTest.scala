@@ -1075,6 +1075,7 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
     ("ZONED DATETIME", SchemaValueType.ZONED_DATETIME),
     ("DURATION", SchemaValueType.DURATION),
     ("POINT", SchemaValueType.POINT),
+    ("VECTOR<INTEGER NOT NULL>(42)", org.neo4j.internal.schema.constraints.VectorType.int64Vector(42)),
     ("LIST<BOOLEAN NOT NULL>", SchemaValueType.LIST_BOOLEAN),
     ("LIST<STRING NOT NULL>", SchemaValueType.LIST_STRING),
     ("LIST<INTEGER NOT NULL>", SchemaValueType.LIST_INTEGER),
@@ -1847,6 +1848,65 @@ class ShowConstraintsCommandTest extends ShowCommandTestBase {
 
     // confirm no Cypher 25 columns:
     (resultAll ++ resultNode ++ resultRel).foreach(res => {
+      res.keys.toList should contain noElementsOf List(
+        ShowConstraintsClause.enforcedLabelColumn,
+        ShowConstraintsClause.classificationColumn
+      )
+    })
+  }
+
+  test("show vector property type constraints with Cypher 5") {
+    // Given
+    val nodePropTypeConstraintDescriptor =
+      ConstraintDescriptorFactory.typeForSchema(
+        labelDescriptor,
+        PropertyTypeSet.of(org.neo4j.internal.schema.constraints.VectorType.float32Vector(7)),
+        false
+      )
+        .withName("constraint0")
+        .withId(0)
+    when(ctx.getAllConstraints()).thenReturn(Map(
+      nodePropTypeConstraintDescriptor -> nodePropTypeConstraintInfo
+    ))
+
+    // When: all prop type
+    val showConstraintsAll =
+      ShowConstraintsCommand(PropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
+    val resultAll = showConstraintsAll.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    resultAll should have size 1
+    checkResult(
+      resultAll.head,
+      name = "constraint0",
+      constraintType = "NODE_PROPERTY_TYPE",
+      entityType = "NODE",
+      index = Some(null),
+      propType = "VECTOR<FLOAT32 NOT NULL>(7)",
+      options = Values.NO_VALUE,
+      createStatement = Some(null)
+    )
+
+    // When: node prop type
+    val showConstraintsNode =
+      ShowConstraintsCommand(NodePropTypeConstraints, allColumnsCypher5, List.empty, CypherVersion.Cypher5)
+    val resultNode = showConstraintsNode.originalNameRows(queryState, initialCypherRow).toList
+
+    // Then
+    resultNode should have size 1
+    checkResult(
+      resultNode.head,
+      name = "constraint0",
+      constraintType = "NODE_PROPERTY_TYPE",
+      entityType = "NODE",
+      index = Some(null),
+      propType = "VECTOR<FLOAT32 NOT NULL>(7)",
+      options = Values.NO_VALUE,
+      createStatement = Some(null)
+    )
+
+    // confirm no Cypher 25 columns:
+    (resultAll ++ resultNode).foreach(res => {
       res.keys.toList should contain noElementsOf List(
         ShowConstraintsClause.enforcedLabelColumn,
         ShowConstraintsClause.classificationColumn

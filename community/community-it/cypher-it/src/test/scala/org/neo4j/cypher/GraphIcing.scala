@@ -129,33 +129,62 @@ trait GraphIcing {
 
     // Create node property type constraint
 
-    def createNodePropTypeConstraint(label: String, property: String, propType: String): ConstraintDefinition =
-      createNodeConstraint(None, label, Seq(property), s"IS :: $propType", awaitIndexes = false)
+    def createNodePropTypeConstraint(
+      label: String,
+      property: String,
+      propType: String,
+      maybeCypherVersion: Option[String] = None
+    ): ConstraintDefinition =
+      createNodeConstraint(None, label, Seq(property), s"IS :: $propType", awaitIndexes = false, maybeCypherVersion)
 
     def createNodePropTypeConstraintWithName(
       name: String,
       label: String,
       property: String,
-      propType: String
+      propType: String,
+      maybeCypherVersion: Option[String] = None
     ): ConstraintDefinition =
-      createNodeConstraint(Some(name), label, Seq(property), s"IS :: $propType", awaitIndexes = false)
+      createNodeConstraint(
+        Some(name),
+        label,
+        Seq(property),
+        s"IS :: $propType",
+        awaitIndexes = false,
+        maybeCypherVersion
+      )
 
     // Create relationship property type constraint
 
     def createRelationshipPropTypeConstraint(
       relType: String,
       property: String,
-      propType: String
+      propType: String,
+      maybeCypherVersion: Option[String] = None
     ): ConstraintDefinition =
-      createRelationshipConstraint(None, relType, Seq(property), s"IS :: $propType", awaitIndexes = false)
+      createRelationshipConstraint(
+        None,
+        relType,
+        Seq(property),
+        s"IS :: $propType",
+        awaitIndexes = false,
+        maybeCypherVersion
+      )
 
     def createRelationshipPropTypeConstraintWithName(
       name: String,
       relType: String,
       property: String,
-      propType: String
+      propType: String,
+      maybeCypherVersion: Option[String] = None
     ): ConstraintDefinition =
-      createRelationshipConstraint(Some(name), relType, Seq(property), s"IS :: $propType", awaitIndexes = false)
+      createRelationshipConstraint(
+        Some(name),
+        relType,
+        Seq(property),
+        s"IS :: $propType",
+        awaitIndexes = false,
+        maybeCypherVersion
+      )
 
     // Create node key constraint
 
@@ -230,7 +259,8 @@ trait GraphIcing {
       label: String,
       properties: Seq[String],
       constraintTypePredicate: String,
-      awaitIndexes: Boolean = true
+      awaitIndexes: Boolean = true,
+      maybeCypherVersion: Option[String] = None
     ): ConstraintDefinition = {
       createConstraint(
         maybeName,
@@ -240,7 +270,8 @@ trait GraphIcing {
         () => {
           if (awaitIndexes) awaitIndexesOnline()
           getNodeConstraint(label, properties)
-        }
+        },
+        maybeCypherVersion
       )
     }
 
@@ -249,7 +280,8 @@ trait GraphIcing {
       relType: String,
       properties: Seq[String],
       constraintTypePredicate: String,
-      awaitIndexes: Boolean = true
+      awaitIndexes: Boolean = true,
+      maybeCypherVersion: Option[String] = None
     ): ConstraintDefinition = {
       createConstraint(
         maybeName,
@@ -259,7 +291,8 @@ trait GraphIcing {
         () => {
           if (awaitIndexes) awaitIndexesOnline()
           getRelationshipConstraint(relType, properties)
-        }
+        },
+        maybeCypherVersion
       )
     }
 
@@ -268,12 +301,14 @@ trait GraphIcing {
       pattern: String,
       properties: Seq[String],
       constraintTypePredicate: String,
-      getConstraint: () => ConstraintDefinition
+      getConstraint: () => ConstraintDefinition,
+      maybeCypherVersion: Option[String]
     ): ConstraintDefinition = {
+      val cypherVersion = maybeCypherVersion.getOrElse("")
       val nameString = maybeName.map(n => s" `$n`").getOrElse("")
       withTx(tx => {
         tx.execute(
-          s"CREATE CONSTRAINT$nameString FOR $pattern REQUIRE (${properties.map(p => s"e.`$p`").mkString(",")}) $constraintTypePredicate"
+          s"$cypherVersion CREATE CONSTRAINT$nameString FOR $pattern REQUIRE (${properties.map(p => s"e.`$p`").mkString(",")}) $constraintTypePredicate"
         )
       })
       getConstraint()
