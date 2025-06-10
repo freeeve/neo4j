@@ -92,7 +92,7 @@ public class DefaultStoreSnapshotFactory implements StoreSnapshot.Factory {
      * We intentionally return an *un-closed* {@code Stream<StoreResource>}, which is then closed
      * as part of the wrapping StoreSnapshot when a caller is finished with it.
      */
-    private Stream<StoreResource> unrecoverableFiles(Database database) throws IOException {
+    protected Stream<StoreResource> unrecoverableFiles(Database database) throws IOException {
         var databaseDirectory = database.getDatabaseLayout().databaseDirectory();
         return database
                 .getStoreFileListing()
