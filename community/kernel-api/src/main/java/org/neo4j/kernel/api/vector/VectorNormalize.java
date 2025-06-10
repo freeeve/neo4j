@@ -20,7 +20,10 @@
 package org.neo4j.kernel.api.vector;
 
 import org.neo4j.values.VectorCandidate;
+import org.neo4j.values.storable.VectorValue;
 
-public interface VectorNorm {
-    float norm(VectorCandidate vector);
+public interface VectorNormalize {
+    VectorValue normalize(VectorCandidate vector);
+
+    boolean valid(VectorCandidate vector);
 }

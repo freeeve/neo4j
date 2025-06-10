@@ -20,19 +20,40 @@
 package org.neo4j.kernel.api.vector;
 
 import org.neo4j.values.VectorCandidate;
+import org.neo4j.values.storable.VectorValue;
 
-public enum GQLVectorNorm implements VectorNorm {
+public enum GQLVectorNormalize implements VectorNormalize {
     EUCLIDEAN {
         @Override
-        public float norm(VectorCandidate vector) {
-            return VectorUtil.l2Norm(vector);
+        public VectorValue normalize(VectorCandidate vector) {
+            return VectorUtil.l2NormalizedVector(vector);
+        }
+
+        @Override
+        public boolean valid(VectorCandidate vector) {
+            if (!VectorUtil.valid(vector)) {
+                return false;
+            }
+
+            final float norm = VectorUtil.l2Norm(vector);
+            return Float.isFinite(norm) && norm > 0.f;
         }
     },
 
     MANHATTAN {
         @Override
-        public float norm(VectorCandidate vector) {
-            return VectorUtil.l1Norm(vector);
+        public VectorValue normalize(VectorCandidate vector) {
+            return VectorUtil.l1NormalizedVector(vector);
+        }
+
+        @Override
+        public boolean valid(VectorCandidate vector) {
+            if (!VectorUtil.valid(vector)) {
+                return false;
+            }
+
+            final float norm = VectorUtil.l1Norm(vector);
+            return Float.isFinite(norm) && norm > 0.f;
         }
     }
 }

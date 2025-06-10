@@ -35,11 +35,11 @@ import org.neo4j.values.VectorCandidate;
  * Functions which are simply wrappers around {@link VectorUtil} method are tested in
  * {@link VectorUtilTest} rather than here.
  */
-public class GQLVectorNormTest {
+public class GQLVectorNormalizeTest {
 
     @ParameterizedTest
     @MethodSource
-    void nonFiniteNormInvalid(VectorNorm normalization, VectorCandidate vector, boolean expectedValidity) {
+    void nonFiniteNormInvalid(VectorNormalize normalization, VectorCandidate vector, boolean expectedValidity) {
         boolean valid;
         try {
             valid = normalization.valid(vector);
@@ -71,23 +71,23 @@ public class GQLVectorNormTest {
                 vector(underEuclideanMax, underEuclideanMax, underEuclideanMax, underEuclideanMax);
 
         return Stream.of(
-                Arguments.of(GQLVectorNorm.EUCLIDEAN, underManhattanMaxVector, false),
-                Arguments.of(GQLVectorNorm.EUCLIDEAN, manhattanMaxVector, false),
-                Arguments.of(GQLVectorNorm.EUCLIDEAN, overManhattanMaxVector, false),
-                Arguments.of(GQLVectorNorm.EUCLIDEAN, underEuclideanMaxVector, true),
-                Arguments.of(GQLVectorNorm.EUCLIDEAN, euclideanMaxVector, true),
-                Arguments.of(GQLVectorNorm.EUCLIDEAN, overEuclideanMaxVector, false),
-                Arguments.of(GQLVectorNorm.MANHATTAN, underManhattanMaxVector, true),
-                Arguments.of(GQLVectorNorm.MANHATTAN, manhattanMaxVector, true),
-                Arguments.of(GQLVectorNorm.MANHATTAN, overManhattanMaxVector, false),
-                Arguments.of(GQLVectorNorm.MANHATTAN, underEuclideanMaxVector, true),
-                Arguments.of(GQLVectorNorm.MANHATTAN, euclideanMaxVector, true),
-                Arguments.of(GQLVectorNorm.MANHATTAN, overEuclideanMaxVector, true));
+                Arguments.of(GQLVectorNormalize.EUCLIDEAN, underManhattanMaxVector, false),
+                Arguments.of(GQLVectorNormalize.EUCLIDEAN, manhattanMaxVector, false),
+                Arguments.of(GQLVectorNormalize.EUCLIDEAN, overManhattanMaxVector, false),
+                Arguments.of(GQLVectorNormalize.EUCLIDEAN, underEuclideanMaxVector, true),
+                Arguments.of(GQLVectorNormalize.EUCLIDEAN, euclideanMaxVector, true),
+                Arguments.of(GQLVectorNormalize.EUCLIDEAN, overEuclideanMaxVector, false),
+                Arguments.of(GQLVectorNormalize.MANHATTAN, underManhattanMaxVector, true),
+                Arguments.of(GQLVectorNormalize.MANHATTAN, manhattanMaxVector, true),
+                Arguments.of(GQLVectorNormalize.MANHATTAN, overManhattanMaxVector, false),
+                Arguments.of(GQLVectorNormalize.MANHATTAN, underEuclideanMaxVector, true),
+                Arguments.of(GQLVectorNormalize.MANHATTAN, euclideanMaxVector, true),
+                Arguments.of(GQLVectorNormalize.MANHATTAN, overEuclideanMaxVector, true));
     }
 
     @ParameterizedTest
     @EnumSource
-    void originInvalid(GQLVectorNorm normalization) {
+    void originInvalid(GQLVectorNormalize normalization) {
         assertThat(normalization.valid(origin(42))).isFalse();
     }
 }
