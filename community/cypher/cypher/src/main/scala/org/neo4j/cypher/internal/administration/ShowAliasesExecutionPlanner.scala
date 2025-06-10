@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.translateDefaultLanguagePropertyToShowOutput
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.administration.ShowAliasesExecutionPlanner.Alias
@@ -89,12 +90,18 @@ case class ShowAliasesExecutionPlanner(
       if (verbose)
         s", driverSettings{.*} as driver, properties{.*} as properties, $defaultLanguage as defaultLanguage"
       else ""
-    val (aliasNameFields, aliasPropertyFilter) = filterAliasByName(aliasName)
+    val (aliasNameFields, aliasPropertyFilter) = filterAliasByName(aliasName, context.runtimeContext.cypherVersion)
+
+    val aliasNameNodeFilter = context.runtimeContext.cypherVersion match {
+      case CypherVersion.Cypher5 =>
+        s"{$NAME_PROPERTY: alias.name, $NAMESPACE_PROPERTY: alias.namespace}"
+      case _ => s"{$DISPLAY_NAME_PROPERTY: alias.displayName}"
+    }
 
     val query =
       s"""UNWIND $$$aliasTargetParameter AS alias
          |WITH alias $aliasPropertyFilter
-         |MATCH (aliasNode:$DATABASE_NAME&!$GRAPH_SHARD{$NAME_PROPERTY: alias.name, $NAMESPACE_PROPERTY: alias.namespace})
+         |MATCH (aliasNode:$DATABASE_NAME&!$GRAPH_SHARD $aliasNameNodeFilter)
          |OPTIONAL MATCH (aliasNode)-[:$CONNECTS_WITH]->(driverSettings:$DRIVER_SETTINGS)
          |OPTIONAL MATCH (aliasNode)-[:$PROPERTIES]->(properties:$ALIAS_PROPERTIES)
          |WITH alias.displayName as name,
@@ -124,7 +131,10 @@ case class ShowAliasesExecutionPlanner(
     )
   }
 
-  private def filterAliasByName(aliasName: Option[DatabaseName]): (Option[DatabaseNameFields], String) = {
+  private def filterAliasByName(
+    aliasName: Option[DatabaseName],
+    cypherVersion: CypherVersion
+  ): (Option[DatabaseNameFields], String) = {
     val aliasNameFields =
       aliasName.map((name: DatabaseName) =>
         getDatabaseNameFields("aliasName", name)
@@ -132,11 +142,14 @@ case class ShowAliasesExecutionPlanner(
 
     // If we have a literal, we know from the escaping whether this is an alias in a composite or not
     // If it is a parameter, it could be either something that should be escaped, or an alias in a composite (or both)
-    def filter(anf: DatabaseNameFields) = aliasName match {
-      case Some(NamespacedName(_, _)) =>
-        s"""WHERE alias.$NAME_PROPERTY = $$`${anf.nameKey}` AND alias.$NAMESPACE_PROPERTY = $$`${anf.namespaceKey}`"""
-      case Some(ParameterName(_)) => s"WHERE alias.$DISPLAY_NAME_PROPERTY = $$`${anf.displayNameKey}`"
-      case None                   => ""
+    def filter(anf: DatabaseNameFields) = cypherVersion match {
+      case CypherVersion.Cypher5 => aliasName match {
+          case Some(NamespacedName(_, _)) =>
+            s"""WHERE alias.$NAME_PROPERTY = $$`${anf.nameKey}` AND alias.$NAMESPACE_PROPERTY = $$`${anf.namespaceKey}`"""
+          case Some(ParameterName(_)) => s"WHERE alias.$DISPLAY_NAME_PROPERTY = $$`${anf.displayNameKey}`"
+          case None                   => ""
+        }
+      case _ => s"WHERE alias.$DISPLAY_NAME_PROPERTY = $$`${anf.displayNameKey}`"
     }
     val aliasPropertyFilter = aliasNameFields
       .map(anf => filter(anf)).getOrElse("")

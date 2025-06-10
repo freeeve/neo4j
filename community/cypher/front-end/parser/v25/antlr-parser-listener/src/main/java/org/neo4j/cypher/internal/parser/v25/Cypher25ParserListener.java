@@ -701,8 +701,6 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitAliasTargetName(Cypher25Parser.AliasTargetNameContext ctx);
 
-    void exitDatabaseName(Cypher25Parser.DatabaseNameContext ctx);
-
     void exitCreateAlias(Cypher25Parser.CreateAliasContext ctx);
 
     void exitDropAlias(Cypher25Parser.DropAliasContext ctx);

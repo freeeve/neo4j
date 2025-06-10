@@ -1726,11 +1726,11 @@ graphScope
 // Database commands
 
 createCompositeDatabase
-   : COMPOSITE DATABASE databaseName (IF NOT EXISTS)? (SET? defaultLanguageSpecification)? commandOptions? waitClause?
+   : COMPOSITE DATABASE symbolicAliasNameOrParameter (IF NOT EXISTS)? (SET? defaultLanguageSpecification)? commandOptions? waitClause?
    ;
 
 createDatabase
-   : DATABASE databaseName (IF NOT EXISTS)? (SET? defaultLanguageSpecification)? (topology | shards)? commandOptions? waitClause?
+   : DATABASE symbolicAliasNameOrParameter (IF NOT EXISTS)? (SET? defaultLanguageSpecification)? (topology | shards)? commandOptions? waitClause?
    ;
 
 shards
@@ -1824,10 +1824,6 @@ aliasName
 
 aliasTargetName
    : symbolicAliasNameOrParameter
-   ;
-
-databaseName
-   : symbolicNameOrStringParameter
    ;
 
 // Alias commands

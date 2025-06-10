@@ -40,14 +40,10 @@ import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.ConstraintTypedContex
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.DropConstraintContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.GlobContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.GlobRecursiveContext
-import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.SymbolicAliasNameOrParameterContext
-import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25SyntaxChecker.MAX_ALIAS_NAME_COMPONENTS
-import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25SyntaxChecker.MAX_DATABASE_NAME_COMPONENTS
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.gqlstatus.GqlHelper
-import org.neo4j.internal.helpers.NameUtil
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -75,14 +71,13 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
       case Cypher25Parser.RULE_topology                         => checkTopology(cast(ctx))
       case Cypher25Parser.RULE_alterDatabase                    => checkAlterDatabase(cast(ctx))
       case Cypher25Parser.RULE_alterDatabaseTopology            => checkAlterDatabaseTopology(cast(ctx))
-      case Cypher25Parser.RULE_createAlias                      => checkCreateAlias(cast(ctx))
       case Cypher25Parser.RULE_alterAlias                       => checkAlterAlias(cast(ctx))
       case Cypher25Parser.RULE_globPart                         => checkGlobPart(cast(ctx))
       case Cypher25Parser.RULE_insertPattern                    => checkInsertPattern(cast(ctx))
       case Cypher25Parser.RULE_insertNodeLabelExpression        => checkInsertLabelConjunction(cast(ctx))
       case Cypher25Parser.RULE_functionInvocation               => checkFunctionInvocation(cast(ctx))
       case Cypher25Parser.RULE_typePart                         => checkTypePart(cast(ctx))
-      case Cypher25Parser.RULE_symbolicAliasNameOrParameter     => checkSymbolicAliasNameOrParameter(cast(ctx))
+      case Cypher25Parser.RULE_symbolicAliasName                => checkSymbolicAliasName(cast(ctx))
       case Cypher25Parser.RULE_defaultLanguageSpecification     => checkDefaultLanguageSpecification(cast(ctx))
       case Cypher25Parser.RULE_propertyTypeList                 => checkPropertyTypeList(cast(ctx))
       case Cypher25Parser.RULE_nodeTypeSpecification            => checkNodeTypeSpecification(cast(ctx))
@@ -122,69 +117,6 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     isParam: Boolean = false
   ): Unit = if (params.size() > 1) errorOnDuplicate(params.get(1).start, description, isParam)
 
-  private def errorOnAliasNameContainingDots(
-    aliasesNames: java.util.List[SymbolicAliasNameOrParameterContext]
-  ): Unit = {
-    if (aliasesNames.size() > 0) {
-      val aliasName = aliasesNames.get(0)
-      if (
-        aliasName.symbolicAliasName() != null && aliasName.symbolicAliasName().symbolicNameString().size() > MAX_ALIAS_NAME_COMPONENTS
-      ) {
-        val start = aliasName.symbolicAliasName().symbolicNameString().get(0).getStart
-        val prettyName = aliasName.symbolicAliasName().symbolicNameString().asScala.map {
-          case name if name.unescapedSymbolicNameString() != null =>
-            name.unescapedSymbolicNameString().ast
-          case name if name.escapedSymbolicNameString() != null =>
-            NameUtil.forceEscapeName(name.escapedSymbolicNameString().ast())
-          case _ => ""
-        }.mkString(".")
-        _errors :+= exceptionFactory.invalidNameTooManyComponents(
-          "Invalid input `%s` for name. Expected name to contain at most two components separated by `.`.",
-          "name",
-          MAX_ALIAS_NAME_COMPONENTS,
-          prettyName,
-          inputPosition(start)
-        )
-      }
-    }
-  }
-
-  private def errorOnAliasNameContainingTooManyComponents(
-    aliasesNames: Seq[SymbolicAliasNameOrParameterContext],
-    maxComponents: Int,
-    errorTemplate: String,
-    context: String
-  ): Unit = {
-    if (aliasesNames.nonEmpty) {
-      val literalAliasNames = aliasesNames.filter(_.symbolicAliasName() != null)
-      for (aliasName <- literalAliasNames) {
-        val nameComponents = aliasName.symbolicAliasName().symbolicNameString().asScala.toList
-        val componentCount = nameComponents.sliding(2, 1).foldLeft(1) {
-          case (count, a :: b :: Nil)
-            if a.escapedSymbolicNameString() != null || b.escapedSymbolicNameString() != null => count + 1
-          case (count, _) => count
-        }
-        if (componentCount > maxComponents) {
-          val start = aliasName.symbolicAliasName().symbolicNameString().get(0).getStart
-          val prettyName = aliasName.symbolicAliasName().symbolicNameString().asScala.map {
-            case name if name.unescapedSymbolicNameString() != null =>
-              name.unescapedSymbolicNameString().ast
-            case name if name.escapedSymbolicNameString() != null =>
-              NameUtil.forceEscapeName(name.escapedSymbolicNameString().ast())
-            case _ => ""
-          }.mkString(".")
-          _errors :+= exceptionFactory.invalidNameTooManyComponents(
-            errorTemplate,
-            context,
-            maxComponents,
-            prettyName,
-            inputPosition(start)
-          )
-        }
-      }
-    }
-  }
-
   private def checkSubqueryInTransactionsParameters(
     ctx: Cypher25Parser.SubqueryInTransactionsParametersContext
   ): Unit = {
@@ -193,32 +125,14 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     errorOnDuplicateRule(ctx.subqueryInTransactionsReportParameters(), "REPORT STATUS", isParam = true)
   }
 
-  private def checkCreateAlias(ctx: Cypher25Parser.CreateAliasContext): Unit = {
-    if (ctx.stringOrParameter() != null) {
-      if (
-        !(ctx.AT() == null && ctx.USER() == null && ctx.PASSWORD() == null && ctx.DRIVER() == null && ctx.defaultLanguageSpecification().isEmpty)
-      ) {
-        errorOnAliasNameContainingDots(
-          java.util.List.of(
-            ctx.aliasName.symbolicAliasNameOrParameter(),
-            ctx.aliasTargetName().symbolicAliasNameOrParameter()
-          )
-        )
-      }
-    }
-  }
-
   private def checkAlterAlias(ctx: Cypher25Parser.AlterAliasContext): Unit = {
     val aliasTargets = ctx.alterAliasTarget()
-    val hasUrl = !aliasTargets.isEmpty && aliasTargets.get(0).AT() != null
     val usernames = ctx.alterAliasUser()
     val passwords = ctx.alterAliasPassword()
     val driverSettings = ctx.alterAliasDriver()
     val defaultLanguages = ctx.defaultLanguageSpecification()
 
     // Should only be checked in case of remote
-    if (hasUrl || !usernames.isEmpty || !passwords.isEmpty || !driverSettings.isEmpty || !defaultLanguages.isEmpty)
-      errorOnAliasNameContainingDots(java.util.List.of(ctx.aliasName().symbolicAliasNameOrParameter()))
 
     errorOnDuplicateCtx(driverSettings, "DRIVER")
     errorOnDuplicateCtx(usernames, "USER")
@@ -228,26 +142,14 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     errorOnDuplicateCtx(defaultLanguages, "DEFAULT LANGUAGE")
   }
 
-  private def checkSymbolicAliasNameOrParameter(ctx: Cypher25Parser.SymbolicAliasNameOrParameterContext): Unit = {
-    ctx.getParent.getRuleIndex match {
-      case Cypher25Parser.RULE_createDatabase =>
-        // `a`.`b` disallowed
-        errorOnAliasNameContainingTooManyComponents(
-          Seq(ctx),
-          MAX_DATABASE_NAME_COMPONENTS,
-          "Invalid input `%s` for database name. Expected name to contain at most one component.",
-          "database name"
-        )
-      case Cypher25Parser.RULE_createCompositeDatabase =>
-      // Handled in semantic checks
-      case _ =>
-        // `a`.`b` allowed, `a`.`b`.`c` disallowed
-        errorOnAliasNameContainingTooManyComponents(
-          Seq(ctx),
-          MAX_ALIAS_NAME_COMPONENTS,
-          "Invalid input `%s` for name. Expected name to contain at most two components separated by `.`.",
-          "name"
-        )
+  private def checkSymbolicAliasName(ctx: Cypher25Parser.SymbolicAliasNameContext): Unit = {
+    val nameComponents = ctx.symbolicNameString().asScala.toList
+    if (nameComponents.size > 1 && nameComponents.exists(s => s.escapedSymbolicNameString() != null)) {
+      // Disallow `foo`.`bar`, `foo`.bar, foo.`bar`, etc.
+      _errors :+= exceptionFactory.invalidGraphReferenceFormat(
+        nameComponents.map(_.getText).mkString("."),
+        inputPosition(nameComponents.head.start)
+      )
     }
   }
 
@@ -699,9 +601,4 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
       case _ => throw exceptionFactory.internalError("Constraint type is not recognized", pos(constraintTypeContext))
     }
   }
-}
-
-object Cypher25SyntaxChecker {
-  private val MAX_ALIAS_NAME_COMPONENTS: Int = 2
-  private val MAX_DATABASE_NAME_COMPONENTS: Int = 1
 }

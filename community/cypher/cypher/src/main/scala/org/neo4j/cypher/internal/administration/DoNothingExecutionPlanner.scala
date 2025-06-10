@@ -184,7 +184,7 @@ case class DoNothingExecutionPlanner(
       // Need to be backward compatible to 4.4 here because the upgrade to 5.0 uses CREATE DATABASE IF NOT EXISTS
       s"""
           CALL {
-            MATCH (dn:$DATABASE_NAME ${nameFields.asNodeFilter}) RETURN dn
+            MATCH (dn:$DATABASE_NAME ${nameFields.asNodeFilter(context.runtimeContext.cypherVersion)}) RETURN dn
             UNION
             MATCH (dn:$DATABASE_NAME {$NAME_PROPERTY: $$`${nameFields.nameKey}`})
               WHERE dn.$NAMESPACE_PROPERTY IS NULL AND $$`${nameFields.namespaceKey}`='$DEFAULT_NAMESPACE' RETURN dn

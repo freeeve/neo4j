@@ -1572,22 +1572,24 @@ final case class CreateCompositeDatabase(
     case _                                       => "CREATE COMPOSITE DATABASE"
   }
 
-  override def semanticCheck: SemanticCheck = ifExistsDo match {
-    case IfExistsInvalidSyntax =>
-      val name = Prettifier.escapeName(databaseName)
-      SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("composite database", name, position))
-    case _ =>
-      databaseName match {
-        case nsn @ NamespacedName(_, Some(_)) =>
-          AdministrationCommandSemanticAnalysis.inputContainsInvalidCharactersError(
-            nsn.toString,
-            "composite database name",
-            s"Failed to create the specified composite database '${nsn.toString}': COMPOSITE DATABASE names cannot contain \".\". " +
-              "COMPOSITE DATABASE names using '.' must be quoted with backticks e.g. `composite.database`.",
-            nsn.position
-          )
-        case _ => super.semanticCheck.chain(defaultLanguageVersionCheck(defaultLanguage, name))
-      }
+  override def semanticCheck: SemanticCheck = SemanticCheck.fromContext { context =>
+    ifExistsDo match {
+      case IfExistsInvalidSyntax =>
+        val name = Prettifier.escapeName(databaseName)
+        SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("composite database", name, position))
+      case _ =>
+        databaseName match {
+          case nsn @ NamespacedName(_, Some(_)) if context.cypherVersion == CypherVersion.Cypher5 =>
+            AdministrationCommandSemanticAnalysis.inputContainsInvalidCharactersError(
+              nsn.toString,
+              "composite database name",
+              s"Failed to create the specified composite database '${nsn.toString}': COMPOSITE DATABASE names cannot contain \".\". " +
+                "COMPOSITE DATABASE names using '.' must be quoted with backticks e.g. `composite.database`.",
+              nsn.position
+            )
+          case _ => super.semanticCheck.chain(defaultLanguageVersionCheck(defaultLanguage, name))
+        }
+    }
   }
 }
 

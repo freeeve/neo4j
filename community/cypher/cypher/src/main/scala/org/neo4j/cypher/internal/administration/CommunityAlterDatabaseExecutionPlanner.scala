@@ -40,8 +40,6 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUA
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_UPDATED_AT_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
@@ -74,7 +72,9 @@ case class CommunityAlterDatabaseExecutionPlanner(
       normalExecutionEngine,
       securityAuthorizationHandler,
       s"""CALL {
-         |  OPTIONAL MATCH (:$DATABASE_NAME {$NAME_PROPERTY: $$`${nameFields.nameKey}`, $NAMESPACE_PROPERTY: $$`${nameFields.namespaceKey}`})-[:$TARGETS]->(aliasedDb:$DATABASE)
+         |  OPTIONAL MATCH (:$DATABASE_NAME ${nameFields.asNodeFilter(
+          context.runtimeContext.cypherVersion
+        )})-[:$TARGETS]->(aliasedDb:$DATABASE)
          |  RETURN aliasedDb as d
          |}
          |WITH d

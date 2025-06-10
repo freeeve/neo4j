@@ -326,11 +326,7 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("show procedures yield") { invalid("", "a variable name or '*'", 21) }
 
   test("create database 1a") {
-    invalid({
-      case Cypher5 => ("1a", "a database name, a graph pattern or a parameter", 16)
-      // ≥ Cypher25
-      case _ => ("1a", "a graph pattern, a parameter or an identifier", 16)
-    })
+    invalid("1a", "a database name, a graph pattern or a parameter", 16)
   }
 
   test("with 1 as 1p return *") {

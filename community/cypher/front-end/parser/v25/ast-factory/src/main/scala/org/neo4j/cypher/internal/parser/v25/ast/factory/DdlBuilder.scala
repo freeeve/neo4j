@@ -660,14 +660,6 @@ trait DdlBuilder extends Cypher25ParserListener {
     ctx.ast = ctx.symbolicAliasNameOrParameter().ast[DatabaseName]
   }
 
-  final override def exitDatabaseName(ctx: Cypher25Parser.DatabaseNameContext): Unit = {
-    val name = ctx.symbolicNameOrStringParameter().ast[Either[String, Parameter]]()
-    ctx.ast = name match {
-      case Left(string) => NamespacedName(string)(pos(ctx))
-      case Right(param) => ParameterName(param)(pos(ctx))
-    }
-  }
-
   final override def exitStringOrParameterExpression(
     ctx: Cypher25Parser.StringOrParameterExpressionContext
   ): Unit = {

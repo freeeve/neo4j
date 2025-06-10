@@ -109,6 +109,13 @@ class MultipleGraphClausesParsingTest extends AstParsingTestBase {
     "`foo.bar.baz.baz`" ->
       (cypherVersion =>
         GraphDirectReference(CatalogName(List("foo.bar.baz.baz"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
+      )
+  )
+
+  val removedInCypher25: Seq[(String, CypherVersion => GraphReference)] = Seq(
+    "`foo.bar`.`baz.baz`" ->
+      (cypherVersion =>
+        GraphDirectReference(CatalogName(List("foo.bar", "baz.baz"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
       ),
     "`foo.bar`.baz" ->
       (cypherVersion =>
@@ -117,10 +124,6 @@ class MultipleGraphClausesParsingTest extends AstParsingTestBase {
     "foo.`bar.baz`" ->
       (cypherVersion =>
         GraphDirectReference(CatalogName(List("foo", "bar.baz"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
-      ),
-    "`foo.bar`.`baz.baz`" ->
-      (cypherVersion =>
-        GraphDirectReference(CatalogName(List("foo.bar", "baz.baz"), cypherVersion.equals(CypherVersion.Cypher25)))(pos)
       )
   )
 
@@ -145,6 +148,22 @@ class MultipleGraphClausesParsingTest extends AstParsingTestBase {
       parsesIn[Clause] {
         case Cypher5 => _.toAst(expected(CypherVersion.Cypher5))
         case _       => _.toAst(expected(CypherVersion.Cypher25))
+      }
+    }
+  }
+
+  val combinationsRemovedInCypher25: Seq[(String, CypherVersion => UseGraph)] = for {
+    (keyword, clause) <- keywords
+    (input, expectedGraphReference) <- removedInCypher25
+  } yield s"$keyword $input" -> ((version: CypherVersion) => clause(expectedGraphReference(version)))
+
+  for {
+    (input: String, expected: (CypherVersion => GraphSelection)) <- combinationsRemovedInCypher25
+  } {
+    test(input) {
+      parsesIn[Clause] {
+        case Cypher5 => _.toAst(expected(CypherVersion.Cypher5))
+        case _       => _.withAnyFailure
       }
     }
   }

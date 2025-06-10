@@ -219,20 +219,30 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
               test(s"$verb$immutableString $privilege ON DATABASE `a`.`b`.`c` $preposition role") {
                 // more than two components
-                failsParsing[Statements]
-                  .withMessageContaining(
-                    "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`."
-                  )
-                  .withSyntaxErrorGqlStatus(
-                    gqlStatus(
-                      GqlStatusInfoCodes.STATUS_22N05,
-                      "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+                failsParsing[Statements].in {
+                  case Cypher5 => _.withMessageStart(
+                      "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`."
                     )
-                      .withCause(
-                        GqlStatusInfoCodes.STATUS_22N83,
-                        "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+                      .withSyntaxErrorGqlStatus(
+                        gqlStatus(
+                          GqlStatusInfoCodes.STATUS_22N05,
+                          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+                        )
+                          .withCause(
+                            GqlStatusInfoCodes.STATUS_22N83,
+                            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+                          )
                       )
-                  )
+                  case _ => _.withMessageStart(
+                      "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+                    )
+                      .withSyntaxErrorGqlStatus(
+                        gqlStatus(
+                          GqlStatusInfoCodes.STATUS_42NAA,
+                          "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+                        )
+                      )
+                }
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE foo $preposition r:ole") {
@@ -682,20 +692,30 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION ON DATABASE `a`.`b`.`c` $preposition role") {
-            failsParsing[Statements]
-              .withMessageContaining(
-                "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`."
-              )
-              .withSyntaxErrorGqlStatus(
-                gqlStatus(
-                  GqlStatusInfoCodes.STATUS_22N05,
-                  "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+            failsParsing[Statements].in {
+              case Cypher5 => _.withMessageStart(
+                  "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`."
                 )
-                  .withCause(
-                    GqlStatusInfoCodes.STATUS_22N83,
-                    "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+                  .withSyntaxErrorGqlStatus(
+                    gqlStatus(
+                      GqlStatusInfoCodes.STATUS_22N05,
+                      "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+                    )
+                      .withCause(
+                        GqlStatusInfoCodes.STATUS_22N83,
+                        "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+                      )
                   )
-              )
+              case _ => _.withMessageStart(
+                  "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+                )
+                  .withSyntaxErrorGqlStatus(
+                    gqlStatus(
+                      GqlStatusInfoCodes.STATUS_42NAA,
+                      "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+                    )
+                  )
+            }
           }
 
           test(s"$verb$immutableString TRANSACTION ON DATABASE *, foo $preposition role") {

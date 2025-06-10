@@ -60,6 +60,7 @@ import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues
 
 import java.util
+import java.util.UUID
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -219,21 +220,62 @@ class DatabaseListParameterTransformerFunction(
                 .getOrElse((new NormalizedDatabaseName(ns.name() + "." + name), None, Set.empty[InternalNotification]))
           }
       }
-    val filteredReferences: Set[DatabaseReference] = namespace match {
-      case None => databaseReferences.collect {
-          case ref if ref.isPrimary && ref.alias().equals(name) => Set(ref)
-          case ref: DatabaseReferenceImpl.Internal if ref.alias().equals(name) =>
-            databaseReferences.filter(pr => pr.isPrimary && pr.id() == ref.id())
-        }.flatten
-      case Some(namespace) => databaseReferences.collect {
-          case c: DatabaseReferenceImpl.Composite if c.alias().equals(namespace) =>
-            val constituentAliases = c.constituents().asScala.filter(r => r.alias().equals(name))
-            constituentAliases.flatMap(dr => databaseReferences.filter(_.id() == dr.id()))
+
+    def assertAtMostOne(seq: Iterable[DatabaseReference]): Unit = {
+      if (AssertionRunner.isAssertionsEnabled && seq.size > 1) {
+        throw new IllegalStateException("SHOW DATABASE by name should only return 0 or 1 databases")
+      }
+    }
+
+    def displayName(namespace: Option[NormalizedDatabaseName], name: NormalizedDatabaseName): String = {
+      (namespace, name) match {
+        case (Some(ns), name) => s"${ns.name()}.${name.name()}"
+        case (None, name)     => name.name()
+      }
+    }
+
+    def primaryById(id: UUID): Option[DatabaseReference] = {
+      val matching = databaseReferences.filter(_.isPrimary).filter(_.id() == id)
+      assertAtMostOne(matching)
+      matching.headOption
+    }
+
+    val filteredReferences: Set[DatabaseReference] = context.runtimeContext.cypherVersion match {
+      case CypherVersion.Cypher5 =>
+        // Cypher 5: find reference by namespace/name split
+        namespace match {
+          case None => databaseReferences.collect {
+              // database
+              case ref if ref.isPrimary && ref.alias().equals(name) => Set(ref)
+              // alias
+              case ref: DatabaseReferenceImpl.Internal if ref.alias().equals(name) =>
+                primaryById(ref.id())
+            }.flatten
+          case Some(namespace) => databaseReferences.collect {
+              // composite constituent
+              case c: DatabaseReferenceImpl.Composite if c.alias().equals(namespace) =>
+                c.constituents().asScala
+                  .filter(r => r.alias().equals(name))
+                  .flatMap(dr => primaryById(dr.id()))
+            }.flatten
+        }
+      case _ =>
+        // Cypher 25+: find reference by full/display name
+        databaseReferences.collect {
+          // database
+          case ref if ref.isPrimary && ref.fullName().name().equals(displayName(namespace, name)) => Set(ref)
+          // composite constituent
+          case c: DatabaseReferenceImpl.Composite =>
+            c.constituents().asScala
+              .filter(constituent => constituent.fullName().name().equals(displayName(namespace, name)))
+              .flatMap(dr => primaryById(dr.id()))
+          // alias
+          case ref: DatabaseReferenceImpl.Internal if ref.fullName().name().equals(displayName(namespace, name)) =>
+            primaryById(ref.id())
         }.flatten
     }
-    if (AssertionRunner.isAssertionsEnabled && filteredReferences.size > 1) {
-      throw new IllegalStateException("SHOW DATABASE by name should only return 0 or 1 databases")
-    }
+
+    assertAtMostOne(filteredReferences)
     (filteredReferences, notifications)
   }
 

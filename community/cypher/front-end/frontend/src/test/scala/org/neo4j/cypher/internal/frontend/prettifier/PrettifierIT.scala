@@ -2497,7 +2497,7 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE DATABASE foo TOPOLOGY 2 PRIMARIES 1 SECONDARY",
     "create database `graph.db`" ->
       "CREATE DATABASE `graph.db`",
-    FailsInCypher25AndLater("create database graph.db", "CREATE DATABASE `graph.db`"),
+    "create database graph.db" -> "CREATE DATABASE `graph.db`",
     "create database foo wait" -> "CREATE DATABASE foo WAIT",
     "create database foo nowait" -> "CREATE DATABASE foo",
     "create database foo if not exists wait" ->
@@ -2664,8 +2664,10 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE OR REPLACE ALIAS alias FOR DATABASE database",
     "create alias composite.alias FOR database database" ->
       "CREATE ALIAS composite.alias FOR DATABASE database",
-    "create alias composite.`alias.mine` FOR database database" ->
-      "CREATE ALIAS composite.`alias.mine` FOR DATABASE database",
+    FailsInCypher25AndLater(
+      "create alias composite.`alias.mine` FOR database database",
+      "CREATE ALIAS composite.`alias.mine` FOR DATABASE database"
+    ),
     "create alias `composite.alias.mine` FOR database database" ->
       "CREATE ALIAS `composite.alias.mine` FOR DATABASE database",
     "create or replace alias alias FOR database database properties {foo:7}" ->

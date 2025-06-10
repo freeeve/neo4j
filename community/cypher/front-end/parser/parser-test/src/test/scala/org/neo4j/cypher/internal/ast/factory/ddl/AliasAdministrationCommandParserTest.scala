@@ -138,23 +138,37 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("CREATE ALIAS `a`.b.c.d IF NOT EXISTS FOR DATABASE db") {
-    assertAst(
-      CreateLocalDatabaseAlias(
-        namespacedName("a", "b", "c", "d"),
-        namespacedName("db"),
-        IfExistsDoNothing
-      )(defaultPos)
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          CreateLocalDatabaseAlias(
+            namespacedName("a", "b", "c", "d"),
+            namespacedName("db"),
+            IfExistsDoNothing
+          )(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference '`a`.b.c.d'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))
+            |"CREATE ALIAS `a`.b.c.d IF NOT EXISTS FOR DATABASE db"
+            |              ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE ALIAS a.b.c.`d` IF NOT EXISTS FOR DATABASE db") {
-    assertAst(
-      CreateLocalDatabaseAlias(
-        namespacedName("a", "b", "c", "d"),
-        namespacedName("db"),
-        IfExistsDoNothing
-      )(defaultPos)
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          CreateLocalDatabaseAlias(
+            namespacedName("a", "b", "c", "d"),
+            namespacedName("db"),
+            IfExistsDoNothing
+          )(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference 'a.b.c.`d`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))
+            |"CREATE ALIAS a.b.c.`d` IF NOT EXISTS FOR DATABASE db"
+            |              ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE ALIAS alias.for FOR DATABASE db") {
@@ -299,115 +313,194 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("CREATE ALIAS `a`.`b`.`c` FOR DATABASE db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("CREATE ALIAS `a`.b.`c` FOR DATABASE db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.b.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.b.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("CREATE ALIAS `a`.b.c.`d` FOR DATABASE db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.b.c.`d`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.b.c.`d`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.b.c.`d`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.b.c.`d`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.b.c.`d`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.b.c.`d`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("CREATE ALIAS a.`b`.`c` FOR DATABASE db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference 'a.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'a.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("CREATE ALIAS `a`.`b`.c FOR DATABASE db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("CREATE ALIAS a.`b`.c FOR DATABASE db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference 'a.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'a.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("CREATE ALIAS `a`.`b` FOR DATABASE `db.cd`.`ef.gh`.d") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``db.cd`.`ef.gh`.d` for name. Expected name to contain at most two components separated by `.`. (line 1, column 35 (offset: 34))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`db.cd`.`ef.gh`.d' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``db.cd`.`ef.gh`.d` for name. Expected name to contain at most two components separated by `.`. (line 1, column 35 (offset: 34))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`db.cd`.`ef.gh`.d' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          """Incorrectly formatted graph reference '`a`.`b`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))
+            |"CREATE ALIAS `a`.`b` FOR DATABASE `db.cd`.`ef.gh`.d"
+            |              ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("CREATE ALIAS name FOR DATABASE target DEFAULT LANGUAGE CYPHER 5") {
@@ -450,14 +543,29 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test(
     """CREATE ALIAS namespace.`name.illegal` FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'"""
   ) {
-    assertAst(CreateRemoteDatabaseAlias(
-      namespacedName("namespace", "name.illegal"),
-      namespacedName("target"),
-      IfExistsThrowError,
-      Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password")
-    )(defaultPos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          CreateRemoteDatabaseAlias(
+            namespacedName("namespace", "name.illegal"),
+            namespacedName("target"),
+            IfExistsThrowError,
+            Left("neo4j://serverA:7687"),
+            literalString("user"),
+            sensitiveLiteral("password")
+          )(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference 'namespace.`name.illegal`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 14 (offset: 13))
+            |"CREATE ALIAS namespace.`name.illegal` FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'"
+            |              ^""".stripMargin
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'namespace.`name.illegal`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test(
@@ -814,7 +922,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test(
     """CREATE ALIAS namespace.name.illegal FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'"""
   ) {
-    failsParsing[Statements].in {
+    parsesIn[Statements] {
       case Cypher5 => _.withMessageStart(
           "'.' is not a valid character in the remote alias name 'namespace.name.illegal'. Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`. (line 1, column 14 (offset: 13))"
         )
@@ -828,19 +936,16 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
                 "error: data exception - input contains invalid characters. Input 'namespace.name.illegal' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
               )
           )
-      case _ => _.withMessageStart(
-          "Invalid input `namespace.name.illegal` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
-        )
-          .withSyntaxErrorGqlStatus(
-            gqlStatus(
-              GqlStatusInfoCodes.STATUS_22N05,
-              "error: data exception - input failed validation. Invalid input 'namespace.name.illegal' for name."
-            )
-              .withCause(
-                GqlStatusInfoCodes.STATUS_22N83,
-                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
-              )
-          )
+      case _ => _.toAstPositioned(Statements(Seq(
+          CreateRemoteDatabaseAlias(
+            namespacedName("namespace", "name", "illegal"),
+            namespacedName("target"),
+            ifExistsDo = IfExistsThrowError,
+            url = Left("neo4j://serverA:7687"),
+            username = literalString("user"),
+            password = sensitiveLiteral("password")
+          )(defaultPos)
+        )))
     }
 
   }
@@ -1031,15 +1136,29 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("DROP ALIAS composite.`dotted.name` FOR DATABASE") {
-    assertAst(
-      DropDatabaseAlias(namespacedName("composite", "dotted.name"), ifExists = false)(defaultPos)
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          DropDatabaseAlias(namespacedName("composite", "dotted.name"), ifExists = false)(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference 'composite.`dotted.name`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
+            |"DROP ALIAS composite.`dotted.name` FOR DATABASE"
+            |            ^""".stripMargin
+        )
+    }
   }
 
   test("DROP ALIAS `dotted.composite`.name FOR DATABASE") {
-    assertAst(
-      DropDatabaseAlias(namespacedName("dotted.composite", "name"), ifExists = false)(defaultPos)
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          DropDatabaseAlias(namespacedName("dotted.composite", "name"), ifExists = false)(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference '`dotted.composite`.name'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
+            |"DROP ALIAS `dotted.composite`.name FOR DATABASE"
+            |            ^""".stripMargin
+        )
+    }
   }
 
   test("DROP ALIAS name") {
@@ -1059,83 +1178,138 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("DROP ALIAS `a`.`b`.`c` FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("DROP ALIAS `a`.b.`c` FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.b.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.b.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("DROP ALIAS a.`b`.`c` FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference 'a.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'a.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("DROP ALIAS `a`.`b`.c FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("DROP ALIAS a.`b`.c FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference 'a.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'a.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   // ALTER ALIAS
@@ -1241,99 +1415,165 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("ALTER ALIAS `a`.`b`.`c` SET DATABASE TARGET db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 13 (offset: 12))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("ALTER ALIAS `a`.b.`c` SET DATABASE TARGET db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.b.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 13 (offset: 12))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.b.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("ALTER ALIAS a.`b`.`c` SET DATABASE TARGET db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference 'a.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 13 (offset: 12))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'a.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("ALTER ALIAS `a`.`b`.c SET DATABASE TARGET db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 13 (offset: 12))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("ALTER ALIAS a.`b`.c SET DATABASE TARGET db") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference 'a.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 13 (offset: 12))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'a.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("ALTER ALIAS `a`.`b` SET DATABASE TARGET `db.cd`.`ef.gh`.d") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``db.cd`.`ef.gh`.d` for name. Expected name to contain at most two components separated by `.`. (line 1, column 41 (offset: 40))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`db.cd`.`ef.gh`.d' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``db.cd`.`ef.gh`.d` for name. Expected name to contain at most two components separated by `.`. (line 1, column 41 (offset: 40))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`db.cd`.`ef.gh`.d' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 13 (offset: 12))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   private val localAliasClauses = Seq(
@@ -1501,9 +1741,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test(
     """ALTER ALIAS namespace.name.illegal SET DATABASE TARGET target AT "neo4j://serverA:7687" USER user PASSWORD "password" DRIVER { ssl_enforced: true }"""
   ) {
-    failsParsing[Statements].in {
+    parsesIn[Statements] {
       case Cypher5 => _.withMessageStart(
-          "'.' is not a valid character in the remote alias name 'namespace.name.illegal'. Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`."
+          "'.' is not a valid character in the remote alias name 'namespace.name.illegal'. Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`. (line 1, column 13 (offset: 12))"
         )
           .withSyntaxErrorGqlStatus(
             gqlStatus(
@@ -1515,19 +1755,17 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
                 "error: data exception - input contains invalid characters. Input 'namespace.name.illegal' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
               )
           )
-      case _ => _.withMessageStart(
-          "Invalid input `namespace.name.illegal` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
-        )
-          .withSyntaxErrorGqlStatus(
-            gqlStatus(
-              GqlStatusInfoCodes.STATUS_22N05,
-              "error: data exception - input failed validation. Invalid input 'namespace.name.illegal' for name."
-            )
-              .withCause(
-                GqlStatusInfoCodes.STATUS_22N83,
-                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
-              )
-          )
+      case _ => _.toAstPositioned(Statements(Seq(
+          AlterRemoteDatabaseAlias(
+            namespacedName("namespace", "name", "illegal"),
+            Some(namespacedName("target")),
+            ifExists = false,
+            Some(Left("neo4j://serverA:7687")),
+            Some("user"),
+            Some(sensitiveLiteral("password")),
+            Some(Left(Map("ssl_enforced" -> trueLiteral)))
+          )(defaultPos)
+        )))
     }
   }
 
@@ -1569,7 +1807,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("ALTER ALIAS name.hej.a SET DATABASE TARGET db AT 'heja'") {
-    failsParsing[Statements].in {
+    parsesIn[Statements] {
       case Cypher5 => _.withMessageStart(
           "'.' is not a valid character in the remote alias name 'name.hej.a'. " +
             "Remote alias names using '.' must be quoted with backticks " +
@@ -1585,19 +1823,14 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
                 "error: data exception - input contains invalid characters. Input 'name.hej.a' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
               )
           )
-      case _ => _.withMessageStart(
-          "Invalid input `name.hej.a` for name. Expected name to contain at most two components separated by `.`."
-        )
-          .withSyntaxErrorGqlStatus(
-            gqlStatus(
-              GqlStatusInfoCodes.STATUS_22N05,
-              "error: data exception - input failed validation. Invalid input 'name.hej.a' for name."
-            )
-              .withCause(
-                GqlStatusInfoCodes.STATUS_22N83,
-                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
-              )
-          )
+      case _ => _.toAstPositioned(Statements(Seq(
+          AlterRemoteDatabaseAlias(
+            namespacedName("name", "hej", "a"),
+            Some(namespacedName("db")),
+            ifExists = false,
+            Some(Left("heja"))
+          )(defaultPos)
+        )))
     }
   }
 
@@ -1850,22 +2083,58 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("SHOW ALIAS ns.`db.db` FOR DATABASE") {
-    assertAst(ShowAliases(Some(namespacedName("ns", "db.db")), None)(defaultPos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          ShowAliases(Some(namespacedName("ns", "db.db")), None)(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference 'ns.`db.db`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
+            |"SHOW ALIAS ns.`db.db` FOR DATABASE"
+            |            ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW ALIAS ns.`db.db` FOR DATABASE YIELD * RETURN *") {
-    assertAst(ShowAliases(
-      Some(namespacedName("ns", "db.db")),
-      Some(Left((yieldClause(returnAllItems), Some(returnAll))))
-    )(defaultPos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          ShowAliases(
+            Some(namespacedName("ns", "db.db")),
+            Some(Left((yieldClause(returnAllItems), Some(returnAll))))
+          )(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference 'ns.`db.db`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
+            |"SHOW ALIAS ns.`db.db` FOR DATABASE YIELD * RETURN *"
+            |            ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW ALIAS `ns.db`.`db` FOR DATABASE") {
-    assertAst(ShowAliases(Some(namespacedName("ns.db", "db")), None)(defaultPos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          ShowAliases(Some(namespacedName("ns.db", "db")), None)(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference '`ns.db`.`db`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
+            |"SHOW ALIAS `ns.db`.`db` FOR DATABASE"
+            |            ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW ALIAS `ns.db`.db FOR DATABASE") {
-    assertAst(ShowAliases(Some(namespacedName("ns.db", "db")), None)(defaultPos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(Statements(Seq(
+          ShowAliases(Some(namespacedName("ns.db", "db")), None)(defaultPos)
+        )))
+      case _ => _.withSyntaxError(
+          """Incorrectly formatted graph reference '`ns.db`.db'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))
+            |"SHOW ALIAS `ns.db`.db FOR DATABASE"
+            |            ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW ALIASES FOR DATABASE WHERE name = 'alias1'") {
@@ -1966,82 +2235,137 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("SHOW ALIAS `a`.`b`.`c` FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("SHOW ALIAS `a`.b.`c` FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.b.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.b.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("SHOW ALIAS a.`b`.`c` FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference 'a.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'a.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("SHOW ALIAS `a`.`b`.c FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`a`.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("SHOW ALIAS a.`b`.c FOR DATABASE") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference 'a.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 12 (offset: 11))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference 'a.`b`.c'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 }

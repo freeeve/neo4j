@@ -459,7 +459,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
   ): Unit = {
     val parent = ctx.getParent.asInstanceOf[CreateCommandContext]
     ctx.ast = CreateCompositeDatabase(
-      ctx.databaseName().ast[DatabaseName](),
+      ctx.symbolicAliasNameOrParameter().ast[DatabaseName](),
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
       astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE)),
@@ -472,7 +472,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
   ): Unit = {
     val parent = ctx.getParent.asInstanceOf[CreateCommandContext]
     ctx.ast = CreateDatabase(
-      ctx.databaseName().ast[DatabaseName](),
+      ctx.symbolicAliasNameOrParameter().ast[DatabaseName](),
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
       astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE)),

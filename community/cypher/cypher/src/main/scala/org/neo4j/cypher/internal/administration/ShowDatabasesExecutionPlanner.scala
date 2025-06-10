@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.translateDefaultLanguagePropertyToShowOutput
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.administration.ShowDatabaseExecutionPlanner.accessibleDbsKey
@@ -166,9 +167,14 @@ case class ShowDatabasesExecutionPlanner(
       }
     val returnClause = AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("name"))
 
+    val nameFilter = context.runtimeContext.cypherVersion match {
+      case CypherVersion.Cypher5 => s"{$NAME_PROPERTY: props.name, $NAMESPACE_PROPERTY: '$DEFAULT_NAMESPACE'}"
+      case _                     => s"{$DISPLAY_NAME_PROPERTY: props.name}"
+    }
+
     val query = Predef.augmentString(
       s"""UNWIND $$`$accessibleDbsKey` AS props
-           |MATCH (d:$DATABASE)<-[:$TARGETS]-(dn:$DATABASE_NAME {$NAME_PROPERTY: props.name, $NAMESPACE_PROPERTY: '$DEFAULT_NAMESPACE'})
+           |MATCH (d:$DATABASE)<-[:$TARGETS]-(dn:$DATABASE_NAME $nameFilter)
            |WITH d, dn, props
            |OPTIONAL MATCH (d)<-[:$TARGETS]-(a:$DATABASE_NAME)
            |WITH a, d, dn, props ORDER BY a.$DISPLAY_NAME_PROPERTY

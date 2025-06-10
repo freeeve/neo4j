@@ -28,6 +28,9 @@ import org.neo4j.configuration.GraphDatabaseSettings.initial_default_database
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.DatabaseStatus
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidReferenceStatus
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
 import org.neo4j.dbms.database.DefaultSystemGraphComponent
@@ -47,6 +50,9 @@ import org.neo4j.server.security.systemgraph.UserSecurityGraphComponent
 import org.neo4j.storageengine.api.MetadataProvider
 import org.scalatest.OptionValues
 import org.scalatest.enablers.Messaging.messagingNatureOfThrowable
+import org.scalatest.matchers.BeMatcher
+import org.scalatest.prop.TableDrivenPropertyChecks.forEvery
+import org.scalatest.prop.Tables.Table
 
 import java.lang.Boolean.TRUE
 import java.nio.file.Path
@@ -223,6 +229,71 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     result.toList should be(List(
       homeOrDefaultDb("123abc")
     ))
+  }
+
+  test("should show database quoting variations") {
+    val invalidReferenceSyntax = (name: String) =>
+      gqlException(
+        s"Incorrectly formatted graph reference '$name'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually.",
+        InvalidReferenceStatus.withCause(
+          GqlStatusInfoCodes.STATUS_42NAA,
+          s"error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '$name'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+        ),
+        fuzzyMsg = true
+      )
+
+    sealed trait ExpectedResult
+    case class Succeed() extends ExpectedResult
+    case class ReturnEmpty() extends ExpectedResult
+    case class Throw(error: BeMatcher[Exception]) extends ExpectedResult
+
+    // format: off
+    val scenarios = Table[String, String, Map[String, String], CypherVersion, ExpectedResult](
+      ("id",  "name literal", "params",                 "cypher version",       "expected result"),
+      ("0",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher5,  Succeed()),
+      ("1",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher25, Throw(invalidReferenceSyntax("`aaa`.`bbb`"))),
+      ("2",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher5,  Succeed()),
+      ("3",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher25, Succeed()),
+      ("4",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher5,  Succeed()),
+      ("5",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher25, Succeed()),
+      ("6",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher5,  ReturnEmpty()),
+      ("7",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher25, ReturnEmpty()),
+      ("8",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher5,  Succeed()),
+      ("9",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher25, Succeed()),
+      ("10",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher5,  ReturnEmpty()),
+      ("11",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher25, ReturnEmpty()),
+    )
+    // format: on
+    forEvery(scenarios) { (_, nameLiteral, params, cypherVersion, expectedResult) =>
+      {
+        // GIVEN
+        val config = Config.defaults()
+        config.set(initial_default_database, "aaa.bbb")
+        config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, TRUE)
+        setup(config)
+
+        val showQuery = s"CYPHER ${cypherVersion.versionName} SHOW DATABASE $nameLiteral YIELD name"
+
+        expectedResult match {
+          case Succeed() =>
+            // WHEN
+            val showRes = execute(showQuery, params)
+            // THEN
+            showRes.toList should be(List(Map("name" -> "aaa.bbb")))
+          case ReturnEmpty() =>
+            // WHEN
+            val showRes = execute(showQuery, params)
+            // THEN
+            showRes.toList should be(empty)
+          case Throw(error) =>
+            // WHEN ... THEN
+            the[Exception] thrownBy execute(showQuery, params) should be(error)
+        }
+
+        afterEach()
+      }
+    }
+
   }
 
   test("should show correct default database for switch of default database") {
@@ -658,6 +729,85 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     // THEN
     assertDefaultCypherVersion(DEFAULT_DATABASE_NAME, CypherVersion.Cypher5)
 
+  }
+
+  test("should alter database quoting variations") {
+    val invalidReferenceSyntax = (name: String) =>
+      gqlException(
+        s"Incorrectly formatted graph reference '$name'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually.",
+        InvalidReferenceStatus.withCause(
+          GqlStatusInfoCodes.STATUS_42NAA,
+          s"error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '$name'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+        ),
+        fuzzyMsg = true
+      )
+
+    val databaseNotFoundParam = (name: String, param: String) =>
+      gqlException(
+        s"Failed to alter the specified database '$name': Database does not exist.",
+        InvalidReferenceStatus.withCause(
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_42N51,
+            s"error: syntax error or access rule violation - invalid parameter. Invalid parameter $$`$param`."
+          ).withCause(
+            GqlStatusInfoCodes.STATUS_42N00,
+            s"error: syntax error or access rule violation - graph reference not found. A graph reference with the name `$name` was not found. Verify that the spelling is correct."
+          )
+        ),
+        fuzzyMsg = true
+      )
+    sealed trait ExpectedResult
+    case class Succeed() extends ExpectedResult
+    case class ReturnEmpty() extends ExpectedResult
+    case class Throw(error: BeMatcher[Exception]) extends ExpectedResult
+
+    // format: off
+    val scenarios = Table[String, String, Map[String, String], CypherVersion, ExpectedResult](
+      ("id",  "name literal", "params",                 "cypher version",       "expected result"),
+      ("0",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher5,  Succeed()),
+      ("1",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher25, Throw(invalidReferenceSyntax("`aaa`.`bbb`"))),
+      ("2",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher5,  Succeed()),
+      ("3",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher25, Succeed()),
+      ("4",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher5,  Succeed()),
+      ("5",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher25, Succeed()),
+      ("6",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher5,  Throw(databaseNotFoundParam("`aaa`.`bbb`", "p"))),
+      ("7",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher25, Throw(databaseNotFoundParam("`aaa`.`bbb`", "p"))),
+      ("8",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher5,  Succeed()),
+      ("9",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher25, Succeed()),
+      ("10",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher5,  Throw(databaseNotFoundParam("`aaa.bbb`", "p"))),
+      ("11",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher25, Throw(databaseNotFoundParam("`aaa.bbb`", "p"))),
+    )
+    // format: on
+    forEvery(scenarios) { (_, nameLiteral, params, cypherVersion, expectedResult) =>
+      {
+        // GIVEN
+        val config = Config.defaults()
+        config.set(initial_default_database, "aaa.bbb")
+        config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, TRUE)
+        setup(config)
+
+        val alterQuery =
+          s"CYPHER ${cypherVersion.versionName} ALTER DATABASE $nameLiteral SET DEFAULT LANGUAGE CYPHER 25"
+
+        expectedResult match {
+          case Succeed() =>
+            // WHEN
+            execute(alterQuery, params).queryStatistics().systemUpdates should be(1)
+            // THEN
+            assertDefaultCypherVersion("aaa.bbb", CypherVersion.Cypher25)
+          case ReturnEmpty() =>
+            // WHEN
+            execute(alterQuery, params).queryStatistics().systemUpdates should be(0)
+            // THEN
+            assertDefaultCypherVersion("aaa.bbb", CypherVersion.Cypher5)
+          case Throw(error) =>
+            // WHEN ... THEN
+            the[Exception] thrownBy execute(alterQuery, params) should be(error)
+        }
+
+        afterEach()
+      }
+    }
   }
 
   test("should alter system database to a specific cypher version") {

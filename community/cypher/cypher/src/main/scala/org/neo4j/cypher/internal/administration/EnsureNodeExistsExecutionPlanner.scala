@@ -101,7 +101,7 @@ case class EnsureNodeExistsExecutionPlanner(
       "EnsureNodeExists",
       normalExecutionEngine,
       securityAuthorizationHandler,
-      s"""MATCH (node:$DATABASE_NAME ${aliasNameFields.asNodeFilter})
+      s"""MATCH (node:$DATABASE_NAME ${aliasNameFields.asNodeFilter(context.runtimeContext.cypherVersion)})
          |${extraFilter("node")}
          |RETURN node""".stripMargin,
       VirtualValues.map(aliasNameFields.keys, aliasNameFields.values),

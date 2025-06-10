@@ -270,20 +270,15 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE foo.bar") {
-    parsesIn[Statements] {
-      case Cypher5 => _.toAstPositioned(CreateDatabase(
-          namespacedName("foo", "bar"),
-          IfExistsThrowError,
-          NoOptions,
-          NoWait()(pos),
-          None,
-          None,
-          None
-        )(pos))
-      case _ => _.withSyntaxErrorContaining(
-          "Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF>"
-        )
-    }
+    parsesTo[Statements](CreateDatabase(
+      namespacedName("foo", "bar"),
+      IfExistsThrowError,
+      NoOptions,
+      NoWait()(pos),
+      None,
+      None,
+      None
+    )(pos))
   }
 
   test("CREATE DATABASE `foo-bar42`") {
@@ -656,18 +651,11 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
 
   test("CREATE DATABASE") {
     // missing db name but parses as 'normal' cypher CREATE...
-    failsParsing[Statements].in {
-      case Cypher5 => _.withSyntaxError(
-          """Invalid input '': expected a database name, a graph pattern or a parameter (line 1, column 16 (offset: 15))
-            |"CREATE DATABASE"
-            |                ^""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a graph pattern, a parameter or an identifier (line 1, column 16 (offset: 15))
-            |"CREATE DATABASE"
-            |                ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a database name, a graph pattern or a parameter (line 1, column 16 (offset: 15))
+        |"CREATE DATABASE"
+        |                ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE `graph.db`.`db.db`") {
@@ -687,14 +675,14 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           )
 
       case _ => _.withSyntaxError(
-          """Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 27 (offset: 26))
+          """Incorrectly formatted graph reference '`graph.db`.`db.db`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 17 (offset: 16))
             |"CREATE DATABASE `graph.db`.`db.db`"
-            |                           ^""".stripMargin
+            |                 ^""".stripMargin
         )
           .withSyntaxErrorGqlStatus(
             gqlStatus(
-              GqlStatusInfoCodes.STATUS_42I06,
-              "error: syntax error or access rule violation - invalid input. Invalid input '.', expected: 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF>."
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`graph.db`.`db.db`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
             )
           )
     }
@@ -853,13 +841,13 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
               )
           )
       case _ => _.withSyntaxError(
-          """Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 22 (offset: 21))
+          """Incorrectly formatted graph reference '`foo`.`bar`.`baz`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually. (line 1, column 17 (offset: 16))
             |"CREATE DATABASE `foo`.`bar`.`baz`"
-            |                      ^""".stripMargin
+            |                 ^""".stripMargin
         ).withSyntaxErrorGqlStatus(
           gqlStatus(
-            GqlStatusInfoCodes.STATUS_42I06,
-            "error: syntax error or access rule violation - invalid input. Invalid input '.', expected: 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF>."
+            GqlStatusInfoCodes.STATUS_42NAA,
+            "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`foo`.`bar`.`baz`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
           )
         )
     }
@@ -875,7 +863,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
         )
       case _ =>
         _.withSyntaxError(
-          """Invalid input 'NOT': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'NOT': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE  IF NOT EXISTS"
             |                     ^""".stripMargin
         )
@@ -915,18 +903,11 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE OR REPLACE DATABASE") {
-    failsParsing[Statements].in {
-      case Cypher5 => _.withSyntaxError(
-          """Invalid input '': expected a database name or a parameter (line 1, column 27 (offset: 26))
-            |"CREATE OR REPLACE DATABASE"
-            |                           ^""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input '': expected a parameter or an identifier (line 1, column 27 (offset: 26))
-            |"CREATE OR REPLACE DATABASE"
-            |                           ^""".stripMargin
-        )
-    }
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input '': expected a database name or a parameter (line 1, column 27 (offset: 26))
+        |"CREATE OR REPLACE DATABASE"
+        |                           ^""".stripMargin
+    )
   }
 
   test("CREATE DATABASE foo SET OPTION key value") {
@@ -952,7 +933,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'OPTION': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
+          """Invalid input 'OPTION': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo OPTION {key: value}"
             |                     ^""".stripMargin
         )

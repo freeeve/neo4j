@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.StartDatabase
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.StopDatabase
 import org.neo4j.cypher.internal.ast.TimeoutAfter
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -82,19 +83,30 @@ class StartAndStopDatabaseAdministrationCommandParserTest extends Administration
   }
 
   test("START DATABASE `foo`.bar.`baz`") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``foo`.bar.`baz`` for name. Expected name to contain at most two components separated by `.`."
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`foo`.bar.`baz`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``foo`.bar.`baz`` for name. Expected name to contain at most two components separated by `.`."
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`foo`.bar.`baz`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`foo`.bar.`baz`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`foo`.bar.`baz`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   // STOP DATABASE
@@ -140,19 +152,30 @@ class StartAndStopDatabaseAdministrationCommandParserTest extends Administration
   }
 
   test("STOP DATABASE `foo`.bar.`baz`") {
-    failsParsing[Statements].withMessageStart(
-      "Invalid input ``foo`.bar.`baz`` for name. Expected name to contain at most two components separated by `.`."
-    )
-      .withSyntaxErrorGqlStatus(
-        gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N05,
-          "error: data exception - input failed validation. Invalid input '`foo`.bar.`baz`' for name."
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "Invalid input ``foo`.bar.`baz`` for name. Expected name to contain at most two components separated by `.`."
         )
-          .withCause(
-            GqlStatusInfoCodes.STATUS_22N83,
-            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`foo`.bar.`baz`' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
           )
-      )
+      case _ => _.withMessageStart(
+          "Incorrectly formatted graph reference '`foo`.bar.`baz`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42NAA,
+              "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`foo`.bar.`baz`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+            )
+          )
+    }
   }
 
   test("STOP DATABASE") {

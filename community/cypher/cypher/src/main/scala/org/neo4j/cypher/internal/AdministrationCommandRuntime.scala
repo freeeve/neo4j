@@ -53,7 +53,6 @@ import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.StringType
-import org.neo4j.dbms.api.DatabaseNotFoundHelper.compositeDatabaseNotFound
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_CONSTRAINT
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY
@@ -1018,7 +1017,10 @@ object AdministrationCommandRuntime {
     val keys: Array[String] = Array(nameKey, namespaceKey, displayNameKey, quotedDisplayNameKey)
     val values: Array[AnyValue] = Array(nameValue, namespaceValue, displayNameValue, quotedDisplayNameValue)
 
-    def asNodeFilter: String = s"{$NAME_PROPERTY: $$`$nameKey`, $NAMESPACE_PROPERTY: $$`$namespaceKey`}"
+    def asNodeFilter(cypherVersion: CypherVersion): String = cypherVersion match {
+      case CypherVersion.Cypher5 => s"{$NAME_PROPERTY: $$`$nameKey`, $NAMESPACE_PROPERTY: $$`$namespaceKey`}"
+      case _                     => s"{$DISPLAY_NAME_PROPERTY: $$`$displayNameKey`}"
+    }
 
   }
 
@@ -1034,60 +1036,106 @@ object AdministrationCommandRuntime {
    * compatibility. We assume that 'db.name' means 'name' in composite 'db' but in case db does
    * not exist we need to rewrite the parameters to mean 'db.name' in the default namespace. Also flag
    * this usage as deprecated.
-   *
-   * If the name was a quoted literal (e.g. `graph.db`), AdministrationCommandRuntime#getDatabaseNameFields will
-   * already have split the name into `DEFAULT_NAMESPACE`.`graph.db` before this.
-   * Quoted names are *not* considered ambiguous.
-   *
-   * From Cypher25 and onwards;
-   * When a name is given as an ambiguous literal an error is thrown instead of the deprecation warning.
-   * Ambiguous parameters continue to be treated as described above since no un-ambiguous alternative exists yet.
    */
   def checkNamespaceExists(
     aliasNameFields: DatabaseNameFields,
     context: AdministrationCommandRuntimeContext
   )(tx: Transaction, params: MapValue): (MapValue, Set[InternalNotification]) = {
 
-    def paramString(key: String) = params.get(key).asInstanceOf[StringValue].stringValue()
-
-    if (paramString(aliasNameFields.namespaceKey) != DEFAULT_NAMESPACE) {
-      // Check to see if there is a composite database node for this alias
-      // MATCH (dbname:DatabaseName{name: name})-[:TARGETS]->(:CompositeDatabase) WHERE dbname.namespace = namespace
-      val compositeDatabaseExists = Using.resource(tx.findNodes(
-        DATABASE_NAME_LABEL,
-        DATABASE_NAME_PROPERTY,
-        paramString(aliasNameFields.namespaceKey)
-      )) { nodes =>
-        nodes.asScala.exists(n =>
-          n.getProperty(NAMESPACE_PROPERTY).equals(DEFAULT_NAMESPACE) && n.getSingleRelationship(
-            TARGETS_RELATIONSHIP,
-            Direction.OUTGOING
-          ).getEndNode.hasLabel(COMPOSITE_DATABASE_LABEL)
-        )
-      }
-      if (!compositeDatabaseExists) {
-        context.runtimeContext.cypherVersion match {
-          case CypherVersion.Cypher5             => interpretNamespaceAsPartOfName(aliasNameFields, params, paramString)
-          case _ if aliasNameFields.wasParameter => interpretNamespaceAsPartOfName(aliasNameFields, params, paramString)
-          case _ => throw compositeDatabaseNotFound(
-              paramString(aliasNameFields.namespaceKey),
-              null // null since if it's a parameter it will be caught in the case above
-            )
-        }
-      } else {
-        (params, Set.empty)
-      }
-    } else {
+    if (context.runtimeContext.cypherVersion != CypherVersion.Cypher5) {
+      // Cypher 25+ ignores namespace/name split for lookup and has special handling for create
+      // See updateNamespaceToMatchingComposite for Cypher25 behaviour
       (params, Set.empty)
+    } else {
+      val namespace = runtimeStringValue(aliasNameFields.namespaceKey, params, prettyPrint = false)
+      // Check to see if there is a composite database node for this alias
+      if (namespace == DEFAULT_NAMESPACE || compositeNamespaces(tx).contains(namespace)) {
+        (params, Set.empty)
+      } else {
+        // Composite namespace doesn't exist
+        interpretNamespaceAsPartOfName(aliasNameFields, params)
+      }
     }
+  }
+
+  def updateNamespaceToMatchingComposite(
+    cypherVersion: CypherVersion,
+    aliasNameFields: DatabaseNameFields
+  )(tx: Transaction, params: MapValue): MapValue = {
+    if (cypherVersion == CypherVersion.Cypher5) {
+      // See checkNamespaceExists for Cypher5 behaviour
+      params
+    } else {
+      val fullName = runtimeStringValue(aliasNameFields.displayNameKey, params, prettyPrint = false)
+      findNamespaceNameSplit(compositeNamespaces(tx), fullName) match {
+        case Some((namespace, name)) =>
+          params
+            .updatedWith(aliasNameFields.namespaceKey, Values.utf8Value(namespace))
+            .updatedWith(aliasNameFields.nameKey, Values.utf8Value(name))
+        case None =>
+          params
+            .updatedWith(aliasNameFields.namespaceKey, Values.utf8Value(DEFAULT_NAMESPACE))
+            .updatedWith(aliasNameFields.nameKey, Values.utf8Value(fullName))
+      }
+    }
+  }
+
+  private def compositeNamespaces(tx: Transaction): Seq[String] = {
+    // List all composite database namespaces
+    // MATCH (dbname:DatabaseName)-[:TARGETS]->(:CompositeDatabase) RETURN dbname.namespace
+    Using.resource(tx.findNodes(
+      DATABASE_NAME_LABEL
+    )) { nodes =>
+      nodes.asScala
+        .filter(_
+          .getProperty(NAMESPACE_PROPERTY)
+          .equals(DEFAULT_NAMESPACE))
+        .filter(nameNode =>
+          Option(nameNode.getSingleRelationship(TARGETS_RELATIONSHIP, Direction.OUTGOING))
+            .exists(_
+              .getEndNode
+              .hasLabel(COMPOSITE_DATABASE_LABEL))
+        )
+        .map(_.getProperty(DATABASE_NAME_PROPERTY))
+        .flatMap {
+          case s: String => Some(s)
+          case _         => None // Covers both null and non-string values
+        }.toList
+    }
+  }
+
+  /**
+   * Splits a name (e.g. 'a.b.c') into all possible namespace/name splits:
+   * a | b.c
+   * a.b | c
+   * and returns the first that matches a namespace provided in compositeNamespaces
+   *
+   * @param compositeNamespaces composite namespaces that exist in the system db
+   * @param fullName            the name to be split
+   * @return An Option((namespace, name)) tuple if a matching split is found, None otherwise
+   */
+  private def findNamespaceNameSplit(compositeNamespaces: Seq[String], fullName: String): Option[(String, String)] = {
+    // Find the indexes of all dots in the fullName (left to right)
+    val dotIndexes = fullName.zipWithIndex.filter(_._1.equals('.')).map(_._2)
+    // For each dot, split the fullName on that dot
+    val namespaceNamePairs = dotIndexes
+      .map(index => {
+        val namespace = fullName.take(index)
+        val name = fullName.drop(index + 1)
+        (namespace, name)
+      })
+    // Find the first (namespace, name) pair for which a composite exists
+    namespaceNamePairs
+      .find { case (namespace, _) => compositeNamespaces.contains(namespace) }
   }
 
   private def interpretNamespaceAsPartOfName(
     aliasNameFields: DatabaseNameFields,
-    params: MapValue,
-    paramString: String => String
+    params: MapValue
   ): (MapValue, Set[InternalNotification]) = {
-    val aliasName = paramString(aliasNameFields.namespaceKey) + "." + paramString(aliasNameFields.nameKey)
+    val namespace = runtimeStringValue(aliasNameFields.namespaceKey, params, prettyPrint = false)
+    val name = runtimeStringValue(aliasNameFields.nameKey, params, prettyPrint = false)
+    val aliasName = s"$namespace.$name"
     // This is just a regular local alias with . in the name, so use the default namespace
     (
       params.updatedWith(
