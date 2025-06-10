@@ -21,14 +21,25 @@ package org.neo4j.dbms.database;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.dbms.database.SystemGraphComponent.executeWithFullAccess;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_CONSTRAINT;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.exceptions.UpgradeException;
+import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.ConstraintCreator;
 import org.neo4j.graphdb.schema.ConstraintDefinition;
@@ -37,7 +48,9 @@ import org.neo4j.graphdb.schema.IndexCreator;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.schema.IndexType;
 import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.util.Preconditions;
+import org.neo4j.util.VisibleForTesting;
 
 /**
  * Common code for all system graph components, apart from test implementations and the central collection class {@link SystemGraphComponents}.
@@ -91,6 +104,57 @@ public abstract class AbstractSystemGraphComponent implements SystemGraphCompone
     protected static void initializeSystemGraphConstraint(
             GraphDatabaseService system, Label label, String... properties) throws Exception {
         initializeSystemGraphConstraint(system, Optional.empty(), label, properties);
+    }
+
+    protected static void initializeDisplayNameSystemGraphConstraint(GraphDatabaseService system) throws Exception {
+        try {
+            initializeSystemGraphConstraint(
+                    system, Optional.of(DISPLAY_NAME_CONSTRAINT), DATABASE_NAME_LABEL, DISPLAY_NAME_PROPERTY);
+        } catch (ConstraintViolationException e) {
+            /*
+             * Unlike other upgrade errors which should never occur, a ConstraintViolationException on displayName
+             * can happen on upgrade in the edge case that a composite user has conflicting displayNames
+             * e.g. a database or alias 'foo.bar' and simultaneously a constituent 'foo.bar' in a composite 'foo'.
+             * In this case, we want to give a sensible error to the user,
+             * so they can fix the naming conflict and then retry the upgrade.
+             */
+            Optional<Pair<String, String>> conflictingDbs = findDisplayNameConflicts(system);
+            if (conflictingDbs.isPresent()) {
+                throw UpgradeException.conflictingDisplayNames(
+                        conflictingDbs.get().first(), conflictingDbs.get().other());
+            }
+            // In the unlikely event that we got an ConstraintViolationException but did not find any conflict,
+            // the exception was not related to conflicting displayNames, so we just rethrow it
+            throw e;
+        }
+    }
+
+    @VisibleForTesting
+    public static Optional<Pair<String, String>> findDisplayNameConflicts(GraphDatabaseService system) {
+        Optional<Pair<String, String>> maybeConflict;
+        try (var tx = system.beginTx()) {
+            // Group the database names nodes by displayName
+            Map<Object, List<Node>> databasesPerDisplayName = tx.findNodes(DATABASE_NAME_LABEL).stream()
+                    .collect(Collectors.groupingBy(node -> node.getProperty(DISPLAY_NAME_PROPERTY)));
+
+            maybeConflict = databasesPerDisplayName.entrySet().stream()
+                    // Find all displayName conflicts (> 1 database names share the same displayName)
+                    .filter(entry -> entry.getValue().size() > 1)
+                    // Pick the first displayName with a conflict,
+                    // sort in alphabetic displayName order to avoid flakiness in testing
+                    .min(Comparator.comparing(entry -> entry.getKey().toString()))
+                    // Extract the name of two conflicting databases for the error message
+                    .map(entry -> {
+                        List<String> conflicts = entry.getValue().stream()
+                                .map(node -> node.getProperty(NAME_PROPERTY).toString())
+                                .sorted() // Just needed to avoid flakiness in testing
+                                .toList();
+                        return Pair.of(conflicts.get(0), conflicts.get(1));
+                    });
+
+            tx.rollback();
+        }
+        return maybeConflict;
     }
 
     protected static void initializeSystemGraphConstraint(

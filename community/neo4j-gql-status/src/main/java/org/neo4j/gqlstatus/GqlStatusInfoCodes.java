@@ -4507,6 +4507,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "shard execution error",
             ErrorClassification.TRANSIENT_ERROR),
+    STATUS_51N76(
+            new GqlStatus("51N76"),
+            "The upgrade to a new Neo4j version failed.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "upgrade failed",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
             "Execution of the procedure { %s } timed out after { %s } { %s }.",

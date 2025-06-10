@@ -94,6 +94,7 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
         }
 
         if (hasUniqueConstraint(tx, DATABASE_NAME_LABEL, NAME_PROPERTY, NAMESPACE_PROPERTY)
+                && hasUniqueConstraint(tx, DATABASE_NAME_LABEL, DISPLAY_NAME_PROPERTY)
                 && hasUniqueConstraint(tx, DATABASE_LABEL, DATABASE_NAME_PROPERTY)) {
             return Status.CURRENT;
         } else {
@@ -104,6 +105,7 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
     @Override
     protected void initializeSystemGraphSchema(GraphDatabaseService system) throws Exception {
         initializeSystemGraphConstraint(system, DATABASE_NAME_LABEL, NAME_PROPERTY, NAMESPACE_PROPERTY);
+        initializeDisplayNameSystemGraphConstraint(system);
         initializeSystemGraphConstraint(system, DATABASE_LABEL, DATABASE_NAME_PROPERTY);
     }
 

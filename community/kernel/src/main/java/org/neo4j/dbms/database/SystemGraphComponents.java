@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import org.neo4j.exceptions.UpgradeException;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -106,6 +107,8 @@ public class SystemGraphComponents {
         for (SystemGraphComponent component : componentsToUpgrade(system)) {
             try {
                 component.upgradeToCurrent(system);
+            } catch (UpgradeException e) {
+                throw e;
             } catch (Exception e) {
                 failure = Exceptions.chain(failure, e);
             }

@@ -28,6 +28,7 @@ import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_LABEL;
 import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.graphdb.schema.IndexType.LOOKUP;
@@ -138,14 +139,16 @@ public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
             List<ConstraintDefinition> constraints =
                     Iterables.asList(tx.schema().getConstraints());
             verifyHasUniqueConstraint(constraints, DATABASE_NAME_LABEL, NAME_PROPERTY, NAMESPACE_PROPERTY);
+            verifyHasUniqueConstraint(constraints, DATABASE_NAME_LABEL, DISPLAY_NAME_PROPERTY);
             verifyHasUniqueConstraint(constraints, DATABASE_LABEL, NAME_PROPERTY);
             verifyHasUniqueConstraint(constraints, USER_LABEL, USER_ID_PROPERTY);
             verifyHasUniqueConstraint(constraints, USER_LABEL, USER_NAME_PROPERTY);
             verifyHasUniqueConstraint(constraints, AUTH_LABEL, AUTH_ID_PROPERTY, AUTH_PROVIDER_PROPERTY);
-            assertThat(constraints).hasSize(5);
+            assertThat(constraints).hasSize(6);
 
             List<IndexDefinition> indexes = Iterables.asList(tx.schema().getIndexes());
             verifyHasIndex(indexes, DATABASE_NAME_LABEL, NAME_PROPERTY, NAMESPACE_PROPERTY);
+            verifyHasIndex(indexes, DATABASE_NAME_LABEL, DISPLAY_NAME_PROPERTY);
             verifyHasIndex(indexes, DATABASE_LABEL, NAME_PROPERTY);
             verifyHasIndex(indexes, USER_LABEL, USER_ID_PROPERTY);
             verifyHasIndex(indexes, USER_LABEL, USER_NAME_PROPERTY);
@@ -161,9 +164,9 @@ public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
                     assertThat(indexDefinition.getIndexType()).isEqualTo(LOOKUP);
                     assertThat(indexDefinition.isRelationshipIndex()).isEqualTo(true);
                 });
-                assertThat(indexes).hasSize(7);
+                assertThat(indexes).hasSize(8);
             } else {
-                assertThat(indexes).hasSize(6);
+                assertThat(indexes).hasSize(7);
             }
             tx.commit();
         }
