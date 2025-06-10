@@ -291,7 +291,8 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     private void buildApplierChains() {
-        var kernelVersionApplierFactory = new KernelVersionTransactionApplierFactory(metadataCache);
+        var kernelVersionApplierFactory =
+                new KernelVersionTransactionApplierFactory(metadataCache, internalLogProvider);
         for (TransactionApplicationMode mode : TransactionApplicationMode.values()) {
             applierChains.put(mode, buildApplierFacadeChain(mode, kernelVersionApplierFactory));
         }

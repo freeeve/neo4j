@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.transaction.log.rotation;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.util.function.LongSupplier;
 import org.neo4j.kernel.KernelVersion;
@@ -38,6 +37,7 @@ import org.neo4j.monitoring.Panic;
 public class FileLogRotation implements LogRotation {
     private final Clock clock;
     private final LogRotationMonitor monitor;
+    private final LogRotationMonitor.LogType type;
     private final Panic databasePanic;
     private final RotatableFile rotatableFile;
     private long lastRotationCompleted;
@@ -52,6 +52,7 @@ public class FileLogRotation implements LogRotation {
             LogRotationMonitor monitor) {
         return new FileLogRotation(
                 checkpointLogFile,
+                LogRotationMonitor.LogType.CHECKPOINT,
                 clock,
                 databasePanic,
                 monitor,
@@ -63,6 +64,7 @@ public class FileLogRotation implements LogRotation {
             LogFile logFile, Clock clock, Panic databasePanic, LogRotationMonitor monitor) {
         return new FileLogRotation(
                 logFile,
+                LogRotationMonitor.LogType.TRANSACTIONS,
                 clock,
                 databasePanic,
                 monitor,
@@ -72,6 +74,7 @@ public class FileLogRotation implements LogRotation {
 
     private FileLogRotation(
             RotatableFile rotatableFile,
+            LogRotationMonitor.LogType type,
             Clock clock,
             Panic databasePanic,
             LogRotationMonitor monitor,
@@ -79,6 +82,7 @@ public class FileLogRotation implements LogRotation {
             LongSupplier currentFileVersionSupplier) {
         this.clock = clock;
         this.monitor = monitor;
+        this.type = type;
         this.databasePanic = databasePanic;
         this.rotatableFile = rotatableFile;
         this.lastAppendIndexSupplier = lastAppendIndexSupplier;
@@ -203,19 +207,25 @@ public class FileLogRotation implements LogRotation {
              */
             databasePanic.assertNoPanic(IOException.class);
             long startTimeMillis = clock.millis();
-            monitor.startRotation(currentVersion);
-            Path newLogFile = fileRotator.rotate();
+            monitor.startRotation(type, currentVersion);
+            RotatableFile.RotationInfo logFileInfo = fileRotator.rotate();
             long millisSinceLastRotation = lastRotationCompleted == 0 ? 0 : startTimeMillis - lastRotationCompleted;
             lastRotationCompleted = clock.millis();
             long rotationElapsedTime = lastRotationCompleted - startTimeMillis;
             rotateEvent.rotationCompleted(rotationElapsedTime);
             monitor.finishLogRotation(
-                    newLogFile, currentVersion, appendIndex, rotationElapsedTime, millisSinceLastRotation);
+                    logFileInfo.file(),
+                    type,
+                    currentVersion,
+                    logFileInfo.logHeader(),
+                    appendIndex,
+                    rotationElapsedTime,
+                    millisSinceLastRotation);
         }
     }
 
     @FunctionalInterface
     private interface FileRotator {
-        Path rotate() throws IOException;
+        RotatableFile.RotationInfo rotate() throws IOException;
     }
 }

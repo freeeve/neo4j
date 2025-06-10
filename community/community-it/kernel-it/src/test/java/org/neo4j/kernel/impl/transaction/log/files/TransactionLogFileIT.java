@@ -94,7 +94,7 @@ class TransactionLogFileIT {
                 new DatabaseHealth(NO_OP, NullLog.getInstance()),
                 new LogRotationMonitorAdapter() {
                     @Override
-                    public void startRotation(long currentLogVersion) {
+                    public void startRotation(LogType type, long currentLogVersion) {
                         rotationObservedVersion.setValue(currentLogVersion);
                     }
                 });

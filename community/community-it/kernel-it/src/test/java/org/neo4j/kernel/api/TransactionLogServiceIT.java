@@ -1052,7 +1052,9 @@ class TransactionLogServiceIT {
         @Override
         public void finishLogRotation(
                 Path logFile,
+                LogType type,
                 long logVersion,
+                LogHeader logHeader,
                 long lastAppendIndex,
                 long rotationMillis,
                 long millisSinceLastRotation) {

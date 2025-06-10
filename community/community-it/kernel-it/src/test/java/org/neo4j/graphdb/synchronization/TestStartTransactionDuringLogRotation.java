@@ -82,7 +82,7 @@ public class TestStartTransactionDuringLogRotation {
 
         LogRotationMonitor rotationListener = new LogRotationMonitorAdapter() {
             @Override
-            public void startRotation(long currentLogVersion) {
+            public void startRotation(LogType type, long currentLogVersion) {
                 startLogRotationLatch.countDown();
                 try {
                     completeLogRotationLatch.await();

@@ -20,23 +20,30 @@
 package org.neo4j.kernel.impl.transaction.log.rotation.monitor;
 
 import java.nio.file.Path;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 
 public class LogRotationMonitorAdapter implements LogRotationMonitor {
     public static final LogRotationMonitor EMPTY = new LogRotationMonitorAdapter();
 
     @Override
-    public void started(Path logFile, long logVersion) {
+    public void started(Path logFile, LogType type, long logVersion, LogHeader logHeader) {
         // empty
     }
 
     @Override
-    public void startRotation(long currentLogVersion) {
+    public void startRotation(LogType type, long currentLogVersion) {
         // empty
     }
 
     @Override
     public void finishLogRotation(
-            Path logFile, long logVersion, long lastAppendIndex, long rotationMillis, long millisSinceLastRotation) {
+            Path logFile,
+            LogType type,
+            long logVersion,
+            LogHeader logHeader,
+            long lastAppendIndex,
+            long rotationMillis,
+            long millisSinceLastRotation) {
         // empty
     }
 }

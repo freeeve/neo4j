@@ -23,8 +23,11 @@ import java.io.IOException;
 import java.nio.file.Path;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 
 public interface RotatableFile {
+    record RotationInfo(Path file, LogHeader logHeader) {}
+
     /**
      * @return {@code true} if a rotation is needed.
      */
@@ -35,7 +38,7 @@ public interface RotatableFile {
      * @return A file object representing the file name and path of the log file rotated to.
      * @throws IOException if something goes wrong with either flushing the existing log file, or creating the new log file.
      */
-    Path rotate() throws IOException;
+    RotationInfo rotate() throws IOException;
 
     /**
      * Rotate the active file but be explicit about what kernel version to use for the new header.
@@ -46,7 +49,7 @@ public interface RotatableFile {
      * @return A file object representing the file name and path of the log file rotated to.
      * @throws IOException if something goes wrong with either flushing the existing log file, or creating the new log file.
      */
-    Path rotate(KernelVersion kernelVersion) throws IOException;
+    RotationInfo rotate(KernelVersion kernelVersion) throws IOException;
 
     /**
      * Rotate the active file but be explicit about what values to use for the new header.
@@ -57,10 +60,10 @@ public interface RotatableFile {
      * @return A file object representing the file name and path of the log file rotated to.
      * @throws IOException if something goes wrong with either flushing the existing log file, or creating the new log file.
      */
-    Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum, LogFormat logFormat)
+    RotationInfo rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum, LogFormat logFormat)
             throws IOException;
 
-    Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) throws IOException;
+    RotationInfo rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) throws IOException;
 
     long rotationSize();
 }

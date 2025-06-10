@@ -89,10 +89,10 @@ class DynamicReadOnlyFailoverIT {
         config.setDynamic(logical_log_rotation_threshold, initialRotationThreshold, TEST_SCOPE);
         monitors.addMonitorListener(new LogRotationMonitorAdapter() {
             @Override
-            public void startRotation(long currentLogVersion) {
+            public void startRotation(LogType type, long currentLogVersion) {
                 config.setDynamic(logical_log_rotation_threshold, getUnavailableBytes(), TEST_SCOPE);
                 nativeAccess.startFailing();
-                super.startRotation(currentLogVersion);
+                super.startRotation(type, currentLogVersion);
             }
         });
 
@@ -140,9 +140,9 @@ class DynamicReadOnlyFailoverIT {
         config.setDynamic(logical_log_rotation_threshold, initialRotationThreshold, TEST_SCOPE);
         monitors.addMonitorListener(new LogRotationMonitorAdapter() {
             @Override
-            public void startRotation(long currentLogVersion) {
+            public void startRotation(LogType type, long currentLogVersion) {
                 config.setDynamic(logical_log_rotation_threshold, getUnavailableBytes(), TEST_SCOPE);
-                super.startRotation(currentLogVersion);
+                super.startRotation(type, currentLogVersion);
             }
         });
 

@@ -339,12 +339,12 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
-    public synchronized Path rotate() throws IOException {
+    public synchronized RotationInfo rotate() throws IOException {
         return checkpointAppender.rotate();
     }
 
     @Override
-    public Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum, LogFormat logFormat)
+    public RotationInfo rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum, LogFormat logFormat)
             throws IOException {
         // Checkpoint log handles checksums and append indexes internally, this one should not ever be needed for
         // checkpoint log file.
@@ -352,14 +352,14 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
-    public Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) {
+    public RotationInfo rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) {
         // Checkpoint log handles checksums and append indexes internally, this one should not ever be needed for
         // checkpoint log file.
         throw new UnsupportedOperationException("Checkpoint log does not support this type of rotation");
     }
 
     @Override
-    public Path rotate(KernelVersion kernelVersion) throws IOException {
+    public RotationInfo rotate(KernelVersion kernelVersion) throws IOException {
         return checkpointAppender.rotate(kernelVersion);
     }
 

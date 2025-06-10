@@ -20,18 +20,32 @@
 package org.neo4j.kernel.impl.transaction.log.rotation.monitor;
 
 import java.nio.file.Path;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 
 public interface LogRotationMonitor {
+    enum LogType {
+        CHECKPOINT,
+        TRANSACTIONS
+    }
+
     /**
      * Called when the log file is initially opened, to allow monitor callback to know which version of the file was initially opened.
-     * Then later on this version will be rotated into new versions, at which point {@link #startRotation(long)} will be called.
+     * Then later on this version will be rotated into new versions, at which point {@link #startRotation(LogType, long)} will be called.
      * @param logFile the file.
+     * @param type indicates if this is checkpoint of transaction log file.
      * @param logVersion the version of the file is used when starting.
+     * @param logHeader extra information about the initial file e.g. LogFormat and KernelVersion
      */
-    void started(Path logFile, long logVersion);
+    void started(Path logFile, LogType type, long logVersion, LogHeader logHeader);
 
-    void startRotation(long currentLogVersion);
+    void startRotation(LogType type, long currentLogVersion);
 
     void finishLogRotation(
-            Path logFile, long logVersion, long lastAppendIndex, long rotationMillis, long millisSinceLastRotation);
+            Path logFile,
+            LogType type,
+            long logVersion,
+            LogHeader logHeader,
+            long lastAppendIndex,
+            long rotationMillis,
+            long millisSinceLastRotation);
 }

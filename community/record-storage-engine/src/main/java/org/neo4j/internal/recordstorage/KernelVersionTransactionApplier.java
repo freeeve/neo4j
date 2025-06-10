@@ -24,12 +24,16 @@ import org.neo4j.internal.recordstorage.Command.MetaDataCommand;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
+import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.InternalLogProvider;
 
 public class KernelVersionTransactionApplier extends TransactionApplier.Adapter {
     private final MetadataCache metadataCache;
+    private final InternalLog log;
 
-    public KernelVersionTransactionApplier(MetadataCache metadataCache) {
+    public KernelVersionTransactionApplier(MetadataCache metadataCache, InternalLogProvider userLogProvider) {
         this.metadataCache = metadataCache;
+        this.log = userLogProvider.getLog(getClass());
     }
 
     @Override
@@ -38,6 +42,8 @@ public class KernelVersionTransactionApplier extends TransactionApplier.Adapter 
         final var kernelVersion = KernelVersion.getForVersion((byte) (value & 0xFF));
         // Not using the format yet, that is coming soon
         byte logFormatVersion = (byte) ((value >> Byte.SIZE) & 0xFF);
+        log.info("Applying metadata upgrade command: " + command + " previous KernelVersion "
+                + metadataCache.kernelVersion() + " previous LogFormat " + metadataCache.getCurrentLogFormat());
         metadataCache.setKernelVersion(kernelVersion);
         metadataCache.setCurrentLogFormat(
                 logFormatVersion == 0

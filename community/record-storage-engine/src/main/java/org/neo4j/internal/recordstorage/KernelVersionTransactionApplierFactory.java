@@ -21,13 +21,14 @@ package org.neo4j.internal.recordstorage;
 
 import java.io.IOException;
 import org.neo4j.kernel.database.MetadataCache;
+import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 
 public class KernelVersionTransactionApplierFactory implements TransactionApplierFactory {
     private final KernelVersionTransactionApplier applier;
 
-    public KernelVersionTransactionApplierFactory(MetadataCache metadataCache) {
-        this.applier = new KernelVersionTransactionApplier(metadataCache);
+    public KernelVersionTransactionApplierFactory(MetadataCache metadataCache, InternalLogProvider userLogProvider) {
+        this.applier = new KernelVersionTransactionApplier(metadataCache, userLogProvider);
     }
 
     @Override

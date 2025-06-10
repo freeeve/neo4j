@@ -158,13 +158,18 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         // The header doesn't contain a kernel version before envelopes, but this corner case can safely be
         // ignored before envelopes since the format doesn't change.
         if (rotationNeededBecauseOfVersionMismatch(currentKernelVersion, logHeader)) {
+            logger.debug("Rotation needed because of version mismatch. currentKernelVersion=" + currentKernelVersion
+                    + ", file LogFormat=" + logHeader.getLogFormatVersion() + ", file KernelVersion="
+                    + logHeader.getKernelVersion());
             KernelVersion logHeaderKernelVersion = logHeader.getKernelVersion();
             assert logHeaderKernelVersion == null || currentKernelVersion.isGreaterThan(logHeaderKernelVersion);
             rotateOnStart(logHeader);
             currentLogVersion = logVersionRepository.getCurrentLogVersion();
         }
 
-        context.getMonitors().newMonitor(LogRotationMonitor.class).started(channel.getPath(), currentLogVersion);
+        context.getMonitors()
+                .newMonitor(LogRotationMonitor.class)
+                .started(channel.getPath(), LogRotationMonitor.LogType.TRANSACTIONS, currentLogVersion, logHeader);
 
         // try to set position
         seekChannelPosition(currentLogVersion);
@@ -202,7 +207,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
      */
     private void rotateOnStart(LogHeader logHeader) throws IOException {
         long startTimeMillis = context.getClock().millis();
-        rotationMonitor.startRotation(logHeader.getLogVersion());
+        rotationMonitor.startRotation(LogRotationMonitor.LogType.TRANSACTIONS, logHeader.getLogVersion());
         long newLogVersion = logVersionRepository.incrementAndGetVersion();
 
         // Should truncate away any pre-allocated space, so let's find the end.
@@ -221,7 +226,13 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
         long rotationElapsedTime = context.getClock().millis() - startTimeMillis;
         rotationMonitor.finishLogRotation(
-                channel.getPath(), logHeader.getLogVersion(), context.appendIndex(), rotationElapsedTime, 0);
+                channel.getPath(),
+                LogRotationMonitor.LogType.TRANSACTIONS,
+                logHeader.getLogVersion(),
+                extractHeader(newLogVersion),
+                context.appendIndex(),
+                rotationElapsedTime,
+                0);
     }
 
     // In order to be able to write into a logfile after life.stop during shutdown sequence
@@ -371,32 +382,35 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     }
 
     @Override
-    public synchronized Path rotate() throws IOException {
+    public synchronized RotationInfo rotate() throws IOException {
         return rotate(context::appendIndex);
     }
 
     @Override
-    public synchronized Path rotate(
+    public synchronized RotationInfo rotate(
             KernelVersion kernelVersion, long lastAppendIndex, int checksum, LogFormat logFormat) throws IOException {
         channel = rotate(channel, () -> lastAppendIndex, () -> kernelVersion, () -> checksum, () -> logFormat);
-        writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(channel.getLogVersion()));
-        return channel.getPath();
+        LogHeader logHeader = channelAllocator.readLogHeaderForVersion(channel.getLogVersion());
+        writer.setChannel(channel, logHeader);
+        return new RotationInfo(channel.getPath(), logHeader);
     }
 
     @Override
-    public Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) throws IOException {
+    public synchronized RotationInfo rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum)
+            throws IOException {
         channel = rotate(
                 channel,
                 () -> lastAppendIndex,
                 fixed(kernelVersion),
                 () -> checksum,
                 context.getLogFormatVersionProvider());
-        writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(channel.getLogVersion()));
-        return channel.getPath();
+        LogHeader logHeader = channelAllocator.readLogHeaderForVersion(channel.getLogVersion());
+        writer.setChannel(channel, logHeader);
+        return new RotationInfo(channel.getPath(), logHeader);
     }
 
     @Override
-    public synchronized Path rotate(KernelVersion kernelVersion) throws IOException {
+    public synchronized RotationInfo rotate(KernelVersion kernelVersion) throws IOException {
         throw new UnsupportedOperationException("Transaction log does not support this type of rotation");
     }
 
@@ -405,7 +419,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         return rotateAtSize.get();
     }
 
-    public synchronized Path rotate(long appendIndex) throws IOException {
+    public synchronized RotationInfo rotate(long appendIndex) throws IOException {
         return rotate(() -> appendIndex);
     }
 
@@ -679,15 +693,16 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         return externalFileReaders;
     }
 
-    private synchronized Path rotate(LongSupplier appendIndexSupplier) throws IOException {
+    private synchronized RotationInfo rotate(LongSupplier appendIndexSupplier) throws IOException {
         channel = rotate(
                 channel,
                 appendIndexSupplier,
                 context.getKernelVersionProvider(),
                 () -> writer.currentChecksum().orElse(BASE_TX_CHECKSUM),
                 context.getLogFormatVersionProvider());
-        writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(channel.getLogVersion()));
-        return channel.getPath();
+        LogHeader logHeader = channelAllocator.readLogHeaderForVersion(channel.getLogVersion());
+        writer.setChannel(channel, logHeader);
+        return new RotationInfo(channel.getPath(), logHeader);
     }
 
     /**

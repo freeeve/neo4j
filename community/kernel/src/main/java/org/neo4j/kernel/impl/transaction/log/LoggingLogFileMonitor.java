@@ -26,6 +26,7 @@ import static org.neo4j.internal.helpers.Format.duration;
 
 import java.nio.file.Path;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.rotation.monitor.LogRotationMonitor;
 import org.neo4j.kernel.recovery.RecoveryMode;
 import org.neo4j.kernel.recovery.RecoveryMonitor;
@@ -143,22 +144,28 @@ public class LoggingLogFileMonitor
     }
 
     @Override
-    public void started(Path logFile, long logVersion) {
+    public void started(Path logFile, LogType type, long logVersion, LogHeader logHeader) {
         log.info("Starting transaction log [%s] at version=%d", logFile, logVersion);
     }
 
     @Override
-    public void startRotation(long currentLogVersion) {}
+    public void startRotation(LogType type, long currentLogVersion) {}
 
     @Override
     public void finishLogRotation(
-            Path logFile, long logVersion, long lastAppendIndex, long rotationMillis, long millisSinceLastRotation) {
+            Path logFile,
+            LogType type,
+            long logVersion,
+            LogHeader logHeader,
+            long lastAppendIndex,
+            long rotationMillis,
+            long millisSinceLastRotation) {
         StringBuilder sb = new StringBuilder("Rotated to transaction log [");
-        sb.append(logFile).append("] version=").append(logVersion).append(", last append index in previous log=");
-        sb.append(lastAppendIndex)
-                .append(", rotation took ")
-                .append(rotationMillis)
-                .append(" millis");
+        sb.append(logFile).append("] previous version=").append(logVersion);
+        sb.append(", last append index in previous log=").append(lastAppendIndex);
+        sb.append(", current log format=").append(logHeader.getLogFormatVersion());
+        sb.append(", current log KernelVersion=").append(logHeader.getKernelVersion());
+        sb.append(", rotation took ").append(rotationMillis).append(" millis");
         if (millisSinceLastRotation > 0) {
             sb.append(", started after ").append(millisSinceLastRotation).append(" millis");
         }

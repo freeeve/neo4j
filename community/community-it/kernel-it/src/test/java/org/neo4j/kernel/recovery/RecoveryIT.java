@@ -276,7 +276,7 @@ class RecoveryIT {
 
         generateSomeData(database);
         // now we have 2 checkpoint log files with checkpoints and one empty
-        var victimFilePath = logFiles.getCheckpointFile().rotate();
+        var victimFilePath = logFiles.getCheckpointFile().rotate().file();
         var config = database.getDependencyResolver().resolveDependency(Config.class);
 
         managementService.shutdown();
@@ -306,7 +306,7 @@ class RecoveryIT {
 
         generateSomeData(database);
         // now we have 2 checkpoint log files with checkpoints and one empty
-        var victimFilePath = logFiles.getCheckpointFile().rotate();
+        var victimFilePath = logFiles.getCheckpointFile().rotate().file();
 
         managementService.shutdown();
 
@@ -337,7 +337,7 @@ class RecoveryIT {
 
         generateSomeData(database);
         // now we have 2 checkpoint log files with checkpoints and one empty
-        var victimFilePath = logFiles.getCheckpointFile().rotate();
+        var victimFilePath = logFiles.getCheckpointFile().rotate().file();
 
         managementService.shutdown();
 
@@ -448,7 +448,7 @@ class RecoveryIT {
 
         generateSomeData(database);
         // now we have 2 checkpoint log files with checkpoints and one empty
-        var victimFilePath = logFiles.getCheckpointFile().rotate();
+        var victimFilePath = logFiles.getCheckpointFile().rotate().file();
 
         managementService.shutdown();
 
@@ -473,7 +473,7 @@ class RecoveryIT {
         int logFilesWithoutVictim = countTransactionLogFiles();
 
         // now we have 2 log files with some data and one empty
-        var victimFilePath = logFiles.getLogFile().rotate();
+        var victimFilePath = logFiles.getLogFile().rotate().file();
 
         managementService.shutdown();
 
@@ -501,8 +501,8 @@ class RecoveryIT {
         int logFilesWithoutVictims = countTransactionLogFiles();
 
         // now we have 2 log files with some data and one empty
-        var victimFilePath1 = logFiles.getLogFile().rotate();
-        var victimFilePath2 = logFiles.getLogFile().rotate();
+        var victimFilePath1 = logFiles.getLogFile().rotate().file();
+        var victimFilePath2 = logFiles.getLogFile().rotate().file();
 
         managementService.shutdown();
 
@@ -530,7 +530,7 @@ class RecoveryIT {
         int logFilesWithoutVictim = countTransactionLogFiles();
 
         // now we have 2 log files with some data and one empty
-        var victimFilePath = logFiles.getLogFile().rotate();
+        var victimFilePath = logFiles.getLogFile().rotate().file();
 
         managementService.shutdown();
 
@@ -581,7 +581,7 @@ class RecoveryIT {
         int logFilesWithoutVictim = countTransactionLogFiles();
 
         // now we have 2 log files with some data and one empty
-        var victimFilePath = logFiles.getLogFile().rotate();
+        var victimFilePath = logFiles.getLogFile().rotate().file();
 
         managementService.shutdown();
 

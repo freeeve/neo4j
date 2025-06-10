@@ -28,7 +28,6 @@ import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
-import java.nio.file.Path;
 import java.time.Instant;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.memory.NativeScopedBuffer;
@@ -47,6 +46,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v50.LogEntryDetachedCheckpoin
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryDetachedCheckpointV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.LogEntryDetachedCheckpointV5_22;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.RotatableFile;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesContext;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
@@ -112,7 +112,10 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
                 context.getKernelVersionProvider(),
                 context.getLogFormatVersionProvider());
 
-        context.getMonitors().newMonitor(LogRotationMonitor.class).started(channel.getPath(), currentLogVersion);
+        LogHeader logHeader = logHeader(currentLogVersion);
+        context.getMonitors()
+                .newMonitor(LogRotationMonitor.class)
+                .started(channel.getPath(), LogRotationMonitor.LogType.CHECKPOINT, currentLogVersion, logHeader);
         seekCheckpointChannel(currentLogVersion);
 
         buffer = new NativeScopedBuffer(
@@ -120,8 +123,7 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
         final var checksumChannelProvider =
                 new PhysicalFlushableLogPositionAwareChannel.VersionedPhysicalFlushableLogChannelProvider(
                         logRotation, context.getDatabaseTracers().getDatabaseTracer(), buffer);
-        writer = new PhysicalFlushableLogPositionAwareChannel(
-                channel, logHeader(currentLogVersion), checksumChannelProvider);
+        writer = new PhysicalFlushableLogPositionAwareChannel(channel, logHeader, checksumChannelProvider);
 
         // A corner case where if we start up with an empty checkpoint file and the header already exist
         // but is of an old version. Our version providers will have been updated to latest version at recovery
@@ -248,16 +250,18 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
         }
     }
 
-    public Path rotate() throws IOException {
+    public RotatableFile.RotationInfo rotate() throws IOException {
         channel = rotateChannel(channel, context.getKernelVersionProvider());
-        writer.setChannel(channel, logHeader(channel.getLogVersion()));
-        return channel.getPath();
+        LogHeader logHeader = logHeader(channel.getLogVersion());
+        writer.setChannel(channel, logHeader);
+        return new RotatableFile.RotationInfo(channel.getPath(), logHeader);
     }
 
-    public Path rotate(KernelVersion kernelVersion) throws IOException {
+    public RotatableFile.RotationInfo rotate(KernelVersion kernelVersion) throws IOException {
         channel = rotateChannel(channel, fixed(kernelVersion));
-        writer.setChannel(channel, logHeader(channel.getLogVersion()));
-        return channel.getPath();
+        LogHeader logHeader = logHeader(channel.getLogVersion());
+        writer.setChannel(channel, logHeader);
+        return new RotatableFile.RotationInfo(channel.getPath(), logHeader);
     }
 
     private PhysicalLogVersionedStoreChannel rotateChannel(

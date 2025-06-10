@@ -454,6 +454,8 @@ public class Database extends AbstractDatabase {
         }
 
         metadataCache = databaseDependencies.satisfyDependency(new MetadataCache(tailMetadata));
+        internalLog.info("Current KernelVersion=" + metadataCache.kernelVersion() + ", LogFormat= "
+                + metadataCache.getCurrentLogFormat());
 
         // Build all modules and their services
         DatabaseSchemaState databaseSchemaState = new DatabaseSchemaState(internalLogProvider);
