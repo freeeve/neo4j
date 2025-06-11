@@ -52,11 +52,8 @@ class IdValueBuilder {
             case 1 -> parts.get(0).value;
             default -> {
                 var result = new StringBuilder();
-                for (int i = 0; i < parts.size(); i++) {
-                    if (i > 0) {
-                        result.append("\u0007"); // BEL char
-                    }
-                    result.append(parts.get(i).value);
+                for (var part : parts) {
+                    result.append(part.value);
                 }
                 yield result.toString();
             }

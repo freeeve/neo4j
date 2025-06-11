@@ -2095,43 +2095,6 @@ class ImportCommandTest {
     }
 
     @Test
-    void shouldNotFindFalsePositiveDuplicateIDsWithMultipleIDColumns() throws Exception {
-        // GIVEN
-        Path dbConfig = prepareDefaultConfigFile();
-
-        // WHEN
-        Path nodeData = createAndWriteFile("nodes.csv", Charset.defaultCharset(), writer -> {
-            writer.println("firstname:ID(name){label:Person},lastname:ID(name){label:Person},state");
-            writer.println("ABC,DEF,NY");
-            writer.println("ABCD,EF,NZ");
-        });
-        var ctx = capturingCtx();
-        runImport(
-                ctx,
-                "--additional-config",
-                dbConfig.toAbsolutePath().toString(),
-                "--format",
-                "aligned",
-                "--nodes",
-                nodeData.toAbsolutePath().toString());
-        // THEN
-        GraphDatabaseService db = getDatabaseApi();
-        try (Transaction tx = db.beginTx()) {
-            Map<String, Node> nodes = new HashMap<>();
-            try (ResourceIterable<Node> allNodes = tx.getAllNodes()) {
-                allNodes.forEach(node -> nodes.put(node.getProperty("firstname").toString(), node));
-            }
-            Node node1 = nodes.get("ABC");
-            assertThat(node1.getProperty("lastname")).isEqualTo("DEF");
-            assertThat(node1.getProperty("state")).isEqualTo("NY");
-            Node node2 = nodes.get("ABCD");
-            assertThat(node2.getProperty("lastname")).isEqualTo("EF");
-            assertThat(node2.getProperty("state")).isEqualTo("NZ");
-            tx.commit();
-        }
-    }
-
-    @Test
     void shouldNotNormalizeArrayTypes() throws Exception {
         // GIVEN
         Path dbConfig = prepareDefaultConfigFile();

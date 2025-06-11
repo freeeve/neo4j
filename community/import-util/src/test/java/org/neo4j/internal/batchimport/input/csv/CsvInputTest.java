@@ -2100,15 +2100,9 @@ class CsvInputTest {
                 INSTANCE)) {
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 assertNextNode(
-                        nodes,
-                        "ABC\u0007123",
-                        properties("id1", "ABC", "id2", "123", "name", "First"),
-                        Set.of("Person"));
+                        nodes, "ABC123", properties("id1", "ABC", "id2", "123", "name", "First"), Set.of("Person"));
                 assertNextNode(
-                        nodes,
-                        "ABC\u0007456",
-                        properties("id1", "ABC", "id2", "456", "name", "Second"),
-                        Set.of("Person"));
+                        nodes, "ABC456", properties("id1", "ABC", "id2", "456", "name", "Second"), Set.of("Person"));
                 assertFalse(readNext(nodes));
             }
         }
