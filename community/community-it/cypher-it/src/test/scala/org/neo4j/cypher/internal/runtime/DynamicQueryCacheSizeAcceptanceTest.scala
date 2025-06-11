@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.CacheCompanion
 import org.neo4j.cypher.util.CacheCountsTestSupport
 import org.neo4j.graphdb.config.Setting
+import org.scalatest.Ignore
+import org.scalatest.Tag
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.Seconds
 import org.scalatest.time.Span
@@ -41,6 +43,13 @@ class DynamicQueryCacheSizeAcceptanceTest extends ExecutionEngineFunSuite with C
     )
   }
 
+  def ignoreTests: Boolean = false
+
+  object IgnoreTest
+      extends Tag(
+        if (ignoreTests) classOf[Ignore].getName else "NotSupported"
+      )
+
   Seq(
     CypherQueryCaches.AstCache,
     CypherQueryCaches.LogicalPlanCache,
@@ -48,7 +57,7 @@ class DynamicQueryCacheSizeAcceptanceTest extends ExecutionEngineFunSuite with C
     CypherQueryCaches.PreParserCache,
     CypherQueryCaches.ExecutionPlanCache
   ).foreach { cache =>
-    test(s"should resize the ${cache.getClass.getSimpleName} dynamically") {
+    test(s"should resize the ${cache.getClass.getSimpleName} dynamically", IgnoreTest) {
       // given
       val wrapper = new TestWrapper(cache)
 
@@ -76,7 +85,7 @@ class DynamicQueryCacheSizeAcceptanceTest extends ExecutionEngineFunSuite with C
     CypherQueryCaches.LogicalPlanCache,
     CypherQueryCaches.ExecutableQueryCache
   ).foreach(cache => {
-    test(s"should resize the strong ${cache.getClass.getSimpleName} dynamically") {
+    test(s"should resize the strong ${cache.getClass.getSimpleName} dynamically", IgnoreTest) {
       restartWithConfig(Map(
         GraphDatabaseInternalSettings.cypher_enable_runtime_monitors -> TRUE,
         GraphDatabaseInternalSettings.cypher_soft_cache_enabled -> TRUE,
@@ -112,7 +121,7 @@ class DynamicQueryCacheSizeAcceptanceTest extends ExecutionEngineFunSuite with C
     CypherQueryCaches.LogicalPlanCache,
     CypherQueryCaches.ExecutableQueryCache
   ).foreach(cache => {
-    test(s"should resize the soft ${cache.getClass.getSimpleName} dynamically") {
+    test(s"should resize the soft ${cache.getClass.getSimpleName} dynamically", IgnoreTest) {
       restartWithConfig(Map(
         GraphDatabaseInternalSettings.cypher_enable_runtime_monitors -> TRUE,
         GraphDatabaseInternalSettings.cypher_soft_cache_enabled -> TRUE,
