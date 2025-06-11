@@ -50,8 +50,8 @@ abstract class QueryCachingTest(executionPlanCacheSize: Int =
     GraphDatabaseInternalSettings.cypher_enable_query_cache_monitors -> java.lang.Boolean.TRUE,
     GraphDatabaseInternalSettings.query_execution_plan_cache_size -> Integer.valueOf(executionPlanCacheSize),
     GraphDatabaseSettings.cypher_min_replan_interval -> Duration.ofSeconds(0),
-    GraphDatabaseSettings.default_language -> GraphDatabaseSettings.CypherVersion.Cypher5,
-    GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+    GraphDatabaseSettings.default_language -> GraphDatabaseSettings.CypherVersion.Cypher5
+    // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
   )
 
   private val empty_parameters = "Map()"

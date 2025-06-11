@@ -88,8 +88,7 @@ object Catalog {
       args: Seq[AnyValue],
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      resolveByDisplayName: Option[Boolean],
-      cypher25Enabled: Boolean
+      resolveByDisplayName: Option[Boolean]
     ): GraphWithNotification
 
     def checkArity(args: Seq[AnyValue]): Unit =
@@ -113,19 +112,17 @@ object Catalog {
       args: Seq[AnyValue],
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      resolveByDisplayName: Option[Boolean],
-      cypher25Enabled: Boolean
+      resolveByDisplayName: Option[Boolean]
     ): GraphWithNotification = {
       checkArity(args)
-      eval(cast(a1, args(0), args), catalog, sessionDb, resolveByDisplayName, cypher25Enabled)
+      eval(cast(a1, args(0), args), catalog, sessionDb, resolveByDisplayName)
     }
 
     def eval(
       a1Value: A1,
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      resolveByDisplayName: Option[Boolean],
-      cypher25Enabled: Boolean
+      resolveByDisplayName: Option[Boolean]
     ): GraphWithNotification
 
   }
@@ -168,8 +165,7 @@ object Catalog {
       arg: StringValue,
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      resolveByDisplayName: Option[Boolean],
-      cypher25Enabled: Boolean
+      resolveByDisplayName: Option[Boolean]
     ): GraphWithNotification = {
       val graphName = arg.stringValue()
       if (resolveByDisplayName.isDefined && resolveByDisplayName.get) {
@@ -184,7 +180,7 @@ object Catalog {
           } catch {
             case _: Throwable => true
           }
-        val notification = if (needsDeprecation && cypher25Enabled) {
+        val notification = if (needsDeprecation) {
           Some(NotificationCodeWithDescription.deprecatedQuotedGraphByNameArgument(
             InputPosition.empty,
             graphName,
@@ -218,8 +214,7 @@ object Catalog {
       arg: StringValue,
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      parseArguments: Option[Boolean],
-      cypher25Enabled: Boolean
+      parseArguments: Option[Boolean]
     ): GraphWithNotification = {
       val elementIdText = arg.stringValue()
       val aliases = catalog.resolveNamespacedGraph(
@@ -325,15 +320,13 @@ case class Catalog(
     name: CatalogName,
     args: Seq[AnyValue],
     sessionDb: DatabaseReference,
-    resolveByDisplayName: Option[Boolean],
-    cypher25Enabled: Boolean
+    resolveByDisplayName: Option[Boolean]
   ): Catalog.GraphWithNotification =
     resolveViewOption(
       name,
       args,
       sessionDb,
-      resolveByDisplayName,
-      cypher25Enabled
+      resolveByDisplayName
     ).getOrElse(throw EntityNotFoundException.databaseNotFound(
       "View",
       show(name)
@@ -343,10 +336,9 @@ case class Catalog(
     name: CatalogName,
     args: Seq[AnyValue],
     sessionDb: DatabaseReference,
-    resolveByDisplayName: Option[Boolean],
-    cypher25Enabled: Boolean
+    resolveByDisplayName: Option[Boolean]
   ): Option[Catalog.GraphWithNotification] =
-    views.get(normalize(name)).map(v => v.eval(args, this, sessionDb, resolveByDisplayName, cypher25Enabled))
+    views.get(normalize(name)).map(v => v.eval(args, this, sessionDb, resolveByDisplayName))
 
   def graphNamesIn(namespace: String, securityContext: SecurityContext, queryLanguage: QueryLanguage): Array[String] = {
     graphs.collect {

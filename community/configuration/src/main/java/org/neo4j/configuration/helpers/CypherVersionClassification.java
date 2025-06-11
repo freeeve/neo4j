@@ -19,15 +19,22 @@
  */
 package org.neo4j.configuration.helpers;
 
+import java.util.Arrays;
+import java.util.List;
 import org.neo4j.configuration.GraphDatabaseSettings;
 
 public class CypherVersionClassification {
 
     public static boolean isExperimental(GraphDatabaseSettings.CypherVersion version) {
         return switch (version) {
-            case Cypher5 -> false;
-            case Cypher25 -> true;
+            case Cypher5, Cypher25 -> false;
         };
+    }
+
+    public static List<GraphDatabaseSettings.CypherVersion> experimentalVersions() {
+        return Arrays.stream(GraphDatabaseSettings.CypherVersion.values())
+                .filter(CypherVersionClassification::isExperimental)
+                .toList();
     }
 
     public static String shortName(GraphDatabaseSettings.CypherVersion version) {

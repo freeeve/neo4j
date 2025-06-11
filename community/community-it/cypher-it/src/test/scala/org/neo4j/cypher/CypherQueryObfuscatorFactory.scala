@@ -20,7 +20,6 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherQueryObfuscator
 import org.neo4j.cypher.internal.CypherVersion
@@ -79,8 +78,9 @@ class CypherQueryObfuscatorFactory {
 
   private val preParser = new CachingPreParser(
     CypherConfiguration.fromConfig(Config.defaults(
-      GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
-      java.lang.Boolean.TRUE
+      // Might need to be enabled when the next experimental version appear:
+      // GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
+      // java.lang.Boolean.TRUE
     )),
     new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](
       new ExecutorBasedCaffeineCacheFactory((r: Runnable) => r.run()),

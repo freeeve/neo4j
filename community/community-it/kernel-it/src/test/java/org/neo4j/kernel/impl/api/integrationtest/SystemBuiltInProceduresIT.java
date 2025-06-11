@@ -161,7 +161,11 @@ class SystemBuiltInProceduresIT extends KernelIntegrationTest implements Procedu
                                 VirtualValues.list(stringValue(Version.getNeo4jVersion())),
                                 stringValue("community")
                             },
-                            new AnyValue[] {stringValue("Cypher"), VirtualValues.list(stringValue("5")), EMPTY_STRING});
+                            new AnyValue[] {
+                                stringValue("Cypher"),
+                                VirtualValues.list(stringValue("5"), stringValue("25")),
+                                EMPTY_STRING
+                            });
         }
 
         commit();

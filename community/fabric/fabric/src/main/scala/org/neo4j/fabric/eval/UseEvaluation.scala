@@ -47,10 +47,9 @@ class UseEvaluation(
     evaluator: StaticEvaluation.StaticEvaluator,
     signatureResolver: ScopedProcedureSignatureResolver,
     query: String,
-    catalog: Catalog,
-    cypher25Enabled: Boolean
+    catalog: Catalog
   ) =
-    new UseEvaluation.Instance(query, catalog, evaluator, signatureResolver, cypher25Enabled)
+    new UseEvaluation.Instance(query, catalog, evaluator, signatureResolver)
 
 }
 
@@ -60,8 +59,7 @@ object UseEvaluation {
     query: String,
     catalog: Catalog,
     val evaluator: StaticEvaluation.StaticEvaluator,
-    signatureResolver: ScopedProcedureSignatureResolver,
-    cypher25Enabled: Boolean
+    signatureResolver: ScopedProcedureSignatureResolver
   ) {
 
     def evaluate(
@@ -85,8 +83,7 @@ object UseEvaluation {
             CatalogName(functionName, f.resolveByDisplayName),
             argValues,
             sessionDb: DatabaseReference,
-            Some(f.resolveByDisplayName),
-            cypher25Enabled
+            Some(f.resolveByDisplayName)
           )
       }
     }

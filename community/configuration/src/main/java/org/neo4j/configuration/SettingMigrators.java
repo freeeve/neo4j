@@ -595,7 +595,8 @@ public final class SettingMigrators {
                 new Mapping(
                         "unsupported.vm_pause_monitor.stall_alert_threshold",
                         "internal.vm_pause_monitor.stall_alert_threshold"),
-                new Mapping("dbms.config.strict_validation", GraphDatabaseSettings.strict_config_validation.name()));
+                new Mapping("dbms.config.strict_validation", GraphDatabaseSettings.strict_config_validation.name()),
+                new Mapping("internal.db.query.default_language", "db.query.default_language"));
 
         @Override
         public void migrate(Map<String, String> values, Map<String, String> defaultValues, InternalLog log) {

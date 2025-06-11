@@ -23,7 +23,6 @@ import org.assertj.core.api.Condition
 import org.awaitility.Awaitility.await
 import org.neo4j.collection.Dependencies
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
@@ -104,8 +103,8 @@ trait GraphDatabaseTestSupport
   def expectedShardCount: Int = 0
 
   def databaseConfig(): Map[Setting[_], Object] = Map(
-    GraphDatabaseSettings.transaction_timeout -> Duration.ofMinutes(15),
-    GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+    GraphDatabaseSettings.transaction_timeout -> Duration.ofMinutes(15)
+    // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
   )
 
   protected def spdDatabaseConfig(): Map[Setting[_], Object] = Map()

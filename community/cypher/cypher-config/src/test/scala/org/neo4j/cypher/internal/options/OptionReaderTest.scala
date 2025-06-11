@@ -172,7 +172,10 @@ class OptionReaderTest extends CypherFunSuite {
   test("Cypher version can be read with experimental versions") {
     org.neo4j.cypher.internal.CypherVersion.values().foreach { version =>
       options(
-        Map(GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE),
+        Map(
+          // Might need to be enabled when the next experimental version appear:
+          // GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+        ),
         "cypher version" -> version.versionName
       ).cypherVersion.explicitVersion shouldBe Some(version)
     }
@@ -186,7 +189,7 @@ class OptionReaderTest extends CypherFunSuite {
       withClue(s"setting=$versionSetting, preparserOption=${preparserOption.render}") {
         options(
           Map(
-            GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE,
+            // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE,
             GraphDatabaseSettings.default_language -> versionSetting
           ),
           "cypher version" -> preparserOption.render
@@ -198,7 +201,7 @@ class OptionReaderTest extends CypherFunSuite {
       versionSetting <- GraphDatabaseSettings.CypherVersion.values()
     } {
       options(Map(
-        GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE,
+        // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE,
         GraphDatabaseSettings.default_language -> versionSetting
       )).cypherVersion.explicitVersion shouldBe None
     }

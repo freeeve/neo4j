@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.preparser
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.PreParser
@@ -219,8 +218,8 @@ class CypherPreParserTest extends CypherFunSuite with TableDrivenPropertyChecks 
               PreParser.queryOptions(
                 PreParsedStatement(queryWithExtra, options ++ extraOptions, newPos),
                 CypherConfiguration.fromConfig(Config.defaults(
-                  GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
-                  java.lang.Boolean.TRUE
+                  // Might need to be enabled when the next experimental version appear:
+                  // GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE
                 )),
                 dbDefaultVersion
               ),
@@ -238,7 +237,7 @@ class CypherPreParserTest extends CypherFunSuite with TableDrivenPropertyChecks 
 
   private def parse(queryText: String, version: CypherVersion): PreParsedQuery = {
     preParserWith(
-      GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+      // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
     ).preParse(queryText, version)
   }
 

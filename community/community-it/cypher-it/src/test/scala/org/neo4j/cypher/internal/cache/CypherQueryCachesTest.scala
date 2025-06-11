@@ -358,8 +358,8 @@ class CypherQueryCachesTest extends CypherFunSuite with GraphDatabaseTestSupport
 
     systemDefaultLanguages.foreach { systemDefaultLanguage =>
       restartWithConfig(Map(
-        GraphDatabaseSettings.default_language -> systemDefaultLanguage,
-        GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+        GraphDatabaseSettings.default_language -> systemDefaultLanguage
+        // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
       ))
       val stats = eengine.queryCaches.statistics()
 

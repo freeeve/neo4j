@@ -20,7 +20,6 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.testing.api.CypherExecutorFactory
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
 import org.neo4j.cypher.testing.impl.embedded.EmbeddedCypherExecutorFactory
@@ -30,7 +29,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder
 class DeprecationEmbeddedAcceptanceTest extends DeprecationAcceptanceTestBase {
 
   private val config = Config.newBuilder()
-    .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
+    // Might need to be enabled when the next experimental version appear: .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
     .build()
 
   private val managementService: DatabaseManagementService =

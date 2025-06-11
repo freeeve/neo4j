@@ -339,10 +339,10 @@ class CommunityTopologyGraphComponentTest {
         CommunityTopologyGraphComponent component = new CommunityTopologyGraphComponent(
                 Config.defaults(Map.of(
                         // to show we don't pick up on the config value when upgrading
-                        GraphDatabaseSettings.default_language,
-                        GraphDatabaseSettings.CypherVersion.Cypher25,
-                        GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
-                        Boolean.TRUE)),
+                        GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25
+                        // Might need to be enabled when the next experimental version appear:
+                        // GraphDatabaseInternalSettings.enable_experimental_cypher_versions,Boolean.TRUE
+                        )),
                 NullLogProvider.getInstance());
         component.initializeSystemGraph(system, true);
 
@@ -373,10 +373,10 @@ class CommunityTopologyGraphComponentTest {
         CommunityTopologyGraphComponent component = new CommunityTopologyGraphComponent(
                 Config.defaults(Map.of(
                         // to show we don't pick up on the config value when upgrading
-                        GraphDatabaseSettings.default_language,
-                        GraphDatabaseSettings.CypherVersion.Cypher25,
-                        GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
-                        Boolean.TRUE)),
+                        GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25
+                        // Might need to be enabled when the next experimental version appear:
+                        // GraphDatabaseInternalSettings.enable_experimental_cypher_versions, Boolean.TRUE
+                        )),
                 NullLogProvider.getInstance());
         component.initializeSystemGraph(system, true);
 

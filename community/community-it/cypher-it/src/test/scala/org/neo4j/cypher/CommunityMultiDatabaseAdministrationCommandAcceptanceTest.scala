@@ -20,7 +20,6 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.cypher_hints_error
@@ -269,7 +268,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
         // GIVEN
         val config = Config.defaults()
         config.set(initial_default_database, "aaa.bbb")
-        config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, TRUE)
+        // Might need to be enabled when the next experimental version appear: config.set(GraphDatabaseSettings.enable_experimental_cypher_versions, TRUE)
         setup(config)
 
         val showQuery = s"CYPHER ${cypherVersion.versionName} SHOW DATABASE $nameLiteral YIELD name"
@@ -708,10 +707,9 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
   // Test for default language
 
   test("should alter default database to a specific cypher version") {
-    setup(Config.defaults(Map[
-      Setting[_],
-      Object
-    ](GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE).asJava))
+    setup(Config.defaults(Map[Setting[_], Object](
+      // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+    ).asJava))
 
     // WHEN
     execute(
@@ -783,7 +781,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
         // GIVEN
         val config = Config.defaults()
         config.set(initial_default_database, "aaa.bbb")
-        config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, TRUE)
+        // Might need to be enabled when the next experimental version appear: config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, TRUE)
         setup(config)
 
         val alterQuery =
@@ -811,10 +809,9 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
   }
 
   test("should alter system database to a specific cypher version") {
-    setup(Config.defaults(Map[
-      Setting[_],
-      Object
-    ](GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE).asJava))
+    setup(Config.defaults(Map[Setting[_], Object](
+      // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+    ).asJava))
 
     // WHEN
     execute(
@@ -834,10 +831,9 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
   }
 
   test("should alter default database to a specific cypher version if it exists") {
-    setup(Config.defaults(Map[
-      Setting[_],
-      Object
-    ](GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE).asJava))
+    setup(Config.defaults(Map[Setting[_], Object](
+      // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+    ).asJava))
 
     // WHEN
     execute(

@@ -80,7 +80,7 @@ public class ListComponentsProcedureIT {
                 components.stream().filter(this::isCypherComponent).findAny();
         assertThat(cypherComponent).isPresent();
         var version = cypherComponent.get().get(ListComponentsProcedure.VERSIONS_COLUMN);
-        assertThat(version).isEqualTo(List.of("5"));
+        assertThat(version).isEqualTo(List.of("5", "25"));
     }
 
     @DbmsExtension(configurationCallback = "configureEnableCypherVersions")

@@ -20,7 +20,6 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.connectors.BoltConnector
 import org.neo4j.configuration.helpers.SocketAddress
 import org.neo4j.cypher.testing.api.CypherExecutorFactory
@@ -41,7 +40,7 @@ class DeprecationBoltAcceptanceTest extends DeprecationAcceptanceTestBase {
     )
 
   private val config = Config.newBuilder()
-    .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
+    // Might need to be enabled when the next experimental version appear: .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
     .set(boltConfig.asJava)
     .build()
 

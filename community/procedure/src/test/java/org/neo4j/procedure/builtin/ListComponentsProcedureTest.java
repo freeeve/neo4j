@@ -71,8 +71,9 @@ class ListComponentsProcedureTest {
             var row = filterByComponentName(Iterators.asList(result), "Cypher");
 
             var versions = (ListValue) row[1];
-            assertEquals(1, versions.intSize());
+            assertEquals(2, versions.intSize());
             assertEquals("5", ((TextValue) versions.value(0)).stringValue());
+            assertEquals("25", ((TextValue) versions.value(1)).stringValue());
             assertEquals("", ((TextValue) row[2]).stringValue());
         }
     }

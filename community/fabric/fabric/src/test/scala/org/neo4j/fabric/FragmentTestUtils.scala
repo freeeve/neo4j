@@ -20,7 +20,6 @@
 package org.neo4j.fabric
 
 import org.neo4j.configuration.Config
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast
@@ -162,14 +161,13 @@ trait FragmentTestUtils {
   def scopedSignatures: ScopedProcedureSignatureResolver
 
   val cypherConfig: CypherConfiguration = CypherConfiguration.fromConfig(Config.defaults(
-    GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
-    java.lang.Boolean.TRUE
+    // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE
   ))
 
   val cypherConfigWithQueryObfuscation: CypherConfiguration =
     CypherConfiguration.fromConfig(Config.newBuilder()
       .set(GraphDatabaseSettings.log_queries_obfuscate_literals, java.lang.Boolean.TRUE)
-      .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
+      // Might need to be enabled when the next experimental version appear: .set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE)
       .build())
   val monitors: Monitors = new Monitors
 

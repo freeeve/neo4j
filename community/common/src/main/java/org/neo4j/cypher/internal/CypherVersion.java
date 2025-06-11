@@ -23,7 +23,7 @@ import java.util.Optional;
 
 public enum CypherVersion {
     Cypher5("5", "CYPHER 5", false, "cypher-5", 5),
-    Cypher25("25", "CYPHER 25", true, "cypher-25", 25);
+    Cypher25("25", "CYPHER 25", false, "cypher-25", 25);
 
     public static final CypherVersion Default = Cypher5; // TODO Remove
 

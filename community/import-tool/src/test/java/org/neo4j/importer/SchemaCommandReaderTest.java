@@ -34,7 +34,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.SyntaxException;
 import org.neo4j.importer.SchemaCommandReader.ReaderConfig;
 import org.neo4j.internal.schema.IndexConfig;
@@ -126,7 +125,8 @@ class SchemaCommandReaderTest {
     @MethodSource
     void createsCorrectChanges(String cypherText, List<SchemaCommand> expectedChanges) throws IOException {
         final var config = Config.defaults();
-        config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
+        // Might need to be enabled when the next experimental version appear:
+        // config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
         final var reader =
                 new SchemaCommandReader(fs, config, new ReaderConfig(true, true, true, VECTOR_INDEX_VERSION));
         assertThat(reader.parse(createCypher(cypherText))).isEqualTo(expectedChanges);
@@ -137,7 +137,8 @@ class SchemaCommandReaderTest {
     void handlesIncorrectChanges(String cypherText, String... errors) throws IOException {
         final var cypher = createCypher(cypherText);
         final var config = Config.defaults();
-        config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
+        // Might need to be enabled when the next experimental version appear:
+        // config.set(GraphDatabaseInternalSettings.enable_experimental_cypher_versions, true);
         final var reader =
                 new SchemaCommandReader(fs, config, new ReaderConfig(true, true, true, VECTOR_INDEX_VERSION));
         assertThatThrownBy(() -> reader.parse(cypher)).hasMessageContainingAll(errors);

@@ -97,8 +97,7 @@ object TestConf {
 
   private def withCypher25(base: TestConf): TestConf = base.copy(
     neo4jConf = base.neo4jConf ++ Seq(
-      "internal.db.query.default_language" -> "cypher_25",
-      "internal.dbms.cypher.enable_experimental_versions" -> "true"
+      "db.query.default_language" -> "cypher_25"
     ),
     tagContext = base.tagContext.incl("cypher-25")
   )
@@ -408,8 +407,7 @@ object TestConf {
   }
 
   private val spdConf: Map[String, String] = Map(
-    "internal.db.query.default_language" -> "cypher_25",
-    "internal.dbms.cypher.enable_experimental_versions" -> "true",
+    "db.query.default_language" -> "cypher_25",
     // For unknown reasons multiversion store format override (NEO4J_OVERRIDE_STORE_FORMAT) fails here
     "db.format" -> "block",
     "server.bolt.enabled" -> "true",

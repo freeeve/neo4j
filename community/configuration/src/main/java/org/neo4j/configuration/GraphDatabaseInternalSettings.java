@@ -63,6 +63,7 @@ import org.neo4j.memory.HeapEstimatorCacheConfig;
 @ServiceProvider
 public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
+    // Has no effect at time of writing, but kept to save some work when the next experimental version is introduced.
     @Internal
     @Description("Enable use of experimental Cypher versions.")
     public static final Setting<Boolean> enable_experimental_cypher_versions = newBuilder(
