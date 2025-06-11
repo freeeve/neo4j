@@ -36,6 +36,7 @@ import org.neo4j.graphdb.RelationshipType
 import org.neo4j.values.storable.DateTimeValue
 import org.neo4j.values.storable.DateValue
 import org.neo4j.values.storable.PointValue
+import org.neo4j.values.storable.Values
 import org.scalatest.prop.TableDrivenPropertyChecks.forEvery
 import org.scalatest.prop.TableFor1
 import org.scalatest.prop.Tables.Table
@@ -169,19 +170,18 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     }
 
     forEvery(nodePredicates) { (predicate: String) =>
+      val expected = if (predicate.contains("IS NULL")) List(Array(Values.NO_VALUE)) else List.empty
       withClue(s"predicate: $predicate") {
         val query = new LogicalQueryBuilder(this)
           .produceResults("prop1")
           .projection("cache[x.prop1] as prop1")
-          .remoteBatchPropertiesWithFilter("cache[x.prop1]")(
-            predicate
-          )
+          .remoteBatchPropertiesWithFilter("cache[x.prop1]")(predicate)
           .allNodeScan("x")
           .build()
 
         val result =
           execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
-        result should beColumns("prop1").withNoRows()
+        result should beColumns("prop1").withRows(expected)
       }
     }
   }
