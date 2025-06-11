@@ -376,7 +376,7 @@ class TransactionRecordStateTest {
         // WHEN
         StorageEngineTransaction transaction = transaction(storeCursors, recordState);
         IndexUpdatesExtractor extractor = new IndexUpdatesExtractor(CommandSelector.NORMAL);
-        transaction.commandBatch().accept(extractor);
+        transaction.commandBatch().accept(new SingleApplierDispatcher(extractor));
 
         // THEN
         // -- later recovering that tx, there should be only one update for each type
@@ -1770,7 +1770,7 @@ class TransactionRecordStateTest {
     private Iterable<Iterable<IndexEntryUpdate>> indexUpdatesOf(
             NeoStores neoStores, StorageEngineTransaction transaction) throws IOException {
         IndexUpdatesExtractor extractor = new IndexUpdatesExtractor(CommandSelector.NORMAL);
-        transaction.commandBatch().accept(extractor);
+        transaction.commandBatch().accept(new SingleApplierDispatcher(extractor));
 
         StorageReader reader = new RecordStorageReader(neoStores);
         List<Iterable<IndexEntryUpdate>> updates = new ArrayList<>();

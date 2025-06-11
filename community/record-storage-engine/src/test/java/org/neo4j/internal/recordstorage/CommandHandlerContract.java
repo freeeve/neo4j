@@ -57,7 +57,7 @@ public class CommandHandlerContract {
         when(batchContext.getIdUpdateListener()).thenReturn(IdUpdateListener.IGNORE);
         when(batchContext.getIndexActivator()).thenReturn(mock(IndexActivator.class));
         for (StorageEngineTransaction tx : transactions) {
-            try (TransactionApplier txApplier = applier.startTx(tx, batchContext)) {
+            try (var txApplier = new SingleApplierDispatcher(applier.startTx(tx, batchContext))) {
                 tx.commandBatch().accept(txApplier);
             }
         }

@@ -314,7 +314,7 @@ class ConsistencyCheckingApplierTest {
     private void apply(Command.RelationshipCommand... commands) throws Exception {
         for (Command.RelationshipCommand command : commands) {
             for (TransactionApplier applier : appliers) {
-                applier.visit(command);
+                command.handle(applier);
             }
         }
         // Close manually here to not wrap the exception

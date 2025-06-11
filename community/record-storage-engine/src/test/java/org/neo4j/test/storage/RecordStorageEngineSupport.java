@@ -32,7 +32,7 @@ import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.kernel.api.exceptions.schema.CreateConstraintFailureException;
 import org.neo4j.internal.recordstorage.RecordStorageEngine;
-import org.neo4j.internal.recordstorage.TransactionApplierFactoryChain;
+import org.neo4j.internal.recordstorage.TransactionAppliersDispatcherFactory;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexConfigCompleter;
 import org.neo4j.internal.schema.SchemaState;
@@ -91,7 +91,8 @@ public class RecordStorageEngineSupport {
             PageCache pageCache,
             DatabaseHealth databaseHealth,
             RecordDatabaseLayout databaseLayout,
-            Function<TransactionApplierFactoryChain, TransactionApplierFactoryChain> transactionApplierTransformer,
+            Function<TransactionAppliersDispatcherFactory, TransactionAppliersDispatcherFactory>
+                    transactionApplierTransformer,
             IndexUpdateListener indexUpdateListener,
             LockService lockService,
             TokenHolders tokenHolders,
@@ -132,8 +133,8 @@ public class RecordStorageEngineSupport {
         private final PageCache pageCache;
         private DatabaseHealth databaseHealth = new DatabaseHealth(HealthEventGenerator.NO_OP, NullLog.getInstance());
         private final RecordDatabaseLayout databaseLayout;
-        private Function<TransactionApplierFactoryChain, TransactionApplierFactoryChain> transactionApplierTransformer =
-                applierFacade -> applierFacade;
+        private Function<TransactionAppliersDispatcherFactory, TransactionAppliersDispatcherFactory>
+                transactionApplierTransformer = applierFacade -> applierFacade;
         private IndexUpdateListener indexUpdateListener = new IndexUpdateListener.Adapter();
         private LockService lockService = new ReentrantLockService();
         private TokenHolders tokenHolders =
@@ -194,7 +195,7 @@ public class RecordStorageEngineSupport {
         }
 
         public Builder transactionApplierTransformer(
-                Function<TransactionApplierFactoryChain, TransactionApplierFactoryChain>
+                Function<TransactionAppliersDispatcherFactory, TransactionAppliersDispatcherFactory>
                         transactionApplierTransformer) {
             this.transactionApplierTransformer = transactionApplierTransformer;
             return this;
@@ -252,7 +253,7 @@ public class RecordStorageEngineSupport {
     }
 
     private static class ExtendedRecordStorageEngine extends RecordStorageEngine {
-        private final Function<TransactionApplierFactoryChain, TransactionApplierFactoryChain>
+        private final Function<TransactionAppliersDispatcherFactory, TransactionAppliersDispatcherFactory>
                 transactionApplierTransformer;
 
         ExtendedRecordStorageEngine(
@@ -269,7 +270,8 @@ public class RecordStorageEngineSupport {
                 LockService lockService,
                 DatabaseHealth databaseHealth,
                 IdGeneratorFactory idGeneratorFactory,
-                Function<TransactionApplierFactoryChain, TransactionApplierFactoryChain> transactionApplierTransformer,
+                Function<TransactionAppliersDispatcherFactory, TransactionAppliersDispatcherFactory>
+                        transactionApplierTransformer,
                 LogTailMetadata emptyLogTailMetadata) {
             super(
                     databaseLayout,
@@ -298,8 +300,8 @@ public class RecordStorageEngineSupport {
         }
 
         @Override
-        protected TransactionApplierFactoryChain applierChain(TransactionApplicationMode mode) {
-            TransactionApplierFactoryChain recordEngineApplier = super.applierChain(mode);
+        protected TransactionAppliersDispatcherFactory applierDispatcherFactory(TransactionApplicationMode mode) {
+            TransactionAppliersDispatcherFactory recordEngineApplier = super.applierDispatcherFactory(mode);
             return transactionApplierTransformer.apply(recordEngineApplier);
         }
     }

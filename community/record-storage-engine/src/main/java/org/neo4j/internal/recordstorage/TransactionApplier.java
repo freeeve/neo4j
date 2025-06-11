@@ -19,10 +19,6 @@
  */
 package org.neo4j.internal.recordstorage;
 
-import java.io.IOException;
-import org.neo4j.internal.helpers.collection.Visitor;
-import org.neo4j.storageengine.api.StorageCommand;
-
 /**
  * Responsible for a single transaction. See also {@link TransactionApplierFactory} which returns an implementation of
  * this class. Should typically be used in a try-with-resources block, f.ex.:
@@ -38,7 +34,7 @@ import org.neo4j.storageengine.api.StorageCommand;
  * }
  * </pre>
  */
-public interface TransactionApplier extends Visitor<StorageCommand, IOException>, CommandVisitor, AutoCloseable {
+public interface TransactionApplier extends CommandVisitor, AutoCloseable {
     /**
      * Delegates to individual visit methods (see {@link CommandVisitor}) which need to be implemented, as well as
      * {@link #close()} if applicable.
@@ -47,11 +43,6 @@ public interface TransactionApplier extends Visitor<StorageCommand, IOException>
         @Override
         public void close() throws Exception {
             // Do nothing
-        }
-
-        @Override
-        public boolean visit(StorageCommand element) throws IOException {
-            return ((Command) element).handle(this);
         }
     }
 }

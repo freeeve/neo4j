@@ -27,15 +27,15 @@ import org.neo4j.storageengine.util.IdUpdateListener;
 
 /**
  * This class wraps several {@link TransactionApplierFactory}s which will do their work sequentially. See also {@link
- * TransactionApplierFacade} which is used to wrap the {@link TransactionApplierFactory#startTx(StorageEngineTransaction, BatchContext)} and {@link
+ * TransactionAppliersDispatcher} which is used to wrap the {@link TransactionApplierFactory#startTx(StorageEngineTransaction, BatchContext)} and {@link
  * TransactionApplierFactory#startTx(StorageEngineTransaction, BatchContext)} methods.
  * Chains are reused between the batches of transactions as a consequence they should be stateless.
  */
-public class TransactionApplierFactoryChain implements TransactionApplierFactory {
+public class TransactionAppliersDispatcherFactory {
     private final IdUpdateListenerFactory idUpdateListenerFunction;
     private final TransactionApplierFactory[] appliers;
 
-    public TransactionApplierFactoryChain(
+    public TransactionAppliersDispatcherFactory(
             IdUpdateListenerFactory idUpdateListenerFunction, TransactionApplierFactory... appliers) {
         this.idUpdateListenerFunction = idUpdateListenerFunction;
         this.appliers = appliers;
@@ -46,14 +46,13 @@ public class TransactionApplierFactoryChain implements TransactionApplierFactory
         return idUpdateListenerFunction.create(idGeneratorUpdatesWorkSync, cursorContext);
     }
 
-    @Override
-    public TransactionApplier startTx(StorageEngineTransaction transaction, BatchContext batchContext)
+    public TransactionAppliersDispatcher startTx(StorageEngineTransaction transaction, BatchContext batchContext)
             throws IOException {
         TransactionApplier[] txAppliers = new TransactionApplier[appliers.length];
         for (int i = 0; i < appliers.length; i++) {
             txAppliers[i] = appliers[i].startTx(transaction, batchContext);
         }
-        return new TransactionApplierFacade(txAppliers);
+        return new TransactionAppliersDispatcher(txAppliers);
     }
 
     @FunctionalInterface

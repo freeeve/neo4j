@@ -69,7 +69,7 @@ import org.neo4j.internal.kernel.api.exceptions.schema.CreateConstraintFailureEx
 import org.neo4j.internal.recordstorage.Command.RecordEnrichmentCommand;
 import org.neo4j.internal.recordstorage.NeoStoresDiagnostics.NeoStoreIdUsage;
 import org.neo4j.internal.recordstorage.NeoStoresDiagnostics.NeoStoreRecords;
-import org.neo4j.internal.recordstorage.TransactionApplierFactoryChain.IdUpdateListenerFactory;
+import org.neo4j.internal.recordstorage.TransactionAppliersDispatcherFactory.IdUpdateListenerFactory;
 import org.neo4j.internal.recordstorage.indexcommand.IndexRecordState;
 import org.neo4j.internal.recordstorage.indexcommand.TransactionToIndexUpdateVisitor;
 import org.neo4j.internal.recordstorage.validation.TransactionCommandValidatorFactory;
@@ -176,7 +176,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     private final RelationshipGroupDegreesStore groupDegreesStore;
     private final int denseNodeThreshold;
     private final IdGeneratorUpdatesWorkSync idGeneratorWorkSyncs;
-    private final Map<TransactionApplicationMode, TransactionApplierFactoryChain> applierChains =
+    private final Map<TransactionApplicationMode, TransactionAppliersDispatcherFactory> applierDispatchers =
             new EnumMap<>(TransactionApplicationMode.class);
     private final RecordDatabaseEntityCounters storeEntityCounters;
     private final RecordStorageIndexingBehaviour indexingBehaviour;
@@ -290,23 +290,15 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         }
     }
 
-    private void buildApplierChains() {
-        var kernelVersionApplierFactory =
-                new KernelVersionTransactionApplierFactory(metadataCache, internalLogProvider);
-        for (TransactionApplicationMode mode : TransactionApplicationMode.values()) {
-            applierChains.put(mode, buildApplierFacadeChain(mode, kernelVersionApplierFactory));
-        }
-    }
-
-    private TransactionApplierFactoryChain buildApplierFacadeChain(
+    private TransactionAppliersDispatcherFactory buildAppliersDispatcherFactory(
             TransactionApplicationMode mode, KernelVersionTransactionApplierFactory kernelVersionApplierFactory) {
         if (multiVersion) {
-            return buildMultiversionAppliersChain(mode, kernelVersionApplierFactory);
+            return buildMultiversionAppliersDispatcherFactory(mode, kernelVersionApplierFactory);
         }
-        return buildAppliersChain(mode, kernelVersionApplierFactory);
+        return buildRegularAppliersDispatcherFactory(mode, kernelVersionApplierFactory);
     }
 
-    private TransactionApplierFactoryChain buildAppliersChain(
+    private TransactionAppliersDispatcherFactory buildRegularAppliersDispatcherFactory(
             TransactionApplicationMode mode, KernelVersionTransactionApplierFactory kernelVersionApplierFactory) {
         var appliers = new ArrayList<TransactionApplierFactory>();
         if (consistencyCheckApply && mode.needsAuxiliaryStores()) {
@@ -321,11 +313,11 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             appliers.add(new CountsStoreTransactionApplierFactory(countsStore, groupDegreesStore));
             appliers.add(new IndexTransactionApplierFactory(mode, indexUpdateListener));
         }
-        return new TransactionApplierFactoryChain(
+        return new TransactionAppliersDispatcherFactory(
                 idUpdateListenerFunction(mode), appliers.toArray(TransactionApplierFactory[]::new));
     }
 
-    private TransactionApplierFactoryChain buildMultiversionAppliersChain(
+    private TransactionAppliersDispatcherFactory buildMultiversionAppliersDispatcherFactory(
             TransactionApplicationMode mode, KernelVersionTransactionApplierFactory kernelVersionApplierFactory) {
         var appliers = new ArrayList<TransactionApplierFactory>();
         if (consistencyCheckApply && mode.needsAuxiliaryStores()) {
@@ -350,7 +342,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                 appliers.add(new IndexTransactionApplierFactory(mode, indexUpdateListener));
             }
         }
-        return new TransactionApplierFactoryChain(
+        return new TransactionAppliersDispatcherFactory(
                 idUpdateListenerFunction(mode), appliers.toArray(TransactionApplierFactory[]::new));
     }
 
@@ -563,11 +555,11 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
     @Override
     public void apply(StorageEngineTransaction batch, TransactionApplicationMode mode) throws Exception {
-        TransactionApplierFactoryChain batchApplier = applierChain(mode);
+        TransactionAppliersDispatcherFactory batchApplier = applierDispatcherFactory(mode);
         StorageEngineTransaction initialBatch = batch;
         try (BatchContext context = createBatchContext(batchApplier, batch)) {
             while (batch != null) {
-                try (TransactionApplier txApplier = batchApplier.startTx(batch, context)) {
+                try (var txApplier = batchApplier.startTx(batch, context)) {
                     batch.commandBatch().accept(txApplier);
                 }
                 batch = batch.next();
@@ -618,7 +610,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     private BatchContext createBatchContext(
-            TransactionApplierFactoryChain batchApplier, StorageEngineTransaction initialBatch) {
+            TransactionAppliersDispatcherFactory batchApplier, StorageEngineTransaction initialBatch) {
         if (useIndexCommands()) {
             return new IndexlessBatchContext(
                     indexUpdateListener,
@@ -640,12 +632,12 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     /**
-     * Provides a {@link TransactionApplierFactoryChain} that is to be used for all transactions
-     * in a batch. Each transaction is handled by a {@link TransactionApplierFacade} which wraps the
+     * Provides a {@link TransactionAppliersDispatcherFactory} that is to be used for all transactions
+     * in a batch. Each transaction is handled by a {@link TransactionAppliersDispatcher} which wraps the
      * individual {@link TransactionApplier}s returned by the wrapped {@link TransactionApplierFactory}s.
      */
-    protected TransactionApplierFactoryChain applierChain(TransactionApplicationMode mode) {
-        return applierChains.get(mode);
+    protected TransactionAppliersDispatcherFactory applierDispatcherFactory(TransactionApplicationMode mode) {
+        return applierDispatchers.get(mode);
     }
 
     private LockService lockService(TransactionApplicationMode mode) {
@@ -654,7 +646,11 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
     @Override
     public void init() {
-        buildApplierChains();
+        var kernelVersionApplierFactory =
+                new KernelVersionTransactionApplierFactory(metadataCache, internalLogProvider);
+        for (TransactionApplicationMode mode : TransactionApplicationMode.values()) {
+            applierDispatchers.put(mode, buildAppliersDispatcherFactory(mode, kernelVersionApplierFactory));
+        }
     }
 
     @Override
@@ -826,7 +822,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     public void preAllocateStoreFilesForCommands(StorageEngineTransaction batch, TransactionApplicationMode mode)
             throws IOException {
         if (!mode.isReverseStep() && batch != null) {
-            try (PreAllocationTransactionApplier txApplier = new PreAllocationTransactionApplier(neoStores)) {
+            try (var txApplier = new SingleApplierDispatcher(new PreAllocationTransactionApplier(neoStores))) {
                 while (batch != null) {
                     batch.commandBatch().accept(txApplier);
                     batch = batch.next();
@@ -834,6 +830,8 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             } catch (OutOfDiskSpaceException e) {
                 databaseHealth.outOfDiskSpace(e);
                 throw e;
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
     }
@@ -841,13 +839,16 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     @Override
     public void prefetchPagesForCommands(StorageEngineTransaction batch, TransactionApplicationMode mode) {
         if (!mode.isReverseStep() && batch != null) {
-            try (var txApplier = new PrefetchingTransactionApplier(neoStores, pagePrefetcher)) {
+            try (var txApplier =
+                    new SingleApplierDispatcher(new PrefetchingTransactionApplier(neoStores, pagePrefetcher))) {
                 while (batch != null) {
                     batch.commandBatch().accept(txApplier);
                     batch = batch.next();
                 }
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         }
     }

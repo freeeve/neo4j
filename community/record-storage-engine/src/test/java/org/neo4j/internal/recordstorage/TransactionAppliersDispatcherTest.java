@@ -29,8 +29,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
-class TransactionApplierFacadeTest {
-    private TransactionApplierFacade facade;
+class TransactionAppliersDispatcherTest {
+    private TransactionAppliersDispatcher facade;
     private TransactionApplier txApplier1;
     private TransactionApplier txApplier2;
     private TransactionApplier txApplier3;
@@ -41,7 +41,7 @@ class TransactionApplierFacadeTest {
         txApplier2 = mock(TransactionApplier.class);
         txApplier3 = mock(TransactionApplier.class);
 
-        facade = new TransactionApplierFacade(txApplier1, txApplier2, txApplier3);
+        facade = new TransactionAppliersDispatcher(txApplier1, txApplier2, txApplier3);
     }
 
     @Test
@@ -83,7 +83,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitNodeCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -103,7 +103,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitRelationshipCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -123,7 +123,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitPropertyCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -143,7 +143,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitRelationshipGroupCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -163,7 +163,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitRelationshipTypeTokenCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -183,7 +183,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitLabelTokenCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -204,7 +204,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitPropertyKeyTokenCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -225,7 +225,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitSchemaRuleCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -245,7 +245,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitNodeCountsCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);
@@ -265,7 +265,7 @@ class TransactionApplierFacadeTest {
         when(cmd.handle(any(CommandVisitor.class))).thenCallRealMethod();
 
         // WHEN
-        boolean result = facade.visitRelationshipCountsCommand(cmd);
+        boolean result = facade.visit(cmd);
 
         // THEN
         InOrder inOrder = inOrder(txApplier1, txApplier2, txApplier3);

@@ -19,7 +19,6 @@
  */
 package org.neo4j.internal.recordstorage;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -31,33 +30,31 @@ import org.mockito.InOrder;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
 
-class TransactionApplierFactoryChainTest {
-    private TransactionApplierFactoryChain facade;
+class TransactionAppliersDispatcherFactoryTest {
+    private TransactionAppliersDispatcherFactory facade;
     private TransactionApplierFactory applier1;
     private TransactionApplierFactory applier2;
     private TransactionApplierFactory applier3;
-    private TransactionApplier txApplier1;
-    private TransactionApplier txApplier2;
-    private TransactionApplier txApplier3;
 
     @BeforeEach
     void setUp() throws Exception {
-        txApplier1 = mock(TransactionApplier.class);
+        TransactionApplier txApplier1 = mock(TransactionApplier.class);
         applier1 = mock(TransactionApplierFactory.class);
         when(applier1.startTx(any(StorageEngineTransaction.class), any(BatchContext.class)))
                 .thenReturn(txApplier1);
 
-        txApplier2 = mock(TransactionApplier.class);
+        TransactionApplier txApplier2 = mock(TransactionApplier.class);
         applier2 = mock(TransactionApplierFactory.class);
         when(applier2.startTx(any(StorageEngineTransaction.class), any(BatchContext.class)))
                 .thenReturn(txApplier2);
 
-        txApplier3 = mock(TransactionApplier.class);
+        TransactionApplier txApplier3 = mock(TransactionApplier.class);
         applier3 = mock(TransactionApplierFactory.class);
         when(applier3.startTx(any(StorageEngineTransaction.class), any(BatchContext.class)))
                 .thenReturn(txApplier3);
 
-        facade = new TransactionApplierFactoryChain(IdGeneratorUpdatesWorkSync::newBatch, applier1, applier2, applier3);
+        facade = new TransactionAppliersDispatcherFactory(
+                IdGeneratorUpdatesWorkSync::newBatch, applier1, applier2, applier3);
     }
 
     @Test
@@ -67,7 +64,7 @@ class TransactionApplierFactoryChainTest {
         var batchContext = mock(BatchContext.class);
 
         // WHEN
-        TransactionApplierFacade result = (TransactionApplierFacade) facade.startTx(tx, batchContext);
+        facade.startTx(tx, batchContext);
 
         // THEN
         InOrder inOrder = inOrder(applier1, applier2, applier3);
@@ -75,11 +72,6 @@ class TransactionApplierFactoryChainTest {
         inOrder.verify(applier1).startTx(tx, batchContext);
         inOrder.verify(applier2).startTx(tx, batchContext);
         inOrder.verify(applier3).startTx(tx, batchContext);
-
-        assertEquals(txApplier1, result.appliers[0]);
-        assertEquals(txApplier2, result.appliers[1]);
-        assertEquals(txApplier3, result.appliers[2]);
-        assertEquals(3, result.appliers.length);
     }
 
     @Test
@@ -89,7 +81,7 @@ class TransactionApplierFactoryChainTest {
         var batchContext = mock(BatchContext.class);
 
         // WHEN
-        TransactionApplierFacade result = (TransactionApplierFacade) facade.startTx(tx, batchContext);
+        facade.startTx(tx, batchContext);
 
         // THEN
         InOrder inOrder = inOrder(applier1, applier2, applier3);
@@ -97,10 +89,5 @@ class TransactionApplierFactoryChainTest {
         inOrder.verify(applier1).startTx(tx, batchContext);
         inOrder.verify(applier2).startTx(tx, batchContext);
         inOrder.verify(applier3).startTx(tx, batchContext);
-
-        assertEquals(txApplier1, result.appliers[0]);
-        assertEquals(txApplier2, result.appliers[1]);
-        assertEquals(txApplier3, result.appliers[2]);
-        assertEquals(3, result.appliers.length);
     }
 }
