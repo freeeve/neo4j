@@ -515,9 +515,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     query: String,
     procedureLookup: Option[QualifiedName => ProcedureSignature] = None,
     functionLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None
-  ): SinglePlannerQuery = {
+  ): SinglePlannerQuery =
     buildSinglePlannerQuery(randomVersion(), query, procedureLookup, functionLookup)
-  }
 
   def buildSinglePlannerQuery(
     version: CypherVersion,
