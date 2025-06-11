@@ -26,7 +26,7 @@ import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
-import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
+import org.neo4j.collection.PrimitiveLongCollections;
 import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
@@ -466,7 +466,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     private LongIterator collextTxStateChanges(TxStateHolder stateHolder) {
         if (this.isSingle) {
             return stateHolder.txState().nodeIsAddedInThisBatch(single)
-                    ? LongHashSet.newSetWith(single).longIterator()
+                    ? PrimitiveLongCollections.single(single)
                     : ImmutableEmptyLongIterator.INSTANCE;
         }
         return stateHolder.txState().addedAndRemovedNodes().getAdded().freeze().longIterator();
