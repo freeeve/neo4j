@@ -48,6 +48,7 @@ public class RandomExtension extends StatefulFieldExtension<RandomSupport>
                 LifecycleMethodExecutionExceptionHandler {
     public static final String RANDOM = "random";
     public static final Namespace RANDOM_NAMESPACE = Namespace.create(RANDOM);
+    private static final String JUNIT4_ASSUMPTION_EXCEPTION = "org.junit.AssumptionViolatedException";
 
     private final RandomValues.Configuration config;
 
@@ -126,8 +127,13 @@ public class RandomExtension extends StatefulFieldExtension<RandomSupport>
     }
 
     private void handleException(ExtensionContext context, Throwable t) {
+        // Junit5
         if (t instanceof TestAbortedException aborted) {
             throw aborted;
+        }
+        // Hacky Junit4 compat
+        if (t.getClass().getCanonicalName().equals(JUNIT4_ASSUMPTION_EXCEPTION)) {
+            throw (RuntimeException) t;
         }
 
         var random = getStoredValue(context);
