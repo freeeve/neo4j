@@ -242,29 +242,32 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
         fuzzyMsg = true
       )
 
+    val deprecatedGraphRef = (deprecatedName: String, futureName: String) =>
+      s"Graph references with separately backticked name parts ($deprecatedName) are deprecated. In future Cypher versions, use parameters or backtick the entire name ($futureName)."
+
     sealed trait ExpectedResult
     case class Succeed() extends ExpectedResult
     case class ReturnEmpty() extends ExpectedResult
     case class Throw(error: BeMatcher[Exception]) extends ExpectedResult
 
     // format: off
-    val scenarios = Table[String, String, Map[String, String], CypherVersion, ExpectedResult](
-      ("id",  "name literal", "params",                 "cypher version",       "expected result"),
-      ("0",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher5,  Succeed()),
-      ("1",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher25, Throw(invalidReferenceSyntax("`aaa`.`bbb`"))),
-      ("2",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher5,  Succeed()),
-      ("3",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher25, Succeed()),
-      ("4",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher5,  Succeed()),
-      ("5",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher25, Succeed()),
-      ("6",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher5,  ReturnEmpty()),
-      ("7",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher25, ReturnEmpty()),
-      ("8",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher5,  Succeed()),
-      ("9",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher25, Succeed()),
-      ("10",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher5,  ReturnEmpty()),
-      ("11",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher25, ReturnEmpty()),
+    val scenarios = Table[String, String, Map[String, String], CypherVersion, ExpectedResult, Seq[String]](
+      ("id",  "name literal", "params",                 "cypher version",       "expected result",                              "notifications"),
+      ("0",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher5,  Succeed(),                                      Seq(deprecatedGraphRef("`aaa`.`bbb`", "`aaa.bbb`"))),
+      ("1",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher25, Throw(invalidReferenceSyntax("`aaa`.`bbb`")),   Seq()),
+      ("2",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher5,  Succeed(),                                      Seq()),
+      ("3",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher25, Succeed(),                                      Seq()),
+      ("4",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher5,  Succeed(),                                      Seq()),
+      ("5",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher25, Succeed(),                                      Seq()),
+      ("6",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher5,  ReturnEmpty(),                                  Seq()),
+      ("7",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher25, ReturnEmpty(),                                  Seq()),
+      ("8",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher5,  Succeed(),                                      Seq()),
+      ("9",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher25, Succeed(),                                      Seq()),
+      ("10",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher5,  ReturnEmpty(),                                  Seq()),
+      ("11",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher25, ReturnEmpty(),                                  Seq()),
     )
     // format: on
-    forEvery(scenarios) { (_, nameLiteral, params, cypherVersion, expectedResult) =>
+    forEvery(scenarios) { (_, nameLiteral, params, cypherVersion, expectedResult, notifications) =>
       {
         // GIVEN
         val config = Config.defaults()
@@ -280,11 +283,13 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
             val showRes = execute(showQuery, params)
             // THEN
             showRes.toList should be(List(Map("name" -> "aaa.bbb")))
+            showRes.notifications.map(_.getDescription) should be(notifications)
           case ReturnEmpty() =>
             // WHEN
             val showRes = execute(showQuery, params)
             // THEN
             showRes.toList should be(empty)
+            showRes.notifications.map(_.getDescription) should be(notifications)
           case Throw(error) =>
             // WHEN ... THEN
             the[Exception] thrownBy execute(showQuery, params) should be(error)
@@ -755,29 +760,33 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
         ),
         fuzzyMsg = true
       )
+
+    val deprecatedGraphRef = (deprecatedName: String, futureName: String) =>
+      s"Graph references with separately backticked name parts ($deprecatedName) are deprecated. In future Cypher versions, use parameters or backtick the entire name ($futureName)."
+
     sealed trait ExpectedResult
     case class Succeed() extends ExpectedResult
     case class ReturnEmpty() extends ExpectedResult
     case class Throw(error: BeMatcher[Exception]) extends ExpectedResult
 
     // format: off
-    val scenarios = Table[String, String, Map[String, String], CypherVersion, ExpectedResult](
-      ("id",  "name literal", "params",                 "cypher version",       "expected result"),
-      ("0",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher5,  Succeed()),
-      ("1",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher25, Throw(invalidReferenceSyntax("`aaa`.`bbb`"))),
-      ("2",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher5,  Succeed()),
-      ("3",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher25, Succeed()),
-      ("4",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher5,  Succeed()),
-      ("5",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher25, Succeed()),
-      ("6",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher5,  Throw(databaseNotFoundParam("`aaa`.`bbb`", "p"))),
-      ("7",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher25, Throw(databaseNotFoundParam("`aaa`.`bbb`", "p"))),
-      ("8",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher5,  Succeed()),
-      ("9",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher25, Succeed()),
-      ("10",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher5,  Throw(databaseNotFoundParam("`aaa.bbb`", "p"))),
-      ("11",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher25, Throw(databaseNotFoundParam("`aaa.bbb`", "p"))),
+    val scenarios = Table[String, String, Map[String, String], CypherVersion, ExpectedResult, Seq[String]](
+      ("id",  "name literal", "params",                 "cypher version",       "expected result",                                  "notifications"),
+      ("0",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher5,  Succeed(),                                          Seq(deprecatedGraphRef("`aaa`.`bbb`", "`aaa.bbb`"))),
+      ("1",   "`aaa`.`bbb`",  Map.empty,                CypherVersion.Cypher25, Throw(invalidReferenceSyntax("`aaa`.`bbb`")),       Seq()),
+      ("2",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher5,  Succeed(),                                          Seq()),
+      ("3",   "aaa.bbb",      Map.empty,                CypherVersion.Cypher25, Succeed(),                                          Seq()),
+      ("4",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher5,  Succeed(),                                          Seq()),
+      ("5",   "`aaa.bbb`",    Map.empty,                CypherVersion.Cypher25, Succeed(),                                          Seq()),
+      ("6",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher5,  Throw(databaseNotFoundParam("`aaa`.`bbb`", "p")),   Seq()),
+      ("7",   "$p",           Map("p"->"`aaa`.`bbb`"),  CypherVersion.Cypher25, Throw(databaseNotFoundParam("`aaa`.`bbb`", "p")),   Seq()),
+      ("8",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher5,  Succeed(),                                          Seq()),
+      ("9",   "$p",           Map("p"->"aaa.bbb"),      CypherVersion.Cypher25, Succeed(),                                          Seq()),
+      ("10",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher5,  Throw(databaseNotFoundParam("`aaa.bbb`", "p")),     Seq()),
+      ("11",  "$p",           Map("p"->"`aaa.bbb`"),    CypherVersion.Cypher25, Throw(databaseNotFoundParam("`aaa.bbb`", "p")),     Seq()),
     )
     // format: on
-    forEvery(scenarios) { (_, nameLiteral, params, cypherVersion, expectedResult) =>
+    forEvery(scenarios) { (_, nameLiteral, params, cypherVersion, expectedResult, notifications) =>
       {
         // GIVEN
         val config = Config.defaults()
@@ -791,14 +800,18 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
         expectedResult match {
           case Succeed() =>
             // WHEN
-            execute(alterQuery, params).queryStatistics().systemUpdates should be(1)
+            val alterRes = execute(alterQuery, params)
             // THEN
+            alterRes.queryStatistics().systemUpdates should be(1)
             assertDefaultCypherVersion("aaa.bbb", CypherVersion.Cypher25)
+            alterRes.notifications.map(_.getDescription) should be(notifications)
           case ReturnEmpty() =>
             // WHEN
-            execute(alterQuery, params).queryStatistics().systemUpdates should be(0)
+            val alterRes = execute(alterQuery, params)
             // THEN
+            alterRes.queryStatistics().systemUpdates should be(0)
             assertDefaultCypherVersion("aaa.bbb", CypherVersion.Cypher5)
+            alterRes.notifications should be(notifications)
           case Throw(error) =>
             // WHEN ... THEN
             the[Exception] thrownBy execute(alterQuery, params) should be(error)

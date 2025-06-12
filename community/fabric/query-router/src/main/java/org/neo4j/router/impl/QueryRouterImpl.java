@@ -19,6 +19,7 @@
  */
 package org.neo4j.router.impl;
 
+import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -30,7 +31,12 @@ import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.options.CypherExecutionMode;
 import org.neo4j.cypher.internal.preparser.QueryOptions;
 import org.neo4j.cypher.internal.util.CancellationChecker;
+import org.neo4j.cypher.internal.util.DeprecatedGraphReferenceNotification;
+import org.neo4j.cypher.internal.util.DeprecatedIdentifierUnicode;
+import org.neo4j.cypher.internal.util.DeprecatedIdentifierWhitespaceUnicode;
+import org.neo4j.cypher.internal.util.DeprecatedKeywordVariableInWhenOperand;
 import org.neo4j.cypher.internal.util.InputPosition;
+import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.cypher.internal.util.ObfuscationMetadata;
 import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup;
 import org.neo4j.exceptions.InvalidSemanticsException;
@@ -293,11 +299,22 @@ public class QueryRouterImpl implements QueryRouter {
                 // so we won't resolve it a second time later in the stack
                 databaseTransaction.defaultQueryLanguageScope().setDefaultQueryLanguage(defaultLanguage);
             }
+            Stream<InternalNotification> rewrittenParserDeprecations = Stream.empty();
+            if (target instanceof DatabaseReferenceImpl.External
+                    && target.namespace().isEmpty()) {
+                // These are deprecations we might find in the user query that no longer exist after rewriting.
+                // Therefore, we need to include them in the deprecated notifications.
+                // If we included all notifications, we would instead have duplicates.
+                rewrittenParserDeprecations = processedQueryInfo.parsingNotifications().stream()
+                        .filter(notification ->
+                                deprecatedRewritten.stream().anyMatch(clazz -> clazz.isInstance(notification)));
+            }
             return databaseTransaction.executeQuery(
                     processedQueryInfo.rewrittenQuery(),
                     subscriber,
                     statementLifecycle,
-                    processedQueryInfo.routingNotifications());
+                    Stream.concat(processedQueryInfo.routingNotifications().stream(), rewrittenParserDeprecations)
+                            .collect(Collectors.toSet()));
         } catch (RuntimeException e) {
             statementLifecycle.endFailure(e);
 
@@ -366,4 +383,10 @@ public class QueryRouterImpl implements QueryRouter {
             queryRoutingMonitor.queryRoutedRemoteExternal();
         }
     }
+
+    private static final List<Class<? extends InternalNotification>> deprecatedRewritten = List.of(
+            DeprecatedGraphReferenceNotification.class,
+            DeprecatedIdentifierWhitespaceUnicode.class,
+            DeprecatedKeywordVariableInWhenOperand.class,
+            DeprecatedIdentifierUnicode.class);
 }

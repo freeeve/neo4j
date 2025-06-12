@@ -48,7 +48,7 @@ object InternalNotification {
     "DeprecatedKeywordVariableInWhenOperand",
     "HomeDatabaseNotPresent",
     "FixedLengthRelationshipInShortestPath",
-    "DeprecatedDatabaseNameNotification",
+    "DeprecatedGraphReferenceNotification",
     "DeprecatedRuntimeNotification",
     "DeprecatedTextIndexProvider",
     "DeprecatedIdentifierWhitespaceUnicode",
@@ -163,7 +163,7 @@ case class HomeDatabaseNotPresent(databaseName: String) extends InternalNotifica
 case class FixedLengthRelationshipInShortestPath(position: InputPosition, deprecated: String, replacement: String)
     extends InternalNotification
 
-case class DeprecatedDatabaseNameNotification(databaseName: String, position: Option[InputPosition])
+case class DeprecatedGraphReferenceNotification(deprecatedName: String, futureName: String, position: InputPosition)
     extends InternalNotification
 
 case class DeprecatedRuntimeNotification(msg: String, oldOption: String, newOption: String)

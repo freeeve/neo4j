@@ -234,15 +234,20 @@ public enum NotificationCodeWithDescription {
             Status.Database.HomeDatabaseNotFound,
             GqlStatusInfoCodes.STATUS_00N50,
             "The home database provided does not currently exist in the DBMS. This command will not take effect until this database is created. (%s)"),
+    @Deprecated // This deprecation message is incorrect and should not be used.
     DEPRECATED_DATABASE_NAME(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
             "Databases and aliases with unescaped `.` are deprecated unless to indicate that they belong to a composite database. "
                     + "Names containing `.` should be escaped. (%s)"),
+    DEPRECATED_QUOTED_GRAPH_REFERENCE(
+            Status.Statement.FeatureDeprecationWarning,
+            GqlStatusInfoCodes.STATUS_01N00,
+            "Graph references with separately backticked name parts (%s) are deprecated. In future Cypher versions, use parameters or backtick the entire name (%s)."),
     DEPRECATED_QUOTED_GRAPH_BY_NAME_ARGUMENT(
             Status.Statement.FeatureDeprecationWarning,
-            GqlStatusInfoCodes.STATUS_01N01,
-            "%s is deprecated. It is replaced by %s."),
+            GqlStatusInfoCodes.STATUS_01N00,
+            "Graph references with separately backticked name parts (%s) are deprecated. In future Cypher versions, remove the backticks (%s)."),
     UNSATISFIABLE_RELATIONSHIP_TYPE_EXPRESSION(
             Status.Statement.UnsatisfiableRelationshipTypeExpression,
             GqlStatusInfoCodes.STATUS_01N61,
@@ -713,6 +718,7 @@ public enum NotificationCodeWithDescription {
                 position, new String[] {oldDetail}, new String[] {missingDb});
     }
 
+    @Deprecated
     public static NotificationImplementation deprecatedDatabaseName(InputPosition position, String param) {
         return DEPRECATED_DATABASE_NAME.notificationWithParameters(position, new String[] {param}, new String[] {
             String.format(
@@ -721,14 +727,21 @@ public enum NotificationCodeWithDescription {
         });
     }
 
+    public static NotificationImplementation deprecatedGraphReferenceNotification(
+            String quotedGraphName, String futureGraphName, InputPosition position) {
+        return DEPRECATED_QUOTED_GRAPH_REFERENCE.notificationWithParameters(
+                position, new String[] {quotedGraphName, futureGraphName}, new String[] {
+                    DEPRECATED_QUOTED_GRAPH_REFERENCE.descriptionTemplate.formatted(quotedGraphName, futureGraphName),
+                });
+    }
+
     public static NotificationImplementation deprecatedQuotedGraphByNameArgument(
-            InputPosition position, String param1, String param2) {
-        String quotedGraphName = String.format("The graph name `%s`", param1);
-        String quotedFutureGraphName = String.format("`%s`", param2);
+            InputPosition position, String quotedGraphName, String futureGraphName) {
         return DEPRECATED_QUOTED_GRAPH_BY_NAME_ARGUMENT.notificationWithParameters(
-                position,
-                new String[] {quotedGraphName, quotedFutureGraphName},
-                new String[] {quotedGraphName, quotedFutureGraphName});
+                position, new String[] {quotedGraphName, futureGraphName}, new String[] {
+                    DEPRECATED_QUOTED_GRAPH_BY_NAME_ARGUMENT.descriptionTemplate.formatted(
+                            quotedGraphName, futureGraphName),
+                });
     }
 
     public static NotificationImplementation unsatisfiableRelationshipTypeExpression(

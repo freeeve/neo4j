@@ -122,7 +122,9 @@ import org.neo4j.cypher.internal.parser.v5.Cypher5Parser
 import org.neo4j.cypher.internal.parser.v5.Cypher5ParserListener
 import org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstUtil.nonEmptyPropertyKeyName
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.DeprecatedGraphReferenceNotification
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.gqlstatus.GqlHelper
 
@@ -134,6 +136,8 @@ import scala.jdk.CollectionConverters.IterableHasAsScala
 trait StatementBuilder extends Cypher5ParserListener {
 
   protected def exceptionFactory: CypherExceptionFactory
+
+  protected def notificationLogger: Option[InternalNotificationLogger]
 
   final override def exitStatements(ctx: Cypher5Parser.StatementsContext): Unit = {
     ctx.ast = Statements(astSeq(ctx.statement()))
@@ -190,7 +194,31 @@ trait StatementBuilder extends Cypher5ParserListener {
   }
 
   final override def exitSymbolicAliasName(ctx: Cypher5Parser.SymbolicAliasNameContext): Unit = {
+    checkGraphRefDeprecation(ctx)
     ctx.ast = astSeq[String](ctx.symbolicNameString())
+  }
+
+  final private def checkGraphRefDeprecation(ctx: Cypher5Parser.SymbolicAliasNameContext): Unit = {
+    val nameComponents = ctx.symbolicNameString().asScala.toList
+    if (nameComponents.size > 1 && nameComponents.exists(s => s.escapedSymbolicNameString() != null)) {
+      // Cypher 25 disallows `foo`.`bar`, `foo`.bar, foo.`bar`, etc.
+      reportDeprecatedGraphReference(nameComponents, pos(ctx))
+    }
+  }
+
+  private def reportDeprecatedGraphReference(
+    nameComponents: List[Cypher5Parser.SymbolicNameStringContext],
+    p: InputPosition
+  ): Unit = {
+    val deprecatedName = nameComponents.map(nc => {
+      if (nc.escapedSymbolicNameString() != null) {
+        s"`${nc.ast[String].replace("`", "``")}`"
+      } else {
+        nc.ast[String]
+      }
+    }).mkString(".")
+    val validName = nameComponents.map(_.ast[String].replace("`", "``")).mkString("`", ".", "`")
+    notificationLogger.foreach(logger => logger.log(DeprecatedGraphReferenceNotification(deprecatedName, validName, p)))
   }
 
   final override def exitReturnClause(ctx: Cypher5Parser.ReturnClauseContext): Unit = {

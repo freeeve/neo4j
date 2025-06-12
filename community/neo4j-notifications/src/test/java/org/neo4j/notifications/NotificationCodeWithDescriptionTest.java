@@ -34,12 +34,12 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.commandHas
 import static org.neo4j.notifications.NotificationCodeWithDescription.cordonedServersExist;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedBooleanCoercion;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedConnectComponentsPlannerPreParserOption;
-import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedDatabaseName;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedEagerAnalyzerPreParserOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedExistingDataOption;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFormat;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedFunctionWithoutReplacement;
+import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedGraphReferenceNotification;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedIdentifierUnicode;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedIdentifierWhitespaceUnicode;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedImportingWithInSubqueryCall;
@@ -1196,34 +1196,12 @@ class NotificationCodeWithDescriptionTest {
     }
 
     @Test
-    void shouldConstructNotificationsFor_DEPRECATED_DATABASE_NAME() {
-        NotificationImplementation notification = deprecatedDatabaseName(InputPosition.empty, "Name: db.one");
+    void shouldConstructNotificationsFor_DEPRECATED_QUOTED_GRAPH_REFERENCE() {
+        NotificationImplementation notification = deprecatedGraphReferenceNotification(
+                "`alice's.composite`.alias", "`alice's.composite.alias`", InputPosition.empty);
 
         String message =
-                "Databases and aliases with unescaped `.` are deprecated unless they belong to a composite database. Names containing `.` should be escaped. (Name: db.one)";
-        verifyNotification(
-                notification,
-                "This feature is deprecated and will be removed in future versions.",
-                SeverityLevel.WARNING,
-                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
-                "Databases and aliases with unescaped `.` are deprecated unless to indicate that they belong to a composite database. "
-                        + "Names containing `.` should be escaped. (Name: db.one)",
-                NotificationCategory.DEPRECATION,
-                NotificationClassification.DEPRECATION,
-                "01N00",
-                new DiagnosticRecord(
-                                warning, NotificationClassification.DEPRECATION, -1, -1, -1, Map.of("item", message))
-                        .asMap(),
-                String.format("warn: feature deprecated. %s", message));
-    }
-
-    @Test
-    void shouldConstructNotificationsFor_DEPRECATED_QUOTED_GRAPH_BY_NAME_GRAPH_BY_NAME() {
-        NotificationImplementation notification = deprecatedQuotedGraphByNameArgument(
-                InputPosition.empty, "`alice's.composite`.alias", "alice's.composite.alias");
-
-        String message =
-                "The graph name ``alice's.composite`.alias` is deprecated. It is replaced by `alice's.composite.alias`.";
+                "Graph references with separately backticked name parts (`alice's.composite`.alias) are deprecated. In future Cypher versions, use parameters or backtick the entire name (`alice's.composite.alias`).";
         verifyNotification(
                 notification,
                 "This feature is deprecated and will be removed in future versions.",
@@ -1232,11 +1210,33 @@ class NotificationCodeWithDescriptionTest {
                 message,
                 NotificationCategory.DEPRECATION,
                 NotificationClassification.DEPRECATION,
-                "01N01",
+                "01N00",
                 new DiagnosticRecord(
                                 warning, NotificationClassification.DEPRECATION, -1, -1, -1, Map.of("item", message))
                         .asMap(),
-                String.format("warn: feature deprecated with replacement. %s".formatted(message), message));
+                String.format("warn: feature deprecated. %s".formatted(message), message));
+    }
+
+    @Test
+    void shouldConstructNotificationsFor_DEPRECATED_QUOTED_GRAPH_BY_NAME_GRAPH_BY_NAME() {
+        NotificationImplementation notification = deprecatedQuotedGraphByNameArgument(
+                InputPosition.empty, "`alice's.composite`.alias", "alice's.composite.alias");
+
+        String message =
+                "Graph references with separately backticked name parts (`alice's.composite`.alias) are deprecated. In future Cypher versions, remove the backticks (alice's.composite.alias).";
+        verifyNotification(
+                notification,
+                "This feature is deprecated and will be removed in future versions.",
+                SeverityLevel.WARNING,
+                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
+                message,
+                NotificationCategory.DEPRECATION,
+                NotificationClassification.DEPRECATION,
+                "01N00",
+                new DiagnosticRecord(
+                                warning, NotificationClassification.DEPRECATION, -1, -1, -1, Map.of("item", message))
+                        .asMap(),
+                String.format("warn: feature deprecated. %s".formatted(message), message));
     }
 
     @Test
@@ -2154,8 +2154,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            53, 21, -86, 42, 121, -13, 46, -30, -86, 24, 40, 88, 108, -84, -2, 54, 43, -99, 33, -119, 69, -39, 127, 31,
-            17, -117, 109, 119, 81, 15, 46, 69
+            -72, 109, 72, 66, 95, -7, -98, -74, 50, 123, -93, -65, -44, -115, 42, 115, -79, 108, 77, 9, 125, -106, 69,
+            45, -79, -23, 16, -38, 65, -125, -2, -33
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

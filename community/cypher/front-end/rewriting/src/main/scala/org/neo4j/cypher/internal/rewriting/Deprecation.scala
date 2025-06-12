@@ -20,12 +20,10 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Create
-import org.neo4j.cypher.internal.ast.CreateDatabase
 import org.neo4j.cypher.internal.ast.CreateIndex
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.Merge
-import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.OptionsMap
@@ -63,7 +61,6 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunct
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification
 import org.neo4j.cypher.internal.util.DeprecatedImportingWithInSubqueryCall
 import org.neo4j.cypher.internal.util.DeprecatedKeywordVariableInWhenOperand
 import org.neo4j.cypher.internal.util.DeprecatedNodesOrRelationshipsInSetClauseNotification
@@ -203,12 +200,6 @@ object Deprecations {
         Some(Deprecation(
           None,
           Some(FixedLengthRelationshipInShortestPath(relPat.position, deprecatedParameter, replacementParameter))
-        ))
-
-      case c @ CreateDatabase(nn @ NamespacedName(_, Some(_)), _, _, _, _, _, _) =>
-        Some(Deprecation(
-          None,
-          Some(DeprecatedDatabaseNameNotification(nn.toString, Some(c.position)))
         ))
 
       case c: CreateIndex if c.indexType == TextCreateIndex && hasOldTextIndexProvider(c.options) =>

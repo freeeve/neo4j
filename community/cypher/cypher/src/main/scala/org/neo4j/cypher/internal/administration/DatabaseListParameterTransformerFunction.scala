@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.procs.ParameterTransformer.ParameterTransformerOutput
 import org.neo4j.cypher.internal.procs.ParameterTransformerFunction
 import org.neo4j.cypher.internal.util.AssertionRunner
-import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.dbms.database.DatabaseDetails
 import org.neo4j.dbms.database.DatabaseDetails.STATUS_MIXED
@@ -202,7 +201,7 @@ class DatabaseListParameterTransformerFunction(
                   .getOrElse((
                     new NormalizedDatabaseName(deprecatedName),
                     None,
-                    Set(DeprecatedDatabaseNameNotification(deprecatedName, None))
+                    Set.empty
                   ))
               case None => (new NormalizedDatabaseName(nn.name), normalizedNamespace, Set.empty[InternalNotification])
             }
