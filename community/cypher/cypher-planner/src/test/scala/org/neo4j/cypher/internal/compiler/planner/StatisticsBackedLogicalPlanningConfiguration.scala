@@ -23,6 +23,7 @@ import org.neo4j.common
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.cypher.graphcounts.ApocMetaStats
 import org.neo4j.cypher.graphcounts.Constraint
 import org.neo4j.cypher.graphcounts.GraphCountData
 import org.neo4j.cypher.graphcounts.GraphCountsJson
@@ -367,7 +368,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       .copy(cardinalities = cardinalities.copy(labels = cardinalities.labels + (label -> c)))
   }
 
-  def setLabelCardinalities(labelCardinalities: Map[String, Double])
+  def setLabelCardinalities(labelCardinalities: Map[String, Int])
     : StatisticsBackedLogicalPlanningConfigurationBuilder = {
     labelCardinalities.foldLeft(this) {
       case (builder, (label, c)) => builder.setLabelCardinality(label, c)
@@ -1143,6 +1144,21 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       andThen withRelationships
       andThen withConstraints
       andThen withIndexes)(bare)
+  }
+
+  def processApocMeta(stats: ApocMetaStats): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    val base =
+      this
+        // Graph counts may lack relationship counts if they are 0
+        .defaultRelationshipCardinalityTo0()
+        .setAllNodesCardinality(stats.nodeCount)
+        .setLabelCardinalities(stats.labels)
+        .setAllRelationshipsCardinality(stats.relCount)
+
+    stats.relTypes.foldLeft(base) {
+      case (builder, (relDef, cardinality)) =>
+        builder.setRelationshipCardinality(relDef, cardinality)
+    }
   }
 
   def setTxStateHasChanges(hasChanges: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {

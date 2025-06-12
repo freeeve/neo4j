@@ -191,6 +191,12 @@ object GraphCountsJson {
       parseAsGraphCountsCsvString(content)
     }
   }
+
+  def parseMetaStats(file: File): ApocMetaStats = {
+    implicit val formats: Formats = DefaultFormats
+    val json = JsonMethods.parse(FileInput(file))
+    json.extract[Seq[ApocMeta]].head.stats
+  }
 }
 
 /*
@@ -349,3 +355,35 @@ object SchemaValueTypes {
     case valueType: SchemaValueType => JString(valueType.serialize())
   }
 }
+
+/*
+ * The below classes represent the JSON structure from apoc.meta.stats
+ * We assume the format is as follows:
+ *
+ * [
+ *  {
+ *    "stats": {
+ *      "relTypeCount": 14,
+ *      "labelCount": 15,
+ *      "relTypes": {
+ *        "(:Photo)-[:HAS_AVG_CLUSTER_BASE]->()": 256151,
+ *      }
+ *   "relCount": 256151,
+ *   "labels": {
+ *       "Photo": 256151
+ *    },
+ *    "nodeCount": 256151
+ *  }
+ * ]
+ *
+ * Additional fields are ignored.
+ */
+
+case class ApocMeta(stats: ApocMetaStats)
+
+case class ApocMetaStats(
+  relTypes: Map[String, Int],
+  relCount: Int,
+  labels: Map[String, Int],
+  nodeCount: Int
+)
