@@ -64,6 +64,7 @@ import org.neo4j.cypher.internal.ast.RenameUser
 import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.SetHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetOwnPassword
+import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.StartDatabase
 import org.neo4j.cypher.internal.ast.StatementWithGraph
@@ -444,6 +445,8 @@ trait DdlBuilder extends Cypher25ParserListener {
         NoOptions,
         optionsToRemove,
         waitUntilComplete,
+        None,
+        None,
         None
       )(
         pos(ctx.getParent)
@@ -456,6 +459,13 @@ trait DdlBuilder extends Cypher25ParserListener {
         if (ctx.alterDatabaseOption().isEmpty) NoOptions
         else OptionsMap(astSeq[Map[String, Expression]](ctx.alterDatabaseOption())
           .reduce(_ ++ _))(pos(ctx.alterDatabaseOption(0)))
+      val graphShardTopology = astOptFromList[Topology](ctx.alterGraphShard(), None)
+      val propertyShardTopology = astOptFromList[Either[Int, Parameter]](ctx.alterPropertyShards(), None)
+      val shardDefinition =
+        if (graphShardTopology.nonEmpty || propertyShardTopology.nonEmpty)
+          Some(ShardDefinition(0, graphShardTopology, propertyShardTopology))
+        else None
+      val replicas = astOptFromList[Either[Int, Parameter]](ctx.alterReplicaTopology(), None)
       AlterDatabase(
         dbName,
         ctx.EXISTS() != null,
@@ -464,7 +474,9 @@ trait DdlBuilder extends Cypher25ParserListener {
         options,
         Set.empty,
         waitUntilComplete,
-        defaultLanguage
+        defaultLanguage,
+        shardDefinition,
+        replicas
       )(
         pos(ctx.getParent)
       )
@@ -494,6 +506,18 @@ trait DdlBuilder extends Cypher25ParserListener {
 
   final override def exitSecondaryTopology(ctx: Cypher25Parser.SecondaryTopologyContext): Unit = {
     ctx.ast = ctx.uIntOrIntParameter().ast()
+  }
+
+  final override def exitAlterReplicaTopology(ctx: Cypher25Parser.AlterReplicaTopologyContext): Unit = {
+    ctx.ast = ctx.uIntOrIntParameter().ast()
+  }
+
+  final override def exitAlterGraphShard(ctx: Cypher25Parser.AlterGraphShardContext): Unit = {
+    ctx.ast = ctx.alterDatabaseTopology().ast()
+  }
+
+  final override def exitAlterPropertyShards(ctx: Cypher25Parser.AlterPropertyShardsContext): Unit = {
+    ctx.ast = ctx.alterReplicaTopology().ast()
   }
 
   final override def exitDefaultLanguageSpecification(ctx: Cypher25Parser.DefaultLanguageSpecificationContext): Unit = {

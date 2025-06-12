@@ -2901,12 +2901,16 @@ class AstGenerator(
     secondaries <- oneOf(Left(intSecondaries), Right(paramSecondaries))
   } yield secondaries
 
-  def _shardDef: Gen[ShardDefinition] = for {
-    shardCount <- chooseNum[Int](1, Integer.MAX_VALUE)
-    graphTopology <- option(_topology)
+  def _replicas: Gen[Either[Int, Parameter]] = for {
     intReplicas <- chooseNum[Int](1, Integer.MAX_VALUE)
-    paramReplicas <- _parameter
-    replicas <- oneOf(Some(Left(intReplicas)), Some(Right(paramReplicas)), None)
+    paramReplicas <- _intParameter
+    replicas <- oneOf(Left(intReplicas), Right(paramReplicas))
+  } yield replicas
+
+  def _shardDef(isCreate: Boolean): Gen[ShardDefinition] = for {
+    shardCount <- if (isCreate) chooseNum[Int](1, Integer.MAX_VALUE) else const(0)
+    graphTopology <- option(_topology)
+    replicas: Option[Either[Int, Parameter]] <- if (graphTopology.nonEmpty) option(_replicas) else some(_replicas)
   } yield ShardDefinition(shardCount, graphTopology, replicas)
 
   def _defaultLanguage: Gen[CypherVersion] = oneOf(CypherVersion.values)
@@ -3507,7 +3511,7 @@ class AstGenerator(
     options <- _optionsMapAsEitherOrNone
     topologyOption <- option(_topology)
     defaultLanguageVersion <- option(_defaultLanguage)
-    shardDefOption <- option(_shardDef)
+    shardDefOption <- option(_shardDef(isCreate = true))
     (topology, shard) <- oneOf(const((topologyOption, None)), const((None, shardDefOption)))
   } yield {
     val shardDef = if (usesCypher5) None else shard
@@ -3538,11 +3542,26 @@ class AstGenerator(
     access <- option(_access)
     topology <- option(_topology)
     defaultLanguageVersion <- option(_defaultLanguage)
+    shardDefinition <- if (usesCypher5) const(None) else option(_shardDef(isCreate = false))
+    replicas <- if (usesCypher5 || topology.nonEmpty) const(None) else option(_replicas)
     optionsToRemove <- _optionsToRemove(hasSetClause =
-      access.nonEmpty || topology.nonEmpty || (!options.equals(NoOptions) || defaultLanguageVersion.nonEmpty)
+      access.nonEmpty || topology.nonEmpty || (!options.equals(
+        NoOptions
+      ) || defaultLanguageVersion.nonEmpty || shardDefinition.nonEmpty)
     )
     wait <- _waitUntilComplete
-  } yield AlterDatabase(dbName, ifExists, access, topology, options, optionsToRemove, wait, defaultLanguageVersion)(pos)
+  } yield AlterDatabase(
+    dbName,
+    ifExists,
+    access,
+    topology,
+    options,
+    optionsToRemove,
+    wait,
+    defaultLanguageVersion,
+    shardDefinition,
+    replicas
+  )(pos)
 
   def _startDatabase: Gen[StartDatabase] = for {
     dbName <- _databaseName

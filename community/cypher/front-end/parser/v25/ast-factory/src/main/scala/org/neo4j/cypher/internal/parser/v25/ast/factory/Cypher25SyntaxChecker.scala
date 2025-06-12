@@ -286,6 +286,18 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
 
     errorOnDuplicateCtx(ctx.alterDatabaseAccess(), "ACCESS")
     errorOnDuplicateCtx(ctx.alterDatabaseTopology(), "TOPOLOGY")
+    errorOnDuplicateCtx(ctx.alterReplicaTopology(), "TOPOLOGY")
+    if (ctx.alterDatabaseTopology().size() == 1 && ctx.alterReplicaTopology().size() == 1) {
+      val topologyPos = inputPosition(nodeChild(ctx.alterDatabaseTopology().get(0), 0).getSymbol)
+      val replicaPos = inputPosition(nodeChild(ctx.alterReplicaTopology().get(0), 0).getSymbol)
+      if (topologyPos.offset < replicaPos.offset) {
+        _errors :+= exceptionFactory.duplicateClause("TOPOLOGY", replicaPos)
+      } else {
+        _errors :+= exceptionFactory.duplicateClause("TOPOLOGY", topologyPos)
+      }
+    }
+    errorOnDuplicateCtx(ctx.alterGraphShard(), "GRAPH SHARD")
+    errorOnDuplicateCtx(ctx.alterPropertyShards(), "PROPERTY SHARD")
   }
 
   private def checkAlterDatabaseTopology(ctx: Cypher25Parser.AlterDatabaseTopologyContext): Unit = {

@@ -93,6 +93,9 @@ final protected class CypherAstBuildingAntlrParser(
     case Cypher25Parser.RULE_alterAliasUser               => false
     case Cypher25Parser.RULE_alterDatabaseAccess          => false
     case Cypher25Parser.RULE_alterDatabaseTopology        => false
+    case Cypher25Parser.RULE_alterGraphShard              => false
+    case Cypher25Parser.RULE_alterPropertyShards          => false
+    case Cypher25Parser.RULE_alterReplicaTopology         => false
     case Cypher25Parser.RULE_comparisonExpression6        => false
     case Cypher25Parser.RULE_constraintType               => false
     case Cypher25Parser.RULE_constraintExistType          => false

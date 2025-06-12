@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.ReadOnlyAccess
 import org.neo4j.cypher.internal.ast.ReadWriteAccess
+import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
@@ -51,6 +52,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             NoOptions,
             Set.empty,
             NoWait()(pos),
+            None,
+            None,
             None
           )(defaultPos)
         )
@@ -65,6 +68,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
           NoOptions,
           Set.empty,
           NoWait()(pos),
+          None,
+          None,
           None
         )(defaultPos))
       }
@@ -79,6 +84,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             NoOptions,
             Set.empty,
             NoWait()(pos),
+            None,
+            None,
             None
           )(defaultPos)
         )
@@ -95,6 +102,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             NoOptions,
             Set.empty,
             NoWait()(pos),
+            None,
+            None,
             None
           )((1, 12, 11)).withGraph(Some(use(List("system"), !cypherVersion5)))
         )
@@ -110,6 +119,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             NoOptions,
             Set.empty,
             NoWait()(pos),
+            None,
+            None,
             None
           )(defaultPos)
         )
@@ -133,11 +144,18 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
   }
 
   test("ALTER DATABASE foo SET READ ONLY") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'READ': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
-        |"ALTER DATABASE foo SET READ ONLY"
-        |                        ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'READ': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET READ ONLY"
+            |                        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'READ': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'PROPERTY', 'ACCESS READ', 'GRAPH SHARD' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET READ ONLY"
+            |                        ^""".stripMargin
+        )
+    }
   }
 
   test("ALTER DATABASE foo ACCESS READ WRITE") {
@@ -244,6 +262,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0))))(pos),
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -259,6 +279,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("1")(pos)))(pos),
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -274,6 +296,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("-1")(pos)))(pos),
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -289,6 +313,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         OptionsMap(Map("key" -> Null()(pos)))(pos),
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -308,6 +334,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             ))(defaultPos),
             Set.empty,
             NoWait()(pos),
+            None,
+            None,
             None
           )(pos)
         )
@@ -323,6 +351,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             ))(pos),
             Set.empty,
             NoWait()(pos),
+            None,
+            None,
             None
           )(pos)
         )
@@ -339,6 +369,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0))))(pos),
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -354,6 +386,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set("key", "key2"),
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -369,6 +403,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -384,6 +420,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -399,6 +437,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -414,6 +454,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -429,6 +471,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -444,6 +488,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -459,6 +505,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -474,6 +522,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -489,6 +539,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         IndefiniteWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -504,6 +556,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         TimeoutAfter("5")(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -519,6 +573,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         TimeoutAfter("5")(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -534,6 +590,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         TimeoutAfter("5")(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -549,6 +607,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         TimeoutAfter("5")(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -564,6 +624,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -579,6 +641,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -594,6 +658,8 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         NoOptions,
         Set.empty,
         NoWait()(pos),
+        None,
+        None,
         None
       )(pos)
     )
@@ -610,7 +676,9 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       NoOptions,
       Set.empty,
       NoWait()(pos),
-      Some(org.neo4j.cypher.internal.CypherVersion.Cypher5)
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher5),
+      None,
+      None
     )(pos))
   }
 
@@ -623,7 +691,9 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       NoOptions,
       Set.empty,
       NoWait()(pos),
-      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+      None,
+      None
     )(pos))
   }
 
@@ -636,7 +706,9 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       NoOptions,
       Set.empty,
       NoWait()(pos),
-      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+      None,
+      None
     )(pos))
   }
 
@@ -649,7 +721,9 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       NoOptions,
       Set.empty,
       NoWait()(pos),
-      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+      None,
+      None
     )(pos))
   }
 
@@ -664,7 +738,9 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             OptionsMap(Map("badger" -> literalString("snake")))(defaultPos),
             Set.empty,
             IndefiniteWait()(pos),
-            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+            None,
+            None
           )(pos)
         )
       case _ => _.toAstPositioned(
@@ -676,7 +752,9 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             OptionsMap(Map("badger" -> literalString("snake")))(pos),
             Set.empty,
             IndefiniteWait()(pos),
-            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+            None,
+            None
           )(pos)
         )
     }
@@ -691,8 +769,163 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       NoOptions,
       Set.empty,
       NoWait()(pos),
-      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+      None,
+      None
     )(pos))
+  }
+
+  test("ALTER DATABASE foo SET GRAPH SHARD { SET TOPOLOGY 1 PRIMARY }") {
+    parsesIn[Statement] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'GRAPH': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET GRAPH SHARD { SET TOPOLOGY 1 PRIMARY }"
+            |                        ^""".stripMargin
+        )
+      case _ => _.toAst(
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            None,
+            None,
+            NoOptions,
+            Set.empty,
+            NoWait()(pos),
+            None,
+            Some(ShardDefinition(0, Some(Topology(Some(Left(1)), None)), None)),
+            None
+          )(pos)
+        )
+    }
+  }
+
+  test(
+    "ALTER DATABASE foo SET GRAPH SHARD { SET TOPOLOGY 2 SECONDARIES } SET PROPERTY SHARD { SET TOPOLOGY 1 REPLICAS }"
+  ) {
+    parsesIn[Statement] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'GRAPH': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET GRAPH SHARD { SET TOPOLOGY 2 SECONDARIES } SET PROPERTY SHARD { SET TOPOLOGY 1 REPLICAS }"
+            |                        ^""".stripMargin
+        )
+      case _ => _.toAst(
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            None,
+            None,
+            NoOptions,
+            Set.empty,
+            NoWait()(pos),
+            None,
+            Some(ShardDefinition(0, Some(Topology(None, Some(Left(2)))), Some(Left(1)))),
+            None
+          )(pos)
+        )
+    }
+  }
+
+  test(
+    "ALTER DATABASE foo SET PROPERTY SHARD {SET TOPOLOGY $replica REPLICA} SET DEFAULT LANGUAGE CYPHER 25 SET GRAPH SHARD {SET TOPOLOGY $primary PRIMARY}"
+  ) {
+    parsesIn[Statement] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'PROPERTY': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET PROPERTY SHARD {SET TOPOLOGY $replica REPLICA} SET DEFAULT LANGUAGE CYPHER 25 SET GRAPH SHARD {SET TOPOLOGY $primary PRIMARY}"
+            |                        ^""".stripMargin
+        )
+      case _ => _.toAst(
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            None,
+            None,
+            NoOptions,
+            Set.empty,
+            NoWait()(pos),
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+            Some(ShardDefinition(
+              0,
+              Some(Topology(Some(Right(intParam("primary"))), None)),
+              Some(Right(intParam("replica")))
+            )),
+            None
+          )(pos)
+        )
+    }
+  }
+
+  test("ALTER DATABASE foo SET TOPOLOGY 3 PRIMARIES SET GRAPH SHARD {SET TOPOLOGY $param PRIMARY}") {
+    // fails in semantic checking
+    parsesIn[Statement] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'GRAPH': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 49 (offset: 48))
+            |"ALTER DATABASE foo SET TOPOLOGY 3 PRIMARIES SET GRAPH SHARD {SET TOPOLOGY $param PRIMARY}"
+            |                                                 ^""".stripMargin
+        )
+      case _ => _.toAst(
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            None,
+            Some(Topology(Some(Left(3)), None)),
+            NoOptions,
+            Set.empty,
+            NoWait()(pos),
+            None,
+            Some(ShardDefinition(0, Some(Topology(Some(Right(intParam("param"))), None)), None)),
+            None
+          )(pos)
+        )
+    }
+  }
+
+  test("ALTER DATABASE `foo-p001` SET TOPOLOGY 2 REPLICAS") {
+    parsesIn[Statement] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'REPLICAS': expected 'PRIMARIES', 'PRIMARY', 'SECONDARIES' or 'SECONDARY' (line 1, column 42 (offset: 41))
+            |"ALTER DATABASE `foo-p001` SET TOPOLOGY 2 REPLICAS"
+            |                                          ^""".stripMargin
+        )
+      case _ => _.toAst(
+          AlterDatabase(
+            literal("foo-p001"),
+            ifExists = false,
+            None,
+            None,
+            NoOptions,
+            Set.empty,
+            NoWait()(pos),
+            None,
+            None,
+            Some(Left(2))
+          )(pos)
+        )
+    }
+  }
+
+  test("ALTER DATABASE `foo-p001` SET TOPOLOGY $param REPLICAS") {
+    parsesIn[Statement] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'REPLICAS': expected 'PRIMARIES', 'PRIMARY', 'SECONDARIES' or 'SECONDARY' (line 1, column 47 (offset: 46))
+            |"ALTER DATABASE `foo-p001` SET TOPOLOGY $param REPLICAS"
+            |                                               ^""".stripMargin
+        )
+      case _ => _.toAst(
+          AlterDatabase(
+            literal("foo-p001"),
+            ifExists = false,
+            None,
+            None,
+            NoOptions,
+            Set.empty,
+            NoWait()(pos),
+            None,
+            None,
+            Some(Right(intParam("param")))
+          )(pos)
+        )
+    }
   }
 
   // Negative tests
@@ -722,11 +955,18 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
   }
 
   test("ALTER DATABASE foo SET OPTIONS {key: value}") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
-        |"ALTER DATABASE foo SET OPTIONS {key: value}"
-        |                        ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET OPTIONS {key: value}"
+            |                        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'PROPERTY', 'ACCESS READ', 'GRAPH SHARD' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET OPTIONS {key: value}"
+            |                        ^""".stripMargin
+        )
+    }
   }
 
   test("ALTER DATABASE foo SET OPTION {key: value}") {
@@ -738,11 +978,18 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
   }
 
   test("ALTER DATABASE foo SET OPTIONS key value") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
-        |"ALTER DATABASE foo SET OPTIONS key value"
-        |                        ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET OPTIONS key value"
+            |                        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'PROPERTY', 'ACCESS READ', 'GRAPH SHARD' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET OPTIONS key value"
+            |                        ^""".stripMargin
+        )
+    }
   }
 
   test("ALTER DATABASE foo SET OPTION key value key2 value") {
@@ -865,6 +1112,96 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
     failsParsing[Statements].withSyntaxErrorContaining(
       """Duplicate SECONDARY clause (line 1, column 55 (offset: 54))"""
     )
+  }
+
+  test("ALTER DATABASE foo SET TOPOLOGY 1 REPLICA 2 REPLICAS") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'REPLICA': expected 'PRIMARIES', 'PRIMARY', 'SECONDARIES' or 'SECONDARY' (line 1, column 35 (offset: 34))
+            |"ALTER DATABASE foo SET TOPOLOGY 1 REPLICA 2 REPLICAS"
+            |                                   ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Invalid input '2': expected 'NOWAIT', 'SET', 'WAIT' or <EOF> (line 1, column 43 (offset: 42))
+            |"ALTER DATABASE foo SET TOPOLOGY 1 REPLICA 2 REPLICAS"
+            |                                           ^""".stripMargin
+        )
+    }
+  }
+
+  test("ALTER DATABASE foo SET TOPOLOGY 1 REPLICA SET TOPOLOGY 2 REPLICAS") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'REPLICA': expected 'PRIMARIES', 'PRIMARY', 'SECONDARIES' or 'SECONDARY' (line 1, column 35 (offset: 34))
+            |"ALTER DATABASE foo SET TOPOLOGY 1 REPLICA SET TOPOLOGY 2 REPLICAS"
+            |                                   ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Duplicate TOPOLOGY clause (line 1, column 47 (offset: 46))
+            |"ALTER DATABASE foo SET TOPOLOGY 1 REPLICA SET TOPOLOGY 2 REPLICAS"
+            |                                               ^""".stripMargin
+        )
+    }
+  }
+
+  test("ALTER DATABASE foo SET TOPOLOGY 1 PRIMARY SET TOPOLOGY 2 REPLICAS") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'REPLICAS': expected 'PRIMARIES', 'PRIMARY', 'SECONDARIES' or 'SECONDARY' (line 1, column 58 (offset: 57))
+            |"ALTER DATABASE foo SET TOPOLOGY 1 PRIMARY SET TOPOLOGY 2 REPLICAS"
+            |                                                          ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Duplicate TOPOLOGY clause (line 1, column 47 (offset: 46))
+            |"ALTER DATABASE foo SET TOPOLOGY 1 PRIMARY SET TOPOLOGY 2 REPLICAS"
+            |                                               ^""".stripMargin
+        )
+    }
+  }
+
+  test("ALTER DATABASE foo SET TOPOLOGY 1 REPLICA SET TOPOLOGY 2 PRIMARIES") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'REPLICA': expected 'PRIMARIES', 'PRIMARY', 'SECONDARIES' or 'SECONDARY' (line 1, column 35 (offset: 34))
+            |"ALTER DATABASE foo SET TOPOLOGY 1 REPLICA SET TOPOLOGY 2 PRIMARIES"
+            |                                   ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Duplicate TOPOLOGY clause (line 1, column 47 (offset: 46))
+            |"ALTER DATABASE foo SET TOPOLOGY 1 REPLICA SET TOPOLOGY 2 PRIMARIES"
+            |                                               ^""".stripMargin
+        )
+    }
+  }
+
+  test("ALTER DATABASE foo SET GRAPH SHARD {SET TOPOLOGY 1 PRIMARY} SET GRAPH SHARD {SET TOPOLOGY 2 PRIMARIES}") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'GRAPH': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET GRAPH SHARD {SET TOPOLOGY 1 PRIMARY} SET GRAPH SHARD {SET TOPOLOGY 2 PRIMARIES}"
+            |                        ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Duplicate GRAPH SHARD clause (line 1, column 65 (offset: 64))
+            |"ALTER DATABASE foo SET GRAPH SHARD {SET TOPOLOGY 1 PRIMARY} SET GRAPH SHARD {SET TOPOLOGY 2 PRIMARIES}"
+            |                                                                 ^""".stripMargin
+        )
+    }
+  }
+
+  test("ALTER DATABASE foo SET PROPERTY SHARD {SET TOPOLOGY 1 REPLICA} SET PROPERTY SHARD {SET TOPOLOGY 2 REPLICAS}") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'PROPERTY': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
+            |"ALTER DATABASE foo SET PROPERTY SHARD {SET TOPOLOGY 1 REPLICA} SET PROPERTY SHARD {SET TOPOLOGY 2 REPLICAS}"
+            |                        ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Duplicate PROPERTY SHARD clause (line 1, column 68 (offset: 67))
+            |"ALTER DATABASE foo SET PROPERTY SHARD {SET TOPOLOGY 1 REPLICA} SET PROPERTY SHARD {SET TOPOLOGY 2 REPLICAS}"
+            |                                                                    ^""".stripMargin
+        )
+    }
   }
 
   test("ALTER DATABASE foo SET TOPOLOGY -1 PRIMARY") {

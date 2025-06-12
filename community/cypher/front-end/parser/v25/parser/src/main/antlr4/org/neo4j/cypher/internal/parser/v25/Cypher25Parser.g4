@@ -1765,6 +1765,10 @@ secondaryToken
    : SECONDARY | SECONDARIES
    ;
 
+replicaToken
+   : REPLICA | REPLICAS
+   ;
+
 defaultLanguageSpecification
     : DEFAULT LANGUAGE CYPHER UNSIGNED_DECIMAL_INTEGER
     ;
@@ -1780,7 +1784,7 @@ aliasAction
 
 alterDatabase
    : DATABASE symbolicAliasNameOrParameter (IF EXISTS)? (
-      (SET (alterDatabaseAccess | alterDatabaseTopology | alterDatabaseOption | defaultLanguageSpecification))+
+      (SET (alterDatabaseAccess | alterDatabaseTopology | alterReplicaTopology | alterGraphShard | alterPropertyShards | alterDatabaseOption | defaultLanguageSpecification))+
       | (REMOVE OPTION symbolicNameString)+
    ) waitClause?
    ;
@@ -1795,6 +1799,18 @@ alterDatabaseTopology
 
 alterDatabaseOption
    : OPTION symbolicNameString expression
+   ;
+
+alterGraphShard
+   : GRAPH SHARD LCURLY SET alterDatabaseTopology RCURLY
+   ;
+
+alterPropertyShards
+   : PROPERTY (SHARD | SHARDS) LCURLY SET alterReplicaTopology RCURLY
+   ;
+
+alterReplicaTopology
+   : TOPOLOGY uIntOrIntParameter replicaToken
    ;
 
 startDatabase

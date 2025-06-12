@@ -114,6 +114,7 @@ import org.neo4j.cypher.internal.ast.SetOwnPassword
 import org.neo4j.cypher.internal.ast.SetPasswordsAction
 import org.neo4j.cypher.internal.ast.SetUserHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetUserStatusAction
+import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowAliasAction
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
@@ -1217,7 +1218,9 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           options,
           optionsToRemove,
           waitUntilComplete,
-          cypherVersion
+          cypherVersion,
+          shardDefinition,
+          replicas
         ) =>
         // Composite databases currently don't have any sub-privileges, just ALTER privilege
         val requiredPrivilegeActionsForCompositeDatabases = Seq(AlterCompositeDatabaseAction)
@@ -1225,6 +1228,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         val requiredPrivilegedActionsForDatabases: Seq[DbmsAction] = Seq(
           // ALTER DATABASE foo SET TOPOLOGY requires internal AlterDatabaseTopology privilege which can be granted by 'ALTER DATABASE':
           topology.nonEmpty -> AlterDatabaseTopologyAction,
+          replicas.nonEmpty -> AlterDatabaseTopologyAction,
+          shardDefinition.nonEmpty -> AlterDatabaseTopologyAction,
           // ALTER DATABASE foo SET OPTION ... requires internal AlterDatabaseOptions privilege which can be granted by 'ALTER DATABASE':
           (options != NoOptions) -> AlterDatabaseOptionsAction,
           // ALTER DATABASE foo REMOVE OPTION ... requires internal AlterDatabaseOptions privilege which can be granted by 'ALTER DATABASE':
@@ -1261,7 +1266,97 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             if (!alterIsValidOnSystem) plans.EnsureValidNonSystemDatabase(source, "ALTER DATABASE", dbName, "alter")
             else source
           )
-          .map(plans.AlterDatabase(_, dbName, access, topology, options, cypherVersion, optionsToRemove))
+          .map(s =>
+            if (access.nonEmpty) {
+              val action = "SET ACCESS"
+              plans.AssertNotPropertyShard(
+                plans.AssertNotGraphShard(s, dbName, action, "alter"),
+                dbName,
+                action,
+                "alter"
+              )
+            } else s
+          )
+          .map(s =>
+            if (cypherVersion.nonEmpty) {
+              val action = "SET DEFAULT LANGUAGE"
+              plans.AssertNotPropertyShard(
+                plans.AssertNotGraphShard(s, dbName, action, "alter"),
+                dbName,
+                action,
+                "alter"
+              )
+            } else s
+          )
+          .map(s =>
+            if (options != NoOptions) {
+              val action = "SET OPTION"
+              plans.AssertNotVirtualSpd(
+                plans.AssertNotGraphShard(
+                  plans.AssertNotPropertyShard(s, dbName, action, "alter"),
+                  dbName,
+                  action,
+                  "alter"
+                ),
+                dbName,
+                action,
+                "alter"
+              )
+            } else s
+          )
+          .map(s =>
+            if (optionsToRemove.nonEmpty) {
+              val action = "REMOVE OPTION"
+              plans.AssertNotVirtualSpd(
+                plans.AssertNotGraphShard(
+                  plans.AssertNotPropertyShard(s, dbName, action, "alter"),
+                  dbName,
+                  action,
+                  "alter"
+                ),
+                dbName,
+                action,
+                "alter"
+              )
+            } else s
+          )
+          .map(s =>
+            if (topology.nonEmpty) {
+              // allowed on graph shard and non-sharded database
+              val action = "SET TOPOLOGY ... PRIMARY / SECONDARY"
+              val ps =
+                plans.AssertNotVirtualSpd(
+                  plans.AssertNotPropertyShard(s, dbName, action, "alter"),
+                  dbName,
+                  action,
+                  "alter"
+                )
+              plans.AlterDatabase(ps, dbName, access, topology, options, cypherVersion, optionsToRemove, None)
+            } else if (shardDefinition.nonEmpty) {
+              // allowed on sharded database
+              val action = shardDefinition match {
+                case Some(ShardDefinition(_, Some(_), _)) => "SET GRAPH SHARD"
+                case _                                    => "SET PROPERTY SHARD"
+              }
+              val ps = plans.AssertNotPropertyShard(
+                plans.AssertNotGraphShard(plans.AssertNotStandard(s, dbName, action, "alter"), dbName, action, "alter"),
+                dbName,
+                action,
+                "alter"
+              )
+              plans.AlterShardedDatabase(ps, dbName, access, cypherVersion, shardDefinition)
+            } else if (replicas.nonEmpty) {
+              // allowed on property shard
+              val action = "SET TOPOLOGY ... REPLICAS"
+              val ps = plans.AssertNotVirtualSpd(
+                plans.AssertNotGraphShard(plans.AssertNotStandard(s, dbName, action, "alter"), dbName, action, "alter"),
+                dbName,
+                action,
+                "alter"
+              )
+              plans.AlterDatabase(ps, dbName, access, None, options, cypherVersion, optionsToRemove, replicas)
+            } else plans.AlterDatabase(s, dbName, access, None, options, cypherVersion, optionsToRemove, None)
+          )
           .map(wrapInWait(_, dbName, waitUntilComplete))
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
 

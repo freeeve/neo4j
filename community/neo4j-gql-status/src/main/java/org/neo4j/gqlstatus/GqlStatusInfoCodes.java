@@ -2916,6 +2916,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "cannot replace sharded database",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42N0C(
+            new GqlStatus("42N0C"),
+            "{ %s } is not allowed with a { %s } target.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.action, GqlParams.StringParam.typeDescription},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid database target",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N10(
             new GqlStatus("42N10"),
             "A role with the name { %s } was not found. Verify that the spelling is correct.",

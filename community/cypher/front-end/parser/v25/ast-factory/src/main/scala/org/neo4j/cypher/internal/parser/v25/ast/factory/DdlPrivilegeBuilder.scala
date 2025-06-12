@@ -800,6 +800,7 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
   override def exitSettingToken(ctx: Cypher25Parser.SettingTokenContext): Unit = {}
   override def exitPrimaryToken(ctx: Cypher25Parser.PrimaryTokenContext): Unit = {}
   override def exitSecondaryToken(ctx: Cypher25Parser.SecondaryTokenContext): Unit = {}
+  override def exitReplicaToken(ctx: Cypher25Parser.ReplicaTokenContext): Unit = {}
   override def exitSecondsToken(ctx: Cypher25Parser.SecondsTokenContext): Unit = {}
   override def exitGroupToken(ctx: Cypher25Parser.GroupTokenContext): Unit = {}
   override def exitPathToken(ctx: Cypher25Parser.PathTokenContext): Unit = {}

@@ -77,6 +77,7 @@ import org.neo4j.cypher.internal.logical.plans.AlterDatabase
 import org.neo4j.cypher.internal.logical.plans.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.logical.plans.AlterRemoteDatabaseAlias
 import org.neo4j.cypher.internal.logical.plans.AlterServer
+import org.neo4j.cypher.internal.logical.plans.AlterShardedDatabase
 import org.neo4j.cypher.internal.logical.plans.AlterUser
 import org.neo4j.cypher.internal.logical.plans.AssertAllowedDatabaseAction
 import org.neo4j.cypher.internal.logical.plans.AssertAllowedDbmsActions
@@ -533,7 +534,16 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadOnlyAccess), None, NoOptions, None, Set.empty),
+        AlterDatabase(
+          privLhsLP,
+          NamespacedName("db1")(pos),
+          Some(ReadOnlyAccess),
+          None,
+          NoOptions,
+          None,
+          Set.empty,
+          None
+        ),
         1.0
       ),
       adminPlanDescription
@@ -541,7 +551,24 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        AlterDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadWriteAccess), None, NoOptions, None, Set.empty),
+        AlterDatabase(
+          privLhsLP,
+          NamespacedName("db1")(pos),
+          Some(ReadWriteAccess),
+          None,
+          NoOptions,
+          None,
+          Set.empty,
+          None
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        AlterShardedDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadWriteAccess), None, None),
         1.0
       ),
       adminPlanDescription

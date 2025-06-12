@@ -2643,6 +2643,22 @@ class PrettifierIT extends CypherFunSuite {
       "ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 5",
     "ALTER DATABASE foo SeT default LANGUAGE cypher 25 set access READ only WAIt" ->
       "ALTER DATABASE foo SET ACCESS READ ONLY SET DEFAULT LANGUAGE CYPHER 25 WAIT",
+    FailsInCypher5(
+      "alter database spd set graph shard { set topology 2 secondary 1 primaries }",
+      "ALTER DATABASE spd SET GRAPH SHARD {SET TOPOLOGY 1 PRIMARY 2 SECONDARIES}"
+    ),
+    FailsInCypher5(
+      "alter database $spd set property shard { set topology 2 replicas } set graph shard { set topology 2 primaries }",
+      "ALTER DATABASE $spd SET GRAPH SHARD {SET TOPOLOGY 2 PRIMARIES} SET PROPERTY SHARD {SET TOPOLOGY 2 REPLICAS}"
+    ),
+    FailsInCypher5(
+      "alter database spd set default language cypher 25 set graph shard { set topology 2 secondary 1 primaries }",
+      "ALTER DATABASE spd SET GRAPH SHARD {SET TOPOLOGY 1 PRIMARY 2 SECONDARIES} SET DEFAULT LANGUAGE CYPHER 25"
+    ),
+    FailsInCypher5(
+      "alter database `spd-shard` set topology 2 replica",
+      "ALTER DATABASE `spd-shard` SET TOPOLOGY 2 REPLICAS"
+    ),
     "start database $foo" ->
       "START DATABASE $foo",
     "start database foO_Bar_42" ->

@@ -1522,7 +1522,7 @@ final case class CreateDatabase(
           SemanticState.recordCurrentScope(this)
     }) chain topologyCheck(topology, name, position) chain
       defaultLanguageVersionCheck(defaultLanguage, name) chain
-      shards.map(_.semanticCheck(name, position)).getOrElse(success)
+      shards.map(_.semanticCheck(name, position, expectShard = true)).getOrElse(success)
 }
 
 case class Topology(primaries: Option[Either[Int, Parameter]], secondaries: Option[Either[Int, Parameter]])
@@ -1533,10 +1533,10 @@ case class ShardDefinition(
   propertyShardReplicaCount: Option[Either[Int, Parameter]]
 ) extends TopologyCheck {
 
-  def semanticCheck(command: String, position: InputPosition): SemanticCheck = {
+  def semanticCheck(command: String, position: InputPosition, expectShard: Boolean): SemanticCheck = {
 
     def numShardsInRange(shardCount: Int): SemanticCheck = {
-      if (shardCount < 1 || shardCount > 1000) {
+      if ((shardCount < 1 && expectShard) || shardCount > 1000) {
         error(SemanticError.numShardsOutOfRange(shardCount, command, s"COUNT $shardCount", position))
       } else success
     }
@@ -1636,7 +1636,9 @@ final case class AlterDatabase(
   options: Options,
   optionsToRemove: Set[String],
   waitUntilComplete: WaitUntilComplete,
-  defaultLanguage: Option[CypherVersion]
+  defaultLanguage: Option[CypherVersion],
+  shardDefinition: Option[ShardDefinition],
+  replicas: Option[Either[Int, Parameter]]
 )(
   val position: InputPosition
 ) extends WaitableAdministrationCommand with TopologyCheck {
@@ -1648,20 +1650,46 @@ final case class AlterDatabase(
       Some(name),
       access.map(_ => "SET ACCESS"),
       topology.map(_ => "SET TOPOLOGY"),
+      replicas.map(_ => "SET TOPOLOGY"),
       defaultLanguage.map(_ => "SET DEFAULT LANGUAGE"),
       if (options != NoOptions) Some("SET OPTION") else None,
       if (optionsToRemove.nonEmpty) Some("REMOVE OPTION") else None,
       waitUntilComplete match {
         case _: NoWait => None
         case _         => Some("WAIT")
+      },
+      shardDefinition match {
+        case Some(ShardDefinition(_, Some(_), _)) => Some("SET GRAPH SHARD")
+        case Some(_)                              => Some("SET PROPERTY SHARD")
+        case _                                    => None
       }
     ).flatten.mkString(" ")
+
+  private def isValidReplicaCount(replicas: Option[Either[Int, Parameter]]): SemanticCheck =
+    if (replicas.flatMap(_.left.toOption).exists(replicaCount => replicaCount < 1 || replicaCount > 20)) {
+      val count = replicas.flatMap(_.left.toOption).get
+      val topologyString = Prettifier.extractShardTopology(replicas).trim
+      error(SemanticError.numReplicasOutOfRange(count, name, topologyString, position))
+    } else {
+      SemanticCheck.success
+    }
+
+  private def checkTopologyOrShards: SemanticCheck =
+    shardDefinition match {
+      case Some(ShardDefinition(_, Some(_), _)) if topology.nonEmpty || replicas.nonEmpty =>
+        SemanticCheck.error(SemanticError.invalidClauseCombination("SET TOPOLOGY", "SET GRAPH SHARD", position))
+      case Some(ShardDefinition(_, None, Some(_))) if topology.nonEmpty || replicas.nonEmpty =>
+        SemanticCheck.error(SemanticError.invalidClauseCombination("SET TOPOLOGY", "SET PROPERTY SHARD", position))
+      case _ => success
+    }
 
   override def semanticCheck: SemanticCheck =
     super.semanticCheck chain
       SemanticState.recordCurrentScope(this) chain
       topologyCheck(topology, name, position) chain
-      defaultLanguageVersionCheck(defaultLanguage, name)
+      defaultLanguageVersionCheck(defaultLanguage, name) chain
+      shardDefinition.map(_.semanticCheck(name, position, expectShard = false)).getOrElse(success) chain
+      isValidReplicaCount(replicas) chain checkTopologyOrShards
 }
 
 final case class StartDatabase(dbName: DatabaseName, waitUntilComplete: WaitUntilComplete)(

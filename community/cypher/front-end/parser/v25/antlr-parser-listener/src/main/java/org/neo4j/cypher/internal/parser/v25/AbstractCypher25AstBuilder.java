@@ -510,6 +510,7 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_secondaryTopology ->
                 exitSecondaryTopology((Cypher25Parser.SecondaryTopologyContext) ctx);
             case Cypher25Parser.RULE_secondaryToken -> exitSecondaryToken((Cypher25Parser.SecondaryTokenContext) ctx);
+            case Cypher25Parser.RULE_replicaToken -> exitReplicaToken((Cypher25Parser.ReplicaTokenContext) ctx);
             case Cypher25Parser.RULE_defaultLanguageSpecification ->
                 exitDefaultLanguageSpecification((Cypher25Parser.DefaultLanguageSpecificationContext) ctx);
             case Cypher25Parser.RULE_dropDatabase -> exitDropDatabase((Cypher25Parser.DropDatabaseContext) ctx);
@@ -521,6 +522,12 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                 exitAlterDatabaseTopology((Cypher25Parser.AlterDatabaseTopologyContext) ctx);
             case Cypher25Parser.RULE_alterDatabaseOption ->
                 exitAlterDatabaseOption((Cypher25Parser.AlterDatabaseOptionContext) ctx);
+            case Cypher25Parser.RULE_alterGraphShard ->
+                exitAlterGraphShard((Cypher25Parser.AlterGraphShardContext) ctx);
+            case Cypher25Parser.RULE_alterPropertyShards ->
+                exitAlterPropertyShards((Cypher25Parser.AlterPropertyShardsContext) ctx);
+            case Cypher25Parser.RULE_alterReplicaTopology ->
+                exitAlterReplicaTopology((Cypher25Parser.AlterReplicaTopologyContext) ctx);
             case Cypher25Parser.RULE_startDatabase -> exitStartDatabase((Cypher25Parser.StartDatabaseContext) ctx);
             case Cypher25Parser.RULE_stopDatabase -> exitStopDatabase((Cypher25Parser.StopDatabaseContext) ctx);
             case Cypher25Parser.RULE_waitClause -> exitWaitClause((Cypher25Parser.WaitClauseContext) ctx);

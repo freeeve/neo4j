@@ -161,6 +161,49 @@ public class InvalidSemanticsException extends Neo4jException {
                         db1, db2));
     }
 
+    public static InvalidSemanticsException invalidAlterStandardTarget(String action) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N0C)
+                        .withParam(GqlParams.StringParam.action, action)
+                        .withParam(GqlParams.StringParam.typeDescription, "standard database")
+                        .build())
+                .build();
+        return new InvalidSemanticsException(
+                gql, String.format("%s is not allowed with a standard database target", action));
+    }
+
+    public static InvalidSemanticsException invalidAlterShardedTarget(String action) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N0C)
+                        .withParam(GqlParams.StringParam.action, action)
+                        .withParam(GqlParams.StringParam.typeDescription, "sharded database")
+                        .build())
+                .build();
+        return new InvalidSemanticsException(
+                gql, String.format("%s is not allowed with a sharded database target", action));
+    }
+
+    public static InvalidSemanticsException invalidAlterGraphShardTarget(String action) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N0C)
+                        .withParam(GqlParams.StringParam.action, action)
+                        .withParam(GqlParams.StringParam.typeDescription, "graph shard")
+                        .build())
+                .build();
+        return new InvalidSemanticsException(gql, String.format("%s is not allowed with a graph shard target", action));
+    }
+
+    public static InvalidSemanticsException invalidAlterShardTarget(String action) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N0C)
+                        .withParam(GqlParams.StringParam.action, action)
+                        .withParam(GqlParams.StringParam.typeDescription, "property shard")
+                        .build())
+                .build();
+        return new InvalidSemanticsException(
+                gql, String.format("%s is not allowed with a property shard target", action));
+    }
+
     public static InvalidSemanticsException profileNotSupportedOnComposite() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N06)

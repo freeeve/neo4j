@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.common.DependencyResolver
 import org.neo4j.configuration.Config
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.makeRenameExecutionPlan
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.runtimeStringValue
@@ -49,6 +51,9 @@ import org.neo4j.cypher.internal.logical.plans.AssertAllowedDbmsActionsOrSelf
 import org.neo4j.cypher.internal.logical.plans.AssertCanAlterDatabase
 import org.neo4j.cypher.internal.logical.plans.AssertManagementActionNotBlocked
 import org.neo4j.cypher.internal.logical.plans.AssertNotCurrentUser
+import org.neo4j.cypher.internal.logical.plans.AssertNotGraphShard
+import org.neo4j.cypher.internal.logical.plans.AssertNotPropertyShard
+import org.neo4j.cypher.internal.logical.plans.AssertNotVirtualSpd
 import org.neo4j.cypher.internal.logical.plans.CheckNativeAuthentication
 import org.neo4j.cypher.internal.logical.plans.CreateUser
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfDatabaseExists
@@ -78,10 +83,18 @@ import org.neo4j.cypher.internal.procs.ThrowException
 import org.neo4j.cypher.internal.procs.UpdatingSystemCommandExecutionPlan
 import org.neo4j.cypher.rendering.QueryRenderer
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.SPD
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
 import org.neo4j.exceptions.InvalidArgumentException
+import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity
 import org.neo4j.graphdb.security.AuthorizationViolationException
@@ -345,7 +358,7 @@ case class CommunityAdministrationCommandRuntime(
         )
 
     // ALTER DATABASE SET DEFAULT LANGUAGE
-    case AlterDatabase(source, databaseName, None, None, NoOptions, Some(defaultLanguageVersion), optionsToRemove)
+    case AlterDatabase(source, databaseName, None, None, NoOptions, Some(defaultLanguageVersion), optionsToRemove, None)
       if optionsToRemove.isEmpty =>
       context => {
         val sourcePlan: Option[ExecutionPlan] =
@@ -355,6 +368,138 @@ case class CommunityAdministrationCommandRuntime(
           securityAuthorizationHandler
         ).planAlterDatabase(databaseName, defaultLanguageVersion, sourcePlan, context)
       }
+
+    case AssertNotVirtualSpd(source, databaseName, action, actionVerb) => context =>
+        val sourcePlan: Option[ExecutionPlan] =
+          Some(fullLogicalToExecutable.applyOrElse(source, throwCantCompile).apply(context))
+        val nameFields = getDatabaseNameFields("databaseName", databaseName)
+
+        val parameterTransformer = ParameterTransformer()
+          .convert(nameFields.nameConverter)
+          .validate(checkNamespaceExists(nameFields, context))
+
+        UpdatingSystemCommandExecutionPlan(
+          "AssertNotSpd",
+          normalExecutionEngine,
+          securityAuthorizationHandler,
+          query =
+            s"""
+               |MATCH (n:$DATABASE_NAME)-[:$TARGETS]->(d:$SPD)
+               |  WHERE n.$DATABASE_NAME_PROPERTY = $$`${nameFields.nameKey}`
+               |  AND n.$NAMESPACE_PROPERTY = $$`${nameFields.namespaceKey}`
+               |RETURN d.$DATABASE_NAME_PROPERTY AS dbName""".stripMargin,
+          VirtualValues.map(
+            Array(nameFields.nameKey, nameFields.namespaceKey),
+            Array(nameFields.nameValue, nameFields.namespaceValue)
+          ),
+          queryHandler = QueryHandler.handleResult((_, _, _) =>
+            ThrowException(
+              InvalidSemanticsException.invalidAlterShardedTarget(
+                action
+              )
+            )
+          ).handleError((error, params) =>
+            (error, error.getCause) match {
+              case (e: HasStatus, _) if e.status() == Status.Cluster.NotALeader =>
+                DatabaseAdministrationOnFollowerException.notALeader(
+                  action,
+                  s"Failed to $actionVerb the specified database '${runtimeStringValue(databaseName, params)}'",
+                  error
+                )
+              case _ => error
+            }
+          ),
+          source = sourcePlan,
+          parameterTransformer = parameterTransformer
+        )
+
+    case AssertNotGraphShard(source, databaseName, action, actionVerb) => context =>
+        val sourcePlan: Option[ExecutionPlan] =
+          Some(fullLogicalToExecutable.applyOrElse(source, throwCantCompile).apply(context))
+        val nameFields = getDatabaseNameFields("databaseName", databaseName)
+
+        val parameterTransformer = ParameterTransformer()
+          .convert(nameFields.nameConverter)
+          .validate(checkNamespaceExists(nameFields, context))
+
+        UpdatingSystemCommandExecutionPlan(
+          "AssertNotGraphShard",
+          normalExecutionEngine,
+          securityAuthorizationHandler,
+          query =
+            s"""
+               |MATCH (n:$DATABASE_NAME)-[:$TARGETS]->(d:$GRAPH_SHARD)
+               |  WHERE n.$DATABASE_NAME_PROPERTY = $$`${nameFields.nameKey}`
+               |  AND n.$NAMESPACE_PROPERTY = $$`${nameFields.namespaceKey}`
+               |RETURN d.$DATABASE_NAME_PROPERTY AS dbName""".stripMargin,
+          VirtualValues.map(
+            Array(nameFields.nameKey, nameFields.namespaceKey),
+            Array(nameFields.nameValue, nameFields.namespaceValue)
+          ),
+          queryHandler = QueryHandler.handleResult((_, _, _) =>
+            ThrowException(
+              InvalidSemanticsException.invalidAlterGraphShardTarget(
+                action
+              )
+            )
+          ).handleError((error, params) =>
+            (error, error.getCause) match {
+              case (e: HasStatus, _) if e.status() == Status.Cluster.NotALeader =>
+                DatabaseAdministrationOnFollowerException.notALeader(
+                  action,
+                  s"Failed to $actionVerb the specified database '${runtimeStringValue(databaseName, params)}'",
+                  error
+                )
+              case _ => error
+            }
+          ),
+          source = sourcePlan,
+          parameterTransformer = parameterTransformer
+        )
+
+    case AssertNotPropertyShard(source, databaseName, action, actionVerb) => context =>
+        val sourcePlan: Option[ExecutionPlan] =
+          Some(fullLogicalToExecutable.applyOrElse(source, throwCantCompile).apply(context))
+        val nameFields = getDatabaseNameFields("databaseName", databaseName)
+
+        val parameterTransformer = ParameterTransformer()
+          .convert(nameFields.nameConverter)
+          .validate(checkNamespaceExists(nameFields, context))
+
+        UpdatingSystemCommandExecutionPlan(
+          "AssertNotPropertyShard",
+          normalExecutionEngine,
+          securityAuthorizationHandler,
+          query =
+            s"""
+               |MATCH (n:$DATABASE_NAME)-[:$TARGETS]->(d:$PROPERTY_SHARD)
+               |  WHERE n.$DATABASE_NAME_PROPERTY = $$`${nameFields.nameKey}`
+               |  AND n.$NAMESPACE_PROPERTY = $$`${nameFields.namespaceKey}`
+               |RETURN d.$DATABASE_NAME_PROPERTY AS dbName""".stripMargin,
+          VirtualValues.map(
+            Array(nameFields.nameKey, nameFields.namespaceKey),
+            Array(nameFields.nameValue, nameFields.namespaceValue)
+          ),
+          queryHandler = QueryHandler.handleResult((_, _, _) =>
+            ThrowException(
+              InvalidSemanticsException.invalidAlterShardTarget(
+                action
+              )
+            )
+          ).handleError((error, params) =>
+            (error, error.getCause) match {
+              case (e: HasStatus, _) if e.status() == Status.Cluster.NotALeader =>
+                DatabaseAdministrationOnFollowerException.notALeader(
+                  action,
+                  s"Failed to $actionVerb the specified database '${runtimeStringValue(databaseName, params)}'",
+                  error
+                )
+              case _ => error
+            }
+          ),
+          source = sourcePlan,
+          parameterTransformer = parameterTransformer
+        )
 
     // This is no-op in community
     case AssertManagementActionNotBlocked(_) => _ =>

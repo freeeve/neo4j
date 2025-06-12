@@ -989,6 +989,27 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
       "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE REMOVE OPTION' is not supported in community edition."
     )
 
+    assertFailureWithGQLStatus(
+      s"CYPHER 25 ALTER DATABASE $DEFAULT_DATABASE_NAME SET GRAPH SHARD { SET TOPOLOGY 1 PRIMARY }",
+      s"Unsupported administration command: ALTER DATABASE $DEFAULT_DATABASE_NAME SET GRAPH SHARD { SET TOPOLOGY 1 PRIMARY }",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET GRAPH SHARD' is not supported in community edition."
+    )
+
+    assertFailureWithGQLStatus(
+      s"CYPHER 25 ALTER DATABASE $DEFAULT_DATABASE_NAME SET PROPERTY SHARD { SET TOPOLOGY 1 REPLICA }",
+      s"Unsupported administration command: ALTER DATABASE $DEFAULT_DATABASE_NAME SET PROPERTY SHARD { SET TOPOLOGY 1 REPLICA }",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET PROPERTY SHARD' is not supported in community edition."
+    )
+
+    assertFailureWithGQLStatus(
+      s"CYPHER 25 ALTER DATABASE $DEFAULT_DATABASE_NAME SET TOPOLOGY 1 REPLICA",
+      s"Unsupported administration command: ALTER DATABASE $DEFAULT_DATABASE_NAME SET TOPOLOGY 1 REPLICA",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET TOPOLOGY' is not supported in community edition."
+    )
+
   }
 
   test("should fail on starting database from community") {

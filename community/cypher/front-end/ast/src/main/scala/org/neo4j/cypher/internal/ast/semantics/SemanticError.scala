@@ -841,6 +841,22 @@ object SemanticError {
     SemanticError(gql, msg, pos)
   }
 
+  def invalidClauseCombination(clause1: String, clause2: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N14)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.clause, clause1)
+        .withParam(GqlParams.StringParam.cmd, clause2)
+        .build())
+      .build()
+    SemanticError(
+      gql,
+      "%s cannot be used together with %s.".formatted(clause1, clause2),
+      position
+    )
+  }
+
   def bothOrReplaceAndIfNotExists(entity: String, userAsString: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N14(
       "OR REPLACE",

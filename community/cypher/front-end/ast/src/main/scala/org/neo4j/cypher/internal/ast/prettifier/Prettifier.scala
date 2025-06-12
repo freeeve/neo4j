@@ -737,16 +737,21 @@ case class Prettifier(
           options,
           optionsToRemove,
           waitUntilComplete,
-          defaultCypherVersion
+          defaultCypherVersion,
+          shardDefinition,
+          replicas
         ) =>
         val maybeAccessString = access.map(getAccessString).getOrElse("")
         val maybeIfExists = if (ifExists) " IF EXISTS" else ""
-        val maybeTopologyString = topology.map(topo => s" SET${Prettifier.extractTopology(topo)}").getOrElse("")
+        val maybeTopologyString = topology
+          .map(topo => s" SET${Prettifier.extractTopology(topo)}").getOrElse(replicas
+            .map(topo => s" SET${Prettifier.extractShardTopology(Some(topo))}").getOrElse(""))
         val maybeCypherVersion =
           defaultCypherVersion.map(cv => s" SET DEFAULT LANGUAGE ${cv.description}").getOrElse("")
         val formattedOptions = asIndividualOptions(options)
         val formattedOptionsToRemove = optionsToRemove.map(o => s" REMOVE OPTION ${backtick(o)}").mkString("")
-        s"${x.name} ${Prettifier.escapeName(dbName)}$maybeIfExists$maybeAccessString$maybeTopologyString$formattedOptions$formattedOptionsToRemove$maybeCypherVersion${waitUntilComplete.name}"
+        val maybeShards = shardDefinition.map(s => Prettifier.extractAlterShardDefinition(s)).getOrElse("")
+        s"${x.name} ${Prettifier.escapeName(dbName)}$maybeIfExists$maybeAccessString$maybeTopologyString$maybeShards$formattedOptions$formattedOptionsToRemove$maybeCypherVersion${waitUntilComplete.name}"
 
       case x @ StartDatabase(dbName, waitUntilComplete) =>
         s"${x.name} ${Prettifier.escapeName(dbName)}${waitUntilComplete.name}"
@@ -1665,6 +1670,17 @@ object Prettifier {
       case Left(n)  => Some(s" TOPOLOGY $n REPLICAS")
       case Right(p) => Some(s" TOPOLOGY $$${backtick(p.name)} REPLICAS")
     }.getOrElse("")
+  }
+
+  def extractAlterShardDefinition(shardDefinition: ShardDefinition): String = {
+    val graphTopology = shardDefinition.graphShardTopology
+      .map(Prettifier.extractTopology)
+      .map(s => s" SET GRAPH SHARD {SET ${s.trim}}")
+      .getOrElse("")
+    val shardTopology = shardDefinition.propertyShardReplicaCount.map(s =>
+      s" SET PROPERTY SHARD {SET${extractShardTopology(Some(s))}}"
+    ).getOrElse("")
+    s"$graphTopology$shardTopology"
   }
 
   def extractShardDefinition(shardDefinition: ShardDefinition): String = {

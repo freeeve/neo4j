@@ -452,6 +452,8 @@ trait DdlBuilder extends Cypher5ParserListener {
         NoOptions,
         optionsToRemove,
         waitUntilComplete,
+        None,
+        None,
         None
       )(
         pos(ctx.getParent)
@@ -471,7 +473,9 @@ trait DdlBuilder extends Cypher5ParserListener {
         options,
         Set.empty,
         waitUntilComplete,
-        defaultLanguage
+        defaultLanguage,
+        None,
+        None
       )(
         pos(ctx.getParent)
       )

@@ -564,7 +564,16 @@ case class AlterDatabase(
   topology: Option[Topology],
   options: Options,
   defaultLanguageVersion: Option[CypherVersion],
-  optionsToRemove: Set[String]
+  optionsToRemove: Set[String],
+  replicas: Option[Either[Int, Parameter]]
+)(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
+
+case class AlterShardedDatabase(
+  source: AdministrationCommandLogicalPlan,
+  databaseName: DatabaseName,
+  access: Option[Access],
+  defaultLanguageVersion: Option[CypherVersion],
+  shardDefinition: Option[ShardDefinition]
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
 
 case class StartDatabase(source: AdministrationCommandLogicalPlan, databaseName: DatabaseName)(
@@ -652,6 +661,34 @@ case class EnsureNameIsNotAmbiguous(
   source: AdministrationCommandLogicalPlan,
   databaseName: Either[String, Parameter],
   isComposite: Boolean
+)(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
+
+case class AssertNotStandard(
+  source: AdministrationCommandLogicalPlan,
+  name: DatabaseName,
+  action: String,
+  actionVerb: String
+)(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
+
+case class AssertNotVirtualSpd(
+  source: AdministrationCommandLogicalPlan,
+  name: DatabaseName,
+  action: String,
+  actionVerb: String
+)(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
+
+case class AssertNotGraphShard(
+  source: AdministrationCommandLogicalPlan,
+  name: DatabaseName,
+  action: String,
+  actionVerb: String
+)(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
+
+case class AssertNotPropertyShard(
+  source: AdministrationCommandLogicalPlan,
+  name: DatabaseName,
+  action: String,
+  actionVerb: String
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
 
 case class AssertNotShardedDatabase(

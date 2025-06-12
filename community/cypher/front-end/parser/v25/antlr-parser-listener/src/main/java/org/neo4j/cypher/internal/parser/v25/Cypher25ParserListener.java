@@ -673,6 +673,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitSecondaryToken(Cypher25Parser.SecondaryTokenContext ctx);
 
+    void exitReplicaToken(Cypher25Parser.ReplicaTokenContext ctx);
+
     void exitDefaultLanguageSpecification(Cypher25Parser.DefaultLanguageSpecificationContext ctx);
 
     void exitDropDatabase(Cypher25Parser.DropDatabaseContext ctx);
@@ -686,6 +688,12 @@ public interface Cypher25ParserListener extends ParseTreeListener {
     void exitAlterDatabaseTopology(Cypher25Parser.AlterDatabaseTopologyContext ctx);
 
     void exitAlterDatabaseOption(Cypher25Parser.AlterDatabaseOptionContext ctx);
+
+    void exitAlterGraphShard(Cypher25Parser.AlterGraphShardContext ctx);
+
+    void exitAlterPropertyShards(Cypher25Parser.AlterPropertyShardsContext ctx);
+
+    void exitAlterReplicaTopology(Cypher25Parser.AlterReplicaTopologyContext ctx);
 
     void exitStartDatabase(Cypher25Parser.StartDatabaseContext ctx);
 
