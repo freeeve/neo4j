@@ -133,6 +133,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N46)
                         .withParam(GqlParams.StringParam.server, name)
                         .build())
+                .withParam(GqlParams.StringParam.msg, "argument error")
                 .build();
         return new InvalidArgumentsException(gql, msg, cause);
     }
@@ -143,6 +144,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N48)
                         .withParam(GqlParams.StringParam.server, name)
                         .build())
+                .withParam(GqlParams.StringParam.msg, "argument error")
                 .build();
         return new InvalidArgumentsException(gql, msg, cause);
     }

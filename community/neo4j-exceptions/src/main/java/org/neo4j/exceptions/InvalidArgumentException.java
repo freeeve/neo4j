@@ -959,11 +959,12 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(
                                 GqlParams.ListParam.serverList, servers.stream().toList())
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
 
         String serversString = servers.stream().collect(Collectors.joining(",", "'", "'"));
         var operation = "Could not deallocate server(s) " + serversString + ".";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotDropServer(String server, boolean withCauseMessage, Throwable e) {
@@ -971,9 +972,10 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N44)
                         .withParam(GqlParams.StringParam.server, server)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not drop server '" + server + "'.";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotCordonServer(String server, boolean withCauseMessage, Throwable e) {
@@ -981,9 +983,10 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N45)
                         .withParam(GqlParams.StringParam.server, server)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not cordon server '" + server + "'.";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotAlterServer(String server, boolean withCauseMessage, Throwable e) {
@@ -991,9 +994,10 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N46)
                         .withParam(GqlParams.StringParam.server, server)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not alter server '" + server + "'.";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotRenameServer(String server, boolean withCauseMessage, Throwable e) {
@@ -1001,9 +1005,10 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N47)
                         .withParam(GqlParams.StringParam.server, server)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not rename server '" + server + "'.";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotEnableServer(String server, boolean withCauseMessage, Throwable e) {
@@ -1011,9 +1016,10 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N48)
                         .withParam(GqlParams.StringParam.server, server)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not enable server '" + server + "'.";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotAlterDatabase(
@@ -1022,9 +1028,10 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N49)
                         .withParam(GqlParams.StringParam.db, databaseName)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not alter database '" + databaseName + "'.";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotRecreateDatabase(
@@ -1033,9 +1040,10 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N50)
                         .withParam(GqlParams.StringParam.db, databaseName)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not recreate database '" + databaseName + "'.";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotCreateDatabase(
@@ -1044,26 +1052,20 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N51)
                         .withParam(GqlParams.StringParam.db, databaseName)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not create database '" + databaseName + "'.";
-        return createException(gql, operation, withCauseMessage, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException cannotReallocate(boolean withCauseMessage, Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N54)
                         .build())
+                .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
         var operation = "Could not calculate reallocation for databases.";
-        return createException(gql, operation, withCauseMessage, e);
-    }
-
-    private static InvalidArgumentException createException(
-            ErrorGqlStatusObject gql, String operation, boolean withCauseMessage, Throwable e) {
-        if (withCauseMessage) {
-            return new InvalidArgumentException(gql, operation + " " + e.getMessage());
-        }
-        return new InvalidArgumentException(gql, operation, e);
+        return createTopologyException(gql, operation, withCauseMessage, e);
     }
 
     public static InvalidArgumentException entityShouldBeNodeOrRel(String entity, String resolvedEntity) {
@@ -1236,5 +1238,19 @@ public class InvalidArgumentException extends Neo4jException {
                 .withParam(GqlParams.ListParam.inputList, expected)
                 .build();
         return new InvalidArgumentException(gql, legacyMessage);
+    }
+
+    private static String topologyDetailMessage(boolean withCauseMessage, Throwable e) {
+        return withCauseMessage && e.getMessage() != null && !e.getMessage().isBlank()
+                ? e.getMessage()
+                : "Internal error";
+    }
+
+    private static InvalidArgumentException createTopologyException(
+            ErrorGqlStatusObject gql, String operation, boolean withCauseMessage, Throwable e) {
+        if (withCauseMessage && e.getMessage() != null && !e.getMessage().isBlank()) {
+            return new InvalidArgumentException(gql, operation + " " + e.getMessage());
+        }
+        return new InvalidArgumentException(gql, operation, e);
     }
 }

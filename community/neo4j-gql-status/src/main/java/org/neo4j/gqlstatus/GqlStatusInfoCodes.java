@@ -4225,8 +4225,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N41(
             new GqlStatus("51N41"),
-            "Server or database admin operation not possible.",
-            new GqlParams.GqlParam[] {},
+            "Server or database admin operation not possible. Reason: { %s }",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "admin operation failed",
