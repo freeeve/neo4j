@@ -1550,7 +1550,26 @@ case class ShardDefinition(
         SemanticCheck.success
       }
 
-    topologyCheck(graphShardTopology, command, position) chain
+    def featureCheckSpd: SemanticCheck = {
+      if (graphShardTopology.nonEmpty) {
+        requireFeatureSupport(
+          s"The `GRAPH SHARD` clause",
+          SemanticFeature.ShardedPropertyDatabase,
+          position
+        )
+      } else if (propertyShardCount > 0 || propertyShardReplicaCount.nonEmpty) {
+        requireFeatureSupport(
+          s"The `PROPERTY SHARD` clause",
+          SemanticFeature.ShardedPropertyDatabase,
+          position
+        )
+      } else {
+        SemanticCheck.success
+      }
+    }
+
+    featureCheckSpd chain
+      topologyCheck(graphShardTopology, command, position) chain
       numShardsInRange(propertyShardCount) chain
       numReplicasGreaterThanZero(propertyShardReplicaCount)
   }
