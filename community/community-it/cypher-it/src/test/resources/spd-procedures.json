@@ -335,7 +335,7 @@
       "deprecated": true
     },
     "enterpriseOnly": true,
-    "cypherVersionScope": [5]
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.cluster.uncordonServer",

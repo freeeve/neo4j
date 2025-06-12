@@ -2489,7 +2489,7 @@
       "deprecated": true
     },
     "enterpriseOnly": false,
-    "cypherVersionScope": [5]
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": true,
