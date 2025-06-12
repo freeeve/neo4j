@@ -29,10 +29,17 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 public class BackupMetadataV2 extends BackupMetadataV1 {
 
     public static final String METADATA_SCRIPT_FIELD = "metadataScript";
+    public static final String TOPOLOGY_VERSION_FIELD = "topology_version";
+    public static final String VIRTUAL_NAME_FIELD = "virtual_name";
+    public static final String VIRTUAL_ID_FIELD = "virtual_id";
+    public static final String INDEX_FIELD = "shard_index";
+    public static final String SHARD_COUNT_FIELD = "shard_count";
     public static final int METADATA_SCRIPT_MAX_LENGTH = 1048576; // 1Mb
     public static final int VERSION = 2;
 
@@ -50,7 +57,17 @@ public class BackupMetadataV2 extends BackupMetadataV1 {
         if (metadataScript != null) {
             additionalFields.put(METADATA_SCRIPT_FIELD, metadataScript);
         }
+        description.getTopology().ifPresent(t -> writeTopology(t, additionalFields));
+
         return new BackupMetadataV2(backupMetadataV1, additionalFields);
+    }
+
+    private static void writeTopology(BackupDescription.Topology topology, HashMap<String, String> additionalFields) {
+        additionalFields.put(TOPOLOGY_VERSION_FIELD, "1");
+        additionalFields.put(VIRTUAL_NAME_FIELD, topology.virtualName());
+        additionalFields.put(VIRTUAL_ID_FIELD, topology.virtualId().toString());
+        additionalFields.put(SHARD_COUNT_FIELD, String.valueOf(topology.shardCount()));
+        topology.index().ifPresent(index -> additionalFields.put(INDEX_FIELD, String.valueOf(index)));
     }
 
     static BackupMetadataV2 readMetadataV2(InputStream inputStream) throws IOException {
@@ -128,7 +145,22 @@ public class BackupMetadataV2 extends BackupMetadataV1 {
     @Override
     public BackupDescription toBackupDescription() {
         var metadataScript = additionalFields.get(METADATA_SCRIPT_FIELD);
+        var topology = additionalFields.get(TOPOLOGY_VERSION_FIELD);
+        if (topology != null && topology.equals("1")) {
+            var toplogyObject = readV1topology();
+            return super.toBackupDescription()
+                    .withMetadataScript(metadataScript)
+                    .withTopology(toplogyObject);
+        }
         return super.toBackupDescription().withMetadataScript(metadataScript);
+    }
+
+    private BackupDescription.Topology readV1topology() {
+        var virtualName = additionalFields.get(VIRTUAL_NAME_FIELD);
+        var virtualId = UUID.fromString(additionalFields.get(VIRTUAL_ID_FIELD));
+        var shardCount = Integer.parseInt(additionalFields.get(SHARD_COUNT_FIELD));
+        var shardIndex = Optional.ofNullable(additionalFields.get(INDEX_FIELD)).map(Integer::parseInt);
+        return new BackupDescription.Topology(virtualName, virtualId, shardCount, shardIndex);
     }
 
     @Override

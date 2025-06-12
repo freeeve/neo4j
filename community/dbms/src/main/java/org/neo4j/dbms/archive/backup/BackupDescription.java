@@ -22,6 +22,8 @@ package org.neo4j.dbms.archive.backup;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import org.neo4j.kernel.database.DatabaseId;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.storageengine.api.StoreId;
@@ -37,6 +39,9 @@ public class BackupDescription implements Comparable<BackupDescription> {
     private final long lowestAppendIndex;
     private final long highestAppendIndex;
     private final String metadataScript;
+    private final Topology topology;
+
+    public record Topology(String virtualName, UUID virtualId, int shardCount, Optional<Integer> index) {}
 
     public BackupDescription(
             String databaseName,
@@ -58,6 +63,7 @@ public class BackupDescription implements Comparable<BackupDescription> {
                 full,
                 lowestAppendIndex,
                 highestAppendIndex,
+                null,
                 null);
     }
 
@@ -71,7 +77,8 @@ public class BackupDescription implements Comparable<BackupDescription> {
             boolean full,
             long lowestAppendIndex,
             long highestAppendIndex,
-            String metadataScript) {
+            String metadataScript,
+            Topology topology) {
         this.databaseName = NormalizedDatabaseName.normalize(databaseName);
         this.storeId = storeId;
         this.databaseId = databaseId;
@@ -82,6 +89,7 @@ public class BackupDescription implements Comparable<BackupDescription> {
         this.lowestAppendIndex = lowestAppendIndex;
         this.highestAppendIndex = highestAppendIndex;
         this.metadataScript = metadataScript;
+        this.topology = topology;
     }
 
     public BackupDescription withMetadataScript(String metadataScript) {
@@ -95,7 +103,23 @@ public class BackupDescription implements Comparable<BackupDescription> {
                 full,
                 lowestAppendIndex,
                 highestAppendIndex,
-                metadataScript);
+                metadataScript,
+                topology);
+    }
+
+    public BackupDescription withTopology(Topology topology) {
+        return new BackupDescription(
+                databaseName,
+                storeId,
+                databaseId,
+                backupTime,
+                recovered,
+                compressed,
+                full,
+                lowestAppendIndex,
+                highestAppendIndex,
+                metadataScript,
+                topology);
     }
 
     public String getDatabaseName() {
@@ -138,6 +162,10 @@ public class BackupDescription implements Comparable<BackupDescription> {
         return metadataScript;
     }
 
+    public Optional<Topology> getTopology() {
+        return Optional.ofNullable(topology);
+    }
+
     public boolean isEmpty() {
         return lowestAppendIndex == 0 && highestAppendIndex == 0;
     }
@@ -160,7 +188,8 @@ public class BackupDescription implements Comparable<BackupDescription> {
                 && Objects.equals(storeId, that.storeId)
                 && Objects.equals(databaseId, that.databaseId)
                 && Objects.equals(backupTime, that.backupTime)
-                && Objects.equals(metadataScript, that.metadataScript);
+                && Objects.equals(metadataScript, that.metadataScript)
+                && Objects.equals(topology, that.topology);
     }
 
     @Override
@@ -175,7 +204,8 @@ public class BackupDescription implements Comparable<BackupDescription> {
                 full,
                 lowestAppendIndex,
                 highestAppendIndex,
-                metadataScript);
+                metadataScript,
+                topology);
     }
 
     @Override
@@ -190,7 +220,8 @@ public class BackupDescription implements Comparable<BackupDescription> {
                 + full + ", lowestAppendIndex="
                 + lowestAppendIndex + ", highestAppendIndex="
                 + highestAppendIndex + ", metadataScript='"
-                + metadataScript + '\'' + '}';
+                + metadataScript + '\'' + ", topology='"
+                + topology + '\'' + '}';
     }
 
     @Override
