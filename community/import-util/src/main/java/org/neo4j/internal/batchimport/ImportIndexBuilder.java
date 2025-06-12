@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport;
 
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.index_population_batch_max_byte_size;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.index_populator_block_size;
 import static org.neo4j.internal.batchimport.IncrementalBatchImportUtil.moveIndex;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
@@ -83,6 +84,8 @@ import org.neo4j.values.storable.Value;
  * generating index updates while doing so) add its share of updates to the index populators.
  */
 public class ImportIndexBuilder implements Closeable {
+    static final int BATCH_SIZE = 2_000;
+
     private final FileSystemAbstraction fileSystem;
     private final IndexProviderMap indexProviderMap;
     private final IndexProviderMap tempIndexes;
@@ -99,6 +102,7 @@ public class ImportIndexBuilder implements Closeable {
     private final StorageEngineIndexingBehaviour indexingBehaviour;
     private final Predicate<IndexDescriptor> excludedIndexes;
     private final IndexSamplingConfig indexSamplingConfig;
+    private final long maxBatchByteSize;
 
     public ImportIndexBuilder(
             FileSystemAbstraction fileSystem,
@@ -112,7 +116,8 @@ public class ImportIndexBuilder implements Closeable {
             Configuration configuration,
             IndexStatisticsStore indexStatisticsStore,
             StorageEngineIndexingBehaviour indexingBehaviour,
-            Predicate<IndexDescriptor> excludedIndexes) {
+            Predicate<IndexDescriptor> excludedIndexes,
+            Config config) {
         this.fileSystem = fileSystem;
         this.indexProviderMap = indexProviderMap;
         this.tempIndexes = tempIndexes;
@@ -127,7 +132,8 @@ public class ImportIndexBuilder implements Closeable {
         this.excludedIndexes = excludedIndexes;
         this.bufferFactory = new ByteBufferFactory(
                 UnsafeDirectByteBufferAllocator::new,
-                Config.defaults().get(index_populator_block_size).intValue());
+                config.get(index_populator_block_size).intValue());
+        this.maxBatchByteSize = config.get(index_population_batch_max_byte_size);
         this.indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
     }
 
@@ -166,7 +172,7 @@ public class ImportIndexBuilder implements Closeable {
                 if (builder == null) {
                     var populator = constructIndexPopulator(index);
                     var accessor = constructIndexAccessor(index);
-                    builder = new IndexBuilder(populator, accessor);
+                    builder = new IndexBuilder(populator, accessor, maxBatchByteSize);
                     indexBuilders.put(index, builder);
                 }
             } finally {
@@ -308,7 +314,8 @@ public class ImportIndexBuilder implements Closeable {
                     builder.close();
                     moveIndex(fileSystem, tempIndexes, indexProviderMap, descriptor);
                     // Re-open the index so that it may accept removals or other updates afterward
-                    indexBuilders.put(descriptor, new IndexBuilder(null, constructIndexAccessor(descriptor)));
+                    indexBuilders.put(
+                            descriptor, new IndexBuilder(null, constructIndexAccessor(descriptor), maxBatchByteSize));
                 } else {
                     try (var builtIncrementIndex = tempIndexes
                             .lookup(descriptor.getIndexProvider())
@@ -423,10 +430,10 @@ public class ImportIndexBuilder implements Closeable {
         private final ThreadLocal<IndexUpdatesBatch> changes;
         private final IndexAccessor accessor;
 
-        IndexBuilder(IndexPopulator populator, IndexAccessor accessor) {
+        IndexBuilder(IndexPopulator populator, IndexAccessor accessor, long maxByteSize) {
             this.populator = populator;
             this.changes = ThreadLocal.withInitial(() -> {
-                var indexUpdatesBatch = new IndexUpdatesBatch(populator, accessor);
+                var indexUpdatesBatch = new IndexUpdatesBatch(populator, accessor, maxByteSize);
                 allChanges.add(indexUpdatesBatch);
                 return indexUpdatesBatch;
             });
@@ -464,30 +471,41 @@ public class ImportIndexBuilder implements Closeable {
     }
 
     private static class IndexUpdatesBatch {
-        private static final int BATCH_SIZE = 2_000;
-
         private final List<IndexEntryUpdate> changes = new ArrayList<>();
         private List<IndexEntryUpdate> additions = new ArrayList<>(BATCH_SIZE);
         private final IndexPopulator populator;
         private final IndexAccessor accessor;
+        private final long maxByteSize;
+        private long additionsByteSize;
+        private long changesByteSize;
 
-        IndexUpdatesBatch(IndexPopulator populator, IndexAccessor accessor) {
+        IndexUpdatesBatch(IndexPopulator populator, IndexAccessor accessor, long maxByteSize) {
             this.populator = populator;
             this.accessor = accessor;
+            this.maxByteSize = maxByteSize;
         }
 
         void add(IndexEntryUpdate indexUpdate) {
             if (indexUpdate.updateMode() == UpdateMode.ADDED) {
+                additionsByteSize += indexUpdate.roughSizeOfUpdate();
                 additions.add(indexUpdate);
                 populator.includeSample(indexUpdate);
                 if (additions.size() == BATCH_SIZE) {
                     flushAdditions();
                 }
             } else {
+                changesByteSize += indexUpdate.roughSizeOfUpdate();
                 changes.add(indexUpdate);
                 if (changes.size() == BATCH_SIZE) {
                     flushChanges();
                 }
+            }
+
+            if (additionsByteSize + changesByteSize >= maxByteSize) {
+                // Typically for small or "normally" sized values this won't trigger, but for large values
+                // it's good to have a fail-safe so that not too much memory is spent on holding onto these
+                // large values.
+                flush();
             }
         }
 
@@ -503,6 +521,7 @@ public class ImportIndexBuilder implements Closeable {
                 if (!additions.isEmpty()) {
                     populator.add(additions, NULL_CONTEXT);
                     additions = new ArrayList<>(BATCH_SIZE);
+                    additionsByteSize = 0;
                     return true;
                 }
                 return false;
@@ -521,6 +540,7 @@ public class ImportIndexBuilder implements Closeable {
                     updater.process(change);
                 }
                 changes.clear();
+                changesByteSize = 0;
                 return true;
             } catch (IndexEntryConflictException e) {
                 throw new RuntimeException(e);

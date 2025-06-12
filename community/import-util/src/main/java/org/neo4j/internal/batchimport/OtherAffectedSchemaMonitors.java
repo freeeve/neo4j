@@ -43,6 +43,7 @@ import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaCache;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
@@ -99,7 +100,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             IndexStatisticsStore indexStatisticsStore,
             StorageEngineIndexingBehaviour indexingBehaviour,
             boolean generateNonUniqueIndexUpdates,
-            Predicate<IndexDescriptor> excludedIndexes) {
+            Predicate<IndexDescriptor> excludedIndexes,
+            Config config) {
         this.schemaCache = schemaCache;
         this.entityType = entityType;
         this.indexedEntityIdConverter = indexedEntityIdConverter;
@@ -118,7 +120,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                 configuration,
                 indexStatisticsStore,
                 indexingBehaviour,
-                excludedIndexes);
+                excludedIndexes,
+                config);
     }
 
     /**
