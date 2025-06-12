@@ -80,6 +80,27 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
     result should beColumns("prop1", "prop2").withRows(Seq(Array(10, 11), Array(20, 21)))
   }
 
+  test("should return two node properties columns - on tiny graph with many properties") {
+    givenGraph {
+      val n1 = tx.createNode()
+      val n2 = tx.createNode()
+      for (i <- 1 to 1000) {
+        n1.setProperty(s"prop$i", s"n1:$i")
+        n2.setProperty(s"prop$i", s"n2:$i")
+      }
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("prop1", "prop1000")
+      .projection("cache[x.prop1] as prop1", "cache[x.prop1000] as prop1000")
+      .remoteBatchProperties("cache[x.prop1]", "cache[x.prop1000]")
+      .allNodeScan("x")
+      .build()
+
+    val result = execute(query, runtime)
+    result should beColumns("prop1", "prop1000").withRows(Seq(Array("n1:1", "n1:1000"), Array("n2:1", "n2:1000")))
+  }
+
   test("should return two node property columns with one null value - on tiny graph") {
     givenGraph {
       val n1 = tx.createNode()
