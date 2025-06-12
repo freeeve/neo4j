@@ -167,7 +167,7 @@ case class ShowAliasesExecutionPlanner(
         ))
       case c: DatabaseReferenceImpl.Composite => c.constituents().asScala.flatMap(referencesToAlias)
       case a: DatabaseReferenceImpl.Internal if !a.isPrimary =>
-        val primary = referenceResolver.getByAlias(a.databaseId().name()).toScala.collect {
+        val primary = referenceResolver.getByAlias(a.namedDatabaseId().name()).toScala.collect {
           case ref if sc.databaseAccessMode().canSeeDatabase(ref) => ref.alias().name()
         }
         Seq(Alias(a.alias().name(), a.namespace().toScala.map(_.name()).getOrElse(DEFAULT_NAMESPACE), primary, LOCAL))

@@ -240,6 +240,12 @@ class DatabaseListParameterTransformerFunction(
       matching.headOption
     }
 
+    def primaryByNamedDatabaseId(namedDatabaseId: NamedDatabaseId): Option[DatabaseReference] = {
+      val matching = databaseReferences.filter(_.isPrimary).filter(_.namedDatabaseId() == namedDatabaseId)
+      assertAtMostOne(matching)
+      matching.headOption
+    }
+
     val filteredReferences: Set[DatabaseReference] = context.runtimeContext.cypherVersion match {
       case CypherVersion.Cypher5 =>
         // Cypher 5: find reference by namespace/name split
@@ -249,7 +255,7 @@ class DatabaseListParameterTransformerFunction(
               case ref if ref.isPrimary && ref.alias().equals(name) => Set(ref)
               // alias
               case ref: DatabaseReferenceImpl.Internal if ref.alias().equals(name) =>
-                primaryById(ref.id())
+                primaryByNamedDatabaseId(ref.namedDatabaseId())
             }.flatten
           case Some(namespace) => databaseReferences.collect {
               // composite constituent
@@ -271,7 +277,7 @@ class DatabaseListParameterTransformerFunction(
               .flatMap(dr => primaryById(dr.id()))
           // alias
           case ref: DatabaseReferenceImpl.Internal if ref.fullName().name().equals(displayName(namespace, name)) =>
-            primaryById(ref.id())
+            primaryByNamedDatabaseId(ref.namedDatabaseId())
         }.flatten
     }
 
