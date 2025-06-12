@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.frontend.helpers.ShortestSyntax
 import org.neo4j.cypher.internal.util.InputPosition
@@ -43,15 +44,19 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
   // A path pattern with a selective selector may not have path patterns beside it in the same graph pattern.
   allSelectiveSelectors.foreach { selectiveSelector =>
     allSelectors.foreach { otherSelector =>
+      val errorMsg5 =
+        "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
+      val errorMsg25 = errorMsg5 +
+        " You may want to use multiple MATCH clauses, or you might want to consider using the REPEATABLE ELEMENTS match mode."
+
       test(
         s"""MATCH
            |   p1 = $selectiveSelector (a)-->*(b)-->(c),
            |   p2 = $otherSelector (x)-->*(y)-->(z)
            |RETURN count(*)""".stripMargin
       ) {
-        run().hasErrorMessages(
-          "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
-        )
+        run(disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(errorMsg5)
+        run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrorMessages(errorMsg25)
       }
       test(
         s"""MATCH
@@ -59,9 +64,8 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
            |   p1 = $selectiveSelector (a)-->*(b)-->(c)
            |RETURN count(*)""".stripMargin
       ) {
-        run().hasErrorMessages(
-          "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
-        )
+        run(disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(errorMsg5)
+        run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasErrorMessages(errorMsg25)
       }
     }
   }

@@ -890,21 +890,17 @@ case class Match(
 
   def checkMatchMode(state: SemanticState, cypherVersion: CypherVersion): Seq[SemanticError] = {
     val scopeLocation = state.recordedScopes.getOrElse(this, state.currentScope)
-    val features = state.features
-    (matchMode, features, cypherVersion) match {
-      case (mode: DifferentRelationships, _, _) if mode.implicitlyCreated =>
-        // Implicitly created match modes are always allowed
-        checkDifferentRelationships(features)
-      case (_, _, CypherVersion.Cypher5) =>
+
+    (matchMode, cypherVersion) match {
+      case (mode: DifferentRelationships, CypherVersion.Cypher5) if mode.implicitlyCreated =>
+        checkDifferentRelationshipsSelectivePathPatternCount(false)
+      case (_, CypherVersion.Cypher5) =>
         // explicit match mode but Cypher 5
         Seq(SemanticError.matchModesNotSupportedInCypher5(matchMode.prettified, matchMode.position))
-      case (_, features, _) if !features.contains(SemanticFeature.MatchModes) =>
-        // explicit match mode but no feature flag enabled
-        Seq(SemanticError.matchModesNotSupported(matchMode.prettified, matchMode.position))
-      case (_: RepeatableElements, _, _) =>
+      case (_: RepeatableElements, _) =>
         checkRepeatableElements(scopeLocation)
-      case (_: DifferentRelationships, _, _) =>
-        checkDifferentRelationships(features)
+      case (_: DifferentRelationships, _) =>
+        checkDifferentRelationshipsSelectivePathPatternCount(true)
     }
   }
 
@@ -1047,15 +1043,13 @@ case class Match(
    * Therefore, once there is at least one path pattern with a selective selector, then we need to make sure
    * that there is no other path pattern beside it.
    */
-  private def checkDifferentRelationships(features: Set[SemanticFeature]): Seq[SemanticError] = {
+  private def checkDifferentRelationshipsSelectivePathPatternCount(explicitMatchModesSupported: Boolean)
+    : Seq[SemanticError] = {
     if (pattern.patternParts.size > 1) {
       pattern.patternParts
         .find(_.isSelective)
         .map(selectivePattern =>
-          SemanticError.invalidUseOfMultiplePathPatterns(
-            features.contains(SemanticFeature.MatchModes),
-            selectivePattern.position
-          )
+          SemanticError.invalidUseOfMultiplePathPatterns(selectivePattern.position, explicitMatchModesSupported)
         )
         .toSeq
     } else {

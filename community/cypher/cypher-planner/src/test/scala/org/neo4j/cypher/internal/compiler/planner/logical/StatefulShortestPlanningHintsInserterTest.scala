@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathAll
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathInto
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
@@ -37,10 +36,6 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class StatefulShortestPlanningHintsInserterTest extends CypherFunSuite with LogicalPlanningTestSupport
     with AstConstructionTestSupport {
-
-  override val semanticFeatures: List[SemanticFeature] = List(
-    SemanticFeature.MatchModes
-  )
 
   private def buildSinglePlannerQueryAndRewrite(
     query: String,

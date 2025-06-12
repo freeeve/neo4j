@@ -25,7 +25,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPla
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -67,7 +66,6 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
     .setRelationshipCardinality("(:User)-[]->()", 10)
     // This makes it deterministic which plans ends up on what side of a CartesianProduct.
     .setExecutionModel(Volcano)
-    .addSemanticFeature(MatchModes)
 
   private val planner = plannerBase
     // For the rewrite to trigger, we need an INTO plan

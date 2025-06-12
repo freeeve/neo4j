@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.Equals
@@ -521,7 +520,6 @@ class VarLengthPlanningIntegrationTest
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[]->()", 10000)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -541,7 +539,6 @@ class VarLengthPlanningIntegrationTest
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[]->()", 10000)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -561,7 +558,6 @@ class VarLengthPlanningIntegrationTest
       val planner = plannerBuilder()
         .setAllNodesCardinality(1000)
         .setRelationshipCardinality("()-[]->()", 10000)
-        .addSemanticFeature(MatchModes)
         .build()
 
       planner.plan(
@@ -582,7 +578,6 @@ class VarLengthPlanningIntegrationTest
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[]->()", 10000)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -603,7 +598,6 @@ class VarLengthPlanningIntegrationTest
       val planner = plannerBuilder()
         .setAllNodesCardinality(1000)
         .setRelationshipCardinality("()-[]->()", 10000)
-        .addSemanticFeature(MatchModes)
         .build()
 
       planner.plan(
@@ -624,7 +618,6 @@ class VarLengthPlanningIntegrationTest
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[]->()", 10000)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -654,7 +647,6 @@ class VarLengthPlanningIntegrationTest
       .setRelationshipCardinality("(:C)-[:R]->()", 102)
       .setRelationshipCardinality("(:A)-[:R]->(:B)", 3)
       .setRelationshipCardinality("(:A)-[:R]->(:C)", 10)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -691,7 +683,6 @@ class VarLengthPlanningIntegrationTest
       .setRelationshipCardinality("(:C)-[:R]->()", 102)
       .setRelationshipCardinality("(:A)-[:R]->(:B)", 3)
       .setRelationshipCardinality("(:A)-[:R]->(:C)", 10)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -729,7 +720,6 @@ class VarLengthPlanningIntegrationTest
       .setRelationshipCardinality("(:C)-[:R]->()", 102)
       .setRelationshipCardinality("(:A)-[:R]->(:B)", 3)
       .setRelationshipCardinality("(:A)-[:R]->(:C)", 10)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -767,7 +757,6 @@ class VarLengthPlanningIntegrationTest
       .setRelationshipCardinality("(:C)-[:R]->()", 102)
       .setRelationshipCardinality("(:A)-[:R]->(:B)", 3)
       .setRelationshipCardinality("(:A)-[:R]->(:C)", 10)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -795,7 +784,6 @@ class VarLengthPlanningIntegrationTest
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[]->()", 10000)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(

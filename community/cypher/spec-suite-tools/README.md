@@ -30,7 +30,7 @@ See classes in:
   expect failure in all configurations.
 - `@fails:parallel-runtime`, `@fails:cypher-5`, `@fails:db-format-multiversion`, ... -
   expected failure in specific configuration.
-- `@conf:key=value`, `@conf:internal.cypher.enable_extra_semantic_features=MatchModes`, ... -
+- `@conf:key=value`, `@conf:internal.cypher.enable_extra_semantic_features=VectorType`, ... -
   scenario needs extra configuration, like a feature flag.
 - `@ignore` -
   skip scenario in all configurations. Avoid if possible!

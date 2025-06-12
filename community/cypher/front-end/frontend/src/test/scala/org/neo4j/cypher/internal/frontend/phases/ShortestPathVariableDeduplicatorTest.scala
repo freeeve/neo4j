@@ -28,13 +28,11 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
     with RewritePhaseTest {
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = ShortestPathVariableDeduplicator
 
-  override def semanticFeatures: Seq[SemanticFeature] = Seq(SemanticFeature.MatchModes)
-
   override def preProcessPhase(features: SemanticFeature*): Transformer[BaseContext, BaseState, BaseState] =
     super.preProcessPhase(features: _*) andThen
       flattenBooleanOperators andThen
       // flattenBooleanOperators invalidates SemanticInformation
-      SemanticAnalysis(Some(false), semanticFeatures.head)
+      SemanticAnalysis(Some(false))
 
   test("should rewrite repeated interior nodes and leave exterior nodes") {
     assertRewritten(

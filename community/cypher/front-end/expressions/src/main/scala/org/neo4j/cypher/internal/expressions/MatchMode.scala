@@ -37,13 +37,11 @@ object MatchMode {
   }
 
   /**
-   * @param implicitlyCreated TODO This is tracked so that we in semantic analysis know if someone explicitly wrote
+   * @param implicitlyCreated  This is tracked so that we in semantic analysis know if someone explicitly wrote
    *                            "DIFFERENT RELATIONSHIPS" or if we added that implicitly. Adding it explicitly should
-   *                            for now fail, unless the semantic feature
-   *                            {@link org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes} has been
-   *                            explicitly turned on.
+   *                            fail for Cypher 5.
    *
-   *                          TODO This can be removed once "MatchModes" is enabled by default.
+   *                          TODO This can be removed once Cypher 5 has been dropped.
    */
   case class DifferentRelationships(implicitlyCreated: Boolean = false)(val position: InputPosition) extends MatchMode {
     override def prettified: String = if (implicitlyCreated) "" else "DIFFERENT RELATIONSHIPS"

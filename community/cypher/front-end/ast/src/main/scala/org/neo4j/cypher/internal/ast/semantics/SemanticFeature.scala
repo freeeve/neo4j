@@ -53,10 +53,6 @@ object SemanticFeature {
     override def name: String = "USE single graph selector"
   }
 
-  case object MatchModes extends SemanticFeature with FeatureToString {
-    override def name: String = "Match modes"
-  }
-
   case object ComposableCommands extends SemanticFeature with FeatureToString {
     override def name: String = "composable commands"
   }
@@ -102,7 +98,6 @@ object SemanticFeature {
     UseAsMultipleGraphsSelector,
     UseAsSingleGraphSelector,
     ShowSetting,
-    MatchModes,
     ComposableCommands,
     GraphTypes,
     ExperimentalCypherVersions,

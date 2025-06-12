@@ -29,8 +29,6 @@ class MoveBoundaryNodePredicatesTest extends CypherFunSuite
 
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] = MoveBoundaryNodePredicates
 
-  override def semanticFeatures: Seq[SemanticFeature] = Seq(SemanticFeature.MatchModes)
-
   override def preProcessPhase(features: SemanticFeature*): Transformer[BaseContext, BaseState, BaseState] =
     super.preProcessPhase(features: _*) andThen
       flattenBooleanOperators

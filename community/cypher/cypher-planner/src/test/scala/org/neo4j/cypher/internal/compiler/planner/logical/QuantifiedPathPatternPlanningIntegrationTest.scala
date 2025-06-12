@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
@@ -132,7 +131,6 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     .setRelationshipCardinality("()-[]->(:NNN)", 10)
     .setRelationshipCardinality("(:N)-[]->(:NNN)", 10)
     .setRelationshipCardinality("()-[:R]->(:N)", 0)
-    .addSemanticFeature(MatchModes)
 
   protected def planner: StatisticsBackedLogicalPlanningConfiguration = plannerBase
     .build()

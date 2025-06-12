@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.NilPathStep
@@ -998,7 +997,6 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[]->()", 10000)
       .setLabelCardinality("L", 100)
-      .addSemanticFeature(MatchModes)
       .build()
 
     planner.plan(
@@ -1019,7 +1017,6 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .setAllNodesCardinality(1000)
         .setRelationshipCardinality("()-[]->()", 10000)
         .setLabelCardinality("L", 100)
-        .addSemanticFeature(MatchModes)
         .build()
 
       planner.plan(

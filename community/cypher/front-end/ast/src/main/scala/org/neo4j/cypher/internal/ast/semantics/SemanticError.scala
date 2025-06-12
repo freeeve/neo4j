@@ -1069,12 +1069,11 @@ object SemanticError {
     SemanticError(gql, "Subquery expressions are not allowed in a MERGE clause.", position)
   }
 
-  def invalidUseOfMultiplePathPatterns(matchModeAvailable: Boolean, position: InputPosition): SemanticError = {
+  def invalidUseOfMultiplePathPatterns(position: InputPosition, explicitMatchModesSupported: Boolean): SemanticError = {
     val baseMessage =
       "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
 
-    // Let's only mention match modes when that is an available feature
-    val action = if (matchModeAvailable) {
+    val action = if (explicitMatchModesSupported) {
       " You may want to use multiple MATCH clauses, or you might want to consider using the REPEATABLE ELEMENTS match mode."
     } else {
       ""

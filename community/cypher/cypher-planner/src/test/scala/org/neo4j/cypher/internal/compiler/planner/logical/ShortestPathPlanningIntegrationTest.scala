@@ -26,7 +26,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPla
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
@@ -5021,7 +5020,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setRelationshipCardinality("()-[:R]->()", 500)
-      .addSemanticFeature(MatchModes)
       .build()
 
     val query =
@@ -5078,7 +5076,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setRelationshipCardinality("()-[:R]->()", 500)
-      .addSemanticFeature(MatchModes)
       .build()
 
     val query =
@@ -5142,7 +5139,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       .setRelationshipCardinality("()-[:LINK]->(:Station)", 5000)
       .setRelationshipCardinality("(:Station)-[:LINK]->()", 5000)
       .addNodeIndex("Station", Seq("name"), 0.1, 0.01)
-      .addSemanticFeature(MatchModes)
       .build()
 
     val query =
@@ -5193,7 +5189,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       .setRelationshipCardinality("()-[:S]->()", 400)
       .setRelationshipCardinality("()-[:S]->(:X)", 200)
       .setRelationshipCardinality("()-[:R]->()", 500)
-      .addSemanticFeature(MatchModes)
       .build()
 
     val query =
