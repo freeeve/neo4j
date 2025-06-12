@@ -101,7 +101,8 @@ import org.neo4j.string.UTF8
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.BooleanValue
 import org.neo4j.values.storable.ByteArray
-import org.neo4j.values.storable.IntValue
+import org.neo4j.values.storable.IntegralValue
+import org.neo4j.values.storable.LongValue
 import org.neo4j.values.storable.StringValue
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.storable.Value
@@ -827,14 +828,15 @@ object AdministrationCommandRuntime {
     upper: Int,
     component: String
   )(literalOrParam: Either[Int, Parameter]): Int = {
-    val value = runtimeIntValue(literalOrParam, params, component)
+    val value = runtimeIntegralValue(literalOrParam, params, component)
     if (value < lower || value > upper) {
       literalOrParam match {
         case Right(param) =>
           throw parameterOutOfNumericRangeException(
             param,
             component,
-            Values.intValue(value),
+            Values.longValue(value),
+            "Integer",
             lower = lower,
             upper = upper
           )
@@ -847,7 +849,7 @@ object AdministrationCommandRuntime {
           )
       }
     }
-    value
+    value.toInt // safe because upper is also an Int
   }
 
   private[internal] def runtimeStringValue(field: DatabaseName, params: MapValue): String = field match {
@@ -855,11 +857,15 @@ object AdministrationCommandRuntime {
     case ParameterName(p)  => runtimeStringValue(p.name, params, prettyPrint = false)
   }
 
-  private[internal] def runtimeIntValue(either: Either[Int, Parameter], params: MapValue, component: String): Int = {
+  private[internal] def runtimeIntegralValue(
+    either: Either[Int, Parameter],
+    params: MapValue,
+    component: String
+  ): Long = {
     either match {
       case Left(literal) => literal
       case Right(param) => params.get(param.name) match {
-          case i: IntValue => i.value()
+          case i: IntegralValue => i.longValue()
           case invalidType =>
             throw ParameterWrongTypeException.parameterWrongType(
               param.name,
@@ -874,7 +880,8 @@ object AdministrationCommandRuntime {
   private def parameterOutOfNumericRangeException(
     parameter: Parameter,
     component: String,
-    value: IntValue,
+    value: LongValue,
+    expectedType: String,
     lower: Int,
     upper: Int
   ): InvalidArgumentException = {
@@ -883,7 +890,7 @@ object AdministrationCommandRuntime {
       .withCause(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
           .withParam(GqlParams.StringParam.component, component)
-          .withParam(GqlParams.StringParam.valueType, value.getTypeName)
+          .withParam(GqlParams.StringParam.valueType, expectedType)
           .withParam(GqlParams.StringParam.lower, String.valueOf(lower))
           .withParam(GqlParams.StringParam.upper, String.valueOf(upper))
           .withParam(GqlParams.StringParam.value, String.valueOf(value.value()))
