@@ -25,6 +25,7 @@ import org.eclipse.collections.impl.factory.primitive.ByteObjectMaps;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.graphdb.config.Configuration;
+import org.neo4j.util.Preconditions;
 
 /**
  * One version scheme to unify various internal versions into one with the intent of conceptual simplification and simplification of version bumping.
@@ -169,5 +170,12 @@ public enum KernelVersion {
                     "No matching " + KernelVersion.class.getSimpleName() + " for version " + version);
         }
         return kernelVersion;
+    }
+
+    public static KernelVersion precedingVersion(KernelVersion kernelVersion) {
+        int index = VERSIONS.indexOf(kernelVersion);
+        Preconditions.checkArgument(index != -1, "Unknown kernel version " + kernelVersion);
+        Preconditions.checkArgument(index > 0, "There's no kernel version preceding " + kernelVersion);
+        return VERSIONS.get(index - 1);
     }
 }
