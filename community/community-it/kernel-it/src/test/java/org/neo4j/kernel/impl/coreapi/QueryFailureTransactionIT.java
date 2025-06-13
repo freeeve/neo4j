@@ -22,9 +22,12 @@ package org.neo4j.kernel.impl.coreapi;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.kernel.extension.ExtensionType.DATABASE;
 
+import java.util.Objects;
 import org.junit.jupiter.api.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.graphdb.Transaction;
@@ -114,6 +117,8 @@ class QueryFailureTransactionIT {
             GlobalProcedures procedures();
 
             Database database();
+
+            DatabaseManagementService dbms();
         }
 
         CustomProcedureExtension(Class<?> procedureClass) {
@@ -123,8 +128,11 @@ class QueryFailureTransactionIT {
 
         @Override
         public Lifecycle newInstance(ExtensionContext context, Dependencies dependencies) {
-            if (DEFAULT_DATABASE_NAME.equals(
-                    dependencies.database().getNamedDatabaseId().name())) {
+            if (!SYSTEM_DATABASE_NAME.equals(
+                            dependencies.database().getNamedDatabaseId().name())
+                    && Objects.equals(
+                            dependencies.database().getNamedDatabaseId().name(),
+                            dependencies.dbms().database(DEFAULT_DATABASE_NAME).databaseName())) {
                 return new LifecycleAdapter() {
                     @Override
                     public void start() throws Exception {
