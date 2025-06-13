@@ -634,7 +634,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_08N19(
             new GqlStatus("08N19"),
-            "Communication with shard { %s } failed. with message '{ %s }'.",
+            "Communication with shard { %s } failed with message '{ %s }'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -642,7 +642,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_08N20(
             new GqlStatus("08N20"),
-            "Communication with shard { %s } failed. with message '{ %s }'.",
+            "Communication with shard { %s } failed with message '{ %s }'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -650,7 +650,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_08N21(
             new GqlStatus("08N21"),
-            "Communication with shard { %s } failed. with message '{ %s }'.",
+            "Communication with shard { %s } failed with message '{ %s }'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
