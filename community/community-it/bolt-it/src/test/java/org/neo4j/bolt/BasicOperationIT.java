@@ -382,9 +382,9 @@ public class BasicOperationIT {
                         "error: general processing exception - index drop failed. Unable to drop 'my_index'.",
                         assertErrorClassificationOnDiagnosticRecord("DATABASE_ERROR"),
                         assertErrorCause(
-                                "22N69: The index specified by 'my_index' does not exist.",
+                                "22N69: The index 'my_index' does not exist.",
                                 GqlStatusInfoCodes.STATUS_22N69.getGqlStatus(),
-                                "error: data exception - index does not exist. The index specified by 'my_index' does not exist.",
+                                "error: data exception - index does not exist. The index 'my_index' does not exist.",
                                 assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")))
                 .receivesIgnored();
     }

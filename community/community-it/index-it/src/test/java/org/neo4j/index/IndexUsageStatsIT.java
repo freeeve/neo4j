@@ -216,8 +216,7 @@ class IndexUsageStatsIT {
         var e = assertThrows(IndexNotFoundKernelException.class, this::getIndexUsageStats);
         assertThat(e.gqlStatus()).isEqualTo("22N69");
         assertThat(e.statusDescription())
-                .isEqualTo(
-                        "error: data exception - index does not exist. The index specified by '$idxDescrOrName' does not exist.");
+                .isEqualTo("error: data exception - index does not exist. The index '$idxDescrOrName' does not exist.");
     }
 
     @Test

@@ -323,7 +323,7 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
         assertThat(e).hasMessageContaining("Index does not exist");
         assertThat(e.gqlStatus()).isEqualTo("22N69");
         assertThat(e.statusDescription())
-                .contains("error: data exception - index does not exist. The index specified by", "does not exist.");
+                .contains("error: data exception - index does not exist. The index ", "does not exist.");
     }
 
     private void checkIndexIsOnline(int labelId) throws IndexNotFoundKernelException {

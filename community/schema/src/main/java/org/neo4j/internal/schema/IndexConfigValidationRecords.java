@@ -164,6 +164,10 @@ public class IndexConfigValidationRecords {
         public Class<?> providedType() {
             return rawValue.getClass();
         }
+
+        public String providedTypeString() {
+            return rawValue.prettify();
+        }
     }
 
     public record InvalidValue(IndexSetting setting, AnyValue rawValue, Object value, Object valid)

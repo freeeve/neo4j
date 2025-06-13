@@ -113,7 +113,6 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
     }
 
     def assertConfigSettingsCorrectTypes(validationRecords: IndexConfigValidationRecords, itemsMap: MapValue): Unit = {
-      // note: in cypher 25 probably should refer to these as INTEGER and STRING respectively
       val validTypes: Map[Class[_], String] =
         Map(
           classOf[IntegralValue] -> "an Integer",
@@ -135,7 +134,7 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
           throw InvalidArgumentsException.invalidVectorIndexConfigSetting(
             schemaType,
             incorrectType.settingName,
-            String.valueOf(incorrectType.providedType),
+            String.valueOf(incorrectType.providedTypeString),
             validTypes(incorrectType.targetType),
             validCypherTypes(incorrectType.targetType())
           )

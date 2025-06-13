@@ -282,7 +282,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 "Could not create %s with specified index config '%s'. Expected %s.",
                 schemaType, settingName, validTypes);
         var gql = getGql22G03_22N27(
-                "type " + providedType, GqlParams.StringParam.cmd.process(settingName), List.of(validCypherTypes));
+                providedType, GqlParams.StringParam.cmd.process(settingName), List.of(validCypherTypes));
         return new InvalidArgumentsException(gql, oldMsg);
     }
 

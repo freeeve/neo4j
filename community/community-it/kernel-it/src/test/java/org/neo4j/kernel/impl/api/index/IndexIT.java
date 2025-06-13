@@ -286,8 +286,7 @@ class IndexIT extends KernelIntegrationTest {
         var gqlCause = e.cause().get();
         assertThat(gqlCause.gqlStatus()).isEqualTo("22N69");
         assertThat(gqlCause.statusDescription())
-                .isEqualTo(
-                        "error: data exception - index does not exist. The index specified by 'My fancy index' does not exist.");
+                .isEqualTo("error: data exception - index does not exist. The index 'My fancy index' does not exist.");
         assertThat(gqlCause.cause()).isNotPresent();
         rollback();
     }

@@ -137,9 +137,9 @@ object SemanticError {
     position: InputPosition
   ): SemanticError = {
     val gql = GqlHelper.getGql42001_22N04(
-      name,
-      "function name",
-      java.util.List.of(validFunction),
+      s"$name()",
+      s"function in $entityIndexDescription",
+      java.util.List.of(s"$validFunction()"),
       position.offset,
       position.line,
       position.column

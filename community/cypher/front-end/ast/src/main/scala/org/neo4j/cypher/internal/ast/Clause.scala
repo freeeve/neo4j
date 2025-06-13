@@ -2413,7 +2413,7 @@ case class CommandResultItem(originalName: String, aliasedVariable: LogicalVaria
       .getOrElse({
         SemanticCheck.error(SemanticError.yieldMissingColumn(
           originalName,
-          columns.keys.toList.asJavaCollection.stream().collect(Collectors.toList()),
+          columns.keys.toList.sorted.asJavaCollection.stream().collect(Collectors.toList()),
           position
         ))
       })

@@ -1519,7 +1519,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_22N69(
             new GqlStatus("22N69"),
-            "The index specified by { %s } does not exist.",
+            "The index { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1539,7 +1539,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "index with the same name already exists",
+            "duplicated index name",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N73(
             new GqlStatus("22N73"),
