@@ -65,6 +65,7 @@ import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.RandomValuesUtils;
 
 /**
@@ -99,7 +100,8 @@ public class FindEntityByTokenAndPropertyIT {
     @BeforeEach
     void cleanDb() {
         /* Not all storage engines support vector types. */
-        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(db)
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
         random.reset();
 
         // Clean reused db between every test
