@@ -45,6 +45,7 @@ import org.neo4j.kernel.internal.event.GlobalTransactionEventListeners;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.monitoring.DatabaseEventListeners;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.monitoring.ExceptionHandlerService;
 
 public class DatabaseManagementServiceImpl implements DatabaseManagementService {
     private final DatabaseContextProvider<?> databaseContextProvider;
@@ -53,6 +54,7 @@ public class DatabaseManagementServiceImpl implements DatabaseManagementService 
     private final GlobalTransactionEventListeners transactionEventListeners;
     private final InternalLog log;
     private final Config globalConfig;
+    private final ExceptionHandlerService exceptionHandlerService;
 
     public DatabaseManagementServiceImpl(
             DatabaseContextProvider<?> databaseContextProvider,
@@ -60,13 +62,15 @@ public class DatabaseManagementServiceImpl implements DatabaseManagementService 
             DatabaseEventListeners databaseEventListeners,
             GlobalTransactionEventListeners transactionEventListeners,
             InternalLog log,
-            Config globalConfig) {
+            Config globalConfig,
+            ExceptionHandlerService exceptionHandlerService) {
         this.databaseContextProvider = databaseContextProvider;
         this.globalLife = globalLife;
         this.databaseEventListeners = databaseEventListeners;
         this.transactionEventListeners = transactionEventListeners;
         this.log = log;
         this.globalConfig = globalConfig;
+        this.exceptionHandlerService = exceptionHandlerService;
     }
 
     @Override
@@ -153,6 +157,7 @@ public class DatabaseManagementServiceImpl implements DatabaseManagementService 
         } catch (Exception throwable) {
             String message = "Shutdown failed";
             log.error(message, throwable);
+            exceptionHandlerService.raiseException(message, throwable);
             throw new RuntimeException(message, throwable);
         }
     }

@@ -389,7 +389,11 @@ public class RelationshipEntity implements Relationship, RelationshipVisitor<Run
         } catch (TokenCapacityExceededKernelException e) {
             throw new ConstraintViolationException(e.getMessage(), e);
         } catch (KernelException e) {
-            throw mapStatusException("Unknown error trying to create property key token", e.status(), e);
+            throw mapStatusException(
+                    "Unknown error trying to create property key token",
+                    e.status(),
+                    e,
+                    internalTransaction.exceptionHandlerService());
         }
 
         try {

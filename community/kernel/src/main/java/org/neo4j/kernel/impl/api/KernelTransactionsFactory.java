@@ -50,6 +50,7 @@ import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -97,6 +98,7 @@ public interface KernelTransactionsFactory {
             TransactionIdGenerator transactionIdGenerator,
             DatabaseHealth databaseHealth,
             TransactionValidatorFactory transactionValidatorFactory,
+            ExceptionHandlerService exceptionHandlerService,
             LogProvider internalLogProvider,
             TopologyGraphDbmsModel.HostedOnMode mode,
             DatabaseMonitors databaseMonitors);

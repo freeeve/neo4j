@@ -98,6 +98,7 @@ import org.neo4j.memory.MemoryGroup;
 import org.neo4j.memory.MemoryPools;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.CommandCreationContext;
@@ -139,6 +140,7 @@ class KernelTransactionTestBase {
     protected final Pool<KernelTransactionImplementation> txPool = mock(Pool.class);
     protected final LockManager.Client locksClient = mock(LockManager.Client.class);
     protected final TransactionValidator transactionValidator = mock(TransactionValidator.class);
+    protected final ExceptionHandlerService exceptionHandlerService = mock(ExceptionHandlerService.class);
     protected CollectionsFactory collectionsFactory;
     protected AssertionRunnerTxExecutionMonitor transactionExecutionMonitor = new AssertionRunnerTxExecutionMonitor();
 
@@ -305,6 +307,7 @@ class KernelTransactionTestBase {
                 validatorFactory,
                 EMPTY_GUARD,
                 storageEngine.getOpenOptions().contains(MULTI_VERSIONED),
+                exceptionHandlerService,
                 TopologyGraphDbmsModel.HostedOnMode.SINGLE,
                 availabilityGuard);
     }

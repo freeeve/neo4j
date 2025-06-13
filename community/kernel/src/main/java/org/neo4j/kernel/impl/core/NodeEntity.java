@@ -156,7 +156,11 @@ public class NodeEntity extends AbstractNodeEntity implements RelationshipFactor
         } catch (TokenCapacityExceededKernelException e) {
             throw new ConstraintViolationException(e.getMessage(), e);
         } catch (KernelException e) {
-            throw mapStatusException("Unknown error trying to create property key token", e.status(), e);
+            throw mapStatusException(
+                    "Unknown error trying to create property key token",
+                    e.status(),
+                    e,
+                    internalTransaction.exceptionHandlerService());
         }
 
         try {
@@ -267,7 +271,11 @@ public class NodeEntity extends AbstractNodeEntity implements RelationshipFactor
         } catch (TokenCapacityExceededKernelException e) {
             throw new ConstraintViolationException(e.getMessage(), e);
         } catch (KernelException e) {
-            throw mapStatusException("Unknown error trying to create relationship type token", e.status(), e);
+            throw mapStatusException(
+                    "Unknown error trying to create relationship type token",
+                    e.status(),
+                    e,
+                    internalTransaction.exceptionHandlerService());
         }
 
         try {
@@ -294,7 +302,11 @@ public class NodeEntity extends AbstractNodeEntity implements RelationshipFactor
         } catch (TokenCapacityExceededKernelException e) {
             throw new ConstraintViolationException(e.getMessage(), e);
         } catch (KernelException e) {
-            throw mapStatusException("Unknown error trying to create label token", e.status(), e);
+            throw mapStatusException(
+                    "Unknown error trying to create label token",
+                    e.status(),
+                    e,
+                    internalTransaction.exceptionHandlerService());
         }
 
         try {

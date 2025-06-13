@@ -276,7 +276,8 @@ public class Database extends AbstractDatabase {
                 context.getScheduler(),
                 context.getDatabaseAvailabilityGuardFactory(),
                 context.getDatabaseHealthFactory(),
-                context.getClock());
+                context.getClock(),
+                context.getExceptionHandlerService());
         this.serverIdentity = context.getServerIdentity();
         this.databaseLayout = context.getDatabaseLayout();
         this.idGeneratorFactory = context.getIdGeneratorFactory();
@@ -494,7 +495,8 @@ public class Database extends AbstractDatabase {
                 versionStorage,
                 pagePrefetcher,
                 storeIdGenerator,
-                databaseDependencies);
+                databaseDependencies,
+                exceptionHandlerService);
 
         var metadataProvider = databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 
@@ -1074,6 +1076,7 @@ public class Database extends AbstractDatabase {
                 transactionIdGenerator,
                 databaseHealth,
                 transactionValidatorFactory,
+                exceptionHandlerService,
                 internalLogProvider,
                 mode,
                 databaseMonitors);

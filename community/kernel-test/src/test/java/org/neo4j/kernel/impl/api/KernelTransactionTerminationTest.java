@@ -85,6 +85,7 @@ import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryPools;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.enrichment.ApplyEnrichmentStrategy;
@@ -312,6 +313,7 @@ class KernelTransactionTerminationTest {
                     TransactionValidatorFactory.EMPTY_VALIDATOR_FACTORY,
                     EMPTY_GUARD,
                     false,
+                    mock(ExceptionHandlerService.class),
                     TopologyGraphDbmsModel.HostedOnMode.SINGLE,
                     mock(AvailabilityGuard.class));
 

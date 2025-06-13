@@ -50,6 +50,7 @@ import org.neo4j.logging.internal.DatabaseLogProvider;
 import org.neo4j.logging.internal.DatabaseLogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.scheduler.JobScheduler;
@@ -74,6 +75,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
     protected final DatabaseLogService databaseLogService;
     protected final DatabaseLogProvider internalLogProvider;
     protected final SystemNanoClock clock;
+    protected final ExceptionHandlerService exceptionHandlerService;
     protected final DatabaseLogProvider userLogProvider;
     protected final InternalLog internalLog;
     protected final JobScheduler scheduler;
@@ -95,7 +97,8 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
             JobScheduler scheduler,
             LongFunction<DatabaseAvailabilityGuard> databaseAvailabilityGuardFactory,
             Factory<DatabaseHealth> databaseHealthFactory,
-            SystemNanoClock clock) {
+            SystemNanoClock clock,
+            ExceptionHandlerService exceptionHandlerService) {
         this.globalDependencies = globalDependencies;
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
@@ -104,6 +107,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
         this.databaseLogService = databaseLogService;
         this.internalLogProvider = databaseLogService.getInternalLogProvider();
         this.clock = clock;
+        this.exceptionHandlerService = exceptionHandlerService;
         this.internalLog = internalLogProvider.getLog(getClass());
         this.userLogProvider = databaseLogService.getUserLogProvider();
         this.scheduler = scheduler;
@@ -251,6 +255,10 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
 
     public NamedDatabaseId getNamedDatabaseId() {
         return namedDatabaseId;
+    }
+
+    public ExceptionHandlerService getExceptionHandlerService() {
+        return exceptionHandlerService;
     }
 
     @VisibleForTesting

@@ -141,7 +141,8 @@ public class GraphDatabaseFacade extends GraphDatabaseTransactions implements Gr
                 database.getElementIdMapper(),
                 routingInfo,
                 bookmarks,
-                database.getInternalLogProvider());
+                database.getInternalLogProvider(),
+                database.getExceptionHandlerService());
     }
 
     @Override

@@ -43,6 +43,7 @@ import org.neo4j.kernel.impl.query.TransactionalContext;
 import org.neo4j.kernel.impl.query.TransactionalContextFactory;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.router.QueryRouterException;
 import org.neo4j.router.transaction.DatabaseTransaction;
 import org.neo4j.router.transaction.DatabaseTransactionFactory;
@@ -141,7 +142,8 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
         return internalTransaction;
     }
 
-    private RuntimeException transformTerminalOperationError(Exception e, Log log) {
+    private RuntimeException transformTerminalOperationError(
+            Exception e, Log log, ExceptionHandlerService exceptionHandlerService) {
         // The main purpose of this is mapping of checked exceptions
         // while preserving status codes
         if (e instanceof Status.HasStatus se) {
@@ -159,6 +161,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
         // GQL status code 25N02 points to the debug log for more information, so let's make sure people will actually
         // find more info there.
         log.error(e.getMessage(), e);
+        exceptionHandlerService.raiseException(e.getMessage(), e);
         throw TransactionFailureHelper.genericFailure(e);
     }
 

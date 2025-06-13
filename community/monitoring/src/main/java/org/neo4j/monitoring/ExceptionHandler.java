@@ -17,12 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.coreapi;
+package org.neo4j.monitoring;
 
-import org.neo4j.logging.Log;
-import org.neo4j.monitoring.ExceptionHandlerService;
-
+/**
+ * Callback for {@link ExceptionHandlerService}.
+ */
 @FunctionalInterface
-public interface TransactionExceptionMapper {
-    RuntimeException mapException(Exception e, Log log, ExceptionHandlerService exceptionHandlerService);
+public interface ExceptionHandler {
+    /**
+     * Called when an exception is raised. Since multiple exception might happen at the same time this
+     * method needs to handle concurrent calls. This might also be called from a time sensitive thread,
+     * so any blocking operations should be offloaded to a different thread.
+     *
+     * @param message additional message.
+     * @param exception the exception that occurred.
+     */
+    void onException(String message, Throwable exception);
 }

@@ -124,7 +124,8 @@ public class DefaultDatabaseContextFactory
                     globalModule.getDefaultCommandCommitListeners(),
                     TransactionsFactory.DEFAULT,
                     databaseMonitorsFactory(namedDatabaseId),
-                    StoreIdGenerator.UNIQUE_ID);
+                    StoreIdGenerator.UNIQUE_ID,
+                    globalModule.getExceptionHandlerService());
             kernelDatabase = new Database(creationContext);
             context = new StandaloneDatabaseContext(kernelDatabase);
         }

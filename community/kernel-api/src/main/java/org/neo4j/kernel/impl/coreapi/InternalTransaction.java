@@ -32,6 +32,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.ResourceMonitor;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.core.TransactionalEntityFactory;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.values.ElementIdMapper;
 
 public interface InternalTransaction extends Transaction, TransactionalEntityFactory, ResourceMonitor {
@@ -77,4 +78,6 @@ public interface InternalTransaction extends Transaction, TransactionalEntityFac
     ElementIdMapper elementIdMapper();
 
     void commit(KernelTransaction.Monitor monitor);
+
+    ExceptionHandlerService exceptionHandlerService();
 }

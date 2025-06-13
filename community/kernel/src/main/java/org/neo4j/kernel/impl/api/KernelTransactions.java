@@ -94,6 +94,7 @@ import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.memory.ScopedMemoryPool;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.TransactionId;
@@ -153,6 +154,7 @@ public class KernelTransactions extends LifecycleAdapter
     private final Config config;
     private final SchemaState schemaState;
     private final LeaseService leaseService;
+    private final ExceptionHandlerService exceptionHandlerService;
 
     /**
      * Used to enumerate all transactions in the system, active and idle ones.
@@ -226,6 +228,7 @@ public class KernelTransactions extends LifecycleAdapter
             TransactionIdGenerator transactionIdGenerator,
             DatabaseHealth databaseHealth,
             TransactionValidatorFactory transactionValidatorFactory,
+            ExceptionHandlerService exceptionHandlerService,
             LogProvider internalLogProvider,
             TopologyGraphDbmsModel.HostedOnMode mode,
             DatabaseMonitors databaseMonitors) {
@@ -255,6 +258,7 @@ public class KernelTransactions extends LifecycleAdapter
         this.transactionIdGenerator = transactionIdGenerator;
         this.databaseHealth = databaseHealth;
         this.transactionValidatorFactory = transactionValidatorFactory;
+        this.exceptionHandlerService = exceptionHandlerService;
         this.internalLogProvider = internalLogProvider;
         this.namedDatabaseId = namedDatabaseId;
         this.indexingService = indexingService;
@@ -630,6 +634,7 @@ public class KernelTransactions extends LifecycleAdapter
                             transactionValidatorFactory,
                             databaseSerialGuard,
                             multiVersioned,
+                            exceptionHandlerService,
                             mode,
                             databaseAvailabilityGuard);
             this.transactions.add(tx);
@@ -751,6 +756,7 @@ public class KernelTransactions extends LifecycleAdapter
                 TransactionValidatorFactory transactionValidatorFactory,
                 DatabaseSerialGuard databaseSerialGuard,
                 boolean multiVersioned,
+                ExceptionHandlerService exceptionHandlerService,
                 TopologyGraphDbmsModel.HostedOnMode mode,
                 AvailabilityGuard availabilityGuard);
     }

@@ -44,6 +44,7 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.values.ElementIdMapper;
 
 public class ProcedureTransactionImpl implements InternalTransaction {
@@ -66,6 +67,11 @@ public class ProcedureTransactionImpl implements InternalTransaction {
     @Override
     public void commit(KernelTransaction.Monitor monitor) {
         commit();
+    }
+
+    @Override
+    public ExceptionHandlerService exceptionHandlerService() {
+        return transaction.exceptionHandlerService();
     }
 
     @Override

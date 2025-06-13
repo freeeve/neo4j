@@ -136,6 +136,7 @@ import org.neo4j.memory.MemoryGroup;
 import org.neo4j.memory.MemoryPools;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.scheduler.JobScheduler;
@@ -875,6 +876,7 @@ class KernelTransactionsTest {
                 TransactionIdGenerator.EMPTY,
                 mock(DatabaseHealth.class),
                 EMPTY_VALIDATOR_FACTORY,
+                mock(ExceptionHandlerService.class),
                 NullLogProvider.getInstance(),
                 TopologyGraphDbmsModel.HostedOnMode.SINGLE,
                 new DatabaseMonitors(new Monitors(), DatabaseLogProvider.nullDatabaseLogProvider()));
@@ -1002,6 +1004,7 @@ class KernelTransactionsTest {
                     TransactionIdGenerator.EMPTY,
                     mock(DatabaseHealth.class),
                     EMPTY_VALIDATOR_FACTORY,
+                    mock(ExceptionHandlerService.class),
                     NullLogProvider.getInstance(),
                     TopologyGraphDbmsModel.HostedOnMode.SINGLE,
                     new DatabaseMonitors(new Monitors(), DatabaseLogProvider.nullDatabaseLogProvider()));

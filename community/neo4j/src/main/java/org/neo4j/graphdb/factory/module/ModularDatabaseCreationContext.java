@@ -79,6 +79,7 @@ import org.neo4j.logging.internal.DatabaseLogService;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.time.SystemNanoClock;
@@ -132,6 +133,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final CommandCommitListeners commandCommitListeners;
     private final TransactionsFactory transactionsFactory;
     private final PagePrefetcher pagePrefetcher;
+    private final ExceptionHandlerService exceptionHandlerService;
 
     public ModularDatabaseCreationContext(
             HostedOnMode mode,
@@ -162,7 +164,8 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             CommandCommitListeners commandCommitListeners,
             TransactionsFactory transactionsFactory,
             DatabaseMonitorsFactory databaseMonitorsFactory,
-            StoreIdGenerator storeIdGenerator) {
+            StoreIdGenerator storeIdGenerator,
+            ExceptionHandlerService exceptionHandlerService) {
         this.serverIdentity = serverIdentity;
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
@@ -177,6 +180,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.otherMemoryPool = globalModule.getOtherMemoryPool();
         this.databaseMonitorsFactory = databaseMonitorsFactory;
         this.storeIdGenerator = storeIdGenerator;
+        this.exceptionHandlerService = exceptionHandlerService;
         this.databaseLogService = new DatabaseLogService(namedDatabaseId, globalModule.getLogService());
         this.scheduler = globalModule.getJobScheduler();
         this.globalDependencies = globalDependencies;
@@ -445,6 +449,11 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     @Override
     public StoreIdGenerator storeIdGenerator() {
         return storeIdGenerator;
+    }
+
+    @Override
+    public ExceptionHandlerService getExceptionHandlerService() {
+        return exceptionHandlerService;
     }
 
     @Override

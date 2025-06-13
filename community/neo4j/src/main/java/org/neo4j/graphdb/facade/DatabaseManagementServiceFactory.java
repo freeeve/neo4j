@@ -248,7 +248,8 @@ public class DatabaseManagementServiceFactory {
                 globalModule.getDatabaseEventListeners(),
                 globalModule.getTransactionEventListeners(),
                 internalLog,
-                globalModule.getGlobalConfig());
+                globalModule.getGlobalConfig(),
+                globalModule.getExceptionHandlerService());
     }
 
     private Lifecycle createWebServer(

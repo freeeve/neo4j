@@ -64,6 +64,7 @@ import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.impl.coreapi.internal.CursorIterator;
 import org.neo4j.kernel.impl.coreapi.schema.SchemaImpl;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.values.ElementIdMapper;
 
 public class ExecutionContextProcedureTransaction extends DataLookup implements InternalTransaction {
@@ -366,6 +367,11 @@ public class ExecutionContextProcedureTransaction extends DataLookup implements 
     @Override
     public void commit(KernelTransaction.Monitor monitor) {
         commit();
+    }
+
+    @Override
+    public ExceptionHandlerService exceptionHandlerService() {
+        return ktx.exceptionHandlerService();
     }
 
     @Override

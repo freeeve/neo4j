@@ -134,6 +134,7 @@ import org.neo4j.logging.internal.SimpleLogService;
 import org.neo4j.memory.MemoryPools;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
@@ -633,7 +634,8 @@ public final class Recovery {
                 recoveryVersionStorage,
                 PagePrefetcher.DISABLED,
                 StoreIdGenerator.UNIQUE_ID,
-                dependenciesOf(recoveryVersionStorage));
+                dependenciesOf(recoveryVersionStorage),
+                new ExceptionHandlerService(logService.getInternalLogProvider()));
 
         // multi versioned stores recovery does not support format mode atm
         if (multiversion) {

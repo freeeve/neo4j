@@ -98,6 +98,7 @@ import org.neo4j.lock.ResourceType;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.storageengine.api.StorageEngineCostCharacteristics;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
@@ -1086,6 +1087,11 @@ class QueryExecutionLocksIT {
         @Override
         public DefaultQueryLanguageScope defaultQueryLanguageScope() {
             return internal.defaultQueryLanguageScope();
+        }
+
+        @Override
+        public ExceptionHandlerService exceptionHandlerService() {
+            return internal.exceptionHandlerService();
         }
     }
 }

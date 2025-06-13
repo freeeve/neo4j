@@ -20,34 +20,42 @@
 package org.neo4j.kernel.impl.coreapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.logging.LogAssertions.assertThat;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.logging.AssertableLogProvider;
-import org.neo4j.logging.LogAssertions;
+import org.neo4j.monitoring.ExceptionHandlerService;
 
 class DefaultTransactionExceptionMapperTest {
 
     @Test
     void shouldUseCorrectGQLStatusForGenericFailure() {
         // GIVEN
-        final var assertableLogProvider = new AssertableLogProvider();
-        final var exception = new RuntimeException("Generic failure");
+        AssertableLogProvider assertableLogProvider = new AssertableLogProvider();
+        RuntimeException exception = new RuntimeException("Generic failure");
+        ExceptionHandlerService exceptionHandlerService = new ExceptionHandlerService(assertableLogProvider);
+        List<String> messages = new ArrayList<>();
+        exceptionHandlerService.addExceptionHandler((message, e) -> messages.add(message));
         // WHEN
-        final var mappedException =
-                DefaultTransactionExceptionMapper.INSTANCE.mapException(exception, assertableLogProvider.getLog("foo"));
+        RuntimeException mappedException = DefaultTransactionExceptionMapper.INSTANCE.mapException(
+                exception, assertableLogProvider.getLog("foo"), exceptionHandlerService);
         // THEN
         assertThat(mappedException)
                 .isInstanceOf(TransactionFailureException.class)
                 .hasMessageContaining(TransactionFailureHelper.UNABLE_TO_COMPLETE_TRANSACTION);
-        var txFailureException = (TransactionFailureException) mappedException;
+        TransactionFailureException txFailureException = (TransactionFailureException) mappedException;
 
         assertThat(txFailureException.gqlStatus()).isEqualTo("25N02");
         assertThat(txFailureException.statusDescription())
                 .isEqualTo(
                         "error: invalid transaction state - unable to complete transaction. Unable to complete transaction. See debug log for details.");
 
-        LogAssertions.assertThat(assertableLogProvider).containsMessageWithException("Generic failure", exception);
+        assertThat(assertableLogProvider).containsMessageWithException("Generic failure", exception);
+
+        assertThat(messages).containsExactly("Generic failure");
     }
 }

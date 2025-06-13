@@ -28,6 +28,7 @@ import org.neo4j.kernel.impl.api.LeaseException;
 import org.neo4j.kernel.impl.locking.LockClientStoppedException;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.monitoring.ExceptionHandlerService;
 
 public interface InternalErrorTracer {
     long internalReadErrors();
@@ -60,9 +61,11 @@ public interface InternalErrorTracer {
         private final LongAdder internalReadErrors = new LongAdder();
         private final LongAdder internalWriteErrors = new LongAdder();
         private final InternalLog log;
+        private final ExceptionHandlerService exceptionHandlerService;
 
-        public Impl(InternalLogProvider logProvider) {
+        public Impl(InternalLogProvider logProvider, ExceptionHandlerService exceptionHandlerService) {
             log = logProvider.getLog(InternalErrorTracer.class);
+            this.exceptionHandlerService = exceptionHandlerService;
         }
 
         @Override
@@ -80,6 +83,7 @@ public interface InternalErrorTracer {
             if (isUnexpected(throwable)) {
                 log.info("Internal read error observed", throwable);
                 internalReadErrors.increment();
+                exceptionHandlerService.raiseException("Internal read error observed", throwable);
             }
         }
 
@@ -88,6 +92,7 @@ public interface InternalErrorTracer {
             if (isUnexpected(throwable)) {
                 log.info("Internal write error observed", throwable);
                 internalWriteErrors.increment();
+                exceptionHandlerService.raiseException("Internal write error observed", throwable);
             }
         }
 

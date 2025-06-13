@@ -77,6 +77,7 @@ import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryPools;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.StorageEngine;
@@ -110,6 +111,7 @@ public final class KernelTransactionFactory {
         when(storageEngine.createStorageCursors(any())).thenReturn(StoreCursors.NULL);
 
         var locks = mock(LockManager.class);
+        var exceptionHandlerService = mock(ExceptionHandlerService.class);
         when(locks.newClient()).thenReturn(NO_LOCKS_CLIENT);
         TransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         KernelVersionProvider kernelVersionProvider = LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
@@ -155,6 +157,7 @@ public final class KernelTransactionFactory {
                 TransactionValidatorFactory.EMPTY_VALIDATOR_FACTORY,
                 EMPTY_GUARD,
                 storageEngine.getOpenOptions().contains(MULTI_VERSIONED),
+                exceptionHandlerService,
                 TopologyGraphDbmsModel.HostedOnMode.SINGLE,
                 mock(AvailabilityGuard.class));
 

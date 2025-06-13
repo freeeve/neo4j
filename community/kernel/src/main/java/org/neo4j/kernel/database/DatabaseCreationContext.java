@@ -61,6 +61,7 @@ import org.neo4j.kernel.monitoring.DatabaseEventListeners;
 import org.neo4j.logging.internal.DatabaseLogService;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -166,4 +167,6 @@ public interface DatabaseCreationContext {
     DatabaseMonitorsFactory getDatabaseMonitorsFactory();
 
     StoreIdGenerator storeIdGenerator();
+
+    ExceptionHandlerService getExceptionHandlerService();
 }

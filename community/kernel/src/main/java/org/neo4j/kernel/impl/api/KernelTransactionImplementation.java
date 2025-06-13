@@ -169,6 +169,7 @@ import org.neo4j.memory.HeapEstimatorCacheConfig;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.memory.ScopedMemoryPool;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.resources.HeapAllocation;
 import org.neo4j.storageengine.api.CommandCreationContext;
@@ -301,6 +302,7 @@ public class KernelTransactionImplementation
     private final Lock terminationReleaseLock = new ReentrantLock();
 
     private Monitor monitor;
+    private final ExceptionHandlerService exceptionHandlerService;
     private final StoreCursors transactionalCursors;
 
     private final AvailabilityGuard availabilityGuard;
@@ -362,9 +364,11 @@ public class KernelTransactionImplementation
             TransactionValidatorFactory transactionValidatorFactory,
             DatabaseSerialGuard databaseSerialGuard,
             boolean multiVersioned,
+            ExceptionHandlerService exceptionHandlerService,
             TopologyGraphDbmsModel.HostedOnMode mode,
             AvailabilityGuard availabilityGuard) {
         this.logProvider = logProvider;
+        this.exceptionHandlerService = exceptionHandlerService;
         this.availabilityGuard = availabilityGuard;
         this.closed = true;
         this.timeout = TransactionTimeout.NO_TIMEOUT;
@@ -1814,7 +1818,8 @@ public class KernelTransactionImplementation
 
     private ChunkedTransactionSink createChunkWriter(boolean multiVersioned) {
         return multiVersioned
-                ? new ChunkSink(committer, transactionEventListeners, clocks, config, logProvider)
+                ? new ChunkSink(
+                        committer, transactionEventListeners, clocks, config, logProvider, exceptionHandlerService)
                 : ChunkedTransactionSink.EMPTY;
     }
 
@@ -1966,6 +1971,11 @@ public class KernelTransactionImplementation
     @Override
     public DefaultQueryLanguageScope defaultQueryLanguageScope() {
         return defaultQueryLanguageScope;
+    }
+
+    @Override
+    public ExceptionHandlerService exceptionHandlerService() {
+        return exceptionHandlerService;
     }
 
     public void ensureValid() throws LeaseException {

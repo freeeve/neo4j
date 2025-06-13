@@ -137,6 +137,7 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -269,7 +270,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             VersionStorage versionStorage,
             PagePrefetcher pagePrefetcher,
             StoreIdGenerator storeIdGenerator,
-            DependencyResolver databaseDependencies) {
+            DependencyResolver databaseDependencies,
+            ExceptionHandlerService exceptionHandlerService) {
         return new RecordStorageEngine(
                 formatSpecificDatabaseLayout(databaseLayout),
                 config,

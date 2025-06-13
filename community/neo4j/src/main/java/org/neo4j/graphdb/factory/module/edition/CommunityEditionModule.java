@@ -189,7 +189,8 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
                 databaseRepository,
                 globalModule.getGlobalConfig().get(initial_default_database),
                 databaseContextFactory,
-                globalModule.getLogService().getInternalLogProvider());
+                globalModule.getLogService().getInternalLogProvider(),
+                globalModule.getExceptionHandlerService());
         databaseStateService = new CommunityDatabaseStateService(databaseRepository);
 
         globalModule.getGlobalLife().add(databaseLifecycles.systemDatabaseStarter());

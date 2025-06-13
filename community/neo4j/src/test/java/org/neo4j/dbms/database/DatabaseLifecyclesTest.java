@@ -42,15 +42,21 @@ import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.monitoring.ExceptionHandlerService;
 
 class DatabaseLifecyclesTest {
     private final Database system = mock(Database.class);
     private final Database neo4j = mock(Database.class);
     private final DatabaseRepository<StandaloneDatabaseContext> databaseRepository =
             new DatabaseRepository<>(new SimpleDatabaseIdRepository());
+    private final ExceptionHandlerService exceptionHandlerService = mock(ExceptionHandlerService.class);
 
     private final DatabaseLifecycles databaseLifecycles = new DatabaseLifecycles(
-            databaseRepository, DEFAULT_DATABASE_NAME, this::getContext, NullLogProvider.getInstance());
+            databaseRepository,
+            DEFAULT_DATABASE_NAME,
+            this::getContext,
+            NullLogProvider.getInstance(),
+            exceptionHandlerService);
 
     @Test
     void shouldCreateSystemOmInitThenStart() throws Exception {

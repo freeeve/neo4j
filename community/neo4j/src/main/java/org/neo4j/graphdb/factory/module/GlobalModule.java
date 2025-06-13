@@ -41,7 +41,9 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats;
 import org.neo4j.cypher.internal.util.InternalNotificationStats;
+import org.neo4j.graphdb.event.DatabaseEventContext;
 import org.neo4j.graphdb.event.DatabaseEventListener;
+import org.neo4j.graphdb.event.DatabaseEventListenerAdapter;
 import org.neo4j.graphdb.facade.DatabaseManagementServiceFactory;
 import org.neo4j.graphdb.facade.ExternalDependencies;
 import org.neo4j.internal.collector.RecentQueryBuffer;
@@ -83,6 +85,7 @@ import org.neo4j.kernel.internal.locker.GlobalLockerService;
 import org.neo4j.kernel.internal.locker.LockerLifecycleAdapter;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.monitoring.DatabaseEventListeners;
+import org.neo4j.kernel.monitoring.ExceptionalDatabaseEvent;
 import org.neo4j.kernel.monitoring.tracing.DefaultTracers;
 import org.neo4j.kernel.monitoring.tracing.Tracers;
 import org.neo4j.logging.InternalLog;
@@ -95,6 +98,7 @@ import org.neo4j.logging.log4j.Neo4jLoggerContext;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
 import org.neo4j.memory.MemoryGroup;
 import org.neo4j.memory.MemoryPools;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobScheduler;
@@ -137,6 +141,7 @@ public class GlobalModule {
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final CommandCommitListeners defaultCommitListeners;
     private final PagePrefetcher pagePrefetcher;
+    private final ExceptionHandlerService exceptionHandlerService;
 
     /**
      * @param globalConfig         configuration affecting global aspects of the system.
@@ -176,6 +181,8 @@ public class GlobalModule {
         // Component monitoring
         globalMonitors = externalDependencies.monitors() == null ? new Monitors() : externalDependencies.monitors();
         globalDependencies.satisfyDependency(globalMonitors);
+        exceptionHandlerService = new ExceptionHandlerService(logService.getInternalLogProvider());
+        globalDependencies.satisfyDependency(exceptionHandlerService);
 
         JobScheduler createdOrResolvedScheduler = tryResolveOrCreate(JobScheduler.class, this::createJobScheduler);
         jobScheduler = globalLife.add(globalDependencies.satisfyDependency(createdOrResolvedScheduler));
@@ -250,6 +257,14 @@ public class GlobalModule {
         for (DatabaseEventListener databaseListener : externalListeners) {
             databaseEventListeners.registerDatabaseEventListener(databaseListener);
         }
+        databaseEventListeners.registerDatabaseEventListener(new DatabaseEventListenerAdapter() {
+            @Override
+            public void databasePanic(DatabaseEventContext eventContext) {
+                exceptionHandlerService.raiseException(
+                        "Database panic", ((ExceptionalDatabaseEvent) eventContext).getCause());
+            }
+        });
+
         globalDependencies.satisfyDependencies(databaseEventListeners);
 
         cypherNotificationStats = new InternalNotificationStats();
@@ -530,5 +545,9 @@ public class GlobalModule {
 
     public PagePrefetcher getPagePrefetcher() {
         return pagePrefetcher;
+    }
+
+    public ExceptionHandlerService getExceptionHandlerService() {
+        return exceptionHandlerService;
     }
 }

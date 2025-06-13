@@ -33,6 +33,7 @@ import org.neo4j.internal.kernel.api.exceptions.ConstraintViolationTransactionFa
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.Status.Classification;
 import org.neo4j.logging.Log;
+import org.neo4j.monitoring.ExceptionHandlerService;
 
 public class DefaultTransactionExceptionMapper implements TransactionExceptionMapper {
     public static final DefaultTransactionExceptionMapper INSTANCE = new DefaultTransactionExceptionMapper();
@@ -40,7 +41,7 @@ public class DefaultTransactionExceptionMapper implements TransactionExceptionMa
     private DefaultTransactionExceptionMapper() {}
 
     @Override
-    public RuntimeException mapException(Exception e, Log log) {
+    public RuntimeException mapException(Exception e, Log log, ExceptionHandlerService exceptionHandlerService) {
         if (e instanceof TransientFailureException tfe) {
             // We let transient exceptions pass through unchanged since they aren't really transaction failures
             // in the same sense as unexpected failures are. Such exception signals that the transaction
@@ -51,11 +52,15 @@ public class DefaultTransactionExceptionMapper implements TransactionExceptionMa
         } else if (e instanceof Status.HasStatus) {
             Status status = ((Status.HasStatus) e).status();
             return mapStatusException(
-                    UNABLE_TO_COMPLETE_TRANSACTION + ": " + status.code().description(), status, e);
+                    UNABLE_TO_COMPLETE_TRANSACTION + ": " + status.code().description(),
+                    status,
+                    e,
+                    exceptionHandlerService);
         } else {
             // GQL status code 25N02 points to the debug log for more information, so let's make sure people will
             // actually find more info there.
             log.error(e.getMessage(), e);
+            exceptionHandlerService.raiseException(e.getMessage(), e);
             if (e instanceof ErrorGqlStatusObject statusObject) {
                 return TransactionFailureHelper.genericFailure(statusObject, e);
             }
@@ -63,7 +68,8 @@ public class DefaultTransactionExceptionMapper implements TransactionExceptionMa
         }
     }
 
-    public static RuntimeException mapStatusException(String message, Status status, Exception cause) {
+    public static RuntimeException mapStatusException(
+            String message, Status status, Exception cause, ExceptionHandlerService exceptionHandlerService) {
         ErrorGqlStatusObject gql = cause instanceof ErrorGqlStatusObject statusObject
                 ? statusObject.gqlStatusObject()
                 : ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N02)
@@ -72,6 +78,7 @@ public class DefaultTransactionExceptionMapper implements TransactionExceptionMa
         if (status.code().classification() == Classification.TransientError) {
             return new TransientTransactionFailureException(gql, status, message, cause);
         }
+        exceptionHandlerService.raiseException(cause.getMessage(), cause);
         return new TransactionFailureException(gql, message, cause, status);
     }
 }

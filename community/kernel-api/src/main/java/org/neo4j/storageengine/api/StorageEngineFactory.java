@@ -79,6 +79,7 @@ import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
 import org.neo4j.storageengine.StoreIdGenerator;
@@ -180,7 +181,8 @@ public interface StorageEngineFactory {
             VersionStorage versionStorage,
             PagePrefetcher pagePrefetcher,
             StoreIdGenerator storeIdGenerator,
-            DependencyResolver databaseDependencies)
+            DependencyResolver databaseDependencies,
+            ExceptionHandlerService exceptionHandlerService)
             throws IOException;
 
     /**

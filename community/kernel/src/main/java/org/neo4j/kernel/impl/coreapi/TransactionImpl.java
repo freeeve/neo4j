@@ -90,8 +90,10 @@ import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.TokenNotFoundException;
+import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.virtual.MapValue;
 
@@ -108,6 +110,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     private final ElementIdMapper elementIdMapper;
     private final List<String> bookmarks;
     private final Log log;
+    private final ExceptionHandlerService exceptionHandlerService;
     /**
      * Tracker of resources in use by the Core API.
      * <p>
@@ -126,6 +129,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     private KernelTransaction transaction;
     private boolean closed;
 
+    @VisibleForTesting
     public TransactionImpl(
             TokenHolders tokenHolders,
             TransactionalContextFactory contextFactory,
@@ -145,7 +149,8 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
                 elementIdMapper,
                 null,
                 Collections.emptyList(),
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                new ExceptionHandlerService(NullLogProvider.getInstance()));
     }
 
     public TransactionImpl(
@@ -160,7 +165,8 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
             ElementIdMapper elementIdMapper,
             RoutingInfo routingInfo,
             List<String> bookmarks,
-            LogProvider logProvider) {
+            LogProvider logProvider,
+            ExceptionHandlerService exceptionHandlerService) {
         this.tokenHolders = tokenHolders;
         this.contextFactory = contextFactory;
         this.availabilityGuard = availabilityGuard;
@@ -172,6 +178,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
         this.routingInfo = routingInfo;
         this.bookmarks = bookmarks;
         this.log = logProvider.getLog(getClass());
+        this.exceptionHandlerService = exceptionHandlerService;
         setTransaction(transaction);
     }
 
@@ -193,6 +200,11 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     @Override
     public void commit(KernelTransaction.Monitor monitor) {
         safeTerminalOperation(transaction -> transaction.commit(monitor));
+    }
+
+    @Override
+    public ExceptionHandlerService exceptionHandlerService() {
+        return exceptionHandlerService;
     }
 
     @Override
@@ -228,7 +240,8 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
         } catch (TokenCapacityExceededKernelException e) {
             throw new ConstraintViolationException(e.getMessage(), e);
         } catch (KernelException e) {
-            throw mapStatusException("Unknown error trying to create label token", e.status(), e);
+            throw mapStatusException(
+                    "Unknown error trying to create label token", e.status(), e, exceptionHandlerService());
         }
 
         try {
@@ -338,7 +351,8 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     private void safeTerminalOperation(TransactionalOperation operation) {
         if (closed) {
             assert transaction == null : "Closed but still have reference to kernel transaction";
-            throw exceptionMapper.mapException(new NotInTransactionException("The transaction has been closed."), log);
+            throw exceptionMapper.mapException(
+                    new NotInTransactionException("The transaction has been closed."), log, exceptionHandlerService());
         }
         Exception exception = null;
         try {
@@ -359,7 +373,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
             transaction = null;
         }
         if (exception != null) {
-            throw exceptionMapper.mapException(exception, log);
+            throw exceptionMapper.mapException(exception, log, exceptionHandlerService());
         }
     }
 
