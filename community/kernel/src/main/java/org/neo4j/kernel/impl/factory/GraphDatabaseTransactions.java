@@ -45,7 +45,6 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
  * by delegating to a single abstract beginTransaction()
  */
 public abstract class GraphDatabaseTransactions implements GraphDatabaseAPI {
-
     private final Config config;
 
     protected GraphDatabaseTransactions(Config config) {
@@ -96,10 +95,6 @@ public abstract class GraphDatabaseTransactions implements GraphDatabaseAPI {
     @Override
     public Transaction beginTx(long timeout, TimeUnit unit) {
         return beginTransaction(KernelTransaction.Type.EXPLICIT, AUTH_DISABLED, EMBEDDED_CONNECTION, timeout, unit);
-    }
-
-    protected InternalTransaction beginTransaction() {
-        return beginTransaction(KernelTransaction.Type.EXPLICIT, AUTH_DISABLED);
     }
 
     @Override

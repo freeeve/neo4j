@@ -61,6 +61,15 @@ public interface GraphDatabaseAPI extends GraphDatabaseService {
     HostedOnMode mode();
 
     /**
+     * Begin internal transaction with {@link org.neo4j.kernel.api.KernelTransaction.Type#EXPLICIT} and
+     * {@link LoginContext#AUTH_DISABLED}.
+     * @return internal transaction
+     */
+    default InternalTransaction beginTransaction() {
+        return beginTransaction(KernelTransaction.Type.EXPLICIT, LoginContext.AUTH_DISABLED);
+    }
+
+    /**
      * Begin internal transaction with specified type and access mode
      * @param type transaction type
      * @param loginContext transaction login context

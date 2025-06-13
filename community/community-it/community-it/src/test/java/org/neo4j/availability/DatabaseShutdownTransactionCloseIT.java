@@ -21,6 +21,7 @@ package org.neo4j.availability;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.neo4j.kernel.api.KernelTransaction.Monitor.withBeforeApply;
 
 import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -40,6 +41,7 @@ import org.neo4j.graphdb.event.TransactionEventListenerAdapter;
 import org.neo4j.kernel.availability.UnavailableException;
 import org.neo4j.kernel.database.DatabaseMonitors;
 import org.neo4j.kernel.impl.api.ShutdownTransactionMonitor;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
 
@@ -259,14 +261,14 @@ public class DatabaseShutdownTransactionCloseIT {
                     });
 
             assertDoesNotThrow(() -> {
-                try (var tx = databaseService.beginTx()) {
+                try (var tx = ((GraphDatabaseAPI) databaseService).beginTransaction()) {
                     tx.createNode();
 
-                    // notify shutdown to proceed
-                    shutdownLatch.countDown();
                     // enable listener that will block until database will wait for closing transactions
                     listenerEnabled.set(true);
-                    tx.commit();
+                    // let shutdown commence when we're in the middle of commit, when we know that this tx
+                    // is in its "closing" state.
+                    tx.kernelTransaction().commit(withBeforeApply(shutdownLatch::countDown));
                 }
             });
 
