@@ -28,4 +28,30 @@ import java.lang.annotation.RetentionPolicy;
 @SkipTestExtension.Skip(key = FACTORY_SUPPLIER_KEY, value = "spd")
 public @interface SkipOnSpd {
     String reason() default "";
+
+    /**
+     * @return an array of {@link Note}, roughly categorizing this skip, or giving hints about why the test is skipped.
+     * The enum instances are used to allow finding different types of skips with "Find usages".
+     */
+    Note[] notes() default {Note.temporary};
+
+    enum Note {
+        /**
+         * Test is temporarily skipped with the intent to revisit later.
+         */
+        temporary,
+        /**
+         * Test and how it's written is fundamentally incompatible with how SPD works,
+         * e.g. being too low-level or something else in the test setup.
+         */
+        incompatible,
+        /**
+         * Test has no value for running in a SPD setup.
+         */
+        irrelevant,
+        /**
+         * Test is testing something that isn't supported in SPD.
+         */
+        notSupported
+    }
 }

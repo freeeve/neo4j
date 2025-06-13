@@ -38,7 +38,9 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 
-@SkipOnSpd(reason = "SPD compat runs this with another implementation of DbmsRuntimeVersion")
+@SkipOnSpd(
+        reason = "SPD compat runs this with another implementation of DbmsRuntimeVersion",
+        notes = SkipOnSpd.Note.incompatible)
 @TestDirectoryExtension
 @DbmsExtension()
 class StandaloneDbmsRuntimeVersionTest {

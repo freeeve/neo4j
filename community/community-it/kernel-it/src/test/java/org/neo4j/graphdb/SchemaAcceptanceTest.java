@@ -1327,7 +1327,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
-    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint", notes = SkipOnSpd.Note.incompatible)
     void nodeKeyConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1341,7 +1341,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
-    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint", notes = SkipOnSpd.Note.incompatible)
     void relationshipKeyConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1355,7 +1355,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
-    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint", notes = SkipOnSpd.Note.incompatible)
     void propertyExistenceConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1369,7 +1369,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
-    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint", notes = SkipOnSpd.Note.incompatible)
     void propertyExistenceConstraintsOnRelationshipMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1383,7 +1383,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
-    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint", notes = SkipOnSpd.Note.incompatible)
     void nodePropertyTypeConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1397,7 +1397,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
-    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint", notes = SkipOnSpd.Note.incompatible)
     void relationshipPropertyTypeConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
