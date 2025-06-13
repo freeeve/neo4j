@@ -24,7 +24,6 @@ import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_F
 import static org.neo4j.test.Race.throwing;
 import static org.neo4j.values.storable.Values.intValue;
 
-import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -54,7 +53,7 @@ class IndexUpdatesWorkSyncTest {
                 .withName("index")
                 .materialise(1L);
         int threads = 10;
-        Set<UpdateAndContext> appliedUpdates = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        Set<UpdateAndContext> appliedUpdates = ConcurrentHashMap.newKeySet();
         AtomicInteger concurrentlyApplyingThreads = new AtomicInteger();
         IndexUpdateListener updateListener = new IndexUpdateListener.Adapter() {
             @Override
@@ -84,8 +83,8 @@ class IndexUpdatesWorkSyncTest {
                 .materialise(1L);
         int threads = 4;
         CountDownLatch latch = new CountDownLatch(threads);
-        Set<UpdateAndContext> appliedUpdates = Collections.newSetFromMap(new ConcurrentHashMap<>());
-        Set<Thread> applyingThreads = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        Set<UpdateAndContext> appliedUpdates = ConcurrentHashMap.newKeySet();
+        Set<Thread> applyingThreads = ConcurrentHashMap.newKeySet();
         IndexUpdateListener updateListener = new IndexUpdateListener.Adapter() {
             @Override
             public void applyUpdates(
@@ -113,7 +112,7 @@ class IndexUpdatesWorkSyncTest {
 
     private Set<UpdateAndContext> queueUpdatesInParallel(
             IndexDescriptor index, int threads, IndexUpdatesWorkSync workSync, CursorContextFactory contextFactory) {
-        Set<UpdateAndContext> sentUpdates = Collections.newSetFromMap(new ConcurrentHashMap<>());
+        Set<UpdateAndContext> sentUpdates = ConcurrentHashMap.newKeySet();
         Race race = new Race();
         race.addContestants(
                 threads,
