@@ -77,7 +77,6 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.test.InMemoryTokens;
@@ -1187,7 +1186,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
             // given
             Value[] value =
                     new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
-            updateAndCommit(singletonList(IndexEntryUpdate.add(entityId, descriptor, value)));
+            updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(exactQuery(value)));
 
             // when
@@ -1196,7 +1195,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
                 newValue =
                         new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
             } while (ValueTuple.of(value).equals(ValueTuple.of(newValue)));
-            updateAndCommit(singletonList(IndexEntryUpdate.change(entityId, descriptor, value, newValue)));
+            updateAndCommit(singletonList(ValueIndexEntryUpdate.change(entityId, descriptor, value, newValue)));
 
             // then
             assertEquals(emptyList(), query(exactQuery(value)));
@@ -1213,11 +1212,11 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
             // given
             Value[] value =
                     new Value[] {randomValues.nextValueOfType(valueType), randomValues.nextValueOfType(valueType)};
-            updateAndCommit(singletonList(IndexEntryUpdate.add(entityId, descriptor, value)));
+            updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(exactQuery(value)));
 
             // when
-            updateAndCommit(singletonList(IndexEntryUpdate.remove(entityId, descriptor, value)));
+            updateAndCommit(singletonList(ValueIndexEntryUpdate.remove(entityId, descriptor, value)));
 
             // then
             assertEquals(emptyList(), query(exactQuery(value)));
@@ -1333,6 +1332,6 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
     }
 
     private static ValueIndexEntryUpdate add(long nodeId, IndexDescriptor indexDescriptor, Value value1, Value value2) {
-        return IndexEntryUpdate.add(nodeId, indexDescriptor, value1, value2);
+        return ValueIndexEntryUpdate.add(nodeId, indexDescriptor, value1, value2);
     }
 }

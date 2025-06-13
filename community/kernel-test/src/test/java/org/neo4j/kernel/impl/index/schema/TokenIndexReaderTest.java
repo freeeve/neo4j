@@ -92,7 +92,7 @@ class TokenIndexReaderTest {
             writer.initialize(
                     context -> tree.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT), false, CursorContext.NULL_CONTEXT);
             for (int i = 0; i < expectedNodes; i++) {
-                writer.process(TokenIndexEntryUpdate.change(i, null, EMPTY_INT_ARRAY, new int[] {labelId}));
+                writer.process(TokenIndexEntryUpdate.tokenChange(i, null, EMPTY_INT_ARRAY, new int[] {labelId}));
             }
         }
 
@@ -146,7 +146,7 @@ class TokenIndexReaderTest {
             int updates = highNodeId / sparsity;
             for (int i = 0; i < updates; i++) {
                 int nodeId = random.nextInt(highNodeId);
-                writer.process(TokenIndexEntryUpdate.change(nodeId, null, EMPTY_INT_ARRAY, new int[] {labelId}));
+                writer.process(TokenIndexEntryUpdate.tokenChange(nodeId, null, EMPTY_INT_ARRAY, new int[] {labelId}));
                 expected.set(nodeId);
             }
         }

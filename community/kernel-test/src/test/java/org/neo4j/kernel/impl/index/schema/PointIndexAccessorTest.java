@@ -57,7 +57,7 @@ import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.ValueCategory;
@@ -226,7 +226,7 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
         // when   an unsupported value type is added
         try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
             final var unsupportedValue = random.randomValues().nextValueOfType(unsupportedType);
-            updater.process(IndexEntryUpdate.add(idGenerator().getAsLong(), INDEX_DESCRIPTOR, unsupportedValue));
+            updater.process(ValueIndexEntryUpdate.add(idGenerator().getAsLong(), INDEX_DESCRIPTOR, unsupportedValue));
         }
 
         // then   it should not be indexed, and thus not visible
@@ -243,7 +243,7 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
         final var entityId = idGenerator().getAsLong();
         final var unsupportedValue = random.randomValues().nextValueOfType(unsupportedType);
         try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-            updater.process(IndexEntryUpdate.add(entityId, INDEX_DESCRIPTOR, unsupportedValue));
+            updater.process(ValueIndexEntryUpdate.add(entityId, INDEX_DESCRIPTOR, unsupportedValue));
         }
 
         // then   it should not be indexed, and thus not visible
@@ -254,7 +254,7 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
         // when   the unsupported value type is changed to a supported value type
         try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
             final var supportedValue = random.randomValues().nextValueOfTypes(SUPPORTED_TYPES);
-            updater.process(IndexEntryUpdate.change(entityId, INDEX_DESCRIPTOR, unsupportedValue, supportedValue));
+            updater.process(ValueIndexEntryUpdate.change(entityId, INDEX_DESCRIPTOR, unsupportedValue, supportedValue));
         }
 
         // then   it should be added to the index, and thus now visible
@@ -271,7 +271,7 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
         final var entityId = idGenerator().getAsLong();
         final var supportedValue = random.randomValues().nextValueOfTypes(SUPPORTED_TYPES);
         try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-            updater.process(IndexEntryUpdate.add(entityId, INDEX_DESCRIPTOR, supportedValue));
+            updater.process(ValueIndexEntryUpdate.add(entityId, INDEX_DESCRIPTOR, supportedValue));
         }
 
         // then   it should be added to the index, and thus visible
@@ -282,7 +282,7 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
         // when   the supported value type is changed to an unsupported value type
         try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
             final var unsupportedValue = random.randomValues().nextValueOfType(unsupportedType);
-            updater.process(IndexEntryUpdate.change(entityId, INDEX_DESCRIPTOR, supportedValue, unsupportedValue));
+            updater.process(ValueIndexEntryUpdate.change(entityId, INDEX_DESCRIPTOR, supportedValue, unsupportedValue));
         }
 
         // then   it should be removed from the index, and thus no longer visible

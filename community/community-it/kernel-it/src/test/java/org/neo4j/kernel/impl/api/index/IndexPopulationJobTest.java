@@ -47,7 +47,7 @@ import static org.neo4j.logging.AssertableLogProvider.Level.ERROR;
 import static org.neo4j.logging.AssertableLogProvider.Level.INFO;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.PageCacheTracerAssertions.assertThatTracing;
 import static org.neo4j.test.PageCacheTracerAssertions.pins;
@@ -193,7 +193,7 @@ class IndexPopulationJobTest {
         job.run();
 
         // THEN
-        IndexEntryUpdate update = IndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value));
+        IndexEntryUpdate update = ValueIndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value));
 
         assertTrue(populator.created);
         assertEquals(Collections.singletonList(update), populator.includedSamples);
@@ -220,7 +220,7 @@ class IndexPopulationJobTest {
 
         job.run();
 
-        IndexEntryUpdate update = IndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value));
+        IndexEntryUpdate update = ValueIndexEntryUpdate.add(nodeId, indexDescriptor, Values.of(value));
 
         assertTrue(populator.created);
         assertEquals(Collections.singletonList(update), populator.includedSamples);
@@ -253,7 +253,7 @@ class IndexPopulationJobTest {
         job.run();
 
         // THEN
-        IndexEntryUpdate update = IndexEntryUpdate.add(relationship, indexDescriptor, Values.of(age));
+        IndexEntryUpdate update = ValueIndexEntryUpdate.add(relationship, indexDescriptor, Values.of(age));
 
         assertTrue(populator.created);
         assertEquals(Collections.singletonList(update), populator.includedSamples);
@@ -280,7 +280,7 @@ class IndexPopulationJobTest {
 
         job.run();
 
-        IndexEntryUpdate update = IndexEntryUpdate.add(relationship, indexDescriptor, Values.of(age));
+        IndexEntryUpdate update = ValueIndexEntryUpdate.add(relationship, indexDescriptor, Values.of(age));
 
         assertTrue(populator.created);
         assertEquals(Collections.singletonList(update), populator.includedSamples);
@@ -763,7 +763,7 @@ class IndexPopulationJobTest {
         void add(ValueIndexEntryUpdate update) {
             if (update.getEntityId() == 2) {
                 job.queueConcurrentUpdate(
-                        IndexEntryUpdate.change(nodeToChange, index, previousValue, newValue),
+                        ValueIndexEntryUpdate.change(nodeToChange, index, previousValue, newValue),
                         CursorContext.NULL_CONTEXT);
             }
             added.add(Pair.of(update.getEntityId(), update.values()[0].asObjectCopy()));
@@ -824,7 +824,7 @@ class IndexPopulationJobTest {
         void add(ValueIndexEntryUpdate update) {
             if (update.getEntityId() == 2) {
                 job.queueConcurrentUpdate(
-                        IndexEntryUpdate.remove(nodeToDelete, index, valueToDelete), CursorContext.NULL_CONTEXT);
+                        ValueIndexEntryUpdate.remove(nodeToDelete, index, valueToDelete), CursorContext.NULL_CONTEXT);
             }
             added.put(update.getEntityId(), update.values()[0].asObjectCopy());
         }

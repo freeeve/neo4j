@@ -41,7 +41,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 
 public class TokenIndexImporter implements IndexImporter {
     private static final String INDEX_TOKEN_IMPORTER_TAG = "indexTokenImporter";
@@ -71,9 +71,9 @@ public class TokenIndexImporter implements IndexImporter {
         var actual = accessor.newUpdater(ONLINE, cursorContext, parallel);
         return new Writer() {
             @Override
-            public void change(long entity, int[] removed, int[] added, boolean logical) {
+            public void change(long entity, int[] removals, int[] additions) {
                 try {
-                    actual.process(IndexEntryUpdate.change(entity, index, removed, added, logical));
+                    actual.process(TokenIndexEntryUpdate.tokenChange(entity, index, removals, additions));
                 } catch (IndexEntryConflictException e) {
                     throw new RuntimeException(e);
                 }

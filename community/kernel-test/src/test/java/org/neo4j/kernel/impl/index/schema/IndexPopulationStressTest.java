@@ -34,9 +34,8 @@ import static org.neo4j.kernel.api.schema.SchemaTestUtil.SIMPLE_NAME_LOOKUP;
 import static org.neo4j.kernel.impl.api.index.PhaseTracker.nullInstance;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.change;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.remove;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 import static org.neo4j.test.Race.throwing;
 
 import java.io.IOException;
@@ -288,7 +287,7 @@ abstract class IndexPopulationStressTest {
                                     break;
                                 case 2: // change
                                     removal = batch.get(randomValues.nextInt(batch.size()));
-                                    change(
+                                    ValueIndexEntryUpdate.change(
                                             removal.getEntityId(),
                                             descriptor,
                                             removal.values(),

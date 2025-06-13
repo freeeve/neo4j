@@ -25,6 +25,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import org.eclipse.collections.impl.list.mutable.FastList;
 import org.neo4j.index.internal.gbptree.GBPTree;
@@ -35,28 +36,24 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.TokenIndexReader;
-import org.neo4j.kernel.impl.index.schema.PhysicalToLogicalTokenChanges.LogicalTokenUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 
 /**
- * {@link IndexUpdater} for token index, or rather a {@link Writer} for its
- * internal {@link GBPTree}.
+ * {@link IndexUpdater} for token index, or rather a {@link Writer} for its internal {@link GBPTree}.
  * <p>
  * {@link #process(IndexEntryUpdate) updates} are queued up to a maximum batch size and, for performance,
  * applied in sorted order (by the token and entity id) when reaches batch size or on {@link #close()}.
  * <p>
  * Updates aren't visible to {@link TokenIndexReader readers} immediately, rather when queue happens to be applied.
- * <p>
- * Incoming {@link TokenIndexEntryUpdate updates} are actually modified from representing physical before/after
- * state to represent logical to-add/to-remove state. These changes are done directly inside the provided
- * {@link TokenIndexEntryUpdate#values()} and {@link TokenIndexEntryUpdate#beforeValues()} arrays,
- * relying on the fact that those arrays are returned in its essential form, instead of copies.
- * This conversion is done like so mostly to reduce garbage.
- *
- * @see PhysicalToLogicalTokenChanges
  */
 class TokenIndexUpdater implements IndexUpdater {
+
+    /**
+     * {@link Comparator} for sorting the entity id ranges, used in batches to apply updates in sorted order.
+     */
+    private static final Comparator<TokenIndexEntryUpdate> UPDATE_SORTER =
+            Comparator.comparingLong(TokenIndexEntryUpdate::getEntityId);
 
     /**
      * {@link ValueMerger} used for adding token->entity mappings, see {@link TokenScanValue#add(TokenScanValue)}.
@@ -98,7 +95,7 @@ class TokenIndexUpdater implements IndexUpdater {
      * to place new updates is {@link #pendingUpdatesCursor}. The constructor set the length of this queue
      * and the length defines the maximum batch size.
      */
-    private final LogicalTokenUpdates[] pendingUpdates;
+    private final TokenIndexEntryUpdate[] pendingUpdates;
 
     private final TokenIndexIdLayout idLayout;
 
@@ -133,7 +130,7 @@ class TokenIndexUpdater implements IndexUpdater {
     private long lastVersion;
 
     TokenIndexUpdater(int batchSize, TokenIndexIdLayout idLayout) {
-        this.pendingUpdates = new LogicalTokenUpdates[batchSize];
+        this.pendingUpdates = new TokenIndexEntryUpdate[batchSize];
         this.idLayout = idLayout;
     }
 
@@ -169,11 +166,9 @@ class TokenIndexUpdater implements IndexUpdater {
         }
         lastVersion = committingTransactionId;
         var tokenUpdate = asTokenUpdate(update);
-        LogicalTokenUpdates logicalTokenUpdate =
-                PhysicalToLogicalTokenChanges.convertToAdditionsAndRemovals(tokenUpdate);
-        pendingUpdates[pendingUpdatesCursor++] = logicalTokenUpdate;
-        checkNextTokenId(tokenUpdate.beforeValues());
-        checkNextTokenId(tokenUpdate.values());
+        pendingUpdates[pendingUpdatesCursor++] = tokenUpdate;
+        checkNextTokenId(tokenUpdate.removed());
+        checkNextTokenId(tokenUpdate.added());
     }
 
     @Override
@@ -182,7 +177,7 @@ class TokenIndexUpdater implements IndexUpdater {
     }
 
     private void checkNextTokenId(int[] tokens) {
-        if (tokens.length > 0 && tokens[0] != -1) {
+        if (tokens.length > 0) {
             lowestTokenId = Math.min(lowestTokenId, tokens[0]);
         }
     }
@@ -198,7 +193,7 @@ class TokenIndexUpdater implements IndexUpdater {
         } else {
             assert !writerCursorContext.getVersionContext().initializedForWrite();
         }
-        Arrays.sort(pendingUpdates, 0, pendingUpdatesCursor);
+        Arrays.sort(pendingUpdates, 0, pendingUpdatesCursor, UPDATE_SORTER);
         int currentTokenId = lowestTokenId;
         value.clear();
         key.clear();
@@ -206,10 +201,10 @@ class TokenIndexUpdater implements IndexUpdater {
         while (currentTokenId != Integer.MAX_VALUE) {
             int nextTokenId = Integer.MAX_VALUE;
             for (int i = 0; i < pendingUpdatesCursor; i++) {
-                LogicalTokenUpdates update = pendingUpdates[i];
-                long entityId = update.entityId();
-                nextTokenId = extractChange(update.additions(), currentTokenId, entityId, nextTokenId, true, changes);
-                nextTokenId = extractChange(update.removals(), currentTokenId, entityId, nextTokenId, false, changes);
+                var update = pendingUpdates[i];
+                long entityId = update.getEntityId();
+                nextTokenId = extractChange(update.added(), currentTokenId, entityId, nextTokenId, true, changes);
+                nextTokenId = extractChange(update.removed(), currentTokenId, entityId, nextTokenId, false, changes);
             }
             currentTokenId = nextTokenId;
         }
@@ -237,9 +232,6 @@ class TokenIndexUpdater implements IndexUpdater {
         int foundNextTokenId = nextTokenId;
         for (int li = 0; li < tokens.length; li++) {
             int tokenId = tokens[li];
-            if (tokenId == -1) {
-                break;
-            }
 
             // Have this check here so that we can pick up the next tokenId in our change set
             if (tokenId == currentTokenId) {
@@ -248,7 +240,7 @@ class TokenIndexUpdater implements IndexUpdater {
                 // We can do a little shorter check for next tokenId here straight away,
                 // we just check the next if it's less than what we currently think is next tokenId
                 // and then break right after
-                if (li + 1 < tokens.length && tokens[li + 1] != -1) {
+                if (li + 1 < tokens.length) {
                     int nextTokenCandidate = tokens[li + 1];
                     if (nextTokenCandidate < currentTokenId) {
                         throw new IllegalArgumentException(

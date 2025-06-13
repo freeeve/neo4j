@@ -387,7 +387,7 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             for (int i = 0; i < propertyIds.length; i++) {
                 values[i] = properties.get(propertyIds[i]);
             }
-            return IndexEntryUpdate.add(indexedEntityIdConverter.applyAsLong(entityId), index, values);
+            return ValueIndexEntryUpdate.add(indexedEntityIdConverter.applyAsLong(entityId), index, values);
         }
 
         private boolean checkPropertyExistenceConstraintsOnCreate(long entityId, ViolationVisitor violationVisitor) {

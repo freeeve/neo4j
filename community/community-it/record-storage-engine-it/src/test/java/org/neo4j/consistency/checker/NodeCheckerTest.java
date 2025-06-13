@@ -50,7 +50,7 @@ import org.neo4j.kernel.impl.store.StoreType;
 import org.neo4j.kernel.impl.store.record.DynamicRecord;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
 class NodeCheckerTest extends CheckerTestBase {
@@ -117,7 +117,7 @@ class NodeCheckerTest extends CheckerTestBase {
         try (AutoCloseable ignored = tx()) {
             // Label index having (N) which is not in use in the store
             try (IndexUpdater writer = labelIndexWriter()) {
-                writer.process(IndexEntryUpdate.change(
+                writer.process(TokenIndexEntryUpdate.tokenChange(
                         nodeStore.getIdGenerator().nextId(NULL_CONTEXT),
                         IndexDescriptor.NO_INDEX,
                         EMPTY_INT_ARRAY,
@@ -141,14 +141,14 @@ class NodeCheckerTest extends CheckerTestBase {
             try (IndexUpdater writer = labelIndexWriter()) {
                 for (int i = 0; i < 10; i++) {
                     long nodeId = node(idGenerator.nextId(NULL_CONTEXT), NULL, NULL, label1);
-                    writer.process(IndexEntryUpdate.change(
+                    writer.process(TokenIndexEntryUpdate.tokenChange(
                             nodeId, IndexDescriptor.NO_INDEX, EMPTY_INT_ARRAY, new int[] {label1}));
                 }
             }
 
             // Label index having (N) which is not in use in the store
             try (IndexUpdater writer = labelIndexWriter()) {
-                writer.process(IndexEntryUpdate.change(
+                writer.process(TokenIndexEntryUpdate.tokenChange(
                         idGenerator.nextId(NULL_CONTEXT), IndexDescriptor.NO_INDEX, EMPTY_INT_ARRAY, new int[] {label1
                         }));
             }
@@ -261,8 +261,8 @@ class NodeCheckerTest extends CheckerTestBase {
             // LabelIndex does not have the N:L entry
             long nodeId = node(nodeStore.getIdGenerator().nextId(NULL_CONTEXT), NULL, NULL);
             try (IndexUpdater writer = labelIndexWriter()) {
-                writer.process(
-                        IndexEntryUpdate.change(nodeId, IndexDescriptor.NO_INDEX, EMPTY_INT_ARRAY, new int[] {label1}));
+                writer.process(TokenIndexEntryUpdate.tokenChange(
+                        nodeId, IndexDescriptor.NO_INDEX, EMPTY_INT_ARRAY, new int[] {label1}));
             }
         }
 
@@ -297,7 +297,7 @@ class NodeCheckerTest extends CheckerTestBase {
                 for (int i = 0; i < 20; i++) {
                     long nodeId = node(nodeStore.getIdGenerator().nextId(NULL_CONTEXT), NULL, NULL, label1, label2);
                     // node 10 missing label2 in index
-                    writer.process(IndexEntryUpdate.change(
+                    writer.process(TokenIndexEntryUpdate.tokenChange(
                             nodeId,
                             IndexDescriptor.NO_INDEX,
                             EMPTY_INT_ARRAY,

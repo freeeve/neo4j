@@ -33,7 +33,9 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.util.IndexUpdatesWorkSync;
 
 public class IndexCommandTransactionApplierFactory implements TransactionApplierFactory {
@@ -107,7 +109,7 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
                 return false;
             }
             if (command instanceof TokenIndexUpdateCommand idxCommand) {
-                var indexUpdate = IndexEntryUpdate.change(
+                var indexUpdate = TokenIndexEntryUpdate.tokenChange(
                         idxCommand.getEntityId(),
                         index,
                         commandSelector.getBefore(idxCommand),
@@ -117,10 +119,11 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
                 ValueIndexUpdateCommand idxCommand = (ValueIndexUpdateCommand) command;
                 switch (commandSelector.mode(idxCommand)) {
                     case ADDED:
-                        indexUpdates.add(IndexEntryUpdate.add(idxCommand.getEntityId(), index, idxCommand.getAfter()));
+                        indexUpdates.add(
+                                ValueIndexEntryUpdate.add(idxCommand.getEntityId(), index, idxCommand.getAfter()));
                         break;
                     case CHANGED:
-                        indexUpdates.add(IndexEntryUpdate.change(
+                        indexUpdates.add(ValueIndexEntryUpdate.change(
                                 idxCommand.getEntityId(),
                                 index,
                                 commandSelector.getBefore(idxCommand),
@@ -128,7 +131,7 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
                         break;
                     case REMOVED:
                         indexUpdates.add(
-                                IndexEntryUpdate.remove(idxCommand.getEntityId(), index, idxCommand.getAfter()));
+                                ValueIndexEntryUpdate.remove(idxCommand.getEntityId(), index, idxCommand.getAfter()));
                         break;
                     default:
                         throw new IllegalArgumentException();

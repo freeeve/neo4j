@@ -158,6 +158,6 @@ class IndexPopulationTest {
     }
 
     private static ValueIndexEntryUpdate someUpdate(IndexDescriptor indexDescriptor) {
-        return IndexEntryUpdate.add(0, indexDescriptor, Values.numberValue(0));
+        return ValueIndexEntryUpdate.add(0, indexDescriptor, Values.numberValue(0));
     }
 }

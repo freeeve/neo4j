@@ -37,6 +37,7 @@ import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.OnDemandJobScheduler;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.values.storable.Values;
@@ -109,7 +110,7 @@ class IndexUpdateSinkTest {
     private Collection<IndexEntryUpdate> updates(int count) {
         List<IndexEntryUpdate> updates = new ArrayList<>();
         for (int i = 0; i < count; i++) {
-            updates.add(IndexEntryUpdate.add(i, descriptor, Values.intValue(i)));
+            updates.add(ValueIndexEntryUpdate.add(i, descriptor, Values.intValue(i)));
         }
         return updates;
     }

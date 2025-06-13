@@ -21,7 +21,6 @@ package org.neo4j.kernel.api.index;
 
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
@@ -38,19 +37,19 @@ public final class IndexQueryHelper {
     }
 
     public static ValueIndexEntryUpdate add(long nodeId, IndexDescriptor schema, Object... objects) {
-        return IndexEntryUpdate.add(nodeId, schema, toValues(objects));
+        return ValueIndexEntryUpdate.add(nodeId, schema, toValues(objects));
     }
 
     public static ValueIndexEntryUpdate remove(long nodeId, IndexDescriptor schema, Object... objects) {
-        return IndexEntryUpdate.remove(nodeId, schema, toValues(objects));
+        return ValueIndexEntryUpdate.remove(nodeId, schema, toValues(objects));
     }
 
     public static ValueIndexEntryUpdate change(long nodeId, IndexDescriptor schema, Object o1, Object o2) {
-        return IndexEntryUpdate.change(nodeId, schema, Values.of(o1), Values.of(o2));
+        return ValueIndexEntryUpdate.change(nodeId, schema, Values.of(o1), Values.of(o2));
     }
 
     public static ValueIndexEntryUpdate change(long nodeId, IndexDescriptor schema, Object[] o1, Object[] o2) {
-        return IndexEntryUpdate.change(nodeId, schema, toValues(o1), toValues(o2));
+        return ValueIndexEntryUpdate.change(nodeId, schema, toValues(o1), toValues(o2));
     }
 
     private static Value[] toValues(Object[] objects) {

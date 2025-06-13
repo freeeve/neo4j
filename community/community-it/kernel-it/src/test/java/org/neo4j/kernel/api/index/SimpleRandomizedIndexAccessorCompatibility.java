@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.internal.helpers.collection.Iterables.single;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.add;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.remove;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.change;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -108,7 +107,7 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
                         sortedValues.remove(existing);
                         uniqueValues.remove(existing.value);
                         sortedValues.add(new ValueAndId(newValue, existing.id));
-                        updates.add(change(existing.id, descriptor, existing.value, newValue));
+                        updates.add(ValueIndexEntryUpdate.change(existing.id, descriptor, existing.value, newValue));
                     } else { // remove
                         ValueAndId existing = random.among(sortedValues.toArray(new ValueAndId[0]));
                         sortedValues.remove(existing);

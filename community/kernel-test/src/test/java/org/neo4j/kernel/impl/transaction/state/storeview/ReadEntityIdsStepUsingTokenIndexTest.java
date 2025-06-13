@@ -60,7 +60,7 @@ import org.neo4j.kernel.impl.index.schema.DatabaseIndexContext;
 import org.neo4j.kernel.impl.index.schema.IndexFiles;
 import org.neo4j.kernel.impl.index.schema.TokenIndexAccessor;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -133,7 +133,8 @@ class ReadEntityIdsStepUsingTokenIndexTest {
         try (IndexUpdater updater = indexAccessor.newUpdater(ONLINE, CursorContext.NULL_CONTEXT, false)) {
             long id = 0;
             for (int i = 0; i < count; i++) {
-                updater.process(IndexEntryUpdate.change(id, INDEX_DESCRIPTOR, EMPTY_INT_ARRAY, new int[] {TOKEN_ID}));
+                updater.process(
+                        TokenIndexEntryUpdate.tokenChange(id, INDEX_DESCRIPTOR, EMPTY_INT_ARRAY, new int[] {TOKEN_ID}));
                 entityIds.set((int) id);
                 id += random.nextInt(1, 5);
             }
@@ -162,7 +163,7 @@ class ReadEntityIdsStepUsingTokenIndexTest {
                 for (int i = 0; i < numIds; i++) {
                     long candidateId = currentlyIndexedNodeId + i + 1;
                     if (!expectedEntityIds.get((int) candidateId)) {
-                        updater.process(IndexEntryUpdate.change(
+                        updater.process(TokenIndexEntryUpdate.tokenChange(
                                 candidateId, INDEX_DESCRIPTOR, EMPTY_INT_ARRAY, new int[] {TOKEN_ID}));
                         expectedEntityIds.set((int) candidateId);
                     }

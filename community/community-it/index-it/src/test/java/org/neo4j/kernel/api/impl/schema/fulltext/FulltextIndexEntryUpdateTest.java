@@ -82,7 +82,6 @@ import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobMonitoringParams;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
@@ -186,14 +185,14 @@ class FulltextIndexEntryUpdateTest {
     @Test
     final void populatorShouldNotIgnoreSupportedValueTypes() throws Exception {
         final var ids = generateIds(0, 10);
-        final var updates = generateUpdates(ids, id -> IndexEntryUpdate.add(id, index, supportedValue(id)));
+        final var updates = generateUpdates(ids, id -> ValueIndexEntryUpdate.add(id, index, supportedValue(id)));
         populatorTest(updates, ids);
     }
 
     @Test
     final void populatorShouldIgnoreUnsupportedValueTypes() throws Exception {
         final var ids = generateIds(0, 10);
-        final var updates = generateUpdates(ids, id -> IndexEntryUpdate.add(id, index, unsupportedValue(id)));
+        final var updates = generateUpdates(ids, id -> ValueIndexEntryUpdate.add(id, index, unsupportedValue(id)));
         populatorTest(updates, List.of());
     }
 
@@ -213,14 +212,14 @@ class FulltextIndexEntryUpdateTest {
     @Test
     final void populatingUpdaterShouldNotIgnoreAddedSupportedValueType() throws Exception {
         final var ids = generateIds(0, 10);
-        final var updates = generateUpdates(ids, id -> IndexEntryUpdate.add(id, index, supportedValue(id)));
+        final var updates = generateUpdates(ids, id -> ValueIndexEntryUpdate.add(id, index, supportedValue(id)));
         populatingUpdaterTest(updates, ids);
     }
 
     @Test
     final void populatingUpdaterShouldIgnoreAddedUnsupportedValueType() throws Exception {
         final var ids = generateIds(0, 10);
-        final var updates = generateUpdates(ids, id -> IndexEntryUpdate.add(id, index, unsupportedValue(id)));
+        final var updates = generateUpdates(ids, id -> ValueIndexEntryUpdate.add(id, index, unsupportedValue(id)));
         populatingUpdaterTest(updates, List.of());
     }
 
@@ -229,8 +228,8 @@ class FulltextIndexEntryUpdateTest {
         final var addedIds = generateIds(0, 20);
         final var removedIds = generateIds(11, 17);
         final var updates = Stream.of(
-                        generateUpdates(addedIds, id -> IndexEntryUpdate.add(id, index, supportedValue(id))),
-                        generateUpdates(removedIds, id -> IndexEntryUpdate.remove(id, index, supportedValue(id))))
+                        generateUpdates(addedIds, id -> ValueIndexEntryUpdate.add(id, index, supportedValue(id))),
+                        generateUpdates(removedIds, id -> ValueIndexEntryUpdate.remove(id, index, supportedValue(id))))
                 .flatMap(Collection::stream)
                 .toList();
 
@@ -244,8 +243,9 @@ class FulltextIndexEntryUpdateTest {
         final var addedIds = generateIds(0, 20);
         final var removedIds = generateIds(11, 17);
         final var updates = Stream.of(
-                        generateUpdates(addedIds, id -> IndexEntryUpdate.add(id, index, unsupportedValue(id))),
-                        generateUpdates(removedIds, id -> IndexEntryUpdate.remove(id, index, unsupportedValue(id))))
+                        generateUpdates(addedIds, id -> ValueIndexEntryUpdate.add(id, index, unsupportedValue(id))),
+                        generateUpdates(
+                                removedIds, id -> ValueIndexEntryUpdate.remove(id, index, unsupportedValue(id))))
                 .flatMap(Collection::stream)
                 .toList();
         populatingUpdaterTest(updates, List.of());
@@ -255,7 +255,7 @@ class FulltextIndexEntryUpdateTest {
     final void populatingUpdaterShouldNotIgnoreChangedBetweenSupportedValueTypes() throws Exception {
         final var ids = generateIds(0, 20);
         final var updates = generateUpdates(
-                ids, id -> IndexEntryUpdate.change(id, index, supportedValue(id), supportedValue(id + 1)));
+                ids, id -> ValueIndexEntryUpdate.change(id, index, supportedValue(id), supportedValue(id + 1)));
         populatingUpdaterTest(updates, ids);
     }
 
@@ -264,10 +264,11 @@ class FulltextIndexEntryUpdateTest {
         final var addedIds = generateIds(0, 20);
         final var changedIds = generateIds(11, 17);
         final var updates = Stream.of(
-                        generateUpdates(addedIds, id -> IndexEntryUpdate.add(id, index, unsupportedValue(id))),
+                        generateUpdates(addedIds, id -> ValueIndexEntryUpdate.add(id, index, unsupportedValue(id))),
                         generateUpdates(
                                 changedIds,
-                                id -> IndexEntryUpdate.change(id, index, unsupportedValue(id), supportedValue(id))))
+                                id -> ValueIndexEntryUpdate.change(
+                                        id, index, unsupportedValue(id), supportedValue(id))))
                 .flatMap(Collection::stream)
                 .toList();
         populatingUpdaterTest(updates, changedIds);
@@ -278,10 +279,11 @@ class FulltextIndexEntryUpdateTest {
         final var addedIds = generateIds(0, 20);
         final var changedIds = generateIds(11, 17);
         final var updates = Stream.of(
-                        generateUpdates(addedIds, id -> IndexEntryUpdate.add(id, index, supportedValue(id))),
+                        generateUpdates(addedIds, id -> ValueIndexEntryUpdate.add(id, index, supportedValue(id))),
                         generateUpdates(
                                 changedIds,
-                                id -> IndexEntryUpdate.change(id, index, supportedValue(id), unsupportedValue(id))))
+                                id -> ValueIndexEntryUpdate.change(
+                                        id, index, supportedValue(id), unsupportedValue(id))))
                 .flatMap(Collection::stream)
                 .toList();
 
@@ -294,7 +296,7 @@ class FulltextIndexEntryUpdateTest {
     final void populatingUpdaterShouldIgnoreChangedBetweenUnsupportedValueTypes() throws Exception {
         final var ids = generateIds(0, 20);
         final var updates = generateUpdates(
-                ids, id -> IndexEntryUpdate.change(id, index, unsupportedValue(id), unsupportedValue(id + 1)));
+                ids, id -> ValueIndexEntryUpdate.change(id, index, unsupportedValue(id), unsupportedValue(id + 1)));
         populatingUpdaterTest(updates, List.of());
     }
 
@@ -317,14 +319,14 @@ class FulltextIndexEntryUpdateTest {
     @Test
     final void updaterShouldNotIgnoreAddedSupportedValueType() throws Exception {
         final var ids = generateIds(0, 10);
-        final var updates = generateUpdates(ids, id -> IndexEntryUpdate.add(id, index, supportedValue(id)));
+        final var updates = generateUpdates(ids, id -> ValueIndexEntryUpdate.add(id, index, supportedValue(id)));
         updaterTest(updates, ids);
     }
 
     @Test
     final void updaterShouldIgnoreAddedUnsupportedValueType() throws Exception {
         final var ids = generateIds(0, 10);
-        final var updates = generateUpdates(ids, id -> IndexEntryUpdate.add(id, index, unsupportedValue(id)));
+        final var updates = generateUpdates(ids, id -> ValueIndexEntryUpdate.add(id, index, unsupportedValue(id)));
         updaterTest(updates, List.of());
     }
 
@@ -333,8 +335,8 @@ class FulltextIndexEntryUpdateTest {
         final var addedIds = generateIds(0, 20);
         final var removedIds = generateIds(11, 17);
         final var updates = Stream.of(
-                        generateUpdates(addedIds, id -> IndexEntryUpdate.add(id, index, supportedValue(id))),
-                        generateUpdates(removedIds, id -> IndexEntryUpdate.remove(id, index, supportedValue(id))))
+                        generateUpdates(addedIds, id -> ValueIndexEntryUpdate.add(id, index, supportedValue(id))),
+                        generateUpdates(removedIds, id -> ValueIndexEntryUpdate.remove(id, index, supportedValue(id))))
                 .flatMap(Collection::stream)
                 .toList();
 
@@ -348,8 +350,9 @@ class FulltextIndexEntryUpdateTest {
         final var addedIds = generateIds(0, 20);
         final var removedIds = generateIds(11, 17);
         final var updates = Stream.of(
-                        generateUpdates(addedIds, id -> IndexEntryUpdate.add(id, index, unsupportedValue(id))),
-                        generateUpdates(removedIds, id -> IndexEntryUpdate.remove(id, index, unsupportedValue(id))))
+                        generateUpdates(addedIds, id -> ValueIndexEntryUpdate.add(id, index, unsupportedValue(id))),
+                        generateUpdates(
+                                removedIds, id -> ValueIndexEntryUpdate.remove(id, index, unsupportedValue(id))))
                 .flatMap(Collection::stream)
                 .toList();
         updaterTest(updates, List.of());
@@ -359,7 +362,7 @@ class FulltextIndexEntryUpdateTest {
     final void updaterShouldNotIgnoreChangedBetweenSupportedValueTypes() throws Exception {
         final var ids = generateIds(0, 20);
         final var updates = generateUpdates(
-                ids, id -> IndexEntryUpdate.change(id, index, supportedValue(id), supportedValue(id + 1)));
+                ids, id -> ValueIndexEntryUpdate.change(id, index, supportedValue(id), supportedValue(id + 1)));
         updaterTest(updates, ids);
     }
 
@@ -368,10 +371,11 @@ class FulltextIndexEntryUpdateTest {
         final var addedIds = generateIds(0, 20);
         final var changedIds = generateIds(11, 17);
         final var updates = Stream.of(
-                        generateUpdates(addedIds, id -> IndexEntryUpdate.add(id, index, unsupportedValue(id))),
+                        generateUpdates(addedIds, id -> ValueIndexEntryUpdate.add(id, index, unsupportedValue(id))),
                         generateUpdates(
                                 changedIds,
-                                id -> IndexEntryUpdate.change(id, index, unsupportedValue(id), supportedValue(id))))
+                                id -> ValueIndexEntryUpdate.change(
+                                        id, index, unsupportedValue(id), supportedValue(id))))
                 .flatMap(Collection::stream)
                 .toList();
         updaterTest(updates, changedIds);
@@ -382,10 +386,11 @@ class FulltextIndexEntryUpdateTest {
         final var addedIds = generateIds(0, 20);
         final var changedIds = generateIds(11, 17);
         final var updates = Stream.of(
-                        generateUpdates(addedIds, id -> IndexEntryUpdate.add(id, index, supportedValue(id))),
+                        generateUpdates(addedIds, id -> ValueIndexEntryUpdate.add(id, index, supportedValue(id))),
                         generateUpdates(
                                 changedIds,
-                                id -> IndexEntryUpdate.change(id, index, supportedValue(id), unsupportedValue(id))))
+                                id -> ValueIndexEntryUpdate.change(
+                                        id, index, supportedValue(id), unsupportedValue(id))))
                 .flatMap(Collection::stream)
                 .toList();
 
@@ -398,7 +403,7 @@ class FulltextIndexEntryUpdateTest {
     final void updaterShouldIgnoreChangedBetweenUnsupportedValueTypes() throws Exception {
         final var ids = generateIds(0, 20);
         final var updates = generateUpdates(
-                ids, id -> IndexEntryUpdate.change(id, index, unsupportedValue(id), unsupportedValue(id + 1)));
+                ids, id -> ValueIndexEntryUpdate.change(id, index, unsupportedValue(id), unsupportedValue(id + 1)));
         updaterTest(updates, List.of());
     }
 

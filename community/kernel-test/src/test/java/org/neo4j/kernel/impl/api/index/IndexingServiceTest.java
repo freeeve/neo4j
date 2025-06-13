@@ -179,6 +179,7 @@ import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageEngine;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityTokenClient;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
@@ -803,7 +804,7 @@ class IndexingServiceTest {
         return () -> {
             List<IndexEntryUpdate> updates = new ArrayList<>();
             for (long nodeId : nodeIds) {
-                updates.add(IndexEntryUpdate.add(nodeId, index, Values.of(1)));
+                updates.add(ValueIndexEntryUpdate.add(nodeId, index, Values.of(1)));
             }
             return updates.iterator();
         };
@@ -1439,7 +1440,7 @@ class IndexingServiceTest {
         proxy.awaitStoreScanCompleted(1, HOURS);
         proxy.activate();
         try (IndexUpdater updater = proxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-            updater.process(IndexEntryUpdate.add(123, indexDescriptor, stringValue("some value")));
+            updater.process(ValueIndexEntryUpdate.add(123, indexDescriptor, stringValue("some value")));
         }
 
         // then
@@ -1807,10 +1808,10 @@ class IndexingServiceTest {
         life.start();
 
         // when explicitly mixing updates for different indexes back and forth
-        var index1Update1 = IndexEntryUpdate.add(10, index1, Values.intValue(10));
-        var index2Update1 = IndexEntryUpdate.add(11, index2, Values.intValue(11));
-        var index1Update2 = IndexEntryUpdate.add(12, index1, Values.intValue(12));
-        var index2Update2 = IndexEntryUpdate.add(13, index2, Values.intValue(13));
+        var index1Update1 = ValueIndexEntryUpdate.add(10, index1, Values.intValue(10));
+        var index2Update1 = ValueIndexEntryUpdate.add(11, index2, Values.intValue(11));
+        var index1Update2 = ValueIndexEntryUpdate.add(12, index1, Values.intValue(12));
+        var index2Update2 = ValueIndexEntryUpdate.add(13, index2, Values.intValue(13));
         List<IndexEntryUpdate> mixedUpdates = List.of(index1Update1, index2Update1, index1Update2, index2Update2);
         indexingService.applyUpdates(mixedUpdates, NULL_CONTEXT, true);
 
@@ -1892,11 +1893,11 @@ class IndexingServiceTest {
     }
 
     private IndexEntryUpdate add(long nodeId, Object propertyValue) {
-        return IndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
+        return ValueIndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
     }
 
     private static IndexEntryUpdate add(long nodeId, Object propertyValue, IndexDescriptor index) {
-        return IndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
+        return ValueIndexEntryUpdate.add(nodeId, index, Values.of(propertyValue));
     }
 
     private IndexingService newIndexingServiceWithMockedDependencies(

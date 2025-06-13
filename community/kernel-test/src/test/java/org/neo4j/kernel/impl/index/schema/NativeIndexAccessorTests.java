@@ -35,8 +35,7 @@ import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.api.index.IndexUpdateMode.ONLINE;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 import static org.neo4j.kernel.impl.index.schema.ValueCreatorUtil.countUniqueValues;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.change;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.remove;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 import static org.neo4j.values.storable.Values.of;
 
 import java.util.Arrays;
@@ -115,7 +114,8 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         for (int i = 0; i < updates.length; i++) {
             ValueIndexEntryUpdate update = updates[i];
             Value newValue = generator.next().values()[0];
-            updates[i] = change(update.getEntityId(), indexDescriptor, update.values()[0], newValue);
+            updates[i] =
+                    ValueIndexEntryUpdate.change(update.getEntityId(), indexDescriptor, update.values()[0], newValue);
         }
 
         // when
@@ -513,7 +513,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
                 ValueIndexEntryUpdate toChange = selectRandomItem(expectedData);
                 // use the data generator to generate values, even if the whole update as such won't be used
                 ValueIndexEntryUpdate updateContainingValue = newDataGenerator.next();
-                updates[i] = change(
+                updates[i] = ValueIndexEntryUpdate.change(
                         toChange.getEntityId(), indexDescriptor, toChange.values(), updateContainingValue.values());
             } else {
                 // add

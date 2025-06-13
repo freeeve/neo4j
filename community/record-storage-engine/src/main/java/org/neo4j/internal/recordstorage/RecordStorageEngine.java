@@ -518,7 +518,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         if (useIndexCommands()) {
             var commandState = new IndexRecordState(serialization);
             txStateVisitor = new TransactionToIndexUpdateVisitor(
-                    txStateVisitor, commandState, storageReader, txState, cursorContext, storeCursors, memoryTracker);
+                    txStateVisitor, commandState, storageReader, cursorContext, storeCursors, memoryTracker);
             indexRecordState = commandState;
         }
         txStateVisitor = new TransactionCountingStateVisitor(

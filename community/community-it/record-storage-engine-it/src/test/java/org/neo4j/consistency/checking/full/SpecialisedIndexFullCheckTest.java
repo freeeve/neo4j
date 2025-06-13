@@ -222,7 +222,7 @@ class SpecialisedIndexFullCheckTest {
                             EntityUpdates updates = fixture.nodeAsUpdates(nodeId);
                             for (IndexEntryUpdate update :
                                     updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
-                                updater.process(IndexEntryUpdate.remove(
+                                updater.process(ValueIndexEntryUpdate.remove(
                                         nodeId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                             }
                         }
@@ -254,7 +254,7 @@ class SpecialisedIndexFullCheckTest {
                             EntityUpdates updates = fixture.relationshipAsUpdates(relId);
                             for (IndexEntryUpdate update :
                                     updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
-                                updater.process(IndexEntryUpdate.remove(
+                                updater.process(ValueIndexEntryUpdate.remove(
                                         relId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                             }
                         }
@@ -283,7 +283,7 @@ class SpecialisedIndexFullCheckTest {
                 if (indexDescriptor.schema().entityType() == EntityType.NODE && !indexDescriptor.isUnique()) {
                     IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                     try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                        updater.process(IndexEntryUpdate.add(newNode, indexDescriptor, values(indexDescriptor)));
+                        updater.process(ValueIndexEntryUpdate.add(newNode, indexDescriptor, values(indexDescriptor)));
                     }
                 }
             }

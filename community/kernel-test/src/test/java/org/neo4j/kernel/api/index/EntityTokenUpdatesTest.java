@@ -29,7 +29,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.storageengine.api.EntityUpdates;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 
 class EntityTokenUpdatesTest {
     private static final long ENTITY_ID = 0;
@@ -61,7 +61,7 @@ class EntityTokenUpdatesTest {
                 .withTokensAfter(TOKEN_1_ID, TOKEN_2_ID)
                 .build();
         assertThat(updates.tokenUpdateForIndexKey(entity.getTokenIndex()))
-                .contains(IndexEntryUpdate.change(
+                .contains(TokenIndexEntryUpdate.tokenChange(
                         ENTITY_ID, entity.getTokenIndex(), EMPTY, new int[] {TOKEN_1_ID, TOKEN_2_ID}));
     }
 
@@ -73,8 +73,8 @@ class EntityTokenUpdatesTest {
                 .withTokensAfter(TOKEN_1_ID, TOKEN_2_ID)
                 .build();
         assertThat(updates.tokenUpdateForIndexKey(entity.getTokenIndex()))
-                .contains(IndexEntryUpdate.change(
-                        ENTITY_ID, entity.getTokenIndex(), new int[] {TOKEN_1_ID}, new int[] {TOKEN_1_ID, TOKEN_2_ID}));
+                .contains(TokenIndexEntryUpdate.tokenChange(
+                        ENTITY_ID, entity.getTokenIndex(), new int[] {}, new int[] {TOKEN_2_ID}));
     }
 
     @ParameterizedTest
@@ -85,7 +85,7 @@ class EntityTokenUpdatesTest {
                 .withTokensAfter(EMPTY)
                 .build();
         assertThat(updates.tokenUpdateForIndexKey(entity.getTokenIndex()))
-                .contains(IndexEntryUpdate.change(
+                .contains(TokenIndexEntryUpdate.tokenChange(
                         ENTITY_ID, entity.getTokenIndex(), new int[] {TOKEN_1_ID, TOKEN_2_ID}, EMPTY));
     }
 

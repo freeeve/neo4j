@@ -33,7 +33,6 @@ import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.Seeker;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
 
@@ -112,7 +111,8 @@ public class TokenIndexUtility {
             RandomSupport random) {
         int[] addTokens = generateRandomTokens(random);
         if (addTokens.length != 0) {
-            TokenIndexEntryUpdate update = IndexEntryUpdate.change(entityId, null, EMPTY_INT_ARRAY, addTokens);
+            TokenIndexEntryUpdate update =
+                    TokenIndexEntryUpdate.tokenChange(entityId, null, EMPTY_INT_ARRAY, addTokens);
             updates.add(update);
 
             // Add update to tracking structure

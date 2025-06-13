@@ -56,6 +56,7 @@ import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -137,7 +138,7 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldIgnoreAddedUnsupportedValueTypes() throws Exception {
         // given  the population of an empty index
         final var externalUpdates =
-                generateUpdates(10, id -> IndexEntryUpdate.add(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
+                generateUpdates(10, id -> ValueIndexEntryUpdate.add(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
         // when   processing the addition of unsupported value types
         // then   updates should not have been indexed
         test(List.of(), externalUpdates, 0);
@@ -147,7 +148,7 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldIgnoreRemovedUnsupportedValueTypes() throws Exception {
         // given  the population of an empty index
         final var externalUpdates =
-                generateUpdates(10, id -> IndexEntryUpdate.remove(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
+                generateUpdates(10, id -> ValueIndexEntryUpdate.remove(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
         // when   processing the removal of unsupported value types
         // then   updates should not have been indexed
         test(List.of(), externalUpdates, 0);
@@ -158,7 +159,8 @@ class TextIndexPopulatingUpdaterIT {
         // given  the population of an empty index
         final var externalUpdates = generateUpdates(
                 10,
-                id -> IndexEntryUpdate.change(id, INDEX_DESCRIPTOR, unsupportedValue(id), unsupportedValue(id + 1)));
+                id -> ValueIndexEntryUpdate.change(
+                        id, INDEX_DESCRIPTOR, unsupportedValue(id), unsupportedValue(id + 1)));
         // when   processing the change between unsupported value types
         // then   updates should not have been indexed
         test(List.of(), externalUpdates, 0);
@@ -168,7 +170,7 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldNotIgnoreChangesUnsupportedValueTypesToSupportedValueTypes() throws Exception {
         // given  the population of an empty index
         final var externalUpdates = generateUpdates(
-                10, id -> IndexEntryUpdate.change(id, INDEX_DESCRIPTOR, unsupportedValue(id), supportedValue(id)));
+                10, id -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, unsupportedValue(id), supportedValue(id)));
         // when   processing the change from an unsupported to a supported value type
         // then   updates should have been indexed as additions
         test(List.of(), externalUpdates, externalUpdates.size());
@@ -178,9 +180,9 @@ class TextIndexPopulatingUpdaterIT {
     final void shouldNotIgnoreChangesSupportedValueTypesToUnsupportedValueTypes() throws Exception {
         // given  the population of an empty index
         final var internalUpdates =
-                generateUpdates(10, id1 -> IndexEntryUpdate.add(id1, INDEX_DESCRIPTOR, supportedValue(id1)));
+                generateUpdates(10, id1 -> ValueIndexEntryUpdate.add(id1, INDEX_DESCRIPTOR, supportedValue(id1)));
         final var externalUpdates = generateUpdates(
-                10, id -> IndexEntryUpdate.change(id, INDEX_DESCRIPTOR, supportedValue(id), unsupportedValue(id)));
+                10, id -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, supportedValue(id), unsupportedValue(id)));
         // when   processing the change from a supported to an unsupported value type
         // then   updates should have been indexed as removals
         test(internalUpdates, externalUpdates, 0);

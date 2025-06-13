@@ -34,7 +34,7 @@ import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_C
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 import static org.neo4j.kernel.api.schema.SchemaTestUtil.SIMPLE_NAME_LOOKUP;
 import static org.neo4j.kernel.impl.api.index.PhaseTracker.nullInstance;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;

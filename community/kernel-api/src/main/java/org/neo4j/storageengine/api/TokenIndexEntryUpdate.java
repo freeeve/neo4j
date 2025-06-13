@@ -19,40 +19,33 @@
  */
 package org.neo4j.storageengine.api;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Arrays;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.memory.HeapEstimator;
 
-public class TokenIndexEntryUpdate extends IndexEntryUpdate {
-    private final int[] before;
-    private final int[] values;
-    private final boolean logical;
+public final class TokenIndexEntryUpdate extends IndexEntryUpdate {
+    private final int[] removed;
+    private final int[] added;
 
-    TokenIndexEntryUpdate(long entityId, IndexDescriptor indexKey, int[] before, int[] values, boolean logical) {
+    TokenIndexEntryUpdate(long entityId, IndexDescriptor indexKey, int[] removed, int[] added) {
         super(entityId, indexKey, UpdateMode.CHANGED);
-        this.before = before;
-        this.values = values;
-        this.logical = logical;
+        this.removed = requireNonNull(removed);
+        this.added = requireNonNull(added);
     }
 
-    public int[] values() {
-        return values;
+    public int[] added() {
+        return added;
     }
 
-    public int[] beforeValues() {
-        if (before == null) {
-            throw new UnsupportedOperationException("beforeValues is only valid for `UpdateMode.CHANGED");
-        }
-        return before;
-    }
-
-    public boolean isLogical() {
-        return logical;
+    public int[] removed() {
+        return removed;
     }
 
     @Override
     public long roughSizeOfUpdate() {
-        return HeapEstimator.sizeOf(values) + HeapEstimator.sizeOf(before);
+        return HeapEstimator.sizeOf(added) + HeapEstimator.sizeOf(removed);
     }
 
     @Override
@@ -60,26 +53,31 @@ public class TokenIndexEntryUpdate extends IndexEntryUpdate {
         if (!(o instanceof TokenIndexEntryUpdate that)) {
             return false;
         }
-        if (!Arrays.equals(before, that.before)) {
+        if (!Arrays.equals(removed, that.removed)) {
             return false;
         }
-        return Arrays.equals(values, that.values);
+        return Arrays.equals(added, that.added);
     }
 
     @Override
     protected int valueHash() {
-        int result = Arrays.hashCode(before);
-        result = 31 * result + Arrays.hashCode(values);
+        int result = Arrays.hashCode(removed);
+        result = 31 * result + Arrays.hashCode(added);
         return result;
     }
 
     @Override
     protected String valueToString() {
-        return String.format("beforeValues=%s, values=%s", Arrays.toString(before), Arrays.toString(values));
+        return String.format("removed=%s, added=%s", Arrays.toString(removed), Arrays.toString(added));
     }
 
     @Override
     public IndexEntryUpdate withEntityId(long entityId) {
-        return IndexEntryUpdate.change(entityId, indexKey(), before, values);
+        return tokenChange(entityId, indexKey(), removed, added);
+    }
+
+    public static TokenIndexEntryUpdate tokenChange(
+            long entityId, IndexDescriptor indexKey, int[] removed, int[] added) {
+        return new TokenIndexEntryUpdate(entityId, indexKey, removed, added);
     }
 }

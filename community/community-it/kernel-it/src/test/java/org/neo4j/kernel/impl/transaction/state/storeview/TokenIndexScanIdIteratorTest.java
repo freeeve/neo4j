@@ -37,7 +37,7 @@ import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
 
@@ -69,16 +69,18 @@ class TokenIndexScanIdIteratorTest {
 
         try (IndexUpdater indexUpdater =
                 indexProxy.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false)) {
-            indexUpdater.process(IndexEntryUpdate.change(2, index, EMPTY_INT_ARRAY, new int[] {labelId1, labelId2}));
-            indexUpdater.process(IndexEntryUpdate.change(1, index, EMPTY_INT_ARRAY, new int[] {labelId1}));
-            indexUpdater.process(IndexEntryUpdate.change(4, index, EMPTY_INT_ARRAY, new int[] {labelId1, labelId3}));
             indexUpdater.process(
-                    IndexEntryUpdate.change(5, index, EMPTY_INT_ARRAY, new int[] {labelId1, labelId2, labelId3}));
-            indexUpdater.process(IndexEntryUpdate.change(3, index, EMPTY_INT_ARRAY, new int[] {labelId1}));
-            indexUpdater.process(IndexEntryUpdate.change(7, index, EMPTY_INT_ARRAY, new int[] {labelId2}));
-            indexUpdater.process(IndexEntryUpdate.change(8, index, EMPTY_INT_ARRAY, new int[] {labelId3}));
-            indexUpdater.process(IndexEntryUpdate.change(6, index, EMPTY_INT_ARRAY, new int[] {labelId2}));
-            indexUpdater.process(IndexEntryUpdate.change(9, index, EMPTY_INT_ARRAY, new int[] {labelId3}));
+                    TokenIndexEntryUpdate.tokenChange(2, index, EMPTY_INT_ARRAY, new int[] {labelId1, labelId2}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(1, index, EMPTY_INT_ARRAY, new int[] {labelId1}));
+            indexUpdater.process(
+                    TokenIndexEntryUpdate.tokenChange(4, index, EMPTY_INT_ARRAY, new int[] {labelId1, labelId3}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(
+                    5, index, EMPTY_INT_ARRAY, new int[] {labelId1, labelId2, labelId3}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(3, index, EMPTY_INT_ARRAY, new int[] {labelId1}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(7, index, EMPTY_INT_ARRAY, new int[] {labelId2}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(8, index, EMPTY_INT_ARRAY, new int[] {labelId3}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(6, index, EMPTY_INT_ARRAY, new int[] {labelId2}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(9, index, EMPTY_INT_ARRAY, new int[] {labelId3}));
         }
 
         // THEN

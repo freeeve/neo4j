@@ -27,9 +27,8 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.change;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.remove;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,9 +60,10 @@ class DeferredConflictCheckingIndexUpdaterTest {
         long nodeId = 0;
         List<ValueIndexEntryUpdate> updates = new ArrayList<>();
         updates.add(add(nodeId++, descriptor, tuple(10, 11)));
-        updates.add(change(nodeId++, descriptor, tuple("abc", "def"), tuple("ghi", "klm")));
+        updates.add(ValueIndexEntryUpdate.change(nodeId++, descriptor, tuple("abc", "def"), tuple("ghi", "klm")));
         updates.add(remove(nodeId++, descriptor, tuple(1001L, 1002L)));
-        updates.add(change(nodeId++, descriptor, tuple((byte) 2, (byte) 3), tuple((byte) 4, (byte) 5)));
+        updates.add(ValueIndexEntryUpdate.change(
+                nodeId++, descriptor, tuple((byte) 2, (byte) 3), tuple((byte) 4, (byte) 5)));
         updates.add(add(nodeId, descriptor, tuple(5, "5")));
         try (DeferredConflictCheckingIndexUpdater updater =
                 new DeferredConflictCheckingIndexUpdater(actual, () -> reader, descriptor)) {

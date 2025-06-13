@@ -30,6 +30,7 @@ import java.util.Arrays;
  * are arrays containing unique values in sorted ascending order.
  */
 public final class PrimitiveArrays {
+
     private PrimitiveArrays() {
         // No instances allowed
     }
@@ -216,6 +217,80 @@ public final class PrimitiveArrays {
 
         assert cursor == difference.length;
         return difference;
+    }
+
+    public record RemovalsAndAdditions(int[] removals, int[] additions) {
+        public static final RemovalsAndAdditions NO_CHANGES =
+                new RemovalsAndAdditions(EMPTY_INT_ARRAY, EMPTY_INT_ARRAY);
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof RemovalsAndAdditions(int[] otherRemovals, int[] otherAdditions))) {
+                return false;
+            }
+            return Arrays.equals(removals, otherRemovals) && Arrays.equals(additions, otherAdditions);
+        }
+
+        @Override
+        public String toString() {
+            return "AdditionsAndRemovals{" + "additions="
+                    + Arrays.toString(additions) + ", removals="
+                    + Arrays.toString(removals) + '}';
+        }
+    }
+
+    public static RemovalsAndAdditions toRemovalsAndAdditions(int[] before, int[] after) {
+        boolean beforeIsEmpty = nullOrEmpty(before);
+        boolean afterIsEmpty = nullOrEmpty(after);
+        if (beforeIsEmpty || afterIsEmpty) {
+            return new RemovalsAndAdditions(
+                    beforeIsEmpty ? EMPTY_INT_ARRAY : before, afterIsEmpty ? EMPTY_INT_ARRAY : after);
+        }
+
+        assert isSortedSet(before) && isSortedSet(after);
+
+        long uniqueCounts = countUnique(before, after);
+        if (uniqueCounts == 0) {
+            return RemovalsAndAdditions.NO_CHANGES;
+        }
+
+        int leftCount = left(uniqueCounts);
+        int[] removals = leftCount == 0 ? EMPTY_INT_ARRAY : new int[leftCount];
+        int rightCount = right(uniqueCounts);
+        int[] additions = rightCount == 0 ? EMPTY_INT_ARRAY : new int[rightCount];
+
+        int removalsCursor = 0;
+        int additionsCursor = 0;
+        int l = 0;
+        int r = 0;
+        while (l < before.length && r < after.length) {
+            if (before[l] == after[r]) {
+                l++;
+                r++;
+            } else if (before[l] < after[r]) {
+                removals[removalsCursor++] = before[l];
+                l++;
+            } else {
+                additions[additionsCursor++] = after[r];
+                r++;
+            }
+        }
+        while (l < before.length) {
+            removals[removalsCursor++] = before[l];
+            l++;
+        }
+        while (r < after.length) {
+            additions[additionsCursor++] = after[r];
+            r++;
+        }
+
+        assert removalsCursor == removals.length;
+        assert additionsCursor == additions.length;
+        return new RemovalsAndAdditions(removals, additions);
+    }
+
+    private static boolean nullOrEmpty(int[] array) {
+        return array == null || array.length == 0;
     }
 
     /**

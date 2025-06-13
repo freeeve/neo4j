@@ -54,8 +54,6 @@ import java.util.function.LongSupplier;
 import java.util.function.Predicate;
 import java.util.function.ToLongFunction;
 import java.util.stream.Stream;
-import org.eclipse.collections.api.factory.primitive.IntLists;
-import org.eclipse.collections.api.list.primitive.MutableIntList;
 import org.eclipse.collections.api.list.primitive.MutableLongList;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongLists;
@@ -127,7 +125,8 @@ import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.CursorType;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.RandomSupport;
@@ -992,11 +991,11 @@ public class DetectRandomSabotageIT {
                         accessor.newUpdater(IndexUpdateMode.ONLINE_IDEMPOTENT, NULL_CONTEXT, false)) {
                     if (add) {
                         selectedEntityId = random.nextLong(SOME_WAY_TOO_HIGH_ID);
-                        updater.process(
-                                IndexEntryUpdate.add(selectedEntityId, indexProxy.getDescriptor(), selectedValues));
+                        updater.process(ValueIndexEntryUpdate.add(
+                                selectedEntityId, indexProxy.getDescriptor(), selectedValues));
                     } else {
-                        updater.process(
-                                IndexEntryUpdate.remove(selectedEntityId, indexProxy.getDescriptor(), selectedValues));
+                        updater.process(ValueIndexEntryUpdate.remove(
+                                selectedEntityId, indexProxy.getDescriptor(), selectedValues));
                     }
                 }
 
@@ -1045,43 +1044,38 @@ public class DetectRandomSabotageIT {
                         r -> add || (r.inUse() && r.getLabelField() != NO_LABELS_FIELD.longValue()),
                         storageCursors.readCursor(NODE_CURSOR));
                 TokenHolders tokenHolders = otherDependencies.resolveDependency(TokenHolders.class);
-                Set<String> labelNames = new HashSet<>(Arrays.asList(TOKEN_NAMES));
+
                 int labelId;
                 try (IndexUpdater writer = nliProxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
                     if (nodeRecord.inUse()) {
-                        // Our node is in use, make sure it's a label it doesn't already have
                         NodeLabels labelsField = NodeLabelsField.parseLabelsField(nodeRecord);
                         int[] labelsBefore = labelsField.get(store, storageCursors, EmptyMemoryTracker.INSTANCE);
-                        for (int labelIdBefore : labelsBefore) {
-                            labelNames.remove(tokenHolders
-                                    .labelTokens()
-                                    .getTokenById(labelIdBefore)
-                                    .name());
-                        }
                         if (add) {
                             // Add a label to an existing node (in the label index only)
+                            // Our node is in use, make sure it's a label it doesn't already have
+                            Set<String> labelNames = new HashSet<>(Arrays.asList(TOKEN_NAMES));
+                            for (int labelIdBefore : labelsBefore) {
+                                labelNames.remove(tokenHolders
+                                        .labelTokens()
+                                        .getTokenById(labelIdBefore)
+                                        .name());
+                            }
                             labelId = labelNames.isEmpty()
                                     ? 9999
                                     : tokenHolders.labelTokens().getIdByName(random.among(new ArrayList<>(labelNames)));
-                            int[] labelsAfter = Arrays.copyOf(labelsBefore, labelsBefore.length + 1);
-                            labelsAfter[labelsBefore.length] = labelId;
-                            Arrays.sort(labelsAfter);
-                            writer.process(IndexEntryUpdate.change(
-                                    nodeRecord.getId(), nliDescriptor, labelsBefore, labelsAfter));
+                            writer.process(TokenIndexEntryUpdate.tokenChange(
+                                    nodeRecord.getId(), nliDescriptor, EMPTY_INT_ARRAY, new int[] {labelId}));
                         } else {
                             // Remove a label from an existing node (in the label index only)
-                            MutableIntList labels =
-                                    IntLists.mutable.of(Arrays.copyOf(labelsBefore, labelsBefore.length));
-                            labelId = labels.removeAtIndex(random.nextInt(labels.size()));
-                            int[] labelsAfter = labels.toSortedArray(); // With one of the labels removed
-                            writer.process(IndexEntryUpdate.change(
-                                    nodeRecord.getId(), nliDescriptor, labelsBefore, labelsAfter));
+                            labelId = labelsBefore[random.nextInt(labelsBefore.length)];
+                            writer.process(TokenIndexEntryUpdate.tokenChange(
+                                    nodeRecord.getId(), nliDescriptor, new int[] {labelId}, EMPTY_INT_ARRAY));
                         }
                     } else // Getting here means the we're adding something (see above when selecting the node)
                     {
                         // Add a label to a non-existent node (in the label index only)
                         labelId = tokenHolders.labelTokens().getIdByName(random.among(TOKEN_NAMES));
-                        writer.process(IndexEntryUpdate.change(
+                        writer.process(TokenIndexEntryUpdate.tokenChange(
                                 nodeRecord.getId(), nliDescriptor, EMPTY_INT_ARRAY, new int[] {labelId}));
                     }
                 }
@@ -1121,13 +1115,11 @@ public class DetectRandomSabotageIT {
                         randomRecord(random, store, r -> true, storageCursors.readCursor(RELATIONSHIP_CURSOR));
                 TokenHolders tokenHolders = otherDependencies.resolveDependency(TokenHolders.class);
                 Set<String> relationshipTypeNames = new HashSet<>(Arrays.asList(TOKEN_NAMES));
-                int typeBefore = relationshipRecord.getType();
-                int[] typesBefore = new int[] {typeBefore};
                 int typeId;
-                int[] typesAfter;
                 String operation;
                 try (IndexUpdater writer = rtiProxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
                     if (relationshipRecord.inUse()) {
+                        int typeBefore = relationshipRecord.getType();
                         int mode = random.nextInt(3);
                         if (mode < 2) {
                             relationshipTypeNames.remove(tokenHolders
@@ -1139,25 +1131,31 @@ public class DetectRandomSabotageIT {
                                     .getIdByName(random.among(new ArrayList<>(relationshipTypeNames)));
                             if (mode == 0) {
                                 operation = "Replace relationship type in index with a new type";
-                                typesAfter = new int[] {typeId};
+                                writer.process(TokenIndexEntryUpdate.tokenChange(
+                                        relationshipRecord.getId(), rtiDescriptor, new int[] {typeBefore}, new int[] {
+                                            typeId
+                                        }));
                             } else {
                                 operation = "Add additional relationship type in index";
-                                typesAfter = new int[] {typeId, typeBefore};
-                                Arrays.sort(typesAfter);
+                                writer.process(TokenIndexEntryUpdate.tokenChange(
+                                        relationshipRecord.getId(), rtiDescriptor, EMPTY_INT_ARRAY, new int[] {typeId
+                                        }));
                             }
                         } else {
                             operation = "Remove relationship type from index";
                             typeId = typeBefore;
-                            typesAfter = EMPTY_INT_ARRAY;
+                            writer.process(TokenIndexEntryUpdate.tokenChange(
+                                    relationshipRecord.getId(),
+                                    rtiDescriptor,
+                                    new int[] {typeBefore},
+                                    EMPTY_INT_ARRAY));
                         }
-                        writer.process(IndexEntryUpdate.change(
-                                relationshipRecord.getId(), rtiDescriptor, typesBefore, typesAfter));
                     } else {
                         // Getting here means the we're adding something (see above when selecting the relationship)
                         operation =
                                 "Add relationship type to a non-existing relationship (in relationship type index only)";
                         typeId = tokenHolders.labelTokens().getIdByName(random.among(TOKEN_NAMES));
-                        writer.process(IndexEntryUpdate.change(
+                        writer.process(TokenIndexEntryUpdate.tokenChange(
                                 relationshipRecord.getId(), rtiDescriptor, EMPTY_INT_ARRAY, new int[] {typeId}));
                     }
                 }

@@ -67,7 +67,6 @@ import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.storable.ArrayValue;
@@ -898,7 +897,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
                     random.random(),
                     RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
             Value value = rv.nextValueOfType(valueType);
-            updateAndCommit(singletonList(IndexEntryUpdate.add(entityId, descriptor, value)));
+            updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(PropertyIndexQuery.exact(0, value)));
 
             // when
@@ -906,7 +905,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
             do {
                 newValue = rv.nextValueOfType(valueType);
             } while (value.equals(newValue));
-            updateAndCommit(singletonList(IndexEntryUpdate.change(entityId, descriptor, value, newValue)));
+            updateAndCommit(singletonList(ValueIndexEntryUpdate.change(entityId, descriptor, value, newValue)));
 
             // then
             assertEquals(emptyList(), query(PropertyIndexQuery.exact(0, value)));
@@ -924,11 +923,11 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
                     random.random(),
                     RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
             Value value = rv.nextValueOfType(valueType);
-            updateAndCommit(singletonList(IndexEntryUpdate.add(entityId, descriptor, value)));
+            updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(PropertyIndexQuery.exact(0, value)));
 
             // when
-            updateAndCommit(singletonList(IndexEntryUpdate.remove(entityId, descriptor, value)));
+            updateAndCommit(singletonList(ValueIndexEntryUpdate.remove(entityId, descriptor, value)));
 
             // then
             assertTrue(query(PropertyIndexQuery.exact(0, value)).isEmpty());

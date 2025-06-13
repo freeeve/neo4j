@@ -309,7 +309,8 @@ class RelationshipCheckerWithRelationshipTypeIndexTest extends CheckerTestBase {
 
     private void createIndexEntry(IndexUpdater writer, long relationshipId, int type)
             throws IndexEntryConflictException {
-        writer.process(TokenIndexEntryUpdate.change(relationshipId, rtiDescriptor, EMPTY_INT_ARRAY, new int[] {type}));
+        writer.process(
+                TokenIndexEntryUpdate.tokenChange(relationshipId, rtiDescriptor, EMPTY_INT_ARRAY, new int[] {type}));
     }
 
     private long createStoreEntry(int type) {

@@ -27,7 +27,7 @@ import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.storable.Value;
 
-public class ValueIndexEntryUpdate extends IndexEntryUpdate {
+public final class ValueIndexEntryUpdate extends IndexEntryUpdate {
     private final Value[] before;
     private final Value[] values;
 
@@ -42,6 +42,23 @@ public class ValueIndexEntryUpdate extends IndexEntryUpdate {
 
         this.before = before;
         this.values = values;
+    }
+
+    public static ValueIndexEntryUpdate add(long entityId, IndexDescriptor indexKey, Value... values) {
+        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.ADDED, values);
+    }
+
+    public static ValueIndexEntryUpdate remove(long entityId, IndexDescriptor indexKey, Value... values) {
+        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.REMOVED, values);
+    }
+
+    public static ValueIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, Value before, Value after) {
+        return new ValueIndexEntryUpdate(
+                entityId, indexKey, UpdateMode.CHANGED, new Value[] {before}, new Value[] {after});
+    }
+
+    public static ValueIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, Value[] before, Value[] after) {
+        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.CHANGED, before, after);
     }
 
     public Value[] values() {
@@ -93,9 +110,9 @@ public class ValueIndexEntryUpdate extends IndexEntryUpdate {
     @Override
     public IndexEntryUpdate withEntityId(long entityId) {
         return switch (updateMode()) {
-            case ADDED -> IndexEntryUpdate.add(entityId, indexKey(), values);
-            case CHANGED -> IndexEntryUpdate.change(entityId, indexKey(), before, values);
-            case REMOVED -> IndexEntryUpdate.remove(entityId, indexKey(), values);
+            case ADDED -> add(entityId, indexKey(), values);
+            case CHANGED -> change(entityId, indexKey(), before, values);
+            case REMOVED -> remove(entityId, indexKey(), values);
         };
     }
 

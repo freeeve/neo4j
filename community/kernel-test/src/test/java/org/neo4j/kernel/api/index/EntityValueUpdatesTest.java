@@ -42,13 +42,13 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.storageengine.api.EntityUpdates;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.PropertyKeyValue;
 import org.neo4j.storageengine.api.StorageNodeCursor;
 import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 import org.neo4j.storageengine.api.StubStorageCursors;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.token.api.NamedToken;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
@@ -215,7 +215,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_1, PROPERTY_1.value()));
+                .contains(ValueIndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_1, PROPERTY_1.value()));
     }
 
     @Test
@@ -238,10 +238,10 @@ class EntityValueUpdatesTest {
                         StoreCursors.NULL,
                         INSTANCE))
                 .contains(
-                        IndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_1, PROPERTY_1.value()),
-                        IndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_2, PROPERTY_2.value()),
-                        IndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_3, PROPERTY_3.value()),
-                        IndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_123, VALUES_123));
+                        ValueIndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_1, PROPERTY_1.value()),
+                        ValueIndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_2, PROPERTY_2.value()),
+                        ValueIndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_3, PROPERTY_3.value()),
+                        ValueIndexEntryUpdate.add(ENTITY_ID, NODE_INDEX_123, VALUES_123));
     }
 
     @ParameterizedTest
@@ -285,7 +285,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.add(ENTITY_ID, entity.index123(), VALUES_123));
+                .contains(ValueIndexEntryUpdate.add(ENTITY_ID, entity.index123(), VALUES_123));
     }
 
     @ParameterizedTest
@@ -319,7 +319,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_1, PROPERTY_1.value()));
+                .contains(ValueIndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_1, PROPERTY_1.value()));
     }
 
     @Test
@@ -339,10 +339,10 @@ class EntityValueUpdatesTest {
                         StoreCursors.NULL,
                         INSTANCE))
                 .contains(
-                        IndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_1, PROPERTY_1.value()),
-                        IndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_2, PROPERTY_2.value()),
-                        IndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_3, PROPERTY_3.value()),
-                        IndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_123, VALUES_123));
+                        ValueIndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_1, PROPERTY_1.value()),
+                        ValueIndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_2, PROPERTY_2.value()),
+                        ValueIndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_3, PROPERTY_3.value()),
+                        ValueIndexEntryUpdate.remove(ENTITY_ID, NODE_INDEX_123, VALUES_123));
     }
 
     @Test
@@ -370,7 +370,7 @@ class EntityValueUpdatesTest {
         // Then
         assertThat(updates.valueUpdatesForIndexKeys(
                         entity.indexes(), propertyLoader(), entity.type(), NULL_CONTEXT, StoreCursors.NULL, INSTANCE))
-                .contains(IndexEntryUpdate.add(ENTITY_ID, entity.index1(), PROPERTY_1.value()));
+                .contains(ValueIndexEntryUpdate.add(ENTITY_ID, entity.index1(), PROPERTY_1.value()));
     }
 
     @ParameterizedTest
@@ -393,10 +393,10 @@ class EntityValueUpdatesTest {
                         StoreCursors.NULL,
                         INSTANCE))
                 .contains(
-                        IndexEntryUpdate.add(ENTITY_ID, entity.index1(), PROPERTY_1.value()),
-                        IndexEntryUpdate.add(ENTITY_ID, entity.index2(), PROPERTY_2.value()),
-                        IndexEntryUpdate.add(ENTITY_ID, entity.index3(), PROPERTY_3.value()),
-                        IndexEntryUpdate.add(ENTITY_ID, entity.index123(), VALUES_123));
+                        ValueIndexEntryUpdate.add(ENTITY_ID, entity.index1(), PROPERTY_1.value()),
+                        ValueIndexEntryUpdate.add(ENTITY_ID, entity.index2(), PROPERTY_2.value()),
+                        ValueIndexEntryUpdate.add(ENTITY_ID, entity.index3(), PROPERTY_3.value()),
+                        ValueIndexEntryUpdate.add(ENTITY_ID, entity.index123(), VALUES_123));
     }
 
     @Test
@@ -488,7 +488,8 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.add(ENTITY_ID, entity.nonSchemaIndex(), PROPERTY_1.value(), null, null));
+                .contains(
+                        ValueIndexEntryUpdate.add(ENTITY_ID, entity.nonSchemaIndex(), PROPERTY_1.value(), null, null));
     }
 
     @ParameterizedTest
@@ -511,7 +512,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.add(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123));
+                .contains(ValueIndexEntryUpdate.add(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123));
     }
 
     @ParameterizedTest
@@ -533,7 +534,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.change(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, new Value[] {
+                .contains(ValueIndexEntryUpdate.change(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, new Value[] {
                     PROPERTY_1.value(), newValue2, PROPERTY_3.value()
                 }));
     }
@@ -561,7 +562,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.change(
+                .contains(ValueIndexEntryUpdate.change(
                         ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, new Value[] {newValue1, newValue2, newValue3}));
     }
 
@@ -583,7 +584,8 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.remove(ENTITY_ID, entity.nonSchemaIndex(), null, PROPERTY_2.value(), null));
+                .contains(ValueIndexEntryUpdate.remove(
+                        ENTITY_ID, entity.nonSchemaIndex(), null, PROPERTY_2.value(), null));
     }
 
     @ParameterizedTest
@@ -604,7 +606,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.change(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, new Value[] {
+                .contains(ValueIndexEntryUpdate.change(ENTITY_ID, entity.nonSchemaIndex(), VALUES_123, new Value[] {
                     PROPERTY_1.value(), null, PROPERTY_3.value()
                 }));
     }
@@ -625,7 +627,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.add(ENTITY_ID, NON_SCHEMA_NODE_INDEX, VALUES_123));
+                .contains(ValueIndexEntryUpdate.add(ENTITY_ID, NON_SCHEMA_NODE_INDEX, VALUES_123));
     }
 
     @Test
@@ -644,7 +646,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.add(ENTITY_ID, NON_SCHEMA_NODE_INDEX, VALUES_123));
+                .contains(ValueIndexEntryUpdate.add(ENTITY_ID, NON_SCHEMA_NODE_INDEX, VALUES_123));
     }
 
     @Test
@@ -701,7 +703,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.remove(ENTITY_ID, NON_SCHEMA_NODE_INDEX, VALUES_123));
+                .contains(ValueIndexEntryUpdate.remove(ENTITY_ID, NON_SCHEMA_NODE_INDEX, VALUES_123));
     }
 
     @Test
@@ -739,7 +741,7 @@ class EntityValueUpdatesTest {
                         NULL_CONTEXT,
                         StoreCursors.NULL,
                         INSTANCE))
-                .contains(IndexEntryUpdate.remove(ENTITY_ID, NON_SCHEMA_NODE_INDEX, VALUES_123));
+                .contains(ValueIndexEntryUpdate.remove(ENTITY_ID, NON_SCHEMA_NODE_INDEX, VALUES_123));
     }
 
     private static StorageReader propertyLoader(StorageProperty... properties) {

@@ -57,6 +57,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.collection.PrimitiveArrays;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
@@ -74,7 +75,6 @@ import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.TokenIndexReader;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 
 public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, TokenScanValue, TokenScanLayout> {
@@ -302,9 +302,9 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
         long nodeId2 = 11;
         try (IndexUpdater indexUpdater = accessor.newUpdater(ONLINE, NULL_CONTEXT, false)) {
             indexUpdater.process(
-                    IndexEntryUpdate.change(nodeId1, indexDescriptor, EMPTY_INT_ARRAY, new int[] {labelId1}));
-            indexUpdater.process(
-                    IndexEntryUpdate.change(nodeId2, indexDescriptor, EMPTY_INT_ARRAY, new int[] {labelId1, labelId2}));
+                    TokenIndexEntryUpdate.tokenChange(nodeId1, indexDescriptor, EMPTY_INT_ARRAY, new int[] {labelId1}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(
+                    nodeId2, indexDescriptor, EMPTY_INT_ARRAY, new int[] {labelId1, labelId2}));
         }
 
         // WHEN
@@ -327,9 +327,9 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
         long nodeId2 = 1280;
         try (IndexUpdater indexUpdater = accessor.newUpdater(ONLINE, NULL_CONTEXT, false)) {
             indexUpdater.process(
-                    IndexEntryUpdate.change(nodeId1, indexDescriptor, EMPTY_INT_ARRAY, new int[] {labelId1}));
-            indexUpdater.process(
-                    IndexEntryUpdate.change(nodeId2, indexDescriptor, EMPTY_INT_ARRAY, new int[] {labelId1, labelId2}));
+                    TokenIndexEntryUpdate.tokenChange(nodeId1, indexDescriptor, EMPTY_INT_ARRAY, new int[] {labelId1}));
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(
+                    nodeId2, indexDescriptor, EMPTY_INT_ARRAY, new int[] {labelId1, labelId2}));
         }
 
         // WHEN
@@ -383,8 +383,8 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
                     int[] afterTokens = generateRandomTokens(random);
                     if (afterTokens.length != 0) {
                         trackingStructure.put(currentMaxEntityId, Arrays.copyOf(afterTokens, afterTokens.length));
-                        updater.process(
-                                IndexEntryUpdate.change(currentMaxEntityId, null, EMPTY_INT_ARRAY, afterTokens));
+                        updater.process(TokenIndexEntryUpdate.tokenChange(
+                                currentMaxEntityId, null, EMPTY_INT_ARRAY, afterTokens));
                     }
                     currentMaxEntityId++;
                 }
@@ -401,7 +401,9 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
                     }
                     int[] afterTokens = generateRandomTokens(random);
                     trackingStructure.put(entityId, Arrays.copyOf(afterTokens, afterTokens.length));
-                    updater.process(IndexEntryUpdate.change(entityId, null, beforeTokens, afterTokens));
+                    var removalsAndAdditions = PrimitiveArrays.toRemovalsAndAdditions(beforeTokens, afterTokens);
+                    updater.process(TokenIndexEntryUpdate.tokenChange(
+                            entityId, null, removalsAndAdditions.removals(), removalsAndAdditions.additions()));
                 }
             }
             additionalOperation.execute();
@@ -423,8 +425,8 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
     private void addToIndex(int tokenId, long... entityIds) throws IndexEntryConflictException {
         try (IndexUpdater updater = accessor.newUpdater(ONLINE, NULL_CONTEXT, false)) {
             for (long entityId : entityIds) {
-                updater.process(
-                        IndexEntryUpdate.change(entityId, indexDescriptor, EMPTY_INT_ARRAY, new int[] {tokenId}));
+                updater.process(TokenIndexEntryUpdate.tokenChange(
+                        entityId, indexDescriptor, EMPTY_INT_ARRAY, new int[] {tokenId}));
             }
         }
     }
@@ -491,7 +493,7 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
     }
 
     private TokenIndexEntryUpdate simpleUpdate() {
-        return TokenIndexEntryUpdate.change(0, indexDescriptor, EMPTY_INT_ARRAY, new int[] {0});
+        return TokenIndexEntryUpdate.tokenChange(0, indexDescriptor, EMPTY_INT_ARRAY, new int[] {0});
     }
 
     private static Stream<Arguments> orderCombinations() {

@@ -23,7 +23,6 @@ import static org.neo4j.internal.schema.SchemaUserDescription.TOKEN_ID_NAME_LOOK
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.values.storable.Value;
 
 /**
  * Subclasses of this represent events related to property changes due to property or label addition, deletion or
@@ -31,7 +30,7 @@ import org.neo4j.values.storable.Value;
  * This is of use in populating indexes that might be relevant to node label and property combinations.
  *
  */
-public abstract class IndexEntryUpdate {
+public abstract sealed class IndexEntryUpdate permits TokenIndexEntryUpdate, ValueIndexEntryUpdate {
     private final long entityId;
     private final UpdateMode updateMode;
     private final IndexDescriptor indexKey;
@@ -127,36 +126,5 @@ public abstract class IndexEntryUpdate {
     @Override
     public String toString() {
         return describe(TOKEN_ID_NAME_LOOKUP);
-    }
-
-    public static ValueIndexEntryUpdate add(long entityId, IndexDescriptor indexKey, Value... values) {
-        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.ADDED, values);
-    }
-
-    public static ValueIndexEntryUpdate remove(long entityId, IndexDescriptor indexKey, Value... values) {
-        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.REMOVED, values);
-    }
-
-    public static ValueIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, Value before, Value after) {
-        return new ValueIndexEntryUpdate(
-                entityId, indexKey, UpdateMode.CHANGED, new Value[] {before}, new Value[] {after});
-    }
-
-    public static ValueIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, Value[] before, Value[] after) {
-        return new ValueIndexEntryUpdate(entityId, indexKey, UpdateMode.CHANGED, before, after);
-    }
-
-    public static TokenIndexEntryUpdate change(long entityId, IndexDescriptor indexKey, int[] before, int[] after) {
-        return change(entityId, indexKey, before, after, false);
-    }
-
-    /**
-     * @param logical if {@code true} then {@code before} means tokens to remove and {@code after}
-     *     means tokens to add, otherwise if {@code false} {@code before} means tokens before the
-     *     change and {@code after} means tokens after the change.
-     */
-    public static TokenIndexEntryUpdate change(
-            long entityId, IndexDescriptor indexKey, int[] before, int[] after, boolean logical) {
-        return new TokenIndexEntryUpdate(entityId, indexKey, before, after, logical);
     }
 }

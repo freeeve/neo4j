@@ -56,6 +56,7 @@ import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -133,6 +134,6 @@ class TextIndexPopulationIT {
     }
 
     private IndexEntryUpdate add(long nodeId, Object value) {
-        return IndexEntryUpdate.add(nodeId, descriptor, Values.of(value));
+        return ValueIndexEntryUpdate.add(nodeId, descriptor, Values.of(value));
     }
 }

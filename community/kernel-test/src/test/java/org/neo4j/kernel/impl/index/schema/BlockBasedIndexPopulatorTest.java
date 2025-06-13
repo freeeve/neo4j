@@ -86,6 +86,7 @@ import org.neo4j.scheduler.JobHandle;
 import org.neo4j.scheduler.JobMonitoringParams;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.Barrier;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.Inject;
@@ -412,7 +413,7 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
             int numberOfUpdatesAfterCompleted = 4;
             try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
                 for (int i = 0; i < numberOfUpdatesAfterCompleted; i++) {
-                    updater.process(IndexEntryUpdate.add(10_000 + i, INDEX_DESCRIPTOR, supportedValue(i)));
+                    updater.process(ValueIndexEntryUpdate.add(10_000 + i, INDEX_DESCRIPTOR, supportedValue(i)));
                 }
             }
             populator.close(true, NULL_CONTEXT);
@@ -499,7 +500,7 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
             assertThrows(
                     IllegalArgumentException.class,
                     () -> populator.add(
-                            singletonList(IndexEntryUpdate.add(
+                            singletonList(ValueIndexEntryUpdate.add(
                                     0, INDEX_DESCRIPTOR, generateStringValueResultingInIndexEntrySize(layout(), size))),
                             NULL_CONTEXT));
         } finally {
@@ -522,7 +523,7 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
             }
             assertThrows(IllegalArgumentException.class, () -> {
                 try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
-                    updater.process(IndexEntryUpdate.add(
+                    updater.process(ValueIndexEntryUpdate.add(
                             0, INDEX_DESCRIPTOR, generateStringValueResultingInIndexEntrySize(layout(), size)));
                 }
             });
@@ -590,11 +591,11 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
     }
 
     private IndexEntryUpdate add(int i) {
-        return IndexEntryUpdate.add(i, INDEX_DESCRIPTOR, supportedValue(i));
+        return ValueIndexEntryUpdate.add(i, INDEX_DESCRIPTOR, supportedValue(i));
     }
 
     private IndexEntryUpdate remove(int i) {
-        return IndexEntryUpdate.remove(i, INDEX_DESCRIPTOR, supportedValue(i));
+        return ValueIndexEntryUpdate.remove(i, INDEX_DESCRIPTOR, supportedValue(i));
     }
 
     private static class TrappingMonitor extends Monitor.Adapter {

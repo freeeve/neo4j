@@ -23,15 +23,14 @@ import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.neo4j.common.EntityType.NODE;
 import static org.neo4j.common.EntityType.RELATIONSHIP;
 import static org.neo4j.internal.schema.SchemaDescriptors.forAnyEntityTokens;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.change;
-import static org.neo4j.storageengine.api.IndexEntryUpdate.remove;
+import static org.neo4j.storageengine.api.TokenIndexEntryUpdate.tokenChange;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.change;
+import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 import static org.neo4j.token.api.TokenConstants.ANY_RELATIONSHIP_TYPE;
 
 import java.util.Arrays;
 import org.eclipse.collections.api.set.primitive.IntSet;
-import org.eclipse.collections.api.set.primitive.MutableIntSet;
-import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.helpers.collection.Iterators;
@@ -46,7 +45,6 @@ import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.txstate.EntityChange;
-import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
 import org.neo4j.storageengine.api.txstate.RelationshipModifications;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
 import org.neo4j.values.storable.ValueTuple;
@@ -55,7 +53,6 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
     private static final int[] NO_TOKENS = EMPTY_INT_ARRAY;
 
     private final IndexRecordState indexRecordState;
-    private final ReadableTransactionState txState;
     private final StorageNodeCursor nodeCursor;
     private final StorageRelationshipScanCursor relationshipCursor;
     private final IndexDescriptor labelIndex;
@@ -65,14 +62,12 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
             TxStateVisitor next,
             IndexRecordState indexRecordState,
             StorageReader storageReader,
-            ReadableTransactionState txState,
             CursorContext cursorContext,
             StoreCursors storeCursors,
             MemoryTracker memoryTracker) {
         super(next);
         this.indexRecordState = indexRecordState;
 
-        this.txState = txState;
         this.nodeCursor = storageReader.allocateNodeCursor(cursorContext, storeCursors, memoryTracker);
         this.relationshipCursor =
                 storageReader.allocateRelationshipScanCursor(cursorContext, storeCursors, memoryTracker);
@@ -104,7 +99,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
         if (labelsBefore.length > 1) {
             Arrays.sort(labelsBefore);
         }
-        indexRecordState.addTokenUpdate(change(id, labelIndex, labelsBefore, NO_TOKENS));
+        indexRecordState.addTokenUpdate(tokenChange(id, labelIndex, labelsBefore, NO_TOKENS));
     }
 
     @Override
@@ -114,32 +109,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
         if (labelIndex == null) {
             return;
         }
-
-        IntSet labels;
-        int[] currentLabels;
-
-        if (txState.nodeIsAddedInThisBatch(id)) {
-            labels = IntHashSet.newSet(added);
-            currentLabels = NO_TOKENS;
-        } else {
-            nodeCursor.single(id);
-            if (nodeCursor.next()) {
-                currentLabels = nodeCursor.labels();
-            } else {
-                currentLabels = NO_TOKENS;
-            }
-
-            MutableIntSet mutableLabels = new IntHashSet();
-            for (int currentLabel : currentLabels) {
-                if (!removed.contains(currentLabel)) {
-                    mutableLabels.add(currentLabel);
-                }
-            }
-
-            mutableLabels.addAll(added);
-            labels = mutableLabels;
-        }
-        indexRecordState.addTokenUpdate(change(id, labelIndex, currentLabels, labels.toSortedArray()));
+        indexRecordState.addTokenUpdate(tokenChange(id, labelIndex, removed.toSortedArray(), added.toSortedArray()));
     }
 
     @Override
@@ -155,7 +125,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
                 .creations()
                 .forEach((id, type, startNode, endNode, addedProperties, changedProperties, removedProperties) ->
                         indexRecordState.addTokenUpdate(
-                                change(id, relationshipTypeIndex, NO_TOKENS, new int[] {type})));
+                                tokenChange(id, relationshipTypeIndex, NO_TOKENS, new int[] {type})));
         modifications
                 .deletions()
                 .forEach((id, type, startNode, endNode, noProperties, changedProperties, removedProperties) -> {
@@ -166,10 +136,11 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
                                     "Relationship being deleted should exist along with its nodes. Relationship[" + id
                                             + "]");
                         }
-                        indexRecordState.addTokenUpdate(
-                                change(id, relationshipTypeIndex, new int[] {relationshipCursor.type()}, NO_TOKENS));
+                        indexRecordState.addTokenUpdate(tokenChange(
+                                id, relationshipTypeIndex, new int[] {relationshipCursor.type()}, NO_TOKENS));
                     } else {
-                        indexRecordState.addTokenUpdate(change(id, relationshipTypeIndex, new int[] {type}, NO_TOKENS));
+                        indexRecordState.addTokenUpdate(
+                                tokenChange(id, relationshipTypeIndex, new int[] {type}, NO_TOKENS));
                     }
                 });
     }

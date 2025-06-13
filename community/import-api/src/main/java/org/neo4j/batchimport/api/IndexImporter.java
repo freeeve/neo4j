@@ -39,7 +39,7 @@ public interface IndexImporter extends Closeable {
 
     class EmptyIndexImporter implements IndexImporter, Writer {
         @Override
-        public void change(long entity, int[] removed, int[] added, boolean logical) {}
+        public void change(long entity, int[] removals, int[] additions) {}
 
         @Override
         public void close() throws IOException {}
@@ -60,7 +60,7 @@ public interface IndexImporter extends Closeable {
          * @param tokens the tokens associated with the entity (labels/relationship types)
          */
         default void add(long entity, int[] tokens) {
-            change(entity, EMPTY_INT_ARRAY, tokens, true);
+            change(entity, EMPTY_INT_ARRAY, tokens);
         }
 
         /**
@@ -70,20 +70,17 @@ public interface IndexImporter extends Closeable {
          * @param tokens the tokens associated with the entity (labels/relationship types)
          */
         default void remove(long entity, int[] tokens) {
-            change(entity, tokens, EMPTY_INT_ARRAY, true);
+            change(entity, tokens, EMPTY_INT_ARRAY);
         }
 
         /**
          * Called by the batch importer for entity that has changes in its entity tokens
-         * @param entity the id of the entity (node id/relationship id)
-         * @param beforeTokens if {@code logical == true} then it means labels to remove,
-         * else labels before the change.
-         * @param afterTokens if {@code logical == true} then it means labels to add,
-         * else labels after the change.
-         * @param logical if {@code true} interprets before/after tokens as remove/add,
-         * else as before/after.
+         *
+         * @param entity    the id of the entity (node id/relationship id)
+         * @param removals  labels to remove,
+         * @param additions labels to add,
          */
-        void change(long entity, int[] beforeTokens, int[] afterTokens, boolean logical);
+        void change(long entity, int[] removals, int[] additions);
 
         void yield();
     }

@@ -65,7 +65,6 @@ import static org.neo4j.kernel.impl.store.record.Record.NO_PREVIOUS_PROPERTY;
 import static org.neo4j.kernel.impl.store.record.Record.NULL_REFERENCE;
 import static org.neo4j.kernel.impl.store.record.RecordLoad.FORCE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
-import static org.neo4j.storageengine.api.EntityTokenUpdate.tokenChanges;
 import static org.neo4j.test.mockito.mock.Property.property;
 import static org.neo4j.test.mockito.mock.Property.set;
 import static org.neo4j.util.BitBuffer.bits;
@@ -179,9 +178,9 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.logging.log4j.Log4jLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.ThreadSafePeakMemoryTracker;
-import org.neo4j.storageengine.api.EntityTokenUpdate;
 import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.util.IdUpdateListener;
@@ -363,9 +362,12 @@ public class FullCheckIntegrationTest {
         long nodeId1 = idGenerator.node();
         int labelId = idGenerator.label() - 1;
 
-        Iterable<EntityTokenUpdate> nodeLabelUpdates =
-                asIterable(tokenChanges(nodeId1, EMPTY_INT_ARRAY, new int[] {labelId}));
-        writeToNodeLabelStructure(fixture, nodeLabelUpdates);
+        IndexDescriptor tokenIndex = findTokenIndex(fixture, EntityType.NODE);
+        writeToNodeLabelStructure(
+                fixture,
+                asIterable(
+                        TokenIndexEntryUpdate.tokenChange(nodeId1, tokenIndex, EMPTY_INT_ARRAY, new int[] {labelId})),
+                tokenIndex);
 
         // when
         ConsistencySummaryStatistics stats = check();
@@ -385,7 +387,7 @@ public class FullCheckIntegrationTest {
         IndexDescriptor rtiDescriptor = findTokenIndex(fixture, EntityType.RELATIONSHIP);
         IndexAccessor accessor = fixture.indexAccessorLookup().apply(rtiDescriptor);
         try (IndexUpdater indexUpdater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-            indexUpdater.process(IndexEntryUpdate.change(
+            indexUpdater.process(TokenIndexEntryUpdate.tokenChange(
                     relationshipId, rtiDescriptor, EMPTY_INT_ARRAY, new int[] {relationshipTypeId}));
         }
 
@@ -434,17 +436,13 @@ public class FullCheckIntegrationTest {
         throw new RuntimeException(entityType + " index missing");
     }
 
-    void writeToNodeLabelStructure(GraphStoreFixture fixture, Iterable<EntityTokenUpdate> entityTokenUpdates)
+    void writeToNodeLabelStructure(
+            GraphStoreFixture fixture, Iterable<TokenIndexEntryUpdate> entityTokenUpdates, IndexDescriptor tokenIndex)
             throws IOException, IndexEntryConflictException {
-        IndexDescriptor tokenIndex = findTokenIndex(fixture, EntityType.NODE);
         IndexAccessor accessor = fixture.indexAccessorLookup().apply(tokenIndex);
         try (IndexUpdater indexUpdater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-            for (EntityTokenUpdate entityTokenUpdate : entityTokenUpdates) {
-                indexUpdater.process(IndexEntryUpdate.change(
-                        entityTokenUpdate.getEntityId(),
-                        tokenIndex,
-                        entityTokenUpdate.getTokensBefore(),
-                        entityTokenUpdate.getTokensAfter()));
+            for (var entityTokenUpdate : entityTokenUpdates) {
+                indexUpdater.process(entityTokenUpdate);
             }
         }
     }
@@ -550,11 +548,12 @@ public class FullCheckIntegrationTest {
             }
         });
 
-        int[] before = asArray(labels);
-        labels.remove(1);
-        int[] after = asArray(labels);
-
-        writeToNodeLabelStructure(fixture, singletonList(tokenChanges(42, before, after)));
+        IndexDescriptor tokenIndex = findTokenIndex(fixture, EntityType.NODE);
+        writeToNodeLabelStructure(
+                fixture,
+                singletonList(
+                        TokenIndexEntryUpdate.tokenChange(42, tokenIndex, new int[] {labels.get(1)}, EMPTY_INT_ARRAY)),
+                tokenIndex);
 
         // when
         ConsistencySummaryStatistics stats = check();
@@ -585,8 +584,11 @@ public class FullCheckIntegrationTest {
             }
         });
 
-        EntityTokenUpdate update = tokenChanges(42, new int[] {label1, label2}, new int[] {label1});
-        writeToNodeLabelStructure(fixture, singletonList(update));
+        IndexDescriptor tokenIndex = findTokenIndex(fixture, EntityType.NODE);
+        writeToNodeLabelStructure(
+                fixture,
+                singletonList(TokenIndexEntryUpdate.tokenChange(42, tokenIndex, new int[label2], EMPTY_INT_ARRAY)),
+                tokenIndex);
 
         // when
         ConsistencySummaryStatistics stats = check();
@@ -609,7 +611,7 @@ public class FullCheckIntegrationTest {
                         EntityUpdates updates = fixture.nodeAsUpdates(nodeId);
                         for (IndexEntryUpdate update :
                                 updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
-                            updater.process(IndexEntryUpdate.remove(
+                            updater.process(ValueIndexEntryUpdate.remove(
                                     nodeId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                         }
                     }
@@ -640,7 +642,7 @@ public class FullCheckIntegrationTest {
                         EntityUpdates updates = fixture.relationshipAsUpdates(relId);
                         for (IndexEntryUpdate update :
                                 updates.valueUpdatesForIndexKeys(singletonList(indexDescriptor))) {
-                            updater.process(IndexEntryUpdate.remove(
+                            updater.process(ValueIndexEntryUpdate.remove(
                                     relId, indexDescriptor, ((ValueIndexEntryUpdate) update).values()));
                         }
                     }
@@ -670,7 +672,7 @@ public class FullCheckIntegrationTest {
             if (indexDescriptor.schema().entityType() == EntityType.NODE && !indexDescriptor.isUnique()) {
                 IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                    updater.process(IndexEntryUpdate.add(newNode, indexDescriptor, values(indexDescriptor)));
+                    updater.process(ValueIndexEntryUpdate.add(newNode, indexDescriptor, values(indexDescriptor)));
                 }
             }
         }
@@ -697,7 +699,7 @@ public class FullCheckIntegrationTest {
             if (indexDescriptor.schema().entityType() == EntityType.RELATIONSHIP && !indexDescriptor.isUnique()) {
                 IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                    updater.process(IndexEntryUpdate.add(newRel, indexDescriptor, values(indexDescriptor)));
+                    updater.process(ValueIndexEntryUpdate.add(newRel, indexDescriptor, values(indexDescriptor)));
                 }
             }
         }
@@ -727,7 +729,7 @@ public class FullCheckIntegrationTest {
             if (indexDescriptor.schema().entityType() == EntityType.NODE && !indexDescriptor.isUnique()) {
                 IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                    updater.process(IndexEntryUpdate.change(
+                    updater.process(ValueIndexEntryUpdate.change(
                             id.get(), indexDescriptor, values(indexDescriptor), otherValues(indexDescriptor)));
                 }
             }
@@ -761,7 +763,7 @@ public class FullCheckIntegrationTest {
             if (indexDescriptor.schema().entityType() == EntityType.RELATIONSHIP) {
                 IndexAccessor accessor = fixture.indexAccessorLookup().apply(indexDescriptor);
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
-                    updater.process(IndexEntryUpdate.change(
+                    updater.process(ValueIndexEntryUpdate.change(
                             id.get(), indexDescriptor, values(indexDescriptor), otherValues(indexDescriptor)));
                 }
             }
@@ -802,7 +804,7 @@ public class FullCheckIntegrationTest {
 
                 try (IndexUpdater updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
                     // There is already another node (created in generateInitialData()) that has this value
-                    updater.process(IndexEntryUpdate.add(nodeId, indexDescriptor, values(indexDescriptor)));
+                    updater.process(ValueIndexEntryUpdate.add(nodeId, indexDescriptor, values(indexDescriptor)));
                 }
                 accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
             }

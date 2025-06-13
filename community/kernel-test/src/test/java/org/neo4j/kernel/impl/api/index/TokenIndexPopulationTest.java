@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.api.index;
 
+import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -62,6 +63,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.scheduler.JobSchedulerExtension;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.test.InMemoryTokens;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.values.storable.Values;
@@ -131,9 +133,9 @@ class TokenIndexPopulationTest {
         assertEquals(1, indexUpdateBatches.size());
         Set<? extends IndexEntryUpdate> indexEntryUpdates = new HashSet<>(indexUpdateBatches.get(0));
         Set<? extends IndexEntryUpdate> expectedUpdates = Set.of(
-                IndexEntryUpdate.change(1, tokenIndex, new int[] {}, new int[] {123}),
-                IndexEntryUpdate.change(2, tokenIndex, new int[] {}, new int[] {123, 111}),
-                IndexEntryUpdate.change(3, tokenIndex, new int[] {}, new int[] {111}));
+                TokenIndexEntryUpdate.tokenChange(1, tokenIndex, EMPTY_INT_ARRAY, new int[] {123}),
+                TokenIndexEntryUpdate.tokenChange(2, tokenIndex, EMPTY_INT_ARRAY, new int[] {123, 111}),
+                TokenIndexEntryUpdate.tokenChange(3, tokenIndex, EMPTY_INT_ARRAY, new int[] {111}));
 
         assertEquals(expectedUpdates, indexEntryUpdates);
     }

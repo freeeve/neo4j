@@ -77,7 +77,7 @@ import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Values;
 
@@ -153,7 +153,7 @@ public class IndexIdMapper implements IdMapper {
     public Setter newSetter() {
         return (inputId, actualId, group) -> {
             var populator = populators.get(group.name());
-            var update = IndexEntryUpdate.add(actualId, populator.descriptor, Values.of(inputId));
+            var update = ValueIndexEntryUpdate.add(actualId, populator.descriptor, Values.of(inputId));
             try {
                 populator.populator.add(Collections.singleton(update), CursorContext.NULL_CONTEXT);
                 populator.populator.includeSample(update);
@@ -168,8 +168,8 @@ public class IndexIdMapper implements IdMapper {
     public void remove(Object inputId, long actualId, Group group) {
         var accessor = accessors.get(group.name());
         try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, true)) {
-            updater.process(
-                    IndexEntryUpdate.remove(actualId, populators.get(group.name()).descriptor, Values.of(inputId)));
+            updater.process(ValueIndexEntryUpdate.remove(
+                    actualId, populators.get(group.name()).descriptor, Values.of(inputId)));
         } catch (IndexEntryConflictException e) {
             throw new RuntimeException(e);
         }

@@ -78,7 +78,7 @@ import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -335,7 +335,8 @@ class IndexIdMapperIT {
                 indexingBehaviour);
         try (var updater = accessor.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
             for (var dataEntry : data.entrySet()) {
-                updater.process(IndexEntryUpdate.add(dataEntry.getValue(), descriptor, Values.of(dataEntry.getKey())));
+                updater.process(
+                        ValueIndexEntryUpdate.add(dataEntry.getValue(), descriptor, Values.of(dataEntry.getKey())));
             }
         }
         accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);

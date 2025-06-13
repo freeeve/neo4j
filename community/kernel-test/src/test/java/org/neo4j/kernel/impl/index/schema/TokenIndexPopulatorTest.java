@@ -40,6 +40,7 @@ import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.impl.factory.primitive.LongObjectMaps;
 import org.junit.jupiter.api.Test;
+import org.neo4j.collection.PrimitiveArrays;
 import org.neo4j.index.internal.gbptree.MultiRootGBPTree;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -50,7 +51,6 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.monitoring.Monitors;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 
 class TokenIndexPopulatorTest extends IndexPopulatorTests<TokenScanKey, TokenScanValue, TokenScanLayout> {
@@ -149,7 +149,7 @@ class TokenIndexPopulatorTest extends IndexPopulatorTests<TokenScanKey, TokenSca
 
         IllegalStateException e = assertThrows(
                 IllegalStateException.class,
-                () -> updater.process(IndexEntryUpdate.change(
+                () -> updater.process(TokenIndexEntryUpdate.tokenChange(
                         random.nextInt(), null, EMPTY_INT_ARRAY, TokenIndexUtility.generateRandomTokens(random))));
         assertThat(e).hasMessageContaining("Updater has been closed");
         populator.close(true, NULL_CONTEXT);
@@ -187,7 +187,9 @@ class TokenIndexPopulatorTest extends IndexPopulatorTests<TokenScanKey, TokenSca
                     }
                     int[] afterTokens = TokenIndexUtility.generateRandomTokens(random);
                     entityTokens.put(entityId, Arrays.copyOf(afterTokens, afterTokens.length));
-                    updater.process(IndexEntryUpdate.change(entityId, null, beforeTokens, afterTokens));
+                    var removalsAndAdditions = PrimitiveArrays.toRemovalsAndAdditions(beforeTokens, afterTokens);
+                    updater.process(TokenIndexEntryUpdate.tokenChange(
+                            entityId, null, removalsAndAdditions.removals(), removalsAndAdditions.additions()));
                 }
             }
         }

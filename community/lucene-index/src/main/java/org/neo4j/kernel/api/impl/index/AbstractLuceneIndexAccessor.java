@@ -128,7 +128,8 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
                                             for (int i = 0; i < values.length; i++) {
                                                 values[i] = Values.stringValue("");
                                             }
-                                            updater.process(IndexEntryUpdate.remove(candidate, descriptor, values));
+                                            updater.process(
+                                                    ValueIndexEntryUpdate.remove(candidate, descriptor, values));
                                             progress.add(1);
                                         }
                                     }

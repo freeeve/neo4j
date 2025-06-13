@@ -827,7 +827,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
 
                 @Override
                 public void addRecord(long entityId, int[] tokens) {
-                    updates.add(IndexEntryUpdate.change(
+                    updates.add(TokenIndexEntryUpdate.tokenChange(
                             entityId, population.indexProxyStrategy.getIndexDescriptor(), EMPTY_INT_ARRAY, tokens));
                 }
 

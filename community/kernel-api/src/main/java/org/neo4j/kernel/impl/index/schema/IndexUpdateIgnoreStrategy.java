@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
@@ -72,11 +71,11 @@ public interface IndexUpdateIgnoreStrategy {
         final var entityId = update.getEntityId();
 
         if (shouldRemove) {
-            return IndexEntryUpdate.remove(entityId, key, beforeValues);
+            return ValueIndexEntryUpdate.remove(entityId, key, beforeValues);
         }
 
         if (shouldAdd) {
-            return IndexEntryUpdate.add(entityId, key, afterValues);
+            return ValueIndexEntryUpdate.add(entityId, key, afterValues);
         }
 
         throw new IllegalStateException(

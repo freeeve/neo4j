@@ -67,7 +67,6 @@ import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
-import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.ElementIdMapper;
@@ -268,7 +267,7 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
                 var updater = updaters.get(shard);
                 var descriptor = indexDescriptors.get(shard);
                 var value = Values.stringValue("Value" + i);
-                updater.process(IndexEntryUpdate.add(i, descriptor, value));
+                updater.process(ValueIndexEntryUpdate.add(i, descriptor, value));
                 data.put(ValueTuple.of(value), LongSets.mutable.of(i));
             }
 
@@ -290,7 +289,7 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
                 var descriptor = indexDescriptors.get(shard);
                 var value = Values.stringValue("Value" + conflictingValueId);
                 long entityId = initialDataSize + i;
-                updater.process(IndexEntryUpdate.add(entityId, descriptor, value));
+                updater.process(ValueIndexEntryUpdate.add(entityId, descriptor, value));
                 data.get(ValueTuple.of(value)).add(entityId);
             }
         } finally {

@@ -232,12 +232,12 @@ public class EntityUpdates {
             int[] propertyIds = schema.getPropertyIds();
             if (relevantBefore && !relevantAfter) {
                 indexUpdates.add(
-                        IndexEntryUpdate.remove(entityId, indexKey, valuesBefore(propertyIds, defaultToNoValue)));
+                        ValueIndexEntryUpdate.remove(entityId, indexKey, valuesBefore(propertyIds, defaultToNoValue)));
             } else if (!relevantBefore && relevantAfter) {
-                indexUpdates.add(IndexEntryUpdate.add(entityId, indexKey, valuesAfter(propertyIds)));
+                indexUpdates.add(ValueIndexEntryUpdate.add(entityId, indexKey, valuesAfter(propertyIds)));
             } else if (relevantBefore && relevantAfter) {
                 if (valuesChanged(propertyIds, schema.schemaPatternMatchingType(), defaultToNoValue)) {
-                    indexUpdates.add(IndexEntryUpdate.change(
+                    indexUpdates.add(ValueIndexEntryUpdate.change(
                             entityId, indexKey, valuesBefore(propertyIds, defaultToNoValue), valuesAfter(propertyIds)));
                 }
             }
@@ -256,7 +256,9 @@ public class EntityUpdates {
             return Optional.empty();
         }
 
-        return Optional.of(IndexEntryUpdate.change(entityId, indexKey, entityTokensBefore, entityTokensAfter));
+        var additionsAndRemovals = PrimitiveArrays.toRemovalsAndAdditions(entityTokensBefore, entityTokensAfter);
+        return Optional.of(TokenIndexEntryUpdate.tokenChange(
+                entityId, indexKey, additionsAndRemovals.removals(), additionsAndRemovals.additions()));
     }
 
     private boolean relevantBefore(SchemaDescriptor schema) {

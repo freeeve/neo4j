@@ -39,6 +39,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.neo4j.collection.PrimitiveArrays;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.GBPTreeBuilder;
 import org.neo4j.index.internal.gbptree.GBPTreeVisitor;
@@ -99,7 +100,7 @@ class TokenIndexUpdaterTest {
 
             // WHEN
             for (long i = 0; i < NODE_COUNT; i++) {
-                var update = TokenIndexEntryUpdate.change(i, null, EMPTY_INT_ARRAY, new int[] {labelId});
+                var update = TokenIndexEntryUpdate.tokenChange(i, null, EMPTY_INT_ARRAY, new int[] {labelId});
                 updater.process(update);
             }
         }
@@ -174,7 +175,7 @@ class TokenIndexUpdaterTest {
                     false,
                     CursorContext.NULL_CONTEXT);
             for (int i = 0; i < nodeCount; i++) {
-                writer.process(TokenIndexEntryUpdate.change(i, null, EMPTY_INT_ARRAY, new int[] {1}));
+                writer.process(TokenIndexEntryUpdate.tokenChange(i, null, EMPTY_INT_ARRAY, new int[] {1}));
             }
         }
 
@@ -197,29 +198,11 @@ class TokenIndexUpdaterTest {
                                 CursorContext.NULL_CONTEXT);
 
                         // WHEN
-                        writer.process(TokenIndexEntryUpdate.change(0, null, EMPTY_INT_ARRAY, new int[] {2, 1}));
+                        writer.process(TokenIndexEntryUpdate.tokenChange(0, null, EMPTY_INT_ARRAY, new int[] {2, 1}));
                     }
                 })
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("unsorted");
-    }
-
-    @Test
-    void shouldNotAcceptInvalidTokens() {
-        // GIVEN
-        assertThatThrownBy(() -> {
-                    try (TokenIndexUpdater writer = new TokenIndexUpdater(1, idLayout)) {
-                        writer.initialize(
-                                context -> tree.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT),
-                                false,
-                                CursorContext.NULL_CONTEXT);
-
-                        // WHEN
-                        writer.process(TokenIndexEntryUpdate.change(0, null, EMPTY_INT_ARRAY, new int[] {2, -1}));
-                    }
-                })
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Expected non-negative int value");
     }
 
     @Test
@@ -239,7 +222,7 @@ class TokenIndexUpdaterTest {
             for (int i = 0; i < numberOfTreeEntries; i++) {
                 long baseNodeId = idLayout.firstIdOfRange(i);
                 for (int j = 0; j < numberOfNodesInEach; j++) {
-                    writer.process(TokenIndexEntryUpdate.change(baseNodeId + j, null, EMPTY_INT_ARRAY, labels));
+                    writer.process(TokenIndexEntryUpdate.tokenChange(baseNodeId + j, null, EMPTY_INT_ARRAY, labels));
                 }
             }
         }
@@ -252,7 +235,7 @@ class TokenIndexUpdaterTest {
                     context -> tree.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT), false, CursorContext.NULL_CONTEXT);
             long baseNodeId = idLayout.firstIdOfRange(treeEntryToRemoveFrom);
             for (int i = 0; i < numberOfNodesInEach; i++) {
-                writer.process(TokenIndexEntryUpdate.change(baseNodeId + i, null, labels, EMPTY_INT_ARRAY));
+                writer.process(TokenIndexEntryUpdate.tokenChange(baseNodeId + i, null, labels, EMPTY_INT_ARRAY));
             }
         }
 
@@ -271,7 +254,9 @@ class TokenIndexUpdaterTest {
             labels = flipRandom(labels, LABEL_COUNT, random.random());
         }
         expected[nodeId] = labels;
-        return TokenIndexEntryUpdate.change(nodeId, null, before, getLabels(labels));
+        var removalsAndAdditions = PrimitiveArrays.toRemovalsAndAdditions(before, getLabels(labels));
+        return TokenIndexEntryUpdate.tokenChange(
+                nodeId, null, removalsAndAdditions.removals(), removalsAndAdditions.additions());
     }
 
     private void assertTreeHasKeysRepresentingIdRanges(MutableLongSet expected) throws IOException {

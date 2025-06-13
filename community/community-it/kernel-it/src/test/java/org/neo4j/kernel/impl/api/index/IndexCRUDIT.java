@@ -111,7 +111,7 @@ class IndexCRUDIT {
             IndexDescriptor indexDescriptor =
                     ktx.schemaRead().indexesGetForLabel(label).next();
             assertThat(writer.updatesCommitted)
-                    .isEqualTo(asSet(IndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value1))));
+                    .isEqualTo(asSet(ValueIndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value1))));
             tx.commit();
         }
         // We get two updates because we both add a label and a property to be indexed
@@ -150,7 +150,7 @@ class IndexCRUDIT {
             IndexDescriptor indexDescriptor =
                     ktx.schemaRead().indexesGetForLabel(label).next();
             assertThat(writer.updatesCommitted)
-                    .isEqualTo(asSet(IndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value))));
+                    .isEqualTo(asSet(ValueIndexEntryUpdate.add(node.getId(), indexDescriptor, Values.of(value))));
             tx.commit();
         }
     }

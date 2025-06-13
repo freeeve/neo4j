@@ -86,6 +86,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
+import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.Inject;
@@ -225,7 +226,7 @@ class OnlineIndexUpdatesTest {
                 nodeGroup(nodeCommand, propertyCommand), relationshipGroup(null), CommandSelector.NORMAL);
         assertTrue(onlineIndexUpdates.hasUpdates());
         Iterator<IndexEntryUpdate> iterator = onlineIndexUpdates.iterator();
-        assertEquals(iterator.next(), IndexEntryUpdate.remove(nodeId, indexDescriptor, propertyValue, null, null));
+        assertEquals(iterator.next(), ValueIndexEntryUpdate.remove(nodeId, indexDescriptor, propertyValue, null, null));
         assertFalse(iterator.hasNext());
     }
 
@@ -266,7 +267,7 @@ class OnlineIndexUpdatesTest {
                 nodeGroup(null), relationshipGroup(relationshipCommand, propertyCommand), CommandSelector.NORMAL);
         assertTrue(onlineIndexUpdates.hasUpdates());
         Iterator<IndexEntryUpdate> iterator = onlineIndexUpdates.iterator();
-        assertEquals(iterator.next(), IndexEntryUpdate.remove(relId, indexDescriptor, propertyValue, null, null));
+        assertEquals(iterator.next(), ValueIndexEntryUpdate.remove(relId, indexDescriptor, propertyValue, null, null));
         assertFalse(iterator.hasNext());
     }
 
@@ -334,9 +335,9 @@ class OnlineIndexUpdatesTest {
         assertTrue(onlineIndexUpdates.hasUpdates());
         assertThat(onlineIndexUpdates)
                 .contains(
-                        IndexEntryUpdate.remove(
+                        ValueIndexEntryUpdate.remove(
                                 relId, relationshipIndexDescriptor, relationshipPropertyValue, null, null),
-                        IndexEntryUpdate.remove(nodeId, nodeIndexDescriptor, nodePropertyValue, null, null));
+                        ValueIndexEntryUpdate.remove(nodeId, nodeIndexDescriptor, nodePropertyValue, null, null));
     }
 
     @Test
@@ -394,9 +395,9 @@ class OnlineIndexUpdatesTest {
         assertTrue(onlineIndexUpdates.hasUpdates());
         assertThat(onlineIndexUpdates)
                 .contains(
-                        IndexEntryUpdate.remove(relId, indexDescriptor0, propertyValue, propertyValue2, null),
-                        IndexEntryUpdate.remove(relId, indexDescriptor1, null, propertyValue2, null),
-                        IndexEntryUpdate.remove(relId, indexDescriptor, propertyValue));
+                        ValueIndexEntryUpdate.remove(relId, indexDescriptor0, propertyValue, propertyValue2, null),
+                        ValueIndexEntryUpdate.remove(relId, indexDescriptor1, null, propertyValue2, null),
+                        ValueIndexEntryUpdate.remove(relId, indexDescriptor, propertyValue));
     }
 
     private void createIndexes(IndexDescriptor... indexDescriptors) {

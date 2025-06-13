@@ -120,7 +120,7 @@ class IndexUpdatesWorkSyncTest {
                 i -> throwing(() -> {
                     var cursorContext = contextFactory.create(Integer.toString(i));
                     try (IndexUpdatesWorkSync.Batch batch = workSync.newBatch(cursorContext)) {
-                        ValueIndexEntryUpdate update = IndexEntryUpdate.add(i, index, intValue(10 + i));
+                        ValueIndexEntryUpdate update = ValueIndexEntryUpdate.add(i, index, intValue(10 + i));
                         sentUpdates.add(new UpdateAndContext(update, cursorContext));
                         batch.indexUpdate(update);
                     }
