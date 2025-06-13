@@ -22,6 +22,7 @@ package org.neo4j.internal.recordstorage;
 import static java.util.Collections.emptyList;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.multiversion_index_commands_enabled;
 import static org.neo4j.function.ThrowingAction.executeAll;
+import static org.neo4j.internal.recordstorage.RecordStorageCommandHandling.handleRecordStorageCommands;
 import static org.neo4j.internal.recordstorage.RecordStorageEngineFactory.ID;
 import static org.neo4j.internal.recordstorage.RecordStorageEngineFactory.NAME;
 import static org.neo4j.lock.LockService.NO_LOCK_SERVICE;
@@ -71,6 +72,7 @@ import org.neo4j.internal.recordstorage.NeoStoresDiagnostics.NeoStoreIdUsage;
 import org.neo4j.internal.recordstorage.NeoStoresDiagnostics.NeoStoreRecords;
 import org.neo4j.internal.recordstorage.TransactionAppliersDispatcherFactory.IdUpdateListenerFactory;
 import org.neo4j.internal.recordstorage.indexcommand.IndexRecordState;
+import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
 import org.neo4j.internal.recordstorage.indexcommand.TransactionToIndexUpdateVisitor;
 import org.neo4j.internal.recordstorage.validation.TransactionCommandValidatorFactory;
 import org.neo4j.internal.schema.IndexConfigCompleter;
@@ -108,6 +110,7 @@ import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.lock.LockGroup;
 import org.neo4j.lock.LockService;
 import org.neo4j.lock.LockTracer;
+import org.neo4j.lock.LockType;
 import org.neo4j.lock.ResourceLocker;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
@@ -547,10 +550,17 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
     @Override
     public void lockRecoveryCommands(
-            CommandBatch commands, LockService lockService, LockGroup lockGroup, TransactionApplicationMode mode) {
-        for (StorageCommand command : commands) {
-            ((Command) command).lockForRecovery(lockService, lockGroup, mode);
-        }
+            CommandBatch commands, LockService lockService, LockGroup lockGroup, TransactionApplicationMode mode)
+            throws IOException {
+        handleRecordStorageCommands(
+                commands,
+                c -> c.lockForRecovery(lockService, lockGroup, mode),
+                c -> lockIndexUpdateCommand(lockService, lockGroup, c));
+    }
+
+    private static void lockIndexUpdateCommand(LockService lockService, LockGroup lockGroup, IndexUpdateCommand<?> c) {
+        lockGroup.add(lockService.acquireCustomLock(
+                Command.RECOVERY_LOCK_TYPE_SCHEMA_RULE, c.getIndexId(), LockType.EXCLUSIVE));
     }
 
     @Override

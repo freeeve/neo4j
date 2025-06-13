@@ -21,16 +21,13 @@ package org.neo4j.internal.recordstorage.indexcommand;
 
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
-import java.io.IOException;
 import java.util.Arrays;
-import org.neo4j.internal.recordstorage.CommandVisitor;
 import org.neo4j.internal.recordstorage.LogCommandSerialization;
-import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.string.Mask;
 import org.neo4j.values.storable.Value;
 
-public class ValueIndexUpdateCommand extends IndexUpdateCommand<Value[]> {
+public final class ValueIndexUpdateCommand extends IndexUpdateCommand<Value[]> {
 
     static final long SHALLOW_SIZE = shallowSizeOfInstance(ValueIndexUpdateCommand.class);
 
@@ -67,12 +64,10 @@ public class ValueIndexUpdateCommand extends IndexUpdateCommand<Value[]> {
     }
 
     @Override
-    public boolean handle(CommandVisitor handler) throws IOException {
-        return handler.visitIndexUpdateCommand(this);
-    }
-
-    @Override
-    public void serialize(WritableChannel channel) throws IOException {
-        serialization.writeIndexUpdateCommand(channel, this);
+    public boolean equals(Object o) {
+        if (!(o instanceof ValueIndexUpdateCommand that)) {
+            return false;
+        }
+        return Arrays.equals(before, that.before) && Arrays.equals(values, that.values);
     }
 }

@@ -64,7 +64,6 @@ public class IndexRecordState implements RecordState {
             for (var update : tokenIndexUpdates) {
                 tokenIndexIndexCommands.add(new TokenIndexUpdateCommand(
                         serialization,
-                        update.updateMode(),
                         update.indexKey().getId(),
                         update.getEntityId(),
                         update.removed(),

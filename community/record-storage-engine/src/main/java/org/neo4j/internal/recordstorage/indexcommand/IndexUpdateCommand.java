@@ -19,25 +19,32 @@
  */
 package org.neo4j.internal.recordstorage.indexcommand;
 
-import org.neo4j.internal.recordstorage.Command;
+import java.io.IOException;
 import org.neo4j.internal.recordstorage.LogCommandSerialization;
-import org.neo4j.lock.LockGroup;
-import org.neo4j.lock.LockService;
-import org.neo4j.lock.LockType;
-import org.neo4j.storageengine.api.TransactionApplicationMode;
+import org.neo4j.io.fs.WritableChannel;
+import org.neo4j.kernel.KernelVersion;
+import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.UpdateMode;
+import org.neo4j.string.Mask;
 
-public abstract class IndexUpdateCommand<T> extends Command {
-    final UpdateMode updateMode;
-    final long indexId;
-    final long entityId;
+public abstract sealed class IndexUpdateCommand<T> implements StorageCommand
+        permits TokenIndexUpdateCommand, ValueIndexUpdateCommand {
+    protected final UpdateMode updateMode;
+    protected final long indexId;
+    protected final long entityId;
+    private final LogCommandSerialization serialization;
 
     public IndexUpdateCommand(
             LogCommandSerialization serialization, UpdateMode updateMode, long indexId, long entityId) {
-        super(serialization);
+        this.serialization = serialization;
         this.updateMode = updateMode;
         this.indexId = indexId;
         this.entityId = entityId;
+    }
+
+    @Override
+    public KernelVersion kernelVersion() {
+        return serialization.kernelVersion();
     }
 
     public UpdateMode getUpdateMode() {
@@ -57,7 +64,15 @@ public abstract class IndexUpdateCommand<T> extends Command {
     public abstract T getAfter();
 
     @Override
-    public void lockForRecovery(LockService lockService, LockGroup lockGroup, TransactionApplicationMode mode) {
-        lockGroup.add(lockService.acquireCustomLock(RECOVERY_LOCK_TYPE_SCHEMA_RULE, getIndexId(), LockType.EXCLUSIVE));
+    public String toString() {
+        return toString(Mask.NO);
+    }
+
+    @Override
+    public abstract String toString(Mask mask);
+
+    @Override
+    public void serialize(WritableChannel channel) throws IOException {
+        serialization.writeIndexUpdateCommand(channel, this);
     }
 }

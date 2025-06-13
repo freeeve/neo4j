@@ -27,6 +27,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionAwareChannel;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.BaseCommandReader;
+import org.neo4j.storageengine.api.StorageCommand;
 
 public abstract class LogCommandSerialization extends BaseCommandReader {
     private final KernelVersion kernelVersion;
@@ -41,7 +42,7 @@ public abstract class LogCommandSerialization extends BaseCommandReader {
     }
 
     @Override
-    public final Command read(byte commandType, ReadableChannel channel, MemoryTracker memoryTracker)
+    public final StorageCommand read(byte commandType, ReadableChannel channel, MemoryTracker memoryTracker)
             throws IOException {
         return switch (commandType) {
             case NeoCommandType.NODE_COMMAND -> readNodeCommand(channel);
@@ -160,7 +161,7 @@ public abstract class LogCommandSerialization extends BaseCommandReader {
         throw unsupportedInThisVersionException();
     }
 
-    protected Command readIndexUpdateCommand(ReadableChannel channel) throws IOException {
+    protected StorageCommand readIndexUpdateCommand(ReadableChannel channel) throws IOException {
         throw unsupportedInThisVersionException();
     }
 
@@ -277,7 +278,7 @@ public abstract class LogCommandSerialization extends BaseCommandReader {
         throw unsupportedInThisVersionException();
     }
 
-    public void writeIndexUpdateCommand(WritableChannel channel, IndexUpdateCommand command) throws IOException {
+    public void writeIndexUpdateCommand(WritableChannel channel, IndexUpdateCommand<?> command) throws IOException {
         throw unsupportedInThisVersionException();
     }
 

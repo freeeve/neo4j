@@ -22,6 +22,7 @@ package org.neo4j.internal.recordstorage.validation;
 import static java.util.Collections.emptyMap;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_version_dump_transaction_validation_page_locks;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_version_transaction_validation_fail_fast;
+import static org.neo4j.internal.recordstorage.RecordStorageCommandHandling.handleRecordStorageCommands;
 import static org.neo4j.kernel.impl.store.RecordPageLocationCalculator.pageIdForRecord;
 import static org.neo4j.kernel.impl.store.StoreType.STORE_TYPES;
 
@@ -34,6 +35,7 @@ import java.util.Map;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.neo4j.configuration.Config;
+import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.internal.recordstorage.Command;
 import org.neo4j.internal.recordstorage.CommandVisitor;
 import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
@@ -92,10 +94,7 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
             initValidation(cursorContext, lockTracer, validationLockClient);
 
             cursorContext.getVersionContext().resetObsoleteHeadState();
-            for (StorageCommand command : commands) {
-                ((Command) command).handle(this);
-            }
-
+            handleRecordStorageCommands(commands, c -> c.handle(this), ThrowingConsumer.noop());
         } catch (TransactionConflictException tce) {
             throw tce;
         } catch (Exception e) {

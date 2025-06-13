@@ -27,6 +27,7 @@ import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.values.storable.Values.longValue;
 
 import java.io.IOException;
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
 import org.neo4j.internal.recordstorage.indexcommand.TokenIndexUpdateCommand;
@@ -43,7 +44,7 @@ class IndexUpdateCommandEncoderTest {
     @Test
     void packTokensAdd() throws IOException {
         var command = new TokenIndexUpdateCommand(
-                serialization, UpdateMode.ADDED, 123, 3456789, null, new int[] {1, 22, 333});
+                serialization, 123, 3456789, ArrayUtils.EMPTY_INT_ARRAY, new int[] {1, 22, 333});
         write(channel, command);
         var readCommand = read(serialization, channel);
         assertCommandsEqual(command, readCommand);
@@ -53,7 +54,6 @@ class IndexUpdateCommandEncoderTest {
     void packTokensChange() throws IOException {
         var command = new TokenIndexUpdateCommand(
                 RecordStorageCommandReaderFactory.INSTANCE.get(LATEST_KERNEL_VERSION),
-                UpdateMode.CHANGED,
                 123,
                 3456789,
                 new int[] {12345},
@@ -67,10 +67,9 @@ class IndexUpdateCommandEncoderTest {
     void packTokensRemove() throws IOException {
         var command = new TokenIndexUpdateCommand(
                 RecordStorageCommandReaderFactory.INSTANCE.get(LATEST_KERNEL_VERSION),
-                UpdateMode.REMOVED,
                 123,
                 3456789,
-                null,
+                ArrayUtils.EMPTY_INT_ARRAY,
                 new int[] {1, 22, 333});
         write(channel, command);
         var readCommand = read(serialization, channel);

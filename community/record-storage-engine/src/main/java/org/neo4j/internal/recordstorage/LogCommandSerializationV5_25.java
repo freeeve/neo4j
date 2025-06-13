@@ -31,6 +31,7 @@ import org.neo4j.internal.recordstorage.indexcommand.ValueIndexUpdateCommand;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.values.storable.Value;
 
@@ -46,17 +47,17 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
     }
 
     @Override
-    protected Command readIndexUpdateCommand(ReadableChannel channel) throws IOException {
+    protected StorageCommand readIndexUpdateCommand(ReadableChannel channel) throws IOException {
         return read(this, channel);
     }
 
     @Override
-    public void writeIndexUpdateCommand(WritableChannel channel, IndexUpdateCommand command) throws IOException {
+    public void writeIndexUpdateCommand(WritableChannel channel, IndexUpdateCommand<?> command) throws IOException {
         channel.put(NeoCommandType.INDEX_UPDATE_COMMAND);
         write(channel, command);
     }
 
-    static void write(WritableChannel out, IndexUpdateCommand command) throws IOException {
+    static void write(WritableChannel out, IndexUpdateCommand<?> command) throws IOException {
         boolean tokenIndex = isTokenIndex(command);
         writeHeader(out, command, tokenIndex);
         writeNumber(out, command.getIndexId());
@@ -68,7 +69,7 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
         }
     }
 
-    static IndexUpdateCommand read(LogCommandSerialization serialization, ReadableChannel in) throws IOException {
+    static IndexUpdateCommand<?> read(LogCommandSerialization serialization, ReadableChannel in) throws IOException {
         byte header = in.get();
         boolean tokenIndex = isTokenIndex(header);
         UpdateMode updateMode = readUpdateMode(header);
@@ -77,9 +78,8 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
 
         if (tokenIndex) {
             return readTokenPart(serialization, in, updateMode, indexId, entityId);
-        } else {
-            return readValuePart(serialization, in, updateMode, indexId, entityId);
         }
+        return readValuePart(serialization, in, updateMode, indexId, entityId);
     }
 
     private static boolean isTokenIndex(byte header) {
@@ -179,12 +179,12 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
             case ADDED:
             case REMOVED: {
                 int[] values = readTokenArray(in);
-                return new TokenIndexUpdateCommand(serialization, updateMode, indexId, entityId, null, values);
+                return new TokenIndexUpdateCommand(serialization, indexId, entityId, null, values);
             }
             case CHANGED: {
                 int[] before = readTokenArray(in);
                 int[] values = readTokenArray(in);
-                return new TokenIndexUpdateCommand(serialization, updateMode, indexId, entityId, before, values);
+                return new TokenIndexUpdateCommand(serialization, indexId, entityId, before, values);
             }
             default:
                 throw new IllegalArgumentException();
@@ -209,7 +209,7 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
         }
     }
 
-    private static void writeHeader(WritableChannel out, IndexUpdateCommand command, boolean tokenIndex)
+    private static void writeHeader(WritableChannel out, IndexUpdateCommand<?> command, boolean tokenIndex)
             throws IOException {
         byte header = 0;
         if (!tokenIndex) {
@@ -220,7 +220,7 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
         out.put(header);
     }
 
-    private static boolean isTokenIndex(IndexUpdateCommand command) {
+    private static boolean isTokenIndex(IndexUpdateCommand<?> command) {
         return command instanceof TokenIndexUpdateCommand;
     }
 }

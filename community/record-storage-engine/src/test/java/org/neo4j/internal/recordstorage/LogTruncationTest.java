@@ -68,7 +68,7 @@ class LogTruncationTest {
     private final LogCommandSerialization serialization =
             RecordStorageCommandReaderFactory.INSTANCE.get(LatestVersions.LATEST_KERNEL_VERSION);
     /** Stores all known commands, and an arbitrary set of different permutations for them */
-    private final Map<Class<?>, Command[]> permutations = new HashMap<>();
+    private final Map<Class<?>, StorageCommand[]> permutations = new HashMap<>();
 
     @BeforeEach
     void setUp() {
@@ -136,12 +136,12 @@ class LogTruncationTest {
         // CDC - empty permutation as the read/write behaviour is different for enrichment commands
         permutations.put(Command.RecordEnrichmentCommand.class, new Command[0]);
 
-        permutations.put(TokenIndexUpdateCommand.class, new Command[] {
-            new TokenIndexUpdateCommand(serialization, UpdateMode.ADDED, 1, 2, new int[] {1}, new int[] {2})
-        });
-        permutations.put(ValueIndexUpdateCommand.class, new Command[] {
+        permutations.put(
+                TokenIndexUpdateCommand.class,
+                new StorageCommand[] {new TokenIndexUpdateCommand(serialization, 1, 2, new int[] {1}, new int[] {2})});
+        permutations.put(ValueIndexUpdateCommand.class, new StorageCommand[] {
             new ValueIndexUpdateCommand(
-                    serialization, UpdateMode.ADDED, 1, 2, new Value[] {Values.intValue(5)}, new Value[] {
+                    serialization, UpdateMode.CHANGED, 1, 2, new Value[] {Values.intValue(5)}, new Value[] {
                         Values.intValue(7)
                     })
         });
@@ -149,17 +149,17 @@ class LogTruncationTest {
 
     @Test
     void testSerializationInFaceOfLogTruncation() throws Exception {
-        for (Command cmd : enumerateCommands()) {
+        for (var cmd : enumerateCommands()) {
             assertHandlesLogTruncation(cmd);
         }
     }
 
-    private Iterable<Command> enumerateCommands() {
+    private Iterable<StorageCommand> enumerateCommands() {
         // We use this reflection approach rather than just iterating over the permutation map to force developers
         // writing new commands to add the new commands to this test. If you came here because of a test failure from
         // missing commands, add all permutations you can think of the command to the permutations map in the
         // beginning of this class.
-        List<Command> commands = new ArrayList<>();
+        List<StorageCommand> commands = new ArrayList<>();
         for (Class<?> cmd : Command.class.getClasses()) {
             if (Command.class.isAssignableFrom(cmd)) {
                 if (permutations.containsKey(cmd)) {
@@ -170,16 +170,18 @@ class LogTruncationTest {
                 }
             }
         }
+        commands.addAll(asList(permutations.get(TokenIndexUpdateCommand.class)));
+        commands.addAll(asList(permutations.get(ValueIndexUpdateCommand.class)));
         return commands;
     }
 
-    private void assertHandlesLogTruncation(Command cmd) throws IOException {
+    private void assertHandlesLogTruncation(StorageCommand cmd) throws IOException {
         inMemoryChannel.reset();
         cmd.serialize(inMemoryChannel);
         int bytesSuccessfullyWritten = inMemoryChannel.writerPosition();
         try {
             StorageCommand command = serialization.read(inMemoryChannel, EmptyMemoryTracker.INSTANCE);
-            assertThat(cmd).isEqualTo(command);
+            assertThat(command).isEqualTo(cmd);
         } catch (Exception e) {
             throw new AssertionError("Failed to deserialize " + cmd + ", because: ", e);
         }

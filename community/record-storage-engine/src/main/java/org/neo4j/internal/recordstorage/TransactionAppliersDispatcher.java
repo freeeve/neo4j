@@ -19,6 +19,8 @@
  */
 package org.neo4j.internal.recordstorage;
 
+import static org.neo4j.internal.recordstorage.RecordStorageCommandHandling.handleRecordStorageCommand;
+
 import java.io.IOException;
 import org.neo4j.internal.helpers.collection.Visitor;
 import org.neo4j.storageengine.api.StorageCommand;
@@ -44,10 +46,8 @@ public class TransactionAppliersDispatcher implements Visitor<StorageCommand, IO
 
     @Override
     public boolean visit(StorageCommand element) throws IOException {
-        for (TransactionApplier applier : appliers) {
-            if (((Command) element).handle(applier)) {
-                return true;
-            }
+        for (var applier : appliers) {
+            handleRecordStorageCommand(element, c -> c.handle(applier), applier::visitIndexUpdateCommand);
         }
         return false;
     }

@@ -21,28 +21,20 @@ package org.neo4j.internal.recordstorage.indexcommand;
 
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
-import java.io.IOException;
 import java.util.Arrays;
-import org.neo4j.internal.recordstorage.CommandVisitor;
 import org.neo4j.internal.recordstorage.LogCommandSerialization;
-import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.string.Mask;
 
-public class TokenIndexUpdateCommand extends IndexUpdateCommand<int[]> {
+public final class TokenIndexUpdateCommand extends IndexUpdateCommand<int[]> {
     static final long SHALLOW_SIZE = shallowSizeOfInstance(TokenIndexUpdateCommand.class);
 
     private final int[] before;
     private final int[] values;
 
     public TokenIndexUpdateCommand(
-            LogCommandSerialization serialization,
-            UpdateMode updateMode,
-            long indexId,
-            long entityId,
-            int[] before,
-            int[] values) {
-        super(serialization, updateMode, indexId, entityId);
+            LogCommandSerialization serialization, long indexId, long entityId, int[] before, int[] values) {
+        super(serialization, UpdateMode.CHANGED, indexId, entityId);
         this.before = before;
         this.values = values;
     }
@@ -65,12 +57,10 @@ public class TokenIndexUpdateCommand extends IndexUpdateCommand<int[]> {
     }
 
     @Override
-    public boolean handle(CommandVisitor handler) throws IOException {
-        return handler.visitIndexUpdateCommand(this);
-    }
-
-    @Override
-    public void serialize(WritableChannel channel) throws IOException {
-        serialization.writeIndexUpdateCommand(channel, this);
+    public boolean equals(Object o) {
+        if (!(o instanceof TokenIndexUpdateCommand that)) {
+            return false;
+        }
+        return Arrays.equals(before, that.before) && Arrays.equals(values, that.values);
     }
 }
