@@ -22,7 +22,6 @@ package org.neo4j.internal.recordstorage.indexcommand;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import java.util.Arrays;
-import org.neo4j.internal.recordstorage.LogCommandSerialization;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.string.Mask;
 
@@ -33,7 +32,7 @@ public final class TokenIndexUpdateCommand extends IndexUpdateCommand<int[]> {
     private final int[] values;
 
     public TokenIndexUpdateCommand(
-            LogCommandSerialization serialization, long indexId, long entityId, int[] before, int[] values) {
+            IndexCommandSerialization serialization, long indexId, long entityId, int[] before, int[] values) {
         super(serialization, UpdateMode.CHANGED, indexId, entityId);
         this.before = before;
         this.values = values;

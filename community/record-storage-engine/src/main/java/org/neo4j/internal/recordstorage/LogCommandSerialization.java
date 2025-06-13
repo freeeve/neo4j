@@ -20,6 +20,7 @@
 package org.neo4j.internal.recordstorage;
 
 import java.io.IOException;
+import org.neo4j.internal.recordstorage.indexcommand.IndexCommandSerialization;
 import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
@@ -29,7 +30,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.BaseCommandReader;
 import org.neo4j.storageengine.api.StorageCommand;
 
-public abstract class LogCommandSerialization extends BaseCommandReader {
+public abstract class LogCommandSerialization extends BaseCommandReader implements IndexCommandSerialization {
     private final KernelVersion kernelVersion;
 
     LogCommandSerialization(KernelVersion kernelVersion) {
@@ -161,7 +162,7 @@ public abstract class LogCommandSerialization extends BaseCommandReader {
         throw unsupportedInThisVersionException();
     }
 
-    protected StorageCommand readIndexUpdateCommand(ReadableChannel channel) throws IOException {
+    public IndexUpdateCommand<?> readIndexUpdateCommand(ReadableChannel channel) throws IOException {
         throw unsupportedInThisVersionException();
     }
 

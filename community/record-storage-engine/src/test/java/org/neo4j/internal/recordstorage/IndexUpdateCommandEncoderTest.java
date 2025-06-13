@@ -21,8 +21,7 @@ package org.neo4j.internal.recordstorage;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.neo4j.internal.recordstorage.LogCommandSerializationV5_25.read;
-import static org.neo4j.internal.recordstorage.LogCommandSerializationV5_25.write;
+import static org.neo4j.internal.recordstorage.indexcommand.IndexCommandSerializationImpl.V1;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.values.storable.Values.longValue;
 
@@ -45,8 +44,8 @@ class IndexUpdateCommandEncoderTest {
     void packTokensAdd() throws IOException {
         var command = new TokenIndexUpdateCommand(
                 serialization, 123, 3456789, ArrayUtils.EMPTY_INT_ARRAY, new int[] {1, 22, 333});
-        write(channel, command);
-        var readCommand = read(serialization, channel);
+        V1.writeCommand(channel, command);
+        var readCommand = V1.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);
     }
 
@@ -58,8 +57,8 @@ class IndexUpdateCommandEncoderTest {
                 3456789,
                 new int[] {12345},
                 new int[] {1, 22, 333});
-        write(channel, command);
-        var readCommand = read(serialization, channel);
+        V1.writeCommand(channel, command);
+        var readCommand = V1.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);
     }
 
@@ -71,8 +70,8 @@ class IndexUpdateCommandEncoderTest {
                 3456789,
                 ArrayUtils.EMPTY_INT_ARRAY,
                 new int[] {1, 22, 333});
-        write(channel, command);
-        var readCommand = read(serialization, channel);
+        V1.writeCommand(channel, command);
+        var readCommand = V1.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);
     }
 
@@ -85,8 +84,8 @@ class IndexUpdateCommandEncoderTest {
                 3456789,
                 null,
                 new Value[] {longValue(1), longValue(22), longValue(333)});
-        write(channel, command);
-        var readCommand = read(serialization, channel);
+        V1.writeCommand(channel, command);
+        var readCommand = V1.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);
     }
 
@@ -99,8 +98,8 @@ class IndexUpdateCommandEncoderTest {
                 3456789,
                 new Value[] {longValue(12345)},
                 new Value[] {longValue(1), longValue(22), longValue(333)});
-        write(channel, command);
-        var readCommand = read(serialization, channel);
+        V1.writeCommand(channel, command);
+        var readCommand = V1.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);
     }
 
@@ -113,8 +112,8 @@ class IndexUpdateCommandEncoderTest {
                 3456789,
                 null,
                 new Value[] {longValue(1), longValue(22), longValue(333)});
-        write(channel, command);
-        var readCommand = read(serialization, channel);
+        V1.writeCommand(channel, command);
+        var readCommand = V1.readCommand(serialization, channel);
         assertCommandsEqual(command, readCommand);
     }
 

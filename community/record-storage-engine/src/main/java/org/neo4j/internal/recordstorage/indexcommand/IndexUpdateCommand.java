@@ -20,7 +20,6 @@
 package org.neo4j.internal.recordstorage.indexcommand;
 
 import java.io.IOException;
-import org.neo4j.internal.recordstorage.LogCommandSerialization;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.storageengine.api.StorageCommand;
@@ -32,10 +31,10 @@ public abstract sealed class IndexUpdateCommand<T> implements StorageCommand
     protected final UpdateMode updateMode;
     protected final long indexId;
     protected final long entityId;
-    private final LogCommandSerialization serialization;
+    private final IndexCommandSerialization serialization;
 
     public IndexUpdateCommand(
-            LogCommandSerialization serialization, UpdateMode updateMode, long indexId, long entityId) {
+            IndexCommandSerialization serialization, UpdateMode updateMode, long indexId, long entityId) {
         this.serialization = serialization;
         this.updateMode = updateMode;
         this.indexId = indexId;

@@ -22,7 +22,6 @@ package org.neo4j.internal.recordstorage.indexcommand;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import java.util.Arrays;
-import org.neo4j.internal.recordstorage.LogCommandSerialization;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.string.Mask;
 import org.neo4j.values.storable.Value;
@@ -35,7 +34,7 @@ public final class ValueIndexUpdateCommand extends IndexUpdateCommand<Value[]> {
     private final Value[] values;
 
     public ValueIndexUpdateCommand(
-            LogCommandSerialization serialization,
+            IndexCommandSerialization serialization,
             UpdateMode updateMode,
             long indexId,
             long entityId,
