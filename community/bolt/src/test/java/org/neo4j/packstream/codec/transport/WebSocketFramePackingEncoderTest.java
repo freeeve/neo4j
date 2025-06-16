@@ -19,49 +19,28 @@
  */
 package org.neo4j.packstream.codec.transport;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
-import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
-import io.netty.util.ReferenceCountUtil;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.bolt.testing.annotation.StrictBufferExtension;
+import org.neo4j.bolt.testing.assertions.ByteBufAssertions;
+import org.neo4j.bolt.testing.channel.StrictBufferContext;
 
+@StrictBufferExtension
 class WebSocketFramePackingEncoderTest {
 
-    private EmbeddedChannel channel;
-
-    @BeforeEach
-    void prepareChannel() {
-        this.channel = new EmbeddedChannel(new WebSocketFramePackingEncoder());
-    }
-
-    @AfterEach
-    void tearDown() {
-        channel.finishAndReleaseAll();
-    }
-
     @Test
-    void shouldPackRawPayloads() {
-        ByteBuf buffer = Unpooled.buffer();
-        try {
-            var encoded = buffer.writeByte(0x01).writeByte(0x02).writeByte(0x03);
+    void shouldPackRawPayloads(StrictBufferContext ctx) {
+        var channel = ctx.channel(new WebSocketFramePackingEncoder());
+        var buffer = ctx.outputBuffer() // handler internally retains buffer - mark as output
+                .writeByte(0x01)
+                .writeByte(0x02)
+                .writeByte(0x03);
 
-            this.channel.writeOutbound(encoded);
-            this.channel.checkException();
+        channel.writeOutbound(buffer);
+        channel.checkException();
 
-            BinaryWebSocketFrame frame = this.channel.readOutbound();
+        BinaryWebSocketFrame frame = ctx.output(channel.readOutbound());
 
-            assertNotNull(frame);
-            assertSame(encoded, frame.content());
-            assertEquals(1, encoded.refCnt());
-        } finally {
-            ReferenceCountUtil.release(buffer);
-        }
+        ByteBufAssertions.assertThat(frame.content()).isSameAs(buffer);
     }
 }

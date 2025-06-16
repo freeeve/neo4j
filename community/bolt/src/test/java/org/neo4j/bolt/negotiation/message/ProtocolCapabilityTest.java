@@ -28,7 +28,10 @@ import java.util.EnumSet;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.negotiation.util.BitMask;
+import org.neo4j.bolt.testing.annotation.StrictBufferExtension;
+import org.neo4j.bolt.testing.channel.StrictBufferContext;
 
+@StrictBufferExtension
 class ProtocolCapabilityTest {
 
     @Test
@@ -58,46 +61,34 @@ class ProtocolCapabilityTest {
     }
 
     @Test
-    void shouldConvertToBitMask() {
+    void shouldConvertToBitMask(StrictBufferContext ctx) {
         var values = EnumSet.of(ProtocolCapability.FABRIC);
-        var mask = ProtocolCapability.toBitMask(UnpooledByteBufAllocator.DEFAULT, values);
+        var mask = ctx.output(ProtocolCapability.toBitMask(UnpooledByteBufAllocator.DEFAULT, values));
 
-        try {
-            assertThat(mask).hasAtLeastRemaining(1).hasBit(true, atIndex(0));
-        } finally {
-            mask.release();
-        }
+        assertThat(mask).hasAtLeastRemaining(1).hasBit(true, atIndex(0));
     }
 
     @Test
-    void shouldConvertFromEmptyBitMask() {
-        var mask = new BitMask(UnpooledByteBufAllocator.DEFAULT, 8);
-        try {
-            for (var i = 0; i < 8; ++i) {
-                mask.write(false);
-            }
-
-            var actual = ProtocolCapability.fromBitMask(mask);
-
-            assertThat(actual).isEmpty();
-        } finally {
-            mask.release();
+    void shouldConvertFromEmptyBitMask(StrictBufferContext ctx) {
+        var mask = ctx.output(new BitMask(UnpooledByteBufAllocator.DEFAULT, 8));
+        for (var i = 0; i < 8; ++i) {
+            mask.write(false);
         }
+
+        var actual = ProtocolCapability.fromBitMask(mask);
+
+        assertThat(actual).isEmpty();
     }
 
     @Test
-    void shouldConvertFromFullBitMask() {
-        var mask = new BitMask(UnpooledByteBufAllocator.DEFAULT, 8);
-        try {
-            for (var i = 0; i < 8; ++i) {
-                mask.write(true);
-            }
-
-            var actual = ProtocolCapability.fromBitMask(mask);
-
-            assertThat(actual).hasSize(1).contains(ProtocolCapability.FABRIC);
-        } finally {
-            mask.release();
+    void shouldConvertFromFullBitMask(StrictBufferContext ctx) {
+        var mask = ctx.output(new BitMask(UnpooledByteBufAllocator.DEFAULT, 8));
+        for (var i = 0; i < 8; ++i) {
+            mask.write(true);
         }
+
+        var actual = ProtocolCapability.fromBitMask(mask);
+
+        assertThat(actual).hasSize(1).contains(ProtocolCapability.FABRIC);
     }
 }
