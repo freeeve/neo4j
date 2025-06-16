@@ -29,7 +29,7 @@ import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.kernel.impl.newapi.KernelRead;
 import org.neo4j.test.extension.SkipOnSpd;
 
-public class TrigramIndexQueryTest extends TextIndexQueryTest {
+public class TrigramIndexQueryTest extends TextIndexQueryTestBase {
 
     @Override
     protected IndexProviderDescriptor getIndexProviderDescriptor() {
