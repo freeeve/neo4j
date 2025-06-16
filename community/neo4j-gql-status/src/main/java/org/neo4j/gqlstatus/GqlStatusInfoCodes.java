@@ -1957,6 +1957,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "omitting mandatory field for property type constraints for vectors",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NBC(
+            new GqlStatus("22NBC"),
+            "Index belongs to constraint { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "index belongs to constraint",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             "",

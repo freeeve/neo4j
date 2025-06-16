@@ -42,19 +42,19 @@ public class IndexBelongsToConstraintException extends SchemaKernelException {
     public static IndexBelongsToConstraintException indexBelongsToConstraint(
             SchemaDescriptor descriptor, TokenNameLookup tokenNameLookup) {
         var userDescription = descriptor.userDescription(tokenNameLookup);
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N73)
-                .withParam(GqlParams.StringParam.idxDescrOrName, userDescription)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBC)
+                .withParam(GqlParams.StringParam.constrDescrOrName, userDescription)
                 .build();
         var message = format(MESSAGE_SCHEMA, userDescription);
         return new IndexBelongsToConstraintException(message, gql);
     }
 
     // KNL-020
-    public static IndexBelongsToConstraintException indexBelongsToConstraint(String indexName) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N73)
-                .withParam(GqlParams.StringParam.idxDescrOrName, indexName)
+    public static IndexBelongsToConstraintException indexBelongsToConstraint(String constraintName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBC)
+                .withParam(GqlParams.StringParam.constrDescrOrName, constraintName)
                 .build();
-        var message = format(MESSAGE_NAME, indexName);
+        var message = format(MESSAGE_NAME, constraintName);
         return new IndexBelongsToConstraintException(message, gql);
     }
 }

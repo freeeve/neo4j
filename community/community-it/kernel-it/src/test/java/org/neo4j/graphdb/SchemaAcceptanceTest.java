@@ -618,10 +618,10 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         IndexBelongsToConstraintException c3 = (IndexBelongsToConstraintException) c2.getCause();
         assertThat(c3.getMessage()).contains("Index belongs to constraint: (:MY_LABEL {my_property_key})");
         assertThat(c3.getCause()).isNull();
-        assertThat(c3.gqlStatus()).isEqualTo("22N73");
+        assertThat(c3.gqlStatus()).isEqualTo("22NBC");
         assertThat(c3.statusDescription())
                 .isEqualTo(
-                        "error: data exception - constraint conflicts with existing index. Constraint conflicts with already existing index '(:MY_LABEL {my_property_key})'.");
+                        "error: data exception - index belongs to constraint. Index belongs to constraint '(:MY_LABEL {my_property_key})'.");
         assertThat(c3.gqlStatusObject().cause()).isNotPresent();
     }
 
@@ -656,10 +656,10 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         IndexBelongsToConstraintException c4 = (IndexBelongsToConstraintException) c3.getCause();
         assertThat(c4.getMessage()).contains("Index belongs to constraint: `MyConstraint`");
         assertThat(c4.getCause()).isNull();
-        assertThat(c4.gqlStatus()).isEqualTo("22N73");
+        assertThat(c4.gqlStatus()).isEqualTo("22NBC");
         assertThat(c4.statusDescription())
                 .isEqualTo(
-                        "error: data exception - constraint conflicts with existing index. Constraint conflicts with already existing index 'MyConstraint'.");
+                        "error: data exception - index belongs to constraint. Index belongs to constraint 'MyConstraint'.");
         assertThat(c4.gqlStatusObject().cause()).isNotPresent();
     }
 
