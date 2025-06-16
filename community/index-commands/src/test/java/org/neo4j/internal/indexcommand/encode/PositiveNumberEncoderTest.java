@@ -17,11 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.recordstorage.idx;
+package org.neo4j.internal.indexcommand.encode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.neo4j.internal.recordstorage.idx.PositiveNumberEncoder.readNumber;
-import static org.neo4j.internal.recordstorage.idx.PositiveNumberEncoder.writeNumber;
+import static org.neo4j.internal.indexcommand.encode.PositiveNumberEncoder.readNumber;
+import static org.neo4j.internal.indexcommand.encode.PositiveNumberEncoder.writeNumber;
 
 import java.io.IOException;
 import java.util.stream.LongStream;

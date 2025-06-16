@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.recordstorage.indexcommand;
+package org.neo4j.internal.indexcommand;
 
-import static org.neo4j.internal.recordstorage.idx.PositiveNumberEncoder.readNumber;
-import static org.neo4j.internal.recordstorage.idx.PositiveNumberEncoder.writeNumber;
+import static org.neo4j.internal.indexcommand.encode.PositiveNumberEncoder.readNumber;
+import static org.neo4j.internal.indexcommand.encode.PositiveNumberEncoder.writeNumber;
 
 import java.io.IOException;
-import org.neo4j.internal.recordstorage.idx.value.PeekableChannel;
-import org.neo4j.internal.recordstorage.idx.value.ValueStream;
+import org.neo4j.internal.indexcommand.encode.PeekableChannel;
+import org.neo4j.internal.indexcommand.encode.ValueStream;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.storageengine.api.UpdateMode;

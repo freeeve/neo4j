@@ -17,54 +17,47 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.recordstorage.indexcommand;
+package org.neo4j.internal.indexcommand;
 
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import java.util.Arrays;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.string.Mask;
-import org.neo4j.values.storable.Value;
 
-public final class ValueIndexUpdateCommand extends IndexUpdateCommand<Value[]> {
+public final class TokenIndexUpdateCommand extends IndexUpdateCommand<int[]> {
+    public static final long SHALLOW_SIZE = shallowSizeOfInstance(TokenIndexUpdateCommand.class);
 
-    static final long SHALLOW_SIZE = shallowSizeOfInstance(ValueIndexUpdateCommand.class);
+    private final int[] before;
+    private final int[] values;
 
-    private final Value[] before;
-    private final Value[] values;
-
-    public ValueIndexUpdateCommand(
-            IndexCommandSerialization serialization,
-            UpdateMode updateMode,
-            long indexId,
-            long entityId,
-            Value[] before,
-            Value[] values) {
-        super(serialization, updateMode, indexId, entityId);
+    public TokenIndexUpdateCommand(
+            IndexCommandSerialization serialization, long indexId, long entityId, int[] before, int[] values) {
+        super(serialization, UpdateMode.CHANGED, indexId, entityId);
         this.before = before;
         this.values = values;
     }
 
     @Override
-    public Value[] getBefore() {
+    public int[] getBefore() {
         return before;
     }
 
     @Override
-    public Value[] getAfter() {
+    public int[] getAfter() {
         return values;
     }
 
     @Override
     public String toString(Mask mask) {
         return String.format(
-                "ValueIndexUpdateCommand[mode:%s, indexId:%d, entityId:%d, before:%s, after:%s]",
+                "TokenIndexUpdateCommand[mode:%s, indexId:%d, entityId:%d, before:%s, after:%s]",
                 updateMode, indexId, entityId, Arrays.toString(before), Arrays.toString(values));
     }
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof ValueIndexUpdateCommand that)) {
+        if (!(o instanceof TokenIndexUpdateCommand that)) {
             return false;
         }
         return Arrays.equals(before, that.before) && Arrays.equals(values, that.values);

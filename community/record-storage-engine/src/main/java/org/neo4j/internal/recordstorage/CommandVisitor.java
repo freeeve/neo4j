@@ -20,6 +20,7 @@
 package org.neo4j.internal.recordstorage;
 
 import java.io.IOException;
+import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.internal.recordstorage.Command.GroupDegreeCommand;
 import org.neo4j.internal.recordstorage.Command.LabelTokenCommand;
 import org.neo4j.internal.recordstorage.Command.MetaDataCommand;
@@ -32,7 +33,6 @@ import org.neo4j.internal.recordstorage.Command.RelationshipCountsCommand;
 import org.neo4j.internal.recordstorage.Command.RelationshipGroupCommand;
 import org.neo4j.internal.recordstorage.Command.RelationshipTypeTokenCommand;
 import org.neo4j.internal.recordstorage.Command.SchemaRuleCommand;
-import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
 
 /**
  * An interface for dealing with commands, either reading or writing them. See also {@link TransactionApplier}. The

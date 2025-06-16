@@ -17,31 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.recordstorage.idx.value;
+package org.neo4j.internal.indexcommand;
 
-public enum ValueType {
-    /** You know what this is */
-    BOOLEAN,
-    /** 64-bit signed integer */
-    INTEGER,
-    /** 64-bit floating point number */
-    FLOAT,
-    /** Binary data */
-    BYTES,
-    /** Unicode string */
-    STRING,
-    /** Sequence of zero or more values */
-    ARRAY,
-    POINT_2D,
-    POINT_3D,
-    DATE,
-    TIME,
-    LOCAL_TIME,
-    LOCAL_DATE_TIME,
-    DATE_TIME_WITH_ZONE_OFFSET,
-    DATE_TIME_WITH_ZONE_NAME,
-    DURATION,
-    NULL,
-    /** Undefined type, reserved for future use */
-    RESERVED
+import java.io.IOException;
+import org.neo4j.io.fs.ReadableChannel;
+import org.neo4j.io.fs.WritableChannel;
+
+/**
+ * Actual implementations of serialization of {@link IndexUpdateCommand}s.
+ * Versioned, so different versions of storage specific transaction log serializations can use different implementations.
+ */
+public interface IndexCommandSerializationImpl {
+
+    IndexCommandSerializationImpl V1 = new IndexCommandSerializationImplV1();
+
+    void writeCommand(WritableChannel channel, IndexUpdateCommand<?> command) throws IOException;
+
+    IndexUpdateCommand<?> readCommand(IndexCommandSerialization serialization, ReadableChannel channel)
+            throws IOException;
 }

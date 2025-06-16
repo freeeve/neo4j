@@ -20,8 +20,8 @@
 package org.neo4j.internal.recordstorage;
 
 import java.io.IOException;
-import org.neo4j.internal.recordstorage.indexcommand.IndexCommandSerializationImpl;
-import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
+import org.neo4j.internal.indexcommand.IndexCommandSerializationImpl;
+import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;

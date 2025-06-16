@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.recordstorage;
 
-import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
+import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.storageengine.api.UpdateMode;
 

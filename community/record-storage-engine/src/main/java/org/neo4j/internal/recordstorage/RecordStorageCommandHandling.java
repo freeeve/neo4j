@@ -21,7 +21,7 @@ package org.neo4j.internal.recordstorage;
 
 import java.io.IOException;
 import org.neo4j.function.ThrowingConsumer;
-import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
+import org.neo4j.internal.indexcommand.IndexUpdateCommand;
 import org.neo4j.storageengine.api.StorageCommand;
 
 public class RecordStorageCommandHandling {
