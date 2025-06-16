@@ -258,7 +258,7 @@ trait GraphDatabaseTestSupport
       await("database created").atMost(1, MINUTES)
         .pollInterval(50, MILLISECONDS)
         .pollInSameThread
-        .until(() => managementService.database(name).isAvailable == true)
+        .until(() => managementService.database(name.replace("`", "")).isAvailable == true)
     }
   }
 
