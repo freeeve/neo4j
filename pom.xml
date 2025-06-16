@@ -161,7 +161,7 @@
 
     <jamm.version>0.4.0</jamm.version>
     <lucene.version>9.11.1</lucene.version>
-    <bouncycastle.version>1.80</bouncycastle.version>
+    <bouncycastle.version>1.81</bouncycastle.version>
     <jetty.version>12.0.17</jetty.version>
     <scala-maven-plugin.version>4.9.5</scala-maven-plugin.version>
     <scala.version>2.13.16</scala.version>
@@ -169,22 +169,22 @@
     <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
     <scala.test.version>3.2.13</scala.test.version>
     <asm.version>9.8</asm.version>
-    <metrics.version>4.2.30</metrics.version>
+    <metrics.version>4.2.32</metrics.version>
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <jersey.version>2.43</jersey.version>
-    <junit.version>5.12.2</junit.version>
-    <junit.platform.version>1.12.2</junit.platform.version>
-    <mockito.version>5.17.0</mockito.version>
+    <junit.version>5.13.1</junit.version>
+    <junit.platform.version>1.13.1</junit.platform.version>
+    <mockito.version>5.18.0</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
-    <cucumber.version>7.22.1</cucumber.version>
+    <cucumber.version>7.23.0</cucumber.version>
     <cucumber.scala.version>8.26.1</cucumber.scala.version>
-    <caffeine.version>3.2.0</caffeine.version>
+    <caffeine.version>3.2.1</caffeine.version>
     <required.maven.version>3.8.2</required.maven.version>
     <jackson.version>2.19.0</jackson.version>
     <jackson-databind.version>2.19.0</jackson-databind.version>
     <amazon-sdk.version>1.12.772</amazon-sdk.version>
-    <awssdk.version>2.31.39</awssdk.version>
-    <awssdk-crt.version>0.38.2</awssdk-crt.version>
+    <awssdk.version>2.31.62</awssdk.version>
+    <awssdk-crt.version>0.38.5</awssdk-crt.version>
     <guava.version>33.4.8-jre</guava.version>
     <awaitility.version>4.3.0</awaitility.version>
     <log4j.version>2.20.0</log4j.version>
@@ -198,12 +198,12 @@
     <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
     <error_prone.version>2.38.0</error_prone.version>
     <protobuf.version>3.25.7</protobuf.version>
-    <teavm.version>0.12.0</teavm.version>
+    <teavm.version>0.12.1</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
     <grpc.version>1.72.0</grpc.version>
-    <testcontainers.version>1.21.0</testcontainers.version>
+    <testcontainers.version>1.21.1</testcontainers.version>
     <build-resources.version>2024-12.1</build-resources.version>
-    <s3mock.version>4.1.1</s3mock.version>
+    <s3mock.version>4.4.0</s3mock.version>
     <shiro.version>2.0.4</shiro.version>
     <cypherdsl.version>2024.6.0</cypherdsl.version>
   </properties>
@@ -1326,7 +1326,7 @@
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-bom</artifactId>
-        <version>2024.0.5</version>
+        <version>2024.0.6</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
