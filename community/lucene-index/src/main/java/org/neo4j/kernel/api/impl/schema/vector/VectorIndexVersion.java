@@ -51,8 +51,8 @@ import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidator.Vali
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexSettingsValidator.Validators;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.util.VisibleForTesting;
+import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.FloatingPointArray;
-import org.neo4j.values.storable.NumberArray;
 import org.neo4j.values.storable.Value;
 
 public enum VectorIndexVersion {
@@ -161,7 +161,7 @@ public enum VectorIndexVersion {
 
         @Override
         public boolean acceptsValueInstanceType(Value candidate) {
-            return candidate instanceof NumberArray;
+            return candidate instanceof VectorCandidate;
         }
     };
 

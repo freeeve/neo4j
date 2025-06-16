@@ -34,8 +34,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
-import org.neo4j.values.PrimitiveArrayVectorCandidates;
 import org.neo4j.values.VectorCandidate;
+import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
 
 class VectorUtilSupportTest {
@@ -273,7 +273,7 @@ class VectorUtilSupportTest {
     }
 
     static VectorCandidate vector(float... elements) {
-        return new PrimitiveArrayVectorCandidates.FloatArray(elements);
+        return Values.float32Vector(elements);
     }
 
     static VectorCandidate randomVector(Random random) {

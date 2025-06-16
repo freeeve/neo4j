@@ -51,6 +51,7 @@ import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
@@ -109,14 +110,13 @@ public class VectorTestUtils {
 
         // non-zero normal values
 
-        final var floatFiniteNonZeroRegularArrays = Lists.immutable
-                .of(
-                        toArrayValue(toPrimitive((byte) 42)),
-                        toArrayValue(toPrimitive((short) -1234)),
-                        toArrayValue(toPrimitive(0xdeadbeaf)),
-                        toArrayValue(toPrimitive(-1234567890987654321L)),
-                        toArrayValue(toPrimitive((float) Math.E)),
-                        toArrayValue(toPrimitive(Math.PI)))
+        final var floatFiniteNonZeroRegularArrays = Lists.mutable
+                .withAll(toArrayAndVectorValues(toPrimitive((byte) 42)))
+                .withAll(toArrayAndVectorValues(toPrimitive((short) -1234)))
+                .withAll(toArrayAndVectorValues(toPrimitive(0xdeadbeaf)))
+                .withAll(toArrayAndVectorValues(toPrimitive(-1234567890987654321L)))
+                .withAll(toArrayAndVectorValues(toPrimitive((float) Math.E)))
+                .withAll(toArrayAndVectorValues(toPrimitive(Math.PI)))
                 .asLazy();
 
         // integral non-zero extreme values
@@ -126,22 +126,22 @@ public class VectorTestUtils {
                         .of((byte) -Byte.MAX_VALUE, Byte.MIN_VALUE, Byte.MAX_VALUE)
                         .asLazy()
                         .collect(VectorTestUtils::toPrimitive)
-                        .collect(VectorTestUtils::toArrayValue))
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .withAll(ShortLists.immutable
                         .of((short) -Short.MAX_VALUE, Short.MIN_VALUE, Short.MAX_VALUE)
                         .asLazy()
                         .collect(VectorTestUtils::toPrimitive)
-                        .collect(VectorTestUtils::toArrayValue))
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .withAll(IntLists.immutable
                         .of(-Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE)
                         .asLazy()
                         .collect(VectorTestUtils::toPrimitive)
-                        .collect(VectorTestUtils::toArrayValue))
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .withAll(LongLists.immutable
                         .of(-Long.MAX_VALUE, Long.MIN_VALUE, Long.MAX_VALUE)
                         .asLazy()
                         .collect(VectorTestUtils::toPrimitive)
-                        .collect(VectorTestUtils::toArrayValue))
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .asLazy();
 
         // finite non-zero extreme values
@@ -154,7 +154,8 @@ public class VectorTestUtils {
                 floatFiniteNonZeroPositiveExtremePrimitiveFloats.flatCollect(VectorTestUtils::signPermutations);
 
         final var floatFiniteNonZeroExtremeFloatArrays = Lists.mutable
-                .withAll(floatFiniteNonZeroExtremePrimitiveFloatArrays.collect(VectorTestUtils::toArrayValue))
+                .withAll(floatFiniteNonZeroExtremePrimitiveFloatArrays.flatCollect(
+                        VectorTestUtils::toArrayAndVectorValues))
                 .asLazy();
 
         final var floatFiniteNonZeroExtremeDoubleArrays = Lists.mutable
@@ -166,7 +167,7 @@ public class VectorTestUtils {
                 .flatCollect(VectorTestUtils::signPermutations)
                 .withAll(floatFiniteNonZeroExtremePrimitiveFloatArrays.collect(VectorTestUtils::promote))
                 .asLazy()
-                .collect(VectorTestUtils::toArrayValue);
+                .flatCollect(VectorTestUtils::toArrayAndVectorValues);
 
         final var doubleFiniteNonZeroPositiveExtremePrimitiveDoubles = DoubleLists.immutable
                 .of(Double.MIN_VALUE, Double.MIN_NORMAL, Double.MAX_VALUE)
@@ -174,24 +175,24 @@ public class VectorTestUtils {
 
         final var doubleFiniteNonZeroExtremeDoubleArrays = doubleFiniteNonZeroPositiveExtremePrimitiveDoubles
                 .flatCollect(VectorTestUtils::signPermutations)
-                .collect(VectorTestUtils::toArrayValue);
+                .flatCollect(VectorTestUtils::toArrayAndVectorValues);
 
         // finite zero values
 
         final var floatFiniteZeroPrimitiveIntegralArrays = Lists.mutable
-                .with(toArrayValue(toPrimitive((byte) 0)))
-                .with(toArrayValue(toPrimitive((short) 0)))
-                .with(toArrayValue(toPrimitive(0)))
-                .with(toArrayValue(toPrimitive(0L)))
+                .withAll(toArrayAndVectorValues(toPrimitive((byte) 0)))
+                .withAll(toArrayAndVectorValues(toPrimitive((short) 0)))
+                .withAll(toArrayAndVectorValues(toPrimitive(0)))
+                .withAll(toArrayAndVectorValues(toPrimitive(0L)))
                 .asLazy();
 
         final var floatFiniteZeroPrimitiveFloatArrays = signPermutations(0.f);
 
         final var floatFiniteZeroFloatingPointArrays = Lists.mutable
-                .withAll(floatFiniteZeroPrimitiveFloatArrays.collect(VectorTestUtils::toArrayValue))
+                .withAll(floatFiniteZeroPrimitiveFloatArrays.flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .withAll(floatFiniteZeroPrimitiveFloatArrays
                         .collect(VectorTestUtils::promote)
-                        .collect(VectorTestUtils::toArrayValue))
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .asLazy();
 
         // finite non-zero sqrt(extreme) values
@@ -206,7 +207,7 @@ public class VectorTestUtils {
         // finite square L2 norms
 
         final var floatFiniteSquareL2NormIntegralArrays =
-                signPermutations(Long.MAX_VALUE, Long.MAX_VALUE).collect(VectorTestUtils::toArrayValue);
+                signPermutations(Long.MAX_VALUE, Long.MAX_VALUE).flatCollect(VectorTestUtils::toArrayAndVectorValues);
 
         final var floatFiniteSquareL2NormPrimitiveFloatArrays = Lists.mutable
                 .of(
@@ -219,10 +220,11 @@ public class VectorTestUtils {
                 .flatCollect(VectorTestUtils::signPermutations);
 
         final var floatFiniteSquareL2NormFloatingPointArrays = Lists.mutable
-                .withAll(floatFiniteSquareL2NormPrimitiveFloatArrays.collect(VectorTestUtils::toArrayValue))
+                .withAll(floatFiniteSquareL2NormPrimitiveFloatArrays.flatCollect(
+                        VectorTestUtils::toArrayAndVectorValues))
                 .withAll(floatFiniteSquareL2NormPrimitiveFloatArrays
                         .collect(VectorTestUtils::promote)
-                        .collect(VectorTestUtils::toArrayValue))
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .asLazy();
 
         final var doubleFiniteSquareL2NormDoubleArrays = Lists.mutable
@@ -234,7 +236,7 @@ public class VectorTestUtils {
                 .withAll(doubleFiniteNonZeroSqrtExtremePrimitiveDoubles.collect(VectorTestUtils::toPrimitive))
                 .asLazy()
                 .flatCollect(VectorTestUtils::signPermutations)
-                .collect(VectorTestUtils::toArrayValue);
+                .flatCollect(VectorTestUtils::toArrayAndVectorValues);
 
         final var floatFiniteSquareL2NormMixedArrays = signPermutations(
                 Values.longValue(Long.MAX_VALUE),
@@ -243,8 +245,16 @@ public class VectorTestUtils {
 
         // non-finite values
 
-        final var nonFloatFiniteIntegralArrays = Lists.mutable
-                .of(Values.EMPTY_BYTE_ARRAY, Values.EMPTY_SHORT_ARRAY, Values.EMPTY_INT_ARRAY, Values.EMPTY_LONG_ARRAY)
+        final var nonFloatEmptyIntegralArrays = Lists.mutable
+                .of(
+                        Values.EMPTY_BYTE_ARRAY,
+                        Values.EMPTY_SHORT_ARRAY,
+                        Values.EMPTY_INT_ARRAY,
+                        Values.EMPTY_LONG_ARRAY,
+                        Values.int8Vector(),
+                        Values.int16Vector(),
+                        Values.int32Vector(),
+                        Values.int64Vector())
                 .asLazy();
 
         final var nonFloatFinitePrimitiveFloatArrays = Lists.mutable
@@ -258,26 +268,26 @@ public class VectorTestUtils {
                 .asLazy();
 
         final var nonFloatFiniteFloatingPointArrays = Lists.mutable
-                .withAll(nonFloatFinitePrimitiveFloatArrays.collect(VectorTestUtils::toArrayValue))
+                .withAll(nonFloatFinitePrimitiveFloatArrays.flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .withAll(Lists.mutable
                         .of(smallerDoubleThanSmallestFloat, largerDoubleThanLargestFloat, Double.MAX_VALUE)
                         .withAll(nonDoubleFiniteNonZeroPositiveExtremePrimitiveDoubles)
                         .flatCollect(VectorTestUtils::signPermutations)
                         .withAll(nonFloatFinitePrimitiveFloatArrays.collect(VectorTestUtils::promote))
-                        .collect(VectorTestUtils::toArrayValue));
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues));
 
         final var nonDoubleFiniteDoubleArrays = Lists.mutable
                 .withAll(nonDoubleFiniteNonZeroPositiveExtremePrimitiveDoubles)
                 .flatCollect(VectorTestUtils::signPermutations)
                 .with(ArrayUtils.EMPTY_DOUBLE_ARRAY)
                 .asLazy()
-                .collect(VectorTestUtils::toArrayValue);
+                .flatCollect(VectorTestUtils::toArrayAndVectorValues);
 
         // non-finite square L2 norms
 
         final var nonFloatFiniteSquareL2NormIntegralArrays =
                 Lists.mutable.withAll(signPermutations(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE)
-                        .collect(VectorTestUtils::toArrayValue));
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues));
 
         final var nonFloatFiniteSquareL2NormPrimitiveFloatArrays = Lists.mutable
                 .of(
@@ -288,11 +298,13 @@ public class VectorTestUtils {
                 .flatCollect(VectorTestUtils::signPermutations);
 
         final var nonFloatFiniteSquareL2NormFloatingPointArrays = Lists.mutable
-                .withAll(nonFloatFiniteSquareL2NormPrimitiveFloatArrays.asLazy().collect(VectorTestUtils::toArrayValue))
+                .withAll(nonFloatFiniteSquareL2NormPrimitiveFloatArrays
+                        .asLazy()
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .withAll(Lists.mutable
                         .withAll(signPermutations(largerThanSquareRootLargestDouble, largerThanSquareRootLargestDouble))
                         .withAll(nonFloatFiniteSquareL2NormPrimitiveFloatArrays.collect(VectorTestUtils::promote))
-                        .collect(VectorTestUtils::toArrayValue))
+                        .flatCollect(VectorTestUtils::toArrayAndVectorValues))
                 .asLazy();
 
         final var nonFloatFiniteSquareL2NormMixedArrays = signPermutations(
@@ -302,11 +314,10 @@ public class VectorTestUtils {
                 Values.longValue(Long.MAX_VALUE));
 
         final var nonDoubleFiniteZeroSquareL2NormIntegralArrays = Lists.mutable
-                .of(
-                        toArrayValue(toPrimitive((byte) 0, (byte) 0)),
-                        toArrayValue(toPrimitive((short) 0, (short) 0)),
-                        toArrayValue(toPrimitive(0, 0)),
-                        toArrayValue(toPrimitive(0L, 0L)))
+                .withAll(toArrayAndVectorValues(toPrimitive((byte) 0, (byte) 0)))
+                .withAll(toArrayAndVectorValues(toPrimitive((short) 0, (short) 0)))
+                .withAll(toArrayAndVectorValues(toPrimitive(0, 0)))
+                .withAll(toArrayAndVectorValues(toPrimitive(0L, 0L)))
                 .asLazy();
 
         final var nonDoubleFiniteSquareL2NormDoubleArrays = Lists.mutable
@@ -317,16 +328,16 @@ public class VectorTestUtils {
                         toPrimitive(Double.MAX_VALUE, Double.MAX_VALUE))
                 .asLazy()
                 .flatCollect(VectorTestUtils::signPermutations)
-                .collect(VectorTestUtils::toArrayValue);
+                .flatCollect(VectorTestUtils::toArrayAndVectorValues);
 
         // wrong types
 
         final var nonNumericArrays = Lists.mutable
-                .<AnyValue>of(toArrayValue(ArrayUtils.toArray("clearly", "not", "numeric")))
+                .<AnyValue>withAll(toArrayAndVectorValues(ArrayUtils.toArray("clearly", "not", "numeric")))
                 .withAll(Lists.mutable
                         .withAll(floatFiniteNonZeroRegularArrays)
                         .withAll(floatFiniteNonZeroExtremeIntegralArrays)
-                        .collect(VectorTestUtils::convertEvenElementsToStringValues))
+                        .flatCollect(VectorTestUtils::convertEvenElementsToStringValues))
                 .asLazy();
 
         // now to put them all together
@@ -343,31 +354,34 @@ public class VectorTestUtils {
 
         final var valueComparator = Comparator.nullsLast(
                 Comparator.comparing(AnyValue::valueRepresentation).thenComparing((lhs, rhs) -> {
-                    if (!(lhs instanceof final SequenceValue lhsSequence)
-                            || !(rhs instanceof final SequenceValue rhsSequence)) {
-                        return objectComparator.compare(lhs, rhs);
-                    }
-
-                    var comparison = Integer.compare(lhsSequence.intSize(), rhsSequence.intSize());
-                    if (comparison != 0) {
-                        return comparison;
-                    }
-
-                    for (int i = 0; i < lhsSequence.intSize(); i++) {
-                        final var lhsElement = lhsSequence.value(i);
-                        final var rhsElement = rhsSequence.value(i);
-
-                        if (!(lhsElement instanceof final Value lhsValue)
-                                || !(rhsElement instanceof final Value rhsValue)) {
-                            return objectComparator.compare(lhsElement, rhsElement);
-                        }
-
-                        comparison = Values.COMPARATOR.compare(lhsValue, rhsValue);
+                    if (lhs instanceof final SequenceValue lhsSequence
+                            && rhs instanceof final SequenceValue rhsSequence) {
+                        var comparison = Integer.compare(lhsSequence.intSize(), rhsSequence.intSize());
                         if (comparison != 0) {
                             return comparison;
                         }
+
+                        for (int i = 0; i < lhsSequence.intSize(); i++) {
+                            final var lhsElement = lhsSequence.value(i);
+                            final var rhsElement = rhsSequence.value(i);
+
+                            if (!(lhsElement instanceof final Value lhsValue)
+                                    || !(rhsElement instanceof final Value rhsValue)) {
+                                return objectComparator.compare(lhsElement, rhsElement);
+                            }
+
+                            comparison = Values.COMPARATOR.compare(lhsValue, rhsValue);
+                            if (comparison != 0) {
+                                return comparison;
+                            }
+                        }
+                        return 0;
+                    } else if (lhs instanceof final VectorValue lhsVector
+                            && rhs instanceof final VectorValue rhsVector) {
+                        return Values.COMPARATOR.compare(lhsVector, rhsVector);
+                    } else {
+                        return objectComparator.compare(lhs, rhs);
                     }
-                    return 0;
                 }));
 
         // set valid Cosine vectors
@@ -403,7 +417,7 @@ public class VectorTestUtils {
         EUCLIDEAN_INVALID_VECTORS = addListValueVersions(Lists.mutable
                         .<AnyValue>with(Values.NO_VALUE)
                         .with(null)
-                        .withAll(nonFloatFiniteIntegralArrays)
+                        .withAll(nonFloatEmptyIntegralArrays)
                         .withAll(nonFloatFiniteFloatingPointArrays)
                         .withAll(nonNumericArrays)
                         .toSortedSet(valueComparator))
@@ -440,13 +454,33 @@ public class VectorTestUtils {
         return Values.of(array) instanceof final ArrayValue arrayValue ? arrayValue : null;
     }
 
-    private static ListValue convertEvenElementsToStringValues(ArrayValue arrayValue) {
-        final var array = new AnyValue[arrayValue.intSize()];
-        for (int i = 0; i < array.length; i++) {
-            final var value = (Value) arrayValue.value(i);
-            array[i] = (i & 1) == 0 ? Values.stringValue(value.prettyPrint()) : value;
+    private static LazyIterable<Value> toArrayAndVectorValues(Object array) {
+        return Lists.immutable.of(toArrayValue(array), toVectorValue(array)).asLazy();
+    }
+
+    private static VectorValue toVectorValue(Object vector) {
+        return switch (vector) {
+            case byte[] array -> Values.int8Vector(array);
+            case short[] array -> Values.int16Vector(array);
+            case int[] array -> Values.int32Vector(array);
+            case long[] array -> Values.int64Vector(array);
+            case float[] array -> Values.float32Vector(array);
+            case double[] array -> Values.float64Vector(array);
+            default -> null;
+        };
+    }
+
+    private static LazyIterable<ListValue> convertEvenElementsToStringValues(Value v) {
+        if (v instanceof ArrayValue arrayValue) {
+            final var array = new AnyValue[arrayValue.intSize()];
+            for (int i = 0; i < array.length; i++) {
+                final var value = (Value) arrayValue.value(i);
+                array[i] = (i & 1) == 0 ? Values.stringValue(value.prettyPrint()) : value;
+            }
+            return Lists.immutable.of(VirtualValues.list(array)).asLazy();
+        } else {
+            return Lists.immutable.<ListValue>empty().asLazy();
         }
-        return VirtualValues.list(array);
     }
 
     private static RichIterable<AnyValue> addListValueVersions(RichIterable<? extends AnyValue> values) {
