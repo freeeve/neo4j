@@ -40,9 +40,11 @@ trait CypherExceptionFactory {
     pos: InputPosition
   ): RuntimeException = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N17)
           .withParam(GqlParams.StringParam.input, invalidInput)
+          .atPosition(pos.offset, pos.line, pos.column)
           .build()
       )
       .build()
@@ -57,11 +59,13 @@ trait CypherExceptionFactory {
     pos: InputPosition
   ): RuntimeException = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
       .withCause(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
           .withParam(GqlParams.StringParam.input, wrongInput)
           .withParam(GqlParams.StringParam.context, forField)
           .withParam(GqlParams.ListParam.inputList, expectedInput.asJava)
+          .atPosition(pos.offset, pos.line, pos.column)
           .build()
       )
       .build()

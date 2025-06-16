@@ -50,6 +50,7 @@ trait AstBuildingAntlrParser extends Parser {
     // If that fails
     if (this.jsSemanticAnalysis) {
       try {
+        checker.exitEveryRule(localCtx)
         buildAstWithErrorHandling(localCtx)
       } catch {
         case _: Exception | _: Error =>
