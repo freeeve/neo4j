@@ -4321,8 +4321,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N52(
             new GqlStatus("51N52"),
-            "Cannot alter database topology. Number of primaries { %s } needs to be at least 1 and may not exceed { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.count, GqlParams.NumberParam.upper},
+            "Cannot { %s } database topology. Number of primaries { %s } needs to be at least 1 and may not exceed { %s }.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.action, GqlParams.NumberParam.count, GqlParams.NumberParam.upper
+            },
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "number primaries out of range",
@@ -4331,8 +4333,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     ,
     STATUS_51N53(
             new GqlStatus("51N53"),
-            "Cannot alter database topology. Number of secondaries { %s } needs to be at least 0 and may not exceed { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.NumberParam.count, GqlParams.NumberParam.upper},
+            "Cannot { %s } database topology. Number of secondaries { %s } needs to be at least 0 and may not exceed { %s }.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.action, GqlParams.NumberParam.count, GqlParams.NumberParam.upper
+            },
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "number secondaries out of range",

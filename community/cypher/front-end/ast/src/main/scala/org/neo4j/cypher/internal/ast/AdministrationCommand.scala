@@ -253,13 +253,18 @@ sealed trait WriteAdministrationCommand extends AdministrationCommand {
 
 sealed trait TopologyCheck extends SemanticAnalysisTooling {
 
-  protected def topologyCheck(topology: Option[Topology], command: String, position: InputPosition): SemanticCheck = {
+  protected def topologyCheck(
+    topology: Option[Topology],
+    command: String,
+    action: String,
+    position: InputPosition
+  ): SemanticCheck = {
 
     def numPrimaryGreaterThanZero(topology: Topology, position: InputPosition): SemanticCheck =
       if (topology.primaries.flatMap(_.left.toOption).exists(_ < 1)) {
         val count = topology.primaries.flatMap(_.left.toOption).get
         val topologyString = Prettifier.extractTopology(topology).trim
-        error(SemanticError.numPrimariesOutOfRange(count, command, topologyString, position))
+        error(SemanticError.numPrimariesOutOfRange(count, command, action, topologyString, position))
       } else {
         SemanticCheck.success
       }
@@ -268,7 +273,7 @@ sealed trait TopologyCheck extends SemanticAnalysisTooling {
       if (topology.secondaries.flatMap(_.left.toOption).exists(_ < 0)) {
         val count = topology.secondaries.flatMap(_.left.toOption).get
         val topologyString = Prettifier.extractTopology(topology).trim
-        error(SemanticError.numSecondariesOutOfRange(count, command, topologyString, position))
+        error(SemanticError.numSecondariesOutOfRange(count, command, action, topologyString, position))
       } else {
         SemanticCheck.success
       }
@@ -1520,9 +1525,9 @@ final case class CreateDatabase(
       case _ =>
         super.semanticCheck chain
           SemanticState.recordCurrentScope(this)
-    }) chain topologyCheck(topology, name, position) chain
+    }) chain topologyCheck(topology, name, "create", position) chain
       defaultLanguageVersionCheck(defaultLanguage, name) chain
-      shards.map(_.semanticCheck(name, position, expectShard = true)).getOrElse(success)
+      shards.map(_.semanticCheck(name, "create", position, expectShard = true)).getOrElse(success)
 }
 
 case class Topology(primaries: Option[Either[Int, Parameter]], secondaries: Option[Either[Int, Parameter]])
@@ -1533,7 +1538,7 @@ case class ShardDefinition(
   propertyShardReplicaCount: Option[Either[Int, Parameter]]
 ) extends TopologyCheck {
 
-  def semanticCheck(command: String, position: InputPosition, expectShard: Boolean): SemanticCheck = {
+  def semanticCheck(command: String, action: String, position: InputPosition, expectShard: Boolean): SemanticCheck = {
 
     def numShardsInRange(shardCount: Int): SemanticCheck = {
       if ((shardCount < 1 && expectShard) || shardCount > 1000) {
@@ -1569,7 +1574,7 @@ case class ShardDefinition(
     }
 
     featureCheckSpd chain
-      topologyCheck(graphShardTopology, command, position) chain
+      topologyCheck(graphShardTopology, command, action, position) chain
       numShardsInRange(propertyShardCount) chain
       numReplicasGreaterThanZero(propertyShardReplicaCount)
   }
@@ -1686,9 +1691,9 @@ final case class AlterDatabase(
   override def semanticCheck: SemanticCheck =
     super.semanticCheck chain
       SemanticState.recordCurrentScope(this) chain
-      topologyCheck(topology, name, position) chain
+      topologyCheck(topology, name, "alter", position) chain
       defaultLanguageVersionCheck(defaultLanguage, name) chain
-      shardDefinition.map(_.semanticCheck(name, position, expectShard = false)).getOrElse(success) chain
+      shardDefinition.map(_.semanticCheck(name, "alter", position, expectShard = false)).getOrElse(success) chain
       isValidReplicaCount(replicas) chain checkTopologyOrShards
 }
 

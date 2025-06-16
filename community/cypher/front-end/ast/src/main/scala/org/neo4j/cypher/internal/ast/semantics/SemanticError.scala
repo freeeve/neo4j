@@ -1120,6 +1120,7 @@ object SemanticError {
   def numPrimariesOutOfRange(
     count: Int,
     command: String,
+    action: String,
     topologyString: String,
     position: InputPosition
   ): SemanticError = {
@@ -1128,6 +1129,7 @@ object SemanticError {
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N52)
         .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.action, action)
         .withParam(GqlParams.NumberParam.count, count)
         .withParam(GqlParams.NumberParam.upper, 11)
         .build())
@@ -1143,6 +1145,7 @@ object SemanticError {
   def numSecondariesOutOfRange(
     count: Int,
     command: String,
+    action: String,
     topologyString: String,
     position: InputPosition
   ): SemanticError = {
@@ -1151,6 +1154,7 @@ object SemanticError {
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N53)
         .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.action, action)
         .withParam(GqlParams.NumberParam.count, count)
         .withParam(GqlParams.NumberParam.upper, 20)
         .build())
