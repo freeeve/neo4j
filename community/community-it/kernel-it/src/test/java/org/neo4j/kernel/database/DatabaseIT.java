@@ -206,6 +206,8 @@ class DatabaseIT {
     }
 
     @Test
+    @SkipOnSpd(
+            reason = "On enterprise the panic invocation leads the database to be quarantined/stopped asynchronously")
     void flushOfThePageCacheOnShutdownDoesNotHappenIfTheDbIsUnhealthy() throws Throwable {
         var databaseHealth = database.getDatabaseHealth();
         databaseHealth.panic(new Throwable("Critical failure"));
