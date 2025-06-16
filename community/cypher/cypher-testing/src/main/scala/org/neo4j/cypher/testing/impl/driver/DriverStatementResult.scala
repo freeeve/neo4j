@@ -53,7 +53,9 @@ case class DriverStatementResult(private val driverResult: Result) extends State
 
   override def consume(valueMapper: ValueMapper): ConsumedResult = {
     val headers = driverResult.keys()
-    ConsumedResult(headers, driverResult.list(valueMapper.driverRecordsMapper))
+    val rows = driverResult.list(valueMapper.driverRecordsMapper)
+    val qqlStatusObjects = driverResult.consume().gqlStatusObjects().asInstanceOf[java.lang.Iterable[GqlStatusObject]]
+    ConsumedResult(headers, rows, qqlStatusObjects)
   }
 
   override def getNotifications(): List[Notification] =

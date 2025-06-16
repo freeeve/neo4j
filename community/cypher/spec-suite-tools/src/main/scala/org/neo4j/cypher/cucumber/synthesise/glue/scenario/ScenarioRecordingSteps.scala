@@ -33,6 +33,7 @@ import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 
 import java.net.URI
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -75,6 +76,9 @@ class ScenarioRecordingSteps @Inject() (
   override protected def sideEffectsShouldBe(expected: DataTable): Unit = add(SideEffects(expected))
   override protected def errorShouldBeRaised(expected: ExpectedError): Unit = add(AssertError(expected))
   override protected def errorShouldBeRaised(expected: ExpectedGqlError): Unit = add(AssertGqlError(expected))
+
+  override protected def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit =
+    add(AssertGqlWarning(expectedWarning))
   override protected def openTransaction(): Unit = add(OpenTransaction)
   override protected def havingExecutedInOpenTx(cypher: String): Unit = add(HavingExecutedInOpenTx(cypher))
   override protected def executingQueryInOpenTx(cypher: String): Unit = add(ExecuteInOpenTx(cypher))
@@ -123,7 +127,7 @@ case class RecordedScenario(
   tags: Set[String],
   comment: Option[String] = None
 ) {
-  def source: String = uri + ":" + line
+  def source: String = uri.toString + ":" + line
 }
 sealed trait RecordedStep
 
@@ -153,6 +157,7 @@ case class AssertResults(expected: DataTable, order: ResultOrder) extends Record
 sealed trait ExpectError extends RecordedStep
 case class AssertError(expected: ExpectedError) extends ExpectError
 case class AssertGqlError(expected: ExpectedGqlError) extends ExpectError
+case class AssertGqlWarning(expected: ExpectedGqlWarning) extends ExpectError
 case class SideEffects(expected: DataTable) extends RecordedStep
 case class Comment(comment: String) extends RecordedStep
 

@@ -27,6 +27,7 @@ import org.neo4j.cypher.cucumber.glue.regular.DynamicExpectations
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 import org.neo4j.cypher.cucumber.synthesise.CucumberSalad
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.ScenarioFilter
 import org.neo4j.cypher.cucumber.synthesise.generator.Filter.excludeTags
@@ -36,6 +37,7 @@ import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AnyOrder
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AnyOrderUnorderedLists
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertError
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlError
+import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertGqlWarning
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.AssertResults
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.Comment
 import org.neo4j.cypher.cucumber.synthesise.glue.scenario.CommitTransaction
@@ -255,6 +257,10 @@ trait ScenarioRenderer {
           tripleQuote(s"execution should fail with GQL code $code and message containing:", desc)
         case AssertGqlError(ExpectedGqlError(code, None)) =>
           s"Then execution should fail with GQL code $code"
+        case AssertGqlWarning(ExpectedGqlWarning(code, None)) =>
+          s"execution should raise a warning with GQL code $code"
+        case AssertGqlWarning(ExpectedGqlWarning(code, Some(desc))) =>
+          tripleQuote(s"execution should raise a warning with GQL code $code and message containing:", desc)
       }
     case SideEffects(expected) if expected.isEmpty =>
       "And no side effects"

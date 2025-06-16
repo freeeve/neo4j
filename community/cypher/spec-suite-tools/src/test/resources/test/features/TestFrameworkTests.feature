@@ -591,3 +591,67 @@ Feature: TestFrameworkTests
       | query                            |
       | INVALID QUERY                    |
       | UNWIND [1,2] AS x RETURN 1/(x-2) |
+
+  Scenario: [037] Warning has incorrect code
+    Given an empty graph
+    When executing query:
+      """
+      RETURN id(null) AS id
+      """
+    Then the result should be (ignoring element order for lists):
+      | id   |
+      | null |
+    And execution should raise a warning with GQL code 123TECHNO
+
+  Scenario: [038] Warning has incorrect code and correct message
+    Given an empty graph
+    When executing query:
+      """
+      RETURN id(null) AS id
+      """
+    Then the result should be (ignoring element order for lists):
+      | id   |
+      | null |
+    And execution should raise a warning with GQL code 123TECHNO and message containing:
+      """
+      warn: feature deprecated with replacement. id is deprecated.
+      """
+
+  Scenario: [039] Warning has correct code and incorrect message
+    Given an empty graph
+    When executing query:
+      """
+      RETURN id(null) AS id
+      """
+    Then the result should be (ignoring element order for lists):
+      | id   |
+      | null |
+    And execution should raise a warning with GQL code 01N01 and message containing:
+      """
+      Incorrect message
+      """
+
+  Scenario: [040] Warning has correct code
+    Given an empty graph
+    When executing query:
+      """
+      RETURN id(null) AS id
+      """
+    Then the result should be (ignoring element order for lists):
+      | id   |
+      | null |
+    And execution should raise a warning with GQL code 01N01
+
+  Scenario: [041] Warning has correct code and correct message
+    Given an empty graph
+    When executing query:
+      """
+      RETURN id(null) AS id
+      """
+    Then the result should be (ignoring element order for lists):
+      | id   |
+      | null |
+    And execution should raise a warning with GQL code 01N01 and message containing:
+      """
+      warn: feature deprecated with replacement.
+      """

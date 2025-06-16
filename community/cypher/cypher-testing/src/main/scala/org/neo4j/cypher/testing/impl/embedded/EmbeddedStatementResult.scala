@@ -39,8 +39,9 @@ case class EmbeddedStatementResult(private val embeddedResult: Result) extends S
   override def consume(valueMapper: ValueMapper): ConsumedResult = {
     val headers = embeddedResult.columns()
     val collector = new EmbeddedStatementResult.ResultCollector(headers, valueMapper)
+    val qqlStatusObjects = embeddedResult.getGqlStatusObjects
     embeddedResult.accept(collector)
-    ConsumedResult(headers, collector.result())
+    ConsumedResult(headers, collector.result(), qqlStatusObjects)
   }
 
   override def getNotifications(): List[Notification] =

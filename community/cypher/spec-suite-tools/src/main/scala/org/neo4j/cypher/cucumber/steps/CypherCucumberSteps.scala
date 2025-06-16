@@ -25,6 +25,7 @@ import io.cucumber.scala.ScalaDsl
 import org.apache.commons.io.IOUtils
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 
 import java.nio.charset.StandardCharsets
 
@@ -129,6 +130,15 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
       errorShouldBeRaised(ExpectedGqlError(code, Some(description)))
   }
 
+  Then("execution should raise a warning with GQL code {word}") { code: String =>
+    warningShouldBeRaised(ExpectedGqlWarning(code, None))
+  }
+
+  Then("execution should raise a warning with GQL code {word} and message containing:") {
+    (code: String, description: String) =>
+      warningShouldBeRaised(ExpectedGqlWarning(code, Some(description)))
+  }
+
   private def readNamedGraphCypher(name: String): String = {
     IOUtils.resourceToString(s"graphs/$name/$name.cypher", StandardCharsets.UTF_8, getClass.getClassLoader)
   }
@@ -146,11 +156,13 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   protected def sideEffectsShouldBe(expected: DataTable): Unit
   protected def errorShouldBeRaised(expectedError: ExpectedError): Unit
   protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit
+  protected def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit
 }
 
 object CypherCucumberSteps {
   case class ExpectedError(error: String, description: Option[String], phase: Option[String])
   case class ExpectedGqlError(code: String, descriptionContains: Option[String])
+  case class ExpectedGqlWarning(code: String, descriptionContains: Option[String])
 }
 
 trait InOpenTxCypherCucumberSteps extends ScalaDsl with EN {

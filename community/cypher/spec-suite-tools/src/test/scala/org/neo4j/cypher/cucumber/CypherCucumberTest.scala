@@ -94,7 +94,9 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.6",
         "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.7",
         "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.8",
-        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.9"
+        "TestFrameworkTests - [016] Most types work in cucumber tests - Examples - Example #1.9",
+        "TestFrameworkTests - [040] Warning has correct code",
+        "TestFrameworkTests - [041] Warning has correct code and correct message"
       )
 
     // Failing tests should fail in the correct way
@@ -243,7 +245,10 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.8"),
         wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.9"),
         queryFailedCompile("[036] Open tx: Query failure - Examples - Example #1.1"),
-        queryFailedRuntime("[036] Open tx: Query failure - Examples - Example #1.2")
+        queryFailedRuntime("[036] Open tx: Query failure - Examples - Example #1.2"),
+        wrongWarningGqlCode("[037] Warning has incorrect code"),
+        wrongWarningGqlCode("[038] Warning has incorrect code and correct message"),
+        wrongWarningMessage("[039] Warning has correct code and incorrect message")
       )
 
     val summaryOutputStream = new ByteArrayOutputStream()
@@ -252,10 +257,10 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     summaryString.flush()
 
     withClue(summaryOutputStream.toString) {
-      summary.getTestsSucceededCount shouldBe 21
+      summary.getTestsSucceededCount shouldBe 23
       summary.getContainersFailedCount shouldBe 0
-      summary.getTestsFoundCount shouldBe 136
-      summary.getTestsFailedCount shouldBe 115
+      summary.getTestsFoundCount shouldBe 141
+      summary.getTestsFailedCount shouldBe 118
       summary.getTestsAbortedCount shouldBe 0
       summary.getTestsSkippedCount shouldBe 0
     }
@@ -371,6 +376,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBeInAnyOrderIgnoringListOrder(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedError)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.warningShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlWarning)",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.commitOpenTx()",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.executingControlQueryInOpenTx(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.openTransaction()",
@@ -484,6 +490,21 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "Incorrect message",
       "42I06: Invalid input",
       "Cause: org.neo4j.graphdb.QueryExecutionException: Invalid input"
+    )
+  }
+
+  def wrongWarningGqlCode(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContainingAll(
+      "Expected GQL status"
+    )
+  }
+
+  def wrongWarningMessage(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContainingAll(
+      "Incorrect message",
+      "warn: feature deprecated with replacement."
     )
   }
 

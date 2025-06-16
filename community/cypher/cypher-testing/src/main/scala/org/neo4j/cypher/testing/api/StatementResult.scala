@@ -55,5 +55,6 @@ trait ValueMapper {
  */
 case class ConsumedResult(
   headers: java.util.List[String],
-  rows: java.util.List[java.util.List[AnyRef]]
+  rows: java.util.List[java.util.List[AnyRef]],
+  qqlStatusObjects: java.lang.Iterable[GqlStatusObject]
 )

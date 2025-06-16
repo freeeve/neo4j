@@ -32,6 +32,7 @@ import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryFa
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryResults
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeConf
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeFailure
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeGqlStatusObject
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.doDescribeFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findAllGqlCodes
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findMatchingGqlFailure
@@ -43,6 +44,7 @@ import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.unexpec
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlWarning
 import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
 import org.neo4j.cypher.cucumber.user.function.TestFailNTimesFunction
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser
@@ -54,6 +56,7 @@ import org.neo4j.cypher.testing.api.CypherExecutorException
 import org.neo4j.cypher.testing.api.CypherExecutorTransaction
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.neo4j.graphdb.GqlStatusObject
 import org.neo4j.internal.helpers.Exceptions
 import org.neo4j.internal.kernel.api.procs.QualifiedName
 import org.neo4j.kernel.api.procedure.Context
@@ -67,6 +70,7 @@ import java.util.Objects
 import java.util.function.Supplier
 
 import scala.annotation.tailrec
+import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
 import scala.util.Success
@@ -290,6 +294,27 @@ final class RegularCypherCucumberSteps @Inject() (
       }
   }
 
+  override protected def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit = lastResult match {
+    case actual: QueryResults =>
+      val actualGqlStatusObjects = actual.results.qqlStatusObjects.asScala
+      actualGqlStatusObjects.find(qqlStatusObject => qqlStatusObject.gqlStatus() == expectedWarning.code) match {
+        case Some(actualGqlStatusObject) =>
+          val desc = describeGqlStatusObject(actualGqlStatusObject)
+          assertThat[Any](actualGqlStatusObject.gqlStatus).as(desc).isEqualTo(expectedWarning.code)
+          expectedWarning.descriptionContains.foreach { e =>
+            assertThat[Any](actualGqlStatusObject.statusDescription()).as(desc).asString.contains(e)
+          }
+        case None =>
+          val found = actualGqlStatusObjects.map(_.gqlStatus())
+          fail(
+            s"""
+               |Expected GQL status ${expectedWarning.code} but found $found
+               |""".stripMargin
+          )
+      }
+    case failure: QueryFailure => unexpectedFailure(failure, conf)
+  }
+
   override protected def openTransaction(): Unit = {
     openTx = db.begin()
   }
@@ -331,7 +356,7 @@ final class RegularCypherCucumberSteps @Inject() (
        >Actual results:
        >${renderAsTable(actual.results)}
        >Expected results${Some(order).filter(_.nonEmpty).map(o => s" ($o)").getOrElse("")}:
-       >${renderAsTable(ConsumedResult(expectedHeaders, toResultRows(expected)))}
+       >${renderAsTable(ConsumedResult(expectedHeaders, toResultRows(expected), null))}
        >Query:
        >${actual.query}
        >
@@ -466,6 +491,15 @@ object RegularCypherCucumberSteps {
        |${failure.query}
        |
        |Cause: ${Exceptions.stringify(originalError(failure.cause))}
+       |""".stripMargin
+  }
+
+  private def describeGqlStatusObject(gqlStatusObject: GqlStatusObject): String = {
+    s"""
+       |Code:
+       |${gqlStatusObject.gqlStatus()}
+       |
+       |Message: ${gqlStatusObject.statusDescription()}
        |""".stripMargin
   }
 }
