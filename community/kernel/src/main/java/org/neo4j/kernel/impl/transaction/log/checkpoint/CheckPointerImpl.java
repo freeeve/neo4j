@@ -25,9 +25,12 @@ import static org.neo4j.kernel.impl.transaction.log.checkpoint.LatestCheckpointI
 
 import java.io.IOException;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.function.BooleanSupplier;
 import org.neo4j.graphdb.Resource;
+import org.neo4j.io.ByteUnit;
 import org.neo4j.io.pagecache.IOController;
+import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
@@ -50,7 +53,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
     private static final String CHECKPOINT_TAG = "checkpoint";
     private static final long NO_APPEND_INDEX = -1;
     private static final String IO_DETAILS_TEMPLATE =
-            "Checkpoint flushed %d pages (%d%% of total available pages), in %d IOs. Checkpoint performed with IO limit: %s, paused in total %d times( %d millis).";
+            "Checkpoint flushed %d pages (%d%% of total available pages), in %d IOs. Checkpoint performed with IO limit: %s, paused in total %d times(%d millis). Average checkpoint flush speed: %s.";
     private static final String UNLIMITED_IO_CONTROLLER_LIMIT = "unlimited";
 
     private final CheckpointAppender checkpointAppender;
@@ -286,18 +289,33 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             LogCheckPointEvent checkpointEvent, String checkpointReason, long durationMillis) {
         double flushRatio = checkpointEvent.flushRatio();
         long ioLimit = checkpointEvent.getConfiguredIOLimit();
+        String averageSpeedPerSecond = getAverageSpeed(checkpointEvent, durationMillis);
+
         String ioDetails = IO_DETAILS_TEMPLATE.formatted(
                 checkpointEvent.getPagesFlushed(),
                 (int) (flushRatio * 100),
                 checkpointEvent.getIOsPerformed(),
                 ioLimitDescription(ioLimit),
                 checkpointEvent.getTimesPaused(),
-                checkpointEvent.getMillisPaused());
+                checkpointEvent.getMillisPaused(),
+                averageSpeedPerSecond);
         return checkpointReason + " checkpoint completed in " + duration(durationMillis) + ". " + ioDetails;
     }
 
+    private static String getAverageSpeed(LogCheckPointEvent checkpointEvent, long durationMillis) {
+        long totalFlushedBytes = checkpointEvent.getPagesFlushed() * PageCache.PAGE_SIZE;
+        long seconds = Duration.ofMillis(durationMillis).toSeconds();
+        long bytesPerSecond = seconds == 0 ? totalFlushedBytes : totalFlushedBytes / seconds;
+        return ByteUnit.bytesToString(bytesPerSecond) + "/s";
+    }
+
     private String ioLimitDescription(long ioLimit) {
-        return ioController.isEnabled() && ioLimit >= 0 ? String.valueOf(ioLimit) : UNLIMITED_IO_CONTROLLER_LIMIT;
+        if (!ioController.isEnabled() || ioLimit < 0) {
+            return UNLIMITED_IO_CONTROLLER_LIMIT;
+        }
+        return ioController.isIopsBasedLimit()
+                ? ioLimit + " IOPS"
+                : ByteUnit.bytesToString(ioLimit * PageCache.PAGE_SIZE) + "/s";
     }
 
     private void logShutdownMessage(TriggerInfo triggerInfo) {

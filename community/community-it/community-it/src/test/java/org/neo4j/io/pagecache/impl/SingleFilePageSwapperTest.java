@@ -773,12 +773,12 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
         private final AtomicLong externalIOCounter = new AtomicLong();
 
         @Override
-        public void maybeLimitIO(int recentlyCompletedIOs, FileFlushEvent flushes) {
+        public void maybeLimitIO(int recentlyCompletedIOs, int affectedPages, FileFlushEvent flushes) {
             // empty
         }
 
         @Override
-        public void reportIO(int completedIOs) {
+        public void reportIO(int completedIOs, int affectedPages) {
             externalIOCounter.addAndGet(completedIOs);
         }
 

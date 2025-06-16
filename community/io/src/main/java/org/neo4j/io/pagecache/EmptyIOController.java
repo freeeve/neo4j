@@ -23,10 +23,10 @@ import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 
 public class EmptyIOController implements IOController {
     @Override
-    public void maybeLimitIO(int recentlyCompletedIOs, FileFlushEvent flushEvent) {}
+    public void maybeLimitIO(int recentlyCompletedIOs, int affectedPages, FileFlushEvent flushEvent) {}
 
     @Override
-    public void reportIO(int completedIOs) {
+    public void reportIO(int completedIOs, int affectedPages) {
         // nothing to report
     }
 

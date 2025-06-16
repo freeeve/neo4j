@@ -70,6 +70,7 @@ public class CompositeDatabaseAvailabilityGuard extends LifecycleAdapter impleme
         started = false;
         // Propagate iops limit removal for all io controllers that monitor this property
         config.set(GraphDatabaseSettings.check_point_iops_limit, -1);
+        config.set(GraphDatabaseSettings.check_point_throughput_limit, null);
     }
 
     @Override

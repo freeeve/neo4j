@@ -371,10 +371,10 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
             BinaryLatch limiterBlockLatch = new BinaryLatch();
             var ioController = new EmptyIOController() {
                 @Override
-                public void maybeLimitIO(int recentlyCompletedIOs, FileFlushEvent flushEvent) {
+                public void maybeLimitIO(int recentlyCompletedIOs, int affectedPages, FileFlushEvent flushEvent) {
                     limiterStartLatch.release();
                     limiterBlockLatch.await();
-                    super.maybeLimitIO(recentlyCompletedIOs, flushEvent);
+                    super.maybeLimitIO(recentlyCompletedIOs, affectedPages, flushEvent);
                 }
             };
             try (PagedFile pfA =
@@ -6241,7 +6241,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
         }
 
         @Override
-        public void maybeLimitIO(int recentlyCompletedIOs, FileFlushEvent flushEvent) {
+        public void maybeLimitIO(int recentlyCompletedIOs, int affectedPages, FileFlushEvent flushEvent) {
             ioCounter.addAndGet(recentlyCompletedIOs * pagesPerFlush);
             callbackCounter.getAndIncrement();
         }
@@ -6257,10 +6257,10 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
         }
 
         @Override
-        public void maybeLimitIO(int recentlyCompletedIOs, FileFlushEvent flushEvent) {
+        public void maybeLimitIO(int recentlyCompletedIOs, int affectedPages, FileFlushEvent flushEvent) {
             closeLatch.countDown();
             limiterBlockLatch.await();
-            super.maybeLimitIO(recentlyCompletedIOs, flushEvent);
+            super.maybeLimitIO(recentlyCompletedIOs, affectedPages, flushEvent);
         }
     }
 }

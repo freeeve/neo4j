@@ -69,6 +69,7 @@ import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.io.ByteUnit;
+import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.logging.Level;
 import org.neo4j.logging.LogTimeZone;
@@ -575,6 +576,22 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
             + "Removing or commenting out the setting sets the default value of 600.")
     public static final Setting<Integer> check_point_iops_limit =
             newBuilder("db.checkpoint.iops.limit", INT, 600).dynamic().build();
+
+    @Description("Limit the write throughput per second of the background checkpoint process. "
+            + "This setting is advisory. It is ignored in Neo4j Community Edition and is followed to "
+            + "best effort in Enterprise Edition. "
+            + "Limiting the write IO in "
+            + "this way leaves more bandwidth in the IO subsystem to service random-read IOs, "
+            + "which is important for the response time of queries when the database cannot fit "
+            + "entirely in memory. The only drawback of this setting is that longer checkpoint times "
+            + "may lead to slightly longer recovery times in case of a database or system crash. "
+            + "A lower number means lower IO pressure and, consequently, longer checkpoint times. "
+            + "Set this to null to disable the throughput limit and fallback to IOPS limit. ")
+    public static final Setting<Long> check_point_throughput_limit = newBuilder(
+                    "db.checkpoint.throughput.limit", BYTES, null)
+            .addConstraint(min((long) PageCache.PAGE_SIZE))
+            .dynamic()
+            .build();
 
     // Index sampling
     @Description("Enable or disable background index sampling")

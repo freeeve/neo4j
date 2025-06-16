@@ -25,7 +25,7 @@ import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 
 /**
  * IOController instances used by page file to control speed of data flushing when {@link PageCache#flushAndForce(DatabaseFlushEvent)} invoked.
- * As part of flush controller's {@link #maybeLimitIO(int, FileFlushEvent)} method is invoked on regular intervals.
+ * As part of flush controller's {@link #maybeLimitIO(int, int, FileFlushEvent)} method is invoked on regular intervals.
  * <p/>
  * This allows the controller to measure the rate of IO (including io performed by other system parts), and inject sleeps, pauses or flushes into the process.
  * The flushes are in this case referring to the underlying hardware.
@@ -50,16 +50,18 @@ public interface IOController {
      * current thread, or by wrapping them in {@link IOException}s.
      *
      * @param recentlyCompletedIOs The number of IOs completed by caller since the last call to this method.
-     * @param flushEvent A {@link FileFlushEvent} event that describes ongoing io represented by flushable instance.
+     * @param affectedPages        The number of pages IO was performed for.
+     * @param flushEvent           A {@link FileFlushEvent} event that describes ongoing io represented by flushable instance.
      */
-    void maybeLimitIO(int recentlyCompletedIOs, FileFlushEvent flushEvent);
+    void maybeLimitIO(int recentlyCompletedIOs, int affectedPages, FileFlushEvent flushEvent);
 
     /**
      * Report any external IO that could be taken into account during evaluation of limits, to inject pauses or sleeps.
      *
-     * @param completedIOs - number of completed external IOs.
+     * @param completedIOs  - number of completed external IOs.
+     * @param affectedPages - number of pages IO was performed for.
      */
-    void reportIO(int completedIOs);
+    void reportIO(int completedIOs, int affectedPages);
 
     /**
      * In case if IO controller is configured return its configured limit. -1 in case if controller is disabled.
@@ -71,6 +73,13 @@ public interface IOController {
      * @return {@code true} if controller is currently enabled
      */
     default boolean isEnabled() {
+        return false;
+    }
+
+    /**
+     * @return {@code true} if controller is limited by iops per time unit
+     */
+    default boolean isIopsBasedLimit() {
         return false;
     }
 }

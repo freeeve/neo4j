@@ -186,14 +186,14 @@ class SingleFilePageSwapper implements PageSwapper {
 
     private int swapIn(long bufferAddress, long fileOffset, int bufferSize) throws IOException {
         var readTotal = blockSwapper.swapIn(channel, bufferAddress, fileOffset, bufferSize);
-        ioController.reportIO(1);
+        ioController.reportIO(1, 1);
         return readTotal;
     }
 
     private int swapOut(long bufferAddress, long fileOffset, int bufferSize, boolean countIo) throws IOException {
         blockSwapper.swapOut(channel, bufferAddress, fileOffset, bufferSize);
         if (countIo) {
-            ioController.reportIO(1);
+            ioController.reportIO(1, 1);
         }
         return bufferSize;
     }
@@ -293,7 +293,7 @@ class SingleFilePageSwapper implements PageSwapper {
             setPositionUnderLock(fileOffset);
             do {
                 read = channel.read(srcs);
-                ioController.reportIO(1);
+                ioController.reportIO(srcs.length, srcs.length);
             } while (read != -1 && (readTotal += read) < bytesToRead);
             return readTotal;
         }
