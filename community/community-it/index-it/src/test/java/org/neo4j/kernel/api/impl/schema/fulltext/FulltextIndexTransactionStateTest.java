@@ -32,6 +32,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.OtherThread;
 import org.neo4j.test.extension.OtherThreadExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 /**
  * Tests testing affect of TX state on index query results.
@@ -79,6 +80,7 @@ class FulltextIndexTransactionStateTest extends FulltextProceduresTestSupport {
 
     @MethodSource("entityTypeProvider")
     @ParameterizedTest
+    @SkipOnSpd(reason = "SPD full text ties are not ordered by entity id ( possibly adapt test)")
     void queryResultsMustNotIncludeEntitiesDeletedInTheSameTransaction(EntityUtil entityUtil) {
         createIndexAndWait(entityUtil);
 

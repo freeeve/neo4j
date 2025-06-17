@@ -27,7 +27,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(reason = "SPD full text ties are not ordered by entity id ( possibly adapt test)")
 class FulltextIndexSkipAndLimitTest extends FulltextProceduresTestSupport {
     private String topEntity;
     private String middleEntity;

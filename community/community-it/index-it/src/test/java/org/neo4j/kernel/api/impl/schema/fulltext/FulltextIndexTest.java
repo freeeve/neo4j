@@ -69,6 +69,7 @@ import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.logging.LogAssertions;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueCategory;
@@ -338,6 +339,7 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD full text ties are not ordered by entity id ( possibly adapt test)")
     void shouldOrderResultsBasedOnRelevance() throws Exception {
         try (Transaction tx = db.beginTx()) {
             tx.schema()
