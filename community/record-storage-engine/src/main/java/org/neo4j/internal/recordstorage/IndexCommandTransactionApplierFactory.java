@@ -19,13 +19,14 @@
  */
 package org.neo4j.internal.recordstorage;
 
+import static org.neo4j.internal.indexcommand.IndexCommandConversion.convertCommandToIndexEntryUpdate;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.neo4j.common.Subject;
+import org.neo4j.internal.indexcommand.IndexCommandSelector;
 import org.neo4j.internal.indexcommand.IndexUpdateCommand;
-import org.neo4j.internal.indexcommand.TokenIndexUpdateCommand;
-import org.neo4j.internal.indexcommand.ValueIndexUpdateCommand;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaCache;
 import org.neo4j.internal.schema.SchemaRule;
@@ -33,9 +34,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
-import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
-import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.util.IndexUpdatesWorkSync;
 
 public class IndexCommandTransactionApplierFactory implements TransactionApplierFactory {
@@ -57,7 +56,7 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
 
     @Override
     public TransactionApplier startTx(StorageEngineTransaction transaction, BatchContext batchContext) {
-        var commandSelector = mode.isReverseStep() ? CommandSelector.REVERSE : CommandSelector.NORMAL;
+        var commandSelector = mode.isReverseStep() ? IndexCommandSelector.REVERSE : IndexCommandSelector.NORMAL;
         return new SingleTransactionApplier(transaction, batchContext, transaction.cursorContext(), commandSelector);
     }
 
@@ -71,14 +70,14 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
         private List<IndexDescriptor> createdIndexes;
         private final IndexActivator indexActivator;
         private final CursorContext cursorContext;
-        private final CommandSelector commandSelector;
+        private final IndexCommandSelector commandSelector;
         private final List<IndexEntryUpdate> indexUpdates = new ArrayList<>();
 
         SingleTransactionApplier(
                 StorageEngineTransaction transaction,
                 BatchContext batchContext,
                 CursorContext cursorContext,
-                CommandSelector commandSelector) {
+                IndexCommandSelector commandSelector) {
             this.subject = transaction.subject();
             this.indexActivator = batchContext.getIndexActivator();
             this.cursorContext = cursorContext;
@@ -103,41 +102,9 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
         }
 
         @Override
-        public boolean visitIndexUpdateCommand(IndexUpdateCommand command) {
-            IndexDescriptor index = schemaCache.getIndex(command.getIndexId());
-            if (index == null) {
-                return false;
-            }
-            if (command instanceof TokenIndexUpdateCommand idxCommand) {
-                var indexUpdate = TokenIndexEntryUpdate.tokenChange(
-                        idxCommand.getEntityId(),
-                        index,
-                        commandSelector.getBefore(idxCommand),
-                        commandSelector.getAfter(idxCommand));
-                indexUpdates.add(indexUpdate);
-            } else {
-                ValueIndexUpdateCommand idxCommand = (ValueIndexUpdateCommand) command;
-                switch (commandSelector.mode(idxCommand)) {
-                    case ADDED:
-                        indexUpdates.add(
-                                ValueIndexEntryUpdate.add(idxCommand.getEntityId(), index, idxCommand.getAfter()));
-                        break;
-                    case CHANGED:
-                        indexUpdates.add(ValueIndexEntryUpdate.change(
-                                idxCommand.getEntityId(),
-                                index,
-                                commandSelector.getBefore(idxCommand),
-                                commandSelector.getAfter(idxCommand)));
-                        break;
-                    case REMOVED:
-                        indexUpdates.add(
-                                ValueIndexEntryUpdate.remove(idxCommand.getEntityId(), index, idxCommand.getAfter()));
-                        break;
-                    default:
-                        throw new IllegalArgumentException();
-                }
-            }
-
+        public boolean visitIndexUpdateCommand(IndexUpdateCommand<?> command) {
+            convertCommandToIndexEntryUpdate(command, schemaCache::getIndex, commandSelector)
+                    .ifPresent(indexUpdates::add);
             return false;
         }
 
@@ -151,7 +118,7 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
         private void processSchemaCommand(Command.Mode commandMode, SchemaRule schemaRule) {
             if (schemaRule instanceof IndexDescriptor indexRule) {
                 switch (commandMode) {
-                    case UPDATE:
+                    case UPDATE -> {
                         // Shouldn't we be more clear about that we are waiting for an index to come online here?
                         // right now we just assume that an update to index records means wait for it to be online.
                         if (indexRule.isUnique()) {
@@ -162,18 +129,16 @@ public class IndexCommandTransactionApplierFactory implements TransactionApplier
                             // complete.
                             indexActivator.activateIndex(indexRule);
                         }
-                        break;
-                    case CREATE:
+                    }
+                    case CREATE -> {
                         // Add to list so that all these indexes will be created in one call later
                         createdIndexes = createdIndexes == null ? new ArrayList<>() : createdIndexes;
                         createdIndexes.add(indexRule);
-                        break;
-                    case DELETE:
+                    }
+                    case DELETE -> {
                         indexUpdateListener.dropIndex(indexRule);
                         indexActivator.indexDropped(indexRule);
-                        break;
-                    default:
-                        throw new IllegalStateException(commandMode.name());
+                    }
                 }
             }
         }
