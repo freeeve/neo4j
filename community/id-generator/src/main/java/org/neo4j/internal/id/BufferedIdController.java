@@ -88,7 +88,12 @@ public class BufferedIdController extends LifecycleAdapter implements IdControll
                 .get(GraphDatabaseInternalSettings.id_controller_maintenance_interval)
                 .toSeconds();
         jobHandle = scheduler.scheduleRecurring(
-                Group.STORAGE_MAINTENANCE, monitoringParams, this::maintenance, maintenanceIntervalInSeconds, SECONDS);
+                Group.STORAGE_MAINTENANCE,
+                monitoringParams,
+                this::maintenance,
+                maintenanceIntervalInSeconds,
+                maintenanceIntervalInSeconds,
+                SECONDS);
     }
 
     @Override
