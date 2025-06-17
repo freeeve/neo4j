@@ -45,6 +45,13 @@ public class TransactionQueue {
 
     public void queue(StorageEngineTransaction transaction) throws Exception {
         if (isNotEmpty()) {
+            if (transaction.commandBatch().kernelVersion()
+                    != tail.commandBatch().kernelVersion()) {
+                // Different kernel versions.. Let's split the batch to make upgrade easier
+                applyTransactions();
+                queue(transaction);
+                return;
+            }
             tail.next(transaction);
         } else {
             head = transaction;

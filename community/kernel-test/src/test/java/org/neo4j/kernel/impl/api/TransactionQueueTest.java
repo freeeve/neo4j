@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 
 import org.junit.jupiter.api.Test;
@@ -43,20 +44,22 @@ class TransactionQueueTest {
         TransactionQueue queue = new TransactionQueue(batchSize, applier);
 
         // WHEN
+        CompleteTransaction mock = mock(CompleteTransaction.class);
+        when(mock.commandBatch()).thenReturn(mock(CommandBatch.class));
         for (int i = 0; i < 9; i++) {
-            queue.queue(mock(CompleteTransaction.class));
+            queue.queue(mock);
             verifyNoMoreInteractions(applier);
         }
-        queue.queue(mock(CompleteTransaction.class));
+        queue.queue(mock);
         verify(applier).apply(any());
         reset(applier);
 
         // THEN
-        queue.queue(mock(CompleteTransaction.class));
+        queue.queue(mock);
 
         // and WHEN emptying in the end
         for (int i = 0; i < 2; i++) {
-            queue.queue(mock(CompleteTransaction.class));
+            queue.queue(mock);
             verifyNoMoreInteractions(applier);
         }
         queue.applyTransactions();
