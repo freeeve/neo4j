@@ -21,7 +21,6 @@ package org.neo4j.bolt.protocol.common.handler;
 
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.pcap.PcapWriteHandler;
@@ -69,18 +68,6 @@ class BoltChannelInitializerTest {
         this.logProvider = new AssertableLogProvider();
 
         this.initializer = new BoltChannelInitializer(this.connector, this.allocator, this.logProvider);
-    }
-
-    @Test
-    void shouldConfigureAllocator() {
-        var config = Mockito.mock(ChannelConfig.class);
-        var channel = Mockito.mock(Channel.class, Mockito.RETURNS_MOCKS);
-
-        Mockito.doReturn(config).when(channel).config();
-
-        this.initializer.initChannel(channel);
-
-        Mockito.verify(config).setAllocator(this.allocator);
     }
 
     @Test

@@ -64,10 +64,6 @@ public class BoltChannelInitializer extends ChannelInitializer<Channel> {
     protected void initChannel(Channel ch) {
         log.debug("Incoming connection from %s", ch.remoteAddress());
 
-        // ensure that this newly created channel makes use of the designated buffer allocator for its receive and send
-        // buffers respectively
-        ch.config().setAllocator(this.allocator);
-
         // acquire a new connection from our connector and register it for use with the network channel
         var connection = this.connector.createConnection(ch);
 
