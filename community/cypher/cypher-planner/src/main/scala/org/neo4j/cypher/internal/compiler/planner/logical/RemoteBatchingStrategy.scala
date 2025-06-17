@@ -794,7 +794,7 @@ object RemoteBatchingStrategy {
       val rewriter = cachedPropertiesRewriter(input, context)
       val rewrittenSelections =
         RewrittenSubQueryPredicates.forMap(predicatesToSolve.allRewrittenExpressions.map(expr =>
-          expr.endoRewrite(rewriter) -> expr
+          expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
         ).toMap)
       RemoteBatchingSubQueryResult(
         rewrittenExpressionsWithCachedProperties = rewrittenSelections,
