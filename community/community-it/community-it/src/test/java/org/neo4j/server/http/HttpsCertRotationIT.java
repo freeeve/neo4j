@@ -100,7 +100,7 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
         };
 
         int retries = 3;
-        long delayBeforeRetryMs = 100L;
+        long delayBeforeRetryMs = 500L;
 
         X509Certificate cert1 = retry(testClientInvocation, retries, delayBeforeRetryMs);
 
