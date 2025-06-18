@@ -52,15 +52,14 @@ class KeyPartitioningTest {
         final var layout = layout();
         final var numberOfKeys = random.nextInt(50, 200);
         final var allKeys = keys(numberOfKeys);
-        final var partitioning = new KeyPartitioning<>(layout);
 
         // when
         final var from = random.nextInt(numberOfKeys - 1);
         final var to = random.nextInt(from + 1, numberOfKeys);
         final var desiredNumberOfPartitions = random.nextInt(1, to - from + 1);
 
-        final var partitionEdges = partitioning.partition(
-                allKeys, new PartitionKey(from), new PartitionKey(to), desiredNumberOfPartitions);
+        final var partitionEdges = KeyPartitioning.partition(
+                layout, allKeys, new PartitionKey(from), new PartitionKey(to), desiredNumberOfPartitions);
 
         // then verify that the partitions have no seams in between them, that they cover the whole requested range and
         // are fairly evenly distributed

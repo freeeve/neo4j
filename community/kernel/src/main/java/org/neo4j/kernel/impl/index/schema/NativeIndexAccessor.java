@@ -236,8 +236,8 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             List<JobHandle<Void>> handles = new ArrayList<>();
             List<KEY> partitionEdges = tree.partitionedSeek(lowestKey(), highestKey(), threads, NULL_CONTEXT);
             for (int p = 0; p < partitionEdges.size() - 1; p++) {
-                KEY from = partitionEdges.get(p);
-                KEY to = partitionEdges.get(p + 1);
+                KEY from = layout.copyKey(partitionEdges.get(p));
+                KEY to = layout.copyKey(partitionEdges.get(p + 1));
                 handles.add(jobScheduler.schedule(
                         Group.INDEX_POPULATION_WORK,
                         new JobMonitoringParams(Subject.AUTH_DISABLED, databaseName, "validateShard"),
@@ -362,8 +362,10 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             List<KEY> partitionEdges = tree.partitionedSeek(lowestKey(), highestKey(), partitions, cursorContext);
             Collection<IndexEntriesReader> readers = new ArrayList<>();
             for (int i = 0; i < partitionEdges.size() - 1; i++) {
-                Seeker<KEY, NullValue> seeker =
-                        tree.seek(partitionEdges.get(i), partitionEdges.get(i + 1), cursorContext);
+                Seeker<KEY, NullValue> seeker = tree.seek(
+                        layout.copyKey(partitionEdges.get(i)),
+                        layout.copyKey(partitionEdges.get(i + 1)),
+                        cursorContext);
                 readers.add(new NativeIndexEntriesReader(seeker));
             }
             return readers.toArray(IndexEntriesReader[]::new);

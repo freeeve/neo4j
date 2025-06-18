@@ -236,10 +236,10 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
 
             filter = initializeRangeForQuery(fromInclusive, toExclusive, this.query);
 
-            partitionEdges = !isEmptyResultQuery(query)
-                    ? tree.partitionedSeek(
-                            fromInclusive, toExclusive, desiredNumberOfPartitions, queryContext.cursorContext())
-                    : Collections.emptyList();
+            partitionEdges = isEmptyResultQuery(query)
+                    ? Collections.emptyList()
+                    : tree.partitionedSeek(
+                            fromInclusive, toExclusive, desiredNumberOfPartitions, queryContext.cursorContext());
         }
 
         @Override
@@ -255,8 +255,8 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
                 return IndexProgressor.EMPTY;
             }
             try {
-                final var fromInclusive = partitionEdges.get(from);
-                final var toExclusive = partitionEdges.get(to);
+                final var fromInclusive = layout.copyKey(partitionEdges.get(from));
+                final var toExclusive = layout.copyKey(partitionEdges.get(to));
                 return getIndexProgressor(tree.seek(fromInclusive, toExclusive, cursorContext), client, filter, query);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

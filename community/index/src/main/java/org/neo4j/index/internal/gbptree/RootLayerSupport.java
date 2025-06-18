@@ -215,8 +215,8 @@ class RootLayerSupport {
         } while (numberOfSubtrees < desiredNumberOfPartitions);
 
         // From the set of splitter keys, create sorted list of partition edges
-        return new KeyPartitioning<>(layout)
-                .partition(splitterKeysInRange, fromInclusive, toExclusive, desiredNumberOfPartitions);
+        return KeyPartitioning.partition(
+                layout, splitterKeysInRange, fromInclusive, toExclusive, desiredNumberOfPartitions);
     }
 
     <K, V> Writer<K, V> internalParallelWriter(

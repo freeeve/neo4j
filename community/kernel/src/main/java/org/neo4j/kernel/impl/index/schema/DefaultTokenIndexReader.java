@@ -158,8 +158,8 @@ public class DefaultTokenIndexReader implements TokenIndexReader {
                 return IndexProgressor.EMPTY;
             }
             try {
-                final var fromInclusive = partitionEdges.get(from);
-                final var toExclusive = partitionEdges.get(to);
+                final var fromInclusive = copyKey(partitionEdges.get(from));
+                final var toExclusive = copyKey(partitionEdges.get(to));
                 return TokenScanValueIndexProgressor.create(
                         index.seek(fromInclusive, toExclusive, cursorContext),
                         client,
@@ -170,6 +170,10 @@ public class DefaultTokenIndexReader implements TokenIndexReader {
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+        }
+
+        private TokenScanKey copyKey(TokenScanKey key) {
+            return new TokenScanKey(key.tokenId, key.idRange);
         }
     }
 }

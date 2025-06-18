@@ -1055,7 +1055,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
         Root root = rootCatchup.catchupFrom(cursor.getCurrentPageId(), cursorContext);
         lastFollowedPointerGeneration = root.goTo(cursor);
         if (!first) {
-            layout.copyKey(prevKey, fromInclusive);
+            fromInclusive = layout.copyKey(prevKey);
         }
 
         // Reset mutable state
