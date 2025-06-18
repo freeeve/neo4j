@@ -112,6 +112,7 @@ public enum Group {
     RAFT_DRAINING_SERVICE("RaftDrainingService"),
     LEADER_TRANSFER_SERVICE("LeaderTransferService"),
     CORE_STATE_APPLIER("CoreStateApplier"),
+    MEMBERSHIP_LIST_NOTIFIER("MembershipNotifier"),
     LIGHTHOUSE_GOSSIP("LighthouseGossip"),
     LIGHTHOUSE_RECEIVER("LighthouseReceiver", ExecutorServiceFactory.singleThread()),
     LIGHTHOUSE_JOIN_LEAVE_JOB("LighthouseJoinLeaveWorker", ExecutorServiceFactory.singleThread()),
