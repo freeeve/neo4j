@@ -1788,6 +1788,15 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     public static final Setting<String> custom_kernel_version =
             newBuilder("internal.dbms.custom_kernel_version", STRING, null).build();
 
+    @Internal
+    @Description(
+            "Enables asynchronous commit and rollback of shard transactions. "
+                    + "When enabled a graph shard will not wait for the result when committing or rolling back a property shard transaction. "
+                    + "This means a performance improvement for short transactions that fetch only very little data from property shards.")
+    public static final Setting<Boolean> spd_asynchronous_shard_transaction_close = newBuilder(
+                    "internal.dbms.sharded_property_database.asynchronous_shard_transaction_close", BOOL, true)
+            .build();
+
     // Helper method
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(
