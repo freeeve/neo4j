@@ -279,7 +279,7 @@ class NodeCommandTest {
     }
 
     private Set<Integer> labels(NodeRecord record) {
-        int[] rawLabels = parseLabelsField(record).get(nodeStore, StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);
+        int[] rawLabels = parseLabelsField(record).get(nodeStore, StoreCursors.NULL);
         Set<Integer> labels = new HashSet<>(rawLabels.length);
         for (int label : rawLabels) {
             labels.add(label);

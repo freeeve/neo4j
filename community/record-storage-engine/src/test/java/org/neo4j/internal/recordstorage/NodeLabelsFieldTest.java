@@ -521,8 +521,7 @@ class NodeLabelsFieldTest {
     void shouldNotFailWhenDynamicRecordsBecomeUnused() {
         // GIVEN
         NodeRecord node = nodeRecordWithDynamicLabels(nodeStore, storeCursors, fourByteInts(100));
-        assertThat(NodeLabelsField.get(node, nodeStore, storeCursors, EmptyMemoryTracker.INSTANCE))
-                .isNotEmpty();
+        assertThat(NodeLabelsField.get(node, nodeStore, storeCursors)).isNotEmpty();
 
         // WHEN
         for (DynamicRecord record : node.getDynamicLabelRecords()) {
@@ -530,8 +529,7 @@ class NodeLabelsFieldTest {
         }
 
         // THEN
-        assertThat(NodeLabelsField.get(node, nodeStore, storeCursors, EmptyMemoryTracker.INSTANCE))
-                .isEmpty();
+        assertThat(NodeLabelsField.get(node, nodeStore, storeCursors)).isEmpty();
     }
 
     /*
@@ -568,7 +566,7 @@ class NodeLabelsFieldTest {
 
         // THEN
         NodeLabels labels = NodeLabelsField.parseLabelsField(node);
-        int[] readLabelIds = labels.get(nodeStore, StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);
+        int[] readLabelIds = labels.get(nodeStore, StoreCursors.NULL);
         for (int labelId : readLabelIds) {
             assertTrue(key.remove(labelId), "Found an unexpected label " + labelId);
         }

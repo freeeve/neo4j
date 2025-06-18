@@ -525,7 +525,7 @@ public class DetectRandomSabotageIT {
                 store.getRecordByCursor(
                         node.getId(), before, RecordLoad.NORMAL, nodeCursor, EmptyMemoryTracker.INSTANCE);
                 NodeLabels nodeLabels = NodeLabelsField.parseLabelsField(node);
-                int[] existing = nodeLabels.get(store, storageCursors, EmptyMemoryTracker.INSTANCE);
+                int[] existing = nodeLabels.get(store, storageCursors);
                 if (random.nextBoolean()) {
                     // Change inlined
                     do {
@@ -533,8 +533,7 @@ public class DetectRandomSabotageIT {
                         if (!NodeLabelsField.fieldPointsToDynamicRecordOfLabels(labelField)) {
                             node.setLabelField(labelField, node.getDynamicLabelRecords());
                         }
-                    } while (Arrays.equals(
-                            existing, NodeLabelsField.get(node, store, storageCursors, EmptyMemoryTracker.INSTANCE)));
+                    } while (Arrays.equals(existing, NodeLabelsField.get(node, store, storageCursors)));
                 } else {
                     long existingLabelField = node.getLabelField();
                     do {
@@ -1049,7 +1048,7 @@ public class DetectRandomSabotageIT {
                 try (IndexUpdater writer = nliProxy.newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false)) {
                     if (nodeRecord.inUse()) {
                         NodeLabels labelsField = NodeLabelsField.parseLabelsField(nodeRecord);
-                        int[] labelsBefore = labelsField.get(store, storageCursors, EmptyMemoryTracker.INSTANCE);
+                        int[] labelsBefore = labelsField.get(store, storageCursors);
                         if (add) {
                             // Add a label to an existing node (in the label index only)
                             // Our node is in use, make sure it's a label it doesn't already have
