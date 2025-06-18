@@ -31,6 +31,7 @@ import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.mockito.Mockito;
 import org.neo4j.bolt.protocol.common.connector.Connector;
+import org.neo4j.bolt.protocol.common.connector.config.DomainSocketConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
 import org.neo4j.bolt.protocol.common.connector.connection.Feature;
 import org.neo4j.bolt.protocol.common.fsm.States;
@@ -39,6 +40,7 @@ import org.neo4j.bolt.protocol.common.message.request.authentication.Authenticat
 import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
 import org.neo4j.bolt.protocol.common.message.request.authentication.LogonMessage;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
+import org.neo4j.bolt.testing.mock.TestConnectorConfiguration;
 import org.neo4j.values.storable.Values;
 
 class AppendAdvertisedAddressOnStateTransitionTest
@@ -104,10 +106,14 @@ class AppendAdvertisedAddressOnStateTransitionTest
     }
 
     @TestFactory
-    Stream<DynamicTest> shouldReturnNotAdvertisedAddressWhenNull() {
+    Stream<DynamicTest> shouldSkipIncompatibleConnector() {
         return this.createRequests()
                 .map(request -> DynamicTest.dynamicTest(request.toString(), () -> {
-                    mockAdvertisedAddress(this.connection, null);
+                    var connector = Mockito.mock(Connector.class);
+                    var configuration = DomainSocketConnectorConfiguration.newInstance();
+
+                    Mockito.doReturn(connector).when(this.connection).connector();
+                    Mockito.doReturn(configuration).when(connector).configuration();
 
                     var targetState = this.transition.process(this.context, request, this.responseHandler);
 
@@ -125,10 +131,13 @@ class AppendAdvertisedAddressOnStateTransitionTest
 
     private static void mockAdvertisedAddress(ConnectionHandle connection, SocketAddress socketAddress) {
         var connector = Mockito.mock(Connector.class);
-        var configuration = Mockito.mock(Connector.Configuration.class);
+
+        var configuration = TestConnectorConfiguration.factory()
+                .advertisedAddress(socketAddress)
+                .build();
+
         Mockito.doReturn(connector).when(connection).connector();
         Mockito.doReturn(configuration).when(connector).configuration();
-        Mockito.doReturn(socketAddress).when(configuration).advertisedAddress();
     }
 
     private record AdvertisedAddressScenario(

@@ -20,16 +20,10 @@
 package org.neo4j.bolt.testing.client;
 
 import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
-import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollDomainSocketChannel;
-import io.netty.channel.epoll.EpollIoHandler;
-import io.netty.channel.kqueue.KQueue;
-import io.netty.channel.kqueue.KQueueDomainSocketChannel;
-import io.netty.channel.kqueue.KQueueIoHandler;
 import io.netty.channel.unix.DomainSocketAddress;
 import java.net.SocketAddress;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
+import org.neo4j.bolt.testing.client.BoltTestConnection.Factory;
 
 public final class UnixDomainSocketConnection extends AbstractNettyConnection {
 
@@ -37,25 +31,19 @@ public final class UnixDomainSocketConnection extends AbstractNettyConnection {
 
     private final DomainSocketAddress address;
 
-    public UnixDomainSocketConnection(DomainSocketAddress address) {
-        super(selectEventLoopGroup());
+    public UnixDomainSocketConnection(ConnectorTransport transport, DomainSocketAddress address) {
+        super(transport);
+
+        if (transport.serverDomainSocketChannelType() == null) {
+            throw new IllegalStateException(
+                    "UNIX domain sockets are not available within the current execution environment");
+        }
+
         this.address = address;
     }
 
     public static BoltTestConnection.Factory factory() {
         return factory;
-    }
-
-    private static EventLoopGroup selectEventLoopGroup() {
-        if (Epoll.isAvailable()) {
-            return new MultiThreadIoEventLoopGroup(1, EpollIoHandler.newFactory());
-        }
-        if (KQueue.isAvailable()) {
-            return new MultiThreadIoEventLoopGroup(1, KQueueIoHandler.newFactory());
-        }
-
-        throw new IllegalStateException(
-                "UNIX domain sockets are not available within the current execution environment");
     }
 
     @Override
@@ -65,27 +53,29 @@ public final class UnixDomainSocketConnection extends AbstractNettyConnection {
 
     @Override
     protected Class<? extends Channel> channelType() {
-        if (Epoll.isAvailable()) {
-            return EpollDomainSocketChannel.class;
-        }
-        if (KQueue.isAvailable()) {
-            return KQueueDomainSocketChannel.class;
-        }
-
-        // unreachable as same check occurs within constructor
-        throw new UnsupportedOperationException();
+        return this.transport.domainSocketChannelType();
     }
 
     private static class Factory implements BoltTestConnection.Factory {
 
         @Override
-        public BoltTestConnection create(SocketAddress address) {
+        public BoltTestConnection create(ConnectorTransport transport, SocketAddress address) {
+            if (!this.isSupported(transport)) {
+                throw new IllegalArgumentException("Cannot initialize unix domain socket connection using transport "
+                        + transport.getName() + ": Unsupported");
+            }
+
             if (address instanceof DomainSocketAddress domainSocketAddress) {
-                return new UnixDomainSocketConnection(domainSocketAddress);
+                return new UnixDomainSocketConnection(transport, domainSocketAddress);
             }
 
             throw new IllegalArgumentException("Cannot initialize unix domain socket connection with address of type "
                     + address.getClass().getSimpleName());
+        }
+
+        @Override
+        public boolean isSupported(ConnectorTransport transport) {
+            return transport.domainSocketChannelType() != null;
         }
 
         @Override

@@ -28,25 +28,20 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
-import io.netty.handler.ssl.SslContext;
 import java.net.SocketAddress;
-import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.net.ssl.SSLException;
 import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.connection.BoltDriverMetricsMonitor;
 import org.neo4j.bolt.protocol.common.connection.hint.ConnectionHintRegistry;
 import org.neo4j.bolt.protocol.common.connector.AbstractConnector;
 import org.neo4j.bolt.protocol.common.connector.accounting.error.ErrorAccountant;
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.TrafficAccountant;
+import org.neo4j.bolt.protocol.common.connector.config.NettyConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
-import org.neo4j.bolt.protocol.common.connector.netty.AbstractNettyConnector.NettyConfiguration;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.protocol.common.handler.BoltChannelInitializer;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.tx.TransactionManager;
-import org.neo4j.configuration.connectors.BoltConnectorInternalSettings.ProtocolLoggingMode;
 import org.neo4j.configuration.helpers.PortBindException;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.kernel.api.net.NetworkConnectionTracker;
@@ -55,18 +50,17 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryPool;
 import org.neo4j.server.config.AuthConfigProvider;
-import org.neo4j.ssl.SslPolicy;
-import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
 /**
  * Provides a basis for connectors which rely on netty.
  */
-public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> extends AbstractConnector<CFG> {
+public abstract class AbstractNettyConnector<CFG extends NettyConnectorConfiguration> extends AbstractConnector<CFG> {
 
     protected final SocketAddress bindAddress;
     private final ByteBufAllocator allocator;
     private final EventLoopGroup bossGroup;
     private final EventLoopGroup workerGroup;
+    protected final ConnectorTransport transport;
     protected final InternalLogProvider logging;
     protected final InternalLog userLog;
     protected final InternalLog log;
@@ -81,6 +75,7 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
             ByteBufAllocator allocator,
             EventLoopGroup bossGroup,
             EventLoopGroup workerGroup,
+            ConnectorTransport transport,
             Connection.Factory connectionFactory,
             NetworkConnectionTracker connectionTracker,
             BoltProtocolRegistry protocolRegistry,
@@ -119,6 +114,7 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
         this.allocator = allocator;
         this.bossGroup = bossGroup;
         this.workerGroup = workerGroup;
+        this.transport = transport;
         this.logging = internalLogProvider;
 
         this.userLog = userLogProvider.getLog(getClass());
@@ -157,7 +153,9 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
      *
      * @return a channel type.
      */
-    protected abstract Class<? extends ServerChannel> channelType();
+    protected Class<? extends ServerChannel> channelType() {
+        return this.transport.serverSocketChannelType();
+    }
 
     /**
      * Customizes the server bootstrap prior of binding to the desired address.
@@ -258,111 +256,4 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
     }
 
     protected void logStartupMessage() {}
-
-    public static class NettyConfiguration extends AbstractConfiguration {
-
-        private final boolean requireEncryption;
-        private final boolean enableMergeCumulator;
-        private final ScopedSslPolicyProvider sslPolicyProvider;
-        private final AtomicReference<SslContext> sslContext = new AtomicReference<>();
-
-        public NettyConfiguration(
-                boolean enableProtocolCapture,
-                Path protocolCapturePath,
-                boolean enableProtocolLogging,
-                ProtocolLoggingMode protocolLoggingMode,
-                long maxAuthenticationInboundBytes,
-                int maxAuthenticationStructureElements,
-                int maxAuthenticationStructureDepth,
-                boolean enableOutboundBufferThrottle,
-                int outboundBufferThrottleLowWatermark,
-                int outboundBufferThrottleHighWatermark,
-                Duration outboundBufferMaxThrottleDuration,
-                int inboundBufferThrottleLowWatermark,
-                int inboundBufferThrottleHighWatermark,
-                int streamingBufferSize,
-                int streamingFlushThreshold,
-                Duration connectionShutdownDuration,
-                boolean enableTransactionThreadBinding,
-                Duration threadBindingTimeout,
-                SocketAddress advertisedAddress,
-                boolean enableMergeCumulator,
-                boolean requireEncryption,
-                ScopedSslPolicyProvider sslPolicyProvider) {
-            super(
-                    enableProtocolCapture,
-                    protocolCapturePath,
-                    enableProtocolLogging,
-                    protocolLoggingMode,
-                    maxAuthenticationInboundBytes,
-                    maxAuthenticationStructureElements,
-                    maxAuthenticationStructureDepth,
-                    enableOutboundBufferThrottle,
-                    outboundBufferThrottleLowWatermark,
-                    outboundBufferThrottleHighWatermark,
-                    outboundBufferMaxThrottleDuration,
-                    inboundBufferThrottleLowWatermark,
-                    inboundBufferThrottleHighWatermark,
-                    streamingBufferSize,
-                    streamingFlushThreshold,
-                    connectionShutdownDuration,
-                    enableTransactionThreadBinding,
-                    threadBindingTimeout,
-                    advertisedAddress);
-            if (requireEncryption && sslContext == null) {
-                throw new IllegalArgumentException("SslContext must be specified when encryption is required");
-            }
-
-            this.requireEncryption = requireEncryption;
-            this.enableMergeCumulator = enableMergeCumulator;
-            this.sslPolicyProvider = sslPolicyProvider;
-        }
-
-        /**
-         * Identifies whether encryption is required in order to establish a connection via this
-         * connector.
-         *
-         * @return true if encryption is required for new connections.
-         */
-        public boolean requiresEncryption() {
-            return this.requireEncryption;
-        }
-
-        /**
-         * Identifies whether this connector shall use the merge cumulator instead of making use of a
-         * composite based cumulator implementation.
-         * <p/>
-         * This configuration may lead to additional memory consumption as well as performance
-         * degradation.
-         *
-         * @return true if enabled, false otherwise.
-         */
-        public boolean enableMergeCumulator() {
-            return this.enableMergeCumulator;
-        }
-
-        private SslPolicy lastReceivedPolicy;
-
-        public SslContext sslContext() {
-
-            var hasPolicyChanged = sslPolicyProvider.getPolicy() != lastReceivedPolicy;
-            var sslContext = this.sslContext.get();
-            if (sslContext == null || hasPolicyChanged) {
-                try {
-                    var policy = sslPolicyProvider.getPolicy();
-                    if (policy != null) {
-                        var newSslContext = policy.nettyServerContext();
-                        var witnessedValue = this.sslContext.compareAndExchange(sslContext, newSslContext);
-                        if (witnessedValue == sslContext) {
-                            sslContext = newSslContext;
-                            lastReceivedPolicy = policy;
-                        }
-                    }
-                } catch (SSLException ex) {
-                    throw new IllegalStateException("Failed to load SSL policy for connector", ex);
-                }
-            }
-            return sslContext;
-        }
-    }
 }

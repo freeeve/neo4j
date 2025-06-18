@@ -38,6 +38,7 @@ import java.util.List;
 import org.neo4j.bolt.negotiation.codec.ProtocolNegotiationRequestDecoder;
 import org.neo4j.bolt.negotiation.codec.ProtocolNegotiationResponseEncoder;
 import org.neo4j.bolt.negotiation.handler.LegacyProtocolHandshakeHandler;
+import org.neo4j.bolt.protocol.common.connector.config.ExternalConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.netty.AbstractNettyConnector;
 import org.neo4j.internal.helpers.Exceptions;
@@ -180,7 +181,9 @@ public class TransportSelectionHandler extends ByteToMessageDecoder {
     }
 
     private void switchToSocket(ChannelHandlerContext ctx) {
-        if (this.connector.configuration().requiresEncryption() && !isEncrypted) {
+        if (!isEncrypted
+                && this.connector.configuration() instanceof ExternalConnectorConfiguration externalConfig
+                && externalConfig.requireEncryption()) {
             throw new SecurityException("An unencrypted connection attempt was made where encryption is required.");
         }
 

@@ -31,10 +31,12 @@ import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
+import org.junit.jupiter.api.extension.TestInstantiationException;
 import org.junit.jupiter.api.extension.TestTemplateInvocationContext;
 import org.junit.jupiter.api.extension.TestTemplateInvocationContextProvider;
 import org.junit.jupiter.api.extension.TestWatcher;
 import org.junit.platform.commons.support.AnnotationSupport;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.connection.transport.DefaultTransportSelector;
 import org.neo4j.bolt.test.connection.transport.TransportSelector;
@@ -78,9 +80,15 @@ public final class BoltTestSupportExtension implements TestTemplateInvocationCon
                     settings.put(BoltConnector.encryption_level, OPTIONAL);
                 }));
 
+        var transport = ConnectorTransport.selectOptimal()
+                .orElseThrow(
+                        () -> new TestInstantiationException("No transports available within execution environment"));
+
         var templates = this.getTransportTypes(context)
+                .filter(transportType -> transportType.getFactory().isSupported(transport))
                 .flatMap(transportType -> this.getWires(context)
-                        .map(wire -> this.configure(databaseFactoryType, instanceContext, transportType, wire)))
+                        .map(wire ->
+                                this.configure(databaseFactoryType, instanceContext, transport, transportType, wire)))
                 .iterator();
 
         var it = new TestTemplateIterator(templates);
@@ -109,9 +117,10 @@ public final class BoltTestSupportExtension implements TestTemplateInvocationCon
     protected BoltTestConfig configure(
             Class<? extends TestDatabaseManagementServiceBuilder> databaseFactoryType,
             ServerInstanceContext instanceContext,
+            ConnectorTransport transport,
             TransportType transportType,
             BoltWire wire) {
-        return new BoltTestConfig(databaseFactoryType, instanceContext, transportType, wire);
+        return new BoltTestConfig(databaseFactoryType, instanceContext, transport, transportType, wire);
     }
 
     protected Class<? extends TestDatabaseManagementServiceBuilder> getDefaultDatabaseFactoryType() {

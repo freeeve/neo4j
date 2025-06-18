@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.testing.client.error.BoltTestClientStateException;
 import org.neo4j.bolt.testing.client.tls.NaiveTrustManager;
 
@@ -42,8 +43,8 @@ public final class SecureWebSocketConnection extends WebSocketConnection impleme
         return factory;
     }
 
-    public SecureWebSocketConnection(InetSocketAddress address) {
-        super(address);
+    public SecureWebSocketConnection(ConnectorTransport transport, InetSocketAddress address) {
+        super(transport, address);
     }
 
     @Override
@@ -84,9 +85,9 @@ public final class SecureWebSocketConnection extends WebSocketConnection impleme
     private static class Factory implements BoltTestConnection.Factory {
 
         @Override
-        public BoltTestConnection create(SocketAddress address) {
+        public BoltTestConnection create(ConnectorTransport transport, SocketAddress address) {
             if (address instanceof InetSocketAddress inetSocketAddress) {
-                return new SecureWebSocketConnection(inetSocketAddress);
+                return new SecureWebSocketConnection(transport, inetSocketAddress);
             }
 
             throw new IllegalArgumentException("Cannot initialize TLS WebSocket connection with address of type "

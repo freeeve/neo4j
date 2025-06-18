@@ -30,6 +30,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.testing.client.error.BoltTestClientStateException;
 import org.neo4j.bolt.testing.client.handler.WebSocketHandler;
 
@@ -37,8 +38,8 @@ public sealed class WebSocketConnection extends SocketConnection permits SecureW
 
     private static final Factory factory = new Factory();
 
-    public WebSocketConnection(InetSocketAddress address) {
-        super(address);
+    public WebSocketConnection(ConnectorTransport transport, InetSocketAddress address) {
+        super(transport, address);
     }
 
     public static BoltTestConnection.Factory factory() {
@@ -76,9 +77,9 @@ public sealed class WebSocketConnection extends SocketConnection permits SecureW
     private static class Factory implements BoltTestConnection.Factory {
 
         @Override
-        public BoltTestConnection create(SocketAddress address) {
+        public BoltTestConnection create(ConnectorTransport transport, SocketAddress address) {
             if (address instanceof InetSocketAddress inetSocketAddress) {
-                return new WebSocketConnection(inetSocketAddress);
+                return new WebSocketConnection(transport, inetSocketAddress);
             }
 
             throw new IllegalArgumentException("Cannot initialize WebSocket connection with address of type "

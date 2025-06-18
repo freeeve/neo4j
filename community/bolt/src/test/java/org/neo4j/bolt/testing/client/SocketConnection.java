@@ -19,10 +19,12 @@
  */
 package org.neo4j.bolt.testing.client;
 
+import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
-import io.netty.channel.socket.nio.NioSocketChannel;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorOption;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 
 public sealed class SocketConnection extends AbstractNettyConnection
         permits SecureSocketConnection, WebSocketConnection {
@@ -34,8 +36,8 @@ public sealed class SocketConnection extends AbstractNettyConnection
         return factory;
     }
 
-    public SocketConnection(InetSocketAddress address) {
-        super();
+    public SocketConnection(ConnectorTransport transport, InetSocketAddress address) {
+        super(transport);
         this.address = address;
     }
 
@@ -46,15 +48,24 @@ public sealed class SocketConnection extends AbstractNettyConnection
 
     @Override
     protected Class<? extends Channel> channelType() {
-        return NioSocketChannel.class;
+        return this.transport.socketChannelType();
+    }
+
+    @Override
+    protected void customizeBootstrap(Bootstrap bootstrap) {
+        super.customizeBootstrap(bootstrap);
+
+        if (this.transport.supportsOption(ConnectorOption.TCP_FAST_OPEN_CONNECT)) {
+            ConnectorOption.TCP_FAST_OPEN_CONNECT.set(bootstrap, true);
+        }
     }
 
     private static class Factory implements BoltTestConnection.Factory {
 
         @Override
-        public SocketConnection create(SocketAddress address) {
+        public SocketConnection create(ConnectorTransport transport, SocketAddress address) {
             if (address instanceof InetSocketAddress inetSocketAddress) {
-                return new SocketConnection(inetSocketAddress);
+                return new SocketConnection(transport, inetSocketAddress);
             }
 
             throw new IllegalArgumentException("Cannot initialize socket connection with address of type "

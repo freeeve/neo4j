@@ -25,6 +25,7 @@ import org.neo4j.bolt.fsm.error.StateMachineException;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.fsm.state.transition.AbstractStateTransition;
 import org.neo4j.bolt.fsm.state.transition.StateTransition;
+import org.neo4j.bolt.protocol.common.connector.config.ExternalConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.message.request.authentication.AuthenticationMessage;
 import org.neo4j.values.storable.Values;
@@ -55,13 +56,14 @@ public final class AppendAdvertisedAddressOnStateTransition extends AbstractStat
     @Override
     public StateReference process(Context ctx, AuthenticationMessage message, ResponseHandler handler)
             throws StateMachineException {
-        var advertisedAddress = ctx.connection().connector().configuration().advertisedAddress();
+        if (ctx.connection().connector().configuration() instanceof ExternalConnectorConfiguration externalConfig) {
+            var advertisedAddress = externalConfig.advertisedAddress();
 
-        if (advertisedAddress != null) {
             var address = advertisedAddress.toString();
             if (advertisedAddress instanceof InetSocketAddress inetAddress) {
                 address = String.format("%s:%d", inetAddress.getHostName(), inetAddress.getPort());
             }
+
             handler.onMetadata(ADVERTISED_ADDRESS_KEY, Values.stringValue(address));
         }
 

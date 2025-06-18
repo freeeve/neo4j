@@ -22,6 +22,7 @@ package org.neo4j.bolt.test.extension.resolver.connection;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.ParameterContext;
 import org.junit.jupiter.api.extension.ParameterResolutionException;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.test.extension.lifecycle.TransportConnectionManager;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.client.TransportType;
@@ -30,8 +31,11 @@ import org.neo4j.bolt.testing.messages.BoltWire;
 public class TransportConnectionParameterResolver extends AbstractConnectionInitializingParameterResolver {
 
     public TransportConnectionParameterResolver(
-            TransportConnectionManager connectionManager, BoltWire wire, TransportType transportType) {
-        super(connectionManager, wire, transportType);
+            TransportConnectionManager connectionManager,
+            BoltWire wire,
+            ConnectorTransport transport,
+            TransportType transportType) {
+        super(connectionManager, wire, transport, transportType);
     }
 
     @Override

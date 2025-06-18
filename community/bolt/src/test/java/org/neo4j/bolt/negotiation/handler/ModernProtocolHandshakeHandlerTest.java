@@ -112,8 +112,8 @@ public class ModernProtocolHandshakeHandlerTest extends AbstractProtocolHandshak
 
         var channel = ctx.withConnection(
                 conn -> conn.withConnector(factory -> factory.withProtocolRegistry(protocolRegistry)
-                                .withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.BOTH)
-                                        .withInboundBufferThrottle(512, 1024)))
+                                .withConfiguration(config -> config.enableProtocolLogging(ProtocolLoggingMode.BOTH)
+                                        .enableInboundBufferThrottle(512, 1024)))
                         .withMemoryTracker(memoryTracker),
                 new ModernProtocolHandshakeHandler(logProvider));
 
@@ -152,7 +152,7 @@ public class ModernProtocolHandshakeHandlerTest extends AbstractProtocolHandshak
 
         var channel = ctx.withConnection(
                 conn -> conn.withConnector(factory -> factory.withProtocolRegistry(protocolRegistry)
-                                .withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.RAW)))
+                                .withConfiguration(config -> config.enableProtocolLogging(ProtocolLoggingMode.RAW)))
                         .withMemoryTracker(memoryTracker),
                 new ModernProtocolHandshakeHandler(logProvider));
 
@@ -190,8 +190,8 @@ public class ModernProtocolHandshakeHandlerTest extends AbstractProtocolHandshak
 
         var channel = ctx.withConnection(
                 conn -> conn.withConnector(factory -> factory.withProtocolRegistry(protocolRegistry)
-                                .withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.DECODED)
-                                        .withInboundBufferThrottle(512, 1024)))
+                                .withConfiguration(config -> config.enableProtocolLogging(ProtocolLoggingMode.DECODED)
+                                        .enableInboundBufferThrottle(512, 1024)))
                         .withMemoryTracker(memoryTracker),
                 new ModernProtocolHandshakeHandler(logProvider));
 
@@ -227,8 +227,8 @@ public class ModernProtocolHandshakeHandlerTest extends AbstractProtocolHandshak
 
         var channel = ctx.withConnection(
                 conn -> conn.withConnector(factory -> factory.withProtocolRegistry(protocolRegistry)
-                                .withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.DECODED)
-                                        .withInboundBufferThrottle(512, 1024)))
+                                .withConfiguration(config -> config.enableProtocolLogging(ProtocolLoggingMode.DECODED)
+                                        .enableInboundBufferThrottle(512, 1024)))
                         .withMemoryTracker(memoryTracker),
                 new ModernProtocolHandshakeHandler(logProvider));
 

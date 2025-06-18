@@ -38,6 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
+import org.neo4j.bolt.protocol.common.connector.transport.NioConnectorTransport;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.client.SocketConnection;
 import org.neo4j.bolt.testing.messages.BoltDefaultWire;
@@ -154,7 +155,7 @@ public class ResetFuzzIT {
     }
 
     private BoltTestConnection connectAndAuthenticate() throws Exception {
-        var connection = new SocketConnection(address)
+        var connection = new SocketConnection(new NioConnectorTransport(), address)
                 .connect()
                 .sendDefaultProtocolVersion()
                 .send(wire.hello());

@@ -29,7 +29,6 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
-import io.netty.channel.nio.NioIoHandler;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
@@ -49,6 +48,7 @@ import javax.net.ssl.SSLException;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.negotiation.message.ProtocolCapability;
 import org.neo4j.bolt.negotiation.util.BitMask;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.testing.client.error.BoltTestClientClosedException;
 import org.neo4j.bolt.testing.client.error.BoltTestClientConnectionTimeoutException;
 import org.neo4j.bolt.testing.client.error.BoltTestClientException;
@@ -72,6 +72,7 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
     public static final long RECV_TIMEOUT = 30_000_000_000L;
     public static final int READ_LOCK_TIMEOUT = 1_000;
 
+    protected final ConnectorTransport transport;
     private final EventLoopGroup eventLoopGroup;
     protected final Object readLock = new Object();
     protected final CompositeByteBuf readBuffer = Unpooled.compositeBuffer();
@@ -85,12 +86,9 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
 
     private long noopCount;
 
-    public AbstractNettyConnection(EventLoopGroup eventLoopGroup) {
-        this.eventLoopGroup = eventLoopGroup;
-    }
-
-    public AbstractNettyConnection() {
-        this(new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory()));
+    public AbstractNettyConnection(ConnectorTransport transport) {
+        this.transport = transport;
+        this.eventLoopGroup = new MultiThreadIoEventLoopGroup(1, transport.createIoHandlerFactory());
     }
 
     protected abstract SocketAddress address();

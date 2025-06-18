@@ -19,12 +19,11 @@
  */
 package org.neo4j.bolt.protocol.common.connector.transport;
 
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.nio.NioIoHandler;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.channel.unix.ServerDomainSocketChannel;
-import java.util.concurrent.ThreadFactory;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import org.neo4j.annotations.service.ServiceProvider;
 
 /**
@@ -47,19 +46,18 @@ public final class NioConnectorTransport implements ConnectorTransport {
     }
 
     @Override
-    public EventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory) {
-        return new MultiThreadIoEventLoopGroup(threadCount, threadFactory, NioIoHandler.newFactory());
+    public IoHandlerFactory createIoHandlerFactory() {
+        return NioIoHandler.newFactory();
     }
 
     @Override
-    public Class<NioServerSocketChannel> getSocketChannelType() {
+    public Class<? extends SocketChannel> socketChannelType() {
+        return NioSocketChannel.class;
+    }
+
+    @Override
+    public Class<NioServerSocketChannel> serverSocketChannelType() {
         return NioServerSocketChannel.class;
-    }
-
-    @Override
-    public Class<? extends ServerDomainSocketChannel> getDomainSocketChannelType() {
-        // netty's JDK implementation does not yet support domain sockets
-        return null;
     }
 
     @Override

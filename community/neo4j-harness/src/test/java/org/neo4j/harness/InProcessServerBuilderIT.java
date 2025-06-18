@@ -48,6 +48,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import org.junit.jupiter.api.Test;
+import org.neo4j.bolt.protocol.common.connector.transport.NioConnectorTransport;
 import org.neo4j.bolt.testing.client.SocketConnection;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -243,7 +244,8 @@ class InProcessServerBuilderIT {
 
             // when
             assertDoesNotThrow(() -> {
-                try (var connection = new SocketConnection(new InetSocketAddress(uri.getHost(), uri.getPort()))) {
+                try (var connection = new SocketConnection(
+                        new NioConnectorTransport(), new InetSocketAddress(uri.getHost(), uri.getPort()))) {
                     connection.connect();
                 }
             });

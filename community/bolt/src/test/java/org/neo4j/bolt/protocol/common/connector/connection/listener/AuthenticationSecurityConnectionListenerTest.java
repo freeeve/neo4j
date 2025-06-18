@@ -34,6 +34,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connector.Connector;
+import org.neo4j.bolt.protocol.common.connector.config.ConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.handler.AuthenticationProtocolLimiterHandler;
 import org.neo4j.bolt.protocol.common.handler.AuthenticationTimeoutHandler;
@@ -49,7 +50,7 @@ class AuthenticationSecurityConnectionListenerTest {
     private static final String CONNECTION_ID = "bolt-authtimeout";
     private static final Duration TIMEOUT = Duration.ofSeconds(2);
 
-    private Connector.Configuration configuration;
+    private ConnectorConfiguration configuration;
     private Connector<?> connector;
     private Connection connection;
     private MemoryTracker memoryTracker;
@@ -62,7 +63,7 @@ class AuthenticationSecurityConnectionListenerTest {
 
     @BeforeEach
     void prepareListener() {
-        this.configuration = Mockito.mock(Connector.Configuration.class, Mockito.RETURNS_DEFAULTS);
+        this.configuration = Mockito.mock(ConnectorConfiguration.class, Mockito.RETURNS_DEFAULTS);
         this.connector = Mockito.mock(Connector.class);
         this.connection = Mockito.mock(Connection.class, Mockito.RETURNS_MOCKS);
         this.memoryTracker = Mockito.mock(MemoryTracker.class);

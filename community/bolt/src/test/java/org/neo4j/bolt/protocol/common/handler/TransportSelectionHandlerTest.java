@@ -25,7 +25,10 @@ import static org.neo4j.logging.AssertableLogProvider.Level.ERROR;
 import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 import static org.neo4j.logging.LogAssertions.assertThat;
 
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import java.io.IOException;
+import javax.net.ssl.SSLException;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -37,6 +40,8 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.packstream.codec.transport.WebSocketFramePackingEncoder;
 import org.neo4j.packstream.codec.transport.WebSocketFrameUnpackingDecoder;
+import org.neo4j.ssl.SslPolicy;
+import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
 @StrictBufferExtension
 class TransportSelectionHandlerTest {
@@ -85,11 +90,23 @@ class TransportSelectionHandlerTest {
     }
 
     @Test
-    void shouldPreventMultipleLevelsOfSslEncryption(StrictBufferContext ctx) {
+    void shouldPreventMultipleLevelsOfSslEncryption(StrictBufferContext ctx) throws SSLException {
         // Given
         var logging = new AssertableLogProvider();
 
-        var channel = ctx.withConnection(new TransportSelectionHandler(true, logging));
+        var sslCtx = SslContextBuilder.forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+
+        var sslPolicyProvider = Mockito.mock(ScopedSslPolicyProvider.class);
+        var sslPolicy = Mockito.mock(SslPolicy.class);
+
+        Mockito.doReturn(sslPolicy).when(sslPolicyProvider).getPolicy();
+        Mockito.doReturn(sslCtx).when(sslPolicy).nettyServerContext();
+
+        var channel = ctx.withConnection(
+                mock -> mock.withConfiguration(config -> config.sslPolicyProvider(sslPolicyProvider)),
+                new TransportSelectionHandler(true, logging));
 
         // When
         channel.writeInbound(ctx.buffer(new byte[] {22, 3, 1, 0, 5})); // encrypted
@@ -119,19 +136,33 @@ class TransportSelectionHandlerTest {
     }
 
     @Test
-    void shouldAllocateUponSslHandshake(StrictBufferContext ctx) {
+    void shouldAllocateUponSslHandshake(StrictBufferContext ctx) throws SSLException {
         var memoryTracker = mock(MemoryTracker.class);
 
+        var sslCtx = SslContextBuilder.forClient()
+                .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                .build();
+
+        var sslPolicyProvider = Mockito.mock(ScopedSslPolicyProvider.class);
+        var sslPolicy = Mockito.mock(SslPolicy.class);
+
+        Mockito.doReturn(sslPolicy).when(sslPolicyProvider).getPolicy();
+        Mockito.doReturn(sslCtx).when(sslPolicy).nettyServerContext();
+
         var channel = ctx.withConnection(
-                conn -> conn.withMemoryTracker(memoryTracker),
+                mock -> mock.withMemoryTracker(memoryTracker)
+                        .withConfiguration(config -> config.sslPolicyProvider(sslPolicyProvider)),
                 new TransportSelectionHandler(NullLogProvider.getInstance()));
 
-        // expect buffer to remain valid at the end of the test since it is a truncated TLS
-        // handshake that will not be handled by SslHandler and thus remain inside its cumulation
-        // buffer
-        channel.writeInbound(ctx.buffer(new byte[] {22, 3, 1, 0, 5}, 1));
+        // do not track inbound buffer since the TLS handlers make isolated testing for release
+        // impossible in this context
+        channel.writeInbound(ctx.scopedBuffer(new byte[] {22, 3, 1, 0, 5}));
 
         verify(memoryTracker).allocateHeap(TransportSelectionHandler.SSL_HANDLER_SHALLOW_SIZE);
+
+        // explicitly release in and outbound buffers here since the TLS handler would otherwise
+        // write a bunch of stuff that fails the test
+        channel.finishAndReleaseAll();
     }
 
     @Test
@@ -166,7 +197,8 @@ class TransportSelectionHandlerTest {
         var memoryTracker = Mockito.mock(MemoryTracker.class);
 
         var channel = ctx.withConnection(
-                conn -> conn.withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.BOTH))
+                conn -> conn.withConfiguration(config ->
+                                config.enableProtocolLogging(true).protocolLoggingMode(ProtocolLoggingMode.BOTH))
                         .withMemoryTracker(memoryTracker),
                 new TransportSelectionHandler(NullLogProvider.getInstance()));
 
@@ -191,7 +223,8 @@ class TransportSelectionHandlerTest {
         var memoryTracker = Mockito.mock(MemoryTracker.class);
 
         var channel = ctx.withConnection(
-                conn -> conn.withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.RAW))
+                conn -> conn.withConfiguration(config ->
+                                config.enableProtocolLogging(true).protocolLoggingMode(ProtocolLoggingMode.RAW))
                         .withMemoryTracker(memoryTracker),
                 new TransportSelectionHandler(NullLogProvider.getInstance()));
 
@@ -213,7 +246,8 @@ class TransportSelectionHandlerTest {
         var memoryTracker = Mockito.mock(MemoryTracker.class);
 
         var channel = ctx.withConnection(
-                conn -> conn.withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.DECODED))
+                conn -> conn.withConfiguration(config ->
+                                config.enableProtocolLogging(true).protocolLoggingMode(ProtocolLoggingMode.DECODED))
                         .withMemoryTracker(memoryTracker),
                 new TransportSelectionHandler(NullLogProvider.getInstance()));
 

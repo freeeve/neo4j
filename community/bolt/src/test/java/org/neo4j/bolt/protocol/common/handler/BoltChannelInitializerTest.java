@@ -39,8 +39,8 @@ import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
 import org.neo4j.bolt.protocol.common.connector.netty.AbstractNettyConnector;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
-import org.neo4j.bolt.testing.mock.ConnectorConfigurationMockFactory;
 import org.neo4j.bolt.testing.mock.ConnectorMockFactory;
+import org.neo4j.bolt.testing.mock.TestConnectorConfiguration;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.logging.AssertableLogProvider;
@@ -135,8 +135,9 @@ class BoltChannelInitializerTest {
         var path = Files.createTempDirectory("bolt_");
 
         try {
-            var config = ConnectorConfigurationMockFactory.newFactory()
-                    .withProtocolCapture(path)
+            var config = TestConnectorConfiguration.factory()
+                    .enableProtocolCapture(true)
+                    .protocolCapturePath(path)
                     .build();
 
             Mockito.doReturn(config).when(this.connector).configuration();

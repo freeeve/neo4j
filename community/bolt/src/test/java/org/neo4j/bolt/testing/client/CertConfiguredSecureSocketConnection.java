@@ -38,14 +38,16 @@ import javax.net.ssl.TrustManagerFactory;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.OCSPException;
 import org.bouncycastle.cert.ocsp.OCSPResp;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.testing.client.error.BoltTestClientClosedException;
 
 public final class CertConfiguredSecureSocketConnection extends SecureSocketConnection {
 
     private final X509Certificate rootCert;
 
-    public CertConfiguredSecureSocketConnection(InetSocketAddress address, X509Certificate trustedRootCertificate) {
-        super(address);
+    public CertConfiguredSecureSocketConnection(
+            ConnectorTransport transport, InetSocketAddress address, X509Certificate trustedRootCertificate) {
+        super(transport, address);
         this.rootCert = trustedRootCertificate;
     }
 

@@ -41,6 +41,7 @@ import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessag
 import org.neo4j.bolt.protocol.common.message.request.authentication.LogonMessage;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.security.error.AuthenticationException;
+import org.neo4j.bolt.testing.mock.TestConnectorConfiguration;
 import org.neo4j.kernel.api.exceptions.Status.Request;
 import org.neo4j.values.storable.Values;
 
@@ -162,9 +163,12 @@ class AuthenticationStateTransitionTest
 
     private static void mockAdvertisedAddress(ConnectionHandle connection, SocketAddress socketAddress) {
         var connector = Mockito.mock(Connector.class);
-        var configuration = Mockito.mock(Connector.Configuration.class);
+
+        var configuration = TestConnectorConfiguration.factory()
+                .advertisedAddress(socketAddress)
+                .build();
+
         Mockito.doReturn(connector).when(connection).connector();
         Mockito.doReturn(configuration).when(connector).configuration();
-        Mockito.doReturn(socketAddress).when(configuration).advertisedAddress();
     }
 }

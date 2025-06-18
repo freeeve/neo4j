@@ -19,13 +19,13 @@
  */
 package org.neo4j.bolt.protocol.common.connector.transport;
 
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.local.LocalServerChannel;
-import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.channel.Channel;
+import io.netty.channel.IoHandlerFactory;
+import io.netty.channel.ServerChannel;
+import io.netty.channel.unix.DomainSocketChannel;
 import io.netty.channel.unix.ServerDomainSocketChannel;
 import java.util.Comparator;
 import java.util.Optional;
-import java.util.concurrent.ThreadFactory;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.neo4j.annotations.service.Service;
@@ -36,7 +36,8 @@ import org.neo4j.service.Services;
  * Encapsulates a network transport in a system agnostic fashion.
  */
 @Service
-public interface ConnectorTransport extends PrioritizedService {
+public sealed interface ConnectorTransport extends PrioritizedService
+        permits EpollConnectorTransport, KqueueConnectorTransport, NioConnectorTransport, LocalConnectorTransport {
 
     /**
      * Retrieves a stream of available transport implementations within the application Class-Path.
@@ -60,8 +61,17 @@ public interface ConnectorTransport extends PrioritizedService {
     }
 
     /**
-     * Retrieves a human-readable name with which this transport implementation is identified within the internal
-     * application log.
+     * Selects the most optimal available transport from a list of transport implementations.
+     *
+     * @return an optimal transport or an empty optional if none is available.
+     */
+    static Optional<ConnectorTransport> selectOptimal() {
+        return selectOptimal(transport -> true);
+    }
+
+    /**
+     * Retrieves a human-readable name with which this transport implementation is identified within
+     * the internal application log.
      *
      * @return a human readable name.
      */
@@ -88,38 +98,56 @@ public interface ConnectorTransport extends PrioritizedService {
     boolean isNative();
 
     /**
-     * Creates a new event loop group for use with the channel implementations designated by this transport.
+     * Evaluates whether a given connector option is available when using this transport
+     * implementation.
+     * <p>
+     * By default, all connector options are considered unsupported as all known values require one of
+     * the native implementations.
      *
-     * @param threadCount the total number of threads within the new pool.
-     * @param threadFactory a factory capable of creating threads for the new pool.
-     * @return a compatible event loop group.
+     * @param option the connector option to check for.
+     * @return true if supported, false otherwise.‚
      */
-    EventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory);
-
-    default EventLoopGroup createEventLoopGroup(ThreadFactory threadFactory) {
-        return this.createEventLoopGroup(0, threadFactory);
+    default boolean supportsOption(ConnectorOption<?> option) {
+        return false;
     }
+
+    /**
+     * Retrieves the IO handler which shall back the event loop IO logic for this transport
+     * implementation.
+     *
+     * @return an IO handler implementation.
+     */
+    IoHandlerFactory createIoHandlerFactory();
+
+    /**
+     * Retrieves the channel implementation which is used to establish connections to remote sockets.
+     *
+     * @return a socket channel implementation.
+     */
+    Class<? extends Channel> socketChannelType();
 
     /**
      * Retrieves the channel implementation which is used to bind server sockets.
      *
      * @return a server socket implementation.
      */
-    Class<? extends ServerSocketChannel> getSocketChannelType();
+    Class<? extends ServerChannel> serverSocketChannelType();
+
+    /**
+     * Retrieves the channel implementation which is used to connect to domain sockets.
+     *
+     * @return a domain socket implementation.
+     */
+    default Class<? extends DomainSocketChannel> domainSocketChannelType() {
+        return null;
+    }
 
     /**
      * Retrieves the channel implementation which is used to bind domain server sockets.
      *
      * @return a server socket implementation or null if unsupported.
      */
-    Class<? extends ServerDomainSocketChannel> getDomainSocketChannelType();
-
-    /**
-     * Retrieves the channel implementation which is used to bind local transport for intra-VM communication.
-     *
-     * @return a local server channel implementation.
-     */
-    default Class<? extends LocalServerChannel> getLocalChannelType() {
-        return LocalServerChannel.class;
+    default Class<? extends ServerDomainSocketChannel> serverDomainSocketChannelType() {
+        return null;
     }
 }

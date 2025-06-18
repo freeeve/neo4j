@@ -30,18 +30,16 @@ import java.net.BindException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.connection.BoltDriverMetricsMonitor;
 import org.neo4j.bolt.protocol.common.connection.hint.ConnectionHintRegistry;
 import org.neo4j.bolt.protocol.common.connector.accounting.error.ErrorAccountant;
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.NoopTrafficAccountant;
+import org.neo4j.bolt.protocol.common.connector.config.DomainSocketConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
-import org.neo4j.bolt.protocol.common.connector.netty.DomainSocketNettyConnector.DomainSocketConfiguration;
 import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.tx.TransactionManager;
-import org.neo4j.configuration.connectors.BoltConnectorInternalSettings.ProtocolLoggingMode;
 import org.neo4j.configuration.helpers.PortBindException;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.kernel.api.net.NetworkConnectionTracker;
@@ -49,7 +47,6 @@ import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryPool;
 import org.neo4j.server.config.AuthConfigProvider;
-import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
 /**
  * Provides a connector which provides its services through a domain socket.
@@ -61,10 +58,9 @@ import org.neo4j.ssl.config.ScopedSslPolicyProvider;
  * communication. All authorization is provided through the socket file itself and will thus occur
  * on OS level.
  */
-public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSocketConfiguration> {
+public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSocketConnectorConfiguration> {
 
     private final Path path;
-    private final ConnectorTransport transport;
 
     public DomainSocketNettyConnector(
             String id,
@@ -86,7 +82,7 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
             RoutingService routingService,
             ErrorAccountant errorAccountant,
             BoltDriverMetricsMonitor driverMetricsMonitor,
-            DomainSocketConfiguration configuration,
+            DomainSocketConnectorConfiguration configuration,
             InternalLogProvider userLogProvider,
             InternalLogProvider logging) {
         super(
@@ -97,6 +93,7 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
                 allocator,
                 bossGroup,
                 workerGroup,
+                transport,
                 connectionFactory,
                 connectionTracker,
                 protocolRegistry,
@@ -113,16 +110,15 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
                 userLogProvider,
                 logging);
         checkArgument(
-                transport.getDomainSocketChannelType() != null,
+                transport.serverDomainSocketChannelType() != null,
                 "Unsupported transport: " + transport.getName() + " does not support domain sockets");
 
         this.path = path;
-        this.transport = transport;
     }
 
     @Override
     protected Class<? extends ServerChannel> channelType() {
-        return transport.getDomainSocketChannelType();
+        return transport.serverDomainSocketChannelType();
     }
 
     @Override
@@ -146,71 +142,5 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
     @Override
     protected void logStartupMessage() {
         userLog.info("Bolt (loopback) enabled on file %s", path);
-    }
-
-    public static class DomainSocketConfiguration extends NettyConfiguration {
-
-        private final boolean deleteSocketFile;
-
-        public DomainSocketConfiguration(
-                boolean enableProtocolCapture,
-                Path protocolCapturePath,
-                boolean enableProtocolLogging,
-                ProtocolLoggingMode protocolLoggingMode,
-                long maxAuthenticationInboundBytes,
-                int maxAuthenticationStructureElements,
-                int maxAuthenticationStructureDepth,
-                boolean enableOutboundBufferThrottle,
-                int outboundBufferThrottleLowWatermark,
-                int outboundBufferThrottleHighWatermark,
-                Duration outboundBufferThrottleDuration,
-                int inboundBufferThrottleLowWatermark,
-                int inboundBufferThrottleHighWatermark,
-                int streamingBufferSize,
-                int streamingFlushThreshold,
-                Duration connectionShutdownDuration,
-                boolean enableTransactionThreadBinding,
-                Duration threadBindingTimeout,
-                boolean enableMergeCumulator,
-                boolean deleteSocketFile) {
-            super(
-                    enableProtocolCapture,
-                    protocolCapturePath,
-                    enableProtocolLogging,
-                    protocolLoggingMode,
-                    maxAuthenticationInboundBytes,
-                    maxAuthenticationStructureElements,
-                    maxAuthenticationStructureDepth,
-                    enableOutboundBufferThrottle,
-                    outboundBufferThrottleLowWatermark,
-                    outboundBufferThrottleHighWatermark,
-                    outboundBufferThrottleDuration,
-                    inboundBufferThrottleLowWatermark,
-                    inboundBufferThrottleHighWatermark,
-                    streamingBufferSize,
-                    streamingFlushThreshold,
-                    connectionShutdownDuration,
-                    enableTransactionThreadBinding,
-                    threadBindingTimeout,
-                    null, // Doesn't advertises address
-                    enableMergeCumulator,
-                    false, // Currently always disabled on UNIX socket
-                    ScopedSslPolicyProvider.getNullInstance());
-
-            this.deleteSocketFile = deleteSocketFile;
-        }
-
-        /**
-         * Identifies whether the socket file shall be deleted when it already exists at the configured
-         * location.
-         * <p/>
-         * When the specified socket file already exists and this option is enabled, the connector will
-         * attempt to delete it. If disabled, an exception will be raised instead.
-         *
-         * @return true if deletion shall be attempted, false otherwise.
-         */
-        public boolean deleteSocketFile() {
-            return this.deleteSocketFile;
-        }
     }
 }

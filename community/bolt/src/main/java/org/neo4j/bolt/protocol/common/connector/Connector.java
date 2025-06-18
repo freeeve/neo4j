@@ -21,9 +21,7 @@ package org.neo4j.bolt.protocol.common.connector;
 
 import io.netty.channel.Channel;
 import java.net.SocketAddress;
-import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.neo4j.bolt.negotiation.message.ProtocolCapability;
@@ -32,11 +30,11 @@ import org.neo4j.bolt.protocol.common.connection.BoltDriverMetricsMonitor;
 import org.neo4j.bolt.protocol.common.connection.hint.ConnectionHintRegistry;
 import org.neo4j.bolt.protocol.common.connector.accounting.error.ErrorAccountant;
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.TrafficAccountant;
+import org.neo4j.bolt.protocol.common.connector.config.ConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.listener.ConnectorListener;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.tx.TransactionManager;
-import org.neo4j.configuration.connectors.BoltConnectorInternalSettings.ProtocolLoggingMode;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.kernel.lifecycle.Lifecycle;
@@ -46,7 +44,7 @@ import org.neo4j.server.config.AuthConfigProvider;
 /**
  * Encapsulates the configuration and dependencies of a dedicated connector.
  */
-public interface Connector<CFG extends Connector.Configuration> extends Lifecycle {
+public interface Connector<CFG extends ConnectorConfiguration> extends Lifecycle {
 
     /**
      * Retrieves the unique identifier via which connections provided by this connector will be
@@ -213,204 +211,4 @@ public interface Connector<CFG extends Connector.Configuration> extends Lifecycl
 
     @Override
     default void shutdown() throws Exception {}
-
-    interface Configuration {
-
-        /**
-         * Identifies whether protocol capture has been enabled for this connector.
-         * <p/>
-         * When true, PCAP encoded versions of the protocol traffic passing through this connector will
-         * be written to disk for debugging purposes.
-         *
-         * @return true if protocol capture is enabled, false otherwise.
-         */
-        boolean enableProtocolCapture();
-
-        /**
-         * Identifies the directory to which protocol captures should be written when enabled.
-         * <p/>
-         * This configuration property is ignored when {@link #enableProtocolCapture()} is set to
-         * false.
-         *
-         * @return a protocol capture directory.
-         */
-        Path protocolCapturePath();
-
-        /**
-         * Identifies whether protocol logging has been enabled for this connector.
-         * <p/>
-         * When enabled, all protocol traffic within this connector will be logged to the application
-         * debug log.
-         *
-         * @return true if protocol logging is enabled, false otherwise.
-         */
-        boolean enableProtocolLogging();
-
-        /**
-         * Identifies the detail to be logged via this connector.
-         * <p/>
-         * This configuration property is ignored if {@link #enableProtocolLogging()} is set to false.
-         *
-         * @return a protocol logging mode.
-         */
-        ProtocolLoggingMode protocolLoggingMode();
-
-        /**
-         * Identifies the total amount of bytes permitted to be sent to the server during authentication
-         * phase.
-         * <p/>
-         * When a client exceeds this amount of data during the authentication phase, their connection
-         * will be terminated prematurely.
-         *
-         * @return a maximum amount of permitted bytes.
-         */
-        long maxAuthenticationInboundBytes();
-
-        /**
-         * Identifies the total amount of elements permitted to be present within a structure during
-         * authentication phase.
-         * <p/>
-         * When a client exceeds this amount of elements during the authentication phase, their
-         * connection will be terminated prematurely.
-         *
-         * @return a maximum amount of Packstream elements.
-         */
-        int maxAuthenticationStructureElements();
-
-        /**
-         * Identifies the total amount of nested levels permitted to be present within a structure
-         * during authentication phase.
-         * <p/>
-         * When a client exceeds this amount of elements during the authentication phase, their
-         * connection will be terminated prematurely.
-         *
-         * @return a maximum amount of Packstream nesting levels.
-         */
-        int maxAuthenticationStructureDepth();
-
-        /**
-         * Identifies whether outbound messages shall be throttled when the client fails to consume
-         * messages at a sufficient pace.
-         *
-         * @return true if outbound buffer throttling shall be applied.
-         */
-        boolean enableOutboundBufferThrottle();
-
-        /**
-         * Identifies the minimum amount of bytes present within the outgoing buffer prior to releasing
-         * previously triggered outbound throttling measures.
-         *
-         * @return an outbound throttle low watermark.
-         */
-        int outboundBufferThrottleLowWatermark();
-
-        /**
-         * Identifies the maximum amount of bytes present within the outgoing buffer prior to triggering
-         * outbound throttling measures.
-         * <p/>
-         * When {@link #enableOutboundBufferThrottle()} is enabled and more than the specified amount of
-         * bytes accumulates within the outgoing buffer, writing of data will be suspended until the
-         * client has consumed enough data to return the buffer to below
-         * {@link #outboundBufferThrottleHighWatermark()} bytes.
-         *
-         * @return an outbound throttle high watermark.
-         */
-        int outboundBufferThrottleHighWatermark();
-
-        /**
-         * Identifies the maximum amount of time a connection is permitted to remain within an outbound
-         * throttled state prior to being terminated.
-         * <p/>
-         * This setting is provided in order to prevent slow or potentially locked up drivers from
-         * indefinitely claiming server resources.
-         *
-         * @return a maximum outbound throttle duration.
-         */
-        Duration outboundBufferMaxThrottleDuration();
-
-        /**
-         * Identifies the minimum amount of bytes present within the inbound buffer before releasing
-         * previously triggered outbound throttling measures.
-         *
-         * @return an inbound throttle low watermark.
-         */
-        int inboundBufferThrottleLowWatermark();
-
-        /**
-         * Identifies the maximum amount of bytes present within the inbound buffer prior to disabling
-         * the decoder pipeline.
-         * <p/>
-         * Once reached, the server will disable the decoder pipeline for the offending connection until
-         * {@link #inboundBufferThrottleLowWatermark()} is reached as a result of slowly processing
-         * already buffered messages.
-         *
-         * @return an inbound throttle high watermark.
-         */
-        int inboundBufferThrottleHighWatermark();
-
-        /**
-         * Identifies the total number of bytes to be requested from the pool when streaming records.
-         * <p/>
-         * Lower values may improve overall operation performance but may result in more frequent
-         * allocations when larger values are streamed at regular intervals.
-         *
-         * @return a buffer size (in bytes).
-         */
-        int streamingBufferSize();
-
-        /**
-         * Identifies the total number of bytes expected to be present within the outgoing record buffer
-         * while streaming before the buffers are flushed.
-         * <p/>
-         * Lower values will improve overall latency but might impact performance as records are more
-         * frequently flushed to the client.
-         * <p/>
-         * Flushing always occurs upon completion of a streaming operation regardless of the value
-         * configured within this property.
-         * <p/>
-         * A value of zero indicates no threshold (e.g. flushing occurs on a per-record basis).
-         *
-         * @return a flush threshold (in bytes).
-         */
-        int streamingFlushThreshold();
-
-        /**
-         * Identifies the duration for which the connector shall wait when terminating connections
-         * before considering its workload to be stuck.
-         *
-         * @return a maximum permissible shutdown duration.
-         */
-        Duration connectionShutdownDuration();
-
-        /**
-         * Identifies whether transactions shall be bound to threads for the duration of their
-         * lifetime.
-         *
-         * @return true if transactions shall occupy threads for their lifetime, false otherwise.
-         */
-        boolean enableTransactionThreadBinding();
-
-        /**
-         * Specifies the total duration for which a thread is bound to a given connection when no
-         * requests remain to be processed.
-         * <p/>
-         * This value is provided as an optimization in order to reduce rapid re-scheduling of
-         * connections within short windows of inactivity (e.g. due to network latency).
-         * <p/>
-         * When set to zero, threads will be freed up immediately once no more requests remain to be
-         * processed.
-         *
-         * @return a timeout duration after which a thread is released.
-         */
-        Duration threadBindingTimeout();
-
-        /**
-         * Specifies the advertisement address of this connector.
-         * <p/>
-         * This value is provided as information for being redirect to client connections.
-         *
-         * @return the advertised address for the connector
-         */
-        SocketAddress advertisedAddress();
-    }
 }

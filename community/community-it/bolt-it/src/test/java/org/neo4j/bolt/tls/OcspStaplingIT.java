@@ -58,6 +58,7 @@ import org.eclipse.jetty.server.Server;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
+import org.neo4j.bolt.protocol.common.connector.transport.NioConnectorTransport;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.transport.IncludeTransport;
 import org.neo4j.bolt.test.annotation.setup.SettingsFunction;
@@ -158,7 +159,8 @@ class OcspStaplingIT {
     void shouldReturnCertificatesWithStapledOcspResponses(SocketAddress address) throws Exception {
         var inetSocketAddress = (InetSocketAddress) address;
 
-        try (var connection = new CertConfiguredSecureSocketConnection(inetSocketAddress, this.certificate)) {
+        try (var connection = new CertConfiguredSecureSocketConnection(
+                new NioConnectorTransport(), inetSocketAddress, this.certificate)) {
             connection.connect().sendDefaultProtocolVersion();
 
             var certificatesSeen = connection.getServerCertificatesSeen();

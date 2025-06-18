@@ -27,20 +27,18 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.connection.BoltDriverMetricsMonitor;
 import org.neo4j.bolt.protocol.common.connection.hint.ConnectionHintRegistry;
 import org.neo4j.bolt.protocol.common.connector.accounting.error.ErrorAccountant;
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.TrafficAccountant;
+import org.neo4j.bolt.protocol.common.connector.config.SocketConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
-import org.neo4j.bolt.protocol.common.connector.netty.SocketNettyConnector.SocketConfiguration;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorOption;
 import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.tx.TransactionManager;
-import org.neo4j.configuration.connectors.BoltConnectorInternalSettings.ProtocolLoggingMode;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.dbms.routing.RoutingService;
@@ -49,13 +47,9 @@ import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryPool;
 import org.neo4j.server.config.AuthConfigProvider;
-import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
-public class SocketNettyConnector extends AbstractNettyConnector<SocketConfiguration> {
+public class SocketNettyConnector extends AbstractNettyConnector<SocketConnectorConfiguration> {
 
-    private final ConnectorTransport transport;
-    private final EventLoopGroup bossGroup;
-    private final EventLoopGroup workerGroup;
     private final ConnectorType connectorType;
     private final ConnectorPortRegister portRegister;
 
@@ -82,7 +76,7 @@ public class SocketNettyConnector extends AbstractNettyConnector<SocketConfigura
             ErrorAccountant errorAccountant,
             TrafficAccountant trafficAccountant,
             BoltDriverMetricsMonitor driverMetricsMonitor,
-            SocketConfiguration configuration,
+            SocketConnectorConfiguration configuration,
             InternalLogProvider userLogProvider,
             InternalLogProvider logging) {
         super(
@@ -93,6 +87,7 @@ public class SocketNettyConnector extends AbstractNettyConnector<SocketConfigura
                 allocator,
                 bossGroup,
                 workerGroup,
+                transport,
                 connectionFactory,
                 connectionTracker,
                 protocolRegistry,
@@ -110,31 +105,27 @@ public class SocketNettyConnector extends AbstractNettyConnector<SocketConfigura
                 logging);
         this.connectorType = connectorType;
         this.portRegister = portRegister;
-        this.bossGroup = bossGroup;
-        this.workerGroup = workerGroup;
-        this.transport = transport;
-    }
-
-    @Override
-    protected EventLoopGroup bossGroup() {
-        return bossGroup;
-    }
-
-    @Override
-    protected EventLoopGroup workerGroup() {
-        return workerGroup;
     }
 
     @Override
     protected Class<? extends ServerChannel> channelType() {
-        return transport.getSocketChannelType();
+        return transport.serverSocketChannelType();
     }
 
     @Override
     protected void configureServer(ServerBootstrap bootstrap) {
         super.configureServer(bootstrap);
 
-        bootstrap.childOption(ChannelOption.SO_KEEPALIVE, this.configuration().enableTcpKeepAlive);
+        bootstrap.childOption(ChannelOption.SO_KEEPALIVE, this.configuration().enableTcpKeepAlive());
+
+        if (this.configuration().enableTcpFastOpen()) {
+            if (this.transport.supportsOption(ConnectorOption.TCP_FAST_OPEN)) {
+                ConnectorOption.TCP_FAST_OPEN.set(
+                        bootstrap, this.configuration().tcpFastOpenMaxPendingConnections());
+            } else {
+                this.userLog.warn("TCP fast-open has been requested but is not currently supported on this platform");
+            }
+        }
     }
 
     @Override
@@ -171,64 +162,5 @@ public class SocketNettyConnector extends AbstractNettyConnector<SocketConfigura
                 connectorName + " enabled on %s.",
                 org.neo4j.configuration.helpers.SocketAddress.format(
                         inetSocketAddress.getHostName(), inetSocketAddress.getPort()));
-    }
-
-    public static final class SocketConfiguration extends NettyConfiguration {
-
-        private final boolean enableTcpKeepAlive;
-
-        public SocketConfiguration(
-                boolean enableProtocolCapture,
-                Path protocolCapturePath,
-                boolean enableProtocolLogging,
-                ProtocolLoggingMode protocolLoggingMode,
-                long maxAuthenticationInboundBytes,
-                int maxAuthenticationStructureElements,
-                int maxAuthenticationStructureDepth,
-                boolean enableOutboundBufferThrottle,
-                int outboundBufferThrottleLowWatermark,
-                int outboundBufferThrottleHighWatermark,
-                Duration outboundBufferThrottleDuration,
-                int inboundBufferThrottleLowWatermark,
-                int inboundBufferThrottleHighWatermark,
-                int streamingBufferSize,
-                int streamingFlushThreshold,
-                Duration connectionShutdownDuration,
-                boolean enableTransactionThreadBinding,
-                Duration threadBindingTimeout,
-                SocketAddress advertisedAddress,
-                boolean enableMergeCumulator,
-                boolean requireEncryption,
-                ScopedSslPolicyProvider sslPolicyProvider,
-                boolean enableTcpKeepAlive) {
-            super(
-                    enableProtocolCapture,
-                    protocolCapturePath,
-                    enableProtocolLogging,
-                    protocolLoggingMode,
-                    maxAuthenticationInboundBytes,
-                    maxAuthenticationStructureElements,
-                    maxAuthenticationStructureDepth,
-                    enableOutboundBufferThrottle,
-                    outboundBufferThrottleLowWatermark,
-                    outboundBufferThrottleHighWatermark,
-                    outboundBufferThrottleDuration,
-                    inboundBufferThrottleLowWatermark,
-                    inboundBufferThrottleHighWatermark,
-                    streamingBufferSize,
-                    streamingFlushThreshold,
-                    connectionShutdownDuration,
-                    enableTransactionThreadBinding,
-                    threadBindingTimeout,
-                    advertisedAddress,
-                    enableMergeCumulator,
-                    requireEncryption,
-                    sslPolicyProvider);
-            this.enableTcpKeepAlive = enableTcpKeepAlive;
-        }
-
-        public boolean enableTcpKeepAlive() {
-            return this.enableTcpKeepAlive;
-        }
     }
 }

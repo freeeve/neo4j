@@ -19,12 +19,15 @@
  */
 package org.neo4j.bolt.protocol.common.connector.transport;
 
-import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollServerDomainSocketChannel;
 import io.netty.channel.epoll.EpollServerSocketChannel;
-import java.util.concurrent.ThreadFactory;
+import io.netty.channel.epoll.EpollSocketChannel;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.unix.DomainSocketChannel;
 import org.neo4j.annotations.service.ServiceProvider;
 
 /**
@@ -49,17 +52,32 @@ public final class EpollConnectorTransport implements ConnectorTransport {
     }
 
     @Override
-    public MultiThreadIoEventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory) {
-        return new MultiThreadIoEventLoopGroup(threadCount, threadFactory, EpollIoHandler.newFactory());
+    public boolean supportsOption(ConnectorOption<?> option) {
+        return option == ConnectorOption.TCP_FAST_OPEN || option == ConnectorOption.TCP_FAST_OPEN_CONNECT;
     }
 
     @Override
-    public Class<EpollServerSocketChannel> getSocketChannelType() {
+    public IoHandlerFactory createIoHandlerFactory() {
+        return EpollIoHandler.newFactory();
+    }
+
+    @Override
+    public Class<? extends SocketChannel> socketChannelType() {
+        return EpollSocketChannel.class;
+    }
+
+    @Override
+    public Class<EpollServerSocketChannel> serverSocketChannelType() {
         return EpollServerSocketChannel.class;
     }
 
     @Override
-    public Class<EpollServerDomainSocketChannel> getDomainSocketChannelType() {
+    public Class<? extends DomainSocketChannel> domainSocketChannelType() {
+        return EpollDomainSocketChannel.class;
+    }
+
+    @Override
+    public Class<EpollServerDomainSocketChannel> serverDomainSocketChannelType() {
         return EpollServerDomainSocketChannel.class;
     }
 }

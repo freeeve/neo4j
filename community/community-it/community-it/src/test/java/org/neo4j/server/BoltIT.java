@@ -38,6 +38,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.BoltServer;
+import org.neo4j.bolt.protocol.common.connector.transport.NioConnectorTransport;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.client.SocketConnection;
 import org.neo4j.bolt.testing.client.UnixDomainSocketConnection;
@@ -126,9 +127,9 @@ class BoltIT extends ExclusiveWebContainerTestBase {
             BoltTestConnection connection = null;
             try {
                 if (addr instanceof InetSocketAddress socketAddress) {
-                    connection = new SocketConnection(socketAddress);
+                    connection = new SocketConnection(new NioConnectorTransport(), socketAddress);
                 } else if (addr instanceof DomainSocketAddress domainSocketAddress) {
-                    connection = new UnixDomainSocketConnection(domainSocketAddress);
+                    connection = new UnixDomainSocketConnection(new NioConnectorTransport(), domainSocketAddress);
                 } else {
                     throw new AssertionError("Encountered connector with unsupported socket address type: "
                             + addr.getClass() + " (" + addr + ")");
@@ -164,7 +165,7 @@ class BoltIT extends ExclusiveWebContainerTestBase {
     }
 
     private static void assertEventuallyServerResponds(String host, int port) throws Exception {
-        try (var connection = new SocketConnection(new InetSocketAddress(host, port))) {
+        try (var connection = new SocketConnection(new NioConnectorTransport(), new InetSocketAddress(host, port))) {
             connection.connect().sendDefaultProtocolVersion();
 
             assertThat(connection).negotiatesDefaultVersion();

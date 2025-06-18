@@ -20,10 +20,7 @@
 package org.neo4j.bolt.protocol.common.connector;
 
 import io.netty.channel.Channel;
-import java.net.SocketAddress;
-import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -34,14 +31,13 @@ import org.neo4j.bolt.negotiation.message.ProtocolCapability;
 import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.connection.BoltDriverMetricsMonitor;
 import org.neo4j.bolt.protocol.common.connection.hint.ConnectionHintRegistry;
-import org.neo4j.bolt.protocol.common.connector.AbstractConnector.AbstractConfiguration;
 import org.neo4j.bolt.protocol.common.connector.accounting.error.ErrorAccountant;
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.TrafficAccountant;
+import org.neo4j.bolt.protocol.common.connector.config.ConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.listener.ConnectorListener;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.tx.TransactionManager;
-import org.neo4j.configuration.connectors.BoltConnectorInternalSettings.ProtocolLoggingMode;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.kernel.api.net.NetworkConnectionTracker;
 import org.neo4j.kernel.database.DefaultDatabaseResolver;
@@ -52,7 +48,7 @@ import org.neo4j.server.config.AuthConfigProvider;
 /**
  * Provides a generic base implementation for connectors.
  */
-public abstract class AbstractConnector<CFG extends AbstractConfiguration> implements Connector<CFG> {
+public abstract class AbstractConnector<CFG extends ConnectorConfiguration> implements Connector<CFG> {
 
     private final String id;
     private final MemoryPool memoryPool;
@@ -261,164 +257,5 @@ public abstract class AbstractConnector<CFG extends AbstractConfiguration> imple
     @Override
     public void shutdown() throws Exception {
         this.connectionRegistry.stopAll(this.configuration().connectionShutdownDuration());
-    }
-
-    protected abstract static class AbstractConfiguration implements Configuration {
-
-        private final boolean enableProtocolCapture;
-        private final Path protocolCapturePath;
-        private final boolean enableProtocolLogging;
-        private final ProtocolLoggingMode protocolLoggingMode;
-        private final long maxAuthenticationInboundBytes;
-        private final int maxAuthenticationStructureElements;
-        private final int maxAuthenticationStructureDepth;
-        private final boolean enableOutboundBufferThrottle;
-        private final int outboundBufferThrottleLowWatermark;
-        private final int outboundBufferThrottleHighWatermark;
-        private final Duration outboundBufferMaxThrottleDuration;
-        private final int inboundBufferThrottleLowWatermark;
-        private final int inboundBufferThrottleHighWatermark;
-        private final int streamingBufferSize;
-        private final int streamingFlushThreshold;
-        private final Duration connectionShutdownDuration;
-        private final boolean enableTransactionThreadBinding;
-        private final Duration threadBindingTimeout;
-        private final SocketAddress advertisedAddress;
-
-        protected AbstractConfiguration(
-                boolean enableProtocolCapture,
-                Path protocolCapturePath,
-                boolean enableProtocolLogging,
-                ProtocolLoggingMode protocolLoggingMode,
-                long maxAuthenticationInboundBytes,
-                int maxAuthenticationStructureElements,
-                int maxAuthenticationStructureDepth,
-                boolean enableOutboundBufferThrottle,
-                int outboundBufferThrottleLowWatermark,
-                int outboundBufferThrottleHighWatermark,
-                Duration outboundBufferMaxThrottleDuration,
-                int inboundBufferThrottleLowWatermark,
-                int inboundBufferThrottleHighWatermark,
-                int streamingBufferSize,
-                int streamingFlushThreshold,
-                Duration connectionShutdownDuration,
-                boolean enableTransactionThreadBinding,
-                Duration threadBindingTimeout,
-                SocketAddress advertisedAddress) {
-            this.enableProtocolCapture = enableProtocolCapture;
-            this.protocolCapturePath = protocolCapturePath;
-            this.enableProtocolLogging = enableProtocolLogging;
-            this.protocolLoggingMode = protocolLoggingMode;
-            this.maxAuthenticationInboundBytes = maxAuthenticationInboundBytes;
-            this.maxAuthenticationStructureElements = maxAuthenticationStructureElements;
-            this.maxAuthenticationStructureDepth = maxAuthenticationStructureDepth;
-            this.enableOutboundBufferThrottle = enableOutboundBufferThrottle;
-            this.outboundBufferThrottleLowWatermark = outboundBufferThrottleLowWatermark;
-            this.outboundBufferThrottleHighWatermark = outboundBufferThrottleHighWatermark;
-            this.outboundBufferMaxThrottleDuration = outboundBufferMaxThrottleDuration;
-            this.inboundBufferThrottleLowWatermark = inboundBufferThrottleLowWatermark;
-            this.inboundBufferThrottleHighWatermark = inboundBufferThrottleHighWatermark;
-            this.streamingBufferSize = streamingBufferSize;
-            this.streamingFlushThreshold = streamingFlushThreshold;
-            this.connectionShutdownDuration = connectionShutdownDuration;
-            this.enableTransactionThreadBinding = enableTransactionThreadBinding;
-            this.threadBindingTimeout = threadBindingTimeout;
-            this.advertisedAddress = advertisedAddress;
-        }
-
-        @Override
-        public boolean enableProtocolCapture() {
-            return this.enableProtocolCapture;
-        }
-
-        @Override
-        public Path protocolCapturePath() {
-            return this.protocolCapturePath;
-        }
-
-        @Override
-        public boolean enableProtocolLogging() {
-            return this.enableProtocolLogging;
-        }
-
-        @Override
-        public ProtocolLoggingMode protocolLoggingMode() {
-            return this.protocolLoggingMode;
-        }
-
-        @Override
-        public long maxAuthenticationInboundBytes() {
-            return this.maxAuthenticationInboundBytes;
-        }
-
-        @Override
-        public int maxAuthenticationStructureElements() {
-            return 0;
-        }
-
-        @Override
-        public int maxAuthenticationStructureDepth() {
-            return 0;
-        }
-
-        @Override
-        public boolean enableOutboundBufferThrottle() {
-            return this.enableOutboundBufferThrottle;
-        }
-
-        @Override
-        public int outboundBufferThrottleLowWatermark() {
-            return this.outboundBufferThrottleLowWatermark;
-        }
-
-        @Override
-        public int outboundBufferThrottleHighWatermark() {
-            return this.outboundBufferThrottleHighWatermark;
-        }
-
-        @Override
-        public Duration outboundBufferMaxThrottleDuration() {
-            return this.outboundBufferMaxThrottleDuration;
-        }
-
-        @Override
-        public int inboundBufferThrottleLowWatermark() {
-            return this.inboundBufferThrottleLowWatermark;
-        }
-
-        @Override
-        public int inboundBufferThrottleHighWatermark() {
-            return this.inboundBufferThrottleHighWatermark;
-        }
-
-        @Override
-        public int streamingBufferSize() {
-            return this.streamingBufferSize;
-        }
-
-        @Override
-        public int streamingFlushThreshold() {
-            return this.streamingFlushThreshold;
-        }
-
-        @Override
-        public Duration connectionShutdownDuration() {
-            return this.connectionShutdownDuration;
-        }
-
-        @Override
-        public boolean enableTransactionThreadBinding() {
-            return this.enableTransactionThreadBinding;
-        }
-
-        @Override
-        public Duration threadBindingTimeout() {
-            return this.threadBindingTimeout;
-        }
-
-        @Override
-        public SocketAddress advertisedAddress() {
-            return this.advertisedAddress;
-        }
     }
 }

@@ -46,11 +46,11 @@ import org.neo4j.bolt.fsm.StateMachine;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.protocol.common.connection.Job;
 import org.neo4j.bolt.protocol.common.connector.Connector;
+import org.neo4j.bolt.protocol.common.connector.config.NettyConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
 import org.neo4j.bolt.protocol.common.connector.connection.authentication.AuthenticationFlag;
 import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
-import org.neo4j.bolt.protocol.common.connector.netty.AbstractNettyConnector.NettyConfiguration;
 import org.neo4j.bolt.protocol.common.message.notifications.NotificationsConfig;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.protocol.io.pipeline.PipelineContext;
@@ -458,11 +458,13 @@ public class ConnectionMockFactory extends AbstractMockFactory<ConnectionHandle,
         return this.withStaticValue(Connection::closeFuture, future);
     }
 
-    public ConnectionMockFactory withConfiguration(NettyConfiguration configuration) {
+    public ConnectionMockFactory withConfiguration(NettyConnectorConfiguration configuration) {
         return this.withConnector(factory -> factory.withConfiguration(configuration));
     }
 
-    public ConnectionMockFactory withConfiguration(Consumer<ConnectorConfigurationMockFactory> configurer) {
-        return this.withConnector(factory -> factory.withConfiguration(configurer));
+    public ConnectionMockFactory withConfiguration(Consumer<TestConnectorConfiguration.Factory> configurer) {
+        var factory = TestConnectorConfiguration.factory();
+        configurer.accept(factory);
+        return this.withConfiguration(factory.build());
     }
 }

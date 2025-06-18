@@ -27,9 +27,9 @@ import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.connection.hint.ConnectionHintRegistry;
 import org.neo4j.bolt.protocol.common.connector.ConnectionRegistry;
 import org.neo4j.bolt.protocol.common.connector.Connector;
+import org.neo4j.bolt.protocol.common.connector.config.NettyConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
 import org.neo4j.bolt.protocol.common.connector.netty.AbstractNettyConnector;
-import org.neo4j.bolt.protocol.common.connector.netty.AbstractNettyConnector.NettyConfiguration;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.tx.TransactionManager;
 import org.neo4j.configuration.connectors.BoltConnector;
@@ -39,6 +39,7 @@ import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryPool;
 import org.neo4j.server.config.AuthConfigProvider;
+import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
 public final class ConnectorMockFactory extends AbstractMockFactory<AbstractNettyConnector, ConnectorMockFactory> {
     private final String id;
@@ -48,7 +49,11 @@ public final class ConnectorMockFactory extends AbstractMockFactory<AbstractNett
 
         this.id = id;
         this.withStaticValue(Connector::id, id);
-        this.withStaticValue(Connector::configuration, ConnectorConfigurationMockFactory.newInstance());
+        this.withStaticValue(
+                Connector::configuration,
+                TestConnectorConfiguration.factory()
+                        .sslPolicyProvider(ScopedSslPolicyProvider.getNullInstance())
+                        .build());
     }
 
     public static ConnectorMockFactory newFactory(String id) {
@@ -136,12 +141,13 @@ public final class ConnectorMockFactory extends AbstractMockFactory<AbstractNett
         return this.withStaticValue(connector -> connector.createConnection(ArgumentMatchers.any()), connection);
     }
 
-    public ConnectorMockFactory withConfiguration(NettyConfiguration configuration) {
+    public ConnectorMockFactory withConfiguration(NettyConnectorConfiguration configuration) {
         return this.withStaticValue(Connector::configuration, configuration);
     }
 
-    public ConnectorMockFactory withConfiguration(Consumer<ConnectorConfigurationMockFactory> configurer) {
-        return this.withStaticValue(
-                Connector::configuration, ConnectorConfigurationMockFactory.newInstance(configurer));
+    public ConnectorMockFactory withConfiguration(Consumer<TestConnectorConfiguration.Factory> configurer) {
+        var factory = TestConnectorConfiguration.factory();
+        configurer.accept(factory);
+        return this.withConfiguration(factory.build());
     }
 }

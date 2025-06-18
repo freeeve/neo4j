@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.negotiation.message.ProtocolCapability;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.testing.client.error.BoltTestClientException;
 import org.neo4j.bolt.testing.client.struct.ProtocolProposal;
 import org.neo4j.bolt.testing.messages.BoltDefaultWire;
@@ -217,6 +218,10 @@ public interface BoltTestConnection extends AutoCloseable {
 
     @FunctionalInterface
     interface Factory {
-        BoltTestConnection create(SocketAddress address);
+        BoltTestConnection create(ConnectorTransport transport, SocketAddress address);
+
+        default boolean isSupported(ConnectorTransport transport) {
+            return true;
+        }
     }
 }

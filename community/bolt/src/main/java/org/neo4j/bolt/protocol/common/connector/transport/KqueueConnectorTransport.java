@@ -19,15 +19,17 @@
  */
 package org.neo4j.bolt.protocol.common.connector.transport;
 
-import io.netty.channel.EventLoopGroup;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.IoHandlerFactory;
 import io.netty.channel.kqueue.KQueue;
+import io.netty.channel.kqueue.KQueueDomainSocketChannel;
 import io.netty.channel.kqueue.KQueueIoHandler;
 import io.netty.channel.kqueue.KQueueServerDomainSocketChannel;
 import io.netty.channel.kqueue.KQueueServerSocketChannel;
+import io.netty.channel.kqueue.KQueueSocketChannel;
 import io.netty.channel.socket.ServerSocketChannel;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.unix.DomainSocketChannel;
 import io.netty.channel.unix.ServerDomainSocketChannel;
-import java.util.concurrent.ThreadFactory;
 import org.neo4j.annotations.service.ServiceProvider;
 
 /**
@@ -52,17 +54,32 @@ public final class KqueueConnectorTransport implements ConnectorTransport {
     }
 
     @Override
-    public EventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory) {
-        return new MultiThreadIoEventLoopGroup(threadCount, threadFactory, KQueueIoHandler.newFactory());
+    public boolean supportsOption(ConnectorOption<?> option) {
+        return option == ConnectorOption.TCP_FAST_OPEN || option == ConnectorOption.TCP_FAST_OPEN_CONNECT;
     }
 
     @Override
-    public Class<? extends ServerSocketChannel> getSocketChannelType() {
+    public IoHandlerFactory createIoHandlerFactory() {
+        return KQueueIoHandler.newFactory();
+    }
+
+    @Override
+    public Class<? extends SocketChannel> socketChannelType() {
+        return KQueueSocketChannel.class;
+    }
+
+    @Override
+    public Class<? extends ServerSocketChannel> serverSocketChannelType() {
         return KQueueServerSocketChannel.class;
     }
 
     @Override
-    public Class<? extends ServerDomainSocketChannel> getDomainSocketChannelType() {
+    public Class<? extends DomainSocketChannel> domainSocketChannelType() {
+        return KQueueDomainSocketChannel.class;
+    }
+
+    @Override
+    public Class<? extends ServerDomainSocketChannel> serverDomainSocketChannelType() {
         return KQueueServerDomainSocketChannel.class;
     }
 }

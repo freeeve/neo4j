@@ -78,6 +78,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.neo4j.bolt.protocol.common.connector.transport.NioConnectorTransport;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.client.SocketConnection;
@@ -361,7 +362,9 @@ class ConnectionTrackingIT {
     }
 
     private BoltTestConnection connectSocketTo(URI uri) throws IOException {
-        var connection = new SocketConnection(new InetSocketAddress(uri.getHost(), uri.getPort())).connect();
+        var connection = new SocketConnection(
+                        new NioConnectorTransport(), new InetSocketAddress(uri.getHost(), uri.getPort()))
+                .connect();
 
         connections.add(connection);
 

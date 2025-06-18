@@ -137,6 +137,18 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
             newBuilder("internal.server.bolt.tcp_keep_alive", BOOL, true).build();
 
     @Internal
+    @Description("Enable TCP fast open on this connector")
+    public static final Setting<Boolean> tcp_fast_open =
+            newBuilder("internal.server.bolt.tcp_fast_open", BOOL, false).build();
+
+    @Internal
+    @Description("The maximum number of pending TCP fast open connections within this connector")
+    public static final Setting<Integer> tcp_fast_open_max_pending_connections = newBuilder(
+                    "internal.server.bolt.tcp_fast_open_max_pending_connections", INT, 128)
+            .addConstraint(min(1))
+            .build();
+
+    @Internal
     @Description("The maximum time to wait for a user to finish authentication before closing the connection.")
     public static final Setting<Duration> unsupported_bolt_unauth_connection_timeout = newBuilder(
                     "internal.server.bolt.unauth_connection_timeout", DURATION, ofSeconds(30))

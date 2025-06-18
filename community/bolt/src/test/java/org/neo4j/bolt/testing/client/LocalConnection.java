@@ -20,11 +20,10 @@
 package org.neo4j.bolt.testing.client;
 
 import io.netty.channel.Channel;
-import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.local.LocalAddress;
-import io.netty.channel.local.LocalChannel;
-import io.netty.channel.local.LocalIoHandler;
 import java.net.SocketAddress;
+import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
+import org.neo4j.bolt.protocol.common.connector.transport.LocalConnectorTransport;
 
 public final class LocalConnection extends AbstractNettyConnection {
 
@@ -33,7 +32,7 @@ public final class LocalConnection extends AbstractNettyConnection {
     private final LocalAddress address;
 
     public LocalConnection(LocalAddress address) {
-        super(new MultiThreadIoEventLoopGroup(1, LocalIoHandler.newFactory()));
+        super(new LocalConnectorTransport());
         this.address = address;
     }
 
@@ -48,13 +47,13 @@ public final class LocalConnection extends AbstractNettyConnection {
 
     @Override
     protected Class<? extends Channel> channelType() {
-        return LocalChannel.class;
+        return this.transport.socketChannelType();
     }
 
     private static class Factory implements BoltTestConnection.Factory {
 
         @Override
-        public BoltTestConnection create(SocketAddress address) {
+        public BoltTestConnection create(ConnectorTransport transport, SocketAddress address) {
             if (address instanceof LocalAddress localAddress) {
                 return new LocalConnection(localAddress);
             }

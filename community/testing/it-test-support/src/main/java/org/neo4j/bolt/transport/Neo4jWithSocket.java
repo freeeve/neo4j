@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.SystemUtils;
 import org.junit.jupiter.api.TestInfo;
 import org.neo4j.configuration.Config;
@@ -90,7 +91,13 @@ public class Neo4jWithSocket {
     public void init(TestInfo testInfo) throws IOException {
         var testName = testInfo.getTestMethod().get().getName();
         workingDirectory = testDirectory.directory(testName);
-        listenFile = Path.of("/tmp", testName);
+
+        // We want the entire test name (including any instanced name of given) is part of the
+        // socket file to prevent any overlaps.
+        // However, there is an operating system specific limits to the path name of UNIX domain
+        // sockets, thus requiring us to reduce their length and avoid special characters
+        var suffix = DigestUtils.md5Hex(testInfo.getDisplayName()).substring(0, 8);
+        listenFile = Path.of("/tmp", testName + "_" + suffix);
 
         ensureDatabase(settings -> {});
     }
@@ -168,6 +175,7 @@ public class Neo4jWithSocket {
         settings.put(BoltConnector.enabled, true);
         settings.put(BoltConnector.listen_address, new SocketAddress("localhost", 0));
         settings.put(BoltConnector.encryption_level, DISABLED);
+        settings.put(BoltConnectorInternalSettings.tcp_fast_open, true);
         if (!SystemUtils.IS_OS_WINDOWS) {
             settings.put(BoltConnectorInternalSettings.enable_loopback_auth, true);
             settings.put(BoltConnectorInternalSettings.unsupported_loopback_listen_file, listenFile);
