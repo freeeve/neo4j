@@ -122,6 +122,22 @@ object LogicalPlanningContext {
    * @param errorIfShortestPathHasCommonNodesAtRuntime a setting to fail if the start and the end node is the same for shortestPaths, at runtime.
    * @param legacyCsvQuoteEscaping a setting to configure quoting in LOAD CSV
    * @param csvBufferSize the buffer size for LOAD CSV
+   * @param planningIntersectionScansEnabled a setting whether intersection scans should be planned.
+   *                                         Relevant for caching.
+   * @param planningSubtractionScansEnabled a setting whether subtraction scans should be planned.
+   *                                         Relevant for caching.
+   * @param statefulShortestPlanningRewriteQuantifiersAbove a setting that controls the threshold for planning quantifiers in stateful shortest path planning as predicates instead of NFA transitions.
+   *                                                        Relevant for caching.
+   * @param planVarExpandInto a setting what strategy to apply to planning VarExpand(Into) as opposed to VarExpand(All).
+   *                          Relevant for caching.
+   * @param remoteBatchPropertiesStrategy a strategy object that encapsulates whether to plan RemoteBatchProperties operators.
+   *                                      Relevant for caching.
+   * @param multiRelationshipExpansion a setting whether to expand multiple relationships in one transition in shortest path NFAs.
+   *                                   Relevant for caching.
+   * @param pushDownArgumentsRBPWFEnabled a setting whether to push down predicates containing an argument in RemoteBatchPropertiesWithFilter.
+   *                                      Relevant for caching.
+   * @param dynamicLabelScansEnabled a setting whether dynamic label scans should be planned.
+   *                                 Relevant for caching.
    */
   case class Settings(
     executionModel: ExecutionModel,
@@ -146,7 +162,8 @@ object LogicalPlanningContext {
     multiRelationshipExpansion: Boolean =
       GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.defaultValue(),
     pushDownArgumentsRBPWFEnabled: Boolean =
-      GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.defaultValue()
+      GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.defaultValue(),
+    dynamicLabelScansEnabled: Boolean = GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.defaultValue()
   ) {
 
     private def cacheKey(): Seq[Any] = this match {
@@ -168,7 +185,8 @@ object LogicalPlanningContext {
           planVarExpandInto: CypherPlanVarExpandInto,
           remoteBatchPropertiesStrategy: RemoteBatchingStrategy,
           multiRelationshipExpansion: Boolean,
-          pushDownArgumentsRBPWFEnabled: Boolean
+          pushDownArgumentsRBPWFEnabled: Boolean,
+          dynamicLabelScansEnabled: Boolean
         ) =>
         val builder = Seq.newBuilder[Any]
 
@@ -212,6 +230,10 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.dynamic())
           builder.addOne(pushDownArgumentsRBPWFEnabled)
+
+        if (GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.dynamic())
+          builder.addOne(dynamicLabelScansEnabled)
+
         builder.result()
     }
 

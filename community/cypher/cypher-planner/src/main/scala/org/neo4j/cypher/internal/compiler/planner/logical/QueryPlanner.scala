@@ -140,7 +140,8 @@ case object QueryPlanner
       planVarExpandInto = context.planVarExpandInto,
       remoteBatchPropertiesStrategy = RemoteBatchingStrategy.fromConfig(from.query, context),
       multiRelationshipExpansion = context.config.multiRelationshipExpansionEnabled(),
-      pushDownArgumentsRBPWFEnabled = context.config.pushDownArgumentsRBPWFEnabled()
+      pushDownArgumentsRBPWFEnabled = context.config.pushDownArgumentsRBPWFEnabled(),
+      dynamicLabelScansEnabled = context.config.dynamicLabelScansEnabled()
     )
 
     LogicalPlanningContext(staticComponents, settings)

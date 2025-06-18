@@ -230,6 +230,8 @@ class CypherConfiguration private (val config: Config) {
   val optionalMatchRemoverEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.optional_match_remover_enabled)
 
+  val dynamicLabelScansEnabled: Boolean = config.get(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan)
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

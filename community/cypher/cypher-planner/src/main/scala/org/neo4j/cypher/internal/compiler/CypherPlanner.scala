@@ -351,4 +351,11 @@ class CypherPlannerConfiguration(
     )
     () => config.optionalMatchRemoverEnabled
   }
+
+  val dynamicLabelScansEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.dynamic()
+    )
+    () => config.dynamicLabelScansEnabled
+  }
 }

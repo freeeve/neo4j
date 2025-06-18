@@ -361,6 +361,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description(
+            "Set this to enable using dynamic label/relationship type scans to solve queries that use dynamic labels.")
+    public static final Setting<Boolean> cypher_enable_dynamic_label_scan =
+            newBuilder("internal.cypher.enable_dynamic_label_scan", BOOL, false).build();
+
+    @Internal
     @Description("Set this to enable monitors in the Cypher runtime.")
     public static final Setting<Boolean> cypher_enable_runtime_monitors =
             newBuilder("internal.cypher.enable_runtime_monitors", BOOL, false).build();
