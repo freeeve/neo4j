@@ -44,6 +44,8 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
 
     private static final SettingConstraint<Long> CHUNK_RANGE = range(mebiBytes(1), gibiBytes(1));
 
+    static final String INTERNAL_CONFIG_PREFIX = "internal.dbms.cloud.storage";
+
     /**
      * Adapts a {@link StoragePath} so that any future partial reads of its data (i.e. for sampling) can use an optimised
      * @param path the path to adapt
@@ -116,7 +118,7 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
 
     protected static <S> SettingBuilder<S> internalOption(
             String scheme, String optionName, SettingValueParser<S> parser, S defaultValue) {
-        return newBuilder("internal.dbms.cloud.storage.%s.%s".formatted(scheme, optionName), parser, defaultValue);
+        return newBuilder("%s.%s.%s".formatted(INTERNAL_CONFIG_PREFIX, scheme, optionName), parser, defaultValue);
     }
 
     private static <S> SettingBuilder<S> queueOption(

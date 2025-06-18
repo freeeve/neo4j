@@ -398,7 +398,8 @@ public class SchemeFileSystemAbstraction implements FileSystemAbstraction, Stora
     }
 
     private ChunkChannel tempChannel(String prefix, String scheme) throws IOException {
-        final var path = fs.createTempFile(prefix, scheme);
+        final var baseChunkPath = config.get(SharedStorageSettingsDeclaration.temp_chunk_path);
+        final var path = fs.createTempFile(baseChunkPath, prefix, scheme);
         final var channel = fs.write(path);
         return new ChunkChannel() {
             @Override

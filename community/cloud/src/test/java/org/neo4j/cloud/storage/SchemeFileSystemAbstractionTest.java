@@ -57,6 +57,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.internal.matchers.ArrayEquals;
 import org.mockito.internal.progress.ThreadSafeMockingProgress;
+import org.neo4j.cloud.storage.StorageSystemProviderFactory.ChunkChannelSupplier;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
@@ -64,12 +65,37 @@ import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
+import org.neo4j.test.utils.TestDirectory;
 
+@TestDirectoryExtension
 class SchemeFileSystemAbstractionTest {
 
     private static final String SCHEME = "testing";
 
     private static final Path FS_PATH = Path.of("/local/stuff");
+
+    private final StorageSystemProviderFactory providerFactory = new StorageSystemProviderFactory(SCHEME) {
+        @Override
+        public StorageSystemProvider createStorageSystemProvider(
+                ChunkChannelSupplier tempSupplier,
+                Config config,
+                InternalLogProvider logProvider,
+                MemoryTracker memoryTracker,
+                ClassLoader classLoader) {
+            SchemeFileSystemAbstractionTest.this.tempSupplier = tempSupplier;
+            return systemProvider;
+        }
+
+        @Override
+        protected String storageSystemProviderClass() {
+            return "not used!";
+        }
+    };
+
+    @Inject
+    private TestDirectory testDirectory;
 
     private StorageSystemProvider systemProvider;
 
@@ -80,6 +106,8 @@ class SchemeFileSystemAbstractionTest {
     private StoragePath schemePath;
 
     private StorageSystem storageSystem;
+
+    private ChunkChannelSupplier tempSupplier;
 
     @BeforeEach
     void setup() {
@@ -98,22 +126,6 @@ class SchemeFileSystemAbstractionTest {
 
         fs = mock(FileSystemAbstraction.class);
 
-        final var providerFactory = new StorageSystemProviderFactory(SCHEME) {
-            @Override
-            public StorageSystemProvider createStorageSystemProvider(
-                    ChunkChannelSupplier tempSupplier,
-                    Config config,
-                    InternalLogProvider logProvider,
-                    MemoryTracker memoryTracker,
-                    ClassLoader classLoader) {
-                return systemProvider;
-            }
-
-            @Override
-            protected String storageSystemProviderClass() {
-                return "not used!";
-            }
-        };
         schemeFs = new SchemeFileSystemAbstraction(
                 fs,
                 Set.of(providerFactory),
@@ -432,6 +444,64 @@ class SchemeFileSystemAbstractionTest {
     @Test
     void fileWatcher() {
         assertThatThrownBy(schemeFs::fileWatcher).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
+    void defaultChunkChannel() throws IOException {
+        final var remotePath = SCHEME + "://remote/stuff";
+        assertThat(schemeFs.resolve(remotePath)).isEqualTo(schemePath);
+        assertThat(tempSupplier)
+                .as("creating a storage provider creates a chunk channel supplier")
+                .isNotNull();
+
+        final var tempDir = Path.of(System.getProperty("java.io.tmpdir"));
+        final var tempPath = tempDir.resolve("testing");
+
+        when(fs.createTempFile(eq(tempDir), any(), any())).thenReturn(tempPath);
+
+        final var storeChannel = mock(StoreChannel.class);
+        when(fs.write(eq(tempPath))).thenReturn(storeChannel);
+
+        try (var channel = tempSupplier.create("test")) {
+            assertThat(channel.path()).isSameAs(tempPath);
+        }
+
+        verify(storeChannel).close();
+        verify(fs).delete(eq(tempPath));
+    }
+
+    @Test
+    void chunkChannelWithCustomTemp() throws IOException {
+        final var remotePath = SCHEME + "://remote/stuff";
+
+        final var tempDir = testDirectory.directory("testing");
+        final var tempPath = tempDir.resolve("testing");
+
+        when(fs.createTempFile(eq(tempDir), any(), any())).thenReturn(tempPath);
+
+        final var storeChannel = mock(StoreChannel.class);
+        when(fs.write(eq(tempPath))).thenReturn(storeChannel);
+
+        try (var otherFs = new SchemeFileSystemAbstraction(
+                fs,
+                Set.of(providerFactory),
+                Config.newBuilder()
+                        .set(SharedStorageSettingsDeclaration.temp_chunk_path, tempDir)
+                        .build(),
+                NullLogProvider.getInstance(),
+                EmptyMemoryTracker.INSTANCE)) {
+            assertThat(otherFs.resolve(remotePath)).isEqualTo(schemePath);
+            assertThat(tempSupplier)
+                    .as("creating a storage provider creates a chunk channel supplier")
+                    .isNotNull();
+
+            try (var channel = tempSupplier.create("test")) {
+                assertThat(channel.path()).isSameAs(tempPath);
+            }
+
+            verify(storeChannel).close();
+            verify(fs).delete(eq(tempPath));
+        }
     }
 
     @Test

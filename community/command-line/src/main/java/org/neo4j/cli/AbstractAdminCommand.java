@@ -35,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.eclipse.collections.impl.set.mutable.MutableSetFactoryImpl;
+import org.neo4j.cloud.storage.SharedStorageSettingsDeclaration;
 import org.neo4j.cloud.storage.StoragePath;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -142,6 +143,13 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
      * All children of this abstract command, should use this method when building its configuration.
      */
     protected Config.Builder createPrefilledConfigBuilder() {
+        return createPrefilledConfigBuilder(null);
+    }
+
+    /**
+     * Creates a configuration builder with the logic common to all admin commands applied to it.
+     */
+    protected Config.Builder createPrefilledConfigBuilder(Path storageTempPath) {
         List<Path> commandConfigs = getCommandConfigs();
         var configBuilder = Config.newBuilder().fromFileNoThrow(ctx.confDir().resolve(Config.DEFAULT_CONFIG_FILE_NAME));
         commandConfigs.reversed().forEach(configBuilder::fromFileNoThrow);
@@ -149,7 +157,9 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
         configBuilder.set(BoltConnector.enabled, Boolean.FALSE);
         configBuilder.set(HttpConnector.enabled, Boolean.FALSE);
         configBuilder.set(HttpsConnector.enabled, Boolean.FALSE);
-
+        if (storageTempPath != null) {
+            configBuilder.set(SharedStorageSettingsDeclaration.temp_chunk_path, storageTempPath);
+        }
         return configBuilder;
     }
 

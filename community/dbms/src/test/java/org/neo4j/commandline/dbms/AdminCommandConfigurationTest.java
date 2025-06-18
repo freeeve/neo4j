@@ -33,8 +33,11 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.cli.AbstractAdminCommand;
 import org.neo4j.cli.ExecutionContext;
+import org.neo4j.cloud.storage.SharedStorageSettingsDeclaration;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
@@ -131,6 +134,24 @@ class AdminCommandConfigurationTest {
         assertThat(output).doesNotContain(neo4jConfig.toString(), commandConfig.toString());
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldUpdateConfigIfTempPathProvided(boolean includeTempPath) throws Exception {
+        final var tempPath = layout.homeDirectory().toAbsolutePath();
+        final var config = (includeTempPath ? runTestCommand("--temp-path=" + tempPath) : runTestCommand()).config;
+        if (includeTempPath) {
+            assertThat(config.isExplicitlySet(SharedStorageSettingsDeclaration.temp_chunk_path))
+                    .as("should set the chunk path")
+                    .isTrue();
+            assertThat(config.get(SharedStorageSettingsDeclaration.temp_chunk_path))
+                    .isEqualTo(tempPath);
+        } else {
+            assertThat(config.isExplicitlySet(SharedStorageSettingsDeclaration.temp_chunk_path))
+                    .as("should NOT set the chunk path")
+                    .isFalse();
+        }
+    }
+
     private void creteConfigFile(Path path, String... lines) throws IOException {
         Files.createDirectories(path.getParent());
 
@@ -175,6 +196,9 @@ class AdminCommandConfigurationTest {
 
     private static class TestCommand extends AbstractAdminCommand {
 
+        @CommandLine.Option(names = "--temp-path", paramLabel = "<path>", description = "A temp path.")
+        private Path tempPath;
+
         private Config config;
 
         protected TestCommand(ExecutionContext ctx) {
@@ -182,8 +206,8 @@ class AdminCommandConfigurationTest {
         }
 
         @Override
-        protected void execute() throws Exception {
-            config = createPrefilledConfigBuilder().build();
+        protected void execute() {
+            config = createPrefilledConfigBuilder(tempPath).build();
         }
 
         @Override
