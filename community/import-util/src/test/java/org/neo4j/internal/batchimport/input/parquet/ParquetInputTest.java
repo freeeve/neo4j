@@ -1268,6 +1268,55 @@ class ParquetInputTest {
     }
 
     @Test
+    void shouldParseDatePropertyIntegerValues() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT32).named("date:Date")),
+                List.<Object[]>of(new Object[] {0, "Mattias", 13193}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(nodes, 0L, properties("name", "Mattias", "date", DateValue.date(2006, 2, 14)), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseDateTimePropertyLongValues() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named("date:LocalDateTime")),
+                List.<Object[]>of(new Object[] {0, "Mattias", 1116975273000000L}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            // 2005-05-24 22:54:33 1116975273000000
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("name", "Mattias", "date", LocalDateTimeValue.localDateTime(2005, 5, 24, 22, 54, 33, 0)),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
     void shouldParseTimePropertyValues() throws Exception {
         // GIVEN
         Path nodeFile = createParquetFile(
