@@ -42,7 +42,7 @@ import org.scalatest.LoneElement
 class ParserPositionTest extends AstParsingTestBase with LoneElement {
 
   test("MATCH (n) RETURN n.prop") {
-    parses[Statements].withPositionOf[Property](InputPosition(17, 1, 18))
+    parses[Statements].withPositionOf[Property](InputPosition(18, 1, 19))
   }
 
   test("MATCH (n) SET n.prop = 1") {
@@ -70,7 +70,7 @@ class ParserPositionTest extends AstParsingTestBase with LoneElement {
   }
 
   test("RETURN 3 IN list[0] AS r") {
-    parses[Statements].withPositionOf[ContainerIndex](InputPosition(17, 1, 18))
+    parses[Statements].withPositionOf[ContainerIndex](InputPosition(16, 1, 17))
   }
 
   test("RETURN 3 IN [1, 2, 3][0..1] AS r") {

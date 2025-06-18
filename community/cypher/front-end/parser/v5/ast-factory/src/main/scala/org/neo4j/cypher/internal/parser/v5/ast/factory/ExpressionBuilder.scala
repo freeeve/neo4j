@@ -490,17 +490,16 @@ trait ExpressionBuilder extends Cypher5ParserListener {
     }
   }
 
-  // TODO All postfix should probably have positions that work in the same manner
   private def postFix(lhs: Expression, rhs: Cypher5Parser.PostFixContext): Expression = {
-    val p = lhs.position
+    val p = pos(rhs)
     rhs match {
       case propCtx: Cypher5Parser.PropertyPostfixContext => Property(lhs, ctxChild(propCtx, 0).ast())(p)
       case indexCtx: Cypher5Parser.IndexPostfixContext =>
-        ContainerIndex(lhs, ctxChild(indexCtx, 1).ast())(pos(ctxChild(indexCtx, 1)))
+        ContainerIndex(lhs, ctxChild(indexCtx, 1).ast())(p)
       case labelCtx: Cypher5Parser.LabelPostfixContext =>
-        LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(p, isParenthesized = false)
+        LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(lhs.position, isParenthesized = false)
       case rangeCtx: Cypher5Parser.RangePostfixContext =>
-        ListSlice(lhs, astOpt(rangeCtx.fromExp), astOpt(rangeCtx.toExp))(pos(rhs))
+        ListSlice(lhs, astOpt(rangeCtx.fromExp), astOpt(rangeCtx.toExp))(p)
       case _ => throw new IllegalStateException(s"Unexpected rhs $rhs")
     }
   }

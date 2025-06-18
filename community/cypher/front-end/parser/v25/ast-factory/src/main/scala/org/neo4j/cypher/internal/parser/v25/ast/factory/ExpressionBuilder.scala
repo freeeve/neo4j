@@ -524,15 +524,14 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     }
   }
 
-  // TODO All postfix should probably have positions that work in the same manner
   private def postFix(lhs: Expression, rhs: Cypher25Parser.PostFixContext): Expression = {
-    val p = lhs.position
+    val p = pos(rhs)
     rhs match {
       case propCtx: Cypher25Parser.PropertyPostfixContext => Property(lhs, ctxChild(propCtx, 0).ast())(p)
       case indexCtx: Cypher25Parser.IndexPostfixContext =>
-        ContainerIndex(lhs, ctxChild(indexCtx, 1).ast())(pos(ctxChild(indexCtx, 1)))
+        ContainerIndex(lhs, ctxChild(indexCtx, 1).ast())(p)
       case rangeCtx: Cypher25Parser.RangePostfixContext =>
-        ListSlice(lhs, astOpt(rangeCtx.fromExp), astOpt(rangeCtx.toExp))(pos(rhs))
+        ListSlice(lhs, astOpt(rangeCtx.fromExp), astOpt(rangeCtx.toExp))(p)
       case _ => throw new IllegalStateException(s"Unexpected rhs $rhs")
     }
   }

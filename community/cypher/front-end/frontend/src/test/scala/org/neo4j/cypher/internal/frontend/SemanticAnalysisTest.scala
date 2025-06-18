@@ -1889,7 +1889,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
       """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
         |CREATE (a: A { id: row.id});""".stripMargin
     run(query)
-      .assert(_.semanticTable.types(prop("row", "id", p(72, 2, 20))).specified shouldBe CTString.covariant)
+      .assert(_.semanticTable.types(prop("row", "id", p(75, 2, 23))).specified shouldBe CTString.covariant)
   }
 
   test("With LOAD CSV WITH HEADERS, properties should be of string type - one projection") {
@@ -1932,7 +1932,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN map.node AS mapNode
         |""".stripMargin
     run(query)
-      .assert(_.semanticTable.types(prop("map", "node", p(40, 3, 8))).specified shouldBe CTNode.invariant)
+      .assert(_.semanticTable.types(prop("map", "node", p(43, 3, 11))).specified shouldBe CTNode.invariant)
       .assert(_.semanticTable.types(varFor("mapNode", p(52, 3, 20))).specified shouldBe CTNode.invariant)
   }
 
@@ -1943,10 +1943,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |ORDER BY m.other.name
         |""".stripMargin
     run(query)
-      .assert(_.semanticTable.types(prop("m", "other", p(45, 3, 10))).specified shouldBe CTAny.covariant)
+      .assert(_.semanticTable.types(prop("m", "other", p(46, 3, 11))).specified shouldBe CTAny.covariant)
       .assert(
         _.semanticTable
-          .types(propExpression(prop("m", "other"), "name", p(45, 3, 10)))
+          .types(propExpression(prop("m", "other"), "name", p(52, 3, 17)))
           .specified shouldBe
           CTAny.covariant
       )
@@ -1984,7 +1984,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
           ExpressionTypeInfo(CTMap.invariant, Some(expectedExpectedMapType))
         )
         // entry access
-        result.semanticTable.types(prop("r", "key", p(97, 6, 17))) should equal(
+        result.semanticTable.types(prop("r", "key", p(98, 6, 18))) should equal(
           ExpressionTypeInfo(CTString.covariant, None)
         )
 
@@ -1994,7 +1994,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
           ExpressionTypeInfo(CTMap.invariant, Some(expectedExpectedMapType))
         )
         // entry access
-        result.semanticTable.types(prop("r", "key", p(160, 11, 17))) should equal(
+        result.semanticTable.types(prop("r", "key", p(161, 11, 18))) should equal(
           ExpressionTypeInfo(CTString.covariant, None)
         )
       }
