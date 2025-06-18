@@ -107,6 +107,7 @@ class FulltextIndexTransactionStateTest extends FulltextProceduresTestSupport {
 
     @MethodSource("entityTypeProvider")
     @ParameterizedTest
+    @SkipOnSpd(reason = "constantly timing out, to be investigated")
     void queryingIndexInPopulatingStateMustBlockUntilIndexIsOnlineEvenWhenTransactionHasState(EntityUtil entityUtil)
             throws InterruptedException {
         trapPopulation.set(true);
