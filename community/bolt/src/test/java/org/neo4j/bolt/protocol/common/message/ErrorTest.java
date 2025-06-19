@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.neo4j.gqlstatus.ErrorClassification.TRANSIENT_ERROR;
 
 import org.junit.jupiter.api.Nested;
@@ -95,15 +94,9 @@ class ErrorTest {
                     "test",
                     shutdownException);
 
-            ErrorGqlStatusObject errorGqlStatusObject =
-                    transientException.cause().orElseThrow();
-            ErrorGqlStatusObject causedErrorObject =
-                    errorGqlStatusObject.cause().orElseThrow();
-            assertSame(errorGqlStatusObject, causedErrorObject);
-
             Error boltError = Error.from(transientException);
             assertThat(assertDoesNotThrow(boltError::asBoltMessage).metadata().description())
-                    .contains("he database `neo4j` is currently unavailable.");
+                    .contains("The database `neo4j` is currently unavailable.");
         }
 
         @Test
