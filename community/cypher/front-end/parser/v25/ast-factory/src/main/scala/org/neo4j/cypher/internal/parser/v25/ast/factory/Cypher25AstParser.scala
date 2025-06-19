@@ -119,7 +119,6 @@ final protected class CypherAstBuildingAntlrParser(
     case Cypher25Parser.RULE_propertyShard                => false
     case Cypher25Parser.RULE_symbolicAliasName            => false
     case Cypher25Parser.RULE_symbolicAliasNameOrParameter => false
-    case Cypher25Parser.RULE_aliasName                    => false
     case Cypher25Parser.RULE_aliasTargetName              => false
     case Cypher25Parser.RULE_escapedSymbolicNameString    => false
     case Cypher25Parser.RULE_symbolicNameString           => false
