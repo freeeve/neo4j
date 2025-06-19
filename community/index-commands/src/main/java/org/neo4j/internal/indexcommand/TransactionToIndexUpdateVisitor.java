@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.recordstorage.indexcommand;
+package org.neo4j.internal.indexcommand;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.neo4j.common.EntityType.NODE;
@@ -52,7 +52,7 @@ import org.neo4j.values.storable.ValueTuple;
 public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
     private static final int[] NO_TOKENS = EMPTY_INT_ARRAY;
 
-    private final IndexRecordState indexRecordState;
+    private final IndexUpdatesState indexUpdatesState;
     private final StorageNodeCursor nodeCursor;
     private final StorageRelationshipScanCursor relationshipCursor;
     private final IndexDescriptor labelIndex;
@@ -60,13 +60,13 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
 
     public TransactionToIndexUpdateVisitor(
             TxStateVisitor next,
-            IndexRecordState indexRecordState,
+            IndexUpdatesState indexUpdatesState,
             StorageReader storageReader,
             CursorContext cursorContext,
             StoreCursors storeCursors,
             MemoryTracker memoryTracker) {
         super(next);
-        this.indexRecordState = indexRecordState;
+        this.indexUpdatesState = indexUpdatesState;
 
         this.nodeCursor = storageReader.allocateNodeCursor(cursorContext, storeCursors, memoryTracker);
         this.relationshipCursor =
@@ -99,7 +99,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
         if (labelsBefore.length > 1) {
             Arrays.sort(labelsBefore);
         }
-        indexRecordState.addTokenUpdate(tokenChange(id, labelIndex, labelsBefore, NO_TOKENS));
+        indexUpdatesState.addTokenUpdate(tokenChange(id, labelIndex, labelsBefore, NO_TOKENS));
     }
 
     @Override
@@ -109,7 +109,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
         if (labelIndex == null) {
             return;
         }
-        indexRecordState.addTokenUpdate(tokenChange(id, labelIndex, removed.toSortedArray(), added.toSortedArray()));
+        indexUpdatesState.addTokenUpdate(tokenChange(id, labelIndex, removed.toSortedArray(), added.toSortedArray()));
     }
 
     @Override
@@ -124,7 +124,7 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
         modifications
                 .creations()
                 .forEach((id, type, startNode, endNode, addedProperties, changedProperties, removedProperties) ->
-                        indexRecordState.addTokenUpdate(
+                        indexUpdatesState.addTokenUpdate(
                                 tokenChange(id, relationshipTypeIndex, NO_TOKENS, new int[] {type})));
         modifications
                 .deletions()
@@ -136,10 +136,10 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
                                     "Relationship being deleted should exist along with its nodes. Relationship[" + id
                                             + "]");
                         }
-                        indexRecordState.addTokenUpdate(tokenChange(
+                        indexUpdatesState.addTokenUpdate(tokenChange(
                                 id, relationshipTypeIndex, new int[] {relationshipCursor.type()}, NO_TOKENS));
                     } else {
-                        indexRecordState.addTokenUpdate(
+                        indexUpdatesState.addTokenUpdate(
                                 tokenChange(id, relationshipTypeIndex, new int[] {type}, NO_TOKENS));
                     }
                 });
@@ -149,11 +149,11 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
     public void visitValueIndexUpdate(
             IndexDescriptor descriptor, long entityId, ValueTuple values, EntityChange entityChange) {
         super.visitValueIndexUpdate(descriptor, entityId, values, entityChange);
-        var key = new IndexRecordState.IndexEntityPair(descriptor.getId(), entityId);
-        ValueIndexEntryUpdate existingUpdate = indexRecordState.getValueUpdate(key);
+        var key = new IndexUpdatesState.IndexEntityPair(descriptor.getId(), entityId);
+        ValueIndexEntryUpdate existingUpdate = indexUpdatesState.getValueUpdate(key);
 
         var update = getValueUpdate(descriptor, entityId, values, entityChange, existingUpdate);
-        indexRecordState.putValueUpdate(key, update);
+        indexUpdatesState.putValueUpdate(key, update);
     }
 
     private ValueIndexEntryUpdate getValueUpdate(
@@ -175,6 +175,6 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
     @Override
     public void close() throws KernelException {
         super.close();
-        IOUtils.closeAllUnchecked(nodeCursor, relationshipCursor);
+        IOUtils.closeAllUnchecked(indexUpdatesState, nodeCursor, relationshipCursor);
     }
 }

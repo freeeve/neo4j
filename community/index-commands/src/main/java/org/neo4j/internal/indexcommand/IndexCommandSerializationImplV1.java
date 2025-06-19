@@ -47,7 +47,7 @@ public class IndexCommandSerializationImplV1 implements IndexCommandSerializatio
         boolean tokenIndex = isTokenIndex(command);
         writeHeader(out, command, tokenIndex);
         writeNumber(out, command.getIndexId());
-        writeNumber(out, command.getEntityId());
+        writeEntityId(out, command.getEntityId());
         if (tokenIndex) {
             writeTokenPart(out, (TokenIndexUpdateCommand) command);
         } else {
@@ -61,7 +61,7 @@ public class IndexCommandSerializationImplV1 implements IndexCommandSerializatio
         boolean tokenIndex = isTokenIndex(header);
         UpdateMode updateMode = readUpdateMode(header);
         long indexId = readNumber(in);
-        long entityId = readNumber(in);
+        long entityId = readEntityId(in);
 
         if (tokenIndex) {
             return readTokenPart(serialization, in, updateMode, indexId, entityId);
@@ -191,5 +191,13 @@ public class IndexCommandSerializationImplV1 implements IndexCommandSerializatio
 
     private static boolean isTokenIndex(IndexUpdateCommand<?> command) {
         return command instanceof TokenIndexUpdateCommand;
+    }
+
+    public static void writeEntityId(WritableChannel out, long entityId) throws IOException {
+        out.putLong(entityId);
+    }
+
+    public static long readEntityId(ReadableChannel in) throws IOException {
+        return in.getLong();
     }
 }

@@ -211,10 +211,11 @@ class LogEntrySerializerDispatcherTest {
         expectedChecksums.put(KernelVersion.V5_23, 2128235111);
         expectedChecksums.put(KernelVersion.V5_25, -460838645);
         expectedChecksums.put(KernelVersion.V2025_04, -1150487212);
+        expectedChecksums.put(KernelVersion.V2025_05, 1531023797);
         if (version.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
-            expectedChecksums.put(KernelVersion.V2025_05, -361070784);
+            expectedChecksums.put(KernelVersion.V2025_07, -361070784);
         } else {
-            expectedChecksums.put(KernelVersion.V2025_05, 1531023797);
+            expectedChecksums.put(KernelVersion.V2025_07, 77942250);
         }
 
         final LogEntryCommit commit = newCommitEntry(version, 42, 21, expectedChecksums.get(version));
