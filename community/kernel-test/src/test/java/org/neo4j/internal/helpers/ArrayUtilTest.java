@@ -68,15 +68,6 @@ class ArrayUtilTest {
     }
 
     @Test
-    void shouldCheckNullSafeEqual() {
-        // WHEN/THEN
-        assertTrue(ArrayUtil.nullSafeEquals(null, null));
-        assertFalse(ArrayUtil.nullSafeEquals("1", null));
-        assertFalse(ArrayUtil.nullSafeEquals(null, "1"));
-        assertTrue(ArrayUtil.nullSafeEquals("1", "1"));
-    }
-
-    @Test
     void shouldConcatOneAndMany() {
         // WHEN
         Integer[] result = ArrayUtil.concat(0, 1, 2, 3, 4);

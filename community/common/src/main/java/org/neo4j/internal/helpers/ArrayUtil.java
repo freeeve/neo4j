@@ -23,6 +23,7 @@ import static java.util.Arrays.copyOf;
 
 import java.lang.reflect.Array;
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * Methods "missing" from {@link Arrays} are provided here.
@@ -92,23 +93,11 @@ public final class ArrayUtil {
     public static <T> boolean contains(T[] array, int arrayLength, T contains) {
         for (int i = 0; i < arrayLength; i++) {
             T item = array[i];
-            if (nullSafeEquals(item, contains)) {
+            if (Objects.equals(item, contains)) {
                 return true;
             }
         }
         return false;
-    }
-
-    /**
-     * Compare two items for equality; if both are {@code null} they are regarded as equal.
-     *
-     * @param first First item to compare
-     * @param other Other item to compare
-     * @param <T> The type of the items
-     * @return {@code true} if {@code first} and {@code other} are both {@code null} or are both equal.
-     */
-    public static <T> boolean nullSafeEquals(T first, T other) {
-        return first == null ? first == other : first.equals(other);
     }
 
     /**
