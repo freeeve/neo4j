@@ -51,6 +51,8 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 public class IndexSettingUtil {
+    public static final int DEFAULT_VECTOR_DIMENSIONS = 1024;
+
     @SuppressWarnings("unchecked")
     private static final Map<String, IndexSetting> INDEX_SETTING_REVERSE_LOOKUP =
             Map.ofEntries(Stream.of(IndexSettingImpl.values())
@@ -125,7 +127,11 @@ public class IndexSettingUtil {
     public static Map<IndexSetting, Object> defaultSettingsForTesting(IndexType type) {
         return switch (type) {
             case VECTOR ->
-                Map.of(IndexSetting.vector_Dimensions(), 1024, IndexSetting.vector_Similarity_Function(), "COSINE");
+                Map.of(
+                        IndexSetting.vector_Dimensions(),
+                        DEFAULT_VECTOR_DIMENSIONS,
+                        IndexSetting.vector_Similarity_Function(),
+                        "COSINE");
             default -> Map.of();
         };
     }

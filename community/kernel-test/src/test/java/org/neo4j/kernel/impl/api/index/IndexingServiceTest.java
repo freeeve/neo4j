@@ -2215,6 +2215,11 @@ class IndexingServiceTest {
         }
 
         @Override
+        public IndexUsageTracking usageTracking() {
+            return tracker;
+        }
+
+        @Override
         public void close() {}
 
         @Override

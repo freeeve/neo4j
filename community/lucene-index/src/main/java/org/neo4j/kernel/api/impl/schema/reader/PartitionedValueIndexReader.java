@@ -95,6 +95,11 @@ public class PartitionedValueIndexReader implements ValueIndexReader {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public IndexUsageTracking usageTracking() {
+        return usageTracker;
+    }
+
     private static final class InnerException extends RuntimeException {
         private InnerException(IndexNotApplicableKernelException e) {
             super(e);

@@ -175,4 +175,9 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
             indexProgressor.close();
         }
     }
+
+    @Override
+    public IndexUsageTracking usageTracking() {
+        return usageTracker;
+    }
 }

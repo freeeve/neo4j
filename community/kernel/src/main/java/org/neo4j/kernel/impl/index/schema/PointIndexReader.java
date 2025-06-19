@@ -86,6 +86,11 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
         validateSupportedPredicates(predicates[0]);
     }
 
+    @Override
+    public IndexUsageTracking usageTracking() {
+        return usageTracker;
+    }
+
     private void validateSupportedPredicates(PropertyIndexQuery predicate) throws IndexNotApplicableKernelException {
         switch (predicate.type()) {
             case ALL_ENTRIES, EXACT, BOUNDING_BOX:

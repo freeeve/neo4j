@@ -192,6 +192,11 @@ public class FulltextIndexReader implements ValueIndexReader {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public IndexUsageTracking usageTracking() {
+        return usageTracker;
+    }
+
     /**
      * When matching entities in the fulltext index there are some special cases that makes it hard to check that entities
      * actually have the expected property values. To match we use the entityId and only take entries that doesn't contain any
