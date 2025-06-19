@@ -103,7 +103,15 @@ case object QueryPlanner
     val logicalPlanProducer =
       LogicalPlanProducer(context.metrics.cardinality, planningAttributes, context.logicalPlanIdGen)
 
-    val enableGraphSchemaOptimizations = context.config.planningGraphSchemaOptimizationsEnabled() && from.query.readOnly
+    // Graph schema optimizations (GSO) are not enabled
+    // - for write queries (see test "Should not use schema optimizations in write queries")
+    // - when the transaction state has changed (see test "Should not use schema optimizations when transaction state has changed")
+    // Constraints can be violated temporarily within a query, which could lead to wrong results when GSO are
+    // enabled for write queries or when the transaction state is not empty
+    val enableGraphSchemaOptimizations =
+      context.config.planningGraphSchemaOptimizationsEnabled() &&
+        from.query.readOnly &&
+        !context.planContext.txStateHasChanges()
 
     val staticComponents = StaticComponents(
       planContext = context.planContext,
