@@ -67,18 +67,35 @@ public class LogAssert extends AbstractAssert<LogAssert, AssertableLogProvider> 
         return this;
     }
 
-    public LogAssert containsMessagesEventually(long maxWaitTimoutMs, String... messages) throws InterruptedException {
+    public LogAssert containsMessagesEventually(long maxWaitTimeoutMs, String... messages) throws InterruptedException {
         isNotNull();
         Stopwatch stopwatch = Stopwatch.start();
         for (String message : messages) {
             while (!haveMessage(message)) {
-                if (stopwatch.hasTimedOut(maxWaitTimoutMs, TimeUnit.MILLISECONDS)) {
+                if (stopwatch.hasTimedOut(maxWaitTimeoutMs, TimeUnit.MILLISECONDS)) {
                     failWithMessage(
                             "Expected log to contain messages: `%s` but no matches found in:%n%s",
                             Arrays.toString(messages), actual.serialize());
                 }
                 Thread.sleep(10);
             }
+        }
+        return this;
+    }
+
+    public LogAssert containsAtLeastMessageCountEventually(long maxWaitTimeoutMs, String message, int expectedCount)
+            throws InterruptedException {
+        isNotNull();
+        Stopwatch stopwatch = Stopwatch.start();
+        var actualCount = messageMatchCount(message);
+        while (actualCount < expectedCount) {
+            if (stopwatch.hasTimedOut(maxWaitTimeoutMs, TimeUnit.MILLISECONDS)) {
+                failWithMessage(
+                        "Expected log to contain %s of message: `%s` but only %s matches found in:%n%s",
+                        expectedCount, message, actualCount, actual.serialize());
+            }
+            Thread.sleep(10);
+            actualCount = messageMatchCount(message);
         }
         return this;
     }
@@ -319,16 +336,6 @@ public class LogAssert extends AbstractAssert<LogAssert, AssertableLogProvider> 
         return this;
     }
 
-    public LogAssert containsMessageWithoutException(String message) {
-        isNotNull();
-        if (!haveMessageWithoutException(message)) {
-            failWithMessage(
-                    "Expected log to contain message `%s` without an exception. But no matches found in:%n%s",
-                    message, actual.serialize());
-        }
-        return this;
-    }
-
     public LogAssert containsMessageWithExceptionMatching(String message, Predicate<Throwable> predicate) {
         isNotNull();
         requireNonNull(predicate);
@@ -370,14 +377,6 @@ public class LogAssert extends AbstractAssert<LogAssert, AssertableLogProvider> 
                 .anyMatch(call -> matchedLogger(call)
                         && matchedLevel(call)
                         && t.equals(call.getThrowable())
-                        && matchedMessage(message, call));
-    }
-
-    private boolean haveMessageWithoutException(String message) {
-        return actual.getLogCalls().stream()
-                .anyMatch(call -> matchedLogger(call)
-                        && matchedLevel(call)
-                        && call.getThrowable() == null
                         && matchedMessage(message, call));
     }
 
