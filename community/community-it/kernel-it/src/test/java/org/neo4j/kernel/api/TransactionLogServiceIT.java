@@ -41,6 +41,7 @@ import static org.neo4j.storageengine.api.LogVersionRepository.UNKNOWN_LOG_OFFSE
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 import static org.neo4j.test.LatestVersions.LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES;
 
 import java.io.IOException;
@@ -275,7 +276,8 @@ class TransactionLogServiceIT {
                         empty(),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET));
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte())));
     }
 
     @Test
@@ -287,7 +289,8 @@ class TransactionLogServiceIT {
                         empty(),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET));
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte())));
     }
 
     @Test
@@ -304,7 +307,8 @@ class TransactionLogServiceIT {
                         empty(),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET);
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
             }
         } finally {
             ByteBuffers.releaseBuffer(buffer, INSTANCE);
@@ -329,7 +333,8 @@ class TransactionLogServiceIT {
                         OptionalLong.of(i + 7),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET);
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
                 appendData.rewind();
             }
         } finally {
@@ -358,7 +363,8 @@ class TransactionLogServiceIT {
                         OptionalLong.of(i + 7),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET);
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
                 appendData.rewind();
             }
         } finally {
@@ -387,7 +393,8 @@ class TransactionLogServiceIT {
                         OptionalLong.of(indexShift + i),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET);
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
                 appendData.rewind();
             }
         } finally {
@@ -420,7 +427,8 @@ class TransactionLogServiceIT {
                         OptionalLong.of(transactionalShift + i),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET);
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
                 appendData.rewind();
             }
         } finally {
@@ -450,7 +458,8 @@ class TransactionLogServiceIT {
                         OptionalLong.of(transactionalShift + i),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET);
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
                 appendData.rewind();
             }
         } finally {
@@ -477,7 +486,8 @@ class TransactionLogServiceIT {
                         OptionalLong.empty(),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET);
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
                 if (previousPosition != null) {
                     assertEquals(previousPosition, position);
                 }
@@ -507,7 +517,8 @@ class TransactionLogServiceIT {
                         OptionalLong.of(i + 5),
                         Optional.of(LATEST_KERNEL_VERSION.version()),
                         BASE_TX_CHECKSUM,
-                        UNKNOWN_LOG_OFFSET);
+                        UNKNOWN_LOG_OFFSET,
+                        Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
                 if (firstPosition == null) {
                     firstPosition = position;
                 }
@@ -524,7 +535,8 @@ class TransactionLogServiceIT {
                             OptionalLong.of(5),
                             Optional.of(LATEST_KERNEL_VERSION.version()),
                             BASE_TX_CHECKSUM,
-                            UNKNOWN_LOG_OFFSET));
+                            UNKNOWN_LOG_OFFSET,
+                            Optional.of(LATEST_LOG_FORMAT.getVersionByte())));
             assertEquals(
                     logVersionBefore, logFiles.getLogFile().getLogRangeInfo().highestVersion());
         } finally {
@@ -723,7 +735,9 @@ class TransactionLogServiceIT {
                         GraphDatabaseInternalSettings.latest_kernel_version,
                         KernelVersion.GLORIOUS_FUTURE.version(),
                         GraphDatabaseInternalSettings.latest_runtime_version,
-                        DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion()))
+                        DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion(),
+                        GraphDatabaseInternalSettings.envelope_log_format_on_future,
+                        true))
                 .build()) {
 
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);

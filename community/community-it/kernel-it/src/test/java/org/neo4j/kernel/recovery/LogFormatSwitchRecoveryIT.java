@@ -128,7 +128,8 @@ public class LogFormatSwitchRecoveryIT {
                                 .getVersion())
                 .setConfig(
                         GraphDatabaseInternalSettings.latest_kernel_version,
-                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED.version());
+                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED.version())
+                .setConfig(GraphDatabaseInternalSettings.envelope_log_format_on_future, true);
     }
 
     private void writeGraph(GraphDatabaseAPI testDb, int generation) {

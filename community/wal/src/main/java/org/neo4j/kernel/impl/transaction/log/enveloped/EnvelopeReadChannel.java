@@ -375,6 +375,11 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     }
 
     @Override
+    public boolean rewindAfterMarkAndGetVersion() {
+        return false;
+    }
+
+    @Override
     public byte get() throws IOException {
         ensureDataExists(Byte.BYTES);
         return buffer.get();

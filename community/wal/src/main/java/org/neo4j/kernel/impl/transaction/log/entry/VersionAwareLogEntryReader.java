@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkSmallChunkOfTail;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
 
@@ -106,7 +105,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             KernelVersion kernelVersion = KernelVersion.getForVersion(versionCode);
             parserSet = LogEntrySerializationSets.serializationSet(kernelVersion, binarySupportedKernelVersions);
 
-            if (kernelVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+            if (channel.rewindAfterMarkAndGetVersion()) {
                 // Since checksum is calculated over the whole entry we need to rewind and begin
                 // a new checksum segment if we change version parser.
                 rewindOneByte(channel);

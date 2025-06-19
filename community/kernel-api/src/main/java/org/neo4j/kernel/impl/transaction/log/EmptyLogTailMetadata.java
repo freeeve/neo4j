@@ -36,9 +36,11 @@ public class EmptyLogTailMetadata implements LogTailMetadata {
     public static final AppendBatchInfo EMPTY_APPEND_BATCH_INFO =
             new AppendBatchInfo(BASE_APPEND_INDEX, START_POSITION);
     private final KernelVersion kernelVersion;
+    private final Config config;
 
     public EmptyLogTailMetadata(Config config) {
         this.kernelVersion = KernelVersion.getLatestVersion(config);
+        this.config = config;
     }
 
     @Override
@@ -93,7 +95,7 @@ public class EmptyLogTailMetadata implements LogTailMetadata {
 
     @Override
     public LogFormat getCurrentLogFormat() {
-        return LogFormat.fromKernelVersion(kernelVersion);
+        return LogFormat.fromConfigAndKernelVersion(config, kernelVersion);
     }
 
     @Override

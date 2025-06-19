@@ -363,7 +363,7 @@ public enum LogFormat {
     public static KernelVersion getLastVersionPreEnvelopeFormat() {
         Config config = Config.defaults();
         KernelVersion latestVersion = KernelVersion.getLatestVersion(config);
-        if (config.get(GraphDatabaseInternalSettings.envelope_log_format_on)) {
+        if (config.get(GraphDatabaseInternalSettings.envelope_log_format_on_current)) {
             // Envelopes will be latest, so need the one before
             KernelVersion highestLowerThanLatest = KernelVersion.EARLIEST;
             for (KernelVersion value : KernelVersion.VERSIONS) {
@@ -537,6 +537,43 @@ public enum LogFormat {
         LogFormat logFormat = BY_VERSION_BYTE[versionByte];
         checkArgument(logFormat != null, "Unknown log format byte version: %d".formatted(versionByte));
         return logFormat;
+    }
+
+    /**
+     * Figure out the log format to use based on a kernel version and config settings. Note that this selection is
+     * only allowed to be done either when no logs exist or transactionally so that the switch is guaranteed to
+     * happen simultaneously on any additional cluster members.
+     */
+    public static LogFormat fromConfigAndKernelVersion(Config config, KernelVersion kernelVersion) {
+        // Since VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM and VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED
+        // are both connected to the same version right now, VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED
+        // (that in the future will control the version enveloped logs are guaranteed from) needs the
+        // additional test only envelope_log_format_on_current or envelope_log_format_on_future setting
+        // on to actually turn on envelopes.
+        if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)
+                || kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+            if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                    && (config.get(GraphDatabaseInternalSettings.envelope_log_format_on_current)
+                            || config.get(GraphDatabaseInternalSettings.envelope_log_format_on_future))) {
+                return V10;
+            }
+            if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)
+                    && config.get(GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade)) {
+                return V10;
+            }
+            return V9;
+        }
+        return fromKernelVersion(kernelVersion);
+    }
+
+    // The serialization of the upgrade command with log format doesn't exist before 2025.05
+    // Therefore only allow picking a LogFormat based on settings + kernel version, as opposed to only kernel version
+    // when going from 2025.05 or higher.
+    public static LogFormat pickLogFormatOnUpgrade(KernelVersion from, KernelVersion to, Config config) {
+        if (from.isAtLeast(KernelVersion.VERSION_UPGRADE_CONTAINS_LOG_FORMAT)) {
+            return LogFormat.fromConfigAndKernelVersion(config, to);
+        }
+        return LogFormat.fromKernelVersion(to);
     }
 
     private static boolean checkUnderflow(

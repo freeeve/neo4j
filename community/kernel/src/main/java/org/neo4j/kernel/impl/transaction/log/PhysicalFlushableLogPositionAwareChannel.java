@@ -195,6 +195,11 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
         return remaining;
     }
 
+    @Override
+    public boolean handlesRotationInternally() {
+        return checksumChannel.handlesRotationInternally();
+    }
+
     public void setChannel(LogVersionedStoreChannel logChannel, LogHeader logHeader) throws IOException {
         final var prevLogChannel = logVersionedStoreChannel;
         logVersionedStoreChannel = logChannel;

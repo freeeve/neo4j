@@ -56,6 +56,7 @@ public interface TransactionLogService {
      * @param kernelVersionByte optional known kernel version
      * @param checksum previous checksum if this marked the beginning of a new file on src
      * @param offset the position of this buffer on src
+     * @param logFormatByte optional know log format version
      * @return log position before any buffer content updates happen
      * @throws IOException on failure performing underlying transaction logs operation
      */
@@ -64,7 +65,8 @@ public interface TransactionLogService {
             OptionalLong appendIndex,
             Optional<Byte> kernelVersionByte,
             int checksum,
-            long offset)
+            long offset,
+            Optional<Byte> logFormatByte)
             throws IOException;
 
     /**

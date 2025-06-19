@@ -28,6 +28,7 @@ import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.memory.MemoryTracker;
@@ -82,10 +83,12 @@ public class LogTailExtractor {
     private LogFiles buildLogFiles(
             DatabaseLayout databaseLayout, MemoryTracker memoryTracker, KernelVersionProvider kernelVersionProvider)
             throws IOException {
+        LogFormatVersionProvider emptyLogsFormatProvider =
+                () -> LogFormat.fromConfigAndKernelVersion(config, kernelVersionProvider.kernelVersion());
         var builder = readOnly
-                ? LogFilesBuilder.readOnlyBuilder(databaseLayout, fs, kernelVersionProvider)
+                ? LogFilesBuilder.readOnlyBuilder(databaseLayout, fs, kernelVersionProvider, emptyLogsFormatProvider)
                 : LogFilesBuilder.activeFilesBuilder(
-                        databaseLayout, fs, kernelVersionProvider, LogFormatVersionProvider.THROWING_PROVIDER);
+                        databaseLayout, fs, kernelVersionProvider, emptyLogsFormatProvider);
         return builder.withConfig(config)
                 .withMemoryTracker(memoryTracker)
                 .withDatabaseTracers(databaseTracers)

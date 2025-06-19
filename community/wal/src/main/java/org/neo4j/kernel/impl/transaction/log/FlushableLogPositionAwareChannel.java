@@ -29,4 +29,6 @@ public interface FlushableLogPositionAwareChannel extends FlushableChannel, LogP
     long getAppendedBytes();
 
     int write(ByteBuffer buffer, long offset) throws IOException;
+
+    boolean handlesRotationInternally();
 }

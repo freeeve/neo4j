@@ -28,6 +28,7 @@ import static org.neo4j.internal.id.BufferingIdGeneratorFactory.PAGED_ID_BUFFER_
 import static org.neo4j.internal.schema.IndexType.LOOKUP;
 import static org.neo4j.kernel.extension.ExtensionFailureStrategies.fail;
 import static org.neo4j.kernel.impl.transaction.log.TransactionAppenderFactory.createTransactionAppender;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.pickLogFormatOnUpgrade;
 import static org.neo4j.kernel.recovery.Recovery.context;
 import static org.neo4j.kernel.recovery.Recovery.validateStoreId;
 import static org.neo4j.scheduler.Group.INDEX_CLEANUP;
@@ -147,7 +148,6 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointerLifecycle;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex;
-import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.RangeLogVersionVisitor;
@@ -708,7 +708,9 @@ public class Database extends AbstractDatabase {
 
         handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx) -> tx.upgrade()
                 .upgradeKernel(new Upgrade.KernelUpgrade(
-                        fromKernelVersion, toKernelVersion, LogFormat.fromKernelVersion(toKernelVersion))));
+                        fromKernelVersion,
+                        toKernelVersion,
+                        pickLogFormatOnUpgrade(fromKernelVersion, toKernelVersion, databaseConfig))));
     }
 
     private void validateStoreAndTxLogs(

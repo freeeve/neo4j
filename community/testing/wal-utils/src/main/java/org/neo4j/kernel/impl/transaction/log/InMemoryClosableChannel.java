@@ -220,6 +220,11 @@ public class InMemoryClosableChannel
     }
 
     @Override
+    public boolean rewindAfterMarkAndGetVersion() {
+        return reader.rewindAfterMarkAndGetVersion();
+    }
+
+    @Override
     public int endChecksumAndValidate() throws IOException {
         return reader.endChecksumAndValidate();
     }
@@ -326,6 +331,11 @@ public class InMemoryClosableChannel
     public int write(ByteBuffer buffer, long offset) throws IOException {
         // This implementation doesn't have to care about offset, falling back to regular one.
         return write(buffer);
+    }
+
+    @Override
+    public boolean handlesRotationInternally() {
+        return false;
     }
 
     @Override
@@ -474,6 +484,11 @@ public class InMemoryClosableChannel
                 return get();
             }
             return currentVersion.version();
+        }
+
+        @Override
+        public boolean rewindAfterMarkAndGetVersion() {
+            return currentVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED);
         }
 
         @Override
@@ -662,6 +677,11 @@ public class InMemoryClosableChannel
         public int write(ByteBuffer buffer, long offset) throws IOException {
             // This implementation doesn't have to care about offset, falling back to regular one.
             return write(buffer);
+        }
+
+        @Override
+        public boolean handlesRotationInternally() {
+            return false;
         }
 
         @Override

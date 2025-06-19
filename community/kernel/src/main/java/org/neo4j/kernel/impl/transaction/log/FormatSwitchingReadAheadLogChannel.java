@@ -85,6 +85,11 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     }
 
     @Override
+    public boolean rewindAfterMarkAndGetVersion() {
+        return delegate.rewindAfterMarkAndGetVersion();
+    }
+
+    @Override
     public LogPositionMarker getCurrentLogPosition(LogPositionMarker positionMarker) throws IOException {
         return delegate.getCurrentLogPosition(positionMarker);
     }

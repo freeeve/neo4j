@@ -29,6 +29,7 @@ import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.KernelVersionRepository;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
@@ -41,7 +42,7 @@ class MetadataCacheTest {
     @Test
     void shouldProvideGivenKernelVersion() {
         final var kernelVersion = random.among(KernelVersion.VERSIONS);
-        final var kernelVersionProvider = (KernelVersionProvider) new MetadataCache(kernelVersion);
+        final var kernelVersionProvider = (KernelVersionProvider) new MetadataCache(kernelVersion, LogFormat.V10);
 
         assertThat(kernelVersionProvider.kernelVersion())
                 .as("provided kernel version")
@@ -67,7 +68,8 @@ class MetadataCacheTest {
         final var initialKernelVersion = kernelVersions.get(0);
         final var kernelVersion = kernelVersions.get(1);
 
-        final var kernelVersionRepository = (KernelVersionRepository) new MetadataCache(initialKernelVersion);
+        final var kernelVersionRepository =
+                (KernelVersionRepository) new MetadataCache(initialKernelVersion, LogFormat.V10);
         final var kernelVersionProvider = (KernelVersionProvider) kernelVersionRepository;
 
         kernelVersionRepository.setKernelVersion(kernelVersion);

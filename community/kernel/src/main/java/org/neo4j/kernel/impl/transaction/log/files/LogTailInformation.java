@@ -27,6 +27,7 @@ import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.AppendBatchInfo;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.LastAppendBatchInfoProvider;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
@@ -43,7 +44,7 @@ public class LogTailInformation implements LogTailMetadata {
     private final boolean hasRecordsToRecover;
     private final StoreId storeId;
     private final KernelVersionProvider fallbackKernelVersionProvider;
-    private final LogFormat logFormat;
+    private final LogFormatVersionProvider logFormatProvider;
     private final LastAppendBatchInfoProvider lastAppendBatchInfoProvider;
     private AppendBatchInfo lastBatchInfo;
 
@@ -54,7 +55,7 @@ public class LogTailInformation implements LogTailMetadata {
             long currentLogVersion,
             byte firstLogEntryVersionAfterCheckpoint,
             KernelVersionProvider fallbackKernelVersionProvider,
-            LogFormat logFormat,
+            LogFormatVersionProvider logFormatProvider,
             LastAppendBatchInfoProvider lastAppendBatchInfoProvider) {
         this(
                 null,
@@ -65,7 +66,7 @@ public class LogTailInformation implements LogTailMetadata {
                 firstLogEntryVersionAfterCheckpoint,
                 null,
                 fallbackKernelVersionProvider,
-                logFormat,
+                logFormatProvider,
                 lastAppendBatchInfoProvider);
     }
 
@@ -78,7 +79,7 @@ public class LogTailInformation implements LogTailMetadata {
             byte firstLogEntryVersionAfterCheckpoint,
             StoreId storeId,
             KernelVersionProvider fallbackKernelVersionProvider,
-            LogFormat logFormat,
+            LogFormatVersionProvider logFormatProvider,
             LastAppendBatchInfoProvider lastAppendBatchInfoProvider) {
         this.lastCheckPoint = lastCheckPoint;
         this.firstAppendIndexAfterLastCheckPoint = firstAppendIndexAfterLastCheckPoint;
@@ -88,7 +89,7 @@ public class LogTailInformation implements LogTailMetadata {
         this.hasRecordsToRecover = hasRecordsToRecover;
         this.storeId = storeId;
         this.fallbackKernelVersionProvider = fallbackKernelVersionProvider;
-        this.logFormat = logFormat;
+        this.logFormatProvider = logFormatProvider;
         this.lastAppendBatchInfoProvider = lastAppendBatchInfoProvider;
     }
 
@@ -202,9 +203,6 @@ public class LogTailInformation implements LogTailMetadata {
 
     @Override
     public LogFormat getCurrentLogFormat() {
-        if (logFormat == null) {
-            return LogFormat.fromKernelVersion(kernelVersion());
-        }
-        return logFormat;
+        return logFormatProvider.getCurrentLogFormat();
     }
 }

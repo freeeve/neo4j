@@ -129,7 +129,8 @@ public interface LogFile extends VersionedFile, RotatableFile {
             OptionalLong appendIndex,
             Optional<Byte> kernelVersionByte,
             int checksum,
-            long offset)
+            long offset,
+            Optional<Byte> logFormatVersion)
             throws IOException;
 
     /**

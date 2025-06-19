@@ -34,6 +34,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
@@ -67,7 +68,8 @@ public class TransactionLogChecker {
     public static void verifyCorrectTransactionLogUpgrades(
             FileSystemAbstraction fs, DatabaseLayout layout, Config config)
             throws IOException, InconsistentTransactionLogException {
-        LogFiles logFiles = LogFilesBuilder.readOnlyBuilder(layout, fs, KernelVersionProvider.THROWING_PROVIDER)
+        LogFiles logFiles = LogFilesBuilder.readOnlyBuilder(
+                        layout, fs, KernelVersionProvider.THROWING_PROVIDER, LogFormatVersionProvider.THROWING_PROVIDER)
                 .build();
 
         Optional<StorageEngineFactory> storageEngineFactory = StorageEngineFactory.selectStorageEngine(fs, layout);

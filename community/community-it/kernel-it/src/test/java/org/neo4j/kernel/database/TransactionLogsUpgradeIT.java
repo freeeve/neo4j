@@ -119,7 +119,8 @@ class TransactionLogsUpgradeIT {
         return builder.setConfig(
                         GraphDatabaseInternalSettings.latest_runtime_version,
                         DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())
-                .setConfig(GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version());
+                .setConfig(GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())
+                .setConfig(GraphDatabaseInternalSettings.envelope_log_format_on_future, true);
     }
 
     @ParameterizedTest

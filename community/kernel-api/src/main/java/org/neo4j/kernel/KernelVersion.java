@@ -97,7 +97,12 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_CDC_LOGICAL_KEY_CHANGES = V5_15;
     // Special handling to be able to make envelope format the current log format for tests
     public static final KernelVersion VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED =
-            Config.defaults().get(GraphDatabaseInternalSettings.envelope_log_format_on) ? LATEST : GLORIOUS_FUTURE;
+            Config.defaults().get(GraphDatabaseInternalSettings.envelope_log_format_on_current)
+                    ? LATEST
+                    : GLORIOUS_FUTURE;
+    // Enveloped format will be introduced disconnected from a specific kernel version. It still relies on
+    // upgrading kernel version but it is not guaranteed on which one. Any version from this one can have the format
+    public static final KernelVersion VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM = GLORIOUS_FUTURE;
     public static final KernelVersion VERSION_VECTOR_2_INTRODUCED = V5_18;
     public static final KernelVersion VERSION_CDC_CHECKSUMS_INTRODUCED = V5_19;
     public static final KernelVersion VERSION_APPEND_INDEX_INTRODUCED = V5_20;

@@ -190,9 +190,9 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     }
 
     private boolean rotationNeededBecauseOfVersionMismatch(KernelVersion currentKernelVersion, LogHeader logHeader) {
-        return (currentKernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
-                        && logHeader.getKernelVersion() != currentKernelVersion)
-                || context.getLogFormatVersionProvider().getCurrentLogFormat() != logHeader.getLogFormatVersion();
+        LogFormat currentLogFormat = context.getLogFormatVersionProvider().getCurrentLogFormat();
+        return (currentLogFormat.usesSegments() && logHeader.getKernelVersion() != currentKernelVersion)
+                || currentLogFormat != logHeader.getLogFormatVersion();
     }
 
     @Override
@@ -367,7 +367,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
             OptionalLong appendIndex,
             Optional<Byte> kernelVersionByte,
             int checksum,
-            long offset)
+            long offset,
+            Optional<Byte> logFormatVersion)
             throws IOException {
         checkArgument(byteBuffer.isDirect(), "It is required for byte buffer to be direct.");
         var transactionLogWriter = getTransactionLogWriter();
@@ -375,7 +376,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         try (var logAppendEvent =
                 context.getDatabaseTracers().getDatabaseTracer().logAppend()) {
             long totalAppended = transactionLogWriter.append(
-                    byteBuffer, logAppendEvent, appendIndex, kernelVersionByte, checksum, offset);
+                    byteBuffer, logAppendEvent, appendIndex, kernelVersionByte, checksum, offset, logFormatVersion);
             logAppendEvent.appendedBytes(totalAppended);
             return transactionLogWriter.beforeAppendPosition();
         }

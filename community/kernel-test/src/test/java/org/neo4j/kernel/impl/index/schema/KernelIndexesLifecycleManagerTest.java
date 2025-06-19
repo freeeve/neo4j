@@ -94,6 +94,7 @@ import org.neo4j.kernel.impl.api.index.IndexPopulationFailure;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.scheduler.JobScheduler;
@@ -158,13 +159,14 @@ class KernelIndexesLifecycleManagerTest {
         when(storageReader.allocateRelationshipScanCursor(any(), any(), any())).thenReturn(relCursor);
 
         final var config = Config.defaults();
+        KernelVersion kernelVersion = KernelVersion.getLatestVersion(config);
         indexesLifecycleManager = new KernelIndexesLifecycleManager(new KernelSchemaLifecycleContext(
                 config,
                 storageEngine,
                 databaseLayout,
                 fs,
                 pageCache,
-                new MetadataCache(KernelVersion.getLatestVersion(config)),
+                new MetadataCache(kernelVersion, LogFormat.fromConfigAndKernelVersion(config, kernelVersion)),
                 scheduler,
                 new TokenHolders(
                         tokenHolder(TokenHolder.TYPE_LABEL),
@@ -431,13 +433,14 @@ class KernelIndexesLifecycleManagerTest {
 
     private KernelIndexesLifecycleManager indexesLifecycleManager(IndexingService indexingService) throws IOException {
         final var config = Config.defaults();
+        KernelVersion kernelVersion = KernelVersion.getLatestVersion(config);
         final var context = new KernelSchemaLifecycleContext(
                 config,
                 storageEngine,
                 databaseLayout,
                 fs,
                 pageCache,
-                new MetadataCache(KernelVersion.getLatestVersion(config)),
+                new MetadataCache(kernelVersion, LogFormat.fromConfigAndKernelVersion(config, kernelVersion)),
                 scheduler,
                 new TokenHolders(
                         tokenHolder(TokenHolder.TYPE_LABEL),

@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.log;
 
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
 
 import java.io.IOException;
@@ -92,7 +91,7 @@ class BatchingTransactionAppender extends LifecycleAdapter implements Transactio
         if (logFile.forceAfterAppend(logAppendEvent)) {
             // We got lucky and were the one forcing the log. It's enough if ones of all doing concurrent committers
             // checks the need for log rotation.
-            if (checkIfRotationCheckIsRequired(batch)) {
+            if (!transactionLogWriter.handlesRotationInternally()) {
                 logAppendEvent.setLogRotated(logRotation.rotateLogIfNeeded(logAppendEvent));
             }
         }
@@ -101,12 +100,6 @@ class BatchingTransactionAppender extends LifecycleAdapter implements Transactio
         publishAsCommitted(batch);
 
         return lastAppendIndex;
-    }
-
-    private static boolean checkIfRotationCheckIsRequired(StorageEngineTransaction batch) {
-        // for envelopes, rotation happens within the channel during appends so rotating post-append isn't required
-        return batch != null
-                && batch.commandBatch().kernelVersion().isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED);
     }
 
     private static void publishAsCommitted(StorageEngineTransaction batch) {

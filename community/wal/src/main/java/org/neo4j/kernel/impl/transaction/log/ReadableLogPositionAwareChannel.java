@@ -38,4 +38,8 @@ public interface ReadableLogPositionAwareChannel extends ReadableChannel, LogPos
         getCurrentLogPosition(marker);
         return getVersion();
     }
+
+    default boolean rewindAfterMarkAndGetVersion() {
+        return true;
+    }
 }

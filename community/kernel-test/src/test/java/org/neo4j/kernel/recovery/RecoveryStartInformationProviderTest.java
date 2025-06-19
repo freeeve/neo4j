@@ -32,6 +32,7 @@ import static org.neo4j.kernel.recovery.RecoveryStartInformation.MISSING_LOGS;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT_PROVIDER;
 
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,7 +85,7 @@ class RecoveryStartInformationProviderTest {
                         currentLogVersion,
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
-                        LATEST_LOG_FORMAT,
+                        LATEST_LOG_FORMAT_PROVIDER,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         // when
@@ -128,7 +129,7 @@ class RecoveryStartInformationProviderTest {
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         null,
                         kernelProv,
-                        LATEST_LOG_FORMAT,
+                        LATEST_LOG_FORMAT_PROVIDER,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         // when
@@ -172,7 +173,7 @@ class RecoveryStartInformationProviderTest {
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         null,
                         kernelProv,
-                        LATEST_LOG_FORMAT,
+                        LATEST_LOG_FORMAT_PROVIDER,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         RecoveryStartInformation recoveryStartInformation =
@@ -199,7 +200,7 @@ class RecoveryStartInformationProviderTest {
                         currentLogVersion,
                         kernelVersion.version(),
                         kernelProv,
-                        LATEST_LOG_FORMAT,
+                        LATEST_LOG_FORMAT_PROVIDER,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
         when(logFiles.getLogFile().getLogRangeInfo()).thenReturn(new LogRangeInfo(0, null, 0, null));
 
@@ -227,7 +228,7 @@ class RecoveryStartInformationProviderTest {
                         -1,
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
-                        LATEST_LOG_FORMAT,
+                        LATEST_LOG_FORMAT_PROVIDER,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         RecoveryStartInformation recoveryStartInformation =
@@ -249,7 +250,7 @@ class RecoveryStartInformationProviderTest {
                         currentLogVersion,
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
-                        LATEST_LOG_FORMAT,
+                        LATEST_LOG_FORMAT_PROVIDER,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         // when

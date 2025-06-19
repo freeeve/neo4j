@@ -57,7 +57,8 @@ public class DbmsRuntimeFallbackKernelVersionProvider implements KernelVersionPr
 
         this.logFormatVersionProvider = dependencies
                 .resolveOptionalDependency(LogFormatVersionProvider.class)
-                .orElseGet(() -> () -> LogFormat.fromKernelVersion(kernelVersionProvider.kernelVersion()));
+                .orElseGet(() ->
+                        () -> LogFormat.fromConfigAndKernelVersion(config, kernelVersionProvider.kernelVersion()));
     }
 
     @Override

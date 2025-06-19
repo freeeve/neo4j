@@ -20,30 +20,58 @@
 package org.neo4j.kernel;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.cli.CommandTestUtils.capturingExecutionContext;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
+import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.configuration.GraphDatabaseSettings.preallocate_logical_logs;
+import static org.neo4j.configuration.SettingValueParsers.FALSE;
+import static org.neo4j.csv.reader.Configuration.COMMAS;
+import static org.neo4j.internal.helpers.collection.MapUtil.store;
+import static org.neo4j.kernel.recovery.RecoveryHelpers.getLatestCheckpoint;
+import static org.neo4j.kernel.recovery.RecoveryHelpers.removeLastCheckpointRecordFromLogFile;
+import static org.neo4j.storemigration.StoreMigrationTestUtils.runStoreMigrationCommandFromSameJvm;
 import static org.neo4j.test.UpgradeTestUtil.assertKernelVersion;
 
 import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.cli.ExecutionContext;
+import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.importer.ImportCommand;
+import org.neo4j.internal.batchimport.input.csv.Type;
+import org.neo4j.internal.helpers.collection.MapUtil;
+import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.storemigration.StoreMigrationTestUtils;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.UpgradeTestUtil;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.utils.TestDirectory;
+import picocli.CommandLine;
 
 @Neo4jLayoutExtension
 class LogFormatSelectionIT {
@@ -51,8 +79,22 @@ class LogFormatSelectionIT {
     @Inject
     private Neo4jLayout neo4jLayout;
 
+    @Inject
+    TestDirectory testDirectory;
+
+    @Inject
+    FileSystemAbstraction fs;
+
     private TestDatabaseManagementServiceBuilder builder;
     private DatabaseManagementService managementService;
+
+    public static Stream<Arguments> formatSwitchAllowedAndDbName() {
+        return Stream.of(
+                Arguments.arguments(DEFAULT_DATABASE_NAME, true),
+                Arguments.arguments(DEFAULT_DATABASE_NAME, false),
+                Arguments.arguments(SYSTEM_DATABASE_NAME, true),
+                Arguments.arguments(SYSTEM_DATABASE_NAME, false));
+    }
 
     @AfterEach
     void shutdown() {
@@ -81,8 +123,12 @@ class LogFormatSelectionIT {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {DEFAULT_DATABASE_NAME, SYSTEM_DATABASE_NAME})
-    void upgradeToFuture(String dbName) throws IOException {
+    @MethodSource("formatSwitchAllowedAndDbName")
+    void upgradeToFuture(String dbName, boolean allowFormatSwitchOnUpgrade) throws IOException {
+        LogFormat expectedFormat = allowFormatSwitchOnUpgrade
+                ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)
+                : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+
         createBuilder();
         managementService = builder.build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(dbName);
@@ -92,9 +138,10 @@ class LogFormatSelectionIT {
             tx.createNode();
             tx.commit();
         }
-
-        managementService.shutdown();
+        shutdown();
         createBuilderNoAutomaticUpgrade();
+        builder.setConfig(
+                GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade, allowFormatSwitchOnUpgrade);
         managementService = configureGloriousFutureAsLatest(builder).build();
         db = (GraphDatabaseAPI) managementService.database(dbName);
 
@@ -102,24 +149,232 @@ class LogFormatSelectionIT {
 
         UpgradeTestUtil.upgradeDatabase(
                 managementService, db, LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
-        assertKernelVersionAndLogFormat(db, KernelVersion.GLORIOUS_FUTURE);
+        assertKernelVersion(db, KernelVersion.GLORIOUS_FUTURE);
+        assertLogFormat(db, expectedFormat);
 
         LogFiles logFiles = db.getDependencyResolver().resolveDependency(LogFiles.class);
         shutdown();
-        checkLogFormatOfLatestFiles(logFiles, KernelVersion.GLORIOUS_FUTURE);
+        checkLogFormatOfLatestFiles(logFiles, expectedFormat);
     }
 
-    private static void checkLogFormatOfLatestFiles(LogFiles logFiles, KernelVersion gloriousFuture)
-            throws IOException {
+    @ParameterizedTest
+    @MethodSource("formatSwitchAllowedAndDbName")
+    void formatOnNewDb(String dbName, boolean allowFormatSwitchOnUpgrade) throws IOException {
+        // Should only allow to use the new format if setting says okay
+        LogFormat expectedFormat = allowFormatSwitchOnUpgrade
+                ? LogFormat.fromKernelVersion(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)
+                : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+
+        createBuilder();
+        builder.setConfig(
+                GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade, allowFormatSwitchOnUpgrade);
+        managementService = configureGloriousFutureAsLatest(builder).build();
+        GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(dbName);
+
+        // Some data
+        try (Transaction tx = db.beginTx()) {
+            tx.createNode();
+            tx.commit();
+        }
+
+        assertKernelVersion(db, KernelVersion.GLORIOUS_FUTURE);
+        assertLogFormat(db, expectedFormat);
+        LogFiles logFiles = db.getDependencyResolver().resolveDependency(LogFiles.class);
+        shutdown();
+        checkLogFormatOfLatestFiles(logFiles, expectedFormat);
+    }
+
+    @ParameterizedTest
+    @MethodSource("formatSwitchAllowedAndDbName")
+    void startUpWithoutLogFiles(String dbName, boolean allowFormatSwitchOnUpgrade) throws IOException {
+        LogFormat expectedFormat = allowFormatSwitchOnUpgrade
+                ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)
+                : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+
+        createBuilder();
+        managementService = builder.build();
+        GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(dbName);
+
+        // Some data
+        try (Transaction tx = db.beginTx()) {
+            tx.createNode();
+            tx.commit();
+        }
+        shutdown();
+        fs.deleteRecursively(neo4jLayout.databaseLayout(dbName).getTransactionLogsDirectory());
+
+        createBuilderNoAutomaticUpgrade();
+        builder.setConfig(
+                GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade, allowFormatSwitchOnUpgrade);
+        builder.setConfig(GraphDatabaseSettings.fail_on_missing_files, false);
+        managementService = configureGloriousFutureAsLatest(builder).build();
+        db = (GraphDatabaseAPI) managementService.database(dbName);
+
+        if (!SYSTEM_DATABASE_NAME.equals(dbName)) { // System takes latest version on startup without logs
+            assertKernelVersionAndLogFormat(db, LatestVersions.LATEST_KERNEL_VERSION);
+
+            UpgradeTestUtil.upgradeDatabase(
+                    managementService, db, LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
+        }
+        assertKernelVersion(db, KernelVersion.GLORIOUS_FUTURE);
+        assertLogFormat(db, expectedFormat);
+
+        LogFiles logFiles = db.getDependencyResolver().resolveDependency(LogFiles.class);
+        shutdown();
+        checkLogFormatOfLatestFiles(logFiles, expectedFormat);
+    }
+
+    @ParameterizedTest
+    @MethodSource("formatSwitchAllowedAndDbName")
+    void recoveryOverUpgradeTransaction(String dbName, boolean allowFormatSwitchOnUpgrade) throws Throwable {
+        LogFormat expectedFormat = allowFormatSwitchOnUpgrade
+                ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)
+                : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+
+        DatabaseLayout dbLayout = neo4jLayout.databaseLayout(dbName);
+        createBuilder();
+        managementService = builder.build();
+        shutdown();
+
+        builder = configureGloriousFutureAsLatest(builder)
+                .setConfig(
+                        GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade,
+                        allowFormatSwitchOnUpgrade);
+        managementService = builder.build();
+        GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(dbName);
+        UpgradeTestUtil.upgradeDatabase(
+                managementService, db, LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
+        shutdown();
+
+        removeLastCheckpointRecordFromLogFile(
+                dbLayout,
+                fs,
+                Config.defaults(
+                        GraphDatabaseInternalSettings.latest_kernel_version, KernelVersion.GLORIOUS_FUTURE.version()));
+        assertThat(getLatestCheckpoint(dbLayout, fs).kernelVersion()).isEqualTo(LatestVersions.LATEST_KERNEL_VERSION);
+
+        // Turn on the setting now and see that old decision is respected during recovery anyway.
+        managementService = builder.setConfig(GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade, true)
+                .build();
+        db = (GraphDatabaseAPI) managementService.database(dbName);
+        LogFiles logFiles = db.getDependencyResolver().resolveDependency(LogFiles.class);
+
+        shutdown();
+        checkLogFormatOfLatestFiles(logFiles, expectedFormat);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void migrate(boolean allowFormatSwitchOnUpgrade) throws Throwable {
+        LogFormat expectedFormat = allowFormatSwitchOnUpgrade
+                ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)
+                : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+
+        createBuilder();
+        managementService = builder.build();
+        GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+
+        LogFiles logFiles = db.getDependencyResolver().resolveDependency(LogFiles.class);
+        shutdown();
+
+        Path config = neo4jLayout.homeDirectory().resolve("migration-config.conf");
+        MapUtil.store(
+                Map.of(
+                        GraphDatabaseInternalSettings.latest_kernel_version.name(),
+                        "" + KernelVersion.GLORIOUS_FUTURE.version(),
+                        GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade.name(),
+                        Boolean.toString(allowFormatSwitchOnUpgrade)),
+                config);
+        String[] args = {"--verbose", "--additional-config", config.toString(), DEFAULT_DATABASE_NAME};
+
+        StoreMigrationTestUtils.Result result = runStoreMigrationCommandFromSameJvm(neo4jLayout, args);
+        assertThat(result.exitCode()).withFailMessage(result.err()).isEqualTo(0);
+
+        checkLogFormatOfLatestFiles(logFiles, expectedFormat);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void importSelectsLogFormatBasedOnSetting(boolean allowNewFormat) throws Exception {
+        // Should only allow to use the new format if setting says okay
+        LogFormat expectedFormat = allowNewFormat
+                ? LogFormat.fromKernelVersion(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)
+                : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+
+        // GIVEN
+        Path dbConfig = testDirectory.file("neo4j.properties");
+        store(
+                Map.of(
+                        neo4j_home.name(),
+                        testDirectory.absolutePath().toString(),
+                        preallocate_logical_logs.name(),
+                        FALSE,
+                        GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade.name(),
+                        Boolean.toString(allowNewFormat),
+                        GraphDatabaseInternalSettings.latest_kernel_version.name(),
+                        "" + KernelVersion.GLORIOUS_FUTURE.version(),
+                        GraphDatabaseInternalSettings.latest_runtime_version.name(),
+                        "" + DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion()),
+                dbConfig);
+
+        // WHEN
+        var ctx = capturingExecutionContext(
+                testDirectory.absolutePath(),
+                testDirectory.absolutePath().resolve("conf"),
+                testDirectory.getFileSystem());
+        runImport(
+                ctx,
+                "--report-file",
+                testDirectory.file("import.report").toAbsolutePath().toString(),
+                "--additional-config",
+                dbConfig.toAbsolutePath().toString(),
+                "--nodes",
+                nodeData().toAbsolutePath().toString());
+
+        // THEN
+        assertTrue(ctx.outAsString().contains("IMPORT DONE"));
+        LogFiles logFiles = LogFilesBuilder.readOnlyBuilder(
+                        neo4jLayout.databaseLayout(DEFAULT_DATABASE_NAME),
+                        fs,
+                        KernelVersionProvider.THROWING_PROVIDER,
+                        LogFormatVersionProvider.THROWING_PROVIDER)
+                .build();
+        checkLogFormatOfLatestFiles(logFiles, expectedFormat);
+    }
+
+    private void runImport(ExecutionContext ctx, String... arguments) throws Exception {
+        final var cmd = new ImportCommand.Full(ctx);
+        new CommandLine(cmd).setUseSimplifiedAtFiles(true).parseArgs(arguments);
+        cmd.execute();
+    }
+
+    private Path nodeData() throws Exception {
+        Path file = testDirectory.file("nodes.csv");
+        try (PrintStream writer = new PrintStream(Files.newOutputStream(file), false, StandardCharsets.UTF_8)) {
+            writeNodeHeader(writer);
+            writer.println("NODE1" + COMMAS.delimiter() + "name" + COMMAS.delimiter() + "LabelName");
+        }
+        return file;
+    }
+
+    private static void writeNodeHeader(PrintStream writer) {
+        writer.println("id:" + Type.ID.name() + COMMAS.delimiter() + "name" + COMMAS.delimiter() + "labels:LABEL");
+    }
+
+    private static void checkLogFormatOfLatestFiles(LogFiles logFiles, KernelVersion kernelVersion) throws IOException {
+        checkLogFormatOfLatestFiles(logFiles, LogFormat.fromKernelVersion(kernelVersion));
+    }
+
+    private static void checkLogFormatOfLatestFiles(LogFiles logFiles, LogFormat expectedFormat) throws IOException {
         assertThat(logFiles.getLogFile()
                         .extractHeader(logFiles.getLogFile().getLogRangeInfo().highestVersion())
                         .getLogFormatVersion())
-                .isEqualTo(LogFormat.fromKernelVersion(gloriousFuture));
+                .isEqualTo(expectedFormat);
         assertThat(logFiles.getCheckpointFile()
                         .extractHeader(
                                 logFiles.getCheckpointFile().getLogRangeInfo().highestVersion())
                         .getLogFormatVersion())
-                .isEqualTo(LogFormat.fromKernelVersion(gloriousFuture));
+                .isEqualTo(expectedFormat);
     }
 
     private TestDatabaseManagementServiceBuilder configureGloriousFutureAsLatest(
@@ -133,26 +388,26 @@ class LogFormatSelectionIT {
 
     void assertKernelVersionAndLogFormat(GraphDatabaseAPI db, KernelVersion expectedKernelVersion) {
         assertKernelVersion(db, expectedKernelVersion);
+        assertLogFormat(db, LogFormat.fromKernelVersion(expectedKernelVersion));
+    }
+
+    private static void assertLogFormat(GraphDatabaseAPI db, LogFormat expectedFormat) {
         assertThat(db.getDependencyResolver()
                         .resolveDependency(LogFormatVersionProvider.class)
                         .getCurrentLogFormat())
-                .isEqualTo(LogFormat.fromKernelVersion(expectedKernelVersion));
+                .isEqualTo(expectedFormat);
     }
 
     private void createBuilder() {
-        if (builder == null) {
-            builder = new TestDatabaseManagementServiceBuilder(neo4jLayout)
-                    .setConfig(preallocate_logical_logs, false)
-                    .setConfig(GraphDatabaseSettings.keep_logical_logs, "keep_all");
-        }
+        builder = new TestDatabaseManagementServiceBuilder(neo4jLayout)
+                .setConfig(preallocate_logical_logs, false)
+                .setConfig(GraphDatabaseSettings.keep_logical_logs, "keep_all");
     }
 
     private void createBuilderNoAutomaticUpgrade() {
-        if (builder == null) {
-            builder = new TestDatabaseManagementServiceBuilder(neo4jLayout)
-                    .setConfig(preallocate_logical_logs, false)
-                    .setConfig(GraphDatabaseSettings.keep_logical_logs, "keep_all")
-                    .setConfig(GraphDatabaseInternalSettings.automatic_upgrade_enabled, false);
-        }
+        builder = new TestDatabaseManagementServiceBuilder(neo4jLayout)
+                .setConfig(preallocate_logical_logs, false)
+                .setConfig(GraphDatabaseSettings.keep_logical_logs, "keep_all")
+                .setConfig(GraphDatabaseInternalSettings.automatic_upgrade_enabled, false);
     }
 }

@@ -99,6 +99,13 @@ public class DelegateReadableChannel implements ReadableLogPositionAwareChannel 
     }
 
     @Override
+    public boolean rewindAfterMarkAndGetVersion() {
+        // Rewinding is done to get checksum calculations correct.
+        // This channel doesn't care about checksums, so there is no point in rewinding.
+        return false;
+    }
+
+    @Override
     public LogPositionMarker getCurrentLogPosition(LogPositionMarker positionMarker) {
         positionMarker.unspecified();
         return positionMarker;

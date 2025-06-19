@@ -160,11 +160,9 @@ public class LogFilesBuilder {
     public static LogFilesBuilder readOnlyBuilder(
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
-            KernelVersionProvider kernelVersionProvider) {
-        LogFilesBuilder builder = new LogFilesBuilder();
-        builder.databaseLayout = databaseLayout;
-        builder.fileSystem = fileSystem;
-        builder.kernelVersionProvider = kernelVersionProvider;
+            KernelVersionProvider kernelVersionProvider,
+            LogFormatVersionProvider logFormatVersionProvider) {
+        LogFilesBuilder builder = builder(databaseLayout, fileSystem, kernelVersionProvider, logFormatVersionProvider);
         builder.readOnlyStores = true;
         builder.readOnlyLogs = true;
         return builder;

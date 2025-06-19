@@ -76,4 +76,9 @@ public class PhysicalFlushableLogChannel extends PhysicalFlushableChannel implem
         // This implementation doesn't have to care about offset, falling back to regular one.
         return putAll(src);
     }
+
+    @Override
+    public boolean handlesRotationInternally() {
+        return false;
+    }
 }

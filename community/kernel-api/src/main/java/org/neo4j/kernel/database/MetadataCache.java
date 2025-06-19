@@ -33,11 +33,7 @@ public class MetadataCache implements KernelVersionRepository, LogFormatVersionR
         this(logTailMetadata.kernelVersion(), logTailMetadata.getCurrentLogFormat());
     }
 
-    public MetadataCache(KernelVersion kernelVersion) {
-        this(kernelVersion, LogFormat.fromKernelVersion(kernelVersion));
-    }
-
-    private MetadataCache(KernelVersion kernelVersion, LogFormat logFormat) {
+    public MetadataCache(KernelVersion kernelVersion, LogFormat logFormat) {
         setKernelVersion(kernelVersion);
         setCurrentLogFormat(logFormat);
     }

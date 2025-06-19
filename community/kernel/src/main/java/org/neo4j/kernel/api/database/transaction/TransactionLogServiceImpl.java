@@ -117,10 +117,11 @@ public class TransactionLogServiceImpl implements TransactionLogService {
             OptionalLong appendIndex,
             Optional<Byte> kernelVersionByte,
             int checksum,
-            long offset)
+            long offset,
+            Optional<Byte> logFormatByte)
             throws IOException {
         checkState(!availabilityGuard.isAvailable(), "Database should not be available.");
-        return logFile.append(byteBuffer, appendIndex, kernelVersionByte, checksum, offset);
+        return logFile.append(byteBuffer, appendIndex, kernelVersionByte, checksum, offset, logFormatByte);
     }
 
     @Override

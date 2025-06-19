@@ -165,28 +165,24 @@ public class TransactionLogWriter {
             OptionalLong appendIndex,
             Optional<Byte> kernelVersionByte,
             int checksum,
-            long offset)
+            long offset,
+            Optional<Byte> logFormatVersion)
             throws IOException {
         if (appendIndex.isPresent()) { // append index must be present on a kernel version change.
             KernelVersion kernelVersion = kernelVersionByte
                     .map(KernelVersion::getForVersion /* This one throws if non-recognized kernel version */)
                     .orElse(previousKernelVersion);
+            LogFormat logFormat = logFormatVersion
+                    .map(LogFormat::fromByteVersion) // This one throws if non-recognized version
+                    .orElse(LogFormat.fromKernelVersion(kernelVersion));
             // In append we know we are the only ones using the logfile, don't need to lock on rotation here
             if (kernelVersion != previousKernelVersion) {
                 logRotation.locklessRotateLogFile(
-                        logAppendEvent,
-                        kernelVersion,
-                        appendIndex.getAsLong() - 1,
-                        checksum,
-                        LogFormat.fromKernelVersion(kernelVersion));
+                        logAppendEvent, kernelVersion, appendIndex.getAsLong() - 1, checksum, logFormat);
                 previousKernelVersion = kernelVersion;
             } else {
                 logRotation.locklessBatchedRotateLogIfNeeded(
-                        logAppendEvent,
-                        appendIndex.getAsLong() - 1,
-                        kernelVersion,
-                        checksum,
-                        LogFormat.fromKernelVersion(kernelVersion));
+                        logAppendEvent, appendIndex.getAsLong() - 1, kernelVersion, checksum, logFormat);
             }
         }
 
@@ -197,5 +193,9 @@ public class TransactionLogWriter {
     @VisibleForTesting
     public LogEntryWriter<FlushableLogPositionAwareChannel> getWriter() {
         return writer;
+    }
+
+    public boolean handlesRotationInternally() {
+        return channel.handlesRotationInternally();
     }
 }

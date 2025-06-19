@@ -39,7 +39,9 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
                 GraphDatabaseInternalSettings.latest_runtime_version,
                 LATEST_RUNTIME_VERSION.kernelVersion().isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
                         ? LATEST_RUNTIME_VERSION.getVersion()
-                        : DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion());
+                        : DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion(),
+                GraphDatabaseInternalSettings.envelope_log_format_on_future,
+                true);
     }
 
     @Override

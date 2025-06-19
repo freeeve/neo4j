@@ -35,7 +35,7 @@ public class LogFormatOverrideMigrator implements SettingMigrator {
         String overrideLogFormat = System.getProperty(OVERRIDE_LOG_FORMAT_KEY);
         if (ENVELOPES.equals(overrideLogFormat)) {
             try {
-                defaultValues.put(GraphDatabaseInternalSettings.envelope_log_format_on.name(), "true");
+                defaultValues.put(GraphDatabaseInternalSettings.envelope_log_format_on_current.name(), "true");
             } catch (RuntimeException ex) {
                 log.warn("Unable to override the log format to " + overrideLogFormat, ex);
             }

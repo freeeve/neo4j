@@ -49,6 +49,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.LogEntryCursor;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogIndexEncoding;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
@@ -90,6 +91,7 @@ public class DetachedLogTailScanner {
     private final FileSystemAbstraction fileSystem;
     private final KernelVersionProvider fallbackKernelVersionProvider;
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
+    private final LogFormatVersionProvider fallbackLogFormatVersionProvider;
 
     private LogTailMetadata logTail;
 
@@ -105,6 +107,7 @@ public class DetachedLogTailScanner {
         this.fileSystem = context.getFileSystem();
         this.failOnCorruptedLogFiles = context.isFailOnCorruptedLogFiles();
         this.fallbackKernelVersionProvider = context.getKernelVersionProvider();
+        this.fallbackLogFormatVersionProvider = context.getLogFormatVersionProvider();
         this.logTail = context.getExternalTailInfo();
         this.monitor = monitor;
         this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
@@ -156,6 +159,9 @@ public class DetachedLogTailScanner {
 
         LogPosition transactionLogPosition = checkpoint.transactionLogPosition();
         var postCheckPointInfo = getPostCheckpointInfo(logFile, checkpoint.kernelVersion(), transactionLogPosition);
+        LogFormat logFormatVersion = checkpointFile
+                .extractHeader(checkpoint.checkpointEntryPosition().getLogVersion())
+                .getLogFormatVersion();
         return new LogTailInformation(
                 loadConsensusIndexIfNeeded(logFile, checkpoint),
                 checkpoint.olderTransactionRecoveryRequired() || postCheckPointInfo.isPresent(),
@@ -165,9 +171,7 @@ public class DetachedLogTailScanner {
                 postCheckPointInfo.getEntryVersion(),
                 checkpoint.storeId(),
                 fallbackKernelVersionProvider,
-                checkpointFile
-                        .extractHeader(checkpoint.checkpointEntryPosition().getLogVersion())
-                        .getLogFormatVersion(),
+                () -> logFormatVersion,
                 new DetachedLogTailAppendIndexProvider(
                         commandReaderFactory,
                         binarySupportedKernelVersions,
@@ -189,13 +193,13 @@ public class DetachedLogTailScanner {
             throws IOException {
         var logPosition = LogPosition.UNSPECIFIED;
         var kernelVersion = EARLIEST;
-        LogFormat logFormat = null;
+        LogFormatVersionProvider logFormat = fallbackLogFormatVersionProvider;
         if (logFile.versionExists(lowestLogVersion)) {
             LogHeader logHeader = logFile.extractHeader(lowestLogVersion);
             if (logHeader != null) {
                 logPosition = logHeader.getStartPosition();
                 kernelVersion = logHeader.getLogFormatVersion().getFromKernelVersion();
-                logFormat = logHeader.getLogFormatVersion();
+                logFormat = logHeader::getLogFormatVersion;
             }
         }
 

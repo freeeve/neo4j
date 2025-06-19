@@ -396,6 +396,11 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         return this;
     }
 
+    @Override
+    public boolean handlesRotationInternally() {
+        return true;
+    }
+
     public void putTerm(long term) {
         checkState(
                 currentTerm <= term,
