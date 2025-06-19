@@ -2769,8 +2769,8 @@ class AstGenerator(
   } yield GraphTypeConstraintName(name)(pos)
 
   def _graphType(isDrop: Boolean): Gen[GraphType] = for {
-    nodeTypes <- oneOrMore(_nodeType).map(_.toSet)
-    edgeTypes <- oneOrMore(_edgeType).map(_.toSet)
+    nodeTypes <- oneOrMore(_nodeType).map(_.distinctBy(_.identifyingLabel).toSet)
+    edgeTypes <- oneOrMore(_edgeType).map(_.distinctBy(_.identifyingLabel).toSet)
     constraintDefs <- zeroOrMore(_graphTypeConstraintDef)
     constraintNames <- zeroOrMore(_graphTypeConstraintName)
     constraints = if (isDrop) constraintNames else constraintDefs
@@ -2786,8 +2786,7 @@ class AstGenerator(
       AlterCurrentGraphType.Drop
     )
     gt = if (operation == AlterCurrentGraphType.Drop) graphTypeWithConstraintNames else graphType
-    // TODO: re-enable when fixed all issues
-  } yield AlterCurrentGraphType(GraphType(Set.empty, Set.empty)(pos), AlterCurrentGraphType.Set)(pos)
+  } yield AlterCurrentGraphType(gt, operation)(pos)
 
   // Top level schema command method
 
