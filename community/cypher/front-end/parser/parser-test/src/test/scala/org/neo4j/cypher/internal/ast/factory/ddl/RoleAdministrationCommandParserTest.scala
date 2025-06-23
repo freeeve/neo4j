@@ -36,6 +36,8 @@ import org.neo4j.cypher.internal.util.InputPosition
 class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
   private val roleString = "role"
 
+  override protected def ignorePrettifier: Boolean = true
+
   //  Showing roles
 
   Seq("ROLES", "ROLE").foreach(roleKeyword => {

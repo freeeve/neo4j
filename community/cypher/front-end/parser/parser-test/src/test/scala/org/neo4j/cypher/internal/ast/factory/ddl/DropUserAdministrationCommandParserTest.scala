@@ -21,6 +21,8 @@ import org.neo4j.cypher.internal.ast.Statements
 
 class DropUserAdministrationCommandParserTest extends UserAdministrationCommandParserTestBase {
 
+  override protected def ignorePrettifier: Boolean = true
+
   test("DROP USER foo") {
     parsesTo[Statements](DropUser(literalFoo, ifExists = false)(pos))
   }

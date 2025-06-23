@@ -17,6 +17,11 @@
 package org.neo4j.cypher.internal.ast.test.util
 
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseFailure
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseResult
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseResults
@@ -26,15 +31,23 @@ import org.neo4j.cypher.internal.ast.test.util.AstParsing.parseAst
 import org.neo4j.cypher.internal.ast.test.util.MatchResults.merge
 import org.neo4j.cypher.internal.ast.test.util.VerifyAstPositionTestSupport.findPosMismatch
 import org.neo4j.cypher.internal.ast.test.util.VerifyStatementUseGraph.findUseGraphMismatch
+import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.SensitiveStringLiteral
+import org.neo4j.cypher.internal.label_expressions.BinaryLabelExpression
+import org.neo4j.cypher.internal.label_expressions.LabelExpression
+import org.neo4j.cypher.internal.label_expressions.MultiOperatorLabelExpression
 import org.neo4j.cypher.internal.parser.ast.AstBuildingAntlrParser
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.GqlExceptionMatcher
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.internal.helpers.Exceptions
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 import org.scalatest.matchers.must.Matchers.be
@@ -51,28 +64,30 @@ import scala.util.Try
 /** ScalaTest Matcher for ParseResults */
 case class ParseResultsMatcher[T <: ASTNode : ClassTag](
   override val matchers: Seq[Matcher[ParseResults[_]]] = Seq.empty,
-  override val support: ParserInTest => Boolean = _ => true
+  override val support: ParserInTest => Boolean = _ => true,
+  override val ignorePrettifier: Boolean = false
 ) extends Matcher[ParseResults[_]] with FluentMatchers[ParseResultsMatcher[T], T] {
   type Self = ParseResultsMatcher[T]
   override def apply(results: ParseResults[_]): MatchResult = merge(matchers.map(_.apply(results)))
-  override protected def createForParser(s: ParserInTest): Self = ParseResultsMatcher(support = _ == s)
+  override protected def createForParser(s: ParserInTest): Self = copy(matchers = Seq.empty, support = _ == s)
   override protected def copyWith(matchers: Seq[Matcher[ParseResults[_]]]): Self = copy(matchers = matchers)
 }
 
 /** ScalaTest Matcher for Cypher strings */
 case class ParseStringMatcher[T <: ASTNode : ClassTag](
   override val matchers: Seq[Matcher[ParseResults[_]]] = Seq.empty,
-  override val support: ParserInTest => Boolean = _ => true
+  override val support: ParserInTest => Boolean = _ => true,
+  override val ignorePrettifier: Boolean = false
 )(implicit p: Parsers[T]) extends Matcher[String] with FluentMatchers[ParseStringMatcher[T], T] {
   type Self = ParseStringMatcher[T]
 
   override def apply(cypher: String): MatchResult = {
     Try(parseAst[T](cypher)) match {
-      case Success(results)   => ParseResultsMatcher(matchers).apply(results)
+      case Success(results)   => ParseResultsMatcher(matchers, ignorePrettifier = ignorePrettifier).apply(results)
       case Failure(exception) => throw new RuntimeException(s"Test framework failed\nCypher: $cypher", exception)
     }
   }
-  override protected def createForParser(s: ParserInTest): Self = ParseStringMatcher(support = _ == s)
+  override protected def createForParser(s: ParserInTest): Self = copy(matchers = Seq.empty, support = _ == s)
   override protected def copyWith(matchers: Seq[Matcher[ParseResults[_]]]): Self = copy(matchers = matchers)
 }
 
@@ -85,11 +100,21 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   def withoutErrors: Self = and(beSuccess)
   def withAstLike(assertion: T => Unit): Self = and(haveAstLike(assertion))
   def withPositionOf[S <: ASTNode : ClassTag](expected: InputPosition*): Self = and(haveAstPositions[S](expected: _*))
-  def toAst(expected: ASTNode): Self = and(haveAst(expected)).withEqualPositions.and(haveEqualWithGraph(expected))
-  def toAstIgnorePos(expected: ASTNode): Self = and(haveAst(expected)).and(haveEqualWithGraph(expected))
+
+  def toAst(expected: ASTNode): Self = toAstWith(expected)
+
+  def toAstWith(expected: ASTNode, prettifierRoundTrip: Boolean = true, comparePositions: Boolean = true): Self = {
+    var matchers = and(haveAst(expected))
+    if (comparePositions) matchers = matchers.withEqualPositions
+    if (prettifierRoundTrip && !ignorePrettifier) matchers = matchers.withPrettifierRoundTrip
+    matchers.and(haveEqualWithGraph(expected))
+  }
+
+  def toAstIgnorePos(expected: ASTNode): Self = toAstWith(expected, comparePositions = false)
   def toAstPositioned(expected: T): Self = toAstIgnorePos(expected).and(havePositionedAst(expected))
   def toAsts(expected: PartialFunction[ParserInTest, T]): Self = and(expected.andThen(haveAst(_)))
   def containing[C <: ASTNode : ClassTag](expected: C*): Self = and(haveAstContaining(expected: _*))
+  def withPrettifierRoundTrip: Self = and(PrettifyToTheSameAst)
   def errorShould(matcher: Matcher[Throwable]): Self = and(failLike(matcher))
   def messageShould(matcher: Matcher[String]): Self = errorShould(matcher.compose(t => norm(t.getMessage)))
   def withError(assertion: Throwable => Unit): Self = errorShould(beLike(assertion))
@@ -187,6 +212,7 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   protected def copyWith(matchers: Seq[Matcher[ParseResults[_]]]): Self
   protected def createForParser(parser: ParserInTest): Self
   protected def matchers: Seq[Matcher[ParseResults[_]]]
+  protected def ignorePrettifier: Boolean
 }
 
 object FluentMatchers {
@@ -210,7 +236,7 @@ trait AstMatchers {
     be(Right(expectedClass)).compose[ParseResult](_.toTry.toEither.swap.map(_.getClass))
 
   def haveAst(expected: ASTNode): Matcher[ParseResult] =
-    be(ParseSuccess(expected))
+    be(Success(expected)).compose(_.toTry)
 
   def havePositionedAst(expected: ASTNode): Matcher[ParseResult] =
     be(Right(None)).compose(r => resultAsEither[ASTNode](r).map(findPosMismatch(expected, _)))
@@ -375,4 +401,88 @@ object MatchResults {
        |
        |${parserResults.mkString("\n")}""".stripMargin
   }
+}
+
+object PrettifyToTheSameAst extends Matcher[ParseResult] with AstParsing {
+  private val expressionStringifier = ExpressionStringifier(alwaysParens = true, alwaysBacktick = true)
+  private val prettifier = Prettifier(expressionStringifier)
+
+  override def apply(result: ParseResult): MatchResult = {
+    val mismatch = result match {
+      case ParseSuccess(ast: Statements) if ast.statements.size == 1 =>
+        prettifierMismatch[Statement](result, ast.statements.head, prettifier.asString, StatementParsers)
+      case ParseSuccess(ast: Statement) =>
+        prettifierMismatch[Statement](result, ast, prettifier.asString, StatementParsers)
+      case ParseSuccess(ast: Expression) =>
+        prettifierMismatch[Expression](result, ast, expressionStringifier.apply, ExpressionParsers)
+      case ParseFailure(throwable) => None
+      case _                       => None
+    }
+
+    MatchResult(
+      mismatch.isEmpty,
+      """Expected parser {0} to parse prettified AST.
+        |
+        |Prettified Query:
+        |{1}
+        |
+        |Parsed Prettified Query (not equal to expected AST):
+        |{2}
+        |""".stripMargin,
+      "Expected AST to NOT prettify into the same AST",
+      mismatch.getOrElse(Vector(result.parser, "Not available", "Not available"))
+    )
+  }
+
+  private def prettifierMismatch[T <: ASTNode](
+    result: ParseResult,
+    ast: T,
+    prettify: T => String,
+    parsers: Parsers[T]
+  ): Option[Vector[Any]] = {
+    val prettified = Try(prettify(ast))
+    val rewrittenAst = ast.endoRewrite(rewriter)
+    val reParsed = prettified.map(parsers.parse(result.parser, _).endoRewrite(rewriter))
+    Option.when(!reParsed.toOption.contains(rewrittenAst)) {
+      (prettified, reParsed) match {
+        case (Failure(prettifierError), _) =>
+          Vector(
+            result.parser,
+            "Failed to prettify query:\n" + Exceptions.stringify(prettifierError),
+            "Not available (prettifying failed)"
+          )
+        case (Success(pretty), Failure(reParseError)) =>
+          Vector(result.parser, pretty, "Failed to parse prettified query:\n" + Exceptions.stringify(reParseError))
+        case (Success(pretty), Success(newAst)) =>
+          Vector(result.parser, pretty, pprint.apply(newAst).render)
+      }
+    }
+  }
+
+  val rewriter: Rewriter = bottomUp(Rewriter.lift({
+    // Ignore input text of return items
+    case i @ UnaliasedReturnItem(e, _) => UnaliasedReturnItem(e, "")(i.position)
+
+    // Not sure if this is a bug or not, but the round trip will change `containsIs` so we ignore that
+    case labelExpression: LabelExpression if labelExpression.containsIs =>
+      labelExpression match {
+        case e: BinaryLabelExpression => e match {
+            case e: LabelExpression.ColonConjunction => e.copy(containsIs = false)(e.position)
+            case e: LabelExpression.ColonDisjunction => e.copy(containsIs = false)(e.position)
+          }
+        case e: MultiOperatorLabelExpression => e match {
+            case e: LabelExpression.Disjunctions => e.copy(containsIs = false)(e.position)
+            case e: LabelExpression.Conjunctions => e.copy(containsIs = false)(e.position)
+          }
+        case e: LabelExpression.Negation    => e.copy(containsIs = false)(e.position)
+        case e: LabelExpression.Wildcard    => e.copy(containsIs = false)(e.position)
+        case e: LabelExpression.Leaf        => e.copy(containsIs = false)
+        case e: LabelExpression.DynamicLeaf => e.copy(containsIs = false)
+      }
+
+    // The prettifier hides these
+    case e: SensitiveStringLiteral => e.copy("******".getBytes)(e.position)
+
+    case _: InputPosition => InputPosition.NONE
+  }))
 }

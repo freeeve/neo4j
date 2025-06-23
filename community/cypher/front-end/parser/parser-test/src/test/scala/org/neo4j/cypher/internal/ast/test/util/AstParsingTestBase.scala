@@ -56,7 +56,7 @@ trait AstParsingMatchers extends TestName {
    * The returned [[ParseStringMatcher]] can be used to add assertions.
    */
   def parse[T <: ASTNode : ClassTag](implicit p: Parsers[T]): ParseStringMatcher[T] =
-    ParseStringMatcher[T]().withoutErrors
+    ParseStringMatcher[T](ignorePrettifier = ignorePrettifier).withoutErrors
 
   /**
    * Parse successfully to the specified ast in all parsers.
@@ -70,7 +70,7 @@ trait AstParsingMatchers extends TestName {
    * The returned [[ParseStringMatcher]] can be used to add assertions.
    */
   def notParse[T <: ASTNode : ClassTag](implicit p: Parsers[T]): ParseStringMatcher[T] =
-    ParseStringMatcher[T]().withAnyFailure
+    ParseStringMatcher[T](ignorePrettifier = ignorePrettifier).withAnyFailure
 
   /**
    * Custom assertion for each parser.
@@ -79,7 +79,10 @@ trait AstParsingMatchers extends TestName {
   def parseIn[T <: ASTNode : ClassTag](
     f: ParserInTest => ParseStringMatcher[T] => ParseStringMatcher[T]
   )(implicit p: Parsers[T]): ParseStringMatcher[T] =
-    ParseStringMatcher[T]().in(f)
+    ParseStringMatcher[T](ignorePrettifier = ignorePrettifier).in(f)
+
+  // Hack to be able to disable the prettifier round trip check for a large group of tests
+  protected def ignorePrettifier: Boolean = false
 }
 
 object AstParsingMatchers extends AstParsingMatchers
@@ -95,7 +98,7 @@ trait TestNameAstAssertions extends AstParsingMatchers with AstParsing with Test
    * The returned [[Parses]] can be used to add assertions.
    */
   def parses[T <: ASTNode : ClassTag](implicit p: Parsers[T]): Parses[T] =
-    Parses(parseAst[T](testName)).withoutErrors
+    Parses(parseAst[T](testName), ignorePrettifier = ignorePrettifier).withoutErrors
 
   /**
    * Parse test name successfully to the specified ast in all parsers.
@@ -109,7 +112,7 @@ trait TestNameAstAssertions extends AstParsingMatchers with AstParsing with Test
    * The returned [[Parses]] can be used to add assertions.
    */
   def failsParsing[T <: ASTNode : ClassTag]()(implicit p: Parsers[T]): Parses[T] =
-    Parses(parseAst[T](testName)).withAnyFailure
+    Parses(parseAst[T](testName), ignorePrettifier = ignorePrettifier).withAnyFailure
 
   /**
    * Custom assertion for each parser when parsing test name.
@@ -117,12 +120,13 @@ trait TestNameAstAssertions extends AstParsingMatchers with AstParsing with Test
    */
   def parsesIn[T <: ASTNode : ClassTag](
     f: ParserInTest => Parses[T] => Parses[T]
-  )(implicit p: Parsers[T]): Parses[T] = Parses(parseAst[T](testName)).in(f)
+  )(implicit p: Parsers[T]): Parses[T] = Parses(parseAst[T](testName), ignorePrettifier = ignorePrettifier).in(f)
 }
 
 case class Parses[T <: ASTNode : ClassTag](
   result: ParseResults[T],
-  override val support: ParserInTest => Boolean = _ => true
+  override val support: ParserInTest => Boolean = _ => true,
+  override val ignorePrettifier: Boolean = false
 ) extends FluentMatchers[Parses[T], T] {
 
   override protected def copyWith(matchers: Seq[Matcher[ParseResults[_]]]): Parses[T] = {
@@ -130,6 +134,6 @@ case class Parses[T <: ASTNode : ClassTag](
     this
   }
 
-  override protected def createForParser(p: ParserInTest): Parses[T] = Parses(result, _ == p)
+  override protected def createForParser(p: ParserInTest): Parses[T] = copy(support = _ == p)
   override protected def matchers: Seq[Matcher[ParseResults[_]]] = Seq.empty
 }

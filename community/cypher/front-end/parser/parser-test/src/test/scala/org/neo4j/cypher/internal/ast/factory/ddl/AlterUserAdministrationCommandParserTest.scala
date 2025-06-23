@@ -31,6 +31,8 @@ import scala.util.Random
 
 class AlterUserAdministrationCommandParserTest extends UserAdministrationCommandParserTestBase {
 
+  override protected def ignorePrettifier: Boolean = true
+
   //  Alter user
 
   test("ALTER USER foo SET PASSWORD 'password'") {

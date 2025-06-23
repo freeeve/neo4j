@@ -35,6 +35,8 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class AliasAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
+  override protected def ignorePrettifier: Boolean = true
+
   // CREATE ALIAS
 
   test("CREATE ALIAS alias FOR DATABASE target") {

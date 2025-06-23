@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.ast.factory.ddl
 
-import GraphTypeParserTest.cypher5Error
 import org.neo4j.cypher.internal.ast.AstGraphTypeConstructionTestSupport
 import org.neo4j.cypher.internal.ast.EmptyNodeTypeReference
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.KeyConstraint
@@ -24,6 +23,7 @@ import org.neo4j.cypher.internal.ast.GraphTypeConstraint.UniquenessConstraint
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineKeyConstraint
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineUniquenessConstraint
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.factory.ddl.GraphTypeParserTest.cypher5Error
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.symbols.DateType

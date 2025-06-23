@@ -69,6 +69,8 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
     with CypherScalaCheckDrivenPropertyChecks {
   implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
+  override protected def ignorePrettifier: Boolean = true
+
   case class Action(action: GraphAction, verb: String, preposition: String, func: resourcePrivilegeFunc)
 
   case class Resource(properties: String, resource: ActionResourceBase)

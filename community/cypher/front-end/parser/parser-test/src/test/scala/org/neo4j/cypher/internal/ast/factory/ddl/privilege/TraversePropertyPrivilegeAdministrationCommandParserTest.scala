@@ -61,6 +61,8 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
     with CypherScalaCheckDrivenPropertyChecks {
   implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny
 
+  override protected def ignorePrettifier: Boolean = true
+
   case class Action(verb: String, preposition: String, func: noResourcePrivilegeFunc)
 
   val actions: Seq[Action] = Seq(

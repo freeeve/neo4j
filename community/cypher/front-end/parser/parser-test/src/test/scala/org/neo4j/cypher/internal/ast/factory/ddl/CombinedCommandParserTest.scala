@@ -29,6 +29,8 @@ import scala.util.Random
 /* Tests for combining listing and terminating commands */
 class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
+  override protected def ignorePrettifier: Boolean = true
+
   private type CommandClauseWithNames =
     (
       Either[List[String], Expression],

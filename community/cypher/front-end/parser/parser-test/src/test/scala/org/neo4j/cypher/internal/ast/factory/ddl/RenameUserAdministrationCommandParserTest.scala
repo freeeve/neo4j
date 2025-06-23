@@ -21,6 +21,8 @@ import org.neo4j.cypher.internal.ast.Statements
 
 class RenameUserAdministrationCommandParserTest extends UserAdministrationCommandParserTestBase {
 
+  override protected def ignorePrettifier: Boolean = true
+
   test("RENAME USER foo TO bar") {
     parsesTo[Statements](RenameUser(literalFoo, literalBar, ifExists = false)(pos))
   }

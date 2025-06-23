@@ -28,6 +28,8 @@ import org.neo4j.cypher.internal.util.symbols.IntegerType
 /* Tests for terminating transactions */
 class TerminateTransactionsCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
+  override protected def ignorePrettifier: Boolean = true
+
   Seq("TRANSACTION", "TRANSACTIONS").foreach { transactionKeyword =>
     test(s"TERMINATE $transactionKeyword 'db1-transaction-123'") {
       assertAst(

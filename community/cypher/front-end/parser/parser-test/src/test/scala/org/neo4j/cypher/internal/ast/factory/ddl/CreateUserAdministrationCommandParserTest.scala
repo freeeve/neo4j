@@ -30,6 +30,8 @@ import scala.util.Random
 
 class CreateUserAdministrationCommandParserTest extends UserAdministrationCommandParserTestBase {
 
+  override protected def ignorePrettifier: Boolean = true
+
   test("CREATE USER foo SET PASSWORD 'password'") {
     parsesTo[Statements](CreateUser(
       literalFoo,

@@ -57,6 +57,8 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 /* Tests for creating and dropping constraints */
 class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
+  override protected def ignorePrettifier: Boolean = true
+
   // Key and uniqueness
 
   Seq("NODE", "").foreach(nodeKeyword => {

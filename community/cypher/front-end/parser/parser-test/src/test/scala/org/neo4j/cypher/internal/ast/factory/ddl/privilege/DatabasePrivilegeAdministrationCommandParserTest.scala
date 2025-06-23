@@ -54,6 +54,8 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
   private val databaseScopeFooBar = NamedDatabasesScope(Seq(literalFoo, namespacedName("bar")))(_)
   private val databaseScopeFooParamBar = NamedDatabasesScope(Seq(literalFoo, stringParamName("bar")))(_)
 
+  override protected def ignorePrettifier: Boolean = true
+
   Seq(
     ("GRANT", "TO", grantDatabasePrivilege: databasePrivilegeFunc),
     ("DENY", "TO", denyDatabasePrivilege: databasePrivilegeFunc),
