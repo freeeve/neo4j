@@ -136,7 +136,8 @@ class AbstractBaseRecordCopyTest {
                     stringAllocator,
                     arrayAllocator,
                     NULL_CONTEXT,
-                    INSTANCE);
+                    INSTANCE,
+                    "db-format-2000");
             int tentativeBlocksWithThisOne = blocksOccupied + block.getValueBlocks().length;
             if (tentativeBlocksWithThisOne <= 4) {
                 record.addPropertyBlock(block);

@@ -157,7 +157,7 @@ public class Commands {
         record.setCreated();
         PropertyBlock block = new PropertyBlock();
         if (valueRecordIds.length == 0) {
-            PropertyStore.encodeValue(block, key, Values.of(123), null, null, NULL_CONTEXT, INSTANCE);
+            PropertyStore.encodeValue(block, key, Values.of(123), null, null, NULL_CONTEXT, INSTANCE, "db-format-2000");
         } else {
             PropertyStore.setSingleBlockValue(block, key, type, valueRecordIds[0]);
             block.setValueRecords(dynamicRecords(valueRecordIds));

@@ -141,7 +141,8 @@ public class NodeImporter extends EntityImporter {
                     allocatorProvider.allocator(PROPERTY_STRING),
                     allocatorProvider.allocator(PROPERTY_ARRAY),
                     cursorContext,
-                    memoryTracker);
+                    memoryTracker,
+                    storeFormat);
             idPropertyRecord.addPropertyBlock(idPropertyBlock);
             idPropertyRecord.setId(nodeId); // yes nodeId
             idPropertyRecord.setInUse(true);

@@ -70,7 +70,7 @@ public class GqlParams {
         entityType(new VERBATIM()), // One of 'node', 'relationship'
         expr(new STRLIT()), // Cypher expression | 1 + n.pro
         exprType(new VERBATIM()), // Freeform expression type
-        feat(new VERBATIM()), // Freeform feature description | World dominatio
+        feat(new VERBATIM()), // Freeform feature description | World domination
         feat1(new VERBATIM()),
         feat2(new VERBATIM()),
         field(new IDENT()), // Field identifier
@@ -139,6 +139,7 @@ public class GqlParams {
         serverAddress(new STRLIT()), // Server address | localhost:1024
         serverType(new STRLIT()), // Server type
         sig(new VERBATIM()), // Procedure or function signature
+        storeFormat(new VERBATIM()), // Store format name. One of "aligned", "block", "standard", "high_limit".
         syntax(new IDENT()), // Freeform syntax or keyword
         temporal(new TEMPORAL()), // Temporal value
         temporal1(new TEMPORAL()),

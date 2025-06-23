@@ -368,7 +368,8 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
         }
         if (record.inUse()) {
             PropertyBlock block = new PropertyBlock();
-            PropertyStore.encodeValue(block, random.nextInt(1000), Values.of(123), null, null, NULL_CONTEXT, INSTANCE);
+            PropertyStore.encodeValue(
+                    block, random.nextInt(1000), Values.of(123), null, null, NULL_CONTEXT, INSTANCE, "db-format-2000");
             record.addPropertyBlock(block);
         }
         if (random.nextBoolean()) {

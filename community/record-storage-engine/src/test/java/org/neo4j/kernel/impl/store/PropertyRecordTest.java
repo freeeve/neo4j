@@ -85,7 +85,7 @@ class PropertyRecordTest {
 
     private static void addBlock(PropertyRecord record, int key, int value) {
         PropertyBlock block = new PropertyBlock();
-        PropertyStore.encodeValue(block, key, Values.of(value), null, null, NULL_CONTEXT, INSTANCE);
+        PropertyStore.encodeValue(block, key, Values.of(value), null, null, NULL_CONTEXT, INSTANCE, "db-format-2000");
         for (long valueBlock : block.getValueBlocks()) {
             record.addLoadedBlock(valueBlock);
         }

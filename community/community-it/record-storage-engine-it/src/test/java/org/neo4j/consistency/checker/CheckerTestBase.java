@@ -191,7 +191,7 @@ class CheckerTestBase {
         relationshipStore = neoStores.getRelationshipStore();
         schemaStore = neoStores.getSchemaStore();
         tokenHolders = dependencies.resolveDependency(TokenHolders.class);
-        schemaStorage = new SchemaStorage(schemaStore, tokenHolders);
+        schemaStorage = new SchemaStorage(schemaStore, tokenHolders, "db-format-2000");
         cacheAccess = new DefaultCacheAccess(
                 NumberArrayFactories.HEAP.newDynamicByteArray(10_000, new byte[MAX_BYTES], INSTANCE));
         cacheAccess.setCacheSlotSizes(DEFAULT_SLOT_SIZES);
@@ -423,7 +423,8 @@ class CheckerTestBase {
                         allocatorProvider.allocator(StoreType.PROPERTY_STRING),
                         allocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                         CursorContext.NULL_CONTEXT,
-                        INSTANCE);
+                        INSTANCE,
+                        "db-format-2000");
         return propertyBlock;
     }
 

@@ -64,10 +64,12 @@ import org.neo4j.values.storable.Values;
 public class SchemaStorage implements SchemaRuleAccess {
     private final SchemaStore schemaStore;
     private final TokenHolders tokenHolders;
+    private final String storeFormat;
 
-    public SchemaStorage(SchemaStore schemaStore, TokenHolders tokenHolders) {
+    public SchemaStorage(SchemaStore schemaStore, TokenHolders tokenHolders, String storeFormat) {
         this.schemaStore = schemaStore;
         this.tokenHolders = tokenHolders;
+        this.storeFormat = storeFormat;
     }
 
     @Override
@@ -183,7 +185,8 @@ public class SchemaStorage implements SchemaRuleAccess {
                     allocationProvider.allocator(PROPERTY_STRING),
                     allocationProvider.allocator(PROPERTY_ARRAY),
                     cursorContext,
-                    memoryTracker);
+                    memoryTracker,
+                    storeFormat);
             blocks.add(block);
         });
 

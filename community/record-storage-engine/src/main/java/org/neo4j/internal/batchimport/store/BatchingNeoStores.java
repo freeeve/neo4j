@@ -724,4 +724,8 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
     public void needsRebuildNodeStoreIdFile() {
         needsRebuildNodeStoreIdFile = true;
     }
+
+    public Config getNeo4jConfig() {
+        return neo4jConfig;
+    }
 }

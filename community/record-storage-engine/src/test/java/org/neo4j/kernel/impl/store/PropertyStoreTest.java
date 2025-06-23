@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.store;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.collections.api.factory.Sets.immutable;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,6 +42,9 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.Config;
+import org.neo4j.exceptions.FeatureUnsupportedOnStoreFormatException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
@@ -150,9 +152,14 @@ class PropertyStoreTest {
     @MethodSource("vectors")
     void cannotStoreVectors(Value vector) {
         PropertyBlock block = new PropertyBlock();
-        assertThatThrownBy(() -> PropertyStore.encodeValue(block, 1, vector, null, null, NULL_CONTEXT, INSTANCE))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Record storage engine does not support storing vectors.");
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> PropertyStore.encodeValue(
+                        block, 1, vector, null, null, NULL_CONTEXT, INSTANCE, "db-format-2000"))
+                .isInstanceOf(FeatureUnsupportedOnStoreFormatException.class)
+                .hasMessageContaining(
+                        "storing properties of type vector is not supported in db-format-2000 store format")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N77)
+                .hasStatusDescription(
+                        "error: system configuration or operation exception - not supported in this store format. storing properties of type vector is not supported in db-format-2000 store format.");
     }
 
     private static Stream<Value> vectors() {

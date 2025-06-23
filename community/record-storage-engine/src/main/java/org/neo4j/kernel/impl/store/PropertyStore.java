@@ -36,6 +36,7 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.neo4j.configuration.Config;
+import org.neo4j.exceptions.FeatureUnsupportedOnStoreFormatException;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.recordstorage.InconsistentDataReadException;
@@ -341,7 +342,8 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
             DynamicRecordAllocator stringAllocator,
             DynamicRecordAllocator arrayAllocator,
             CursorContext cursorContext,
-            MemoryTracker memoryTracker) {
+            MemoryTracker memoryTracker,
+            String storeFormat) {
         if (value instanceof ArrayValue) {
             Object asObject = value.asObject();
 
@@ -363,7 +365,8 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
             }
             block.setValueRecords(arrayRecords);
         } else {
-            value.writeTo(new PropertyBlockValueWriter(block, keyId, stringAllocator, cursorContext, memoryTracker));
+            value.writeTo(new PropertyBlockValueWriter(
+                    block, keyId, stringAllocator, cursorContext, memoryTracker, storeFormat));
         }
     }
 
@@ -440,18 +443,21 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
         private final DynamicRecordAllocator stringAllocator;
         private final CursorContext cursorContext;
         private final MemoryTracker memoryTracker;
+        private final String storeFormat;
 
         PropertyBlockValueWriter(
                 PropertyBlock block,
                 int keyId,
                 DynamicRecordAllocator stringAllocator,
                 CursorContext cursorContext,
-                MemoryTracker memoryTracker) {
+                MemoryTracker memoryTracker,
+                String storeFormat) {
             this.block = block;
             this.keyId = keyId;
             this.stringAllocator = stringAllocator;
             this.cursorContext = cursorContext;
             this.memoryTracker = memoryTracker;
+            this.storeFormat = storeFormat;
         }
 
         @Override
@@ -591,32 +597,32 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
 
         @Override
         public void writeInt8Vector(byte[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
         }
 
         @Override
         public void writeInt16Vector(short[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
         }
 
         @Override
         public void writeInt32Vector(int[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
         }
 
         @Override
         public void writeInt64Vector(long[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
         }
 
         @Override
         public void writeFloat32Vector(float[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
         }
 
         @Override
         public void writeFloat64Vector(double[] values) throws RuntimeException {
-            throw new IllegalArgumentException("Record storage engine does not support storing vectors.");
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
         }
     }
 

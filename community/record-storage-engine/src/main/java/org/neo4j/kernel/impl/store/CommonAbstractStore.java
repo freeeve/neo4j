@@ -942,4 +942,8 @@ public abstract class CommonAbstractStore<RECORD extends AbstractBaseRecord, HEA
         // which means it is only accurate up to the page size. This is fine since it's a conservative estimate.
         return idGenerator.getUnusedIdCount() * recordSize;
     }
+
+    public Config getConfiguration() {
+        return configuration;
+    }
 }

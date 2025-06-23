@@ -577,7 +577,8 @@ class BatchingNeoStoresTest {
                     allocatorProvider.allocator(StoreType.PROPERTY_STRING),
                     allocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                     NULL_CONTEXT,
-                    INSTANCE);
+                    INSTANCE,
+                    "db-format-2000");
             ((PropertyRecord) record).addPropertyBlock(block);
         }
         try (var storeCursor = store.openPageCursorForWriting(0, NULL_CONTEXT)) {

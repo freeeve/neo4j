@@ -143,7 +143,8 @@ class PropertyCreatorTest {
                 allocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                 new PropertyTraverser(),
                 new TransactionIdSequenceProvider(neoStores),
-                cursorContext);
+                cursorContext,
+                "db-format-2000");
     }
 
     @AfterEach
@@ -433,7 +434,8 @@ class PropertyCreatorTest {
                     allocatorProvider.allocator(StoreType.PROPERTY_STRING),
                     allocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                     cursorContext,
-                    INSTANCE);
+                    INSTANCE,
+                    "db-format-2000");
             record.addPropertyBlock(block);
         }
         assertTrue(record.size() <= PropertyType.getPayloadSize());

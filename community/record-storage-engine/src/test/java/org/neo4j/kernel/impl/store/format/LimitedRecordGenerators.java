@@ -136,7 +136,8 @@ public class LimitedRecordGenerators implements RecordGenerators {
                         stringAllocator,
                         arrayAllocator,
                         CursorContext.NULL_CONTEXT,
-                        INSTANCE);
+                        INSTANCE,
+                        "db-format-2000");
                 int tentativeBlocksWithThisOne = blocksOccupied + block.getValueBlocks().length;
                 if (tentativeBlocksWithThisOne <= 4) {
                     record.addPropertyBlock(block);

@@ -4535,6 +4535,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "upgrade failed",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_51N77(
+            new GqlStatus("51N77"),
+            "{ %s } is not supported in { %s } store format.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.feat, GqlParams.StringParam.storeFormat},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "not supported in this store format",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
             "Execution of the procedure { %s } timed out after { %s } { %s }.",

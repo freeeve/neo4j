@@ -27,6 +27,7 @@ import java.util.Map;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.batchimport.DataImporter.Monitor;
 import org.neo4j.internal.batchimport.store.BatchingNeoStores;
@@ -62,6 +63,7 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
     private final PageCursor propertyUpdateCursor;
     protected final StoreCursors storeCursors;
     protected final StoreCursors tempStoreCursors;
+    protected final String storeFormat;
     private PropertyBlock[] propertyBlocks = new PropertyBlock[100];
     private int propertyBlocksCursor;
     private final BatchingIdGetter propertyIds;
@@ -104,6 +106,7 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
         this.dynamicArrayRecordAllocator = new StandardDynamicRecordAllocator(
                 arrayPropertyIds, propertyStore.getStringStore().getRecordDataSize());
         this.propertyUpdateCursor = propertyStore.openPageCursorForWriting(0, cursorContext);
+        this.storeFormat = stores.getNeo4jConfig().get(GraphDatabaseSettings.db_format);
     }
 
     static BatchingIdGetter batchingIdGetter(CommonAbstractStore<? extends AbstractBaseRecord, ?> store) {
@@ -164,7 +167,8 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
                 dynamicStringRecordAllocator,
                 dynamicArrayRecordAllocator,
                 cursorContext,
-                memoryTracker);
+                memoryTracker,
+                storeFormat);
     }
 
     protected Map<String, Object> namedProperties(IntObjectMap<Value> properties) {

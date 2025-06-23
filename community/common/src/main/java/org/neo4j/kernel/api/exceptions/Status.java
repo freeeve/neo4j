@@ -779,6 +779,23 @@ public interface Status {
         }
     }
 
+    enum Data implements Status {
+        DataUnsupportedByStoreFormat(
+                ClientError,
+                "some data added in this transaction is not supported by the store format of this database");
+
+        private final Code code;
+
+        @Override
+        public Code code() {
+            return code;
+        }
+
+        Data(Classification classification, String description) {
+            this.code = new Code(classification, this, description);
+        }
+    }
+
     Code code();
 
     class Code {

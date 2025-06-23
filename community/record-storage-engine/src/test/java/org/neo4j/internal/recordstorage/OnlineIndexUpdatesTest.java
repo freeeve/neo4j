@@ -444,7 +444,8 @@ class OnlineIndexUpdatesTest {
                 allocatorProvider.allocator(PROPERTY_STRING),
                 allocatorProvider.allocator(PROPERTY_ARRAY),
                 NULL_CONTEXT,
-                INSTANCE);
+                INSTANCE,
+                "db-format-2000");
         propertyRecord.addPropertyBlock(propertyBlock);
 
         return propertyRecord.getId();

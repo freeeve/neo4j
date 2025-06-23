@@ -25,6 +25,7 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.recordstorage.RecordAccess.LoadMonitor;
 import org.neo4j.internal.recordstorage.id.BatchedTransactionIdSequenceProvider;
 import org.neo4j.internal.recordstorage.id.IdSequenceProvider;
@@ -106,7 +107,8 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
                 dynamicAllocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                 propertyTraverser,
                 idSequenceProvider,
-                cursorContext);
+                cursorContext,
+                config.get(GraphDatabaseSettings.db_format));
     }
 
     @Override

@@ -99,6 +99,7 @@ class PropertyValueRecordSizeCalculatorTest {
                 DYNAMIC_RECORD_SIZE,
                 DYNAMIC_RECORD_SIZE - 10,
                 DYNAMIC_RECORD_SIZE,
-                DYNAMIC_RECORD_SIZE - 10);
+                DYNAMIC_RECORD_SIZE - 10,
+                "db-format-2000");
     }
 }

@@ -274,7 +274,8 @@ public class DetectRandomSabotageIT {
         PropertyBlock block = Iterables.first(indexConfigPropertyRecord.propertyBlocks());
         indexConfigPropertyRecord.removePropertyBlock(block.getKeyIndexId());
         PropertyBlock newBlock = new PropertyBlock();
-        PropertyStore.encodeValue(newBlock, tokenId[0], intValue(11), null, null, NULL_CONTEXT, INSTANCE);
+        PropertyStore.encodeValue(
+                newBlock, tokenId[0], intValue(11), null, null, NULL_CONTEXT, INSTANCE, "db-format-2000");
         indexConfigPropertyRecord.addPropertyBlock(newBlock);
         try (var storeCursor = storageCursors.writeCursor(PROPERTY_CURSOR)) {
             propertyStore.updateRecord(indexConfigPropertyRecord, storeCursor, NULL_CONTEXT, storageCursors);
@@ -1225,7 +1226,8 @@ public class DetectRandomSabotageIT {
                                 allocatorProvider.allocator(StoreType.PROPERTY_STRING),
                                 allocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                                 NULL_CONTEXT,
-                                INSTANCE);
+                                INSTANCE,
+                                "db-format-2000");
                         property.addPropertyBlock(newBlock);
                         try (var storeCursor = storageCursors.writeCursor(PROPERTY_CURSOR)) {
                             propertyStore.updateRecord(property, storeCursor, NULL_CONTEXT, storageCursors);

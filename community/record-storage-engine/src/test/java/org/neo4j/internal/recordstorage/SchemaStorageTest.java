@@ -147,7 +147,7 @@ class SchemaStorageTest {
         relationshipTypeTokens.getOrCreateId(TYPE1);
 
         var tokenHolders = new TokenHolders(propertyKeyTokens, labelTokens, relationshipTypeTokens);
-        storage = new SchemaStorage(neoStores.getSchemaStore(), tokenHolders);
+        storage = new SchemaStorage(neoStores.getSchemaStore(), tokenHolders, "db-format-2000");
         storeCursors = new CachedStoreCursors(neoStores, NULL_CONTEXT);
     }
 

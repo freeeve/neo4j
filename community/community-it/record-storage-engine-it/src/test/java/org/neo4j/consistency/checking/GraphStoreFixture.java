@@ -614,7 +614,8 @@ public abstract class GraphStoreFixture implements AutoCloseable {
                     allocatorProvider.allocator(StoreType.PROPERTY_STRING),
                     allocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                     NULL_CONTEXT,
-                    INSTANCE);
+                    INSTANCE,
+                    "db-format-2000");
             propertyRecord.addPropertyBlock(propertyBlock);
 
             return propertyRecord;

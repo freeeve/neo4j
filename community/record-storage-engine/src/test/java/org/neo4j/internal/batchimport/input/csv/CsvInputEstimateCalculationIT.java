@@ -151,7 +151,8 @@ class CsvInputEstimateCalculationIT {
                 GraphDatabaseInternalSettings.string_block_size.defaultValue(),
                 0,
                 GraphDatabaseInternalSettings.array_block_size.defaultValue(),
-                0));
+                0,
+                "db-format-2000"));
 
         // when
         Config config = Config.defaults();
@@ -248,7 +249,8 @@ class CsvInputEstimateCalculationIT {
                 GraphDatabaseInternalSettings.string_block_size.defaultValue(),
                 0,
                 GraphDatabaseInternalSettings.array_block_size.defaultValue(),
-                0));
+                0,
+                "db-format-2000"));
 
         // then
         assertEquals(0, estimates.numberOfNodes());

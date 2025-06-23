@@ -114,7 +114,8 @@ class PropertyStoreTraceIT {
                     allocatorProvider.allocator(PROPERTY_STRING),
                     allocatorProvider.allocator(PROPERTY_ARRAY),
                     cursorContext,
-                    INSTANCE);
+                    INSTANCE,
+                    "db-format-2000");
 
             PageCursorTracer cursorTracer = cursorContext.getCursorTracer();
             assertThat(cursorTracer.pins()).isOne();

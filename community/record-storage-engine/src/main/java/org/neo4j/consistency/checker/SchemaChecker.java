@@ -35,6 +35,7 @@ import org.eclipse.collections.impl.factory.primitive.LongObjectMaps;
 import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.consistency.RecordType;
 import org.neo4j.consistency.checking.SchemaRuleKey;
 import org.neo4j.consistency.checking.index.IndexAccessors;
@@ -122,7 +123,8 @@ class SchemaChecker {
             MutableLongObjectMap<ConstraintObligation> constraintObligations = LongObjectMaps.mutable.empty();
             Map<SchemaRuleKey, SchemaRecord> verifiedRulesWithRecords = new HashMap<>();
 
-            SchemaStorage schemaStorage = new SchemaStorage(schemaStore, tokenHolders);
+            SchemaStorage schemaStorage = new SchemaStorage(
+                    schemaStore, tokenHolders, neoStores.getConfig().get(GraphDatabaseSettings.db_format));
             // Build map of obligations and such
             buildObligationsMap(
                     highId,

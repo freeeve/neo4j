@@ -259,7 +259,8 @@ class PropertyPhysicalToLogicalConverterTest {
                 allocatorProvider.allocator(StoreType.PROPERTY_STRING),
                 allocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                 NULL_CONTEXT,
-                INSTANCE);
+                INSTANCE,
+                "db-format-2000");
         return block;
     }
 

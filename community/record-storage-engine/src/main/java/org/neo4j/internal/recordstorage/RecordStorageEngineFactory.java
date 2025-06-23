@@ -62,6 +62,7 @@ import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.consistency.checker.EntityBasedMemoryLimiter;
 import org.neo4j.consistency.checker.RecordStorageConsistencyChecker;
 import org.neo4j.consistency.checking.ByteArrayBitsManipulator;
@@ -496,7 +497,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             stores.start(cursorContext);
             TokenHolders tokenHolders = loadReadOnlyTokens(stores, lenient, contextFactory, memoryTracker);
             List<SchemaRule> rules = new ArrayList<>();
-            SchemaStorage storage = new SchemaStorage(stores.getSchemaStore(), tokenHolders);
+            SchemaStorage storage = new SchemaStorage(
+                    stores.getSchemaStore(), tokenHolders, config.get(GraphDatabaseSettings.db_format));
 
             if (lenient) {
                 storage.getAllIgnoreMalformed(storeCursors, memoryTracker).forEach(rules::add);
@@ -608,7 +610,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
 
             return new SchemaRuleMigrationAccessImplExtended(
                     dstStore,
-                    new SchemaStorage(dstSchema, dstTokenHolders),
+                    new SchemaStorage(dstSchema, dstTokenHolders, config.get(GraphDatabaseSettings.db_format)),
                     allocatorProvider,
                     cursorContext,
                     memoryTracker,
@@ -986,7 +988,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
         TokenHolders dstTokenHolders = loadTokenHolders(stores, propertyKeyTokenCreator, storeCursors, memoryTracker);
         return new SchemaRuleMigrationAccessImpl(
                 stores,
-                new SchemaStorage(dstSchema, dstTokenHolders),
+                new SchemaStorage(dstSchema, dstTokenHolders, stores.getConfig().get(GraphDatabaseSettings.db_format)),
                 allocatorProvider,
                 cursorContext,
                 memoryTracker,

@@ -294,7 +294,8 @@ class DeleteDuplicateNodesStepTest {
                     allocatorProvider.allocator(PROPERTY_STRING),
                     allocatorProvider.allocator(PROPERTY_ARRAY),
                     NULL_CONTEXT,
-                    INSTANCE);
+                    INSTANCE,
+                    "db-format-2000");
             if (current == null || block.getValueBlocks().length > space) {
                 PropertyRecord next = propertyStore.newRecord();
                 nodeRecord.setIdTo(next);

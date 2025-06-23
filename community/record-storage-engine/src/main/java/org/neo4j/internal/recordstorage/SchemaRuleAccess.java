@@ -20,6 +20,7 @@
 package org.neo4j.internal.recordstorage;
 
 import java.util.Iterator;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.DuplicateSchemaRuleException;
 import org.neo4j.internal.kernel.api.exceptions.schema.MalformedSchemaRuleException;
@@ -39,7 +40,7 @@ import org.neo4j.token.TokenHolders;
 public interface SchemaRuleAccess extends org.neo4j.kernel.impl.storemigration.SchemaStorage {
 
     static SchemaRuleAccess getSchemaRuleAccess(SchemaStore store, TokenHolders tokenHolders) {
-        return new SchemaStorage(store, tokenHolders);
+        return new SchemaStorage(store, tokenHolders, store.getConfiguration().get(GraphDatabaseSettings.db_format));
     }
 
     long newRuleId(CursorContext cursorContext);

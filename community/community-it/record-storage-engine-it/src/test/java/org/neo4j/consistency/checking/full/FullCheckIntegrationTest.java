@@ -3153,7 +3153,14 @@ public class FullCheckIntegrationTest {
                 PropertyRecord record = new PropertyRecord(id).initialize(true, prev, next);
                 PropertyBlock block = new PropertyBlock();
                 PropertyStore.encodeValue(
-                        block, propertyKeyId, Values.intValue(10), null, null, NULL_CONTEXT, INSTANCE);
+                        block,
+                        propertyKeyId,
+                        Values.intValue(10),
+                        null,
+                        null,
+                        NULL_CONTEXT,
+                        INSTANCE,
+                        "db-format-2000");
                 record.addPropertyBlock(block);
                 return record;
             }
@@ -3579,7 +3586,8 @@ public class FullCheckIntegrationTest {
         DynamicRecordAllocator arrayAllocator = null;
         protoProperties.forEachKeyValue((keyId, value) -> {
             PropertyBlock block = new PropertyBlock();
-            PropertyStore.encodeValue(block, keyId, value, stringAllocator, arrayAllocator, NULL_CONTEXT, INSTANCE);
+            PropertyStore.encodeValue(
+                    block, keyId, value, stringAllocator, arrayAllocator, NULL_CONTEXT, INSTANCE, "db-format-2000");
             blocks.add(block);
         });
 

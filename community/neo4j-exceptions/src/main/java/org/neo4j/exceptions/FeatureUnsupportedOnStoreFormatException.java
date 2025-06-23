@@ -21,27 +21,27 @@ package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.kernel.api.exceptions.Status;
 
-public class InvalidTemporalArgumentException extends InvalidArgumentException {
+public class FeatureUnsupportedOnStoreFormatException extends Neo4jException {
 
-    private InvalidTemporalArgumentException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private FeatureUnsupportedOnStoreFormatException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 
-    public static InvalidTemporalArgumentException namedTimeZoneWithoutDate() {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N13)
-                        .build())
-                .build();
-        return new InvalidTemporalArgumentException(
-                gql,
-                "Using a named time zone e.g. [UTC] is not valid for a time without a date. Instead, use a specific time zone string e.g. +00:00.");
+    @Override
+    public Status status() {
+        return Status.Data.DataUnsupportedByStoreFormat;
     }
 
-    public static InvalidTemporalArgumentException invalidOffset(String offset) {
-        var gql = GqlHelper.getGql22007_22N12(offset);
-        return new InvalidTemporalArgumentException(gql, "Not a valid offset: " + offset);
+    public static FeatureUnsupportedOnStoreFormatException vectorsUnsupportedInRecordFormat(String storeFormat) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N77)
+                .withParam(GqlParams.StringParam.feat, "storing properties of type vector")
+                .withParam(GqlParams.StringParam.storeFormat, storeFormat)
+                .build();
+        return new FeatureUnsupportedOnStoreFormatException(
+                gql, "storing properties of type vector is not supported in %s store format".formatted(storeFormat));
     }
 }

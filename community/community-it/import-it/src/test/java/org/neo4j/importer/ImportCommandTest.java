@@ -2091,7 +2091,7 @@ class ImportCommandTest {
                         "--nodes",
                         nodeData.toAbsolutePath().toString()))
                 .rootCause()
-                .hasMessageContaining("Record storage engine does not support storing vectors.");
+                .hasMessageContaining("storing properties of type vector is not supported in aligned store format");
     }
 
     @Test

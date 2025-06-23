@@ -207,7 +207,8 @@ class ShortStringPropertyEncodeTest {
                 allocatorProvider.allocator(StoreType.PROPERTY_STRING),
                 allocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                 CursorContext.NULL_CONTEXT,
-                INSTANCE);
+                INSTANCE,
+                "db-format-2000");
         assertEquals(0, block.getValueRecords().size());
         Value readValue = block.getType().value(block, propertyStore, StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);
         assertEquals(expectedValue, readValue);

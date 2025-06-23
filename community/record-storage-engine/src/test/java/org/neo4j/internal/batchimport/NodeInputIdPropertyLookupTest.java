@@ -140,7 +140,8 @@ class NodeInputIdPropertyLookupTest {
                         allocatorProvider.allocator(PROPERTY_STRING),
                         allocatorProvider.allocator(PROPERTY_ARRAY),
                         NULL_CONTEXT,
-                        INSTANCE);
+                        INSTANCE,
+                        "db-format-2000");
                 record.addPropertyBlock(block);
                 record.setId(idGenerator.nextId(NULL_CONTEXT));
                 record.setInUse(true);

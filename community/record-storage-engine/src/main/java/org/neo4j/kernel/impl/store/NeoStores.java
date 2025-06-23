@@ -634,4 +634,8 @@ public class NeoStores implements AutoCloseable {
         visitStores(store -> bytes.add(store.estimateAvailableReservedSpace()));
         return bytes.longValue();
     }
+
+    public Config getConfig() {
+        return config;
+    }
 }

@@ -67,7 +67,7 @@ class PropertyStoreConsistentReadTest extends RecordStoreConsistentReadTest<Prop
         PropertyBlock block = new PropertyBlock();
         DynamicRecordAllocator stringAllocator = new ReusableRecordsAllocator(64, new DynamicRecord(7));
         Value value = Values.of("a string too large to fit in the property block itself");
-        PropertyStore.encodeValue(block, 6, value, stringAllocator, null, NULL_CONTEXT, INSTANCE);
+        PropertyStore.encodeValue(block, 6, value, stringAllocator, null, NULL_CONTEXT, INSTANCE, "db-format-2000");
         if (light) {
             block.getValueRecords().clear();
         }

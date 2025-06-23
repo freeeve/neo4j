@@ -41,6 +41,11 @@ org.neo4j.kernel.api.exceptions.Status.Code::equals(java.lang.Object) boolean pu
 org.neo4j.kernel.api.exceptions.Status.Code::hashCode() int public
 org.neo4j.kernel.api.exceptions.Status.Code::serialize() java.lang.String public final
 org.neo4j.kernel.api.exceptions.Status.Code::toString() java.lang.String public
+org.neo4j.kernel.api.exceptions.Status.Data public static final enum extends java.lang.Enum<org.neo4j.kernel.api.exceptions.Status.Data> implements org.neo4j.kernel.api.exceptions.Status
+org.neo4j.kernel.api.exceptions.Status.Data::DataUnsupportedByStoreFormat org.neo4j.kernel.api.exceptions.Status.Data public static final
+org.neo4j.kernel.api.exceptions.Status.Data::code() org.neo4j.kernel.api.exceptions.Status.Code public
+org.neo4j.kernel.api.exceptions.Status.Data::valueOf(java.lang.String) org.neo4j.kernel.api.exceptions.Status.Data public static
+org.neo4j.kernel.api.exceptions.Status.Data::values() org.neo4j.kernel.api.exceptions.Status.Data[] public static
 org.neo4j.kernel.api.exceptions.Status.Database public static final enum extends java.lang.Enum<org.neo4j.kernel.api.exceptions.Status.Database> implements org.neo4j.kernel.api.exceptions.Status
 org.neo4j.kernel.api.exceptions.Status.Database::DatabaseLimitReached org.neo4j.kernel.api.exceptions.Status.Database public static final
 org.neo4j.kernel.api.exceptions.Status.Database::DatabaseNotFound org.neo4j.kernel.api.exceptions.Status.Database public static final
