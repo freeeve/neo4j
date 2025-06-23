@@ -60,6 +60,7 @@ class CsvInputIteratorTest {
                 new Extractors(config.arrayDelimiter(), config.vectorDelimiter()),
                 0,
                 true,
+                false,
                 NO_MONITOR)) {
             CsvInputChunkProxy chunk = new CsvInputChunkProxy();
             InputEntity visitor = new InputEntity();

@@ -44,6 +44,7 @@ import org.apache.logging.log4j.util.TriConsumer;
 import org.neo4j.batchimport.api.InputIterable;
 import org.neo4j.batchimport.api.InputIterator;
 import org.neo4j.batchimport.api.input.Collector;
+import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.batchimport.api.input.PropertySizeCalculator;
@@ -72,6 +73,9 @@ import org.neo4j.util.Preconditions;
  * extract meta data about the values.
  */
 public class CsvInput implements Input {
+    private static final String MIXED_COMPOSITE_ID_REFERRALS =
+            "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
+                    + "Either using a single :START_ID/:END_ID column, or a matching amount of :START_ID/:END_ID columns.";
     private static final long ESTIMATE_SAMPLE_SIZE = mebiBytes(1);
 
     private final Iterable<DataFactory> nodeDataFactory;
@@ -86,6 +90,8 @@ public class CsvInput implements Input {
     private final boolean autoSkipHeaders;
     private final MemoryTracker memoryTracker;
     private List<Header> cachedNodeHeaders;
+    private boolean delimitIds;
+    private boolean hasBeenValidated;
 
     /**
      * @param nodeDataFactory multiple {@link DataFactory} instances providing data, each {@link DataFactory}
@@ -235,17 +241,27 @@ public class CsvInput implements Input {
 
     @Override
     public InputIterable nodes(Collector badCollector) {
+        Preconditions.checkState(hasBeenValidated, "must call validateAndEstimate before calling nodes");
         return () -> stream(nodeDataFactory, nodeHeaderFactory, badCollector);
     }
 
     @Override
     public InputIterable relationships(Collector badCollector) {
+        Preconditions.checkState(hasBeenValidated, "must call validateAndEstimate before calling relationships");
         return () -> stream(relationshipDataFactory, relationshipHeaderFactory, badCollector);
     }
 
     private InputIterator stream(Iterable<DataFactory> data, Header.Factory headerFactory, Collector badCollector) {
         return new CsvGroupInputIterator(
-                data.iterator(), headerFactory, idType, config, badCollector, groups, autoSkipHeaders, NO_MONITOR);
+                data.iterator(),
+                headerFactory,
+                idType,
+                config,
+                badCollector,
+                groups,
+                autoSkipHeaders,
+                delimitIds,
+                NO_MONITOR);
     }
 
     @Override
@@ -264,6 +280,11 @@ public class CsvInput implements Input {
         // parse all node headers and remember all ID spaces
         final MutableBoolean nodesHasAction = new MutableBoolean();
         final MutableBoolean relationshipsHasAction = new MutableBoolean();
+        final MutableBoolean hasCompositeIdColumns = new MutableBoolean(false);
+
+        // -1 as a value means that, in different source files,
+        // different numbers of IDs have been used for the same group.
+        final Map<Group, Integer> numberOfIdsPerGroup = new HashMap<>();
         cachedNodeHeaders = new ArrayList<>();
         final var nodeSample = validateAndEstimate(
                 nodeDataFactory,
@@ -277,26 +298,41 @@ public class CsvInput implements Input {
                         nodesHasAction.setTrue();
                     }
 
-                    var numIdColumns = Arrays.stream(header.entries())
+                    final var idHeaders = Arrays.stream(header.entries())
                             .filter(e -> e.type() == Type.ID)
-                            .count();
+                            .toList();
+                    final var numIdColumns = idHeaders.size();
                     if (numIdColumns > 1) {
+                        hasCompositeIdColumns.setTrue();
                         Preconditions.checkState(
                                 idType == IdType.STRING,
-                                "Having multiple :ID columns requires idType:" + IdType.STRING);
+                                "Having multiple :ID columns requires idType: " + IdType.STRING);
                     }
-                    var numIdColumnsGroups = Arrays.stream(header.entries())
-                            .filter(e -> e.type() == Type.ID)
+                    final var numIdColumnsGroups = idHeaders.stream()
                             .map(Header.Entry::group)
                             .distinct()
                             .count();
                     Preconditions.checkState(
                             numIdColumnsGroups <= 1,
                             "There are multiple :ID columns, but they are referring to different groups");
+
+                    if (!idHeaders.isEmpty()) {
+                        final var group = idHeaders.getFirst().group();
+                        if (numberOfIdsPerGroup.getOrDefault(group, numIdColumns) == numIdColumns) {
+                            // Either not set yet or already set to numIdColumns
+                            numberOfIdsPerGroup.put(group, numIdColumns);
+                        } else {
+                            // Already set to a different value
+                            numberOfIdsPerGroup.put(group, -1);
+                        }
+                    }
                 },
                 valueSizeCalculator,
                 node -> node.labels().length,
                 seenSourceFiles);
+
+        final MutableBoolean singleStartEndIdColumnRefersToCompositeId = new MutableBoolean(false);
+        final MutableBoolean multipleStartEndIdColumnsRefersToCompositeId = new MutableBoolean(false);
 
         // parse all relationship headers and verify all ID spaces
         final var relationshipSample = validateAndEstimate(
@@ -311,10 +347,54 @@ public class CsvInput implements Input {
                     if (Arrays.stream(header.entries()).anyMatch(e -> e.type() == Type.ACTION)) {
                         relationshipsHasAction.setTrue();
                     }
+
+                    final var startIdHeaders = Arrays.stream(header.entries())
+                            .filter(e -> e.type() == Type.START_ID)
+                            .toList();
+                    final var endIdHeaders = Arrays.stream(header.entries())
+                            .filter(e -> e.type() == Type.END_ID)
+                            .toList();
+
+                    final var numStartIdColumnsGroups = startIdHeaders.stream()
+                            .map(Header.Entry::group)
+                            .distinct()
+                            .count();
+                    Preconditions.checkState(
+                            numStartIdColumnsGroups <= 1,
+                            "There are multiple :START_ID columns, but they are referring to different groups");
+
+                    final var numEndIdColumnsGroups = endIdHeaders.stream()
+                            .map(Header.Entry::group)
+                            .distinct()
+                            .count();
+                    Preconditions.checkState(
+                            numEndIdColumnsGroups <= 1,
+                            "There are multiple :END_ID columns, but they are referring to different groups");
+
+                    final var startIdGroup = startIdHeaders.getFirst().group();
+                    final var endIdGroup = endIdHeaders.getFirst().group();
+
+                    validateStartAndEndIdColumnAmounts(
+                            "START_ID",
+                            numberOfIdsPerGroup.getOrDefault(startIdGroup, 1),
+                            startIdHeaders.size(),
+                            startIdGroup,
+                            singleStartEndIdColumnRefersToCompositeId,
+                            multipleStartEndIdColumnsRefersToCompositeId);
+                    validateStartAndEndIdColumnAmounts(
+                            "END_ID",
+                            numberOfIdsPerGroup.getOrDefault(endIdGroup, 1),
+                            endIdHeaders.size(),
+                            endIdGroup,
+                            singleStartEndIdColumnRefersToCompositeId,
+                            multipleStartEndIdColumnsRefersToCompositeId);
                 },
                 valueSizeCalculator,
                 entity -> 0,
                 seenSourceFiles);
+
+        this.delimitIds = hasCompositeIdColumns.isTrue() && singleStartEndIdColumnRefersToCompositeId.isFalse();
+        this.hasBeenValidated = true;
 
         final var propPreAllocAdditional = propertyPreAllocateRounding(nodeSample[2] + relationshipSample[2]) / 2;
         return Input.knownEstimates(
@@ -327,6 +407,39 @@ public class CsvInput implements Input {
                 nodeSample[3],
                 nodesHasAction.isTrue(),
                 relationshipsHasAction.isTrue());
+    }
+
+    private static void validateStartAndEndIdColumnAmounts(
+            String columnName,
+            int numberOfIdColumnsForGroup,
+            int numIdColumns,
+            Group group,
+            MutableBoolean singleStartEndIdColumnRefersToCompositeIdColumn,
+            MutableBoolean multipleStartEndIdColumnsRefersToCompositeIdColumn) {
+        if (numberOfIdColumnsForGroup == 1) {
+            Preconditions.checkState(
+                    numberOfIdColumnsForGroup == numIdColumns,
+                    "There are %d :%s columns for group '%s', but %d :%s columns is expected."
+                            .formatted(numIdColumns, columnName, group.name(), numberOfIdColumnsForGroup, columnName));
+        } else if (numIdColumns == 1) {
+            singleStartEndIdColumnRefersToCompositeIdColumn.setTrue();
+            Preconditions.checkState(
+                    multipleStartEndIdColumnsRefersToCompositeIdColumn.isFalse(), MIXED_COMPOSITE_ID_REFERRALS);
+        } else {
+            multipleStartEndIdColumnsRefersToCompositeIdColumn.setTrue();
+            final int expectedNumberOfStartIdColumns = numberOfIdColumnsForGroup == -1 ? 1 : numberOfIdColumnsForGroup;
+            Preconditions.checkState(
+                    expectedNumberOfStartIdColumns == numIdColumns,
+                    "There are %d :%s columns for group '%s', but %d :%s columns is expected."
+                            .formatted(
+                                    numIdColumns,
+                                    columnName,
+                                    group.name(),
+                                    expectedNumberOfStartIdColumns,
+                                    columnName));
+            Preconditions.checkState(
+                    singleStartEndIdColumnRefersToCompositeIdColumn.isFalse(), MIXED_COMPOSITE_ID_REFERRALS);
+        }
     }
 
     private long[] validateAndEstimate(
@@ -396,6 +509,8 @@ public class CsvInput implements Input {
             ToIntFunction<InputEntity> additionalCalculator,
             long[] estimates)
             throws IOException {
+        // When sampling, we can set delimitIds=false,
+        // since there is no checking of duplicates in this visitor.
         try (var iterator = new CsvInputIterator(
                         source,
                         decorator,
@@ -405,7 +520,8 @@ public class CsvInput implements Input {
                         EMPTY,
                         CsvGroupInputIterator.extractors(sampleConfig),
                         groupId,
-                        autoSkipHeaders);
+                        autoSkipHeaders,
+                        false);
                 var entity = new InputEntity()) {
             var entities = 0;
             var properties = 0d;

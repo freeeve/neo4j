@@ -43,6 +43,7 @@ public class CsvGroupInputIterator implements InputIterator {
     private final Collector badCollector;
     private final Groups groups;
     private final boolean autoSkipHeaders;
+    private final boolean delimitIds;
     private final Monitor monitor;
     private CsvInputIterator current;
     private int groupId;
@@ -55,6 +56,7 @@ public class CsvGroupInputIterator implements InputIterator {
             Collector badCollector,
             Groups groups,
             boolean autoSkipHeaders,
+            boolean delimitIds,
             Monitor monitor) {
         this.source = source;
         this.headerFactory = headerFactory;
@@ -63,6 +65,7 @@ public class CsvGroupInputIterator implements InputIterator {
         this.badCollector = badCollector;
         this.groups = groups;
         this.autoSkipHeaders = autoSkipHeaders;
+        this.delimitIds = delimitIds;
         this.monitor = monitor;
     }
 
@@ -94,6 +97,7 @@ public class CsvGroupInputIterator implements InputIterator {
                         extractors(config),
                         groupId++,
                         autoSkipHeaders,
+                        delimitIds,
                         monitor);
             }
 

@@ -28,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -180,8 +179,10 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
 
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -208,8 +209,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
@@ -237,8 +239,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator iterator = input.nodes(EMPTY).iterator()) {
             readNext(iterator);
@@ -284,8 +287,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -310,8 +314,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -347,8 +352,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN iterating over them, THEN the expected data should come out
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, "1", properties("name", "Jim", "kills", 10, "health", 100), labels());
@@ -381,8 +387,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 0L, properties("name", "First"), labels(addedLabels));
@@ -413,7 +420,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, 0L, 1L, defaultType, emptyMap());
@@ -443,8 +450,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -474,8 +482,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -505,8 +514,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -538,7 +548,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -569,8 +579,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -601,8 +612,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -632,8 +644,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -678,16 +691,11 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
 
-        // WHEN
-        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
-            // THEN
-            readNext(nodes);
-            fail("Should have failed when key assigned multiple times, but didn't.");
-        } catch (InputException ignore) {
-            // this is fine
-        }
+        assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                .isInstanceOf(InputException.class);
     }
 
     @ParameterizedTest
@@ -709,8 +717,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -746,8 +755,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -780,8 +790,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -812,8 +823,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -848,8 +860,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -885,8 +898,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -931,8 +945,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -983,8 +998,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1016,8 +1032,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1055,8 +1072,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1091,6 +1109,7 @@ class CsvInputTest {
                             .build(),
                     false,
                     NO_MONITOR,
+                    groups,
                     INSTANCE);
 
             fail("Should not be possible");
@@ -1118,6 +1137,7 @@ class CsvInputTest {
                             .build(),
                     false,
                     NO_MONITOR,
+                    groups,
                     INSTANCE);
             fail("Should not be possible");
         } catch (IllegalArgumentException e) {
@@ -1141,6 +1161,7 @@ class CsvInputTest {
                     config(setting).toBuilder().withQuotationCharacter(';').build(),
                     false,
                     NO_MONITOR,
+                    groups,
                     INSTANCE);
             fail("Should not be possible");
         } catch (IllegalArgumentException e) {
@@ -1170,7 +1191,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, group, 123L, properties("name", "one"), labels());
@@ -1203,11 +1224,11 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
-            assertRelationship(relationships, startNodeGroup, 123L, endNodeGroup, 234L, "TYPE", properties());
-            assertRelationship(relationships, startNodeGroup, 345L, endNodeGroup, 456L, "TYPE", properties());
+            assertNextRelationship(relationships, startNodeGroup, 123L, endNodeGroup, 234L, "TYPE", properties());
+            assertNextRelationship(relationships, startNodeGroup, 345L, endNodeGroup, 456L, "TYPE", properties());
             assertFalse(readNext(relationships));
         }
     }
@@ -1236,7 +1257,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             // THEN
@@ -1266,8 +1287,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("other", 10), labels("Person"));
@@ -1299,7 +1321,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, 1L, 2L, "KNOWS", properties("other", 10));
@@ -1324,15 +1346,14 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
 
         // WHEN
-        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
-            readNext(nodes);
-        } catch (InputException e) {
-            // THEN
-            assertSame(e.getCause(), failure);
-        }
+        assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                .isInstanceOf(InputException.class)
+                .cause()
+                .isEqualTo(failure);
     }
 
     @ParameterizedTest
@@ -1354,8 +1375,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, emptyMap(), labels());
@@ -1382,8 +1404,9 @@ class CsvInputTest {
                 config,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1413,8 +1436,9 @@ class CsvInputTest {
                 config(setting),
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // THEN
         try (InputIterator nodes = input.nodes(collector).iterator()) {
             // THEN
@@ -1443,7 +1467,7 @@ class CsvInputTest {
                 NO_MONITOR,
                 groups,
                 INSTANCE);
-
+        input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
         // WHEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             readNext(relationships);
@@ -1469,6 +1493,7 @@ class CsvInputTest {
                             COMMAS,
                             false,
                             NO_MONITOR,
+                            groups,
                             INSTANCE)
                     .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             fail("Should not parse");
@@ -1494,6 +1519,7 @@ class CsvInputTest {
                             COMMAS,
                             false,
                             NO_MONITOR,
+                            groups,
                             INSTANCE)
                     .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             fail("Should not parse");
@@ -1520,6 +1546,7 @@ class CsvInputTest {
                             COMMAS,
                             false,
                             NO_MONITOR,
+                            groups,
                             INSTANCE)
                     .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             fail("Should not validate");
@@ -1546,6 +1573,7 @@ class CsvInputTest {
                             COMMAS,
                             false,
                             NO_MONITOR,
+                            groups,
                             INSTANCE)
                     .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             fail("Should not validate");
@@ -1584,6 +1612,7 @@ class CsvInputTest {
                         COMMAS,
                         true,
                         monitor,
+                        groups,
                         INSTANCE)
                 .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
 
@@ -1671,6 +1700,7 @@ class CsvInputTest {
                         COMMAS,
                         false,
                         monitor,
+                        groups,
                         INSTANCE)
                 .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
 
@@ -1707,6 +1737,7 @@ class CsvInputTest {
                 COMMAS,
                 false,
                 monitor,
+                groups,
                 INSTANCE);
         input.validateAndEstimate((values, NULL, INSTANCE) -> 1 /*doesn't quite matter*/);
 
@@ -1782,6 +1813,7 @@ class CsvInputTest {
                         COMMAS,
                         false,
                         monitor,
+                        groups,
                         INSTANCE)
                 .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
 
@@ -1817,6 +1849,7 @@ class CsvInputTest {
                         COMMAS,
                         false,
                         monitor,
+                        groups,
                         INSTANCE)
                 .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
 
@@ -1914,6 +1947,7 @@ class CsvInputTest {
                             COMMAS,
                             false,
                             NO_MONITOR,
+                            groups,
                             INSTANCE)
                     .validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             fail("Should have failed");
@@ -1963,6 +1997,7 @@ class CsvInputTest {
                 TABS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
             // when
             var tokenHolders = new TokenHolders(
@@ -1991,6 +2026,7 @@ class CsvInputTest {
                 TABS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
             // when
             var tokenHolders = new TokenHolders(
@@ -2022,6 +2058,7 @@ class CsvInputTest {
                 TABS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
             // when
             var tokenHolders = new TokenHolders(
@@ -2049,6 +2086,7 @@ class CsvInputTest {
                 TABS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
             // when
             var tokenHolders = new TokenHolders(
@@ -2065,21 +2103,33 @@ class CsvInputTest {
         // given nodes w/ IDs as ints
         var nodeData = datas(CsvInputTest.data("id:ID{id-type:int},prop\n123,val"));
 
+        // The variable groups has a global id space created already without id-type:int.
+        // Passing that in would fail.
+        var testSpecificGroups = new Groups();
+
         // when using string id-type in the input
         try (var input = new CsvInput(
-                        nodeData,
-                        defaultFormatNodeFileHeader(),
-                        datas(),
-                        defaultFormatRelationshipFileHeader(),
-                        STRING,
-                        config(MultilineSetting.DISALLOW),
-                        false,
-                        NO_MONITOR,
-                        INSTANCE);
-                var nodes = input.nodes(EMPTY).iterator()) {
-            // then
-            assertNextNode(nodes, 123, properties("id", 123, "prop", "val"), labels());
-            assertFalse(readNext(nodes));
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                datas(),
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                config(MultilineSetting.DISALLOW),
+                false,
+                NO_MONITOR,
+                testSpecificGroups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            try (var nodes = input.nodes(EMPTY).iterator()) {
+                // then
+                assertNextNode(
+                        nodes,
+                        testSpecificGroups.getOrCreate(null, "int"),
+                        123,
+                        properties("id", 123, "prop", "val"),
+                        labels());
+                assertFalse(readNext(nodes));
+            }
         }
     }
 
@@ -2097,14 +2147,687 @@ class CsvInputTest {
                 COMMAS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 assertNextNode(
-                        nodes, "ABC123", properties("id1", "ABC", "id2", "123", "name", "First"), Set.of("Person"));
+                        nodes,
+                        "ABC%c123".formatted(IdValueBuilder.DELIMITER),
+                        properties("id1", "ABC", "id2", "123", "name", "First"),
+                        Set.of("Person"));
                 assertNextNode(
-                        nodes, "ABC456", properties("id1", "ABC", "id2", "456", "name", "Second"), Set.of("Person"));
+                        nodes,
+                        "ABC%c456".formatted(IdValueBuilder.DELIMITER),
+                        properties("id1", "ABC", "id2", "456", "name", "Second"),
+                        Set.of("Person"));
                 assertFalse(readNext(nodes));
             }
+        }
+    }
+
+    @Test
+    void multipleIdColumnsRequireStringIdType() {
+        Iterable<DataFactory> nodeData = datas(data(":ID, :ID"));
+        try (final var csvInput = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                datas(),
+                defaultFormatRelationshipFileHeader(),
+                INTEGER,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> csvInput.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Having multiple :ID columns requires idType: STRING");
+        }
+    }
+
+    @Test
+    void shouldHandleMultipleNodeIdColumnsWithSameGroup() throws IOException {
+        Iterable<DataFactory> nodeData = datas(data(
+                """
+                 id1:ID(g1),id2:ID(g1),name
+                 foo,bar,ABC
+                 """));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                datas(),
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            try (var nodes = input.nodes(Collector.STRICT).iterator()) {
+                assertNextNode(
+                        nodes,
+                        groups.getOrCreate("g1"),
+                        "foo%cbar".formatted(IdValueBuilder.DELIMITER),
+                        properties("id1", "foo", "id2", "bar", "name", "ABC"),
+                        Set.of());
+                assertFalse(readNext(nodes));
+            }
+        }
+    }
+
+    @Test
+    void multipleNodeIdColumnsRequireSameGroup() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g2),name"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                datas(),
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("There are multiple :ID columns, but they are referring to different groups");
+        }
+    }
+
+    @Test
+    void shouldHandleMultipleStartAndEndIdColumns() throws IOException {
+        // given
+        Iterable<DataFactory> nodeData =
+                datas(data("""
+                id1:ID,id2:ID,name
+                foo,bar,ABC
+                """));
+        Iterable<DataFactory> relData = datas(
+                data(
+                        """
+                :START_ID,:START_ID,:END_ID,:END_ID,:TYPE
+                a,b,c,d,KNOWS
+                b,c,d,e,KNOWS
+                """));
+
+        // when
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            // then
+            try (var relationships = input.relationships(Collector.STRICT).iterator()) {
+                assertNextRelationship(
+                        relationships,
+                        "a%cb".formatted(IdValueBuilder.DELIMITER),
+                        "c%cd".formatted(IdValueBuilder.DELIMITER),
+                        "KNOWS",
+                        emptyMap());
+                assertNextRelationship(
+                        relationships,
+                        "b%cc".formatted(IdValueBuilder.DELIMITER),
+                        "d%ce".formatted(IdValueBuilder.DELIMITER),
+                        "KNOWS",
+                        emptyMap());
+                assertFalse(readNext(relationships));
+            }
+        }
+    }
+
+    @Test
+    void shouldHandleMultipleStartAndEndIdColumnsWithSameGroup() throws IOException {
+        Iterable<DataFactory> nodeData = datas(
+                data("""
+                 id1:ID(g1),id2:ID(g1),name
+                 foo,bar,ABC
+                 """),
+                data(
+                        """
+                 id1:ID(g2),id2:ID(g2),id3:ID(g2),name
+                 foo,bar,baz,DEF
+                 """));
+        Iterable<DataFactory> relData = datas(
+                data(
+                        """
+                 :START_ID(g1),:START_ID(g1),:END_ID(g2),:END_ID(g2),:END_ID(g2),:TYPE
+                 foo,bar,foo,bar,baz,TTT
+                 """));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            try (var relationships = input.relationships(Collector.STRICT).iterator()) {
+                assertNextRelationship(
+                        relationships,
+                        groups.getOrCreate("g1"),
+                        "foo%cbar".formatted(IdValueBuilder.DELIMITER),
+                        groups.getOrCreate("g2"),
+                        "foo%cbar%cbaz".formatted(IdValueBuilder.DELIMITER, IdValueBuilder.DELIMITER),
+                        "TTT",
+                        emptyMap());
+                assertFalse(readNext(relationships));
+            }
+        }
+    }
+
+    @Test
+    void shouldHandleMultipleStartAndEndIdColumnsWithSameGroupMultipleNodeFiles() throws IOException {
+        Iterable<DataFactory> nodeData = datas(
+                data("""
+                 id1:ID(g1),id2:ID(g1),name
+                 foo,bar,ABC
+                 """),
+                data(
+                        """
+                 id1:ID(g1),id2:ID(g1),name
+                 foo,baz,DEF
+                 """));
+        Iterable<DataFactory> relData = datas(
+                data(
+                        """
+                 :START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE
+                 foo,bar,foo,baz,TTT
+                 """));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            try (var relationships = input.relationships(Collector.STRICT).iterator()) {
+                assertNextRelationship(
+                        relationships,
+                        groups.getOrCreate("g1"),
+                        "foo%cbar".formatted(IdValueBuilder.DELIMITER),
+                        groups.getOrCreate("g1"),
+                        "foo%cbaz".formatted(IdValueBuilder.DELIMITER),
+                        "TTT",
+                        emptyMap());
+                assertFalse(readNext(relationships));
+            }
+        }
+    }
+
+    @Test
+    void shouldHandleMultipleStartAndEndIdColumnsWithGlobalGroup() throws IOException {
+        Iterable<DataFactory> nodeData = datas(
+                data("""
+                 id1:ID(g1),id2:ID(g1),name
+                 foo,bar,ABC
+                 """),
+                data(
+                        """
+                 id1:ID,id2:ID,id3:ID,name
+                 foo,bar,baz,DEF
+                 """));
+        Iterable<DataFactory> relData = datas(
+                data(
+                        """
+                 :START_ID(g1),:START_ID(g1),:END_ID,:END_ID,:END_ID,:TYPE
+                 foo,bar,foo,bar,baz,TTT
+                 """));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            try (var relationships = input.relationships(Collector.STRICT).iterator()) {
+                assertNextRelationship(
+                        relationships,
+                        groups.getOrCreate("g1"),
+                        "foo%cbar".formatted(IdValueBuilder.DELIMITER),
+                        groups.getOrCreate(null),
+                        "foo%cbar%cbaz".formatted(IdValueBuilder.DELIMITER, IdValueBuilder.DELIMITER),
+                        "TTT",
+                        emptyMap());
+                assertFalse(readNext(relationships));
+            }
+        }
+    }
+
+    @Test
+    void multipleStartIdColumnsRequireSameGroup() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g1),name"), data("id1:ID(g2),name"));
+        Iterable<DataFactory> relData = datas(data(":START_ID(g1),:START_ID(g2),:END_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "There are multiple :START_ID columns, but they are referring to different groups");
+        }
+    }
+
+    @Test
+    void multipleEndIdColumnsRequireSameGroup() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g1),name"), data("id1:ID(g2),name"));
+        Iterable<DataFactory> relData = datas(data(":START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g2),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "There are multiple :END_ID columns, but they are referring to different groups");
+        }
+    }
+
+    @Test
+    void singleNodeIdColumnRequiresSingleStartIdColumn() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),name"));
+        Iterable<DataFactory> relData = datas(data(":START_ID(g1),:START_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "There are 2 :START_ID columns for group 'g1', but 1 :START_ID columns is expected.");
+        }
+    }
+
+    @Test
+    void singleNodeIdColumnRequiresSingleEndIdColumn() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),name"));
+        Iterable<DataFactory> relData = datas(data(":START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "There are 2 :END_ID columns for group 'g1', but 1 :END_ID columns is expected.");
+        }
+    }
+
+    @Test
+    void shouldBeAbleToUseSingleIdInOneNodeFileAndCompositeIdInAnother() throws IOException {
+        Iterable<DataFactory> nodeData = datas(
+                data("""
+                 id1:ID(g1),id2:ID(g1),name
+                 foo,bar,ABC
+                 """),
+                data("""
+                 id1:ID(g1),name
+                 foo,DEF
+                 """));
+        Iterable<DataFactory> relData = datas(
+                data(
+                        """
+                 :START_ID(g1),:END_ID(g1),:TYPE
+                 foobar,foo,TTT
+                 """));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            try (var nodes = input.nodes(Collector.STRICT).iterator()) {
+                assertNextNode(
+                        nodes,
+                        groups.getOrCreate("g1"),
+                        "foobar",
+                        properties("id1", "foo", "id2", "bar", "name", "ABC"),
+                        Set.of());
+                assertNextNode(
+                        nodes, groups.getOrCreate("g1"), "foo", properties("id1", "foo", "name", "DEF"), Set.of());
+                assertFalse(readNext(nodes));
+            }
+            try (var relationships = input.relationships(Collector.STRICT).iterator()) {
+                assertNextRelationship(
+                        relationships,
+                        groups.getOrCreate("g1"),
+                        "foobar",
+                        groups.getOrCreate("g1"),
+                        "foo",
+                        "TTT",
+                        emptyMap());
+                assertFalse(readNext(relationships));
+            }
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToReferToMixedSingleIdAndCompositeIdWithMultipleStartIdColumns() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),name"), data("id1:ID(g1),id2:ID(g1),name"));
+        Iterable<DataFactory> relData = datas(data(":START_ID(g1),:START_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "There are 2 :START_ID columns for group 'g1', but 1 :START_ID columns is expected.");
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToReferToMixedSingleIdAndCompositeIdWithMultipleEndIdColumns() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),name"), data("id1:ID(g1),id2:ID(g1),name"));
+        Iterable<DataFactory> relData = datas(data(":START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "There are 2 :END_ID columns for group 'g1', but 1 :END_ID columns is expected.");
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToReferToCompositeIdWithWrongNumberOfStartIdColumns() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g1),name"));
+        Iterable<DataFactory> relData =
+                datas(data(":START_ID(g1),:START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "There are 3 :START_ID columns for group 'g1', but 2 :START_ID columns is expected.");
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToReferToCompositeIdWithWrongNumberOfEndIdColumns() {
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g1),name"));
+        Iterable<DataFactory> relData =
+                datas(data(":START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "There are 3 :END_ID columns for group 'g1', but 2 :END_ID columns is expected.");
+        }
+    }
+
+    @Test
+    void shouldBeAbleToReferToCompositeIdAndSingleIdsWithMatchingNumberOfStartIdAndEndColumns() throws IOException {
+        Iterable<DataFactory> nodeData = datas(
+                data(
+                        """
+                        id1:ID(g1),id2:ID(g1),name
+                        foo,bar,ABC
+                        """),
+                data(
+                        """
+                        id1:ID(g2),name
+                        baz,DEF
+                        """));
+        Iterable<DataFactory> relData = datas(
+                data(
+                        """
+                        :START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE
+                        foo,bar,foo,bar,T1
+                        """),
+                data(
+                        """
+                        :START_ID(g2),:END_ID(g1),:END_ID(g1),:TYPE
+                        baz,foo,bar,T2
+                        """),
+                data(
+                        """
+                        :START_ID(g2),:END_ID(g2),:TYPE
+                        baz,baz,T3
+                        """));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
+            try (var nodes = input.nodes(Collector.STRICT).iterator()) {
+                assertNextNode(
+                        nodes,
+                        groups.getOrCreate("g1"),
+                        "foo%cbar".formatted(IdValueBuilder.DELIMITER),
+                        properties("id1", "foo", "id2", "bar", "name", "ABC"),
+                        Set.of());
+                assertNextNode(
+                        nodes, groups.getOrCreate("g2"), "baz", properties("id1", "baz", "name", "DEF"), Set.of());
+                assertFalse(readNext(nodes));
+            }
+            try (var relationships = input.relationships(Collector.STRICT).iterator()) {
+                assertNextRelationship(
+                        relationships,
+                        groups.getOrCreate("g1"),
+                        "foo%cbar".formatted(IdValueBuilder.DELIMITER),
+                        groups.getOrCreate("g1"),
+                        "foo%cbar".formatted(IdValueBuilder.DELIMITER),
+                        "T1",
+                        emptyMap());
+                assertNextRelationship(
+                        relationships,
+                        groups.getOrCreate("g2"),
+                        "baz",
+                        groups.getOrCreate("g1"),
+                        "foo%cbar".formatted(IdValueBuilder.DELIMITER),
+                        "T2",
+                        emptyMap());
+                assertNextRelationship(
+                        relationships,
+                        groups.getOrCreate("g2"),
+                        "baz",
+                        groups.getOrCreate("g2"),
+                        "baz",
+                        "T3",
+                        emptyMap());
+                assertFalse(readNext(relationships));
+            }
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToMixHowToReferToCompositeIDs1() {
+        // First using multiple :START_ID, then single :START_ID
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g1),name"));
+        Iterable<DataFactory> relData = datas(
+                data(":START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE"),
+                data(":START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
+                                    + "Either using a single :START_ID/:END_ID column, or a matching amount of :START_ID/:END_ID columns.");
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToMixHowToReferToCompositeIDs2() {
+        // First using single :START_ID, then multiple :START_ID
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g1),name"));
+        Iterable<DataFactory> relData = datas(
+                data(":START_ID(g1),:END_ID(g1),:TYPE"),
+                data(":START_ID(g1),:START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
+                                    + "Either using a single :START_ID/:END_ID column, or a matching amount of :START_ID/:END_ID columns.");
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToMixHowToReferToCompositeIDs3() {
+        // First using single :START_ID, then multiple :END_ID
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g1),name"));
+        Iterable<DataFactory> relData = datas(data(":START_ID(g1),:END_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
+                                    + "Either using a single :START_ID/:END_ID column, or a matching amount of :START_ID/:END_ID columns.");
+        }
+    }
+
+    @Test
+    void shouldNotBeAbleToMixHowToReferToCompositeIDs4() {
+        // First using multiple :START_ID, then single :END_ID
+        Iterable<DataFactory> nodeData = datas(data("id1:ID(g1),id2:ID(g1),name"));
+        Iterable<DataFactory> relData = datas(data(":START_ID(g1),:START_ID(g1),:END_ID(g1),:TYPE"));
+        try (var input = new CsvInput(
+                nodeData,
+                defaultFormatNodeFileHeader(),
+                relData,
+                defaultFormatRelationshipFileHeader(),
+                STRING,
+                COMMAS,
+                false,
+                NO_MONITOR,
+                groups,
+                INSTANCE)) {
+            assertThatThrownBy(() -> input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining(
+                            "How to refer to composite IDs (multiple :ID columns) from :START_ID/:END_ID must be consistent: "
+                                    + "Either using a single :START_ID/:END_ID column, or a matching amount of :START_ID/:END_ID columns.");
         }
     }
 
@@ -2123,6 +2846,7 @@ class CsvInputTest {
                                 COMMAS,
                                 false,
                                 NO_MONITOR,
+                                groups,
                                 INSTANCE)
                         .validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
                 .isInstanceOf(InputException.class)
@@ -2145,6 +2869,7 @@ class CsvInputTest {
                                 COMMAS,
                                 false,
                                 NO_MONITOR,
+                                groups,
                                 INSTANCE)
                         .validateAndEstimate(PROPERTY_SIZE_CALCULATOR))
                 .isInstanceOf(IllegalStateException.class)
@@ -2175,7 +2900,9 @@ class CsvInputTest {
                 COMMAS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertNextNode(nodes, globalGroup, "A", properties("p1", "abc"), Set.of("Test"), null);
@@ -2205,7 +2932,9 @@ class CsvInputTest {
                 COMMAS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
@@ -2232,7 +2961,9 @@ class CsvInputTest {
                 COMMAS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
@@ -2258,7 +2989,9 @@ class CsvInputTest {
                 COMMAS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE)) {
+            input.validateAndEstimate(PROPERTY_SIZE_CALCULATOR);
             try (var nodes = input.nodes(Collector.STRICT).iterator()) {
                 // then
                 assertThat(readNext(nodes)).isTrue();
@@ -2303,7 +3036,7 @@ class CsvInputTest {
                 a.sizeOfRelationshipProperties() * errorMargin);
     }
 
-    private static Input.Estimates calculateEstimatesOnSingleFileNodeData(IdType idType, Path nodeDataFile)
+    private Input.Estimates calculateEstimatesOnSingleFileNodeData(IdType idType, Path nodeDataFile)
             throws IOException {
         Input input = new CsvInput(
                 dataIterable(
@@ -2315,6 +3048,7 @@ class CsvInputTest {
                 COMMAS,
                 false,
                 NO_MONITOR,
+                groups,
                 INSTANCE);
         // We don't care about correct value size calculation really, as long as it's consistent
         return input.validateAndEstimate((values, tracer, memTracker) ->
@@ -2380,10 +3114,10 @@ class CsvInputTest {
     private void assertNextRelationship(
             InputIterator relationship, Object startNode, Object endNode, String type, Map<String, Object> properties)
             throws IOException {
-        assertRelationship(relationship, globalGroup, startNode, globalGroup, endNode, type, properties);
+        assertNextRelationship(relationship, globalGroup, startNode, globalGroup, endNode, type, properties);
     }
 
-    private void assertRelationship(
+    private void assertNextRelationship(
             InputIterator data,
             Group startNodeGroup,
             Object startNode,

@@ -29,8 +29,14 @@ import org.neo4j.internal.helpers.collection.Iterables;
  * as properties on the node.
  */
 class IdValueBuilder {
+    public static final char DELIMITER = '\u0007'; // BEL char
+    private final boolean delimitIDs;
     private final List<Part> parts = new ArrayList<>();
     private Group group;
+
+    public IdValueBuilder(boolean delimitIds) {
+        this.delimitIDs = delimitIds;
+    }
 
     void clear() {
         parts.clear();
@@ -52,8 +58,11 @@ class IdValueBuilder {
             case 1 -> parts.get(0).value;
             default -> {
                 var result = new StringBuilder();
-                for (var part : parts) {
-                    result.append(part.value);
+                for (int i = 0; i < parts.size(); i++) {
+                    if (i > 0 && delimitIDs) {
+                        result.append(DELIMITER);
+                    }
+                    result.append(parts.get(i).value);
                 }
                 yield result.toString();
             }

@@ -46,7 +46,9 @@ public class CsvInputParser implements Closeable {
     private final int delimiter;
     private final Collector badCollector;
     private final Extractor<String> stringExtractor;
-    private final IdValueBuilder idValueBuilder = new IdValueBuilder();
+    private final IdValueBuilder idValueBuilder;
+    private final IdValueBuilder startIdValueBuilder;
+    private final IdValueBuilder endIdValueBuilder;
 
     private long lineNumber;
 
@@ -56,13 +58,17 @@ public class CsvInputParser implements Closeable {
             IdType idType,
             Header header,
             Collector badCollector,
-            Extractors extractors) {
+            Extractors extractors,
+            boolean delimitIds) {
         this.seeker = seeker;
         this.delimiter = delimiter;
         this.idType = idType;
         this.header = header;
         this.badCollector = badCollector;
         this.stringExtractor = extractors.string();
+        this.idValueBuilder = new IdValueBuilder(delimitIds);
+        this.startIdValueBuilder = new IdValueBuilder(delimitIds);
+        this.endIdValueBuilder = new IdValueBuilder(delimitIds);
     }
 
     boolean next(InputEntityVisitor visitor) throws IOException {
@@ -73,6 +79,8 @@ public class CsvInputParser implements Closeable {
         try {
             boolean doContinue = true;
             idValueBuilder.clear();
+            startIdValueBuilder.clear();
+            endIdValueBuilder.clear();
             for (i = 0; i < entries.length && doContinue; i++) {
                 entry = entries[i];
                 if (!seeker.seek(mark, delimiter)) {
@@ -104,12 +112,18 @@ public class CsvInputParser implements Closeable {
                         };
                     case START_ID ->
                         switch (idType) {
-                            case STRING, INTEGER -> visitor.startId(value, entry.group());
+                            case STRING, INTEGER -> {
+                                startIdValueBuilder.part(value, entry);
+                                yield true;
+                            }
                             case ACTUAL -> visitor.startId((Long) value);
                         };
                     case END_ID ->
                         switch (idType) {
-                            case STRING, INTEGER -> visitor.endId(value, entry.group());
+                            case STRING, INTEGER -> {
+                                endIdValueBuilder.part(value, entry);
+                                yield true;
+                            }
                             case ACTUAL -> visitor.endId((Long) value);
                         };
                     case TYPE -> visitor.type((String) value);
@@ -139,6 +153,12 @@ public class CsvInputParser implements Closeable {
                         doContinue = visitor.property(idPropertyValue.name(), idPropertyValue.value(), true);
                     }
                 }
+            }
+            if (!startIdValueBuilder.isEmpty()) {
+                doContinue = visitor.startId(startIdValueBuilder.value(), startIdValueBuilder.group());
+            }
+            if (!endIdValueBuilder.isEmpty()) {
+                doContinue = visitor.endId(endIdValueBuilder.value(), endIdValueBuilder.group());
             }
 
             while (!mark.isEndOfLine()) {

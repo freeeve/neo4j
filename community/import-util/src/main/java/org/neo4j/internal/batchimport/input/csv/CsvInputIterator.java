@@ -73,7 +73,8 @@ class CsvInputIterator implements SourceTraceability, Closeable {
             Collector badCollector,
             Extractors extractors,
             int groupId,
-            boolean autoSkipHeaders) {
+            boolean autoSkipHeaders,
+            boolean delimitIds) {
         this.stream = stream;
         this.decorator = decorator;
         this.groupId = groupId;
@@ -84,7 +85,16 @@ class CsvInputIterator implements SourceTraceability, Closeable {
             // This chunker is single-threaded, as it was previously too and keeps the functionality of multi-line
             // fields.
             this.chunker = new EagerParserChunker(
-                    stream, idType, header, badCollector, extractors, 1_000, config, decorator, autoSkipHeaders);
+                    stream,
+                    idType,
+                    header,
+                    badCollector,
+                    extractors,
+                    1_000,
+                    config,
+                    decorator,
+                    autoSkipHeaders,
+                    delimitIds);
             this.realInputChunkSupplier = EagerCsvInputChunk::new;
         } else {
             this.chunker = createChunker(stream, config, headerSkip(autoSkipHeaders, config, idType));
@@ -96,7 +106,8 @@ class CsvInputIterator implements SourceTraceability, Closeable {
                     chunker.newChunk(),
                     config,
                     decorator,
-                    header);
+                    header,
+                    delimitIds);
         }
     }
 
@@ -111,6 +122,7 @@ class CsvInputIterator implements SourceTraceability, Closeable {
             Extractors extractors,
             int groupId,
             boolean autoSkipHeader,
+            boolean delimitIds,
             Monitor monitor)
             throws IOException {
         this(
@@ -122,7 +134,8 @@ class CsvInputIterator implements SourceTraceability, Closeable {
                 badCollector,
                 extractors,
                 groupId,
-                autoSkipHeader);
+                autoSkipHeader,
+                delimitIds);
     }
 
     static Header extractHeader(

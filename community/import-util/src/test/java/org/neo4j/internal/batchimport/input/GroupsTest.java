@@ -111,4 +111,34 @@ class GroupsTest {
         // when
         assertThrows(HeaderException.class, () -> groups.get("Something"));
     }
+
+    @Test
+    void globalGroupIdIsNotFixedToZero() {
+        final var groups1 = new Groups();
+        final var g1_0 = groups1.getOrCreate(null);
+        assertThat(g1_0.id()).isEqualTo(0);
+        final var g1_1 = groups1.getOrCreate("foo");
+        assertThat(g1_1.id()).isEqualTo(1);
+        assertThat(groups1.get(0)).isEqualTo(g1_0);
+        assertThat(groups1.get(null)).isEqualTo(g1_0);
+        assertThat(groups1.get(1)).isEqualTo(g1_1);
+        assertThat(groups1.get("foo")).isEqualTo(g1_1);
+
+        final var groups2 = new Groups();
+        final var g2_0 = groups2.getOrCreate("foo");
+        assertThat(g2_0.id()).isEqualTo(0);
+        final var g2_1 = groups2.getOrCreate(null);
+        assertThat(g2_1.id()).isEqualTo(1);
+        assertThat(groups2.get(0)).isEqualTo(g2_0);
+        assertThat(groups2.get("foo")).isEqualTo(g2_0);
+        assertThat(groups2.get(1)).isEqualTo(g2_1);
+        assertThat(groups2.get(null)).isEqualTo(g2_1);
+    }
+
+    @Test
+    void shouldGetOnlyNonGlobalGroup() {
+        final var groups = new Groups();
+        final var g1_0 = groups.getOrCreate("foo");
+        assertThat(groups.get(0)).isEqualTo(g1_0);
+    }
 }

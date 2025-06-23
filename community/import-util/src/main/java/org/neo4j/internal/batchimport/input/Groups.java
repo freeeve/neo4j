@@ -65,7 +65,7 @@ public class Groups implements ReadableGroups {
         } else {
             checkState(
                     Objects.equals(specificIdType, group.specificIdType()),
-                    "Group '%s' has different specific type %s in different places. Was created with '%s' and later used with '%s'",
+                    "Group '%s' has different specific type in different places. Was created with '%s' and later used with '%s'",
                     group.name(),
                     group.specificIdType(),
                     specificIdType);

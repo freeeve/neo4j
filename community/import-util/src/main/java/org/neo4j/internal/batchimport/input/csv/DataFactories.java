@@ -32,6 +32,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -297,6 +298,7 @@ public class DataFactories {
             Map<String, Entry> idProperties = new HashMap<>();
             Map<String, Entry> properties = new HashMap<>();
             EnumMap<Type, Entry> singletonEntries = new EnumMap<>(Type.class);
+            EnumSet<Type> multiEntries = EnumSet.noneOf(Type.class);
             for (Entry entry : entries) {
                 switch (entry.type()) {
                     case ID, PROPERTY -> {
@@ -320,7 +322,11 @@ public class DataFactories {
                             }
                         }
                     }
-                    case START_ID, END_ID, TYPE -> {
+                    case START_ID, END_ID ->
+                        // No specific validation of these, and basically ignore their "property name"
+                        // because that doesn't really mean anything here.
+                        multiEntries.add(entry.type());
+                    case TYPE -> {
                         Entry existingSingletonEntry = singletonEntries.get(entry.type());
                         if (existingSingletonEntry != null) {
                             throw new DuplicateHeaderException(
@@ -334,7 +340,7 @@ public class DataFactories {
             }
 
             for (Type type : mandatoryTypes) {
-                if (!singletonEntries.containsKey(type)) {
+                if (!singletonEntries.containsKey(type) && !multiEntries.contains(type)) {
                     throw new HeaderException(
                             format("Missing header of type %s, among entries %s", type, Arrays.toString(entries)));
                 }

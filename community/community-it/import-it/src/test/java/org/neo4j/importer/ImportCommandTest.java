@@ -2095,6 +2095,142 @@ class ImportCommandTest {
     }
 
     @Test
+    void shouldAllowReferringToCompositeNodeIDByConcatenatingStringsForStartIdAndEndId() throws Exception {
+        // GIVEN
+        Path dbConfig = prepareDefaultConfigFile();
+
+        // WHEN
+        Path nodeData = createAndWriteFile("nodes.csv", Charset.defaultCharset(), writer -> {
+            writer.println("firstname:ID(name){label:Person},lastname:ID(name){label:Person},state");
+            writer.println("ABC,DEF,NY");
+        });
+        Path relationshipData = createAndWriteFile("relationships.csv", Charset.defaultCharset(), writer -> {
+            writer.println(":START_ID(name),:END_ID(name),:TYPE,state");
+            writer.println("ABCDEF,ABCDEF,FOO,CA");
+        });
+
+        var ctx = capturingCtx();
+        runImport(
+                ctx,
+                "--additional-config",
+                dbConfig.toAbsolutePath().toString(),
+                "--format",
+                "aligned",
+                "--nodes",
+                nodeData.toAbsolutePath().toString(),
+                "--relationships",
+                relationshipData.toAbsolutePath().toString());
+        // THEN
+        GraphDatabaseService db = getDatabaseApi();
+        try (Transaction tx = db.beginTx()) {
+            Map<String, Node> nodes = new HashMap<>();
+            try (ResourceIterable<Node> allNodes = tx.getAllNodes()) {
+                allNodes.forEach(node -> nodes.put(node.getProperty("firstname").toString(), node));
+            }
+            Node node1 = nodes.get("ABC");
+            assertThat(node1.getProperty("lastname")).isEqualTo("DEF");
+            assertThat(node1.getProperty("state")).isEqualTo("NY");
+
+            Relationship relationship1 = single(node1.getRelationships(Direction.OUTGOING));
+            assertThat(relationship1.getType()).isEqualTo(RelationshipType.withName("FOO"));
+            assertThat(relationship1.getProperty("state")).isEqualTo("CA");
+
+            tx.commit();
+        }
+    }
+
+    @Test
+    void shouldNotFindFalsePositiveDuplicateIDsWithMultipleIDColumns() throws Exception {
+        // GIVEN
+        Path dbConfig = prepareDefaultConfigFile();
+
+        // WHEN
+        Path nodeData = createAndWriteFile("nodes.csv", Charset.defaultCharset(), writer -> {
+            writer.println("firstname:ID(name){label:Person},lastname:ID(name){label:Person},state");
+            writer.println("ABC,DEF,NY");
+            writer.println("ABCD,EF,NZ");
+        });
+        var ctx = capturingCtx();
+        runImport(
+                ctx,
+                "--additional-config",
+                dbConfig.toAbsolutePath().toString(),
+                "--format",
+                "aligned",
+                "--nodes",
+                nodeData.toAbsolutePath().toString());
+        // THEN
+        GraphDatabaseService db = getDatabaseApi();
+        try (Transaction tx = db.beginTx()) {
+            Map<String, Node> nodes = new HashMap<>();
+            try (ResourceIterable<Node> allNodes = tx.getAllNodes()) {
+                allNodes.forEach(node -> nodes.put(node.getProperty("firstname").toString(), node));
+            }
+            Node node1 = nodes.get("ABC");
+            assertThat(node1.getProperty("lastname")).isEqualTo("DEF");
+            assertThat(node1.getProperty("state")).isEqualTo("NY");
+            Node node2 = nodes.get("ABCD");
+            assertThat(node2.getProperty("lastname")).isEqualTo("EF");
+            assertThat(node2.getProperty("state")).isEqualTo("NZ");
+            tx.commit();
+        }
+    }
+
+    @Test
+    void shouldNotFindFalsePositiveDuplicateIDsWithMultipleIDColumnsForRelationships() throws Exception {
+        // GIVEN
+        Path dbConfig = prepareDefaultConfigFile();
+
+        // WHEN
+        Path nodeData = createAndWriteFile("nodes.csv", Charset.defaultCharset(), writer -> {
+            writer.println("firstname:ID(name){label:Person},lastname:ID(name){label:Person},state");
+            writer.println("ABC,DEF,NY");
+            writer.println("ABCD,EF,NZ");
+        });
+        Path relationshipData = createAndWriteFile("relationships.csv", Charset.defaultCharset(), writer -> {
+            writer.println(":START_ID(name),:START_ID(name),:END_ID(name),:END_ID(name),:TYPE,state");
+            writer.println("ABC,DEF,ABCD,EF,FOO,CA");
+            writer.println("ABCD,EF,ABC,DEF,BAR,CL");
+        });
+
+        var ctx = capturingCtx();
+        runImport(
+                ctx,
+                "--additional-config",
+                dbConfig.toAbsolutePath().toString(),
+                "--format",
+                "aligned",
+                "--nodes",
+                nodeData.toAbsolutePath().toString(),
+                "--relationships",
+                relationshipData.toAbsolutePath().toString());
+        // THEN
+        GraphDatabaseService db = getDatabaseApi();
+        try (Transaction tx = db.beginTx()) {
+            Map<String, Node> nodes = new HashMap<>();
+            try (ResourceIterable<Node> allNodes = tx.getAllNodes()) {
+                allNodes.forEach(node -> nodes.put(node.getProperty("firstname").toString(), node));
+            }
+            Node node1 = nodes.get("ABC");
+            assertThat(node1.getProperty("lastname")).isEqualTo("DEF");
+            assertThat(node1.getProperty("state")).isEqualTo("NY");
+            Node node2 = nodes.get("ABCD");
+            assertThat(node2.getProperty("lastname")).isEqualTo("EF");
+            assertThat(node2.getProperty("state")).isEqualTo("NZ");
+
+            Relationship relationship1 = single(node1.getRelationships(Direction.OUTGOING));
+            assertThat(relationship1.getType()).isEqualTo(RelationshipType.withName("FOO"));
+            assertThat(relationship1.getProperty("state")).isEqualTo("CA");
+
+            Relationship relationship2 = single(node2.getRelationships(Direction.OUTGOING));
+            assertThat(relationship2.getType()).isEqualTo(RelationshipType.withName("BAR"));
+            assertThat(relationship2.getProperty("state")).isEqualTo("CL");
+
+            tx.commit();
+        }
+    }
+
+    @Test
     void shouldNotNormalizeArrayTypes() throws Exception {
         // GIVEN
         Path dbConfig = prepareDefaultConfigFile();

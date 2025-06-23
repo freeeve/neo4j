@@ -63,7 +63,8 @@ class EagerParserChunkerTest {
                 1_000,
                 COMMAS,
                 NO_DECORATOR,
-                true)) {
+                true,
+                false)) {
             // when
             var chunk = new EagerCsvInputChunk();
             chunker.nextChunk(chunk);
