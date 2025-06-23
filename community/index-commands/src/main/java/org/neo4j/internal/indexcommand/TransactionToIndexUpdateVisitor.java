@@ -30,16 +30,22 @@ import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 import static org.neo4j.token.api.TokenConstants.ANY_RELATIONSHIP_TYPE;
 
 import java.util.Arrays;
+import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.RelationshipSelection;
+import org.neo4j.storageengine.api.RelationshipVisitorWithProperties;
 import org.neo4j.storageengine.api.StorageNodeCursor;
+import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -47,6 +53,7 @@ import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.txstate.EntityChange;
 import org.neo4j.storageengine.api.txstate.RelationshipModifications;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
+import org.neo4j.storageengine.util.SingleDegree;
 import org.neo4j.values.storable.ValueTuple;
 
 public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
@@ -57,6 +64,8 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
     private final StorageRelationshipScanCursor relationshipCursor;
     private final IndexDescriptor labelIndex;
     private final IndexDescriptor relationshipTypeIndex;
+    private final RelationshipVisitorWithProperties<RuntimeException> tokenIndexAdditions;
+    private final RelationshipVisitorWithProperties<RuntimeException> tokenIndexRemovals;
 
     public TransactionToIndexUpdateVisitor(
             TxStateVisitor next,
@@ -64,16 +73,24 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
             StorageReader storageReader,
             CursorContext cursorContext,
             StoreCursors storeCursors,
-            MemoryTracker memoryTracker) {
+            MemoryTracker memoryTracker,
+            StorageEngineIndexingBehaviour storageEngineIndexingBehaviour) {
         super(next);
         this.indexUpdatesState = indexUpdatesState;
+        boolean useNodeIds = storageEngineIndexingBehaviour.useNodeIdsInRelationshipTokenIndex();
+        this.tokenIndexAdditions = useNodeIds
+                ? new NodeBasedRelationshipTokenIndexAdditions()
+                : new RelationshipBasedRelationshipTokenIndexAdditions();
+        this.tokenIndexRemovals = useNodeIds
+                ? new NodeBasedRelationshipTokenIndexRemovals()
+                : new RelationshipBasedRelationshipTokenIndexRemovals();
 
         this.nodeCursor = storageReader.allocateNodeCursor(cursorContext, storeCursors, memoryTracker);
         this.relationshipCursor =
                 storageReader.allocateRelationshipScanCursor(cursorContext, storeCursors, memoryTracker);
 
-        labelIndex = getTokenIndex(storageReader, NODE);
-        relationshipTypeIndex = getTokenIndex(storageReader, RELATIONSHIP);
+        this.labelIndex = getTokenIndex(storageReader, NODE);
+        this.relationshipTypeIndex = getTokenIndex(storageReader, RELATIONSHIP);
     }
 
     private static IndexDescriptor getTokenIndex(StorageReader storageReader, EntityType entityType) {
@@ -121,28 +138,8 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
             return;
         }
 
-        modifications
-                .creations()
-                .forEach((id, type, startNode, endNode, addedProperties, changedProperties, removedProperties) ->
-                        indexUpdatesState.addTokenUpdate(
-                                tokenChange(id, relationshipTypeIndex, NO_TOKENS, new int[] {type})));
-        modifications
-                .deletions()
-                .forEach((id, type, startNode, endNode, noProperties, changedProperties, removedProperties) -> {
-                    if (type == ANY_RELATIONSHIP_TYPE) {
-                        relationshipCursor.single(id);
-                        if (!relationshipCursor.next()) {
-                            throw new IllegalStateException(
-                                    "Relationship being deleted should exist along with its nodes. Relationship[" + id
-                                            + "]");
-                        }
-                        indexUpdatesState.addTokenUpdate(tokenChange(
-                                id, relationshipTypeIndex, new int[] {relationshipCursor.type()}, NO_TOKENS));
-                    } else {
-                        indexUpdatesState.addTokenUpdate(
-                                tokenChange(id, relationshipTypeIndex, new int[] {type}, NO_TOKENS));
-                    }
-                });
+        modifications.creations().forEach(tokenIndexAdditions);
+        modifications.deletions().forEach(tokenIndexRemovals);
     }
 
     @Override
@@ -176,5 +173,108 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
     public void close() throws KernelException {
         super.close();
         IOUtils.closeAllUnchecked(indexUpdatesState, nodeCursor, relationshipCursor);
+    }
+
+    private class RelationshipBasedRelationshipTokenIndexAdditions
+            implements RelationshipVisitorWithProperties<RuntimeException> {
+
+        @Override
+        public void visit(
+                long id,
+                int type,
+                long startNode,
+                long endNode,
+                Iterable<StorageProperty> addedProperties,
+                Iterable<StorageProperty> changedProperties,
+                IntIterable removedProperties)
+                throws RuntimeException {
+            indexUpdatesState.addTokenUpdate(tokenChange(id, relationshipTypeIndex, NO_TOKENS, new int[] {type}));
+        }
+    }
+
+    private class RelationshipBasedRelationshipTokenIndexRemovals
+            implements RelationshipVisitorWithProperties<RuntimeException> {
+        @Override
+        public void visit(
+                long id,
+                int type,
+                long startNode,
+                long endNode,
+                Iterable<StorageProperty> noProperties,
+                Iterable<StorageProperty> changedProperties,
+                IntIterable removedProperties)
+                throws RuntimeException {
+            indexUpdatesState.addTokenUpdate(
+                    tokenChange(id, relationshipTypeIndex, new int[] {findTypeToRemove(id, type)}, NO_TOKENS));
+        }
+    }
+
+    private int findTypeToRemove(long id, int type) {
+        if (type == ANY_RELATIONSHIP_TYPE) {
+            relationshipCursor.single(id);
+            if (!relationshipCursor.next()) {
+                throw new IllegalStateException(
+                        "Relationship being deleted should exist along with its nodes. Relationship[" + id + "]");
+            }
+            return relationshipCursor.type();
+        }
+        return type;
+    }
+
+    private class NodeBasedRelationshipTokenIndexAdditions
+            implements RelationshipVisitorWithProperties<RuntimeException> {
+        @Override
+        public void visit(
+                long id,
+                int type,
+                long startNode,
+                long endNode,
+                Iterable<StorageProperty> addedProperties,
+                Iterable<StorageProperty> changedProperties,
+                IntIterable removedProperties)
+                throws RuntimeException {
+            nodeCursor.single(startNode);
+            if (!nodeCursor.next()) {
+                return;
+            }
+
+            // TODO mvcc correctly handle cases when there are multiple removals and additions in the same batch
+            // if this is a first relationship of this type we generate token addition
+            SingleDegree degree = new SingleDegree(1);
+            nodeCursor.degrees(RelationshipSelection.selection(type, Direction.OUTGOING), degree);
+            if (degree.getTotal() == 0) {
+                indexUpdatesState.addTokenUpdate(
+                        tokenChange(startNode, relationshipTypeIndex, NO_TOKENS, new int[] {type}));
+            }
+        }
+    }
+
+    private class NodeBasedRelationshipTokenIndexRemovals
+            implements RelationshipVisitorWithProperties<RuntimeException> {
+        @Override
+        public void visit(
+                long id,
+                int type,
+                long startNode,
+                long endNode,
+                Iterable<StorageProperty> noProperties,
+                Iterable<StorageProperty> changedProperties,
+                IntIterable removedProperties)
+                throws RuntimeException {
+            int typeToRemove = findTypeToRemove(id, type);
+            nodeCursor.single(startNode);
+            if (!nodeCursor.next()) {
+                return;
+            }
+            // TODO mvcc correctly handle cases when there are multiple removals and additions in the same batch
+            // if this is a last relationship of this type we generate token removal
+            SingleDegree degree = new SingleDegree(2);
+            nodeCursor.degrees(RelationshipSelection.selection(typeToRemove, Direction.OUTGOING), degree);
+
+            if (degree.getTotal() == 1) {
+                indexUpdatesState.addTokenUpdate(
+                        tokenChange(startNode, relationshipTypeIndex, new int[] {typeToRemove}, NO_TOKENS));
+            }
+        }
     }
 }
