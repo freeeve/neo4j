@@ -66,6 +66,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
@@ -218,6 +219,7 @@ class IndexPopulationIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "monitors are not called on graph shard")
     void concurrentUpdatesPopulationOfManyIndexesOnSameSchema() throws InterruptedException, KernelException {
         Label nodeLabel = Label.label("nodeLabel");
         var propertyName = "testProperty";
