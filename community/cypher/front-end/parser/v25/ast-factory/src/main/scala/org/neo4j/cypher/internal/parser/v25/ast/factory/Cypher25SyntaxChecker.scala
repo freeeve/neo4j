@@ -351,19 +351,33 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
   private def checkFunctionInvocation(ctx: Cypher25Parser.FunctionInvocationContext): Unit = {
     val functionName = ctx.functionName().ast[FunctionName]()
     if (
-      functionName.name == "normalize" &&
+      functionName.name.toLowerCase == "normalize" &&
       functionName.namespace.parts.isEmpty &&
       ctx.functionArgument().size == 2
     ) {
       val normalForm = ctx.functionArgument(1).expression().ast[Expression]()
       _errors :+= exceptionFactory.invalidNormalForm(normalForm)
     } else if (
-      functionName.name == "vector" &&
+      functionName.name.toLowerCase == "vector" &&
       functionName.namespace.parts.isEmpty &&
       ctx.functionArgument().size == 3
     ) {
       val coordinateType = ctx.functionArgument(2).expression().ast[Expression]()
       _errors :+= exceptionFactory.invalidVectorType(coordinateType)
+    } else if (
+      functionName.name.toLowerCase == "vector_distance" &&
+      functionName.namespace.parts.isEmpty &&
+      ctx.functionArgument().size == 3
+    ) {
+      val distanceMetric = ctx.functionArgument(2).expression().ast[Expression]()
+      _errors :+= exceptionFactory.invalidVectorDistanceMetric(distanceMetric, normFunction = false)
+    } else if (
+      functionName.name.toLowerCase == "vector_norm" &&
+      functionName.namespace.parts.isEmpty &&
+      ctx.functionArgument().size == 2
+    ) {
+      val distanceMetric = ctx.functionArgument(1).expression().ast[Expression]()
+      _errors :+= exceptionFactory.invalidVectorDistanceMetric(distanceMetric, normFunction = true)
     }
   }
 

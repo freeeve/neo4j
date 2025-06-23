@@ -273,6 +273,14 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitVectorFunction(Cypher25Parser.VectorFunctionContext ctx);
 
+    void exitVectorDistanceFunction(Cypher25Parser.VectorDistanceFunctionContext ctx);
+
+    void exitVectorNormFunction(Cypher25Parser.VectorNormFunctionContext ctx);
+
+    void exitVectorDistanceMetric(Cypher25Parser.VectorDistanceMetricContext ctx);
+
+    void exitVectorNormDistanceMetric(Cypher25Parser.VectorNormDistanceMetricContext ctx);
+
     void exitTrimFunction(Cypher25Parser.TrimFunctionContext ctx);
 
     void exitPatternExpression(Cypher25Parser.PatternExpressionContext ctx);

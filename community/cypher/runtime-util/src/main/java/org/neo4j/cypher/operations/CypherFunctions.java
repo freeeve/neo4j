@@ -94,6 +94,7 @@ import org.neo4j.cypher.internal.util.symbols.VectorType;
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType;
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType;
 import org.neo4j.exceptions.CypherTypeException;
+import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.ParameterWrongTypeException;
@@ -108,6 +109,8 @@ import org.neo4j.internal.kernel.api.TokenWrite;
 import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException;
 import org.neo4j.kernel.api.StatementConstants;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarity;
+import org.neo4j.kernel.api.vector.GQLVectorDistanceFunction;
+import org.neo4j.kernel.api.vector.GQLVectorNorm;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.kernel.impl.util.NodeEntityWrappingNodeValue;
 import org.neo4j.storageengine.api.LongReference;
@@ -620,6 +623,74 @@ public final class CypherFunctions {
     @CalledFromGeneratedCode
     public static Value vectorSimilarityCosine(AnyValue lhs, AnyValue rhs) {
         return vectorSimilarity(VectorSimilarity.COSINE, lhs, rhs);
+    }
+
+    public static AnyValue vectorDistance(AnyValue vector1, AnyValue vector2, AnyValue distanceMetric) {
+        if (vector1 == NO_VALUE || vector2 == NO_VALUE) {
+            return NO_VALUE;
+        }
+        if (vector1 instanceof VectorValue v1 && vector2 instanceof VectorValue v2) {
+            if (distanceMetric instanceof TextValue textDistanceMetric) {
+                if (v1.dimensions() != v2.dimensions()) {
+                    throw new InvalidArgumentException(
+                            GqlHelper.getGql22N38_22N04(
+                                    "vector_distance()",
+                                    "`vector1` of dimension " + v1.dimensions() + " and `vector2` of dimension "
+                                            + v2.dimensions(),
+                                    "vector1 and vector2",
+                                    List.of("vector arguments must be the same dimension")),
+                            "The argument `vector1` and `vector2` in the `vector_distance()` function must be of the same dimension.");
+                }
+                return switch (textDistanceMetric.stringValue()) {
+                    case "COSINE" -> doubleValue(GQLVectorDistanceFunction.COSINE.distance(v1, v2));
+                    case "EUCLIDEAN" -> doubleValue(GQLVectorDistanceFunction.EUCLIDEAN.distance(v1, v2));
+                    case "EUCLIDEAN_SQUARED" ->
+                        doubleValue(GQLVectorDistanceFunction.EUCLIDEAN_SQUARED.distance(v1, v2));
+                    case "MANHATTAN" -> doubleValue(GQLVectorDistanceFunction.MANHATTAN.distance(v1, v2));
+                    case "DOT" -> doubleValue(GQLVectorDistanceFunction.DOT.distance(v1, v2));
+                    case "HAMMING" -> doubleValue(GQLVectorDistanceFunction.HAMMING.distance(v1, v2));
+                    // This is technically a keyword in the parser, so should never fail here.
+                    default ->
+                        throw InternalException.internalError(
+                                CypherFunctions.class.getSimpleName(),
+                                "Expected known distance metric, got: " + distanceMetric);
+                };
+            }
+            // This is technically a keyword in the parser, so should never fail here.
+            throw InternalException.internalError(
+                    CypherFunctions.class.getSimpleName(),
+                    "Expected known distance metric, got: " + distanceMetric.prettyPrint());
+        }
+
+        if (!(vector1 instanceof VectorValue)) {
+            throw notAVector("vector_distance", vector1);
+        }
+        throw notAVector("vector_distance", vector2);
+    }
+
+    public static AnyValue vectorNorm(AnyValue vector, AnyValue distanceMetric) {
+        if (vector == NO_VALUE) {
+            return NO_VALUE;
+        }
+        if (vector instanceof VectorValue v) {
+            if (distanceMetric instanceof TextValue textDistanceMetric) {
+                return switch (textDistanceMetric.stringValue()) {
+                    case "EUCLIDEAN" -> doubleValue(GQLVectorNorm.EUCLIDEAN.norm(v));
+                    case "MANHATTAN" -> doubleValue(GQLVectorNorm.MANHATTAN.norm(v));
+                    // This is technically a keyword in the parser, so should never fail here.
+                    default ->
+                        throw InternalException.internalError(
+                                CypherFunctions.class.getSimpleName(),
+                                "Expected known distance metric, got: " + distanceMetric);
+                };
+            }
+            // This is technically a keyword in the parser, so should never fail here.
+            throw InternalException.internalError(
+                    CypherFunctions.class.getSimpleName(),
+                    "Expected known distance metric, got: " + distanceMetric.prettyPrint());
+        }
+
+        throw notAVector("vector_norm", vector);
     }
 
     public static Value vectorSimilarity(VectorSimilarity similarity, AnyValue lhs, AnyValue rhs) {
@@ -2011,9 +2082,9 @@ public final class CypherFunctions {
             throw CypherTypeException.functionArgumentWrongType(
                     "Invalid input for function 'vector_dimension_count()': Expected a VECTOR, got: " + item,
                     "vector_dimension_count",
-                    item.toString(),
+                    item.prettify(),
                     List.of("VECTOR"),
-                    item.getTypeName());
+                    CypherTypeValueMapper.valueType(item));
         }
     }
 
@@ -2951,6 +3022,15 @@ public final class CypherFunctions {
                 method,
                 in.prettify(),
                 List.of("STRING"),
+                CypherTypeValueMapper.valueType(in));
+    }
+
+    private static CypherTypeException notAVector(String method, AnyValue in) {
+        return CypherTypeException.functionArgumentWrongType(
+                format("Expected a vector value for `%s`, but got: %s.", method, in),
+                method,
+                in.prettify(),
+                List.of("VECTOR"),
                 CypherTypeValueMapper.valueType(in));
     }
 

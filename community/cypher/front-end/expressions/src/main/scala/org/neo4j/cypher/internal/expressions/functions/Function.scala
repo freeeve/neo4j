@@ -147,6 +147,8 @@ object Function {
     ValueType,
     WithinBBox,
     VectorDimensionCount,
+    VectorDistance,
+    VectorNorm,
     VectorValueConstructor,
     VectorSimilarityEuclidean,
     VectorSimilarityCosine

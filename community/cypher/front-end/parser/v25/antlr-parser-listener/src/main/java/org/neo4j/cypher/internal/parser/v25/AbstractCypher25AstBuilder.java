@@ -212,6 +212,14 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_normalizeFunction ->
                 exitNormalizeFunction((Cypher25Parser.NormalizeFunctionContext) ctx);
             case Cypher25Parser.RULE_vectorFunction -> exitVectorFunction((Cypher25Parser.VectorFunctionContext) ctx);
+            case Cypher25Parser.RULE_vectorDistanceFunction ->
+                exitVectorDistanceFunction((Cypher25Parser.VectorDistanceFunctionContext) ctx);
+            case Cypher25Parser.RULE_vectorNormFunction ->
+                exitVectorNormFunction((Cypher25Parser.VectorNormFunctionContext) ctx);
+            case Cypher25Parser.RULE_vectorDistanceMetric ->
+                exitVectorDistanceMetric((Cypher25Parser.VectorDistanceMetricContext) ctx);
+            case Cypher25Parser.RULE_vectorNormDistanceMetric ->
+                exitVectorNormDistanceMetric((Cypher25Parser.VectorNormDistanceMetricContext) ctx);
             case Cypher25Parser.RULE_trimFunction -> exitTrimFunction((Cypher25Parser.TrimFunctionContext) ctx);
             case Cypher25Parser.RULE_patternExpression ->
                 exitPatternExpression((Cypher25Parser.PatternExpressionContext) ctx);

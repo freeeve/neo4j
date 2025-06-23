@@ -22,7 +22,7 @@ object StorableType {
    * The type of a property stored in a Node or Relationship
    */
   val storableType: TypeSpec =
-    CTBoolean | CTNumber.covariant | CTPoint | CTString | CTDuration | CTDate | CTTime | CTLocalTime | CTLocalDateTime | CTDateTime |
+    CTBoolean | CTNumber.covariant | CTPoint | CTString | CTDuration | CTDate | CTTime | CTLocalTime | CTLocalDateTime | CTDateTime | CTVector |
       CTList(CTBoolean) | CTList(CTNumber) | CTList(CTInteger) | CTList(CTFloat) | CTList(CTPoint) | CTList(
         CTString
       ) | CTList(CTDuration) | CTList(CTDate) |

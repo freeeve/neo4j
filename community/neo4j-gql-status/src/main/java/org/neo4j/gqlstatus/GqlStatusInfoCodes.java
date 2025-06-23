@@ -2827,6 +2827,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "missing LOOKUP INDEX function name",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I62(
+            new GqlStatus("42I62"),
+            "Unknown distance metric: { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "unsupported distance metric",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",

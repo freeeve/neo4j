@@ -45,6 +45,7 @@ class Cypher25ErrorStrategyConf extends CypherErrorStrategy.Conf {
   )
 
   override def customTokenDisplayNames: Map[Int, String] = Map(
+    Cypher25Parser.DOT_METRIC -> "'DOT'",
     Cypher25Parser.SPACE -> "' '",
     Cypher25Parser.SINGLE_LINE_COMMENT -> "'//'",
     Cypher25Parser.DECIMAL_DOUBLE -> "a float value",

@@ -661,7 +661,17 @@ class PrettifierIT extends CypherFunSuite {
     "MATCH (c:City) UsInG POiNt InDEX c:City(coordinates) WHERE point.distance(c.coordinates, $p1, $p2) < 1000" ->
       """MATCH (c:City)
         |  USING POINT INDEX c:City(coordinates)
-        |  WHERE point.distance(c.coordinates, $p1, $p2) < 1000""".stripMargin
+        |  WHERE point.distance(c.coordinates, $p1, $p2) < 1000""".stripMargin,
+    // Vectors
+
+    FailsInCypher5(
+      "RETURN VECTOR_DISTANCE(vector([1, 2, 3, 4], 4, INT8), vector([1, 2, 3, 5], 4, INT8), dot)",
+      """RETURN vector_distance(vector([1, 2, 3, 4], 4, INTEGER8 NOT NULL), vector([1, 2, 3, 5], 4, INTEGER8 NOT NULL), DOT)""".stripMargin
+    ),
+    FailsInCypher5(
+      "RETURN VECTOR_NORM(vector([1, 2, 3, 4], 4, float32), manhattan)",
+      """RETURN vector_norm(vector([1, 2, 3, 4], 4, FLOAT32 NOT NULL), MANHATTAN)""".stripMargin
+    )
   )
 
   def indexCommandTests(): Seq[Test] = Seq[Test](

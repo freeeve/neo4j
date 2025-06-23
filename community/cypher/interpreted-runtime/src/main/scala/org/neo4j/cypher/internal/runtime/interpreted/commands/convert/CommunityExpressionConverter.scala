@@ -130,6 +130,8 @@ import org.neo4j.cypher.internal.expressions.functions.Trim
 import org.neo4j.cypher.internal.expressions.functions.Type
 import org.neo4j.cypher.internal.expressions.functions.ValueType
 import org.neo4j.cypher.internal.expressions.functions.VectorDimensionCount
+import org.neo4j.cypher.internal.expressions.functions.VectorDistance
+import org.neo4j.cypher.internal.expressions.functions.VectorNorm
 import org.neo4j.cypher.internal.expressions.functions.VectorSimilarityCosine
 import org.neo4j.cypher.internal.expressions.functions.VectorSimilarityEuclidean
 import org.neo4j.cypher.internal.expressions.functions.WithinBBox
@@ -884,6 +886,17 @@ case class CommunityExpressionConverter(
       case ValueType => commands.expressions.ValueTypeFunction(self.toCommandExpression(id, invocation.arguments.head))
       case VectorDimensionCount =>
         commands.expressions.VectorDimensionCountFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case VectorDistance =>
+        commands.expressions.VectorDistanceFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          self.toCommandExpression(id, invocation.arguments(1)),
+          self.toCommandExpression(id, invocation.arguments(2))
+        )
+      case VectorNorm =>
+        commands.expressions.VectorNormFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          self.toCommandExpression(id, invocation.arguments(1))
+        )
       case VectorSimilarityEuclidean =>
         val firstArg = self.toCommandExpression(id, invocation.arguments.head)
         val secondArg = self.toCommandExpression(id, invocation.arguments(1))

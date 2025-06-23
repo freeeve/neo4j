@@ -42,10 +42,14 @@ import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.Concatenate
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Contains
+import org.neo4j.cypher.internal.expressions.CosineVectorDistanceMetric
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.Divide
+import org.neo4j.cypher.internal.expressions.DotVectorDistanceMetric
 import org.neo4j.cypher.internal.expressions.EndsWith
 import org.neo4j.cypher.internal.expressions.Equals
+import org.neo4j.cypher.internal.expressions.EuclideanSquaredVectorDistanceMetric
+import org.neo4j.cypher.internal.expressions.EuclideanVectorDistanceMetric
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FixedQuantifier
@@ -54,6 +58,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentUnordere
 import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
+import org.neo4j.cypher.internal.expressions.HammingVectorDistanceMetric
 import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.IntervalQuantifier
 import org.neo4j.cypher.internal.expressions.InvalidNotEquals
@@ -65,6 +70,7 @@ import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.ListSlice
 import org.neo4j.cypher.internal.expressions.LiteralEntry
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.ManhattanVectorDistanceMetric
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.MapProjection
 import org.neo4j.cypher.internal.expressions.MatchMode
@@ -118,6 +124,7 @@ import org.neo4j.cypher.internal.expressions.UnaryAdd
 import org.neo4j.cypher.internal.expressions.UnarySubtract
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableSelector
+import org.neo4j.cypher.internal.expressions.VectorDistanceMetric
 import org.neo4j.cypher.internal.expressions.Xor
 import org.neo4j.cypher.internal.expressions.functions.Trim
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
@@ -1130,6 +1137,49 @@ trait ExpressionBuilder extends Cypher25ParserListener {
         dimension,
         ctx.vectorCoordinateType().ast[CypherType]()
       )(pos(ctx))
+  }
+
+  final override def exitVectorDistanceFunction(ctx: Cypher25Parser.VectorDistanceFunctionContext): Unit = {
+    val vector1 = ctx.vector1.ast[Expression]()
+    val vector2 = ctx.vector2.ast[Expression]()
+    val distanceMetric = ctx.vectorDistanceMetric().ast[VectorDistanceMetric]().metricName
+
+    ctx.ast =
+      FunctionInvocation(
+        FunctionName("vector_distance")(pos(ctx)),
+        distinct = false,
+        IndexedSeq(vector1, vector2, StringLiteral(distanceMetric)(pos(ctx).withInputLength(0)))
+      )(pos(ctx))
+  }
+
+  final override def exitVectorNormFunction(ctx: Cypher25Parser.VectorNormFunctionContext): Unit = {
+    val vector = ctx.vectorValue.ast[Expression]()
+    val distanceMetric = ctx.vectorNormDistanceMetric().ast[VectorDistanceMetric]().metricName
+
+    ctx.ast =
+      FunctionInvocation(
+        FunctionName("vector_norm")(pos(ctx)),
+        distinct = false,
+        IndexedSeq(vector, StringLiteral(distanceMetric)(pos(ctx).withInputLength(0)))
+      )(pos(ctx))
+  }
+
+  final override def exitVectorDistanceMetric(ctx: Cypher25Parser.VectorDistanceMetricContext): Unit = {
+    ctx.ast = child[TerminalNode](ctx, 0).getSymbol.getType match {
+      case Cypher25Parser.EUCLIDEAN         => EuclideanVectorDistanceMetric
+      case Cypher25Parser.EUCLIDEAN_SQUARED => EuclideanSquaredVectorDistanceMetric
+      case Cypher25Parser.MANHATTAN         => ManhattanVectorDistanceMetric
+      case Cypher25Parser.COSINE            => CosineVectorDistanceMetric
+      case Cypher25Parser.DOT_METRIC        => DotVectorDistanceMetric
+      case Cypher25Parser.HAMMING           => HammingVectorDistanceMetric
+    }
+  }
+
+  final override def exitVectorNormDistanceMetric(ctx: Cypher25Parser.VectorNormDistanceMetricContext): Unit = {
+    ctx.ast = child[TerminalNode](ctx, 0).getSymbol.getType match {
+      case Cypher25Parser.EUCLIDEAN => EuclideanVectorDistanceMetric
+      case Cypher25Parser.MANHATTAN => ManhattanVectorDistanceMetric
+    }
   }
 
   final override def exitTrimFunction(

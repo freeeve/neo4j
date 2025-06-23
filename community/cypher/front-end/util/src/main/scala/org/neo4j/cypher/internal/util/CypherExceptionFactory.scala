@@ -221,6 +221,30 @@ trait CypherExceptionFactory {
     )
   }
 
+  def invalidVectorDistanceMetric(distanceMetric: ASTNode, normFunction: Boolean): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(distanceMetric.position.offset, distanceMetric.position.line, distanceMetric.position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I62)
+        .atPosition(distanceMetric.position.offset, distanceMetric.position.line, distanceMetric.position.column)
+        .withParam(GqlParams.StringParam.input, distanceMetric.asCanonicalStringVal)
+        .build)
+      .build
+
+    if (normFunction) {
+      syntaxException(
+        gql,
+        "Invalid vector distance metric, expected EUCLIDEAN or MANHATTAN",
+        distanceMetric.position
+      )
+    } else {
+      syntaxException(
+        gql,
+        "Invalid vector distance metric, expected EUCLIDEAN, EUCLIDEAN_SQUARED, MANHATTAN, COSINE, DOT or HAMMING",
+        distanceMetric.position
+      )
+    }
+  }
+
   def invalidNotNullClosedDynamicUnion(position: InputPosition): RuntimeException = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)

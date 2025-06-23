@@ -122,6 +122,7 @@ import org.neo4j.cypher.internal.expressions.VarLengthLowerBound
 import org.neo4j.cypher.internal.expressions.VarLengthUpperBound
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableSelector
+import org.neo4j.cypher.internal.expressions.VectorDistanceMetric
 import org.neo4j.cypher.internal.expressions.Xor
 import org.neo4j.cypher.internal.expressions.functions.UserDefinedFunctionInvocation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
@@ -233,7 +234,7 @@ private class DefaultExpressionStringifier(
       case ListLiteral(expressions) =>
         expressions.map(apply).mkString("[", ", ", "]")
 
-      // This hack is needed because normal forms do not have their own AST
+      // This hack is needed because the following GQL functions do not have their own AST
       case FunctionInvocation(
           FunctionName(Namespace(Nil), "normalize"),
           false,
@@ -241,8 +242,30 @@ private class DefaultExpressionStringifier(
           ArgumentUnordered,
           _
         ) =>
-        val fn = "normalize" // Can't have backticks because that do not parse as a normalizeFunction
+        val fn = "normalize" // Can't have backticks because that does not parse as a normalizeFunction
         val as = Seq(inner(ast)(value), form.formName).mkString(", ")
+        s"$fn($as)"
+
+      case FunctionInvocation(
+          FunctionName(Namespace(Nil), "vector_distance"),
+          false,
+          IndexedSeq(vector1, vector2, StringLiteral(VectorDistanceMetric(metric))),
+          ArgumentUnordered,
+          _
+        ) =>
+        val fn = "vector_distance" // Can't have backticks because that does not parse as a vectorDistanceFunction
+        val as = Seq(inner(ast)(vector1), inner(ast)(vector2), metric.metricName).mkString(", ")
+        s"$fn($as)"
+
+      case FunctionInvocation(
+          FunctionName(Namespace(Nil), "vector_norm"),
+          false,
+          IndexedSeq(vector, StringLiteral(VectorDistanceMetric(metric))),
+          ArgumentUnordered,
+          _
+        ) =>
+        val fn = "vector_norm" // Can't have backticks because that does not parse as a vectorNormFunction
+        val as = Seq(inner(ast)(vector), metric.metricName).mkString(", ")
         s"$fn($as)"
 
       case FunctionInvocation(FunctionName(namespace, functionName), distinct, args, order, _) =>
