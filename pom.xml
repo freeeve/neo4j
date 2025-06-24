@@ -94,6 +94,7 @@
     <test.runner.jvm.settings.log.format/>
     <test.runner.jvm.settings.dbms.factory/>
     <test.runner.jvm.settings.raft.log/>
+    <test.runner.jvm.settings.query.language/>
     <test.runner.jvm.settings>
       ${test.runner.mockito.agent}
       -Xmx${test.vm.heap.size}
@@ -142,6 +143,7 @@
       ${test.runner.jvm.settings.log.format}
       ${test.runner.jvm.settings.dbms.factory}
       ${test.runner.jvm.settings.raft.log}
+      ${test.runner.jvm.settings.query.language}
     </test.runner.jvm.settings>
     <default.jupiter.test.timeout>20m</default.jupiter.test.timeout>
     <default.jupiter.test.mode>same_thread</default.jupiter.test.mode>
@@ -1153,9 +1155,9 @@
         </property>
       </activation>
       <properties>
-        <test.runner.jvm.settings.db.format>
+        <test.runner.jvm.settings.query.language>
           -DNEO4J_OVERRIDE_QUERY_LANGUAGE=cypher_25
-        </test.runner.jvm.settings.db.format>
+        </test.runner.jvm.settings.query.language>
         <excludedTestGroups>exclude-default-query-lang-override</excludedTestGroups>
       </properties>
     </profile>
