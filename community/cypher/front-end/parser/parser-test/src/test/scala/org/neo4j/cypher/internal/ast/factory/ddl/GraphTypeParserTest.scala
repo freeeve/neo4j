@@ -640,6 +640,28 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     }
   }
 
+  test("""ALTER CURRENT GRAPH TYPE SET { (:Node => {name :: STRING, name :: STRING}) }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "duplicate property key `name`",
+          GqlStatusInfoCodes.STATUS_22NC1,
+          "error: data exception - graph type element contains duplicated tokens. The graph type element includes a property key with name `name` more than once."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { ()-[:REL => {name :: STRING, name :: STRING}]->() }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "duplicate property key `name`",
+          GqlStatusInfoCodes.STATUS_22NC1,
+          "error: data exception - graph type element contains duplicated tokens. The graph type element includes a property key with name `name` more than once."
+        )
+    }
+  }
+
   test("""ALTER CURRENT GRAPH TYPE SET { (:Person => {name :: STRING IS REL KEY}) }""") {
     parsesIn[Statements] {
       case Cypher5 => cypher5Error
@@ -718,7 +740,7 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     parsesIn[Statements] {
       case Cypher5 => cypher5Error
       case _ =>
-        _.withMessageContaining("Node type property existence constraints cannot be specified inline of a node type")
+        _.withMessageContaining("Property existence constraints cannot be specified inline of a node element type")
     }
   }
 
@@ -726,7 +748,7 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     parsesIn[Statements] {
       case Cypher5 => cypher5Error
       case _ =>
-        _.withMessageContaining("Edge type property type constraints cannot be specified inline of an edge type")
+        _.withMessageContaining("Property type constraints cannot be specified inline of a relationship element type")
     }
   }
 

@@ -442,7 +442,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
     intercept[RuntimeException](rewriter.apply(gt))
 
     // Then
-    verify(mockExceptionFactory).syntaxException(any(), ArgumentMatchers.startsWith("Node reference not found"), any())
+    verify(mockExceptionFactory).syntaxException(
+      any(),
+      ArgumentMatchers.startsWith("graph type element referenced by 'p' not found"),
+      any()
+    )
   }
 
   test("Rewrite invalid identifying node reference in constraint should throw exception") {
@@ -457,7 +461,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
     intercept[RuntimeException](rewriter.apply(gt))
 
     // Then
-    verify(mockExceptionFactory).syntaxException(any(), ArgumentMatchers.startsWith("Node reference not found"), any())
+    verify(mockExceptionFactory).syntaxException(
+      any(),
+      ArgumentMatchers.startsWith("graph type element referenced by '(:`Node` =>)' not found"),
+      any()
+    )
   }
 
   test("Rewrite invalid node reference in constraint should throw exception") {
@@ -472,7 +480,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
     intercept[RuntimeException](rewriter.apply(gt))
 
     // Then
-    verify(mockExceptionFactory).syntaxException(any(), ArgumentMatchers.startsWith("Node reference not found"), any())
+    verify(mockExceptionFactory).syntaxException(
+      any(),
+      ArgumentMatchers.startsWith("graph type element referenced by 'n' not found"),
+      any()
+    )
   }
 
   test("Rewrite invalid edge reference in constraint should throw exception") {
@@ -487,7 +499,11 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
     intercept[RuntimeException](rewriter.apply(gt))
 
     // Then
-    verify(mockExceptionFactory).syntaxException(any(), ArgumentMatchers.startsWith("Edge reference not found"), any())
+    verify(mockExceptionFactory).syntaxException(
+      any(),
+      ArgumentMatchers.startsWith("graph type element referenced by 'r' not found"),
+      any()
+    )
   }
 
   test("Rewrite constraint into duplicate constraint should throw exception") {

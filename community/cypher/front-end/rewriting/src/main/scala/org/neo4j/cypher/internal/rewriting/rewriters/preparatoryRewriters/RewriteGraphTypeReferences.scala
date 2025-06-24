@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 import org.neo4j.cypher.internal.ast.EdgeType
 import org.neo4j.cypher.internal.ast.EdgeTypeReference
 import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByIdentifyingLabel
+import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByVariable
 import org.neo4j.cypher.internal.ast.GraphType
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.GraphTypeConstraintBody
@@ -33,16 +34,17 @@ import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NodeType
 import org.neo4j.cypher.internal.ast.NodeTypeReference
 import org.neo4j.cypher.internal.ast.NodeTypeReferenceByIdentifyingLabel
+import org.neo4j.cypher.internal.ast.NodeTypeReferenceByVariable
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.PropertyType
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineConstraintBody
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineKeyConstraint
 import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineUniquenessConstraint
-import org.neo4j.cypher.internal.expressions.ElementTypeName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.rewriting.conditions.NoInlineConstraints
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
@@ -110,8 +112,14 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
   ): NodeTypeReference = {
     graphType.resolveEndpoint(nodeTypeReference) match {
       case None => throw cypherExceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
-          "Node reference not found",
+          GqlHelper.getGql42001_22NC5(
+            referenceDescriptor(nodeTypeReference),
+            "node",
+            nodeTypeReference.position.offset,
+            nodeTypeReference.position.line,
+            nodeTypeReference.position.column
+          ),
+          s"graph type element referenced by '${referenceDescriptor(nodeTypeReference)}' not found",
           nodeTypeReference.position
         )
       case Some(ntr) => ntr
@@ -127,12 +135,25 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
   ): EdgeTypeReference = {
     graphType.resolveEndpoint(edgeTypeReference) match {
       case None => throw cypherExceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
-          "Edge reference not found",
+          GqlHelper.getGql42001_22NC5(
+            referenceDescriptor(edgeTypeReference),
+            "relationship",
+            edgeTypeReference.position.offset,
+            edgeTypeReference.position.line,
+            edgeTypeReference.position.column
+          ),
+          s"graph type element referenced by '${referenceDescriptor(edgeTypeReference)}' not found",
           edgeTypeReference.position
         )
       case Some(etr) => etr
     }
+  }
+
+  private val referenceDescriptor: PartialFunction[GraphTypeElementReference, String] = {
+    case NodeTypeReferenceByVariable(v)              => v.name
+    case NodeTypeReferenceByIdentifyingLabel(lab, _) => s"(:`${lab.name}` =>)"
+    case EdgeTypeReferenceByVariable(v)              => v.name
+    case EdgeTypeReferenceByIdentifyingLabel(lab, _) => s"()-[:`${lab.name}` =>]->()"
   }
 
   /**
@@ -140,7 +161,7 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
    */
   private def rewriteInlineConstraints(graphType: GraphType): GraphType = {
 
-    def extractElementConstraints[E <: ElementTypeName : ReferenceBuilder](
+    def extractElementConstraints[E <: StaticElementTypeName : ReferenceBuilder](
       propertyTypes: Set[PropertyType],
       v: Option[Variable],
       name: E,
@@ -172,8 +193,8 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
         val existingConstraint = newConstraints.put(c.key, c)
         if (existingConstraint.isDefined) {
           throw throw cypherExceptionFactory.syntaxException(
-            GqlHelper.getDefaultObject,
-            s"Clashing constraints: ${existingConstraint.get.key} and ${c.key}",
+            GqlHelper.getGql42001_22N66(c.constraintDescriptor, c.position.offset, c.position.line, c.position.column),
+            s"Clashing constraints: '${c.constraintDescriptor}'",
             c.position
           )
         }
@@ -189,7 +210,7 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
    * @param name label / relationship type
    * @param bodies the constraint bodies to convert
    */
-  private def elementLevelConstraintToConstraint[E <: ElementTypeName](
+  private def elementLevelConstraintToConstraint[E <: StaticElementTypeName](
     elementVariable: Option[Variable],
     name: E,
     bodies: Set[(GraphTypeConstraintBody, Options)]
@@ -214,7 +235,7 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
     case _                                    => (propertyType, None)
   }
 
-  private trait ReferenceBuilder[T <: ElementTypeName] {
+  private trait ReferenceBuilder[T <: StaticElementTypeName] {
     def apply(e: T, v: Option[Variable]): GraphTypeElementReference
     def variableNameGenerator(): Variable
   }
@@ -234,7 +255,7 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
   /**
     * Convert a constraint attached to a property to be a top level constraint
     */
-  private def inlineConstraintToConstraint[E <: ElementTypeName](
+  private def inlineConstraintToConstraint[E <: StaticElementTypeName](
     variable: Option[Variable],
     name: E,
     propertyKeyName: PropertyKeyName,

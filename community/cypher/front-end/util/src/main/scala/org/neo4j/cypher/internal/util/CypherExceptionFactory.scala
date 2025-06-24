@@ -379,6 +379,27 @@ trait CypherExceptionFactory {
       position
     )
   }
+
+  def duplicatePropertyTypeInGraphTypeElement(
+    propertyKey: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC1)
+          .withParam(GqlParams.StringParam.propKey, propertyKey)
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      ).build()
+    syntaxException(
+      gql,
+      legacyMessage,
+      position
+    )
+  }
+
 }
 
 case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Option[InputPosition])

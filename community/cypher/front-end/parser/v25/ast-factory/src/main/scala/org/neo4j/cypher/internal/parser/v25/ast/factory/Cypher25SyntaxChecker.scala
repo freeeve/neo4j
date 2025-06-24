@@ -405,9 +405,9 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
   private def checkPropertyTypeList(ctx: Cypher25Parser.PropertyTypeListContext): Unit = {
     // check for duplicates
     astSeq[PropertyType](ctx.propertyType()).groupBy(_.name).values.find(_.size > 1).foreach(prop =>
-      _errors :+= exceptionFactory.syntaxException(
-        GqlHelper.getDefaultObject,
-        s"Duplicate property key `${prop.head.name.name}`",
+      _errors :+= exceptionFactory.duplicatePropertyTypeInGraphTypeElement(
+        prop.head.name.name,
+        s"duplicate property key `${prop.head.name.name}`",
         prop(1).position
       )
     )
@@ -524,8 +524,9 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     if (ctx.nodeTypeReference() != null && ctx.nodeTypeReference().nodeTypeInSituReference() != null) {
       val reference = ctx.nodeTypeReference().nodeTypeInSituReference()
       if (reference.labelType() != null && reference.variable() == null) {
+        val errorPos = pos(reference)
         _errors :+= exceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
+          GqlHelper.getGql42001_22NCB(errorPos.offset, errorPos.line, errorPos.column),
           "Graph type constraint definitions require an alias",
           inputPosition(reference.getStart)
         )
@@ -534,8 +535,9 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     if (ctx.edgeTypeReference() != null && ctx.edgeTypeReference().edgeTypeInSituReference() != null) {
       val reference = ctx.edgeTypeReference().edgeTypeInSituReference()
       if (reference.relType() != null && reference.variable() == null) {
+        val errorPos = pos(reference)
         _errors :+= exceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
+          GqlHelper.getGql42001_22NCB(errorPos.offset, errorPos.line, errorPos.column),
           "Graph type constraint definitions require an alias",
           inputPosition(reference.getStart)
         )
@@ -546,16 +548,18 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
   private def checkNodeTypeInlineConstraintList(ctx: Cypher25Parser.NodeTypeInlineConstraintListContext): Unit = {
     ctx.constraintType().forEach {
       case c: Cypher25Parser.ConstraintTypedContext =>
+        val errorPos = inputPosition(c.getStart)
         _errors :+= exceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
-          "Node type property type constraints cannot be specified inline of a node type",
-          inputPosition(c.getStart)
+          GqlHelper.getGql42001_22NCA("type", "node", errorPos.offset, errorPos.line, errorPos.column),
+          "Property type constraints cannot be specified inline of a node element type",
+          errorPos
         )
       case c: Cypher25Parser.ConstraintIsNotNullContext =>
+        val errorPos = inputPosition(c.getStart)
         _errors :+= exceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
-          "Node type property existence constraints cannot be specified inline of a node type",
-          inputPosition(c.getStart)
+          GqlHelper.getGql42001_22NCA("existence", "node", errorPos.offset, errorPos.line, errorPos.column),
+          "Property existence constraints cannot be specified inline of a node element type",
+          errorPos
         )
       case _ => ()
     }
@@ -564,16 +568,18 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
   private def checkEdgeTypeInlineConstraintList(ctx: Cypher25Parser.EdgeTypeInlineConstraintListContext): Unit = {
     ctx.constraintType().forEach {
       case c: Cypher25Parser.ConstraintTypedContext =>
+        val errorPos = inputPosition(c.getStart)
         _errors :+= exceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
-          "Edge type property type constraints cannot be specified inline of an edge type",
-          inputPosition(c.getStart)
+          GqlHelper.getGql42001_22NCA("type", "relationship", errorPos.offset, errorPos.line, errorPos.column),
+          "Property type constraints cannot be specified inline of a relationship element type",
+          errorPos
         )
       case c: Cypher25Parser.ConstraintIsNotNullContext =>
+        val errorPos = inputPosition(c.getStart)
         _errors :+= exceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
-          "Edge type property existence constraints cannot be specified inline of an edge type",
-          inputPosition(c.getStart)
+          GqlHelper.getGql42001_22NCA("existence", "relationship", errorPos.offset, errorPos.line, errorPos.column),
+          "Property existence constraints cannot be specified inline of a relationship element type",
+          errorPos
         )
       case _ => ()
     }

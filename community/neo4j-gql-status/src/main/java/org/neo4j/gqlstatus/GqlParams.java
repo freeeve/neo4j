@@ -81,6 +81,7 @@ public class GqlParams {
         graph(new IDENT()), // Graph name | myGrap
         graphTypeDependence1(new VERBATIM()), // GraphTypeDependence | independent
         graphTypeDependence2(new VERBATIM()),
+        graphTypeReference(new STRLIT()), // Graph type reference
         hint(new VERBATIM()), // Freeform description of some "hint"
         ident(new IDENT()), // Generic identifier
         idx(new IDENT()), // Index name

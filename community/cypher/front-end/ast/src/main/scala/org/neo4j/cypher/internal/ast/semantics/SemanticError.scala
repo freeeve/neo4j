@@ -18,6 +18,9 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.LabelName
+import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -2026,6 +2029,71 @@ object SemanticError {
       s"The $typ variable '$varName' is referencing a $typ that is created in the same $clause clause which is not allowed. " + "Please only reference variables created in earlier clauses.",
       position
     )
+
+  def labelIdentifyingAndImplied(labels: List[String], position: InputPosition): SemanticError = SemanticError(
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC4)
+          .withParam(GqlParams.ListParam.labelList, labels.asJava)
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      ).build(),
+    s"The label(s) ${labels.map(l => s"`$l`").mkString(", ")} are defined as both identifying and implied.",
+    position
+  )
+
+  def independentConstraintOnDependentElement(
+    description: String,
+    elementTypeName: StaticElementTypeName,
+    position: InputPosition
+  ): SemanticError = {
+    val (statusCode, param, nameValue, error) = elementTypeName match {
+      case LabelName(name) =>
+        (
+          GqlStatusInfoCodes.STATUS_22NC6,
+          GqlParams.StringParam.label,
+          name,
+          s"Independent constraints cannot be defined on label `$name`"
+        )
+      case RelTypeName(name) =>
+        (
+          GqlStatusInfoCodes.STATUS_22NC7,
+          GqlParams.StringParam.relType,
+          name,
+          s"Independent constraints cannot be defined on relationship type `$name`"
+        )
+    }
+
+    SemanticError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(position.offset, position.line, position.column)
+        .withCause(
+          ErrorGqlStatusObjectImplementation.from(statusCode)
+            .withParam(GqlParams.StringParam.constrDescrOrName, description)
+            .withParam(param, nameValue)
+            .atPosition(position.offset, position.line, position.column)
+            .build()
+        ).build(),
+      error,
+      position
+    )
+  }
+
+  def duplicateTokensInGraphType(token: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(position.offset, position.line, position.column)
+        .withCause(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC9)
+            .withParam(GqlParams.StringParam.token, token)
+            .atPosition(position.offset, position.line, position.column)
+            .build()
+        ).build(),
+      s"graph type contains duplicated tokens '$token'",
+      position
+    )
+  }
 
   private def duplicateVariableDefinition(
     clause: String,

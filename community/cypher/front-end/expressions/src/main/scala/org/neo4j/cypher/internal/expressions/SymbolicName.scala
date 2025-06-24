@@ -29,6 +29,8 @@ trait SymbolicName extends ASTNode {
 
 sealed trait ElementTypeName
 
+sealed trait StaticElementTypeName extends ElementTypeName
+
 sealed trait RelTypeExpression extends ASTNode
 
 case class Namespace(parts: List[String] = List.empty)(val position: InputPosition) extends ASTNode
@@ -37,12 +39,13 @@ case class ProcedureName(name: String)(val position: InputPosition) extends ASTN
 
 case class ProcedureOutput(name: String)(val position: InputPosition) extends ASTNode with SymbolicName
 
-case class LabelName(name: String)(val position: InputPosition) extends LabelExpressionLeafName with ElementTypeName
+case class LabelName(name: String)(val position: InputPosition) extends LabelExpressionLeafName
+    with StaticElementTypeName
 
 case class PropertyKeyName(name: String)(val position: InputPosition) extends SymbolicName
 
 case class RelTypeName(name: String)(val position: InputPosition) extends LabelExpressionLeafName
-    with ElementTypeName
+    with StaticElementTypeName
     with RelTypeExpression {
   override def asCanonicalStringVal: String = name
 }

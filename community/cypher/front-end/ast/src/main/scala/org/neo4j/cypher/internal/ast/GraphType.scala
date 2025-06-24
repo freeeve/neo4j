@@ -27,15 +27,19 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.error
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.expressions.ElementTypeName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.StaticElementTypeName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlHelper
+import org.neo4j.gqlstatus.GqlParams
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import scala.collection.immutable.ArraySeq
 import scala.collection.mutable
@@ -63,12 +67,15 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
   def resolveEndpoint(nodeTypeReference: NodeTypeReference): Option[NodeTypeReference] = nodeTypeReference match {
     case NodeTypeReferenceByVariable(variable) =>
       nodesByVar.get(variable).map(nt =>
-        NodeTypeReferenceByIdentifyingLabel(nt.identifyingLabel, Some(variable))(nt.position)
+        NodeTypeReferenceByIdentifyingLabel(nt.identifyingLabel, Some(variable))(nodeTypeReference.position)
       )
     case ntrl @ NodeTypeReferenceByLabel(label, typeRef) =>
       nodesByLabel.get(label).map(node =>
         Some(
-          NodeTypeReferenceByIdentifyingLabel(node.identifyingLabel, typeRef.orElse(node.variable))(node.position)
+          NodeTypeReferenceByIdentifyingLabel(
+            node.identifyingLabel,
+            typeRef.orElse(node.variable)
+          )(nodeTypeReference.position)
         )
       ).getOrElse(Some(ntrl))
     case e: EmptyNodeTypeReference                       => Some(EmptyNodeTypeReference()(e.position))
@@ -78,13 +85,16 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
   def resolveEndpoint(edgeTypeReference: EdgeTypeReference): Option[EdgeTypeReference] = edgeTypeReference match {
     case EdgeTypeReferenceByVariable(variable) =>
       edgesByVar.get(variable).map(et =>
-        EdgeTypeReferenceByIdentifyingLabel(et.identifyingLabel, Some(variable))(et.position)
+        EdgeTypeReferenceByIdentifyingLabel(et.identifyingLabel, Some(variable))(edgeTypeReference.position)
       )
     case e @ EdgeTypeReferenceByIdentifyingLabel(rtn, _) => if (edgesByType.contains(rtn)) Some(e) else None
     case e @ EdgeTypeReferenceByLabel(relType, typeRef) =>
       edgesByType.get(relType).map(rel =>
         Some(
-          EdgeTypeReferenceByIdentifyingLabel(rel.identifyingLabel, typeRef.orElse(rel.variable))(rel.position)
+          EdgeTypeReferenceByIdentifyingLabel(
+            rel.identifyingLabel,
+            typeRef.orElse(rel.variable)
+          )(edgeTypeReference.position)
         )
       ).getOrElse(Some(e))
   }
@@ -95,7 +105,12 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
       case NodeType(_, _, impliedLabels, _, _) if impliedLabels.nonEmpty =>
         val clashingLabels: Set[LabelName] = impliedLabels.intersect(nodesByLabel.keySet)
         if (clashingLabels.isEmpty) success
-        else error("Label clash", clashingLabels.head.position)
+        else {
+          error(SemanticError.labelIdentifyingAndImplied(
+            clashingLabels.map(_.name).toList,
+            clashingLabels.head.position
+          ))
+        }
       case _ => success
     }
   }
@@ -103,27 +118,26 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
   /* Variables and identifiers should be used only once */
   private def checkIdentifiers(
     elem: GraphTypeEntry,
-    identifiers: mutable.Set[ElementTypeName],
+    identifiers: mutable.Set[StaticElementTypeName],
     variables: mutable.Set[Variable]
   ): SemanticCheck = {
     elem match {
       case NodeType(v, l, _, _, _) =>
-        (if (v.isDefined && !variables.add(v.get))
-           error(s"Reference `${v.get.name}` is already declared", v.get.position)
-         else success) chain
-          (if (!identifiers.add(l)) error(s"Label :`${l.name}` is already declared", l.position) else success)
+        (if (v.isDefined && !variables.add(v.get)) {
+           error(SemanticError.duplicateTokensInGraphType(v.get.name, v.get.position))
+         } else success) chain
+          (if (!identifiers.add(l)) error(SemanticError.duplicateTokensInGraphType(l.name, l.position)) else success)
       case EdgeType(_, v, rt, _, _, _) =>
         (if (v.isDefined && !variables.add(v.get))
-           error(s"Reference `${v.get.name}` is already declared", v.get.position)
+           error(SemanticError.duplicateTokensInGraphType(v.get.name, v.get.position))
          else success) chain
-          (if (!identifiers.add(rt)) error(s"Relationship type :`${rt.name}` is already declared", rt.position)
+          (if (!identifiers.add(rt)) error(SemanticError.duplicateTokensInGraphType(rt.name, rt.position))
            else success)
-      case _ => success
     }
   }
 
   private def checkElements(): SemanticCheck = {
-    val identifiers = mutable.Set[ElementTypeName]()
+    val identifiers = mutable.Set[StaticElementTypeName]()
     val variables = mutable.Set[Variable]()
     semanticCheckFold(types) { t => checkIdentifiers(t, identifiers, variables) chain checkImpliedLabels(t) }
   }
@@ -132,41 +146,58 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
     val uniqueConstraintNames = mutable.Set[String]()
 
     /* Constraint names should be unique */
-    def checkForClashingNames(constraint: GraphTypeConstraint): SemanticCheck = constraint match {
-      case c: GraphTypeConstraintDefinition =>
-        if (c.name.isEmpty || uniqueConstraintNames.add(c.name.get)) success
-        else error("Constraint names must be unique within a graph type", c.position)
-      case c @ GraphTypeConstraintName(name) =>
-        if (uniqueConstraintNames.add(name)) success
-        else error("Constraint names must be unique within a graph type", c.position)
+    def checkForClashingNames(constraint: GraphTypeConstraint): SemanticCheck = {
+
+      def dupConstraintNameError(name: String): SemanticCheck = {
+        error(SemanticError(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(position.offset, position.line, position.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N67)
+                .withParam(GqlParams.StringParam.constr, name)
+                .atPosition(position.offset, position.line, position.column)
+                .build()
+            ).build(),
+          s"duplicated constraint name `$name`",
+          position
+        ))
+      }
+
+      constraint match {
+        case c: GraphTypeConstraintDefinition =>
+          if (c.name.isEmpty || uniqueConstraintNames.add(c.name.get)) success
+          else dupConstraintNameError(c.name.get)
+        case GraphTypeConstraintName(name) =>
+          if (uniqueConstraintNames.add(name)) success
+          else dupConstraintNameError(name)
+      }
     }
 
     /* We should not have independent constraints on define node / edge types which should be dependent */
     def checkForIndependentConstraintsOnDependentLabels(c: GraphTypeConstraint): SemanticCheck = {
-      val errorMsg = "Independent constraints cannot be defined on dependent labels"
       c match {
-        case GraphTypeConstraintDefinition(_, n: NodeTypeReference, p: PropertyTypeConstraint, _) =>
+        case cd @ GraphTypeConstraintDefinition(_, n: NodeTypeReference, _: PropertyTypeConstraint, _) =>
           resolveEndpoint(n) match {
-            case Some(_: NodeTypeReferenceByIdentifyingLabel) =>
-              error(errorMsg, p.position)
+            case Some(NodeTypeReferenceByIdentifyingLabel(l, _)) =>
+              SemanticError.independentConstraintOnDependentElement(cd.constraintDescriptor, l, n.position)
             case _ => success
           }
-        case GraphTypeConstraintDefinition(_, n: NodeTypeReference, ex: ExistenceConstraint, _) =>
+        case cd @ GraphTypeConstraintDefinition(_, n: NodeTypeReference, _: ExistenceConstraint, _) =>
           resolveEndpoint(n) match {
-            case Some(_: NodeTypeReferenceByIdentifyingLabel) =>
-              error(errorMsg, ex.position)
+            case Some(NodeTypeReferenceByIdentifyingLabel(l, _)) =>
+              SemanticError.independentConstraintOnDependentElement(cd.constraintDescriptor, l, n.position)
             case _ => success
           }
-        case GraphTypeConstraintDefinition(_, e: EdgeTypeReference, p: PropertyTypeConstraint, _) =>
+        case cd @ GraphTypeConstraintDefinition(_, e: EdgeTypeReference, _: PropertyTypeConstraint, _) =>
           resolveEndpoint(e) match {
-            case Some(_: EdgeTypeReferenceByIdentifyingLabel) =>
-              error(errorMsg, p.position)
+            case Some(EdgeTypeReferenceByIdentifyingLabel(rt, _)) =>
+              SemanticError.independentConstraintOnDependentElement(cd.constraintDescriptor, rt, e.position)
             case _ => success
           }
-        case GraphTypeConstraintDefinition(_, e: EdgeTypeReference, ex: ExistenceConstraint, _) =>
+        case cd @ GraphTypeConstraintDefinition(_, e: EdgeTypeReference, _: ExistenceConstraint, _) =>
           resolveEndpoint(e) match {
-            case Some(_: EdgeTypeReferenceByIdentifyingLabel) =>
-              error(errorMsg, ex.position)
+            case Some(EdgeTypeReferenceByIdentifyingLabel(rt, _)) =>
+              SemanticError.independentConstraintOnDependentElement(cd.constraintDescriptor, rt, e.position)
             case _ => success
           }
         case _ => success
@@ -196,7 +227,19 @@ object GraphTypeEntry extends SemanticAnalysisTooling {
         prop.normalizedPropertyType,
         SemanticError.propertyTypeUnsupportedInConstraint("graph type", _, _, _)
       ) chain {
-        if (!keys.add(prop.name)) error(s"Duplicate property key `${prop.name.name}`", prop.position) else success
+        if (!keys.add(prop.name)) error(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(prop.position.offset, prop.position.line, prop.position.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC1)
+                .withParam(GqlParams.StringParam.propKey, prop.name.name)
+                .atPosition(prop.position.offset, prop.position.line, prop.position.column)
+                .build()
+            ).build(),
+          s"duplicate property key `${prop.name.name}`",
+          prop.position
+        )
+        else success
       }
     }
   }
@@ -217,7 +260,18 @@ case class NodeType(
 )(val position: InputPosition) extends GraphTypeEntry {
 
   def checkNotEmpty: SemanticCheck = if (propertyTypes.isEmpty && additionalLabels.isEmpty)
-    error(SemanticError("Can't be empty", position))
+    error(SemanticError(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .atPosition(position.offset, position.line, position.column)
+        .withCause(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC2)
+            .withParam(GqlParams.StringParam.label, identifyingLabel.name)
+            .atPosition(position.offset, position.line, position.column)
+            .build()
+        ).build(),
+      s"node element type `${identifyingLabel.name}` is empty",
+      position
+    ))
   else success
 
   override def semanticCheck: SemanticCheck =
@@ -239,7 +293,18 @@ case class EdgeType(
     if (
       propertyTypes.isEmpty && src.isInstanceOf[EmptyNodeTypeReference] && dest.isInstanceOf[EmptyNodeTypeReference]
     ) {
-      error(SemanticError("Can't be empty", position))
+      error(SemanticError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(position.offset, position.line, position.column)
+          .withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC3)
+              .withParam(GqlParams.StringParam.relType, identifyingLabel.name)
+              .atPosition(position.offset, position.line, position.column)
+              .build()
+          ).build(),
+        s"relationship element type `${identifyingLabel.name}` is empty",
+        position
+      ))
     } else success
 
   override def semanticCheck: SemanticCheck =
@@ -315,25 +380,85 @@ case class GraphTypeConstraintDefinition(
 
   val key: GraphTypeConstraintKey = GraphTypeConstraintKey(this)
 
-  override def semanticCheck: SemanticCheck = body.semanticCheck chain {
-    def checkPropertyVariablesInScope(scope: Set[Variable], props: Seq[Property]): SemanticCheck =
-      semanticCheckFold(props) {
-        case p @ Property(Variable(name), _) if !scope.exists(_.name == name) =>
-          error(s"Graph type element referenced by `$name` not found.", p.position)
-        case _ => success
+  override def semanticCheck: SemanticCheck = body.semanticCheck chain
+    checkProperties(body.properties.map(_.propertyKey)) chain {
+      reference match {
+        case NodeTypeReferenceByVariable(v) => checkPropertyVariablesInScope("node", Set(v), body.properties)
+        case NodeTypeReferenceByLabel(_, v) => checkPropertyVariablesInScope("node", v.toSet, body.properties)
+        case NodeTypeReferenceByIdentifyingLabel(_, v) =>
+          checkPropertyVariablesInScope("node", v.toSet, body.properties)
+        case EdgeTypeReferenceByVariable(v) => checkPropertyVariablesInScope("relationship", Set(v), body.properties)
+        case EdgeTypeReferenceByLabel(_, v) => checkPropertyVariablesInScope("relationship", v.toSet, body.properties)
+        case EdgeTypeReferenceByIdentifyingLabel(_, v) =>
+          checkPropertyVariablesInScope("relationship", v.toSet, body.properties)
+        case EmptyNodeTypeReference() =>
+          error(
+            SemanticError(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(reference.position.offset, reference.position.line, reference.position.column)
+                .withCause(
+                  ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC8)
+                    .atPosition(reference.position.offset, reference.position.line, reference.position.column)
+                    .build()
+                ).build(),
+              s"the empty node type `()` is not a valid target for a constraint",
+              reference.position
+            )
+          )
       }
+    } chain options.checkOptionsForSchema("")
 
-    reference match {
-      case NodeTypeReferenceByVariable(v)            => checkPropertyVariablesInScope(Set(v), body.properties)
-      case NodeTypeReferenceByLabel(_, v)            => checkPropertyVariablesInScope(v.toSet, body.properties)
-      case NodeTypeReferenceByIdentifyingLabel(_, v) => checkPropertyVariablesInScope(v.toSet, body.properties)
-      case EdgeTypeReferenceByVariable(v)            => checkPropertyVariablesInScope(Set(v), body.properties)
-      case EdgeTypeReferenceByLabel(_, v)            => checkPropertyVariablesInScope(v.toSet, body.properties)
-      case EdgeTypeReferenceByIdentifyingLabel(_, v) => checkPropertyVariablesInScope(v.toSet, body.properties)
-      case EmptyNodeTypeReference() =>
-        error("The empty node type is not a valid target for a constraint", reference.position)
+  private def checkPropertyVariablesInScope(
+    entityType: String,
+    scope: Set[Variable],
+    props: Seq[Property]
+  ): SemanticCheck =
+    semanticCheckFold(props) {
+      case p @ Property(Variable(name), _) if !scope.exists(_.name == name) =>
+        val errorPos = p.map.position
+        error(SemanticError(
+          GqlHelper.getGql42001_22NC5(name, entityType, errorPos.offset, errorPos.line, errorPos.column),
+          s"graph type element referenced by '$name' not found.",
+          errorPos
+        ))
+      case _ => success
     }
-  } chain options.checkOptionsForSchema("")
+
+  // Check for duplicate property keys in constraint
+  private def checkProperties(properties: Seq[PropertyKeyName]): SemanticCheck = {
+    val props = mutable.Set[PropertyKeyName]()
+    semanticCheckFold(properties) { prop =>
+      if (props.add(prop)) success
+      else error(
+        SemanticError(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(prop.position.offset, prop.position.line, prop.position.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N75)
+                .withParam(GqlParams.StringParam.constrDescrOrName, constraintDescriptor)
+                .withParam(GqlParams.StringParam.token, prop.name)
+                .atPosition(prop.position.offset, prop.position.line, prop.position.column)
+                .build()
+            ).build(),
+          s"duplicate property key `${prop.name}`",
+          prop.position
+        )
+      )
+    }
+  }
+
+  def constraintDescriptor: String = {
+    val props = body.properties.map(prop => s"`${prop.propertyKey.name}`").mkString(", ")
+    reference match {
+      case NodeTypeReferenceByVariable(v)             => s"(`${v.name}` {$props})"
+      case NodeTypeReferenceByLabel(l, _)             => s"(:`${l.name}` {$props})"
+      case NodeTypeReferenceByIdentifyingLabel(l, _)  => s"(:`${l.name}` {$props})"
+      case EdgeTypeReferenceByVariable(v)             => s"()-[`${v.name}` {$props}]-()"
+      case EdgeTypeReferenceByLabel(rt, _)            => s"()-[:`${rt.name}` {$props}])-()"
+      case EdgeTypeReferenceByIdentifyingLabel(rt, _) => s"()-[:`${rt.name}` {$props}]-()"
+      case EmptyNodeTypeReference()                   => ""
+    }
+  }
 }
 
 object GraphTypeConstraint {
@@ -342,20 +467,12 @@ object GraphTypeConstraint {
 
     val properties: ArraySeq[Property]
 
-    // Check for duplicate property keys in constraint
-    def checkProperties(properties: Seq[PropertyKeyName]): SemanticCheck = {
-      val props = mutable.Set[PropertyKeyName]()
-      semanticCheckFold(properties) { p =>
-        if (props.add(p)) success else error(s"Duplicate property key `${p.name}`", p.position)
-      }
-    }
-
     def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody
   }
 
   case class ExistenceConstraint(override val properties: ArraySeq[Property])(val position: InputPosition)
       extends GraphTypeConstraintBody {
-    override def semanticCheck: SemanticCheck = checkProperties(properties.map(_.propertyKey))
+    override def semanticCheck: SemanticCheck = success
 
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)
@@ -367,7 +484,7 @@ object GraphTypeConstraint {
     val normalizedPropertyType: CypherType = CypherType.normalizeTypes(propertyType)
 
     override def semanticCheck: SemanticCheck =
-      super.checkProperties(properties.map(_.propertyKey)) chain CypherTypeChecking.checkPropertyTypeForConstraint(
+      CypherTypeChecking.checkPropertyTypeForConstraint(
         propertyType,
         normalizedPropertyType,
         SemanticError.propertyTypeUnsupportedInConstraint("graph type", _, _, _)
@@ -379,7 +496,7 @@ object GraphTypeConstraint {
 
   case class KeyConstraint(override val properties: ArraySeq[Property])(val position: InputPosition)
       extends GraphTypeConstraintBody {
-    override def semanticCheck: SemanticCheck = checkProperties(properties.map(_.propertyKey))
+    override def semanticCheck: SemanticCheck = success
 
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)
@@ -387,7 +504,7 @@ object GraphTypeConstraint {
 
   case class UniquenessConstraint(override val properties: ArraySeq[Property])(val position: InputPosition)
       extends GraphTypeConstraintBody {
-    override def semanticCheck: SemanticCheck = checkProperties(properties.map(_.propertyKey))
+    override def semanticCheck: SemanticCheck = success
 
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)
