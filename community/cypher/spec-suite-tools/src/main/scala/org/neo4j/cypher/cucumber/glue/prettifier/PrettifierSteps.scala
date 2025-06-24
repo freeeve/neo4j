@@ -121,27 +121,27 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
     })
   }
 
-  override protected def havingExecuted(cypher: String): Unit = roundTripCheck(cypher)
-  override protected def executingQuery(cypher: String): Unit = roundTripCheck(cypher)
-  override protected def executingControlQuery(cypher: String): Unit = roundTripCheck(cypher)
-  override protected def havingExecutedInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
-  override protected def executingQueryInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
-  override protected def executingControlQueryInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
+  override def havingExecuted(cypher: String): Unit = roundTripCheck(cypher)
+  override def executingQuery(cypher: String): Unit = roundTripCheck(cypher)
+  override def executingControlQuery(cypher: String): Unit = roundTripCheck(cypher)
+  override def havingExecutedInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
+  override def executingQueryInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
+  override def executingControlQueryInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
 
-  override protected def parametersAre(params: Map[String, String]): Unit = {}
-  override protected def registerProcedure(signature: String, results: DataTable): Unit = {}
-  override protected def registerUserFunction(name: String): Unit = {}
-  override protected def givenCsvFile(urlParam: String, content: DataTable): Unit = {}
-  override protected def resultShouldBeInAnyOrder(expected: DataTable): Unit = {}
-  override protected def resultShouldBeInOrder(expected: DataTable): Unit = {}
-  override protected def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit = {}
-  override protected def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit = {}
-  override protected def sideEffectsShouldBe(expected: DataTable): Unit = {}
-  override protected def errorShouldBeRaised(expected: ExpectedError): Unit = {}
-  override protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {}
-  override protected def warningShouldBeRaised(expectedGqlWarning: ExpectedGqlWarning): Unit = {}
-  override protected def openTransaction(): Unit = {}
-  override protected def commitOpenTx(): Unit = {}
+  override def parametersAre(params: Map[String, String]): Unit = {}
+  override def registerProcedure(signature: String, results: DataTable): Unit = {}
+  override def registerUserFunction(name: String): Unit = {}
+  override def givenCsvFile(urlParam: String, content: DataTable): Unit = {}
+  override def resultShouldBeInAnyOrder(expected: DataTable): Unit = {}
+  override def resultShouldBeInOrder(expected: DataTable): Unit = {}
+  override def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit = {}
+  override def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit = {}
+  override def sideEffectsShouldBe(expected: DataTable): Unit = {}
+  override def errorShouldBeRaised(expected: ExpectedError): Unit = {}
+  override def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {}
+  override def warningShouldBeRaised(expectedGqlWarning: ExpectedGqlWarning): Unit = {}
+  override def openTransaction(): Unit = {}
+  override def commitOpenTx(): Unit = {}
 }
 
 object PrettifierSteps {

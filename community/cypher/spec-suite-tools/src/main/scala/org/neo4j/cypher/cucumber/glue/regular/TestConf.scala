@@ -45,7 +45,9 @@ case class TestConf(
   useEnterprise: Boolean,
   useSpd: Boolean,
   preparserOptions: Map[String, String],
-  private val tagContext: Set[String]
+  private val tagContext: Set[String],
+  serverLogsConfResource: Option[String],
+  maxDbmsReuse: Option[Int]
 ) {
   val preparserPrefix: String = TestConf.preParserPrefix(preparserOptions)
 
@@ -65,12 +67,15 @@ object TestConf {
     useEnterprise: Boolean = true,
     useSpd: Boolean = false,
     preparserOptions: Map[String, String] = Map.empty,
-    additionalTagContext: Set[String] = Set.empty
+    additionalTagContext: Set[String] = Set.empty,
+    serverLogsConfResource: Option[String] = None,
+    maxDbmsReuse: Option[Int] = None
   ): TestConf = {
     val fullNeo4jConf = Seq(
       Some("server.memory.query_cache.per_db_cache_num_entries" -> "64"),
       Option.when(useEnterprise)("server.metrics.enabled" -> "false"),
-      Option.when(useBolt)("server.bolt.enabled" -> "true")
+      Option.when(useBolt)("server.bolt.enabled" -> "true"),
+      serverLogsConfResource.map(resource => "server.logs.config" -> s"PLACEHOLDER:$resource")
     ).flatten.toMap ++ neo4jConf
 
     // Make these tests work with FormatOverrideMigrator.
@@ -88,14 +93,23 @@ object TestConf {
       preparserOptions.get("runtime").map(runtime => s"$runtime-runtime") +
       s"db-format-${configWithOverrides.get(GraphDatabaseSettings.db_format)}"
 
-    new TestConf(fullNeo4jConf, useBolt, useEnterprise, useSpd, preparserOptions, tagContext)
+    new TestConf(
+      fullNeo4jConf,
+      useBolt,
+      useEnterprise,
+      useSpd,
+      preparserOptions,
+      tagContext,
+      serverLogsConfResource,
+      maxDbmsReuse
+    )
   }
 
-  private def withCypher5(base: TestConf): TestConf = base.copy(
+  def withCypher5(base: TestConf): TestConf = base.copy(
     tagContext = base.tagContext.incl("cypher-5")
   )
 
-  private def withCypher25(base: TestConf): TestConf = base.copy(
+  def withCypher25(base: TestConf): TestConf = base.copy(
     neo4jConf = base.neo4jConf ++ Seq(
       "db.query.default_language" -> "cypher_25"
     ),
@@ -429,7 +443,8 @@ object TestConf {
     final override val conf: TestConf = TestConf.withCypher25(TestConf(
       neo4jConf = spdConf,
       useBolt = true,
-      useSpd = true
+      useSpd = true,
+      maxDbmsReuse = Some(256) // Workaround: We have seen OOMs because SPD uses too much ephemeral disk space.
     ))
     final class ObjectFactory extends SingletonInjector(injector)
   }
@@ -441,7 +456,8 @@ object TestConf {
       neo4jConf = spdConf,
       preparserOptions = Map("runtime" -> "parallel"),
       useSpd = true,
-      useBolt = true
+      useBolt = true,
+      maxDbmsReuse = Some(256) // Workaround: We have seen OOMs because SPD uses too much ephemeral disk space.
     ))
     final class ObjectFactory extends SingletonInjector(injector)
   }

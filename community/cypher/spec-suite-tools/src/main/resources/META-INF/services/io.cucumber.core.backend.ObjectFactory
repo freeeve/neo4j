@@ -37,4 +37,6 @@ org.neo4j.cypher.cucumber.glue.regular.TestConf$Planner$UpdateStrategyEager$Obje
 
 org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps$ObjectFactory
 
+org.neo4j.cypher.cucumber.glue.obfuscator.ObfuscatorSteps$Conf$ObjectFactory
+
 org.neo4j.cypher.cucumber.synthesise.glue.scenario.ScenarioRecordingSteps$ObjectFactory

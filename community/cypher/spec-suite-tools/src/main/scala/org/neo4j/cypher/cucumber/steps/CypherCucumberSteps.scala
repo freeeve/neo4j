@@ -142,21 +142,21 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   private def readNamedGraphCypher(name: String): String = {
     IOUtils.resourceToString(s"graphs/$name/$name.cypher", StandardCharsets.UTF_8, getClass.getClassLoader)
   }
-  protected def parametersAre(params: Map[String, String]): Unit
-  protected def registerProcedure(signature: String, results: DataTable): Unit
-  protected def registerUserFunction(name: String): Unit
-  protected def givenCsvFile(urlParam: String, content: DataTable): Unit
-  protected def havingExecuted(cypher: String): Unit
-  protected def executingQuery(cypher: String): Unit
-  protected def executingControlQuery(cypher: String): Unit
-  protected def resultShouldBeInAnyOrder(expected: DataTable): Unit
-  protected def resultShouldBeInOrder(expected: DataTable): Unit
-  protected def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit
-  protected def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit
-  protected def sideEffectsShouldBe(expected: DataTable): Unit
-  protected def errorShouldBeRaised(expectedError: ExpectedError): Unit
-  protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit
-  protected def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit
+  def parametersAre(params: Map[String, String]): Unit
+  def registerProcedure(signature: String, results: DataTable): Unit
+  def registerUserFunction(name: String): Unit
+  def givenCsvFile(urlParam: String, content: DataTable): Unit
+  def havingExecuted(cypher: String): Unit
+  def executingQuery(cypher: String): Unit
+  def executingControlQuery(cypher: String): Unit
+  def resultShouldBeInAnyOrder(expected: DataTable): Unit
+  def resultShouldBeInOrder(expected: DataTable): Unit
+  def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit
+  def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit
+  def sideEffectsShouldBe(expected: DataTable): Unit
+  def errorShouldBeRaised(expectedError: ExpectedError): Unit
+  def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit
+  def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit
 }
 
 object CypherCucumberSteps {
@@ -195,9 +195,9 @@ trait InOpenTxCypherCucumberSteps extends ScalaDsl with EN {
     commitOpenTx()
   }
 
-  protected def openTransaction(): Unit
-  protected def havingExecutedInOpenTx(cypher: String): Unit
-  protected def executingQueryInOpenTx(cypher: String): Unit
-  protected def executingControlQueryInOpenTx(cypher: String): Unit
-  protected def commitOpenTx(): Unit
+  def openTransaction(): Unit
+  def havingExecutedInOpenTx(cypher: String): Unit
+  def executingQueryInOpenTx(cypher: String): Unit
+  def executingControlQueryInOpenTx(cypher: String): Unit
+  def commitOpenTx(): Unit
 }

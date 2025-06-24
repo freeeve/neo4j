@@ -43,7 +43,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /** These steps are not safe to use with parallel execution. */
-class ScenarioRecordingSteps @Inject() (
+final class ScenarioRecordingSteps @Inject() (
   recorder: ScenarioRecorder,
   expectations: Expectations
 ) extends CypherCucumberSteps {
@@ -65,33 +65,33 @@ class ScenarioRecordingSteps @Inject() (
   }
 
   private def add(step: RecordedStep): Unit = steps.addOne(step)
-  override protected def parametersAre(params: Map[String, String]): Unit = add(SetParams(params))
-  override protected def registerUserFunction(name: String): Unit = add(RegisterUserFunction(name))
-  override protected def givenCsvFile(param: String, content: DataTable): Unit = add(CreateCsvFile(param, content))
-  override protected def havingExecuted(cypher: String): Unit = add(HavingExecuted(cypher))
-  override protected def executingQuery(cypher: String): Unit = add(Execute(cypher))
-  override protected def executingControlQuery(cypher: String): Unit = add(ExecuteControl(cypher))
-  override protected def resultShouldBeInAnyOrder(expected: DataTable): Unit = add(AssertResults(expected, AnyOrder))
-  override protected def resultShouldBeInOrder(expected: DataTable): Unit = add(AssertResults(expected, Order))
-  override protected def sideEffectsShouldBe(expected: DataTable): Unit = add(SideEffects(expected))
-  override protected def errorShouldBeRaised(expected: ExpectedError): Unit = add(AssertError(expected))
-  override protected def errorShouldBeRaised(expected: ExpectedGqlError): Unit = add(AssertGqlError(expected))
+  override def parametersAre(params: Map[String, String]): Unit = add(SetParams(params))
+  override def registerUserFunction(name: String): Unit = add(RegisterUserFunction(name))
+  override def givenCsvFile(param: String, content: DataTable): Unit = add(CreateCsvFile(param, content))
+  override def havingExecuted(cypher: String): Unit = add(HavingExecuted(cypher))
+  override def executingQuery(cypher: String): Unit = add(Execute(cypher))
+  override def executingControlQuery(cypher: String): Unit = add(ExecuteControl(cypher))
+  override def resultShouldBeInAnyOrder(expected: DataTable): Unit = add(AssertResults(expected, AnyOrder))
+  override def resultShouldBeInOrder(expected: DataTable): Unit = add(AssertResults(expected, Order))
+  override def sideEffectsShouldBe(expected: DataTable): Unit = add(SideEffects(expected))
+  override def errorShouldBeRaised(expected: ExpectedError): Unit = add(AssertError(expected))
+  override def errorShouldBeRaised(expected: ExpectedGqlError): Unit = add(AssertGqlError(expected))
 
-  override protected def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit =
+  override def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit =
     add(AssertGqlWarning(expectedWarning))
-  override protected def openTransaction(): Unit = add(OpenTransaction)
-  override protected def havingExecutedInOpenTx(cypher: String): Unit = add(HavingExecutedInOpenTx(cypher))
-  override protected def executingQueryInOpenTx(cypher: String): Unit = add(ExecuteInOpenTx(cypher))
-  override protected def executingControlQueryInOpenTx(cypher: String): Unit = add(ExecuteControlInOpenTx(cypher))
-  override protected def commitOpenTx(): Unit = add(CommitTransaction)
+  override def openTransaction(): Unit = add(OpenTransaction)
+  override def havingExecutedInOpenTx(cypher: String): Unit = add(HavingExecutedInOpenTx(cypher))
+  override def executingQueryInOpenTx(cypher: String): Unit = add(ExecuteInOpenTx(cypher))
+  override def executingControlQueryInOpenTx(cypher: String): Unit = add(ExecuteControlInOpenTx(cypher))
+  override def commitOpenTx(): Unit = add(CommitTransaction)
 
-  override protected def registerProcedure(signature: String, results: DataTable): Unit =
+  override def registerProcedure(signature: String, results: DataTable): Unit =
     add(RegisterProcedure(signature, results))
 
-  override protected def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit =
+  override def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit =
     add(AssertResults(expected, OrderUnorderedLists))
 
-  override protected def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit =
+  override def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit =
     add(AssertResults(expected, AnyOrderUnorderedLists))
 }
 

@@ -26,6 +26,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.cucumber.CypherCucumber.Tag.ConfPrefix
 import org.neo4j.cypher.cucumber.glue.regular.TestConf.Settings
@@ -35,11 +36,14 @@ import org.neo4j.cypher.testing.impl.driver.DriverCypherExecutorFactory
 import org.neo4j.cypher.testing.impl.embedded.EmbeddedCypherExecutorFactory
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.graphdb.Result
+import org.neo4j.io.fs.FileUtils
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
 import org.neo4j.util.Preconditions.checkState
 
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.StandardCopyOption.REPLACE_EXISTING
 import java.util.UUID
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -47,6 +51,7 @@ import java.util.concurrent.TimeUnit
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
+import scala.util.Using
 
 trait Executors {
 
@@ -83,12 +88,12 @@ trait ExecutorPool extends Executors {
           if (isCompatible(executor, extraSettings)) {
             DbAccessor(executor.dbms.withNewExecutor(), executor.extraSettings, executor.reUseCount + 1)
           } else {
-            shutdownExecutor(executor)
+            shutdownExecutor(executor, deleteFiles = true)
             createExecutor(extraSettings)
           }
         } catch {
           case t: Throwable =>
-            Try(shutdownExecutor(executor))
+            Try(shutdownExecutor(executor, deleteFiles = false))
             executors.offer(None)
             throw t
         }
@@ -118,16 +123,14 @@ trait ExecutorPool extends Executors {
       executors.offer(Some(executor))
     } catch {
       case t: Throwable =>
-        Try(shutdownExecutor(executor))
+        Try(shutdownExecutor(executor, deleteFiles = false))
         executors.offer(None)
         throw t
     }
   }
 
   private def isCompatible(accessor: DbAccessor, extraSettings: Settings): Boolean = {
-    accessor.isCompatible(extraSettings) &&
-    // We have seen OOMs because SPD uses too much ephemeral disk space. This is a workaround to try to avoid that.
-    (!conf.useSpd || accessor.reUseCount < 256)
+    accessor.isCompatible(extraSettings) && conf.maxDbmsReuse.forall(_ > accessor.reUseCount)
   }
 
   private def createExecutor(extraSettings: Settings): DbAccessor = {
@@ -143,23 +146,37 @@ trait ExecutorPool extends Executors {
   override def shutdown(): Unit = this.synchronized {
     checkState(started, "Tried stopping already stopped ExecutorPool")
     started = false
-    executors.forEach(_.foreach(a => Try(shutdownExecutor(a))))
+    executors.forEach(_.foreach(a => Try(shutdownExecutor(a, deleteFiles = true))))
     executors.clear()
   }
 
   protected def startDbms(extraSettings: Settings): DatabaseManagementService = {
-    val dbmsBuilder = if (conf.useEnterprise) {
+    var dbmsBuilder = if (conf.useEnterprise) {
       val cls = getClass.getClassLoader.loadClass("com.neo4j.test.TestEnterpriseDatabaseManagementServiceBuilder")
       cls.getDeclaredConstructor().newInstance().asInstanceOf[TestDatabaseManagementServiceBuilder]
     } else {
       new TestDatabaseManagementServiceBuilder()
     }
 
-    dbmsBuilder
-      .impermanent()
-      .setDatabaseRootDirectory(Path.of("target", "test data", UUID.randomUUID().toString))
-      .setConfigRaw((conf.neo4jConf ++ extraSettings).asJava)
-      .build()
+    val neo4jConf = conf.neo4jConf ++ extraSettings
+    val homePath = Path.of("target", "test data", UUID.randomUUID().toString)
+    dbmsBuilder = dbmsBuilder.setDatabaseRootDirectory(homePath)
+
+    conf.serverLogsConfResource match {
+      case Some(serverLogsConfResource) =>
+        val confFile = Files.createDirectories(homePath.resolve("conf/server-logs.xml"))
+        Using.resource(getClass.getResourceAsStream(serverLogsConfResource))(Files.copy(_, confFile, REPLACE_EXISTING))
+
+        // Note, we can't use `.impermanent()` here because that overrides log configuration.
+        dbmsBuilder
+          .setConfigRaw(neo4jConf.updated("server.logs.config", confFile.toAbsolutePath.toString).asJava)
+          .build()
+      case None =>
+        dbmsBuilder
+          .setConfigRaw(neo4jConf.asJava)
+          .impermanent()
+          .build()
+    }
   }
 
   final private def accessorFrom(
@@ -196,9 +213,17 @@ trait ExecutorPool extends Executors {
     }
   }
 
-  private def shutdownExecutor(accessor: DbAccessor): Unit = {
+  private def shutdownExecutor(accessor: DbAccessor, deleteFiles: Boolean): Unit = {
     Try(accessor.dbms.clearQueryCaches()) // The ANTLR parser keeps a static cache that survives dbms shutdowns
+    val pathsToDelete =
+      Option.when(deleteFiles)(Seq(GraphDatabaseSettings.neo4j_home, GraphDatabaseSettings.logs_directory))
+        .getOrElse(Seq.empty)
+        .flatMap(setting =>
+          Try(accessor.dbms.database.getDependencyResolver.resolveDependency(classOf[Config]).get(setting)).toOption
+        )
+
     accessor.dbms.shutdown()
+    pathsToDelete.foreach(FileUtils.deleteDirectory)
   }
 }
 

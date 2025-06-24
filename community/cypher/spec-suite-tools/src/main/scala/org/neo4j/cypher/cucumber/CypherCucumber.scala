@@ -28,7 +28,7 @@ object CypherCucumber {
 
     /**
      * Scenario needs an extra neo4j settings.
-     * Example: @conf:internal.cypher.enable_extra_semantic_features=[MatchMode]
+     * Example: @conf:internal.cypher.enable_extra_semantic_features=MatchMode
      */
     final val ConfPrefix = "@conf:"
 
@@ -75,5 +75,10 @@ object CypherCucumber {
      * Finds query strings in all scenarios and test the prettifier with them.
      */
     final val Prettifier = "org.neo4j.cypher.cucumber.glue.prettifier"
+
+    /**
+     * This is special glue that only test query log obfuscation.
+     */
+    final val Obfuscator = "org.neo4j.cypher.cucumber.glue.obfuscator"
   }
 }

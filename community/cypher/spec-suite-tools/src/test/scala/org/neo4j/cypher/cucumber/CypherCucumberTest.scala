@@ -34,6 +34,7 @@ import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
 import org.junit.platform.launcher.core.LauncherFactory
 import org.junit.platform.launcher.listeners.SummaryGeneratingListener
 import org.neo4j.cypher.cucumber.CypherCucumberTest.TestConfiguration
+import org.neo4j.cypher.cucumber.glue.obfuscator.ObfuscatorSteps
 import org.neo4j.cypher.cucumber.glue.regular.InjectedTestConf
 import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
@@ -310,7 +311,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       TestConf.Legacy.FactoryName -> TestConf.Legacy.conf,
       TestConf.Planner.SmallIdpTableSize.FactoryName -> TestConf.Planner.SmallIdpTableSize.conf,
       TestConf.Planner.InferLabels.FactoryName -> TestConf.Planner.InferLabels.conf,
-      TestConf.Planner.UpdateStrategyEager.FactoryName -> TestConf.Planner.UpdateStrategyEager.conf
+      TestConf.Planner.UpdateStrategyEager.FactoryName -> TestConf.Planner.UpdateStrategyEager.conf,
+      ObfuscatorSteps.Conf.FactoryName -> ObfuscatorSteps.Conf.conf
     )
 
     // It's important that the ObjectFactoryName match the correct config.

@@ -95,20 +95,24 @@ final class RegularCypherCucumberSteps @Inject() (
   private[this] var registeredProcedures = Seq.empty[QualifiedName]
   private[this] var openTx: CypherExecutorTransaction = _ // Only used for certain steps
 
-  Before { scenario: Scenario =>
+  Before { scenario: Scenario => before(scenario) }
+
+  def before(scenario: Scenario): Unit = {
     // Note, @fail tags are handled in SkipFailsScenarios (or OnlyFailsScenarios).
     assumeFalse(expectations.ignore(scenario), "Scenario ignored because of @ignore tag")
     dbmsAccessor = executors.acquire(scenario)
     db = dbmsAccessor.dbms
   }
 
-  After {
+  After { after() }
+
+  def after(): Unit = {
     if (openTx != null) openTx.close()
     if (db != null) db.unregisterProcedures(registeredProcedures)
     if (dbmsAccessor != null) executors.release(dbmsAccessor)
   }
 
-  override protected def registerProcedure(signature: String, results: DataTable): Unit = {
+  override def registerProcedure(signature: String, results: DataTable): Unit = {
     val output = results.cells().stream()
       .skip(1) // Header row
       .map(row => row.stream().map(v => ValueUtils.asValue(parse(v))).toArray(i => new Array[AnyValue](i)))
@@ -118,7 +122,7 @@ final class RegularCypherCucumberSteps @Inject() (
     registeredProcedures = registeredProcedures.appended(procedure.signature().name())
   }
 
-  override protected def registerUserFunction(name: String): Unit = {
+  override def registerUserFunction(name: String): Unit = {
     name match {
       case "failNTimes" =>
         val state = new TestFailNTimesFunction.State
@@ -138,11 +142,11 @@ final class RegularCypherCucumberSteps @Inject() (
     }
   }
 
-  override protected def parametersAre(params: Map[String, String]): Unit = {
+  override def parametersAre(params: Map[String, String]): Unit = {
     parameters = parameters ++ params.view.mapValues(CypherCucumberValueParser.parse)
   }
 
-  override protected def givenCsvFile(urlParam: String, content: DataTable): Unit = {
+  override def givenCsvFile(urlParam: String, content: DataTable): Unit = {
     val file = Files.createTempFile("test-csv", ".csv")
     file.toFile.deleteOnExit()
     val csvContent = content.cells().asScala.view.map(_.asScala.mkString(",")).mkString("\n")
@@ -150,16 +154,16 @@ final class RegularCypherCucumberSteps @Inject() (
     parameters = parameters + (urlParam -> file.toUri.toURL.toString)
   }
 
-  override protected def havingExecuted(cypher: String): Unit = {
+  override def havingExecuted(cypher: String): Unit = {
     db.execute(cypher, parameters, _.consume())
   }
 
-  override protected def executingQuery(cypher: String): Unit = {
+  override def executingQuery(cypher: String): Unit = {
     lastGraphState = KernelGraphState.recordGraphState(db.database)
     lastResult = execute(conf.preparserPrefix + cypher)
   }
 
-  override protected def executingControlQuery(cypher: String): Unit = {
+  override def executingControlQuery(cypher: String): Unit = {
     lastResult = execute(cypher)
   }
 
@@ -187,7 +191,7 @@ final class RegularCypherCucumberSteps @Inject() (
     if (explainSucceeds || !rollbackSucceeds) Phase.runtime else Phase.compile
   }
 
-  override protected def resultShouldBeInOrder(expected: DataTable): Unit = lastResult match {
+  override def resultShouldBeInOrder(expected: DataTable): Unit = lastResult match {
     case actual: QueryResults =>
       val actualRows = actual.results.rows
       val expectedRows = toResultRows(expected)
@@ -200,7 +204,7 @@ final class RegularCypherCucumberSteps @Inject() (
     case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
-  override protected def resultShouldBeInAnyOrder(expected: DataTable): Unit = lastResult match {
+  override def resultShouldBeInAnyOrder(expected: DataTable): Unit = lastResult match {
     case actual: QueryResults =>
       val actualRows = actual.results.rows
       val expectedRows = toResultRows(expected)
@@ -213,7 +217,7 @@ final class RegularCypherCucumberSteps @Inject() (
     case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
-  override protected def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit = lastResult match {
+  override def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit = lastResult match {
     case actual: QueryResults =>
       val actualRows = actual.results.rows
       val expectedRows = toResultRows(expected)
@@ -227,7 +231,7 @@ final class RegularCypherCucumberSteps @Inject() (
     case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
-  override protected def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit = lastResult match {
+  override def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit = lastResult match {
     case actual: QueryResults =>
       val actualRows = actual.results.rows
       val expectedRows = toResultRows(expected)
@@ -241,7 +245,7 @@ final class RegularCypherCucumberSteps @Inject() (
     case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
-  override protected def sideEffectsShouldBe(expectedTable: DataTable): Unit = {
+  override def sideEffectsShouldBe(expectedTable: DataTable): Unit = {
     val actual = lastGraphState match {
       case state: KernelGraphState => state.sideEffects(KernelGraphState.recordGraphState(db.database))
       case state: CypherGraphState => state.sideEffects(CypherGraphState.recordGraphState(openTx))
@@ -264,7 +268,7 @@ final class RegularCypherCucumberSteps @Inject() (
     }
   }
 
-  override protected def errorShouldBeRaised(expected: ExpectedError): Unit = lastResult match {
+  override def errorShouldBeRaised(expected: ExpectedError): Unit = lastResult match {
     case success: QueryResults => unexpectedSuccess(success, conf)
     case failure: QueryFailure =>
       val actual = Neo4jExceptionToExecutionFailed.convert(failure.phase, failure.cause)
@@ -274,7 +278,7 @@ final class RegularCypherCucumberSteps @Inject() (
       expected.description.foreach(expectedDesc => assertThat[Any](actual.detail).as(desc).isEqualTo(expectedDesc))
   }
 
-  override protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = lastResult match {
+  override def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = lastResult match {
     case success: QueryResults => unexpectedSuccess(success, conf)
     case failure: QueryFailure => findMatchingGqlFailure(expectedError.code, originalError(failure.cause)) match {
         case Some(actualGql) =>
@@ -294,7 +298,7 @@ final class RegularCypherCucumberSteps @Inject() (
       }
   }
 
-  override protected def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit = lastResult match {
+  override def warningShouldBeRaised(expectedWarning: ExpectedGqlWarning): Unit = lastResult match {
     case actual: QueryResults =>
       val actualGqlStatusObjects = actual.results.qqlStatusObjects.asScala
       actualGqlStatusObjects.find(qqlStatusObject => qqlStatusObject.gqlStatus() == expectedWarning.code) match {
@@ -315,24 +319,24 @@ final class RegularCypherCucumberSteps @Inject() (
     case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
-  override protected def openTransaction(): Unit = {
+  override def openTransaction(): Unit = {
     openTx = db.begin()
   }
 
-  override protected def havingExecutedInOpenTx(cypher: String): Unit = {
+  override def havingExecutedInOpenTx(cypher: String): Unit = {
     openTx.execute(cypher, parameters).consume()
   }
 
-  override protected def executingQueryInOpenTx(cypher: String): Unit = {
+  override def executingQueryInOpenTx(cypher: String): Unit = {
     lastGraphState = CypherGraphState.recordGraphState(openTx)
     lastResult = executeInOpenTx(conf.preparserPrefix + cypher)
   }
 
-  override protected def executingControlQueryInOpenTx(cypher: String): Unit = {
+  override def executingControlQueryInOpenTx(cypher: String): Unit = {
     lastResult = executeInOpenTx(cypher)
   }
 
-  override protected def commitOpenTx(): Unit = {
+  override def commitOpenTx(): Unit = {
     try {
       openTx.commit()
     } catch {
@@ -386,6 +390,8 @@ final class RegularCypherCucumberSteps @Inject() (
         .containsExactlyElementsOf(expectedHeaders)
     }
   }
+
+  def getDbmsAccessor: DbAccessor = dbmsAccessor
 }
 
 object RegularCypherCucumberSteps {
