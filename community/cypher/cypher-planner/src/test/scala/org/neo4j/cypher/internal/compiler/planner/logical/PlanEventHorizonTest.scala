@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.Contextua
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
-import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingStrategy.InPlannerRemoteBatchingWithoutPushdown
+import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingStrategy.InPlannerRemoteBatching
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.Expression
@@ -457,7 +457,7 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
         plannerState = context.plannerState.copy(contextualPropertyAccess =
           ContextualPropertyAccess(Set.empty, Set(PropertyAccess(v"x", "prop1")), Set.empty)
         ),
-        settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatchingWithoutPushdown)
+        settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatching)
       )
       val bestInputPlan = fakeLogicalPlanFor(context.staticComponents.planningAttributes, "x")
       val bestPlanWithAdditionalProperties =
@@ -494,7 +494,7 @@ class PlanEventHorizonTest extends CypherFunSuite with LogicalPlanningTestSuppor
         plannerState = context.plannerState.copy(contextualPropertyAccess =
           ContextualPropertyAccess(Set.empty, Set(PropertyAccess(v"x", "prop1")), Set.empty)
         ),
-        settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatchingWithoutPushdown)
+        settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatching)
       )
       val bestInputPlan = fakeLogicalPlanFor(context.staticComponents.planningAttributes, "x")
       val bestPlanWithAdditionalProperties =

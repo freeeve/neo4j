@@ -1267,6 +1267,7 @@ case class RemoteBatchPropertiesWithFilter(
 case class RemoteBatchPropertiesWithPushdownOperators(
   override val source: LogicalPlan,
   variable: LogicalVariable,
+  entityType: org.neo4j.cypher.internal.expressions.EntityType,
   properties: Set[PropertyKeyName],
   predicates: Seq[Expression] = Seq.empty,
   distinctBy: Option[Expression] = None,

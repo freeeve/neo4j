@@ -305,6 +305,34 @@ object LogicalPlanToPlanBuilderString {
       case _: UndirectedRelationshipByIdSeek                  => "relationshipByIdSeek"
       case _: DirectedRelationshipByElementIdSeek             => "relationshipByElementIdSeek"
       case _: UndirectedRelationshipByElementIdSeek           => "relationshipByElementIdSeek"
+      case RemoteBatchPropertiesWithPushdownOperators(
+          _,
+          _,
+          NODE_TYPE,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _
+        ) =>
+        "remoteBatchPropertiesWithPushdownOperatorsOnNode"
+      case RemoteBatchPropertiesWithPushdownOperators(
+          _,
+          _,
+          RELATIONSHIP_TYPE,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _,
+          _
+        ) =>
+        "remoteBatchPropertiesWithPushdownOperatorsOnRelationship"
     }
     specialCases.applyOrElse(logicalPlan, classNameFormat)
   }

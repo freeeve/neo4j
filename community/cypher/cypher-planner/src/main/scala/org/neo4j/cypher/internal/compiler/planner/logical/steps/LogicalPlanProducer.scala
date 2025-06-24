@@ -221,9 +221,11 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RelationshipLogicalLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
+import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates.RewrittenSubQueryPredicatesMap
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
@@ -686,7 +688,6 @@ case class LogicalPlanProducer(
 
       val leafPlan = (patternForLeafPlan.dir, stringSearchMode) match {
         case (SemanticDirection.BOTH, ContainsSearchMode) =>
-
           UndirectedRelationshipIndexContainsScan(
             Some(variable),
             Some(patternForLeafPlan.inOrder._1),
@@ -2040,7 +2041,7 @@ case class LogicalPlanProducer(
 
   def planHorizonSelection(
     source: LogicalPlan,
-    previouslyRewrittenPredicates: RewrittenSubQueryPredicatesMap,
+    previouslyRewrittenPredicates: RewrittenExpressions,
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
   ): LogicalPlan = {
@@ -2062,10 +2063,12 @@ case class LogicalPlanProducer(
             context
           )
         val unsolvedPredicates =
-          previouslyRewrittenPredicates.backingStore.filterNot {
-            case (rewritten, original) => solvedPredicates.contains(rewritten) || solvedPredicates.contains(original)
-          }.keys.toSeq
-
+          previouslyRewrittenPredicates.originalExpressions.collect {
+            case expr
+              if !solvedPredicates.contains(expr) && !solvedPredicates.contains(
+                previouslyRewrittenPredicates.rewrittenExpressionOrSelf(expr)
+              ) => previouslyRewrittenPredicates.rewrittenExpressionOrSelf(expr)
+          }.toSeq
         // solve remaining predicates
         val (solvedExpressions, solvedPlan) =
           SubqueryExpressionSolver.ForMulti.solve(existsPlan, unsolvedPredicates, context)
@@ -3898,15 +3901,16 @@ case class LogicalPlanProducer(
     inner: LogicalPlan,
     properties: Set[CachedProperty],
     context: LogicalPlanningContext,
-    inlinablePredicates: Iterable[Expression]
+    inlinablePredicates: RewrittenSubQueryPredicatesMap
   ): LogicalPlan = {
-    val cachedProperties = cachedPropertiesPerPlan.get(inner.id).addAll(properties)
     val solved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.updateHorizon {
-      case p: QueryProjection => p.addPredicates(inlinablePredicates)
+      case p: QueryProjection => p.addPredicates(inlinablePredicates.originalExpressions)
       case horizon            => horizon
     })
 
-    val plan = mergeAndPlanRemoteBatchPropertiesWithFilter(properties, inlinablePredicates, inner)
+    val cachedProperties = cachedPropertiesPerPlan.get(inner.id).addAll(properties)
+    val plan =
+      mergeAndPlanRemoteBatchPropertiesWithFilter(properties, inlinablePredicates.allRewrittenExpressions, inner)
     annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
   }
 
@@ -3923,6 +3927,103 @@ case class LogicalPlanProducer(
     )
     val plan = mergeAndPlanRemoteBatchPropertiesWithFilter(properties, inlinablePredicatesToExecute, inner)
     annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
+  }
+
+  def planShardSelections(
+    selection: RemoteBatchPropertiesWithPushdownOperators,
+    rewrittenSubQueryPredicates: RewrittenSubQueryPredicatesMap,
+    context: LogicalPlanningContext
+  ): LogicalPlan = {
+    val cachedProperties = cachedPropertiesPerPlan.get(selection.source.id).add(
+      selection.variable,
+      selection.entityType,
+      selection.properties
+    )
+    val solved = solveds.get(selection.source.id).asSinglePlannerQuery.updateTailOrSelf(
+      _.amendQueryGraph(_.addPredicates(rewrittenSubQueryPredicates.originalExpressions))
+    )
+
+    val plan = mergePushdownShardOperator(selection)
+    annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
+  }
+
+  def planProjectionsOnShards(
+    projectionOperation: RemoteBatchPropertiesWithPushdownOperators,
+    rewrittenSubQueryPredicates: RewrittenSubQueryPredicatesMap,
+    context: LogicalPlanningContext
+  ): LogicalPlan = {
+    val cachedProperties = cachedPropertiesPerPlan.get(projectionOperation.source.id).add(
+      projectionOperation.variable,
+      projectionOperation.entityType,
+      projectionOperation.properties
+    )
+
+    val plan = mergePushdownShardOperator(
+      projectionOperation
+    )
+    val solved = solveds.get(projectionOperation.source.id).asSinglePlannerQuery.updateTailOrSelf(_.updateHorizon {
+      case p: QueryProjection => p.addPredicates(rewrittenSubQueryPredicates.originalExpressions)
+      case horizon            => horizon
+    })
+
+    annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
+  }
+
+  private def mergePushdownShardOperator(
+    remoteBatchPropertiesWithPushdownOperators: RemoteBatchPropertiesWithPushdownOperators
+  ): LogicalPlan = remoteBatchPropertiesWithPushdownOperators.source match {
+    case RemoteBatchProperties(nestedInner, nestedProperties)
+      if nestedProperties.forall(_.dependencies == Set(remoteBatchPropertiesWithPushdownOperators.variable)) =>
+      remoteBatchPropertiesWithPushdownOperators.copy(
+        properties = remoteBatchPropertiesWithPushdownOperators.properties ++ nestedProperties.map(_.propertyKey),
+        source = nestedInner
+      )
+    case Apply(RemoteBatchProperties(nestedInner, nestedProperties), _: Argument)
+      if nestedProperties.forall(_.dependencies == Set(remoteBatchPropertiesWithPushdownOperators.variable)) =>
+      remoteBatchPropertiesWithPushdownOperators.copy(
+        properties = remoteBatchPropertiesWithPushdownOperators.properties ++ nestedProperties.map(_.propertyKey),
+        source = nestedInner
+      )
+    case innerRemoteBatchPropertiesWithPushdown: RemoteBatchPropertiesWithPushdownOperators
+      if innerRemoteBatchPropertiesWithPushdown.variable == remoteBatchPropertiesWithPushdownOperators.variable =>
+      mergeRemoteBatchPropertiesWithPushdownOperators(
+        remoteBatchPropertiesWithPushdownOperators,
+        innerRemoteBatchPropertiesWithPushdown
+      )
+    case Apply(innerRemoteBatchPropertiesWithPushdown: RemoteBatchPropertiesWithPushdownOperators, _: Argument)
+      if innerRemoteBatchPropertiesWithPushdown.variable == remoteBatchPropertiesWithPushdownOperators.variable =>
+      mergeRemoteBatchPropertiesWithPushdownOperators(
+        remoteBatchPropertiesWithPushdownOperators,
+        innerRemoteBatchPropertiesWithPushdown
+      )
+    case _ =>
+      remoteBatchPropertiesWithPushdownOperators
+  }
+
+  private def mergeRemoteBatchPropertiesWithPushdownOperators(
+    remoteBatchPropertiesWithPushdownOperators: RemoteBatchPropertiesWithPushdownOperators,
+    innerRemoteBatchPropertiesWithPushdown: RemoteBatchPropertiesWithPushdownOperators
+  ) = {
+    RemoteBatchPropertiesWithPushdownOperators(
+      source = innerRemoteBatchPropertiesWithPushdown.source,
+      entityType = innerRemoteBatchPropertiesWithPushdown.entityType,
+      variable = innerRemoteBatchPropertiesWithPushdown.variable,
+      properties =
+        innerRemoteBatchPropertiesWithPushdown.properties ++ remoteBatchPropertiesWithPushdownOperators.properties,
+      predicates =
+        innerRemoteBatchPropertiesWithPushdown.predicates ++ remoteBatchPropertiesWithPushdownOperators.predicates,
+      orderBy = innerRemoteBatchPropertiesWithPushdown.orderBy ++ remoteBatchPropertiesWithPushdownOperators.orderBy,
+      limit =
+        remoteBatchPropertiesWithPushdownOperators.limit.orElse(innerRemoteBatchPropertiesWithPushdown.limit), // we give precedence to the latest limit operator. If the current limit is higher that's still fine since both the limits will still be evaluated on the graph shard.
+      skip = remoteBatchPropertiesWithPushdownOperators.skip.orElse(innerRemoteBatchPropertiesWithPushdown.limit),
+      distinctBy = innerRemoteBatchPropertiesWithPushdown.distinctBy.orElse(
+        remoteBatchPropertiesWithPushdownOperators.distinctBy
+      ), // TODO: when implementing pushdown distinctness we will need to figure out how to combine the two.
+      previouslyCachedProperties =
+        innerRemoteBatchPropertiesWithPushdown.previouslyCachedProperties ++ remoteBatchPropertiesWithPushdownOperators.previouslyCachedProperties,
+      arguments =
+        innerRemoteBatchPropertiesWithPushdown.arguments ++ remoteBatchPropertiesWithPushdownOperators.arguments
+    )
   }
 
   /**

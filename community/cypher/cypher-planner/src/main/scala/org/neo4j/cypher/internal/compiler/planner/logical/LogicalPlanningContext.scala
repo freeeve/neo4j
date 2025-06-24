@@ -159,6 +159,7 @@ object LogicalPlanningContext {
       GraphDatabaseInternalSettings.stateful_shortest_planning_rewrite_quantifiers_above.defaultValue(),
     planVarExpandInto: CypherPlanVarExpandInto = CypherPlanVarExpandInto.default,
     remoteBatchPropertiesStrategy: RemoteBatchingStrategy = RemoteBatchingStrategy.defaultValue(),
+    shardOperatorPushdownStrategy: ShardOperatorPushdownStrategy = ShardOperatorPushdownStrategy.defaultValue(),
     multiRelationshipExpansion: Boolean =
       GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.defaultValue(),
     pushDownArgumentsRBPWFEnabled: Boolean =
@@ -184,6 +185,7 @@ object LogicalPlanningContext {
           statefulShortestPlanningRewriteQuantifiersAbove: Int,
           planVarExpandInto: CypherPlanVarExpandInto,
           remoteBatchPropertiesStrategy: RemoteBatchingStrategy,
+          shardOperatorPushdownStrategy: ShardOperatorPushdownStrategy,
           multiRelationshipExpansion: Boolean,
           pushDownArgumentsRBPWFEnabled: Boolean,
           dynamicLabelScansEnabled: Boolean
@@ -224,6 +226,9 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.cypher_remote_batch_properties_implementation.dynamic())
           builder.addOne(remoteBatchPropertiesStrategy)
+
+        if (GraphDatabaseInternalSettings.push_operators_into_remote_batch_properties.dynamic())
+          builder.addOne(shardOperatorPushdownStrategy)
 
         if (GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.dynamic())
           builder.addOne(multiRelationshipExpansion)

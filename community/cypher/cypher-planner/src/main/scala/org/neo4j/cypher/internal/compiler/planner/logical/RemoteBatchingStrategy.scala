@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.Contextua
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.ExtraRequirement
-import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectionCandidate
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicateWithValueBehavior
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -73,14 +73,6 @@ sealed trait RemoteBatchingStrategy {
     predicatesToSolve: RewrittenSubQueryPredicatesMap
   ): RemoteBatchingSubQueryResult
 
-  def planBatchPropertiesForHorizonSelections(
-    queryGraph: QueryGraph,
-    input: LogicalPlan,
-    context: LogicalPlanningContext,
-    predicatesToSolve: Set[Expression],
-    interestingOrderConfig: InterestingOrderConfig
-  ): RemoteBatchingSubQueryResult
-
   def planRemoteBatchProperties(
     inputPlan: LogicalPlan,
     context: LogicalPlanningContext,
@@ -122,25 +114,22 @@ object RemoteBatchingStrategy {
     if (
       context.planContext.databaseMode == SHARDED
       && context.config.remoteBatchPropertiesImplementation() == RemoteBatchPropertiesImplementation.PLANNER
+      && !queryContainsMergePatterns(query) // Remote batch properties are not supported in slotted runtime,
+      // But merge patterns are only supported in slotted runtime.
     ) {
-      if (query.readOnly && !context.planContext.txStateHasChanges())
-        InPlannerRemoteBatchingWithPushdown
-      else if (!query.readOnly && queryContainsMergePatterns(query)) {
-        // Remote batch properties are not supported in slotted runtime,
-        // But merge patterns are only supported in slotted runtime.
-        SkipRemoteBatching
-      } else
-        InPlannerRemoteBatchingWithoutPushdown
+      InPlannerRemoteBatching
     } else
       SkipRemoteBatching
   }
 
-  private def queryContainsMergePatterns(query: PlannerQuery): Boolean =
+  private def queryContainsMergePatterns(query: PlannerQuery): Boolean = {
+    !query.readOnly &&
     query.flattenForeach.allQGsWithLeafInfo.exists(qgWithLeafInfo => qgWithLeafInfo.queryGraph.mergeQueryGraph.nonEmpty)
+  }
 
   def defaultValue(): RemoteBatchingStrategy = SkipRemoteBatching
 
-  sealed trait InPlannerRemoteBatching extends RemoteBatchingStrategy {
+  case object InPlannerRemoteBatching extends RemoteBatchingStrategy {
 
     override def planRemoteBatchProperties(
       inputPlan: LogicalPlan,
@@ -154,6 +143,51 @@ object RemoteBatchingStrategy {
       RemoteBatchingResult(
         rewrittenExpressions,
         planBatchProperties(inputPlan, context, accessedProperties, rewrittenExpressions.allRewrittenExpressions)
+      )
+    }
+
+    override def planBatchPropertiesForSelections(
+      queryGraph: QueryGraph,
+      input: LogicalPlan,
+      context: LogicalPlanningContext,
+      predicatesToSolve: RewrittenSubQueryPredicatesMap
+    ): RemoteBatchingSubQueryResult = {
+      context.settings.shardOperatorPushdownStrategy.selections(input, queryGraph, context, predicatesToSolve) match {
+        case Some(SelectionCandidate(plan, solvedPredicates)) =>
+          val unsolvedPredicates = predicatesToSolve.backingStore.filterNot(rewrittenPredTuple =>
+            solvedPredicates.contains(rewrittenPredTuple._2)
+          )
+          val RemoteBatchingSubQueryResult(rewrittenExprs, planWithProps) = planRemoteBatchPropertiesForSelections(
+            queryGraph,
+            plan,
+            context,
+            RewrittenSubQueryPredicates.forMap(unsolvedPredicates)
+          )
+          RemoteBatchingSubQueryResult(
+            rewrittenExprs,
+            planWithProps
+          )
+
+        case _ => planRemoteBatchPropertiesForSelections(queryGraph, input, context, predicatesToSolve)
+      }
+    }
+
+    private def planRemoteBatchPropertiesForSelections(
+      queryGraph: QueryGraph,
+      input: LogicalPlan,
+      context: LogicalPlanningContext,
+      predicatesToSolve: RewrittenSubQueryPredicatesMap
+    ): RemoteBatchingSubQueryResult = {
+      val accessedProperties = remainingPropertyAccesses(queryGraph, input, context)
+
+      val rewriter = cachedPropertiesRewriter(input, context)
+      val rewrittenSelections =
+        RewrittenSubQueryPredicates.forMap(predicatesToSolve.allRewrittenExpressions.map(expr =>
+          expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
+        ).toMap)
+      RemoteBatchingSubQueryResult(
+        rewrittenExpressionsWithCachedProperties = rewrittenSelections,
+        plan = planBatchProperties(input, context, accessedProperties, rewrittenSelections.allRewrittenExpressions)
       )
     }
 
@@ -358,7 +392,7 @@ object RemoteBatchingStrategy {
       PropertyAccessHelper.findPropertyAccesses(predicatesToBeSolvedLater)
     }
 
-    protected def cachedPropertiesRewriter(
+    private def cachedPropertiesRewriter(
       inputPlan: LogicalPlan,
       context: LogicalPlanningContext
     ) = {
@@ -418,7 +452,7 @@ object RemoteBatchingStrategy {
       }
     }
 
-    protected def planBatchProperties(
+    private def planBatchProperties(
       input: LogicalPlan,
       context: LogicalPlanningContext,
       accessedProperties: Set[PropertyAccess],
@@ -497,325 +531,6 @@ object RemoteBatchingStrategy {
       backingMap.get(propertyAccess).exists(_.exists(expr => expr != inputPredicate))
   }
 
-  private case object InPlannerRemoteBatchingWithPushdown extends InPlannerRemoteBatching {
-
-    override def planBatchPropertiesForSelections(
-      queryGraph: QueryGraph,
-      input: LogicalPlan,
-      context: LogicalPlanningContext,
-      predicatesToSolve: RewrittenSubQueryPredicatesMap
-    ): RemoteBatchingSubQueryResult = {
-      def planPreBatchSelection(selectionOnMain: Option[SelectionOnMain]) = (plan: LogicalPlan) =>
-        selectionOnMain match {
-          case Some(SelectionOnMain(predicates)) =>
-            context.staticComponents.logicalPlanProducer.planSelectionWithSolvedPredicates(
-              plan,
-              predicates,
-              context
-            )
-          case None => plan
-        }
-
-      def planRemoteBatchPropertiesWithFilter(selectionOnShard: Option[SelectionOnShard]) = (plan: LogicalPlan) =>
-        selectionOnShard match {
-          case Some(SelectionOnShard(propertiesToFetch, predicatesToExecute)) =>
-            context.staticComponents.logicalPlanProducer.planRemoteBatchPropertiesWithFilter(
-              plan,
-              propertiesToFetch,
-              context,
-              inlinablePredicatesToExecute =
-                predicatesToExecute.endoRewrite(alreadyCachedPropertiesRewriter(plan, context)).toSeq,
-              inlinablePredicatesToReport = predicatesToExecute.map(predicatesToSolve.originalExpressionOrSelf).toSeq
-            )
-          case None => plan
-        }
-
-      def planRemoteBatchProperties(fetchPropertiesOnly: Option[FetchPropertiesOnly]) = (plan: LogicalPlan) =>
-        fetchPropertiesOnly match {
-          case Some(FetchPropertiesOnly(propertiesToFetch)) =>
-            context.staticComponents.logicalPlanProducer.planRemoteBatchProperties(
-              plan,
-              propertiesToFetch,
-              context
-            )
-          case None => plan
-        }
-
-      operatorSequenceForSelections(queryGraph, input, context, predicatesToSolve) match {
-        case ShardOperatorSequence(Some(SelectionOnMain(predicates)), None, None, None) =>
-          RemoteBatchingSubQueryResult(
-            predicates,
-            input
-          )
-        case ShardOperatorSequence(preBatchSelection, pushedDownPredicates, batchedProperties, postBatchSelection) =>
-          val planWithProperties = Function.chain(Seq(
-            planPreBatchSelection(preBatchSelection),
-            planRemoteBatchPropertiesWithFilter(pushedDownPredicates),
-            planRemoteBatchProperties(batchedProperties)
-          ))(input)
-          RemoteBatchingSubQueryResult(
-            postBatchSelection.map(_.predicates).getOrElse(RewrittenSubQueryPredicates.empty),
-            planWithProperties
-          )
-      }
-    }
-
-    override def planBatchPropertiesForHorizonSelections(
-      queryGraph: QueryGraph,
-      input: LogicalPlan,
-      context: LogicalPlanningContext,
-      predicatesToSolve: Set[Expression],
-      interestingOrderConfig: InterestingOrderConfig
-    ): RemoteBatchingSubQueryResult = {
-      def planPreBatchSelection(maybeMain: Option[SelectionOnMain]) = (plan: LogicalPlan) =>
-        maybeMain match {
-          case Some(SelectionOnMain(predicates)) =>
-            context.staticComponents.logicalPlanProducer.planHorizonSelection(
-              plan,
-              predicates,
-              interestingOrderConfig,
-              context
-            )
-          case None => plan
-        }
-
-      def planRemoteBatchPropertiesWithFilter(maybeShard: Option[SelectionOnShard]) =
-        (plan: LogicalPlan) =>
-          maybeShard match {
-            case Some(SelectionOnShard(propertiesToFetch, predicatesToExecute)) =>
-              context.staticComponents.logicalPlanProducer.planRemoteBatchPropertiesForHorizonFilters(
-                plan,
-                propertiesToFetch,
-                context,
-                predicatesToExecute
-              )
-            case None => plan
-          }
-
-      def planRemoteBatchProperties(maybeFetch: Option[FetchPropertiesOnly]) =
-        (plan: LogicalPlan) =>
-          maybeFetch match {
-            case Some(FetchPropertiesOnly(propertiesToFetch)) =>
-              context.staticComponents.logicalPlanProducer.planRemoteBatchProperties(
-                plan,
-                propertiesToFetch,
-                context
-              )
-            case None => plan
-          }
-
-      operatorSequenceForSelections(
-        queryGraph,
-        input,
-        context,
-        RewrittenSubQueryPredicates.withNoRewrittenExprs(predicatesToSolve)
-      ) match {
-        case ShardOperatorSequence(Some(SelectionOnMain(predicates)), None, None, None) =>
-          RemoteBatchingSubQueryResult(
-            predicates,
-            input
-          )
-        case ShardOperatorSequence(preBatchSelection, pushedDownPredicates, batchedProperties, postBatchSelection) =>
-          val planWithProperties = Function.chain(Seq(
-            planPreBatchSelection(preBatchSelection),
-            planRemoteBatchPropertiesWithFilter(pushedDownPredicates),
-            planRemoteBatchProperties(batchedProperties)
-          ))(input)
-          RemoteBatchingSubQueryResult(
-            postBatchSelection.map(_.predicates).getOrElse(RewrittenSubQueryPredicates.empty),
-            planWithProperties
-          )
-      }
-    }
-
-    private def alreadyCachedProperty(
-      alreadyCachedProperties: CachedProperties,
-      logicalVariable: LogicalVariable,
-      propertyKeyName: PropertyKeyName,
-      position: InputPosition,
-      knownToCacheStore: Boolean = true
-    ): Option[CachedProperty] = {
-      alreadyCachedProperties.entries.get(logicalVariable) match {
-        case Some(entry) =>
-          Some(CachedProperty(
-            entry.originalEntity,
-            logicalVariable,
-            propertyKeyName,
-            entry.entityType,
-            knownToCacheStore
-          )(
-            position
-          ))
-        case None => None
-      }
-    }
-
-    private def alreadyCachedPropertiesRewriter(
-      inputPlan: LogicalPlan,
-      context: LogicalPlanningContext
-    ) = {
-      val alreadyCachedProperties =
-        context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(inputPlan.id)
-      topDown.apply(
-        rewriter = Rewriter.lift {
-          case property @ Property(logicalVariable: LogicalVariable, propertyKeyName)
-            if inputPlan.availableSymbols.contains(logicalVariable) =>
-            alreadyCachedProperty(
-              alreadyCachedProperties,
-              logicalVariable,
-              propertyKeyName,
-              property.position
-            ).getOrElse(property)
-        },
-        cancellation = context.staticComponents.cancellationChecker
-      )
-    }
-
-    /*
-     * Identify the sequence of operations to perform for this selection. Depending on the predicates, the sequence will be something like this:
-     * 1. prefilter with selections on the main (before fetching anything from shards)
-     * 2. push predicates down to the shards
-     * 3. fetch properties from the shards for predicates that cannot be pushed down
-     * 4. apply the remaining predicates on main.
-     */
-    private def operatorSequenceForSelections(
-      queryGraph: QueryGraph,
-      input: LogicalPlan,
-      context: LogicalPlanningContext,
-      predicatesToSolve: RewrittenSubQueryPredicatesMap
-    ): ShardOperatorSequence = {
-      val shardPredicatePushdownPartition = ShardPredicatePushdownPartition(
-        input,
-        context,
-        predicatesToSolve.allRewrittenExpressions.toSet
-      )
-      val accessedProperties = remainingPropertyAccesses(
-        queryGraph,
-        input,
-        context,
-        predicatesToIgnore = shardPredicatePushdownPartition.filterOnShards.map(_.expressions).getOrElse(Set.empty)
-      )
-      val rewriter = cachedPropertiesRewriter(input, context)
-      // re-write prefilter predicates since there may be some already cached property accesses there.
-      val rewrittenPreFilterBeforePushdown =
-        RewrittenSubQueryPredicatesMap(shardPredicatePushdownPartition.preFilterBeforePushdown.map(expr =>
-          expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
-        ).toMap)
-      // re-write post remoteBatchProperties predicates to identify property accesses there.
-      val rewrittenExprsAfterRemoteBatchProperties =
-        RewrittenSubQueryPredicatesMap(shardPredicatePushdownPartition.filterOnMainWithRemoteProperties.map(expr =>
-          expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
-        ).toMap)
-
-      // Apart from variables used in the rewritten predicates we would also like to find property accesses on the variable for which predicates are being pushed down to the shard.
-      // Ideally the property accesses for this variable must be from expressions (like projections or future predicates) outside those being pushed down to the shard
-      val propsToFetchToMain =
-        propertiesToFetch(
-          input,
-          context,
-          accessedProperties,
-          rewrittenExprsAfterRemoteBatchProperties.allRewrittenExpressions,
-          shardPredicatePushdownPartition.filterOnShards.map(_.logicalVariable)
-        )
-
-      val propertiesWithPushdownPredicates = shardPredicatePushdownPartition.filterOnShards match {
-        case Some(PushedPredicatesDetails(variableToFetchRemoteProperties, predicates)) =>
-          // Find properties that are either going to be used in predicates that cannot be pushed down or in later expressions
-          val propertiesToFetchForVar = propsToFetchToMain.filter(_.entityVariable == variableToFetchRemoteProperties)
-          if (propertiesToFetchForVar.nonEmpty) {
-            propertiesToFetchForVar
-          } else {
-            // Could not find later property accesses. The main goal is to execute these queries on the shards.
-            // Unfortunately remoteBatchPropertiesWithFilter requires at least one property back
-            // We'll use one property access from the predicates being pushed down to limit the amount of data being returned.
-            val rewriter = cachedPropertiesRewriter(input, context)
-            propertiesToFetch(
-              input,
-              context,
-              Set.empty,
-              predicates.map(_.endoRewrite(rewriter))
-            ).headOption match {
-              case Some(cachedProperty) => Set(cachedProperty)
-              case None                 =>
-                // This should not happen. If this happens that means we are not pushing down these predicates.
-                Set.empty[CachedProperty]
-            }
-          }
-        case None => Set.empty[CachedProperty]
-      }
-
-      val propsToFetchWithoutFilter = propsToFetchToMain.diff(propertiesWithPushdownPredicates)
-
-      ShardOperatorSequence(
-        Option.when(rewrittenPreFilterBeforePushdown.nonEmpty)(SelectionOnMain(
-          rewrittenPreFilterBeforePushdown
-        )),
-        Option.when(propertiesWithPushdownPredicates.nonEmpty)(SelectionOnShard(
-          propertiesToFetch = propertiesWithPushdownPredicates,
-          predicatesToExecute = shardPredicatePushdownPartition.filterOnShards.get.expressions
-        )),
-        Option.when(propsToFetchWithoutFilter.nonEmpty && rewrittenExprsAfterRemoteBatchProperties.nonEmpty)(
-          FetchPropertiesOnly(propsToFetchWithoutFilter)
-        ),
-        Option.when(rewrittenExprsAfterRemoteBatchProperties.nonEmpty)(SelectionOnMain(
-          rewrittenExprsAfterRemoteBatchProperties
-        ))
-      )
-    }
-
-    private case class ShardOperatorSequence(
-      preBatchSelection: Option[SelectionOnMain],
-      pushedDownPredicates: Option[SelectionOnShard],
-      batchedProperties: Option[FetchPropertiesOnly],
-      postBatchSelection: Option[SelectionOnMain]
-    )
-
-    sealed private trait ShardOperator
-
-    private case class SelectionOnMain(predicates: RewrittenSubQueryPredicatesMap)
-        extends ShardOperator
-
-    private case class SelectionOnShard(propertiesToFetch: Set[CachedProperty], predicatesToExecute: Set[Expression])
-        extends ShardOperator
-    private case class FetchPropertiesOnly(propertiesToFetch: Set[CachedProperty]) extends ShardOperator
-
-  }
-
-  case object InPlannerRemoteBatchingWithoutPushdown extends InPlannerRemoteBatching {
-
-    override def planBatchPropertiesForSelections(
-      queryGraph: QueryGraph,
-      input: LogicalPlan,
-      context: LogicalPlanningContext,
-      predicatesToSolve: RewrittenSubQueryPredicatesMap
-    ): RemoteBatchingSubQueryResult = {
-      val accessedProperties = remainingPropertyAccesses(queryGraph, input, context)
-
-      val rewriter = cachedPropertiesRewriter(input, context)
-      val rewrittenSelections =
-        RewrittenSubQueryPredicates.forMap(predicatesToSolve.allRewrittenExpressions.map(expr =>
-          expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
-        ).toMap)
-      RemoteBatchingSubQueryResult(
-        rewrittenExpressionsWithCachedProperties = rewrittenSelections,
-        plan = planBatchProperties(input, context, accessedProperties, rewrittenSelections.allRewrittenExpressions)
-      )
-    }
-
-    override def planBatchPropertiesForHorizonSelections(
-      queryGraph: QueryGraph,
-      input: LogicalPlan,
-      context: LogicalPlanningContext,
-      predicatesToSolve: Set[Expression],
-      interestingOrderConfig: InterestingOrderConfig
-    ): RemoteBatchingSubQueryResult = planBatchPropertiesForSelections(
-      queryGraph,
-      input,
-      context,
-      RewrittenSubQueryPredicates.withNoRewrittenExprs(predicatesToSolve)
-    )
-  }
-
   private case object SkipRemoteBatching extends RemoteBatchingStrategy {
 
     override def getValueFromIndexBehaviors(
@@ -837,15 +552,6 @@ object RemoteBatchingStrategy {
       predicatesToSolve: RewrittenSubQueryPredicatesMap
     ): RemoteBatchingSubQueryResult =
       RemoteBatchingSubQueryResult(predicatesToSolve, input)
-
-    override def planBatchPropertiesForHorizonSelections(
-      queryGraph: QueryGraph,
-      input: LogicalPlan,
-      context: LogicalPlanningContext,
-      predicatesToSolve: Set[Expression],
-      interestingOrderConfig: InterestingOrderConfig
-    ): RemoteBatchingSubQueryResult =
-      RemoteBatchingSubQueryResult(RewrittenSubQueryPredicates.withNoRewrittenExprs(predicatesToSolve), input)
 
     override def planBatchPropertiesForExpressionsWithLookahead(
       queryGraph: QueryGraph,

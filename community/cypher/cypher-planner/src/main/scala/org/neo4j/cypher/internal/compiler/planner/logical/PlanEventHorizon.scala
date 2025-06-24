@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.ir.CommandProjection
 import org.neo4j.cypher.internal.ir.DistinctQueryProjection
 import org.neo4j.cypher.internal.ir.LoadCSVProjection
 import org.neo4j.cypher.internal.ir.PassthroughAllHorizon
+import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.RegularQueryProjection
 import org.neo4j.cypher.internal.ir.RunQueryAtProjection
 import org.neo4j.cypher.internal.ir.Selections
@@ -185,13 +186,22 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       if (selections.isEmpty) {
         p
       } else {
+        val predicatesToSolve = if (context.settings.shardOperatorPushdownStrategy.isPushdownEnabled) {
+          val alreadySolvedHorizonSelections = context.staticComponents.planningAttributes.solveds.get(
+            p.id
+          ).asSinglePlannerQuery.horizon match {
+            case queryProjection: QueryProjection => queryProjection.selections.flatPredicatesSet
+            case _                                => Set.empty[Expression]
+          }
+          selections.flatPredicatesSet.diff(alreadySolvedHorizonSelections)
+        } else selections.flatPredicatesSet
+
         val remoteBatchingResult =
-          context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForHorizonSelections(
+          context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionsWithLookahead(
             query.queryGraph,
             p,
             context,
-            selections.flatPredicatesSet,
-            interestingOrderConfig
+            predicatesToSolve
           )
         context.staticComponents.logicalPlanProducer.planHorizonSelection(
           source = remoteBatchingResult.plan,
@@ -213,6 +223,14 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         (rewrittenExpressions, planWithProperties)
       }
 
+    def planShardOperators(queryProjection: QueryProjection): LogicalPlan => LogicalPlan =
+      context.settings.shardOperatorPushdownStrategy.projectRemoteProperties(
+        _,
+        query.queryGraph,
+        queryProjection,
+        interestingOrderConfig,
+        context
+      )
     def solveSubqueryexpressions(
       groupingExpressions: Map[LogicalVariable, Expression],
       aggregationExpressions: Map[LogicalVariable, Expression],
@@ -272,6 +290,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
                 orderToSolve = previousInterestingOrder.get
               )),
               planAggregation(rewrittenExpressions),
+              planShardOperators(aggregatingProjection),
               planSort(),
               planSkipAndLimit,
               planWhere(aggregatingProjection.selections)
@@ -281,6 +300,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
             // renames of the projection, thus we need to rename this as well for the required order before considering planning a sort.
             Function.chain(Seq(
               planAggregation(rewrittenExpressions),
+              planShardOperators(aggregatingProjection),
               planSort(),
               planSkipAndLimit,
               planWhere(aggregatingProjection.selections)
@@ -330,6 +350,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         ))
         def projectNonOrderPreservingExpressionsFirst = Function.chain(Seq(
           projectSubqueryExpressions,
+          planShardOperators(regularProjection),
           projectRemoteProperties,
           sortFirst
         ))
@@ -348,7 +369,8 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         // where the projection only needs to be applied to fewer rows.
         // If the runtime is not order preserving, we should do subquery expression projections and remote batch property
         // projections (which can invalidate an incoming order) before sorting.
-        if (context.settings.executionModel.providedOrderPreserving) sortFirstWithFallback(selectedPlan)
+        if (context.settings.executionModel.providedOrderPreserving)
+          (planShardOperators(regularProjection).andThen(sortFirstWithFallback))(selectedPlan)
         else projectNonOrderPreservingExpressionsFirst(selectedPlan)
 
       case distinctProjection: DistinctQueryProjection =>
@@ -363,9 +385,10 @@ case object PlanEventHorizon extends EventHorizonPlanner {
 
         // for distinct, sort happens after the projection. The provided order of the distinct plan will include
         // renames of the projection, thus we need to rename this as well for the required order before considering planning a sort.
+        val planWithPushedDownOperators = planShardOperators(distinctProjection)(selectedPlan)
         val (rewrittenExprsAfterRemoteBatching, remoteBatchPropertiesPlan) = planRemoteBatchProperties(
           distinctProjection.groupingExpressions.values,
-          selectedPlan
+          planWithPushedDownOperators
         )
 
         val (rewrittenExpressions, rewrittenPlan) = solveSubqueryexpressions(

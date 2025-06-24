@@ -100,6 +100,7 @@ import org.neo4j.cypher.internal.logical.plans.ProcedureCall
 import org.neo4j.cypher.internal.logical.plans.ProjectEndpoints
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.Selection
@@ -501,6 +502,8 @@ object CardinalityCostModel {
 
       case RemoteBatchPropertiesWithFilter(_, _, properties) =>
         properties.flatMap(_.dependencies).size * STORE_LOOKUP_COST_PER_ROW
+
+      case _: RemoteBatchPropertiesWithPushdownOperators => STORE_LOOKUP_COST_PER_ROW
 
       case _: AllNodesScan => ALL_SCAN_COST_PER_ROW
 

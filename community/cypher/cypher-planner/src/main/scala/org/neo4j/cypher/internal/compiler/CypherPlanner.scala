@@ -338,6 +338,13 @@ class CypherPlannerConfiguration(
     () => config.remoteBatchPropertiesImplementation
   }
 
+  val pushOperatorsToRemoteBatchPropertiesEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.push_operators_into_remote_batch_properties.dynamic()
+    )
+    () => config.pushOperatorsToRemoteBatchPropertiesEnabled
+  }
+
   val planningGraphSchemaOptimizationsEnabled: () => Boolean = {
     AssertMacros.checkOnlyWhenAssertionsAreEnabled(
       !GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled.dynamic()

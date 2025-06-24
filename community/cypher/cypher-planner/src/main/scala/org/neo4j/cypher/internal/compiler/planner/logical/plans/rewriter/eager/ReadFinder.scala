@@ -911,7 +911,7 @@ object ReadFinder {
         ProcedureCall(_, _) |
         RemoteBatchProperties(_, _) | // the actual usage of these properties should happen eventually.
         RemoteBatchPropertiesWithFilter(_, _, _) | // should only be used in readOnly queries
-        RemoteBatchPropertiesWithPushdownOperators(_, _, _, _, _, _, _, _, _, _) |
+        _: RemoteBatchPropertiesWithPushdownOperators |
         SelectOrAntiSemiApply(_, _, _) |
         SelectOrSemiApply(_, _, _) |
         SemiApply(_, _) |

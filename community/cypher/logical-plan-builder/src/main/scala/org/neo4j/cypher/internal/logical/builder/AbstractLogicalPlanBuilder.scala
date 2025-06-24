@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.expressions.AndsReorderable
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
+import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
@@ -53,6 +54,7 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
+import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelTypeExpression
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -2750,14 +2752,31 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       RemoteBatchPropertiesWithFilter(source, expressions, properties)(_)
     ))
 
-  def remoteBatchPropertiesWithPushdownOperators(
+  def remoteBatchPropertiesWithPushdownOperatorsOnNode(
     variable: String,
     properties: String*
   )(pushdownOperators: PushdownOperators): IMPL = {
+    remoteBatchPropertiesWithPushdownOperators(variable, NODE_TYPE, properties, pushdownOperators)
+  }
+
+  def remoteBatchPropertiesWithPushdownOperatorsOnRelationship(
+    variable: String,
+    properties: String*
+  )(pushdownOperators: PushdownOperators): IMPL = {
+    remoteBatchPropertiesWithPushdownOperators(variable, RELATIONSHIP_TYPE, properties, pushdownOperators)
+  }
+
+  private def remoteBatchPropertiesWithPushdownOperators(
+    variable: String,
+    entityType: EntityType,
+    properties: Seq[String],
+    pushdownOperators: PushdownOperators
+  ): IMPL = {
     appendAtCurrentIndent(UnaryOperator(source =>
       RemoteBatchPropertiesWithPushdownOperators(
         source,
         variable = varFor(variable),
+        entityType = entityType,
         properties = properties.map(PropertyKeyName(_)(pos)).toSet,
         predicates = pushdownOperators.filter,
         distinctBy = pushdownOperators.distinct,
@@ -3816,6 +3835,10 @@ object AbstractLogicalPlanBuilder {
 
     def filter(exprs: String*): PushdownOperators = {
       val newPredicates = exprs.map(Parser.Latest.parseExpression)
+      copy(filter = filter ++ newPredicates)
+    }
+
+    def filterExpr(newPredicates: Expression*): PushdownOperators = {
       copy(filter = filter ++ newPredicates)
     }
 

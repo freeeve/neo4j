@@ -43,6 +43,18 @@ case class CachedProperties(entries: Map[LogicalVariable, CachedProperties.Entry
     CachedProperties(updatedEntries)
   }
 
+  def add(
+    logicalVariable: LogicalVariable,
+    entityType: EntityType,
+    propertyKeys: Set[PropertyKeyName]
+  ): CachedProperties = {
+    val updatedEntries = entries.updatedWith(logicalVariable) {
+      case Some(entry) => Some(entry.copy(properties = entry.properties.union(propertyKeys)))
+      case None        => Some(Entry(logicalVariable, entityType, propertyKeys))
+    }
+    CachedProperties(updatedEntries)
+  }
+
   def union(other: CachedProperties): CachedProperties = {
     CachedProperties(entries.fuse(other.entries)(_ union _))
   }

@@ -32,6 +32,10 @@ object RewrittenSubQueryPredicates {
     def originalExpressions: Iterable[Expression] = backingStore.values
     def isEmpty: Boolean = backingStore.isEmpty
     def nonEmpty: Boolean = backingStore.nonEmpty
+
+    def ++(other: RewrittenSubQueryPredicatesMap): RewrittenSubQueryPredicatesMap = {
+      RewrittenSubQueryPredicatesMap(backingStore ++ other.backingStore)
+    }
   }
   def empty: RewrittenSubQueryPredicatesMap = RewrittenSubQueryPredicatesMap(Map.empty)
   def forMap(map: Map[Expression, Expression]): RewrittenSubQueryPredicatesMap = RewrittenSubQueryPredicatesMap(map)

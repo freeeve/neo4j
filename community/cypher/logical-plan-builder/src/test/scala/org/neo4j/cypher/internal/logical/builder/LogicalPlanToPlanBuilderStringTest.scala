@@ -1085,10 +1085,25 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
-    "remoteBatchPropertiesWithPushdownOperators",
+    "remoteBatchPropertiesWithPushdownOperatorsOnNode",
     new TestPlanBuilder()
       .produceResults("x")
-      .remoteBatchPropertiesWithPushdownOperators("x", "prop1", "prop2")(PushdownOperators()
+      .remoteBatchPropertiesWithPushdownOperatorsOnNode("x", "prop1", "prop2")(PushdownOperators()
+        .limit("10")
+        .orderBy("x.prop3")
+        .distinct("x")
+        .filter("x.prop1=10", "x.prop2=y.prop")
+        .arguments("y")
+        .previouslyCachedProperties("y.prop"))
+      .argument("y")
+      .build()
+  )
+
+  testPlan(
+    "remoteBatchPropertiesWithPushdownOperatorsOnRelationship",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .remoteBatchPropertiesWithPushdownOperatorsOnRelationship("x", "prop1", "prop2")(PushdownOperators()
         .limit("10")
         .orderBy("x.prop3")
         .distinct("x")

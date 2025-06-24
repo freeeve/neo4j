@@ -147,6 +147,8 @@ case object QueryPlanner
         context.config.statefulShortestPlanningRewriteQuantifiersAbove(),
       planVarExpandInto = context.planVarExpandInto,
       remoteBatchPropertiesStrategy = RemoteBatchingStrategy.fromConfig(from.query, context),
+      shardOperatorPushdownStrategy =
+        ShardOperatorPushdownStrategy.fromConfig(from.query, context),
       multiRelationshipExpansion = context.config.multiRelationshipExpansionEnabled(),
       pushDownArgumentsRBPWFEnabled = context.config.pushDownArgumentsRBPWFEnabled(),
       dynamicLabelScansEnabled = context.config.dynamicLabelScansEnabled()

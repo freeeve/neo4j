@@ -53,6 +53,7 @@ import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.SemiApply
@@ -314,6 +315,11 @@ case class pruningVarExpander(
 
         case RemoteBatchPropertiesWithFilter(_, predicates, _) if distinctHorizon.isInDistinctHorizon =>
           (distinctHorizon.withAddedDependencies(predicates), DistinctHorizon.empty)
+        case pushedDownOperators: RemoteBatchPropertiesWithPushdownOperators if distinctHorizon.isInDistinctHorizon =>
+          (
+            distinctHorizon.withAddedDependencies(pushedDownOperators.arguments + pushedDownOperators.variable),
+            DistinctHorizon.empty
+          )
 
         /**
          * For Apply plans that _do_ introduce an argument, it is never safe to traverse both sides in the same horizon.
