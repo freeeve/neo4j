@@ -168,7 +168,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       )
     }
 
@@ -750,7 +751,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         previouslyBoundRelationships = Set(),
         previouslyBoundRelationshipGroups = Set(),
         reverseGroupVariableProjections = false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       )
     }
 
@@ -865,7 +867,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         previouslyBoundRelationships = Set("rr"),
         previouslyBoundRelationshipGroups = Set("r"),
         reverseGroupVariableProjections = false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       )
     }
     val trail = subPlanBuilder
@@ -941,7 +944,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(a) ((x_i)-[r_i]-(y_i))+ (b)`: TrailParameters = TrailParameters(
@@ -957,7 +961,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandInto
+    expansionMode = ExpandInto,
+    accumulators = Set.empty
   )
 
   test("Rewrite selection and trail to VarLengthExpand(Into)") {
@@ -1319,7 +1324,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         groupRelationships = Set.empty,
         innerRelationships = Set("r_i", "rr_i"),
         reverseGroupVariableProjections = false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       )
     }
 
@@ -1879,7 +1885,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         groupRelationships = Set.empty,
         innerRelationships = Set("rrr_i"),
         reverseGroupVariableProjections = false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       )
     }
     val walk = subPlanBuilder
@@ -1947,7 +1954,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     groupRelationships = Set.empty,
     innerRelationships = Set("r_i"),
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `Walk (a) ((x_i)-[r_i]-(y_i))+ (b)`: WalkParameters = WalkParameters(
@@ -1961,7 +1969,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     groupRelationships = Set.empty,
     innerRelationships = Set("r_i"),
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandInto
+    expansionMode = ExpandInto,
+    accumulators = Set.empty
   )
 
   test("Rewrite selection and walk to VarLengthExpand(Into)") {
@@ -2319,7 +2328,8 @@ object RepeatToVarExpandRewriterTest {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val walk: WalkParameters = WalkParameters(
@@ -2333,7 +2343,8 @@ object RepeatToVarExpandRewriterTest {
       groupRelationships = Set(("r_i", "r")),
       reverseGroupVariableProjections = false,
       innerRelationships = Set("r_i"),
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val nlessTrail: TrailParameters = trail.copy(groupNodes = Set(("m_i", "m")))
@@ -2381,7 +2392,8 @@ object RepeatToVarExpandRewriterTest {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val xylessTrail: TrailParameters = emptyTrail.copy(groupRelationships = Set(("rr_i", "rr")))
@@ -2397,7 +2409,8 @@ object RepeatToVarExpandRewriterTest {
       groupRelationships = Set.empty,
       innerRelationships = Set("rr_i"),
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val xylessWalk: WalkParameters = emptyWalk.copy(groupRelationships = Set(("rr_i", "rr")))

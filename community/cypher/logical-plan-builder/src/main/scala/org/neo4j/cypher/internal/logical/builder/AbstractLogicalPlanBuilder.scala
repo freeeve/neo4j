@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AndsReorderable
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -3229,7 +3230,10 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         trailParameters.previouslyBoundRelationships.map(varFor),
         trailParameters.previouslyBoundRelationshipGroups.map(varFor),
         trailParameters.reverseGroupVariableProjections,
-        trailParameters.expansionMode
+        trailParameters.expansionMode,
+        trailParameters.accumulators.map { case (initial, previous, current) =>
+          AllReduceAccumulator(parser.parseExpression(initial), varFor(previous), varFor(current))(pos)
+        }
       )(_)
     ))
   }
@@ -3291,7 +3295,10 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         },
         walkParameters.reverseGroupVariableProjections,
         walkParameters.innerRelationships.map(varFor),
-        walkParameters.expansionMode
+        walkParameters.expansionMode,
+        walkParameters.accumulators.map { case (initial, previous, current) =>
+          AllReduceAccumulator(parser.parseExpression(initial), varFor(previous), varFor(current))(pos)
+        }
       )(_)
     ))
   }
@@ -3526,7 +3533,8 @@ object AbstractLogicalPlanBuilder {
     previouslyBoundRelationships: Set[String],
     previouslyBoundRelationshipGroups: Set[String],
     reverseGroupVariableProjections: Boolean,
-    expansionMode: ExpansionMode
+    expansionMode: ExpansionMode,
+    accumulators: Set[(String, String, String)]
   )
 
   case class WalkParameters(
@@ -3540,7 +3548,8 @@ object AbstractLogicalPlanBuilder {
     groupRelationships: Set[(String, String)],
     reverseGroupVariableProjections: Boolean,
     innerRelationships: Set[String],
-    expansionMode: ExpansionMode
+    expansionMode: ExpansionMode,
+    accumulators: Set[(String, String, String)]
   )
 
   def createPattern(

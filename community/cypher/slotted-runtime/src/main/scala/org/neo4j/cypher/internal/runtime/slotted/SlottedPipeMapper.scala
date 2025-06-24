@@ -2066,8 +2066,11 @@ class SlottedPipeMapper(
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          expansionMode
+          expansionMode,
+          accumulators
         ) =>
+        // TODO remove this require when implementing slotted support for allReduce
+        require(accumulators.isEmpty)
         val nodeInScope = expansionMode match {
           case ExpandAll  => false
           case ExpandInto => true
@@ -2109,7 +2112,8 @@ class SlottedPipeMapper(
           groupRelationships,
           reverseGroupVariableProjections,
           _,
-          expansionMode
+          expansionMode,
+          accumulators
         ) =>
         val nodeInScope = expansionMode match {
           case ExpandAll  => false

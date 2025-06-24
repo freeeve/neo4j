@@ -323,6 +323,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.RelationshipCountFrom
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RelationshipTypes
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RemoveLabelsPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.AllReduceAcc
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RollUpApplyPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RunQueryAtPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.SelectOrSemiApplyPipe
@@ -2191,8 +2192,13 @@ case class InterpretedPipeMapper(
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          expansionMode
+          expansionMode,
+          accumulatorMappings
         ) =>
+        val runtimeAccumulatorMappings = accumulatorMappings.toArray.map(acc =>
+          AllReduceAcc(expressionConverters.toCommandExpression(id, acc.initial), acc.previous.name, acc.next.name)
+        )
+
         val nodeInScope = expansionMode match {
           case ExpandAll  => false
           case ExpandInto => true
@@ -2214,7 +2220,8 @@ case class InterpretedPipeMapper(
             previouslyBoundRelationshipGroups.map(_.name)
           ),
           reverseGroupVariableProjections,
-          nodeInScope
+          nodeInScope,
+          runtimeAccumulatorMappings
         )(id = id)
 
       case RepeatWalk(
@@ -2229,8 +2236,13 @@ case class InterpretedPipeMapper(
           groupRelationships,
           reverseGroupVariableProjections,
           innerRelationships,
-          expansionMode
+          expansionMode,
+          accumulatorMappings
         ) =>
+        val runtimeAccumulatorMappings = accumulatorMappings.toArray.map(acc =>
+          AllReduceAcc(expressionConverters.toCommandExpression(id, acc.initial), acc.previous.name, acc.next.name)
+        )
+
         val nodeInScope = expansionMode match {
           case ExpandAll  => false
           case ExpandInto => true
@@ -2247,7 +2259,8 @@ case class InterpretedPipeMapper(
           groupRelationships,
           RepeatPipe.WalkModeConstraint,
           reverseGroupVariableProjections,
-          nodeInScope
+          nodeInScope,
+          runtimeAccumulatorMappings
         )(id = id)
 
       case x =>

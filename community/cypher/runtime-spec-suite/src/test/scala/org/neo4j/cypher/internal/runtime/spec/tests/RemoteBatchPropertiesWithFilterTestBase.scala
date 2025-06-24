@@ -1392,7 +1392,8 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1436,7 +1437,8 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1480,7 +1482,8 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1526,7 +1529,8 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)

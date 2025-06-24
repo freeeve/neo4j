@@ -859,7 +859,8 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val builder = new LogicalPlanBuilder(wholePlan = false)

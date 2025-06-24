@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier.Extension
+import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
@@ -750,7 +751,8 @@ object LogicalPlanToPlanBuilderString {
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          expansionMode
+          expansionMode,
+          accumulators
         ) =>
         trailParametersString(
           repetition,
@@ -764,7 +766,8 @@ object LogicalPlanToPlanBuilderString {
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          expansionMode
+          expansionMode,
+          accumulators
         )
       case BidirectionalRepeatTrail(
           _,
@@ -793,7 +796,8 @@ object LogicalPlanToPlanBuilderString {
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          ExpandAll
+          ExpandAll,
+          Set.empty
         )
       case RepeatWalk(
           _,
@@ -807,7 +811,8 @@ object LogicalPlanToPlanBuilderString {
           groupRelationships,
           reverseGroupVariableProjections,
           innerRelationships,
-          expansionMode
+          expansionMode,
+          accumulators
         ) =>
         walkParametersString(
           repetition,
@@ -819,7 +824,8 @@ object LogicalPlanToPlanBuilderString {
           groupRelationships,
           reverseGroupVariableProjections,
           innerRelationships,
-          expansionMode
+          expansionMode,
+          accumulators
         )
 
       case NodeByIdSeek(idName, ids, argumentIds) =>
@@ -1704,7 +1710,8 @@ object LogicalPlanToPlanBuilderString {
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
-    expansionMode: ExpansionMode
+    expansionMode: ExpansionMode,
+    accumulators: Set[AllReduceAccumulator]
   ) =
     call(
       "TrailParameters",
@@ -1720,7 +1727,8 @@ object LogicalPlanToPlanBuilderString {
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
       reverseGroupVariableProjections,
-      expansionMode
+      expansionMode,
+      accumulators
     )
 
   private def walkParametersString(
@@ -1733,7 +1741,8 @@ object LogicalPlanToPlanBuilderString {
     groupRelationships: Set[VariableGrouping],
     reverseGroupVariableProjections: Boolean,
     innerRelationships: Set[LogicalVariable],
-    expansionMode: ExpansionMode
+    expansionMode: ExpansionMode,
+    accumulators: Set[AllReduceAccumulator]
   ) =
     call(
       "WalkParameters",
@@ -1747,7 +1756,8 @@ object LogicalPlanToPlanBuilderString {
       groupRelationships,
       reverseGroupVariableProjections,
       innerRelationships,
-      expansionMode
+      expansionMode,
+      accumulators
     )
 
   private def pushdownOperatorsString(
@@ -2297,6 +2307,9 @@ object LogicalPlanToPlanBuilderString {
 
     implicit def fromVariableGroupingSet: ToParam[Set[VariableGrouping]] =
       setParam(_)(x => Param.tuple(x.singleton, x.group))
+
+    implicit def fromAllReduceAccumulator: ToParam[AllReduceAccumulator] =
+      x => params(x.initial.quoted, x.previous, x.next).wrap("(", ")")
 
     implicit def fromNfaMappingSet: ToParam[Set[Mapping]] =
       setParam(_)(x => Param.tuple(x.nfaExprVar, x.rowVar))

@@ -837,7 +837,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set("e"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -930,7 +931,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
@@ -1915,7 +1917,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set("r1"),
         false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       ))
     val plan1 = plan0.|.|.|.|.|.filter("r2_inner IS NOT NULL")
       .|.|.|.|.|.optional("middle")
@@ -1945,7 +1948,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       ))
       .|.|.|.|.filter("b_inner:MIDDLE")
       .|.|.|.|.nodeHashJoin("b_inner")
@@ -1969,7 +1973,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       ))
     val plan2 = plan1.|.|.|.|.nodeHashJoin("anon_end_inner")
       .|.|.|.|.|.filter("anon_end_inner:MIDDLE")
@@ -1997,7 +2002,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set("r1"),
         false,
-        ExpandAll
+        ExpandAll,
+        Set.empty
       ))
       .|.|.|.|.filter("d_inner:LOOP")
       .|.|.|.|.nodeHashJoin("d_inner")
@@ -2026,7 +2032,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        ExpandAll
+        ExpandAll,
+        Set.empty
       ))
     val plan3 = plan2.|.|.|.filter("b_inner:MIDDLE")
       .|.|.|.nodeHashJoin("b_inner")
@@ -2049,7 +2056,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        ExpandAll
+        ExpandAll,
+        Set.empty
       ))
       .|.|.|.nodeHashJoin("anon_end_inner")
       .|.|.|.|.filter("true")
@@ -2077,7 +2085,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set("r1"),
         false,
-        ExpandAll
+        ExpandAll,
+        Set.empty
       ))
       .|.|.|.filter("true")
       .|.|.|.limit(9223372036854775807L)
@@ -2108,7 +2117,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        ExpandAll
+        ExpandAll,
+        Set.empty
       ))
     val plan = plan3.|.|.filter("true")
       .|.|.filter("b_inner:MIDDLE")
@@ -2131,7 +2141,8 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        ExpandAll
+        ExpandAll,
+        Set.empty
       ))
       .|.|.nodeHashJoin("anon_end_inner")
       .|.|.|.filter("true")
@@ -2673,7 +2684,11 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
 object RepeatTrailTestBase {
   def listOf(values: AnyRef*): util.List[AnyRef] = java.util.List.of[AnyRef](values: _*)
 
-  private def createMeYouTrailParameters(min: Int, max: UpperBound): TrailParameters = {
+  def createMeYouTrailParameters(
+    min: Int,
+    max: UpperBound,
+    accumulators: Set[(String, String, String)] = Set.empty
+  ): TrailParameters = {
     TrailParameters(
       min,
       max,
@@ -2687,7 +2702,8 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = accumulators
     )
   }
 
@@ -2705,7 +2721,8 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r"),
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
   }
 
@@ -2752,7 +2769,8 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(start:START) [()-[]->(:MIDDLE)]{1, 1} (firstMiddle:MIDDLE)`: TrailParameters = TrailParameters(
@@ -2768,7 +2786,8 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(firstMiddle) [(a)-[r1]->(b:MIDDLE)]{0, *} (middle:MIDDLE:LOOP)`: TrailParameters = TrailParameters(
@@ -2784,7 +2803,8 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(middle) [(c)-[r2]->(d:LOOP)]{0, *} (end:LOOP)`: TrailParameters = TrailParameters(
@@ -2800,7 +2820,8 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set("r1"),
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(you) [(b)<-[r]-(a)]{0, *} (me)`: TrailParameters =
@@ -2817,7 +2838,8 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
   val `(me) [(a)-[r]->(b)<-[rr]-(c)]{0,1} (you)`: TrailParameters =
@@ -2834,7 +2856,8 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
   val `(me) ((b)-[r]->(c) WHERE EXISTS {...} ){1,} (you)`: TrailParameters = TrailParameters(
@@ -2850,7 +2873,8 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(b) ((d)-[rr]->(aa:A) WHERE EXISTS {...} ){1,} (a)`: TrailParameters = TrailParameters(
@@ -2866,7 +2890,8 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(aa) ((e)<-[rrr]-(f)){1,}) (g)`: TrailParameters = TrailParameters(
@@ -2882,7 +2907,8 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`: TrailParameters =
@@ -2899,7 +2925,8 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
   val `(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`: TrailParameters =
@@ -2916,7 +2943,8 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
   val `(b_inner)((bb)-[rr]->(aa:A)){0,}(a)`: TrailParameters = TrailParameters(
@@ -2932,7 +2960,8 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    expansionMode = ExpandAll
+    expansionMode = ExpandAll,
+    accumulators = Set.empty
   )
 }
 
@@ -3881,7 +3910,8 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
       previouslyBoundRelationships = Set("e"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -3993,7 +4023,8 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")

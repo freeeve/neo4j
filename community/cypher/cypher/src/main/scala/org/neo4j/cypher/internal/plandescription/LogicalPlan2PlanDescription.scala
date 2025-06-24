@@ -3233,7 +3233,7 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, mode) =>
+      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, mode, _) =>
         PlanDescriptionImpl(
           id = plan.id,
           s"Repeat(${expandModeDescription(mode)}, Trail)",
@@ -3266,7 +3266,7 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, _, mode) =>
+      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, _, mode, _) =>
         PlanDescriptionImpl(
           id = plan.id,
           s"Repeat(${expandModeDescription(mode)}, Walk)",

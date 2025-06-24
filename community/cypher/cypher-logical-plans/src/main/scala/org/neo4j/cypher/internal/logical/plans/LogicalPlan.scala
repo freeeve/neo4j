@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.expressions.ASTCachedProperty
+import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.Equals
@@ -4659,6 +4660,7 @@ sealed abstract class Repeat(idGen: IdGen)
   def reverseGroupVariableProjections: Boolean
   def innerRelationships: Set[LogicalVariable]
   def expansionMode: ExpansionMode
+  def accumulatorMappings: Set[AllReduceAccumulator]
 
   override val localAvailableSymbols: Set[LogicalVariable] =
     left.localAvailableSymbols + end + start ++ nodeVariableGroupings.map(_.group) ++ relationshipVariableGroupings.map(
@@ -4691,20 +4693,21 @@ sealed abstract class Repeat(idGen: IdGen)
  * @param reverseGroupVariableProjections   if `true` reverse the group variable lists
  */
 case class RepeatTrail(
-  override val left: LogicalPlan,
-  override val right: LogicalPlan,
+  left: LogicalPlan,
+  right: LogicalPlan,
   repetition: Repetition,
   start: LogicalVariable,
   end: LogicalVariable,
   innerStart: LogicalVariable,
   innerEnd: LogicalVariable,
-  override val nodeVariableGroupings: Set[VariableGrouping],
-  override val relationshipVariableGroupings: Set[VariableGrouping],
+  nodeVariableGroupings: Set[VariableGrouping],
+  relationshipVariableGroupings: Set[VariableGrouping],
   innerRelationships: Set[LogicalVariable],
   previouslyBoundRelationships: Set[LogicalVariable],
   previouslyBoundRelationshipGroups: Set[LogicalVariable],
   reverseGroupVariableProjections: Boolean,
-  expansionMode: ExpansionMode = ExpandAll
+  expansionMode: ExpansionMode = ExpandAll,
+  accumulatorMappings: Set[AllReduceAccumulator] = Set.empty
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
@@ -4738,18 +4741,19 @@ case class RepeatTrail(
  * @param reverseGroupVariableProjections   if `true` reverse the group variable lists
  */
 case class RepeatWalk(
-  override val left: LogicalPlan,
-  override val right: LogicalPlan,
+  left: LogicalPlan,
+  right: LogicalPlan,
   repetition: Repetition,
   start: LogicalVariable,
   end: LogicalVariable,
   innerStart: LogicalVariable,
   innerEnd: LogicalVariable,
-  override val nodeVariableGroupings: Set[VariableGrouping],
-  override val relationshipVariableGroupings: Set[VariableGrouping],
+  nodeVariableGroupings: Set[VariableGrouping],
+  relationshipVariableGroupings: Set[VariableGrouping],
   reverseGroupVariableProjections: Boolean,
   innerRelationships: Set[LogicalVariable],
-  expansionMode: ExpansionMode = ExpandAll
+  expansionMode: ExpansionMode = ExpandAll,
+  accumulatorMappings: Set[AllReduceAccumulator] = Set.empty
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)

@@ -358,6 +358,22 @@ object QuantifiedPath {
   }
 }
 
+case class AllReduceAccumulator(
+  initial: Expression,
+  previous: LogicalVariable,
+  next: LogicalVariable
+)(val position: InputPosition)
+    extends ASTNode with HasMappableExpressions[AllReduceAccumulator] {
+
+  override def toString: String = s"(initial=$initial, previous=${previous.name}, next=${next.name})"
+
+  override def mapExpressions(f: Expression => Expression): AllReduceAccumulator = copy(
+    f(initial),
+    f(previous).asInstanceOf[LogicalVariable],
+    f(next).asInstanceOf[LogicalVariable]
+  )(this.position)
+}
+
 /**
  * Describes a variable that is exposed from a [[QuantifiedPath]].
  *

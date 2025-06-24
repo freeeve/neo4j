@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.compiler.planner.logical.InlinedPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.convertToInlinedPredicates
+import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Expression
@@ -278,6 +279,16 @@ object RepeatToVarExpandRewriter {
     }
   }
 
+  object AllReduceAccumulators {
+
+    object Empty {
+
+      def unapply(allReduceAccumulators: Set[AllReduceAccumulator]): Boolean = {
+        allReduceAccumulators.isEmpty
+      }
+    }
+  }
+
   object RewritableRepeatExtractor {
 
     /**
@@ -341,7 +352,8 @@ object RepeatToVarExpandRewriter {
             _,
             _,
             _,
-            expansionMode
+            expansionMode,
+            AllReduceAccumulators.Empty()
           ) => Option((repeat, expand, inlinablePredicates, quantifier, relationship, expansionMode))
         case walk @ RepeatWalk(
             _,
@@ -358,7 +370,8 @@ object RepeatToVarExpandRewriter {
             VariableGroupings.Maybe(relationship),
             _,
             _,
-            expansionMode
+            expansionMode,
+            AllReduceAccumulators.Empty()
           ) =>
           Option((walk, expand, inlinablePredicates, quantifier, relationship, expansionMode))
         case _ => None

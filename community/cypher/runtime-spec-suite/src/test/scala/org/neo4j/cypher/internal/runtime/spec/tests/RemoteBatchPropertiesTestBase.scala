@@ -462,7 +462,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -504,7 +505,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -546,7 +548,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -588,7 +591,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -631,7 +635,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -674,7 +679,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -718,7 +724,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -762,7 +769,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -807,7 +815,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -884,7 +893,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
     )
 
     val `(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`: TrailParameters =
@@ -901,7 +911,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        expansionMode = ExpandAll
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
       )
 
     val logicalQuery = new LogicalQueryBuilder(this)

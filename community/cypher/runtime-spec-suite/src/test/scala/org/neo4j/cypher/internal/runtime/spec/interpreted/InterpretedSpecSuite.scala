@@ -21,9 +21,11 @@ package org.neo4j.cypher.internal.runtime.spec.interpreted
 
 import org.neo4j.cypher.internal.CommunityRuntimeContext
 import org.neo4j.cypher.internal.InterpretedRuntime
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.spec.COMMUNITY
+import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.interpreted.InterpretedSpecSuite.SIZE_HINT
 import org.neo4j.cypher.internal.runtime.spec.tests.AggregationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.AllNodeScanTestBase
@@ -205,7 +207,11 @@ import org.neo4j.cypher.internal.runtime.spec.tests.stress.RelationshipIndexSeek
 import org.neo4j.cypher.internal.runtime.spec.tests.stress.RelationshipTypeReadConcurrencyStressTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.stress.RelationshipTypeScanConcurrencyStressTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.stress.UnionRelationshipTypesScanConcurrencyStressTestBase
+import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.test_helpers.TimeLimitedCypherTest
+import org.neo4j.values.virtual.VirtualValues.pathReference
+
+import java.util.Collections.emptyList
 
 object InterpretedSpecSuite {
   val SIZE_HINT = 200
@@ -476,11 +482,164 @@ class InterpretedUnionRelationshipTypeTest
 
 class InterpretedRepeatTrailTest
     extends RepeatTrailTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-    with OrderedTrailTestBase[CommunityRuntimeContext]
+    with OrderedTrailTestBase[CommunityRuntimeContext] {
+
+  // TODO move these tests to RepeatTrailTestBase once all runtimes support allReduce
+
+  test("should work with allReduce accumulator") {
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+
+    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)` =
+      RepeatTrailTestBase.createMeYouTrailParameters(
+        min = 0,
+        max = Limited(2),
+        accumulators = Set(("[]", "currAcc", "nextAcc"))
+      )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)`)
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.filter(s"NOT ${n3.getId} IN nextAcc")
+      .|.projection("currAcc + [id(b_inner)] AS nextAcc")
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
+      )
+    ))
+  }
+
+  test("should work with allReduce accumulator where accumulator is accessed before allReduce projection") {
+    // NOTE: accumulator should never be accessed early in the RHS like this
+    //       the test is just intended to test slot allocation
+
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+
+    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)` =
+      RepeatTrailTestBase.createMeYouTrailParameters(
+        min = 0,
+        max = Limited(2),
+        accumulators = Set(("[]", "currAcc", "nextAcc"))
+      )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)`)
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.filter(s"NOT ${n3.getId} IN nextAcc")
+      .|.projection("currAcc + id(b_inner) AS nextAcc")
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.nonFuseable() // noop, just intended to force pipeline break
+      .|.filter("currAcc IS NOT NULL")
+      .|.argument("me", "a_inner", "currAcc")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
+      )
+    ))
+  }
+}
 
 class InterpretedRepeatWalkTest
     extends RepeatWalkTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-    with OrderedWalkTestBase[CommunityRuntimeContext]
+    with OrderedWalkTestBase[CommunityRuntimeContext] {
+
+  // TODO move these tests to RepeatWalkTestBase once all runtimes support allReduce
+
+  test("should work with allReduce accumulator") {
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+
+    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)` =
+      RepeatWalkTestBase.createMeYouWalkParameters(
+        min = 0,
+        max = Limited(2),
+        accumulators = Set(("[]", "currAcc", "nextAcc"))
+      )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatWalk(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)`)
+      .|.filter(s"NOT ${n3.getId} IN nextAcc")
+      .|.projection("currAcc + [id(b_inner)] AS nextAcc")
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
+      )
+    ))
+  }
+
+  test("should work with allReduce accumulator where accumulator is accessed before allReduce projection") {
+    // NOTE: accumulator should never be accessed early in the RHS like this. the test is just intended to test slot allocation
+
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+
+    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)` =
+      RepeatWalkTestBase.createMeYouWalkParameters(
+        min = 0,
+        max = Limited(2),
+        accumulators = Set(("[]", "currAcc", "nextAcc"))
+      )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatWalk(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)`)
+      .|.filter(s"NOT ${n3.getId} IN nextAcc")
+      .|.projection("currAcc + id(b_inner) AS nextAcc")
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.nonFuseable() // noop, just intended to force pipeline break
+      .|.filter("size(currAcc) >= 0")
+      .|.argument("me", "a_inner", "currAcc")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
+      )
+    ))
+  }
+}
 
 //UPDATING
 class InterpretedEmptyResultTest extends EmptyResultTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)

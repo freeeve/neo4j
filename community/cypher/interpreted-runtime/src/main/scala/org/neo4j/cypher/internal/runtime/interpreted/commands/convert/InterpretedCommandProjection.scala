@@ -32,5 +32,6 @@ case class InterpretedCommandProjection(expressions: Map[String, Expression]) ex
     case (name, expression) =>
       val result = expression(ctx, state)
       ctx.set(name, result)
+
   }
 }

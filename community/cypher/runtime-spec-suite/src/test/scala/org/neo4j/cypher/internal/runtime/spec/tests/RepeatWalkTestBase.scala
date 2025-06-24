@@ -509,7 +509,8 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
       groupRelationships = Set(("r_inner", "r"), ("s_inner", "s")),
       reverseGroupVariableProjections = false,
       innerRelationships = Set(("r_inner"), ("s_inner")),
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
@@ -1253,7 +1254,11 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
 object RepeatWalkTestBase {
   def listOf(values: AnyRef*): util.List[AnyRef] = java.util.List.of[AnyRef](values: _*)
 
-  private def createMeYouWalkParameters(min: Int, max: UpperBound): WalkParameters = {
+  def createMeYouWalkParameters(
+    min: Int,
+    max: UpperBound,
+    accumulators: Set[(String, String, String)] = Set.empty
+  ): WalkParameters = {
     WalkParameters(
       min,
       max,
@@ -1265,7 +1270,8 @@ object RepeatWalkTestBase {
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = false,
       innerRelationships = Set("r_inner"),
-      ExpandAll
+      ExpandAll,
+      accumulators = accumulators
     )
   }
 
@@ -1281,7 +1287,8 @@ object RepeatWalkTestBase {
       groupRelationships = Set(("rr_inner", "rr")),
       reverseGroupVariableProjections = false,
       innerRelationships = Set(("rr_inner")),
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
   }
 
@@ -1329,7 +1336,8 @@ object RepeatWalkTestBase {
     groupRelationships = Set(("r_inner", "r")),
     reverseGroupVariableProjections = false,
     innerRelationships = Set("r_inner"),
-    ExpandAll
+    ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(start:START) [()-[]->(:MIDDLE)]{1, 1} (firstMiddle:MIDDLE)`: WalkParameters = WalkParameters(
@@ -1343,7 +1351,8 @@ object RepeatWalkTestBase {
     groupRelationships = Set(),
     reverseGroupVariableProjections = false,
     innerRelationships = Set("r_inner"),
-    ExpandAll
+    ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(firstMiddle) [(a)-[r1]->(b:MIDDLE)]{0, *} (middle:MIDDLE:LOOP)`: WalkParameters = WalkParameters(
@@ -1357,7 +1366,8 @@ object RepeatWalkTestBase {
     groupRelationships = Set(("r1_inner", "r1")),
     reverseGroupVariableProjections = false,
     innerRelationships = Set("r1_inner"),
-    ExpandAll
+    ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(middle) [(c)-[r2]->(d:LOOP)]{0, *} (end:LOOP)`: WalkParameters = WalkParameters(
@@ -1371,7 +1381,8 @@ object RepeatWalkTestBase {
     groupRelationships = Set(("r2_inner", "r2")),
     reverseGroupVariableProjections = false,
     innerRelationships = Set("r2_inner"),
-    ExpandAll
+    ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(you) [(b)<-[r]-(a)]{0, *} (me)`: WalkParameters =
@@ -1386,7 +1397,8 @@ object RepeatWalkTestBase {
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = true,
       innerRelationships = Set("r_inner"),
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
   val `(me) [(a)-[r]->(b)<-[rr]-(c)]{0,1} (you)`: WalkParameters =
@@ -1401,7 +1413,8 @@ object RepeatWalkTestBase {
       groupRelationships = Set(("r_inner", "r"), ("rr_inner", "rr")),
       reverseGroupVariableProjections = false,
       innerRelationships = Set("r_inner", "rr_inner"),
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
   val `(me) ((b)-[r]->(c) WHERE EXISTS {...} ){1,} (you)`: WalkParameters = WalkParameters(
@@ -1415,7 +1428,8 @@ object RepeatWalkTestBase {
     Set(("r_inner", "r")),
     false,
     innerRelationships = Set("r_inner"),
-    ExpandAll
+    ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(b) ((d)-[rr]->(aa:A) WHERE EXISTS {...} ){1,} (a)`: WalkParameters = WalkParameters(
@@ -1429,7 +1443,8 @@ object RepeatWalkTestBase {
     Set(("rr_inner", "rr")),
     false,
     innerRelationships = Set("rr_inner"),
-    ExpandAll
+    ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(aa) ((e)<-[rrr]-(f)){1,}) (g)`: WalkParameters = WalkParameters(
@@ -1443,7 +1458,8 @@ object RepeatWalkTestBase {
     Set(("rrr_inner", "rrr")),
     false,
     innerRelationships = Set("rrr_inner"),
-    ExpandAll
+    ExpandAll,
+    accumulators = Set.empty
   )
 
   val `(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`: WalkParameters =
@@ -1458,7 +1474,8 @@ object RepeatWalkTestBase {
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = false,
       innerRelationships = Set("r_inner"),
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
   val `(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`: WalkParameters =
@@ -1473,7 +1490,8 @@ object RepeatWalkTestBase {
       groupRelationships = Set(("r_inner", "r"), ("rr_inner", "rr"), ("rrr_inner", "rrr")),
       reverseGroupVariableProjections = false,
       innerRelationships = Set("r_inner", "rr_inner", "rrr_inner"),
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
 
   val `(b_inner)((bb)-[rr]->(aa:A)){0,}(a)`: WalkParameters = WalkParameters(
@@ -1487,7 +1505,8 @@ object RepeatWalkTestBase {
     groupRelationships = Set(("rr_inner", "rr")),
     reverseGroupVariableProjections = false,
     innerRelationships = Set("rr_inner"),
-    ExpandAll
+    ExpandAll,
+    accumulators = Set.empty
   )
 }
 
@@ -1988,7 +2007,8 @@ trait OrderedWalkTestBase[CONTEXT <: RuntimeContext] {
       groupRelationships = Set(("r_inner", "r"), ("s_inner", "s")),
       reverseGroupVariableProjections = false,
       innerRelationships = Set("r_inner", "s_inner"),
-      ExpandAll
+      ExpandAll,
+      accumulators = Set.empty
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
