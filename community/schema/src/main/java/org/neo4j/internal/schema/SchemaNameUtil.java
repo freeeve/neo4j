@@ -38,7 +38,7 @@ public class SchemaNameUtil {
             throw new IllegalArgumentException("Schema rule name cannot be null.");
         }
         name = name.trim();
-        if (name.isEmpty() || name.isBlank()) {
+        if (name.isBlank()) {
             throw new IllegalArgumentException(
                     "Schema rule name cannot be the empty string or only contain whitespace.");
         } else {
