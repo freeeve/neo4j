@@ -235,6 +235,8 @@ public class TransactionToIndexUpdateVisitor extends TxStateVisitor.Delegator {
                 throws RuntimeException {
             nodeCursor.single(startNode);
             if (!nodeCursor.next()) {
+                indexUpdatesState.addTokenUpdate(
+                        tokenChange(startNode, relationshipTypeIndex, NO_TOKENS, new int[] {type}));
                 return;
             }
 
