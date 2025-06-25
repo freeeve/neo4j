@@ -28,10 +28,7 @@ public class SchemaDescriptorPredicates {
     private SchemaDescriptorPredicates() {}
 
     public static <T extends SchemaDescriptorSupplier> Predicate<T> hasLabel(int labelId) {
-        return supplier -> {
-            SchemaDescriptor schema = supplier.schema();
-            return schema.entityType() == EntityType.NODE && contains(schema.getEntityTokenIds(), labelId);
-        };
+        return supplier -> hasLabel(supplier, labelId);
     }
 
     public static <T extends SchemaDescriptorSupplier> Predicate<T> hasRelType(int relTypeId) {
