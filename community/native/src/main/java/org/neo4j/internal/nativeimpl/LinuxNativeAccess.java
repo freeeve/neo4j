@@ -171,7 +171,7 @@ public class LinuxNativeAccess implements NativeAccess {
         }
     }
 
-    private static String tryExtractError(int errorCode) {
+    public static String tryExtractError(int errorCode) {
         // The GNU C Library uses a buffer of 1024 characters for strerror().
         // This buffer size therefore should be sufficient to avoid an ERANGE error when calling strerror_r() and
         // strerror_l().

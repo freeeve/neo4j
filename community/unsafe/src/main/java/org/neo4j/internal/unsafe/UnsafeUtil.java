@@ -762,7 +762,11 @@ public final class UnsafeUtil {
     public static ByteBuffer newDirectByteBuffer(long addr, int cap) throws Throwable {
         assertUnsafeByteBufferAccess();
         checkAccess(addr, cap);
-        return (ByteBuffer) DIRECT_BYTE_BUFFER_CONSTRUCTOR.invoke(addr, (long) cap);
+        return newUnsafeDirectByteBuffer(addr, cap);
+    }
+
+    public static ByteBuffer newUnsafeDirectByteBuffer(long addr, long cap) throws Throwable {
+        return (ByteBuffer) DIRECT_BYTE_BUFFER_CONSTRUCTOR.invoke(addr, cap);
     }
 
     /**
