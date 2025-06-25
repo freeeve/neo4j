@@ -34,7 +34,7 @@ case object VectorNorm extends Function {
         Vector(CTVector, CTString),
       outputType = CTFloat,
       description =
-        "Returns a `FLOAT` representing the distance between the given vector and the zero vector based on the given distance metric.",
+        "Returns a `FLOAT` representing the distance between the given vector and an origin vector, which is a vector with the same dimension with all coordinates set to zero, calculated using the specified `vectorDistanceMetric`.",
       overrideDefaultAsString = Some(
         name + "(vector1 :: VECTOR, vector2 :: VECTOR, coordinateType :: [EUCLIDEAN, EUCLIDEAN_SQUARED, MANHATTAN, COSINE, DOT, HAMMING]) :: FLOAT"
       ),
@@ -42,11 +42,11 @@ case object VectorNorm extends Function {
         Some(Map("vectorDistanceMetric" -> "[EUCLIDEAN, MANHATTAN]")),
       category = Category.VECTOR,
       argumentDescriptions = Map(
-        "vector" -> "The vector to compare against the zero vector.",
-        "vectorDistanceMetric" -> "The distance metric to use for the distance calculation, one of: [`EUCLIDEAN`, `MANHATTAN`]."
+        "vector" -> "A vector for which the norm to the origin vector will be computed.",
+        "vectorDistanceMetric" -> "The vector distance algorithm to calculate the distance by."
       ),
       scopes = Set(CypherVersion.Cypher25),
-      internal = true
+      semanticFeature = Set("VectorType")
     )
   )
 }

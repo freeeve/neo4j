@@ -52,9 +52,12 @@ case object VectorSimilarityEuclidean extends Function {
         "Returns a `FLOAT` representing the similarity between the argument vectors based on their Euclidean distance.",
       category = Category.VECTOR,
       argumentDescriptions =
-        Map("a" -> "A list representing the first vector.", "b" -> "A list representing the second vector."),
+        Map(
+          "a" -> "A vector or list value representing the first vector.",
+          "b" -> "A vector or list value representing the second vector."
+        ),
       scopes = Set(CypherVersion.Cypher25),
-      internal = true // Remove when the vector type is ready to be released
+      semanticFeature = Set("VectorType")
     )
   )
 }

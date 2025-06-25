@@ -52,9 +52,12 @@ case object VectorSimilarityCosine extends Function {
         "Returns a `FLOAT` representing the similarity between the argument vectors based on their cosine.",
       category = Category.VECTOR,
       argumentDescriptions =
-        Map("a" -> "A value representing the first vector.", "b" -> "A value representing the second vector."),
+        Map(
+          "a" -> "A vector or list value representing the first vector.",
+          "b" -> "A vector or list value representing the second vector."
+        ),
       scopes = Set(CypherVersion.Cypher25),
-      internal = true // Remove when the vector type is ready to be released
+      semanticFeature = Set("VectorType")
     )
   )
 }

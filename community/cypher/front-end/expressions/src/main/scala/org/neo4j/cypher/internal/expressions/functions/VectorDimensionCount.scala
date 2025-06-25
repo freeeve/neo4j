@@ -32,9 +32,9 @@ case object VectorDimensionCount extends Function {
       outputType = CTInteger,
       description = "Returns the dimension of a `VECTOR`.",
       category = Category.VECTOR,
-      argumentDescriptions = Map("input" -> "A vector whose dimension is to be calculated."),
+      argumentDescriptions = Map("input" -> "The vector to calculate the dimension of."),
       scopes = Set(CypherVersion.Cypher25),
-      internal = true // Remove when the vector type is ready to be released
+      semanticFeature = Set("VectorType")
     )
   )
 }

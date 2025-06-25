@@ -165,8 +165,21 @@ object Function {
     lookup.values.flatMap {
       (f: Function) =>
         f.signatures.flatMap {
-          case signature: FunctionTypeSignature if !signature.internal => Some(signature)
-          case _                                                       => None
+          case signature: FunctionTypeSignature if !signature.internal && signature.semanticFeature.isEmpty =>
+            Some(signature)
+          case _ => None
+        }
+    }.toList
+  }
+
+  // Only use this if there are known functions under flags, otherwise use the lazy one above
+  def functionInfoWithFeatureFlags(flags: Set[String]): List[FunctionTypeSignature] = {
+    lookup.values.flatMap {
+      (f: Function) =>
+        f.signatures.flatMap {
+          case signature @ FunctionTypeSignature(_, _, _, _, _, _, _, _, _, false, semanticFeature, _, _, _, _)
+            if semanticFeature.isEmpty || semanticFeature.exists(flags.contains) => Some(signature)
+          case _ => None
         }
     }.toList
   }

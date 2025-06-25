@@ -34,7 +34,7 @@ case object VectorDistance extends Function {
         Vector(CTVector, CTVector, CTString),
       outputType = CTFloat,
       description =
-        "Returns a `FLOAT` representing the distance between the argument vectors based on the given distance metric.",
+        "Returns a `FLOAT` representing the distance between the two vector values based on the selected `vectorDistanceMetric` algorithm.",
       overrideDefaultAsString = Some(
         name + "(vector1 :: VECTOR, vector2 :: VECTOR, coordinateType :: [EUCLIDEAN, EUCLIDEAN_SQUARED, MANHATTAN, COSINE, DOT, HAMMING]) :: FLOAT"
       ),
@@ -44,10 +44,10 @@ case object VectorDistance extends Function {
       argumentDescriptions = Map(
         "vector1" -> "The first vector.",
         "vector2" -> "The second vector.",
-        "vectorDistanceMetric" -> "The distance metric to use for the distance calculation, one of: [`EUCLIDEAN`, `EUCLIDEAN_SQUARED`, `MANHATTAN`, `COSINE`, `DOT`, `HAMMING`]."
+        "vectorDistanceMetric" -> "The vector distance algorithm to calculate the distance by."
       ),
       scopes = Set(CypherVersion.Cypher25),
-      internal = true
+      semanticFeature = Set("VectorType")
     )
   )
 }

@@ -45,6 +45,7 @@ case class FunctionTypeSignature(
   deprecated: Boolean = false,
   deprecatedBy: Option[String] = None,
   internal: Boolean = false,
+  semanticFeature: Set[String] = Set.empty, // If a function is under a feature flag
   overrideDefaultAsString: Option[String] = None,
   overriddenArgumentTypeName: Option[Map[String, String]] = None,
   argumentDescriptions: Map[String, String] = Map.empty,

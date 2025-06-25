@@ -40,7 +40,7 @@ case object VectorValueConstructor extends Function {
         Vector(ClosedDynamicUnionType(Set(CTList(CTNumber), CTString))(InputPosition.NONE), CTInteger, CTString),
       outputType = CTVector,
       description =
-        "Converts a `STRING` or `LIST<INTEGER | FLOAT>` to a `VECTOR`.",
+        "Constructs a `VECTOR` value.",
       overrideDefaultAsString = Some(
         name + "(vectorValue :: STRING | LIST<INTEGER | FLOAT>, dimension :: INTEGER, coordinateType :: [INTEGER64, INTEGER32, INTEGER16, INTEGER8, FLOAT64, FLOAT32]) :: VECTOR"
       ),
@@ -48,12 +48,12 @@ case object VectorValueConstructor extends Function {
         Some(Map("coordinateType" -> "[INTEGER64, INTEGER32, INTEGER16, INTEGER8, FLOAT64, FLOAT32]")),
       category = Category.SCALAR,
       argumentDescriptions = Map(
-        "vectorValue" -> "A value to convert to a `VECTOR`.",
-        "dimension" -> "The dimension of the resulting `VECTOR`.",
-        "coordinateType" -> "The inner type of the resulting `VECTOR`, one of [`INTEGER64`, `INTEGER32`, `INTEGER16`, `INTEGER8`, `FLOAT64`, `FLOAT32`]."
+        "vectorValue" -> "The numeric values to create the vector coordinates from.",
+        "dimension" -> "The dimension (number of coordinates) of the vector.",
+        "coordinateType" -> "The type of each coordinate in the vector."
       ),
       scopes = Set(CypherVersion.Cypher25),
-      internal = true
+      semanticFeature = Set("VectorType")
     )
   )
 }
