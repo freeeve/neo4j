@@ -303,6 +303,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.OrderedDistinctSlottedPri
 import org.neo4j.cypher.internal.runtime.slotted.pipes.OrderedDistinctSlottedSinglePrimitivePipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.OrderedUnionSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.SlottedAllReduceAcc
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.TrailModeConstraint
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RepeatSlottedPipe.WalkModeConstraint
 import org.neo4j.cypher.internal.runtime.slotted.pipes.RollUpApplySlottedPipe
@@ -2069,8 +2070,6 @@ class SlottedPipeMapper(
           expansionMode,
           accumulators
         ) =>
-        // TODO remove this require when implementing slotted support for allReduce
-        require(accumulators.isEmpty)
         val nodeInScope = expansionMode match {
           case ExpandAll  => false
           case ExpandInto => true
@@ -2097,7 +2096,14 @@ class SlottedPipeMapper(
           rhsSlots,
           argumentSize,
           reverseGroupVariableProjections,
-          nodeInScope
+          nodeInScope,
+          accumulators.map(acc =>
+            SlottedAllReduceAcc(
+              expressionConverters.toCommandExpression(id, acc.initial),
+              rhsSlots(acc.previous).slot,
+              rhsSlots(acc.next).slot
+            )
+          ).toArray
         )(id = id)
 
       case RepeatWalk(
@@ -2135,7 +2141,14 @@ class SlottedPipeMapper(
           rhsSlots,
           argumentSize,
           reverseGroupVariableProjections,
-          nodeInScope
+          nodeInScope,
+          accumulators.map(acc =>
+            SlottedAllReduceAcc(
+              expressionConverters.toCommandExpression(id, acc.initial),
+              rhsSlots(acc.previous).slot,
+              rhsSlots(acc.next).slot
+            )
+          ).toArray
         )(id = id)
 
       case _ =>

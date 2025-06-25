@@ -86,7 +86,6 @@ import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues
 
 import java.util.Collections
-import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**

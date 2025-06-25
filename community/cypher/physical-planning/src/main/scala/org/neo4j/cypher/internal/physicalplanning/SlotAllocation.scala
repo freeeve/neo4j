@@ -1377,6 +1377,10 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         }
         repeat.nodeVariableGroupings.foreach(n => lhs.newReference(n.group, nullable, CTList(CTNode)))
         repeat.relationshipVariableGroupings.foreach(r => lhs.newReference(r.group, nullable, CTList(CTRelationship)))
+        repeat.accumulatorMappings.foreach(acc => {
+          lhs.newReference(acc.next, nullable, CTAny)
+          lhs.newReference(acc.previous, nullable, CTAny)
+        })
         lhs.newMetaData(TRAIL_STATE_METADATA_KEY, plan.id)
 
       case _ =>
