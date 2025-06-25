@@ -40,6 +40,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension(configurationCallback = "configuration")
 public class OutOfDiskSpaceMonitoringIT {
@@ -68,6 +69,7 @@ public class OutOfDiskSpaceMonitoringIT {
     private DatabaseManagementService dbms;
 
     @Test
+    @SkipOnSpd(reason = "ODP uses config-based readonly which is disabled on SPD")
     void shouldPropagateOutOfDiskSpaceEventToRegisteredListener() {
         // When
         databaseHealth.outOfDiskSpace(new RuntimeException("Leeeroooy!"));
@@ -78,6 +80,7 @@ public class OutOfDiskSpaceMonitoringIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "ODP uses config-based readonly which is disabled on SPD")
     void shouldPutDatabaseIntoReadOnlyState() {
         // When
         databaseHealth.outOfDiskSpace(new RuntimeException("C'mon Leroy, it's not funny!"));

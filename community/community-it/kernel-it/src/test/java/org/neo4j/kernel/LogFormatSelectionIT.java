@@ -70,6 +70,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.UpgradeTestUtil;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.utils.TestDirectory;
 import picocli.CommandLine;
 
@@ -231,7 +232,6 @@ class LogFormatSelectionIT {
                 ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)
                 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
 
-        DatabaseLayout dbLayout = neo4jLayout.databaseLayout(dbName);
         createBuilder();
         managementService = builder.build();
         shutdown();
@@ -242,6 +242,7 @@ class LogFormatSelectionIT {
                         allowFormatSwitchOnUpgrade);
         managementService = builder.build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(dbName);
+        DatabaseLayout dbLayout = db.databaseLayout();
         UpgradeTestUtil.upgradeDatabase(
                 managementService, db, LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
         shutdown();
@@ -265,6 +266,7 @@ class LogFormatSelectionIT {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
+    @SkipOnSpd(reason = "Can't migrate spd databases")
     void migrate(boolean allowFormatSwitchOnUpgrade) throws Throwable {
         LogFormat expectedFormat = allowFormatSwitchOnUpgrade
                 ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)

@@ -31,8 +31,10 @@ import org.neo4j.graphdb.WriteOperationsNotAllowedException;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension
+@SkipOnSpd(reason = "Config-based readonly is disabled on SPD")
 class DynamicTransactionReadOnlyIT {
     @Inject
     private GraphDatabaseAPI database;

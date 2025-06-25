@@ -51,6 +51,7 @@ import org.neo4j.consistency.CheckNativeDatabase;
 import org.neo4j.consistency.ConsistencyCheckService;
 import org.neo4j.consistency.checking.ConsistencyFlags;
 import org.neo4j.consistency.report.ConsistencySummaryStatistics;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.archive.CheckDatabase;
 import org.neo4j.dbms.archive.CheckDump;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -87,8 +88,7 @@ class CheckCommandIT {
     void setUp() {
         homeDir = testDirectory.homePath();
         confPath = testDirectory.directory("conf");
-        dbName = "mydb";
-        prepareDatabase(neo4jLayout.databaseLayout(dbName));
+        dbName = prepareDatabase(neo4jLayout.databaseLayout("mydb"));
     }
 
     @Test
@@ -484,8 +484,10 @@ class CheckCommandIT {
         prepareDatabase(databaseLayout);
     }
 
-    private static void prepareDatabase(DatabaseLayout databaseLayout) {
-        new TestDatabaseManagementServiceBuilder(databaseLayout).build().shutdown();
+    private static String prepareDatabase(DatabaseLayout databaseLayout) {
+        try (DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build()) {
+            return dbms.database(databaseLayout.getDatabaseName()).databaseName();
+        }
     }
 
     private void verifyCheckableLayout(TrackingConsistencyCheckService service, DatabaseLayout plainLayout) {

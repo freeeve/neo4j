@@ -47,6 +47,7 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
@@ -56,6 +57,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 @TestDirectoryExtension
+@SkipOnSpd(reason = "Config-based readonly is disabled on SPD")
 class IndexWritesAfterTemporarilyReadOnlyIT {
     @Inject
     private TestDirectory directory;
