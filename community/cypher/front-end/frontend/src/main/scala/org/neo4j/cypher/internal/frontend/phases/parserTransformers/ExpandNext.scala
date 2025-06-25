@@ -116,11 +116,23 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
         if (returnsVarsWithAnon.isEmpty) query
         else query.mapEachSingleQuery(sq =>
           sq.copy(clauses =
-            sq.clauses.dropRight(1) ++ sq.getReturns.map(r =>
-              r.withReturnItems(r.returnItems.mapItems(seq =>
+
+            sq.clauses.dropRight(1) ++ sq.getReturns.map(r => {
+              val updatedItems = r.returnItems.mapItems(seq =>
                 seq.map(ri => ri.withName(returnsVarsWithAnon(ri.alias.get).copyId)(pos))
-              ))
-            )
+              )
+              val updatedOrderBy = r.orderBy.map(ord =>
+                ord.copy(
+                  ord.sortItems.map(_.mapExpression(exp =>
+                    returnsVarsWithAnon.foldLeft(exp)((accExpr, pair) =>
+                      accExpr.replaceAllOccurrencesBy(pair._1, pair._2)
+                    )
+                  ))
+                )(ord.position)
+              )
+
+              r.copy(returnItems = updatedItems, orderBy = updatedOrderBy)(r.position)
+            })
           )(sq.position)
         )
       val sq = Seq(ScopeClauseSubqueryCall(updated, isImportingAll = true, Seq.empty, None, optional = false)(pos))
