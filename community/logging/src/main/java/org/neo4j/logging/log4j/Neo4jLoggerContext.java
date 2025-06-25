@@ -37,7 +37,8 @@ public class Neo4jLoggerContext implements Closeable {
 
     public Neo4jLoggerContext(LoggerContext ctx, Closeable additionalClosable, String configSourceInfo) {
         this.ctx = ctx;
-        this.additionalClosable = additionalClosable;
+        this.additionalClosable =
+                additionalClosable == System.out || additionalClosable == System.err ? null : additionalClosable;
         this.configSourceInfo = configSourceInfo;
     }
 
