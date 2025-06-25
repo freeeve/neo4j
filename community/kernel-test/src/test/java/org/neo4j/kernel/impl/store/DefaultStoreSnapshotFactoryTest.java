@@ -29,6 +29,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
+import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TRANSACTION_ID;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -39,10 +43,14 @@ import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
 import org.neo4j.kernel.database.Database;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.LatestCheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex;
+import org.neo4j.kernel.impl.transaction.log.files.LogFile;
+import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.logging.internal.DatabaseLogProvider;
+import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreResource;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -59,7 +67,7 @@ class DefaultStoreSnapshotFactoryTest {
     private StoreCopyCheckPointMutex storeCopyCheckPointMutex;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws IOException {
         var database = mock(Database.class);
         fileListingBuilder = mock(StoreFileListing.Builder.class, CALLS_REAL_METHODS);
         databaseLayout = DatabaseLayout.ofFlat(testDirectory.directory("neo4j", "data", "databases"));
@@ -71,8 +79,15 @@ class DefaultStoreSnapshotFactoryTest {
         when(database.getStoreFileListing()).thenReturn(storeFileListing);
         when(database.getInternalLogProvider()).thenReturn(DatabaseLogProvider.nullDatabaseLogProvider());
         var checkPointer = mock(CheckPointer.class);
-        when(checkPointer.latestCheckPointInfo()).thenReturn(LatestCheckpointInfo.UNKNOWN_CHECKPOINT_INFO);
-        when(database.getDependencyResolver()).thenReturn(dependenciesOf(checkPointer));
+        when(checkPointer.latestCheckPointInfo())
+                .thenReturn(
+                        new LatestCheckpointInfo(UNKNOWN_TRANSACTION_ID, UNKNOWN_APPEND_INDEX, new LogPosition(1, 1)));
+        LogFiles logFiles = mock(LogFiles.class);
+        LogFile logFile = mock(LogFile.class);
+        when(logFile.extractHeader(1))
+                .thenReturn(LATEST_LOG_FORMAT.newHeader(1, 1, 1, StoreId.UNKNOWN, 1, 1, LATEST_KERNEL_VERSION));
+        when(logFiles.getLogFile()).thenReturn(logFile);
+        when(database.getDependencyResolver()).thenReturn(dependenciesOf(checkPointer, logFiles));
         when(database.getDatabaseAvailabilityGuard()).thenReturn(availabilityGuard);
         storeCopyCheckPointMutex = new StoreCopyCheckPointMutex();
         when(database.getStoreCopyCheckPointMutex()).thenReturn(storeCopyCheckPointMutex);

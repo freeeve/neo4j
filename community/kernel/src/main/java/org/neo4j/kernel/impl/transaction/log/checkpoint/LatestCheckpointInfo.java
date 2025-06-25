@@ -22,9 +22,11 @@ package org.neo4j.kernel.impl.transaction.log.checkpoint;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TRANSACTION_ID;
 
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.api.TransactionId;
 
-public record LatestCheckpointInfo(TransactionId highestObservedClosedTransactionId, long appendIndex) {
+public record LatestCheckpointInfo(
+        TransactionId highestObservedClosedTransactionId, long appendIndex, LogPosition checkpointedLogPosition) {
     public static final LatestCheckpointInfo UNKNOWN_CHECKPOINT_INFO =
-            new LatestCheckpointInfo(UNKNOWN_TRANSACTION_ID, UNKNOWN_APPEND_INDEX);
+            new LatestCheckpointInfo(UNKNOWN_TRANSACTION_ID, UNKNOWN_APPEND_INDEX, LogPosition.UNSPECIFIED);
 }

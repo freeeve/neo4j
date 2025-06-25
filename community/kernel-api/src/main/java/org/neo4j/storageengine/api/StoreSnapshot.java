@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.neo4j.graphdb.Resource;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 
 /**
  * Represents a "snapshot" of a Neo4j store.
@@ -52,7 +53,8 @@ public record StoreSnapshot(
         TransactionId lastAppliedTransactionId,
         long checkpointAppendIndex,
         StoreId storeId,
-        Resource checkPointMutex)
+        Resource checkPointMutex,
+        LogFormat logFormatAtCheckpoint)
         implements AutoCloseable {
     @Override
     public void close() {

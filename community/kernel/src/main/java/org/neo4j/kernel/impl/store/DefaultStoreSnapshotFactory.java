@@ -29,6 +29,8 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
+import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.storageengine.api.StoreResource;
 import org.neo4j.storageengine.api.StoreSnapshot;
@@ -65,6 +67,12 @@ public class DefaultStoreSnapshotFactory implements StoreSnapshot.Factory {
             var lastCommittedTransactionId = latestCheckpointInfo.highestObservedClosedTransactionId();
             long appendIndex = latestCheckpointInfo.appendIndex();
 
+            LogFiles logFiles = database.getDependencyResolver().resolveDependency(LogFiles.class);
+            LogFormat logFormatAtCheckpoint = logFiles.getLogFile()
+                    .extractHeader(
+                            latestCheckpointInfo.checkpointedLogPosition().getLogVersion())
+                    .getLogFormatVersion();
+
             unrecoverableFiles = unrecoverableFiles(database);
             var recoverableFiles = recoverableFiles(database);
             var snapshot = new StoreSnapshot(
@@ -73,7 +81,8 @@ public class DefaultStoreSnapshotFactory implements StoreSnapshot.Factory {
                     lastCommittedTransactionId,
                     appendIndex,
                     database.getStoreId(),
-                    checkpointMutex);
+                    checkpointMutex,
+                    logFormatAtCheckpoint);
             var result = Optional.of(snapshot);
             success = true;
             return result;
