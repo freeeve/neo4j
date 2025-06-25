@@ -267,15 +267,12 @@ public class DumpCommand extends AbstractAdminCommand {
 
     record FailedDump(String dbName, Exception e) {}
 
-    private static Path buildArchivePath(String database, Path to) {
-        return to.resolve(database + DUMP_EXTENSION);
-    }
-
     private OutputStream openDumpStream(Dumper dumper, String databaseName, Path storagePath) throws IOException {
         if (storagePath == null) {
             return ctx.out();
         }
-        var archive = buildArchivePath(databaseName, storagePath);
+
+        final var archive = storagePath.resolve(databaseName + DUMP_EXTENSION).toAbsolutePath();
         return dumper.openForDump(archive, overwriteDestination);
     }
 
