@@ -64,7 +64,7 @@ import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.id.IdType;
 import org.neo4j.internal.id.SchemaIdType;
 import org.neo4j.internal.indexcommand.IndexUpdateCommand;
-import org.neo4j.internal.indexcommand.TransactionToIndexUpdateVisitor;
+import org.neo4j.internal.indexcommand.RelationshipBasedTransactionToIndexUpdateVisitor;
 import org.neo4j.internal.kernel.api.exceptions.TransactionApplyKernelException;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
@@ -520,14 +520,8 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         RecordState indexRecordState = RecordState.EMPTY_RECORD_STATE;
         if (useIndexCommands()) {
             var commandState = new IndexRecordState(serialization);
-            txStateVisitor = new TransactionToIndexUpdateVisitor(
-                    txStateVisitor,
-                    commandState,
-                    storageReader,
-                    cursorContext,
-                    storeCursors,
-                    memoryTracker,
-                    indexingBehaviour());
+            txStateVisitor = new RelationshipBasedTransactionToIndexUpdateVisitor(
+                    txStateVisitor, commandState, storageReader, cursorContext, storeCursors, memoryTracker);
             indexRecordState = commandState;
         }
         txStateVisitor = new TransactionCountingStateVisitor(
