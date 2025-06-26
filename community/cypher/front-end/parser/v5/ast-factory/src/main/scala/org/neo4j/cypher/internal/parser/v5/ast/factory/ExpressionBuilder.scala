@@ -497,7 +497,7 @@ trait ExpressionBuilder extends Cypher5ParserListener {
       case indexCtx: Cypher5Parser.IndexPostfixContext =>
         ContainerIndex(lhs, ctxChild(indexCtx, 1).ast())(p)
       case labelCtx: Cypher5Parser.LabelPostfixContext =>
-        LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(lhs.position, isParenthesized = false)
+        LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(p, isParenthesized = false)
       case rangeCtx: Cypher5Parser.RangePostfixContext =>
         ListSlice(lhs, astOpt(rangeCtx.fromExp), astOpt(rangeCtx.toExp))(p)
       case _ => throw new IllegalStateException(s"Unexpected rhs $rhs")

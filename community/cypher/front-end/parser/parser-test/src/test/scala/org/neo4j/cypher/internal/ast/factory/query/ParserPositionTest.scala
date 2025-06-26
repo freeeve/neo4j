@@ -78,7 +78,7 @@ class ParserPositionTest extends AstParsingTestBase with LoneElement {
   }
 
   test("MATCH (a) WHERE NOT (a:A)") {
-    parses[Statements].withPositionOf[LabelExpressionPredicate](InputPosition(21, 1, 22))
+    parses[Statements].withPositionOf[LabelExpressionPredicate](InputPosition(22, 1, 23))
   }
 
   test("MATCH (n) WHERE exists { (n) --> () }") {

@@ -434,7 +434,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     labelCtx: Cypher25Parser.LabelComparisonContext
   ): Expression = {
     LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(
-      lhs.position,
+      pos(labelCtx),
       isParenthesized = LabelExpressionPredicate.isParenthesizedDefault
     )
   }
