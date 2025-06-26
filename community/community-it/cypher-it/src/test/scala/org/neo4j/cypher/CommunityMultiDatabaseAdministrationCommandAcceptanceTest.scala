@@ -268,7 +268,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     )
     // format: on
     forEvery(scenarios) { (_, nameLiteral, params, cypherVersion, expectedResult, notifications) =>
-      {
+      try {
         // GIVEN
         val config = Config.defaults()
         config.set(initial_default_database, "aaa.bbb")
@@ -295,6 +295,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
             the[Exception] thrownBy execute(showQuery, params) should be(error)
         }
 
+      } finally {
         afterEach()
       }
     }
@@ -787,7 +788,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     )
     // format: on
     forEvery(scenarios) { (_, nameLiteral, params, cypherVersion, expectedResult, notifications) =>
-      {
+      try {
         // GIVEN
         val config = Config.defaults()
         config.set(initial_default_database, "aaa.bbb")
@@ -817,6 +818,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
             the[Exception] thrownBy execute(alterQuery, params) should be(error)
         }
 
+      } finally {
         afterEach()
       }
     }
