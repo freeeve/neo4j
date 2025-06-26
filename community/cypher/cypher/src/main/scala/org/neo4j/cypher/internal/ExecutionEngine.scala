@@ -498,14 +498,15 @@ abstract class ExecutionEngine(
   }
 
   def getCypherFunctions: java.util.List[FunctionInformation] = {
-    val informations: Seq[FunctionInformation] =
-      if (config.enableExtraSemanticFeatures.contains(SemanticFeature.VectorType.productPrefix)) {
+    val informations: Seq[FunctionInformation] = {
+      if (config.vectorTypeEnabled) {
         org.neo4j.cypher.internal.expressions.functions.Function.functionInfoWithFeatureFlags(
-          config.enableExtraSemanticFeatures
+          Set(SemanticFeature.VectorType.productPrefix)
         ).map(FunctionWithInformation)
       } else {
         org.neo4j.cypher.internal.expressions.functions.Function.functionInfo.map(FunctionWithInformation)
       }
+    }
 
     val predicateInformations: Seq[FunctionInformation] =
       org.neo4j.cypher.internal.expressions.IterablePredicateExpression.functionInfo.map(FunctionWithInformation)

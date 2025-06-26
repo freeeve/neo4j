@@ -127,6 +127,8 @@ class CypherConfiguration private (val config: Config) {
   val errorIfShortestPathFallbackUsedAtRuntime: Boolean =
     config.get(GraphDatabaseSettings.forbid_exhaustive_shortestpath)
 
+  val vectorTypeEnabled: Boolean = config.get(GraphDatabaseInternalSettings.cypher_enable_vector_type)
+
   val errorIfShortestPathHasCommonNodesAtRuntime: Boolean =
     config.get(GraphDatabaseSettings.forbid_shortestpath_common_nodes)
   val legacyCsvQuoteEscaping: Boolean = config.get(GraphDatabaseSettings.csv_legacy_quote_escaping)

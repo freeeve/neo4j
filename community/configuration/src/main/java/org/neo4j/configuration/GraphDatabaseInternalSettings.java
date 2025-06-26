@@ -367,6 +367,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.cypher.enable_dynamic_label_scan", BOOL, false).build();
 
     @Internal
+    @Description("Set this to enable the use of the new Vector Type.")
+    public static final Setting<Boolean> cypher_enable_vector_type =
+            newBuilder("internal.cypher.enable_vector_type", BOOL, false).build();
+
+    @Internal
     @Description("Set this to enable monitors in the Cypher runtime.")
     public static final Setting<Boolean> cypher_enable_runtime_monitors =
             newBuilder("internal.cypher.enable_runtime_monitors", BOOL, false).build();

@@ -128,7 +128,8 @@ case class FabricFrontEnd(
             GraphDatabaseInternalSettings.graph_type_enabled -> SemanticFeature.GraphTypes.productPrefix,
             GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
             GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
-            GraphDatabaseInternalSettings.spd_enabled -> SemanticFeature.ShardedPropertyDatabase.productPrefix
+            GraphDatabaseInternalSettings.spd_enabled -> SemanticFeature.ShardedPropertyDatabase.productPrefix,
+            GraphDatabaseInternalSettings.cypher_enable_vector_type -> SemanticFeature.VectorType.productPrefix
           ))
         ) ++ semanticFeatures,
       obfuscateLiterals = cypherConfig.obfuscateLiterals,
