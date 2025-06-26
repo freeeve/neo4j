@@ -45,8 +45,10 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension(configurationCallback = "addVersionTracker")
+@SkipOnSpd(reason = "Collides with CDC service on enterprise edition")
 class LogPruningIT {
     private static final SimpleTriggerInfo triggerInfo = new SimpleTriggerInfo("forced trigger");
 
