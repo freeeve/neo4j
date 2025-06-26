@@ -3546,7 +3546,7 @@ class AstGenerator(
     optionsToRemove <- _optionsToRemove(hasSetClause =
       access.nonEmpty || topology.nonEmpty || (!options.equals(
         NoOptions
-      ) || defaultLanguageVersion.nonEmpty || shardDefinition.nonEmpty)
+      ) || defaultLanguageVersion.nonEmpty || shardDefinition.nonEmpty || replicas.nonEmpty)
     )
     wait <- _waitUntilComplete
   } yield AlterDatabase(
