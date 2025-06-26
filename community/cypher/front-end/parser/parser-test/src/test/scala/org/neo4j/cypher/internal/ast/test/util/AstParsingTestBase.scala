@@ -104,8 +104,16 @@ trait TestNameAstAssertions extends AstParsingMatchers with AstParsing with Test
    * Parse test name successfully to the specified ast in all parsers.
    * The returned [[Parses]] can be used to add assertions.
    */
-  def parsesTo[T <: ASTNode : ClassTag](e: T)(implicit p: Parsers[T]): Unit =
+  def parsesTo[T <: ASTNode : ClassTag](e: T)(implicit p: Parsers[T]): Parses[T] =
     parses[T].toAst(e)
+
+  /**
+   * Parse test name successfully to the specified ast in all parsers.
+   * The returned [[Parses]] can be used to add assertions.
+   */
+  def parsesToWith[T <: ASTNode : ClassTag](e: T, prettifier: Boolean = true, obfuscator: Boolean = true)(implicit
+    p: Parsers[T]): Parses[T] =
+    parses[T].toAstWith(e, prettifierRoundTrip = prettifier, obfuscator = obfuscator)
 
   /**
    * Fails to parse test name in all parsers.

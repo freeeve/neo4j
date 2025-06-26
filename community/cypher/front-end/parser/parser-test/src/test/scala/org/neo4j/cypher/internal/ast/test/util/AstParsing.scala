@@ -83,8 +83,8 @@ trait AstParsing extends Parsers.Implicit {
     cypher: String
   )(implicit parsers: Parsers[T]): ParseResult = {
     Try(parsers.parse(parser, cypher)) match {
-      case Success(ast)       => ParseSuccess(ast)(parser)
-      case Failure(throwable) => ParseFailure(throwable)(parser)
+      case Success(ast)       => ParseSuccess(ast)(parser, cypher)
+      case Failure(throwable) => ParseFailure(throwable)(parser, cypher)
     }
   }
 }
@@ -113,15 +113,21 @@ object AstParsing extends AstParsing {
 
   sealed trait ParseResult {
     def parser: ParserInTest
+    def query: String
 
     def toTry: Try[Any] = this match {
       case ParseSuccess(ast) => Success(ast)
       case f: ParseFailure   => Failure(f.throwable)
     }
   }
-  case class ParseSuccess[T](ast: T)(override val parser: ParserInTest) extends ParseResult
+  case class ParseSuccess[T](ast: T)(override val parser: ParserInTest, override val query: String) extends ParseResult
 
-  case class ParseFailure(throwable: Throwable)(override val parser: ParserInTest) extends ParseResult {
+  case class ParseFailure(
+    throwable: Throwable
+  )(
+    override val parser: ParserInTest,
+    override val query: String
+  ) extends ParseResult {
     override def toString: String = s"Failed parsing:\n${Exceptions.stringify(throwable)}"
   }
 }

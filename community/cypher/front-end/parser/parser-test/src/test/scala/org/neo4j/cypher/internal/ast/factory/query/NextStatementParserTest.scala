@@ -269,7 +269,7 @@ class NextStatementParserTest extends AstParsingTestBase {
       """
     query should parseIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           nextStatement(
             singleQuery(match_(nodePat(Some("n"))), return_(returnItem(varFor("n"), "n"))),
             conditionalQueryWhen(
@@ -283,7 +283,8 @@ class NextStatementParserTest extends AstParsingTestBase {
                 singleQuery(return_(literalString("small number").as("msg")))
               )
             )
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }
@@ -314,7 +315,7 @@ class NextStatementParserTest extends AstParsingTestBase {
 
     query should parseIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           nextStatement(
             singleQuery(match_(nodePat(Some("n"))), return_(returnItem(varFor("n"), "n"))),
             conditionalQueryWhen(
@@ -336,7 +337,8 @@ class NextStatementParserTest extends AstParsingTestBase {
                 )
               )
             )
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }

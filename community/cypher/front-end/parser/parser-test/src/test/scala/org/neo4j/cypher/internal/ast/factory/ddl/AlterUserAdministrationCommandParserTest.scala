@@ -687,91 +687,115 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
   }
 
   test("ALTER USER foo REMOVE AUTH ['foo', 'bar', 'baz']") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(),
-      None,
-      RemoveAuth(all = false, List(listOfString("foo", "bar", "baz")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(),
+        None,
+        RemoveAuth(all = false, List(listOfString("foo", "bar", "baz")))
+      )(pos),
+      obfuscator = false // Obfuscator test do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH 'foo' REMOVE AUTH 'foo'") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(),
-      None,
-      RemoveAuth(all = false, List(literalString("foo"), literalString("foo")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(),
+        None,
+        RemoveAuth(all = false, List(literalString("foo"), literalString("foo")))
+      )(pos),
+      obfuscator = false // Obfuscator test do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH 'foo' REMOVE AUTH ['bar', 'baz']") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(),
-      None,
-      RemoveAuth(all = false, List(literalString("foo"), listOfString("bar", "baz")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(),
+        None,
+        RemoveAuth(all = false, List(literalString("foo"), listOfString("bar", "baz")))
+      )(pos),
+      obfuscator = false // Obfuscator test do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH ['bar', 'baz'] REMOVE AUTH 'foo'") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(),
-      None,
-      RemoveAuth(all = false, List(listOfString("bar", "baz"), literalString("foo")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(),
+        None,
+        RemoveAuth(all = false, List(listOfString("bar", "baz"), literalString("foo")))
+      )(pos),
+      obfuscator = false // Obfuscator test do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH 'foo' REMOVE AUTH ['bar', 'foo']") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(),
-      None,
-      RemoveAuth(all = false, List(literalString("foo"), listOfString("bar", "foo")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(),
+        None,
+        RemoveAuth(all = false, List(literalString("foo"), listOfString("bar", "foo")))
+      )(pos),
+      obfuscator = false // Obfuscator test do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH ['foo', 'baz'] REMOVE AUTH 'foo'") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(),
-      None,
-      RemoveAuth(all = false, List(listOfString("foo", "baz"), literalString("foo")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(),
+        None,
+        RemoveAuth(all = false, List(listOfString("foo", "baz"), literalString("foo")))
+      )(pos),
+      obfuscator = false // Obfuscation check do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH ['bar', 'baz'] REMOVE ALL AUTH") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(),
-      None,
-      RemoveAuth(all = true, List(listOfString("bar", "baz")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(),
+        None,
+        RemoveAuth(all = true, List(listOfString("bar", "baz")))
+      )(pos),
+      obfuscator = false // Obfuscation check do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH 'foo' REMOVE ALL AUTH REMOVE AUTH ['bar', 'baz']") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(),
-      None,
-      RemoveAuth(all = true, List(literalString("foo"), listOfString("bar", "baz")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(),
+        None,
+        RemoveAuth(all = true, List(literalString("foo"), listOfString("bar", "baz")))
+      )(pos),
+      obfuscator = false // Obfuscation check do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE ALL AUTH REMOVE ALL AUTH") {
@@ -819,25 +843,31 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
   }
 
   test("ALTER USER foo REMOVE AUTH ['foo', 'bar', 'baz'] SET AUTH 'native' { SET PASSWORD 'password' }") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List(Auth("native", List(password(password)))(pos)),
-      None,
-      RemoveAuth(all = false, List(listOfString("foo", "bar", "baz")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List(Auth("native", List(password(password)))(pos)),
+        None,
+        RemoveAuth(all = false, List(listOfString("foo", "bar", "baz")))
+      )(pos),
+      obfuscator = false // Obfuscation check do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH ['foo', 'bar', 'baz'] SET PASSWORD 'password'") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List.empty,
-      Some(Auth("native", List(password(password)))(pos)),
-      RemoveAuth(all = false, List(listOfString("foo", "bar", "baz")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List.empty,
+        Some(Auth("native", List(password(password)))(pos)),
+        RemoveAuth(all = false, List(listOfString("foo", "bar", "baz")))
+      )(pos),
+      obfuscator = false // Obfuscation check do not support this query
+    )
   }
 
   // clause ordering tests
@@ -930,14 +960,17 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
     .foreach {
       case (clauses, removeAuth) =>
         test(s"ALTER USER foo ${clauses.mkString(" ")}") {
-          parsesTo[Statements](AlterUser(
-            literalFoo,
-            UserOptions(Some(false), Some(RemoveHomeDatabaseAction)),
-            ifExists = false,
-            List(Auth("foo", List(authId("bar")))(pos)),
-            Some(Auth("native", getNativeAuthAttributeList)(pos)),
-            removeAuth
-          )(pos))
+          parsesToWith[Statements](
+            AlterUser(
+              literalFoo,
+              UserOptions(Some(false), Some(RemoveHomeDatabaseAction)),
+              ifExists = false,
+              List(Auth("foo", List(authId("bar")))(pos)),
+              Some(Auth("native", getNativeAuthAttributeList)(pos)),
+              removeAuth
+            )(pos),
+            obfuscator = false // Obfuscation check do not support this query
+          )
         }
     }
 
@@ -947,14 +980,17 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
     .foreach {
       case (clauses, removeAuth) =>
         test(s"ALTER USER foo ${clauses.mkString(" ")}") {
-          parsesTo[Statements](AlterUser(
-            literalFoo,
-            UserOptions(Some(false), Some(RemoveHomeDatabaseAction)),
-            ifExists = false,
-            getAuthListIncludingNewSyntaxNativeAuth,
-            None,
-            removeAuth
-          )(pos))
+          parsesToWith[Statements](
+            AlterUser(
+              literalFoo,
+              UserOptions(Some(false), Some(RemoveHomeDatabaseAction)),
+              ifExists = false,
+              getAuthListIncludingNewSyntaxNativeAuth,
+              None,
+              removeAuth
+            )(pos),
+            obfuscator = false // Obfuscation check do not support this query
+          )
         }
     }
 
@@ -1233,14 +1269,17 @@ class AlterUserAdministrationCommandParserTest extends UserAdministrationCommand
   }
 
   test("ALTER USER foo REMOVE AUTH PROVIDER ['']") {
-    parsesTo[Statements](AlterUser(
-      literalFoo,
-      UserOptions(None, None),
-      ifExists = false,
-      List.empty,
-      None,
-      RemoveAuth(all = false, List(listOfString("")))
-    )(pos))
+    parsesToWith[Statements](
+      AlterUser(
+        literalFoo,
+        UserOptions(None, None),
+        ifExists = false,
+        List.empty,
+        None,
+        RemoveAuth(all = false, List(listOfString("")))
+      )(pos),
+      obfuscator = false // Obfuscation check do not support this query
+    )
   }
 
   test("ALTER USER foo REMOVE AUTH PROVIDER ''") {

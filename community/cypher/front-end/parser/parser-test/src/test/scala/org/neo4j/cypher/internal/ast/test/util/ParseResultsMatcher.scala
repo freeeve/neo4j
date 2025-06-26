@@ -17,11 +17,15 @@
 package org.neo4j.cypher.internal.ast.test.util
 
 import org.apache.commons.lang3.exception.ExceptionUtils
+import org.neo4j.cypher.internal.CypherQueryObfuscator
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseFailure
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseResult
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseResults
@@ -33,14 +37,28 @@ import org.neo4j.cypher.internal.ast.test.util.VerifyAstPositionTestSupport.find
 import org.neo4j.cypher.internal.ast.test.util.VerifyStatementUseGraph.findUseGraphMismatch
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SensitiveStringLiteral
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
+import org.neo4j.cypher.internal.frontend.phases.InitialState
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
+import org.neo4j.cypher.internal.frontend.phases.Monitors
+import org.neo4j.cypher.internal.frontend.phases.ObfuscationMetadataCollection
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensitiveLiterals
 import org.neo4j.cypher.internal.label_expressions.BinaryLabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.MultiOperatorLabelExpression
 import org.neo4j.cypher.internal.parser.ast.AstBuildingAntlrParser
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
+import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.CypherExceptionFactory
+import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.InternalNotificationLogger
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
+import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.GqlExceptionMatcher
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
@@ -48,6 +66,7 @@ import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.internal.helpers.Exceptions
+import org.neo4j.kernel.database.DatabaseReference
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 import org.scalatest.matchers.must.Matchers.be
@@ -103,10 +122,16 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
 
   def toAst(expected: ASTNode): Self = toAstWith(expected)
 
-  def toAstWith(expected: ASTNode, prettifierRoundTrip: Boolean = true, comparePositions: Boolean = true): Self = {
+  def toAstWith(
+    expected: ASTNode,
+    prettifierRoundTrip: Boolean = true,
+    comparePositions: Boolean = true,
+    obfuscator: Boolean = true
+  ): Self = {
     var matchers = and(haveAst(expected))
     if (comparePositions) matchers = matchers.withEqualPositions
     if (prettifierRoundTrip && !ignorePrettifier) matchers = matchers.withPrettifierRoundTrip
+    if (obfuscator) matchers = matchers.withObfuscatorSanity
     matchers.and(haveEqualWithGraph(expected))
   }
 
@@ -115,6 +140,7 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   def toAsts(expected: PartialFunction[ParserInTest, T]): Self = and(expected.andThen(haveAst(_)))
   def containing[C <: ASTNode : ClassTag](expected: C*): Self = and(haveAstContaining(expected: _*))
   def withPrettifierRoundTrip: Self = and(PrettifyToTheSameAst)
+  def withObfuscatorSanity: Self = and(ObfuscatorSanity)
   def errorShould(matcher: Matcher[Throwable]): Self = and(failLike(matcher))
   def messageShould(matcher: Matcher[String]): Self = errorShould(matcher.compose(t => norm(t.getMessage)))
   def withError(assertion: Throwable => Unit): Self = errorShould(beLike(assertion))
@@ -366,8 +392,8 @@ object MatchResults {
   }
 
   private def describe(parser: ParserInTest, parse: ParseResults[_]): String = {
-    s"""Parsing results
-       |###############
+    s"""Parsing results (scroll way down to see assertion failure)
+       |##########################################################
        |
        |Failing parser: $parser
        |${describe(parse)}""".stripMargin
@@ -403,6 +429,7 @@ object MatchResults {
   }
 }
 
+/** Asserts that the query can be prettified and the prettifed query is parsed to the same AST. */
 object PrettifyToTheSameAst extends Matcher[ParseResult] with AstParsing {
   private val expressionStringifier = ExpressionStringifier(alwaysParens = true, alwaysBacktick = true)
   private val prettifier = Prettifier(expressionStringifier)
@@ -485,4 +512,89 @@ object PrettifyToTheSameAst extends Matcher[ParseResult] with AstParsing {
 
     case _: InputPosition => InputPosition.NONE
   }))
+}
+
+/** Assert that the query can be obfuscated and that the obfuscated query is parsable if the ****** is replaced. */
+object ObfuscatorSanity extends Matcher[ParseResult] with AstParsing {
+  private val IntReplacement = "(?i)(SKIP|LIMIT|OFFSET) +\\$obfuscationReplacement".r
+
+  override def apply(result: ParseResult): MatchResult = {
+    val mismatch = result match {
+      case ParseSuccess(ast: Statement) if supportedQuery(result.query) =>
+        args(result.query, ast, result.parser)
+      case ParseSuccess(ast: Statements) if ast.statements.size == 1 && supportedQuery(result.query) =>
+        args(result.query, ast.statements.head, result.parser)
+      case _ => None
+    }
+    MatchResult(
+      mismatch.isEmpty,
+      s"""Expected obfuscation to not break query.
+         |
+         |Obfuscation Metadata (all offsets needs to have correct length):
+         |{0}
+         |
+         |Obfuscated Query:
+         |{1}
+         |
+         |Parameterized Obfuscated Query (expected to be parsable):
+         |{2}
+         |{3}
+         |""".stripMargin,
+      "Expected obfuscation to break query.",
+      mismatch.getOrElse(Vector("-", "-", "-", "-", ""))
+    )
+  }
+
+  private def supportedQuery(query: String): Boolean = !query.contains("*")
+
+  private def args(query: String, ast: Statement, parser: ParserInTest): Option[Vector[Any]] = {
+    val context = new BaseContext {
+      override def cypherVersion: CypherVersion = parser match {
+        case AstParsing.Cypher5  => CypherVersion.Cypher5
+        case AstParsing.Cypher25 => CypherVersion.Cypher25
+      }
+      override def tracer: CompilationPhaseTracer = CompilationPhaseTracer.NO_TRACING
+      override def notificationLogger: InternalNotificationLogger = devNullLogger
+      override def cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory(query, None)
+      override def monitors: Monitors = null
+      override def errorHandler: Seq[SemanticErrorDef] => Unit = _ => ()
+      override def errorMessageProvider: ErrorMessageProvider = null
+      override def cancellationChecker: CancellationChecker = CancellationChecker.neverCancelled()
+      override def internalUsageStats: InternalUsageStats = null
+      override def sessionDatabase: DatabaseReference = null
+      override def semanticFeatures: Seq[SemanticFeature] = Seq.empty
+    }
+
+    // Try to collect obfuscation metadata
+    val obfMetadata = Try((ExtractSensitiveLiterals andThen
+      ObfuscationMetadataCollection)
+      .transform(InitialState(query, null, new AnonymousVariableNameGenerator).withStatement(ast), context)
+      .obfuscationMetadata())
+
+    // Obfuscate query
+    val obfQuery = obfMetadata.toOption.map(CypherQueryObfuscator(_).obfuscateText(query, 0))
+
+    // Replace obfuscation chars with literals
+    val paramQuery = obfQuery.map { obfQ =>
+      var q = obfQ.replace("******", "$obfuscationReplacement")
+      q = IntReplacement.replaceAllIn(q, m => m.group(1) + " 1")
+      q
+    }
+
+    // Parse the parameterized query
+    val parsedParamQuery = paramQuery.map(q => Try(StatementsParsers.parse(parser, q)))
+    val parsedParamQueryFailure = parsedParamQuery
+      .flatMap(_.failed.map(f => "Failed to parse nulled query: " + Exceptions.stringify(f)).toOption)
+      .getOrElse("")
+
+    Option.when(!parsedParamQuery.exists(_.isSuccess) ||
+      obfMetadata.toOption.exists(_.sensitiveLiteralOffsets.exists(_.length.isEmpty)))(
+      Vector(
+        obfMetadata,
+        obfQuery.getOrElse("Not Available"),
+        paramQuery.getOrElse("Not Available"),
+        parsedParamQueryFailure
+      )
+    )
+  }
 }

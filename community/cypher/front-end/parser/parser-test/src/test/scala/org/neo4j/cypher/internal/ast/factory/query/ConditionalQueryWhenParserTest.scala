@@ -41,11 +41,12 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
   test("WHEN when THEN RETURN then ELSE RETURN else") {
     parsesIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           conditionalQueryWhen(
             conditionalQueryDefault(singleQuery(return_(returnItem(varFor("else"), "else", pos)))),
             conditionalQueryBranch(varFor("when"), singleQuery(return_(returnItem(varFor("then"), "then", pos))))
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }
@@ -53,11 +54,12 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
   test("WHEN true THEN RETURN 1 AS x WHEN true THEN RETURN 1 AS x") {
     parsesIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           conditionalQueryWhen(
             conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x"))))
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }
@@ -65,12 +67,13 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
   test("WHEN true THEN RETURN 1 AS x WHEN true THEN RETURN 1 AS x ELSE RETURN 1 AS x") {
     parsesIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           conditionalQueryWhen(
             conditionalQueryDefault(singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x"))))
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }
@@ -92,7 +95,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
 
     query should parseIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           conditionalQueryWhen(
             conditionalQueryDefault(singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(
@@ -112,7 +115,8 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                 )))
               )))
             )
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }
@@ -127,7 +131,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
 
     query should parseIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           conditionalQueryWhen(
             conditionalQueryDefault(singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(
@@ -156,7 +160,8 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
               )(pos, None, None),
               singleQuery(return_(literalInt(1).as("x")))
             )
-          )
+          ),
+          obfuscator = false // Bug in obfuscation
         )
     }
   }
@@ -179,7 +184,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
 
     query should parseIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           union(
             topLevelBraces(
               conditionalQueryWhen(
@@ -195,7 +200,8 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                 conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x"))))
               )
             )
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }
@@ -214,7 +220,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
 
     query should parseIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           singleQuery(
             match_(nodePat(Some("n"))),
             scopeClauseSubqueryCall(
@@ -233,7 +239,8 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
               )
             ),
             returnAll
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }
@@ -267,7 +274,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
 
     query should parseIn[Statement] {
       case Cypher5 => _.withAnyFailure
-      case _ => _.toAst(
+      case _ => _.toAstWith(
           conditionalQueryWhen(
             conditionalQueryDefault(singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(
@@ -288,7 +295,8 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
               ),
               singleQuery(return_(literalInt(1).as("x")))
             )
-          )
+          ),
+          obfuscator = false // Disabled because of bug in obfuscation
         )
     }
   }
