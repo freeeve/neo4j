@@ -76,6 +76,7 @@ class RelationshipsIterationTest {
         }
     }
 
+    @Nested
     abstract class RelationshipTraversalCursorReuseMustNotFalselyMatchRelationships {
         long matchingFirst;
         long notMatching;
