@@ -388,6 +388,8 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
                     "db.query.default_language",
                     ofEnum(GraphDatabaseSettings.CypherVersion.class),
                     CypherVersion.Cypher5)
+            // Note, this constraint is a no-op when there are no experimental versions,
+            // but kept to not have to implement this again when the next experimental version is added.
             .addConstraint(valueDependency(experimentalVersions(), enable_experimental_cypher_versions))
             .build();
 

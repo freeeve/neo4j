@@ -130,9 +130,13 @@ public final class SettingImpl<T> implements Setting<T> {
         String desc = parser.getDescription();
 
         if (!constraints.isEmpty()) {
-            String constraintDesc =
-                    constraints.stream().map(SettingConstraint::getDescription).collect(Collectors.joining(" and "));
-            desc += parser.constraintConjunction() + constraintDesc;
+            String constraintDesc = constraints.stream()
+                    .map(SettingConstraint::getDescription)
+                    .filter(d -> !d.isEmpty())
+                    .collect(Collectors.joining(" and "));
+            if (!constraintDesc.isEmpty()) {
+                desc += parser.constraintConjunction() + constraintDesc;
+            }
         }
 
         if (dependency != null) {

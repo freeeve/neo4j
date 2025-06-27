@@ -885,7 +885,7 @@ class SettingTest {
         assertDoesNotThrow(() -> setting.validate(1, simpleConfig));
         var exception = assertThrows(IllegalArgumentException.class, () -> setting.validate(2, simpleConfig));
         assertEquals(
-                "Failed to validate '2' for 'setting': the [2, 3] values acceptance depend on 'bool-setting'. 2 is not allowed since 'bool-setting' was false",
+                "Failed to validate '2' for 'setting': 2 is not allowed since 'bool-setting' was false",
                 exception.getMessage());
     }
 

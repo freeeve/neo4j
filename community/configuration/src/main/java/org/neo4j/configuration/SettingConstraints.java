@@ -525,17 +525,18 @@ public final class SettingConstraints {
                 if (restrictedValues.contains(value)) {
                     Boolean allowRestrictedValue = config.get(dependency);
                     if (!allowRestrictedValue) {
-                        throw new IllegalArgumentException(getDescription()
-                                + format(
-                                        ". %s is not allowed since '%s' was %b",
-                                        value, dependency.name(), allowRestrictedValue));
+                        throw new IllegalArgumentException(format(
+                                "%s is not allowed since '%s' was %b", value, dependency.name(), allowRestrictedValue));
                     }
                 }
             }
 
             @Override
             public String getDescription() {
-                return format("the %s values acceptance depend on '%s'", restrictedValues, dependency.name());
+                // Note, when `restrictedValues` is empty this constraint is a no-op.
+                return restrictedValues.isEmpty()
+                        ? ""
+                        : format("the %s values acceptance depend on '%s'", restrictedValues, dependency.name());
             }
         };
     }
