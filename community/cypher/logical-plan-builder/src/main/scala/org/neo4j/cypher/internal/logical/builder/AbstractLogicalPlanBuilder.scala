@@ -158,7 +158,6 @@ import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.logical.plans.IndexSeek
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 import org.neo4j.cypher.internal.logical.plans.InjectCompilationError
 import org.neo4j.cypher.internal.logical.plans.Input
@@ -592,15 +591,15 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     self
   }
 
-  def simulatedExpand(fromNode: String, rel: String, toNode: String, factor: Double): IMPL = {
-    val from = VariableParser.unescaped(fromNode)
-    val urel = VariableParser.unescaped(rel)
-    val to = VariableParser.unescaped(toNode)
-    newNode(varFor(from))
-    newRelationship(varFor(urel))
-    newNode(varFor(to))
+  def simulatedExpand(fromNode: String, relName: String, toNode: String, factor: Double): IMPL = {
+    val from = varFor(fromNode)
+    val relVar = varFor(relName)
+    val to = varFor(toNode)
+    newNode(from)
+    newRelationship(relVar)
+    newNode(to)
     appendAtCurrentIndent(UnaryOperator(lp =>
-      SimulatedExpand(lp, varFor(from), varFor(urel), varFor(to), factor)(_)
+      SimulatedExpand(lp, from, relVar, to, factor)(_)
     ))
     self
   }
@@ -1308,7 +1307,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     newNode(varFor(n))
     appendAtCurrentIndent(LeafOperator(AllNodesScan(
       varFor(n),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet
+      args.map(a => VariableParser.unescapedVar(a)).toSet
     )(_)))
   }
 
@@ -1317,7 +1316,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     newNode(varFor(n))
     appendAtCurrentIndent(LeafOperator(PartitionedAllNodesScan(
       varFor(n),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet
+      args.map(a => VariableParser.unescapedVar(a)).toSet
     )(_)))
   }
 
@@ -1340,7 +1339,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(NodeByLabelScan(
       varFor(n),
       labelName(label),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet,
+      args.map(a => VariableParser.unescapedVar(a)).toSet,
       indexOrder
     )(_)))
   }
@@ -1376,7 +1375,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(DynamicNodeByLabelsScan(
       varFor(n),
       DynamicElement.Simple(labelExpr, operator),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet,
+      args.map(a => VariableParser.unescapedVar(a)).toSet,
       indexOrder
     )(_)))
   }
@@ -1387,7 +1386,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(PartitionedNodeByLabelScan(
       varFor(n),
       labelName(label),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet
+      args.map(a => VariableParser.unescapedVar(a)).toSet
     )(_)))
   }
 
@@ -1401,7 +1400,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(UnionNodeByLabelsScan(
       varFor(n),
       labels.map(labelName),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet,
+      args.map(a => VariableParser.unescapedVar(a)).toSet,
       indexOrder
     )(_)))
   }
@@ -1412,7 +1411,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(PartitionedUnionNodeByLabelsScan(
       varFor(n),
       labels.map(labelName),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet
+      args.map(a => VariableParser.unescapedVar(a)).toSet
     )(_)))
   }
 
@@ -1426,7 +1425,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(IntersectionNodeByLabelsScan(
       varFor(n),
       labels.map(labelName),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet,
+      args.map(a => VariableParser.unescapedVar(a)).toSet,
       indexOrder
     )(_)))
   }
@@ -1437,7 +1436,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(PartitionedIntersectionNodeByLabelsScan(
       varFor(n),
       labels.map(labelName),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet
+      args.map(a => VariableParser.unescapedVar(a)).toSet
     )(_)))
   }
 
@@ -1482,7 +1481,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       varFor(n),
       positiveLabels.map(labelName),
       negativeLabels.map(labelName),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet,
+      args.map(a => VariableParser.unescapedVar(a)).toSet,
       indexOrder
     )(_)))
   }
@@ -1499,7 +1498,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       varFor(n),
       positiveLabels.map(labelName),
       negativeLabels.map(labelName),
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet
+      args.map(a => VariableParser.unescapedVar(a)).toSet
     )(_)))
   }
 
@@ -2006,7 +2005,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(NodeCountFromCountStore(
       varFor(name),
       labelNames,
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet
+      args.map(varFor).toSet
     )(_)))
   }
 
@@ -2025,7 +2024,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       startLabel,
       relTypeNames,
       endLabel,
-      args.map(a => varFor(VariableParser.unescaped(a))).toSet
+      args.map(varFor).toSet
     )(_)))
   }
 
@@ -2948,11 +2947,11 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   def create(commands: CreateCommand*): IMPL = {
     commands.foreach {
-      case node: CreateNode => newNode(VariableParser.unescaped(node.variable))
+      case node: CreateNode => newNode(node.variable)
       case relationship: CreateRelationship =>
-        newRelationship(VariableParser.unescaped(relationship.variable))
-        newNode(VariableParser.unescaped(relationship.startNode))
-        newNode(VariableParser.unescaped(relationship.endNode))
+        newRelationship(relationship.variable)
+        newNode(relationship.startNode)
+        newNode(relationship.endNode)
     }
 
     appendAtCurrentIndent(UnaryOperator(source => Create(source, commands)(_)))
@@ -3747,7 +3746,11 @@ object AbstractLogicalPlanBuilder {
 
   // Note! Parses with default language.
   def setDynamicProperty(entity: String, key: String, value: String): SetMutatingPattern =
-    SetDynamicPropertyPattern(varFor(entity), Parser.Latest.parseExpression(key), Parser.Latest.parseExpression(value))
+    SetDynamicPropertyPattern(
+      Parser.Latest.parseExpression(entity),
+      Parser.Latest.parseExpression(key),
+      Parser.Latest.parseExpression(value)
+    )
 
   // Note! Parses with default language.
   def setProperties(entity: String, items: (String, String)*): SetMutatingPattern =

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.logical.plans
+package org.neo4j.cypher.internal.logical.builder
 
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.EntityType
@@ -33,6 +33,50 @@ import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
+import org.neo4j.cypher.internal.logical.plans.CompositeQueryExpression
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexContainsScan
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexEndsWithScan
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexScan
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
+import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
+import org.neo4j.cypher.internal.logical.plans.ExclusiveBound
+import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
+import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
+import org.neo4j.cypher.internal.logical.plans.InclusiveBound
+import org.neo4j.cypher.internal.logical.plans.IndexOrder
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.logical.plans.IndexedProperty
+import org.neo4j.cypher.internal.logical.plans.InequalitySeekRangeWrapper
+import org.neo4j.cypher.internal.logical.plans.LogicalLeafPlan
+import org.neo4j.cypher.internal.logical.plans.ManyQueryExpression
+import org.neo4j.cypher.internal.logical.plans.NodeIndexContainsScan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexEndsWithScan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
+import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
+import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.PartitionedDirectedRelationshipIndexScan
+import org.neo4j.cypher.internal.logical.plans.PartitionedDirectedRelationshipIndexSeek
+import org.neo4j.cypher.internal.logical.plans.PartitionedNodeIndexScan
+import org.neo4j.cypher.internal.logical.plans.PartitionedNodeIndexSeek
+import org.neo4j.cypher.internal.logical.plans.PartitionedUndirectedRelationshipIndexScan
+import org.neo4j.cypher.internal.logical.plans.PartitionedUndirectedRelationshipIndexSeek
+import org.neo4j.cypher.internal.logical.plans.PrefixRange
+import org.neo4j.cypher.internal.logical.plans.PrefixSeekRangeWrapper
+import org.neo4j.cypher.internal.logical.plans.QueryExpression
+import org.neo4j.cypher.internal.logical.plans.RangeBetween
+import org.neo4j.cypher.internal.logical.plans.RangeGreaterThan
+import org.neo4j.cypher.internal.logical.plans.RangeLessThan
+import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
+import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
+import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexContainsScan
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexEndsWithScan
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexScan
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexSeek
+import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.NonEmptyList
@@ -50,7 +94,7 @@ import scala.collection.mutable.ArrayBuffer
 object IndexSeek {
 
   // primitives
-  private val ID_EXPRESSION = "[a-zA-Z][a-zA-Z0-9_]*"
+  private val ID_EXPRESSION = "[a-zA-Z][a-zA-Z0-9_]*|`[^`]+`"
   private val ID = s"($ID_EXPRESSION)*"
   private val ID_PATTERN = ID.r
   // could be a literal or a variable
@@ -132,7 +176,8 @@ object IndexSeek {
 
     val (node, labelStr, predicateStr) =
       indexSeekString.trim match {
-        case NODE_INDEX_SEEK_PATTERN(node, labelStr, predicateStr) => (node, labelStr, predicateStr)
+        case NODE_INDEX_SEEK_PATTERN(node, labelStr, predicateStr) =>
+          (VariableParser.unescaped(node), labelStr, predicateStr)
         case _ => throw new IllegalStateException("Expected index seek string, got " + indexSeekString)
       }
     val label = LabelToken(labelStr, LabelId(labelId))
@@ -213,7 +258,8 @@ object IndexSeek {
 
     val (node, labelStr, predicateStr) =
       indexSeekString.trim match {
-        case NODE_INDEX_SEEK_PATTERN(node, labelStr, predicateStr) => (node, labelStr, predicateStr)
+        case NODE_INDEX_SEEK_PATTERN(node, labelStr, predicateStr) =>
+          (VariableParser.unescaped(node), labelStr, predicateStr)
         case _ => throw new IllegalStateException("Expected index seek string, got " + indexSeekString)
       }
     val label = LabelToken(labelStr, LabelId(labelId))
@@ -287,7 +333,15 @@ object IndexSeek {
     val (leftNode, incoming, rel, typeStr, predicateStr, outgoing, rightNode) =
       indexSeekString.trim match {
         case REL_INDEX_SEEK_PATTERN(leftNode, incoming, rel, typeStr, predicateStr, outgoing, rightNode) =>
-          (leftNode, incoming, rel, typeStr, predicateStr, outgoing, rightNode)
+          (
+            VariableParser.unescaped(leftNode),
+            incoming,
+            VariableParser.unescaped(rel),
+            typeStr,
+            predicateStr,
+            outgoing,
+            VariableParser.unescaped(rightNode)
+          )
         case _ => throw new IllegalStateException("Expected index seek string, got " + indexSeekString)
       }
 
@@ -479,7 +533,15 @@ object IndexSeek {
     val (leftNode, incoming, rel, typeStr, predicateStr, outgoing, rightNode) =
       indexSeekString.trim match {
         case REL_INDEX_SEEK_PATTERN(leftNode, incoming, rel, typeStr, predicateStr, outgoing, rightNode) =>
-          (leftNode, incoming, rel, typeStr, predicateStr, outgoing, rightNode)
+          (
+            VariableParser.unescaped(leftNode),
+            incoming,
+            VariableParser.unescaped(rel),
+            typeStr,
+            predicateStr,
+            outgoing,
+            VariableParser.unescaped(rightNode)
+          )
         case _ => throw new IllegalStateException("Expected index seek string, got " + indexSeekString)
       }
     def toOption(in: String) = if (in == null || in.isEmpty) None else Some(in)
@@ -670,7 +732,7 @@ object IndexSeek {
       value match {
         case INT(int)             => SignedDecimalIntegerLiteral(int)(pos)
         case STRING(str)          => StringLiteral(str)(pos.withInputLength(0))
-        case ID_PATTERN(variable) => varFor(variable)
+        case ID_PATTERN(variable) => VariableParser.unescapedVar(variable)
         case PARAM =>
           if (paramQueue.isEmpty) throw new IllegalArgumentException(
             "Cannot use parameter syntax '???' without providing parameter expression 'paramExpr'"

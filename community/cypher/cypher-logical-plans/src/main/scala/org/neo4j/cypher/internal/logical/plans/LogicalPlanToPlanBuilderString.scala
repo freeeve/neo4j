@@ -79,6 +79,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.Empty
+import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.EscapeableVariable
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.Value
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.call
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.chain
@@ -366,11 +367,11 @@ object LogicalPlanToPlanBuilderString {
       case Projection(_, projectExpressions)                    => spread(projectVars(projectExpressions))
       case UnwindCollection(_, variable, expression)            => spread(projectVars(Map(variable -> expression)))
       case PartitionedUnwindCollection(_, variable, expression) => spread(projectVars(Map(variable -> expression)))
-      case AllNodesScan(idName, argumentIds)                    => params(idName, spread(argumentIds))
-      case PartitionedAllNodesScan(idName, argumentIds)         => params(idName, spread(argumentIds))
-      case Argument(argumentIds)                                => spread(argumentIds)
-      case CacheProperties(_, properties)                       => spread(properties)(_.quoted)
-      case RemoteBatchProperties(_, properties)                 => spread(properties)(_.quoted)
+      case AllNodesScan(idName, argumentIds)            => params(idName.escaped, spread(argumentIds.map(_.escaped)))
+      case PartitionedAllNodesScan(idName, argumentIds) => params(idName.escaped, spread(argumentIds.map(_.escaped)))
+      case Argument(argumentIds)                        => spread(argumentIds)
+      case CacheProperties(_, properties)               => spread(properties)(_.quoted)
+      case RemoteBatchProperties(_, properties)         => spread(properties)(_.quoted)
       case RemoteBatchPropertiesWithFilter(_, predicates, properties) =>
         concat(
           spread(properties)(_.quoted),
@@ -449,7 +450,7 @@ object LogicalPlanToPlanBuilderString {
         val typeStr = relTypeStr(types)
         val lenStr = s"${length.min}..${length.max.getOrElse("")}"
         params(
-          s"(${name(from)})$dirStrA[${relName.name}$typeStr*$lenStr]$dirStrB(${to.name})".quoted,
+          s"(${name(from)})$dirStrA[${name(relName)}$typeStr*$lenStr]$dirStrB(${name(to)})".quoted,
           "projectedDir" -> objectName(projectedDir),
           "nodePredicates" -> nodePredicates,
           "relationshipPredicates" -> relationshipPredicates
@@ -475,7 +476,7 @@ object LogicalPlanToPlanBuilderString {
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(types)
         params(
-          s"(${name(from)})$dirStrA[${relName.name}$typeStr$lenStr]$dirStrB(${to.name})".quoted,
+          s"(${name(from)})$dirStrA[${name(relName)}$typeStr$lenStr]$dirStrB(${name(to)})".quoted,
           "pathName" -> optional(maybePathName.map(_.some)),
           "all" -> conditional(!single)(true),
           "nodePredicates" -> nodePredicates,
@@ -574,11 +575,11 @@ object LogicalPlanToPlanBuilderString {
       case ExhaustiveLimit(_, count) => integerString(count)
       case Skip(_, count)            => integerString(count)
       case NodeByLabelScan(idName, label, argumentIds, indexOrder) =>
-        params(idName, label, indexOrder, spread(argumentIds))
+        params(idName.escaped, label, indexOrder, spread(argumentIds.map(_.escaped)))
       case DynamicNodeByLabelsScan(idName, labelExpr, argumentIds, indexOrder) =>
         labelExpr match {
           case DynamicElement.Simple(expr, operator) =>
-            params(idName, expr.quoted, operator, indexOrder, spread(argumentIds))
+            params(idName.escaped, expr.quoted, operator, indexOrder, spread(argumentIds.map(_.escaped)))
         }
       case DynamicDirectedRelationshipTypeScan(idName, start, typeExpr, end, argumentIds, indexOrder) =>
         typeExpr match {
@@ -613,19 +614,19 @@ object LogicalPlanToPlanBuilderString {
             )
         }
       case PartitionedNodeByLabelScan(idName, label, argumentIds) =>
-        params(idName, label, spread(argumentIds))
+        params(idName.escaped, label, spread(argumentIds.map(_.escaped)))
       case UnionNodeByLabelsScan(idName, labels, argumentIds, indexOrder) =>
-        params(idName, labels, indexOrder, spread(argumentIds))
+        params(idName.escaped, labels, indexOrder, spread(argumentIds.map(_.escaped)))
       case PartitionedUnionNodeByLabelsScan(idName, labels, argumentIds) =>
-        params(idName, labels, spread(argumentIds))
+        params(idName.escaped, labels, spread(argumentIds.map(_.escaped)))
       case IntersectionNodeByLabelsScan(idName, labels, argumentIds, indexOrder) =>
-        params(idName, labels, indexOrder, spread(argumentIds))
+        params(idName.escaped, labels, indexOrder, spread(argumentIds.map(_.escaped)))
       case PartitionedIntersectionNodeByLabelsScan(idName, labels, argumentIds) =>
-        params(idName, labels, spread(argumentIds))
+        params(idName.escaped, labels, spread(argumentIds.map(_.escaped)))
       case SubtractionNodeByLabelsScan(idName, ps, ns, argumentIds, indexOrder) =>
-        params(idName, ps, ns, indexOrder, spread(argumentIds))
+        params(idName.escaped, ps, ns, indexOrder, spread(argumentIds.map(_.escaped)))
       case PartitionedSubtractionNodeByLabelsScan(idName, ps, ns, argumentIds) =>
-        params(idName, ps, ns, spread(argumentIds))
+        params(idName.escaped, ps, ns, spread(argumentIds.map(_.escaped)))
 
       case DirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds, indexOrder) =>
         params(
@@ -692,7 +693,7 @@ object LogicalPlanToPlanBuilderString {
         }
 
       case ProduceResult(_, columns) =>
-        spread(columns)(_.variable)
+        spread(columns)(_.variable.escaped)
 
       case ProjectEndpoints(_, relName, start, startInScope, end, endInScope, types, direction, length) =>
         val (dirStrA, dirStrB) = arrows(direction)
@@ -702,7 +703,7 @@ object LogicalPlanToPlanBuilderString {
           case VarPatternLength(min, max) => s"*$min..${max.getOrElse("")}"
         }
         params(
-          s"(${start.name})$dirStrA[${relName.name}$typeStr$lenStr]$dirStrB(${end.name})".quoted,
+          s"(${name(start)})$dirStrA[${name(relName)}$typeStr$lenStr]$dirStrB(${name(end)})".quoted,
           "startInScope" -> startInScope,
           "endInScope" -> endInScope
         )
@@ -857,9 +858,9 @@ object LogicalPlanToPlanBuilderString {
         )
 
       case NodeByIdSeek(idName, ids, argumentIds) =>
-        params(idName, argumentIds, ids)
+        params(idName.escaped, argumentIds, ids)
       case NodeByElementIdSeek(idName, ids, argumentIds) =>
-        params(idName, argumentIds, ids)
+        params(idName.escaped, argumentIds, ids)
       case UndirectedRelationshipByIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
         params(
           s"(${name(leftNode)})-[${name(idName)}]-(${name(rightNode)})".quoted,
@@ -1614,7 +1615,7 @@ object LogicalPlanToPlanBuilderString {
         )
 
       case SimulatedNodeScan(idName, numberOfRows) =>
-        params(idName, numberOfRows)
+        params(idName.escaped, numberOfRows)
       case SimulatedExpand(_, from, rel, to, factor) =>
         params(from, rel, to, factor)
       case SimulatedSelection(_, selectivity) =>
@@ -1945,8 +1946,10 @@ object LogicalPlanToPlanBuilderString {
     }
   }
 
-  private def name(variable: LogicalVariable): String = variable.name
-  private def name(variable: Option[LogicalVariable]): String = variable.map(name).getOrElse("")
+  private def name(variable: LogicalVariable): String = escapeIdentifier(variable.name)
+
+  private def name(variable: Option[LogicalVariable]): String =
+    variable.map(v => escapeIdentifier(v.name)).getOrElse("")
 
   private def switchInequalitySign(s: String): String = switchInequalitySign(s.head) +: s.tail
 
@@ -1968,7 +1971,7 @@ object LogicalPlanToPlanBuilderString {
     supportPartitionedScan: Boolean
   ) =
     params(
-      s"${idName.name}:${labelToken.name}($parenthesesContent)".quoted,
+      s"${name(idName)}:${labelToken.name}($parenthesesContent)".quoted,
       "indexOrder" -> indexOrder,
       "paramExpr" -> paramExpr,
       "argumentIds" -> argumentIds,
@@ -1987,7 +1990,7 @@ object LogicalPlanToPlanBuilderString {
     indexType: IndexType
   ) =
     params(
-      s"${idName.name}:${labelToken.name}($parenthesesContent)".quoted,
+      s"${name(idName)}:${labelToken.name}($parenthesesContent)".quoted,
       "argumentIds" -> argumentIds,
       "getValue" -> Param.mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
       "indexType" -> indexType
@@ -2010,9 +2013,7 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${name(start)})-[${idName.map(_.name).getOrElse(
-          ""
-        )}:${typeToken.name}($parenthesesContent)]$rarrow(${name(end)})".quoted,
+      s"(${name(start)})-[${name(idName)}:${typeToken.name}($parenthesesContent)]$rarrow(${name(end)})".quoted,
       "indexOrder" -> indexOrder,
       "paramExpr" -> paramExpr,
       "argumentIds" -> argumentIds,
@@ -2036,9 +2037,7 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${name(start)})-[${idName.map(_.name).getOrElse(
-          ""
-        )}:${typeToken.name}($parenthesesContent)]$rarrow(${name(end)})".quoted,
+      s"(${name(start)})-[${name(idName)}:${typeToken.name}($parenthesesContent)]$rarrow(${name(end)})".quoted,
       "argumentIds" -> argumentIds,
       "getValue" -> Param.mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
       "indexType" -> indexType
@@ -2107,9 +2106,7 @@ object LogicalPlanToPlanBuilderString {
     val propName = properties.map(_.propertyKeyToken.name).head
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${name(start)})-[${idName.map(_.name).getOrElse(
-          ""
-        )}:${typeToken.name}($propName)]$rarrow(${name(end)})".quoted,
+      s"(${name(start)})-[${name(idName)}:${typeToken.name}($propName)]$rarrow(${name(end)})".quoted,
       lowerLeft.quoted,
       upperRight.quoted,
       "indexOrder" -> indexOrder,
@@ -2136,9 +2133,7 @@ object LogicalPlanToPlanBuilderString {
     val propName = properties.map(_.propertyKeyToken.name).head
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${name(start)})-[${idName.map(_.name).getOrElse(
-          ""
-        )}:${typeToken.name}($propName)]$rarrow(${name(end)})".quoted,
+      s"(${name(start)})-[${name(idName)}:${typeToken.name}($propName)]$rarrow(${name(end)})".quoted,
       point.quoted,
       distance,
       "inclusive" -> inclusive,
@@ -2223,6 +2218,9 @@ object LogicalPlanToPlanBuilderString {
   private def projectVars(map: Map[LogicalVariable, Expression]) =
     map.view.map { case (key, e) => concat(e, " AS ", escapeIdentifier(key.name)).quoted }
 
+  /**
+   * @see Stringifier.backtick
+   */
   private def escapeIdentifier(alias: String) = {
     if (alias.matches("\\w+")) alias else s"`$alias`"
   }
@@ -2314,7 +2312,7 @@ object LogicalPlanToPlanBuilderString {
         .append(if (co.isAscending) "ASC" else "DESC")).quoted
 
     implicit def fromExpansionMode: ToParam[ExpansionMode] = str(objectName)
-    implicit def fromVariable: ToParam[LogicalVariable] = v => escapeIdentifier(v.name).quoted
+    implicit def fromVariable: ToParam[LogicalVariable] = _.name.quoted
     implicit def fromLabelName: ToParam[LabelName] = _.name.quoted
     implicit def fromLabelToken: ToParam[LabelToken] = _.name.quoted
     implicit def fromPropertyKeyName: ToParam[PropertyKeyName] = _.name.quoted
@@ -2453,6 +2451,16 @@ object LogicalPlanToPlanBuilderString {
   }
 
   object Param {
+
+    /**
+     * Most of the time, we do not want to escape single variables. (see `fromVariable`)
+     * This method is for when we do.
+     */
+    implicit class EscapeableVariable(inner: LogicalVariable) {
+
+      def escaped: Param =
+        escapeIdentifier(inner.name).quoted
+    }
 
     def apply(f: StringBuilder => Unit): Param = Value(f)
     def apply(s: String): Param = apply(_.append(s))

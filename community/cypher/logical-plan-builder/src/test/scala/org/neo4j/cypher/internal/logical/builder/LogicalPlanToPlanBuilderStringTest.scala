@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.HasHeaders
 import org.neo4j.cypher.internal.ir.NoHeaders
@@ -80,6 +81,7 @@ import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -87,6 +89,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
+import org.neo4j.cypher.internal.util.topDown
 import org.neo4j.graphdb.schema.IndexType
 
 import java.lang.reflect.Modifier
@@ -3329,14 +3332,29 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
    */
   private def testPlan(name: String, buildPlan: => LogicalPlan): Unit = {
     testedOperators.add(name)
-    test(name) {
-      val plan = buildPlan
+
+    def roundtripTest(plan: LogicalPlan) = {
       val code = LogicalPlanToPlanBuilderString(plan)
       val rebuiltPlan = interpretPlanBuilder(code)
       if (rebuiltPlan == null) {
         throw new RuntimeException(s"This code did not produce a plan:\n$code")
       }
       rebuiltPlan should equal(plan)
+    }
+
+    test(name) {
+      val plan = buildPlan
+      roundtripTest(plan)
+
+      withClue("with spaced variables") {
+        val planWithDifficultVars =
+          plan.endoRewrite(topDown(Rewriter.lift {
+            case variable @ Variable(name) =>
+              variable.copy(s"  $name")(variable.position, variable.isIsolated)
+          }))
+
+        roundtripTest(planWithDifficultVars)
+      }
     }
   }
 }

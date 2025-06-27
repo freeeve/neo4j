@@ -79,6 +79,12 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-planner</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- neo4j testing -->
 
         <dependency>
@@ -114,8 +120,9 @@
 
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-cypher-planner</artifactId>
+            <artifactId>neo4j-cypher-logical-plan-builder</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- neo4j-cypher test -->

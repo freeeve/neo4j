@@ -27,15 +27,18 @@ object VariableParser {
   private val raw = "([a-zA-Z0-9_]*)".r
   private val escaped = "`(.*)`".r
 
-  def unescaped(varName: String): String = unapply(varName) match {
-    case Some(value) => value
-    case None        => throw new IllegalArgumentException(s"'$varName' cannot be parsed as a variable name")
+  def unescaped: String => String = {
+    case null => null
+    case varName =>
+      unapply(varName) match {
+        case Some(value) => value
+        case None        => throw new IllegalArgumentException(s"'$varName' cannot be parsed as a variable name")
+      }
   }
 
-  def unescaped(variable: LogicalVariable): LogicalVariable = unapply(variable.name) match {
-    case Some(value) => varFor(value)
-    case None        => throw new IllegalArgumentException(s"'${variable.name}' cannot be parsed as a variable name")
-  }
+  def unescaped(variable: LogicalVariable): LogicalVariable = varFor(unescaped(variable.name))
+
+  def unescapedVar(variableName: String): LogicalVariable = varFor(unescaped(variableName))
 
   def unapply(varName: String): Option[String] = varName match {
     case raw(n)     => Some(n)

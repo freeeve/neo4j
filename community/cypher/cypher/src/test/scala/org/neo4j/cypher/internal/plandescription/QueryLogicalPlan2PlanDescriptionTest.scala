@@ -85,6 +85,10 @@ import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.ir.ordering.ColumnOrder
+import org.neo4j.cypher.internal.logical.builder.IndexSeek.nodeIndexSeek
+import org.neo4j.cypher.internal.logical.builder.IndexSeek.partitionedNodeIndexSeek
+import org.neo4j.cypher.internal.logical.builder.IndexSeek.partitionedRelationshipIndexSeek
+import org.neo4j.cypher.internal.logical.builder.IndexSeek.relationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.AllNodesScan
@@ -134,10 +138,6 @@ import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.logical.plans.IndexSeek.nodeIndexSeek
-import org.neo4j.cypher.internal.logical.plans.IndexSeek.partitionedNodeIndexSeek
-import org.neo4j.cypher.internal.logical.plans.IndexSeek.partitionedRelationshipIndexSeek
-import org.neo4j.cypher.internal.logical.plans.IndexSeek.relationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 import org.neo4j.cypher.internal.logical.plans.Input
 import org.neo4j.cypher.internal.logical.plans.IntersectionNodeByLabelsScan
