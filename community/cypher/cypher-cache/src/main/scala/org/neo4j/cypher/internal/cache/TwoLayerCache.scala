@@ -24,10 +24,10 @@ import com.github.benmanes.caffeine.cache.Policy
 import com.github.benmanes.caffeine.cache.RemovalCause
 import com.github.benmanes.caffeine.cache.RemovalListener
 import com.github.benmanes.caffeine.cache.stats.CacheStats
-import org.eclipse.collections.impl.map.mutable.ConcurrentHashMap
 
 import java.lang
 import java.util
+import java.util.Collections
 import java.util.Map
 import java.util.concurrent.ConcurrentMap
 import java.util.function
@@ -81,72 +81,70 @@ class TwoLayerCache[K, V](val primary: Cache[K, V], val secondary: Cache[K, V]) 
 
   override def stats(): CacheStats = primary.stats().plus(secondary.stats())
 
-  override def asMap(): ConcurrentMap[K, V] = {
-    // TODO: this does not work for updating values in the map but is still useful for getting all keys
-    new ConcurrentMap[K, V]() {
-      private val inner = new ConcurrentHashMap[K, V]()
-      private val secondaryMap: ConcurrentMap[K, V] = secondary.asMap()
-      private val primaryMap: ConcurrentMap[K, V] = primary.asMap()
-      inner.putAll(secondaryMap)
-      inner.putAll(primaryMap)
+  // Warning! Breaks contract of asMap, returns a snapshot of the current cache (with few exceptions)!
+  override def asMap(): ConcurrentMap[K, V] = new ConcurrentMap[K, V]() {
 
-      override def size(): Int = inner.size()
-
-      override def isEmpty: Boolean = inner.isEmpty
-
-      override def containsKey(key: Any): Boolean = inner.containsKey(key)
-
-      override def containsValue(value: Any): Boolean = inner.containsValue(value)
-
-      override def get(key: Any): V = inner.get(key)
-
-      override def put(key: K, value: V): V = throw new UnsupportedOperationException()
-
-      override def remove(key: Any): V = throw new UnsupportedOperationException()
-
-      override def putAll(m: util.Map[_ <: K, _ <: V]): Unit = throw new UnsupportedOperationException()
-
-      override def clear(): Unit = throw new UnsupportedOperationException()
-
-      override def keySet(): util.Set[K] = inner.keySet()
-
-      override def values(): util.Collection[V] = inner.values()
-
-      override def entrySet(): util.Set[Map.Entry[K, V]] = inner.entrySet()
-
-      override def equals(obj: Any): Boolean = inner.equals(obj)
-
-      override def hashCode(): Int = inner.hashCode()
-
-      override def computeIfAbsent(key: K, mappingFunction: function.Function[_ >: K, _ <: V]): V =
-        throw new UnsupportedOperationException()
-
-      override def computeIfPresent(key: K, remappingFunction: BiFunction[_ >: K, _ >: V, _ <: V]): V =
-        throw new UnsupportedOperationException()
-
-      override def compute(key: K, remappingFunction: BiFunction[_ >: K, _ >: V, _ <: V]): V =
-        throw new UnsupportedOperationException()
-
-      override def merge(key: K, value: V, remappingFunction: BiFunction[_ >: V, _ >: V, _ <: V]): V =
-        throw new UnsupportedOperationException()
-
-      override def replaceAll(function: BiFunction[_ >: K, _ >: V, _ <: V]): Unit =
-        throw new UnsupportedOperationException()
-
-      override def remove(key: Any, value: Any): Boolean = throw new UnsupportedOperationException()
-
-      override def putIfAbsent(key: K, value: V): V = throw new UnsupportedOperationException()
-
-      override def replace(key: K, oldValue: V, newValue: V): Boolean = {
-        if (primaryMap.replace(key, oldValue, newValue)) {
-          true
-        } else {
-          secondaryMap.replace(key, oldValue, newValue)
-        }
-      }
-
-      override def replace(key: K, value: V): V = throw new UnsupportedOperationException()
+    // Lazy to avoid expensive copy when not needed
+    private lazy val snapshot = {
+      val map = util.HashMap.newHashMap[K, V](math.min(estimatedSize(), Int.MaxValue).toInt)
+      map.putAll(secondary.asMap())
+      map.putAll(primary.asMap())
+      Collections.unmodifiableMap(map)
     }
+
+    override def size(): Int = snapshot.size()
+
+    override def isEmpty: Boolean = snapshot.isEmpty
+
+    override def containsKey(key: Any): Boolean = snapshot.containsKey(key)
+
+    override def containsValue(value: Any): Boolean = snapshot.containsValue(value)
+
+    override def get(key: Any): V = snapshot.get(key)
+
+    override def put(key: K, value: V): V = throw new UnsupportedOperationException()
+
+    override def remove(key: Any): V = throw new UnsupportedOperationException()
+
+    override def putAll(m: util.Map[_ <: K, _ <: V]): Unit = throw new UnsupportedOperationException()
+
+    override def clear(): Unit = throw new UnsupportedOperationException()
+
+    override def keySet(): util.Set[K] = snapshot.keySet()
+
+    override def values(): util.Collection[V] = snapshot.values()
+
+    override def entrySet(): util.Set[Map.Entry[K, V]] = snapshot.entrySet()
+
+    override def equals(obj: Any): Boolean = snapshot.equals(obj)
+
+    override def hashCode(): Int = snapshot.hashCode()
+
+    override def computeIfAbsent(key: K, mappingFunction: function.Function[_ >: K, _ <: V]): V =
+      throw new UnsupportedOperationException()
+
+    override def computeIfPresent(key: K, remappingFunction: BiFunction[_ >: K, _ >: V, _ <: V]): V =
+      throw new UnsupportedOperationException()
+
+    override def compute(key: K, remappingFunction: BiFunction[_ >: K, _ >: V, _ <: V]): V =
+      throw new UnsupportedOperationException()
+
+    override def merge(key: K, value: V, remappingFunction: BiFunction[_ >: V, _ >: V, _ <: V]): V =
+      throw new UnsupportedOperationException()
+
+    override def replaceAll(function: BiFunction[_ >: K, _ >: V, _ <: V]): Unit =
+      throw new UnsupportedOperationException()
+
+    override def remove(key: Any, value: Any): Boolean = throw new UnsupportedOperationException()
+
+    override def putIfAbsent(key: K, value: V): V = throw new UnsupportedOperationException()
+
+    // Note, this is called from the query cache (at the time of writing).
+    override def replace(key: K, oldValue: V, newValue: V): Boolean = {
+      primary.asMap().replace(key, oldValue, newValue) || secondary.asMap().replace(key, oldValue, newValue)
+    }
+
+    override def replace(key: K, value: V): V = throw new UnsupportedOperationException()
   }
 
   override def cleanUp(): Unit = {
