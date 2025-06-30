@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -40,7 +41,8 @@ import org.neo4j.cypher.internal.util.topDown
 
 case object ProjectionClausesHaveSemanticInfo extends Condition
 
-case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty) extends Rewriter {
+case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty, inScope: Set[String] = Set.empty)
+    extends Rewriter {
 
   override def apply(that: AnyRef): AnyRef = {
     instance(that)
@@ -69,6 +71,11 @@ case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty) ex
       val innerQuery = iq.endoRewrite(ExpandStar(state, expandedItems.map(_.name).toSet ++ exclude))
       clause.copy(innerQuery = innerQuery, isImportingAll = false, importedVariables = expandedItems)(clause.position)
 
+    case subExpr: FullSubqueryExpression =>
+      val scopeDependencies = state.scope(subExpr).fold(Set.empty[String])(_.symbolNames)
+      val innerQuery = subExpr.query.endoRewrite(ExpandStar(state, inScope = scopeDependencies))
+      subExpr.withQuery(innerQuery)
+
     case expandedAstNode =>
       expandedAstNode
   }
@@ -86,7 +93,7 @@ case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty) ex
     }
 
     val clausePos = clause.position
-    val symbolNames = scope.symbolNames -- excludedNames -- listedItems.map(returnItem => returnItem.name)
+    val symbolNames = scope.symbolNames -- excludedNames -- listedItems.map(returnItem => returnItem.name) ++ inScope
     val orderedSymbolNames = defaultOrderOnColumns.map(columns => {
       val newColumns = symbolNames -- columns
       val ordered = columns.filter(symbolNames.contains) ++ newColumns

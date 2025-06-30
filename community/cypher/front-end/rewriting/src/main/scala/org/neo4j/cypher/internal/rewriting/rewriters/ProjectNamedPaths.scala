@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
+import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.ReturnItem
@@ -118,6 +119,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
 
     def withVariableRewritesForExpression(expr: Expression): Projectibles =
       expr.folder.treeFold(self) {
+        case _: FullSubqueryExpression => acc => SkipChildren(acc)
         case ident: Variable =>
           acc =>
             acc.paths.get(ident) match {
@@ -155,8 +157,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
         singleQuery.copy(clauses = newImportingWith +: singleQuery.clauses)(singleQuery.position)
 
       case subquery: ScopeClauseSubqueryCall if insertedImports.contains(subquery) =>
-        val newImports = insertedImports(subquery)
-        subquery.copy(importedVariables = newImports)(subquery.position)
+        subquery.copy(importedVariables = insertedImports(subquery))(subquery.position)
     }
     topDown(applicator)(input)
   }
@@ -180,7 +181,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
     case ProjectionClause(_, returnItems, _, _, _, _) =>
       acc =>
         val items = returnItems.items
-        // Collect rewritten variables inside of the ReturnItems that refer to path variables
+        // Collect rewritten variables inside the ReturnItems that refer to path variables
         // After this projection, we remove all named paths. They have either been projected here, or they are not available in the rest of the query.
         val projectedAcc = items.map(_.expression).foldLeft(acc) {
           (acc, expr) => acc.withVariableRewritesForExpression(expr)
@@ -266,20 +267,18 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
           case v if acc.paths.keySet.contains(v) => true
           case _                                 => false
         }
+
         val importVariablesFromPaths: Seq[Variable] =
           acc.paths.collect {
             case (variable, pathExpression) if pathReturnItems.contains(variable) =>
               pathExpression.step.dependencies
           }.flatten.map(v => Variable(v.name)(v.position, Variable.isIsolatedDefault)).toSeq
 
-        val newImports: Option[Seq[Variable]] = {
-          if (importVariablesFromPaths.isEmpty)
-            None
-          else
-            Some((importVariablesFromPaths ++ nonPathReturnItems).distinct)
-        }
-        val newAcc = newImports.map(i => acc.withInsertedImports(subquery, i)).getOrElse(acc)
-        TraverseChildren(newAcc)
+        val newImports: Option[Seq[Variable]] =
+          if (importVariablesFromPaths.isEmpty) None
+          else Some((importVariablesFromPaths ++ nonPathReturnItems).distinct)
+
+        TraverseChildren(newImports.map(i => acc.withInsertedImports(subquery, i)).getOrElse(acc))
 
     case _: SingleQuery =>
       acc =>
