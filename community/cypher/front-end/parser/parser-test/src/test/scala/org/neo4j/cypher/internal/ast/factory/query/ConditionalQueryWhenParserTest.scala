@@ -45,8 +45,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
           conditionalQueryWhen(
             conditionalQueryDefault(singleQuery(return_(returnItem(varFor("else"), "else", pos)))),
             conditionalQueryBranch(varFor("when"), singleQuery(return_(returnItem(varFor("then"), "then", pos))))
-          ),
-          obfuscator = false // Disabled because of bug in obfuscation
+          )
         )
     }
   }
@@ -58,8 +57,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
           conditionalQueryWhen(
             conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x"))))
-          ),
-          obfuscator = false // Disabled because of bug in obfuscation
+          )
         )
     }
   }
@@ -72,8 +70,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
             conditionalQueryDefault(singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x")))),
             conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x"))))
-          ),
-          obfuscator = false // Disabled because of bug in obfuscation
+          )
         )
     }
   }
@@ -115,8 +112,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                 )))
               )))
             )
-          ),
-          obfuscator = false // Disabled because of bug in obfuscation
+          )
         )
     }
   }
@@ -200,8 +196,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                 conditionalQueryBranch(trueLiteral, singleQuery(return_(literalInt(1).as("x"))))
               )
             )
-          ),
-          obfuscator = false // Disabled because of bug in obfuscation
+          )
         )
     }
   }
@@ -239,8 +234,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
               )
             ),
             returnAll
-          ),
-          obfuscator = false // Disabled because of bug in obfuscation
+          )
         )
     }
   }
@@ -295,8 +289,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
               ),
               singleQuery(return_(literalInt(1).as("x")))
             )
-          ),
-          obfuscator = false // Disabled because of bug in obfuscation
+          )
         )
     }
   }

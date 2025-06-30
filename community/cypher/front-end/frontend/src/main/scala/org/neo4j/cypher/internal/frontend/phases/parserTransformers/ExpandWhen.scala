@@ -145,11 +145,11 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
               true,
               Seq(AliasedReturnItem(
                 CaseExpression(
-                  None,
-                  branches.zipWithIndex.map { case (branch, index) =>
-                    (branch.predicate, ListLiteral(falseList.updated(index, True()(pos)))(pos))
+                  expression = None,
+                  alternatives = branches.zipWithIndex.map { case (branch, index) =>
+                    (branch.predicate.get, ListLiteral(falseList.updated(index, True()(pos)))(pos))
                   }.toList,
-                  Some(ListLiteral(falseList.updated(branches.size, True()(pos)))(pos))
+                  default = Some(ListLiteral(falseList.updated(branches.size, True()(pos)))(pos))
                 )(pos),
                 Variable(conditionalListName)(pos, false)
               )(pos))

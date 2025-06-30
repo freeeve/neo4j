@@ -998,10 +998,10 @@ trait AstConstructionTestSupport {
     TopLevelBraces(query, Some(graph))(pos)
 
   def conditionalQueryDefault(query: PartQuery): Option[ConditionalQueryBranch] =
-    Some(conditionalQueryBranch(trueLiteral, query))
+    Some(ConditionalQueryBranch(None, query)(pos))
 
   def conditionalQueryBranch(predicate: Expression, query: PartQuery): ConditionalQueryBranch =
-    ConditionalQueryBranch(predicate, query)(pos)
+    ConditionalQueryBranch(Some(predicate), query)(pos)
 
   def conditionalQueryWhen(wt: ConditionalQueryBranch*): ConditionalQueryWhen =
     ConditionalQueryWhen(wt, None)(pos)

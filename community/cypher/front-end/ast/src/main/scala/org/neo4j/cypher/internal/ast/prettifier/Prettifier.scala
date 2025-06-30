@@ -952,7 +952,7 @@ case class Prettifier(
           val useStr = use.map(asString(_) ++ " ").getOrElse("")
           useStr ++ Seq(s"${INDENT}{", indented().query(innerQuery), s"${INDENT}}").mkString(NL)
         case ConditionalQueryWhen(branches, default) =>
-          (branches.map(b => s"${INDENT}WHEN ${expr(b.predicate)} THEN ${query(b.query).trim}") ++
+          (branches.map(b => s"${INDENT}WHEN ${b.predicate.fold("N/A")(expr(_))} THEN ${query(b.query).trim}") ++
             default.map(d => s"${INDENT}ELSE ${query(d.query).trim}")).mkString(NL)
         case NextStatement(queries) =>
           queries.map(query).mkString(s"$NL$NL${INDENT}NEXT$NL$NL")

@@ -1118,7 +1118,9 @@ final case class ProjectingUnionDistinct(lhs: Query, rhs: PartQuery, unionMappin
     copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
 }
 
-case class ConditionalQueryBranch(predicate: Expression, query: PartQuery)(val position: InputPosition) extends ASTNode
+// Predicate is None for Else branch
+case class ConditionalQueryBranch(predicate: Option[Expression], query: PartQuery)(val position: InputPosition)
+    extends ASTNode
     with SemanticCheckable with SemanticAnalysisTooling with QueryUtils {
 
   override def returnVariables: ReturnVariables = query.returnVariables

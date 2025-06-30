@@ -1840,12 +1840,12 @@ class AstGenerator(
   def _branch: Gen[ConditionalQueryBranch] = for {
     predicate <- _expression
     query <- _partQuery
-  } yield ConditionalQueryBranch(predicate, query)(pos)
+  } yield ConditionalQueryBranch(Some(predicate), query)(pos)
 
   def _when: Gen[ConditionalQueryWhen] = for {
     branches <- oneOrMore(_branch)
     default <- option[PartQuery](_partQuery)
-  } yield ConditionalQueryWhen(branches, default.map(x => ConditionalQueryBranch(True()(pos), x)(pos)))(pos)
+  } yield ConditionalQueryWhen(branches, default.map(x => ConditionalQueryBranch(None, x)(pos)))(pos)
 
   def _topLevelBraces: Gen[TopLevelBraces] = for {
     inner <- _query

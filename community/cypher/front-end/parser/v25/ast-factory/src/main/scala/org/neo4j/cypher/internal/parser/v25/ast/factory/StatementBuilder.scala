@@ -112,7 +112,6 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.SimplePattern
-import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.parser.AstRuleCtx
@@ -189,11 +188,12 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   override def exitWhenBranch(ctx: Cypher25Parser.WhenBranchContext): Unit = {
-    ctx.ast = ConditionalQueryBranch(ctx.expression().ast[Expression](), ctx.singleQuery().ast[PartQuery])(pos(ctx))
+    ctx.ast =
+      ConditionalQueryBranch(Some(ctx.expression().ast[Expression]()), ctx.singleQuery().ast[PartQuery])(pos(ctx))
   }
 
   override def exitElseBranch(ctx: Cypher25Parser.ElseBranchContext): Unit = {
-    ctx.ast = ConditionalQueryBranch(True()(pos(ctx)), ctx.singleQuery().ast[PartQuery])(pos(ctx))
+    ctx.ast = ConditionalQueryBranch(None, ctx.singleQuery().ast[PartQuery])(pos(ctx))
   }
 
   final override def exitSingleQuery(ctx: Cypher25Parser.SingleQueryContext): Unit = {
