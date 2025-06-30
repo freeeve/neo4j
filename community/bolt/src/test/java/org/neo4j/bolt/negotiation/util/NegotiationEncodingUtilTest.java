@@ -22,6 +22,7 @@ package org.neo4j.bolt.negotiation.util;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.netty.buffer.UnpooledByteBufAllocator;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.testing.annotation.StrictBufferExtension;
 import org.neo4j.bolt.testing.assertions.BitMaskAssertions;
@@ -99,5 +100,30 @@ class NegotiationEncodingUtilTest {
                 .hasBits(0b01010101, 8)
                 .hasBits(0b01010101, 8)
                 .hasAtMostRemaining(5); // network padding
+    }
+
+    @Test
+    void shouldReadBitMaskKeepTheBufferUsable(StrictBufferContext ctx) {
+        var extraByte = 0b00000100;
+        var buffer = ctx.outputBuffer()
+                .writeByte(0b11010101)
+                .writeByte(0b10101010)
+                .writeByte(0b11010101)
+                .writeByte(0b00000010)
+                .writeByte(extraByte);
+
+        var actual = ctx.output(NegotiationEncodingUtil.readBitMask(buffer));
+
+        BitMaskAssertions.assertThat(actual)
+                .hasAtLeastRemaining(24)
+                .hasBits(0b01010101, 8)
+                .hasBits(0b01010101, 8)
+                .hasBits(0b01010101, 8)
+                .hasAtMostRemaining(5); // network padding
+
+        Assertions.assertEquals(extraByte, buffer.readByte());
+
+        Assertions.assertDoesNotThrow(() -> buffer.writeByte(extraByte));
+        Assertions.assertEquals(extraByte, buffer.readByte());
     }
 }
