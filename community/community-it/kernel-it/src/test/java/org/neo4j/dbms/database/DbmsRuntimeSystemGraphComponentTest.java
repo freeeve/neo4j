@@ -37,10 +37,8 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 
-@SkipOnSpd(reason = "SPD doesn't support granular integral types like int")
 @TestDirectoryExtension
 @DbmsExtension()
 class DbmsRuntimeSystemGraphComponentTest {
