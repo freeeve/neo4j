@@ -195,5 +195,11 @@ public class DatabaseNotFoundHelper {
                         + ")`. Verify that the elementId is correct.");
     }
 
+    public static DatabaseNotFoundException invalidCommandDatabaseDoesNotExistsWithLegacyMessage(
+            String msg, String command, String dbname, String parameterName) {
+        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N00(command, dbname, parameterName);
+        return new DatabaseNotFoundException(gql, msg);
+    }
+
     // endregion [Syntax Error Helpers]
 }

@@ -37,11 +37,6 @@ public class CypherExecutionException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
-    @Deprecated
-    public CypherExecutionException(String message) {
-        super(message);
-    }
-
     protected CypherExecutionException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }

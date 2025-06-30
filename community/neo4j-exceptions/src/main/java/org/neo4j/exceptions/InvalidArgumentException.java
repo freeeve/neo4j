@@ -514,6 +514,12 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
     }
 
+    public static InvalidArgumentException invalidCommandMissingRoleWithLegacyMessage(
+            String msg, String command, String role, String parameterName) {
+        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N10(command, role, parameterName);
+        return new InvalidArgumentException(gql, msg);
+    }
+
     public static InvalidArgumentException invalidCommandDatabaseDoesNotExists(
             String command, String dbname, String parameterName) {
         var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N00(command, dbname, parameterName);

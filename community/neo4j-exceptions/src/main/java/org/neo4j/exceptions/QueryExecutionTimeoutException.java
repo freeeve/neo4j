@@ -29,11 +29,6 @@ public class QueryExecutionTimeoutException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
-    @Deprecated
-    public QueryExecutionTimeoutException(String message) {
-        super(message);
-    }
-
     private QueryExecutionTimeoutException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
