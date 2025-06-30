@@ -138,7 +138,8 @@ trait GraphDatabaseTestSupport
     config: Map[Setting[_], Object] = databaseConfig(),
     maybeExternalDatabase: Option[(String, String)] = externalDatabase,
     maybeProvider: Option[(AbstractIndexProviderFactory[_ <: IndexProvider], IndexProviderDescriptor)] = None,
-    maybeExternalPath: Option[Path] = None
+    maybeExternalPath: Option[Path] = None,
+    isRestart: Boolean = false
   ): Unit = {
     val (databaseFactory, dbName) = (maybeExternalDatabase, maybeExternalPath) match {
       case (Some((url, databaseName)), _) =>
@@ -162,13 +163,15 @@ trait GraphDatabaseTestSupport
 
     if (expectedShardCount > 0) {
       // need to start a db here, but this is community so might need to check if this should be moved to enterprise
-      managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
-        // 1 primary, 0 secondaries
-        "CYPHER 25 CREATE DATABASE `%s` GRAPH SHARD { TOPOLOGY 1 PRIMARY 0 SECONDARIES } PROPERTY SHARDS { COUNT %s TOPOLOGY 1 REPLICA}".formatted(
-          dbName,
-          expectedShardCount
+      if (!isRestart) {
+        managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
+          // 1 primary, 0 secondaries
+          "CYPHER 25 CREATE DATABASE `%s` GRAPH SHARD { TOPOLOGY 1 PRIMARY 0 SECONDARIES } PROPERTY SHARDS { COUNT %s TOPOLOGY 1 REPLICA}".formatted(
+            dbName,
+            expectedShardCount
+          )
         )
-      )
+      }
 
       assertEventually(
         () => managementService.listDatabases().contains(GraphShard.graphShardName(dbName)),
@@ -294,7 +297,7 @@ trait GraphDatabaseTestSupport
       _config = _config ++ spdDatabaseConfig()
     }
     managementService.shutdown()
-    startGraphDatabase(_config, maybeExternalPath = maybeExternalPath)
+    startGraphDatabase(_config, maybeExternalPath = maybeExternalPath, isRestart = true)
   }
 
   protected def restartWithIndexProvider(
