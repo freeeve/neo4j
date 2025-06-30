@@ -130,7 +130,6 @@ case class RepeatSlottedPipe(
   private[this] val emptyGroupNodes = emptyLists(groupNodes.length)
   private[this] val emptyGroupRelationships = emptyLists(groupRelationships.length)
   private[this] val getStartNodeFunction = makeGetPrimitiveNodeFromSlotFunctionFor(startSlot)
-  private[this] val emptyAccumulatorValues = new Array[AnyValue](0)
   private[this] val previousAccumulatorSlotOffsets = accumulatorMappings.map(_.previous.offset)
   private[this] val nextAccumulatorSlotOffsets = accumulatorMappings.map(_.next.offset)
 
@@ -266,9 +265,7 @@ case class RepeatSlottedPipe(
           groupNodes,
           groupRelationships,
           endOffset,
-          nodeInScope,
-          accumulatorValues = emptyAccumulatorValues,
-          previousAccumulatorSlotOffsets = previousAccumulatorSlotOffsets
+          nodeInScope
         )
         resultRow
       }
@@ -289,9 +286,7 @@ case class RepeatSlottedPipe(
           groupRelationships,
           endOffset,
           reverseGroupVariableProjections,
-          nodeInScope,
-          accumulatorValues,
-          previousAccumulatorSlotOffsets
+          nodeInScope
         )
         Some(rhsInnerRow)
       }
@@ -456,9 +451,7 @@ object RepeatSlottedPipe {
     groupRelSlots: Array[GroupSlot],
     endOffset: Int,
     reverseGroupVariableProjections: Boolean,
-    nodeInScope: Boolean,
-    accumulatorValues: Array[AnyValue],
-    previousAccumulatorSlotOffsets: Array[Int]
+    nodeInScope: Boolean
   ): Unit = {
     var i = 0
     while (i < groupNodeSlots.length) {
@@ -478,12 +471,6 @@ object RepeatSlottedPipe {
       i += 1
     }
 
-    i = 0
-    while (i < accumulatorValues.length) {
-      row.setRefAt(previousAccumulatorSlotOffsets(i), accumulatorValues(i))
-      i += 1
-    }
-
     if (!nodeInScope) {
       row.setLongAt(endOffset, innerEndNode)
     }
@@ -497,9 +484,7 @@ object RepeatSlottedPipe {
     groupNodeSlots: Array[GroupSlot],
     groupRelSlots: Array[GroupSlot],
     endOffset: Int,
-    nodeInScope: Boolean,
-    accumulatorValues: Array[AnyValue],
-    previousAccumulatorSlotOffsets: Array[Int]
+    nodeInScope: Boolean
   ): Unit = {
     var i = 0
     while (i < groupNodeSlots.length) {
@@ -509,11 +494,6 @@ object RepeatSlottedPipe {
     i = 0
     while (i < groupRelSlots.length) {
       resultRow.setRefAt(groupRelSlots(i).outerSlot.offset, groupRels.get(i))
-      i += 1
-    }
-    i = 0
-    while (i < accumulatorValues.length) {
-      resultRow.setRefAt(previousAccumulatorSlotOffsets(i), accumulatorValues(i))
       i += 1
     }
     if (!nodeInScope) {

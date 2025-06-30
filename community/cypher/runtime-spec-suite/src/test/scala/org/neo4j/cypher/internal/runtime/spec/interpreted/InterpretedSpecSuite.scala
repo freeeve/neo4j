@@ -28,8 +28,6 @@ import org.neo4j.cypher.internal.runtime.spec.interpreted.InterpretedSpecSuite.S
 import org.neo4j.cypher.internal.runtime.spec.tests.AggregationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.AllNodeScanTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.AllNodeScanWithOtherOperatorsTestBase
-import org.neo4j.cypher.internal.runtime.spec.tests.AllReduceTrailTestBase
-import org.neo4j.cypher.internal.runtime.spec.tests.AllReduceWalkTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.AllRelationshipsScanTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.AntiConditionalApplyTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.AntiSemiApplyTestBase
@@ -479,12 +477,10 @@ class InterpretedUnionRelationshipTypeTest
 class InterpretedRepeatTrailTest
     extends RepeatTrailTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
     with OrderedTrailTestBase[CommunityRuntimeContext]
-    with AllReduceTrailTestBase[CommunityRuntimeContext]
 
 class InterpretedRepeatWalkTest
     extends RepeatWalkTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
     with OrderedWalkTestBase[CommunityRuntimeContext]
-    with AllReduceWalkTestBase[CommunityRuntimeContext]
 
 //UPDATING
 class InterpretedEmptyResultTest extends EmptyResultTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)

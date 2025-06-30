@@ -2161,6 +2161,160 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
     execute(plan, runtime).awaitAll()
   }
 
+  test("should work with allReduce accumulator") {
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+
+    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)` =
+      RepeatTrailTestBase.createMeYouTrailParameters(
+        min = 0,
+        max = Limited(2),
+        accumulators = Set(("[]", "currAcc", "nextAcc"))
+      )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)`)
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.filter(s"NOT ${n3.getId} IN nextAcc")
+      .|.projection("currAcc + [id(b_inner)] AS nextAcc")
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
+      )
+    ))
+  }
+
+  test("should work with allReduce variable accumulator") {
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+
+    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=initialAcc,acc+b,[n2]=acc)` =
+      RepeatTrailTestBase.createMeYouTrailParameters(
+        min = 0,
+        max = Limited(2),
+        accumulators = Set(("initialAcc", "currAcc", "nextAcc"))
+      )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=initialAcc,acc+b,[n2]=acc)`)
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.filter(s"[${n2.getId}]=nextAcc")
+      .|.projection("currAcc + [id(b_inner)] AS nextAcc")
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .projection(s"[] AS initialAcc")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
+      )
+    ))
+  }
+
+  test("should work with allReduce node property accumulator") {
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = givenGraph {
+      val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+      n1.setProperty("prop", 1)
+      n2.setProperty("prop", 2)
+      n3.setProperty("prop", 3) // row passing through n3 will be filtered out
+      n4.setProperty("prop", 4)
+      (n1, n2, n3, n4, r12, r23, r34)
+    }
+
+    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=initialAcc,acc+b.prop,[2]=acc)` =
+      RepeatTrailTestBase.createMeYouTrailParameters(
+        min = 0,
+        max = Limited(2),
+        accumulators = Set(("initialAcc", "currAcc", "nextAcc"))
+      )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=initialAcc,acc+b.prop,[2]=acc)`)
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.filter("[2]=nextAcc") // filter out row passing through n3
+      .|.projection("currAcc + [b_inner.prop] AS nextAcc")
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .projection(s"[] AS initialAcc")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
+      )
+    ))
+  }
+
+  test("should work with allReduce accumulator where accumulator is accessed before allReduce projection") {
+    // NOTE: accumulator should never be accessed early in the RHS like this
+    //       the test is just intended to test slot allocation
+
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+
+    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)` =
+      RepeatTrailTestBase.createMeYouTrailParameters(
+        min = 0,
+        max = Limited(2),
+        accumulators = Set(("[]", "currAcc", "nextAcc"))
+      )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r", "path")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)`)
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.filter(s"NOT ${n3.getId} IN nextAcc")
+      .|.projection("currAcc + id(b_inner) AS nextAcc")
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.nonFuseable() // noop, just intended to force pipeline break
+      .|.filter("currAcc IS NOT NULL")
+      .|.argument("me", "a_inner", "currAcc")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
+      Seq(
+        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
+      )
+    ))
+  }
+
   protected def listOf(values: AnyRef*): util.List[AnyRef] = RepeatTrailTestBase.listOf(values: _*)
 
   //  (n0:START)                                                  (n6:LOOP)
@@ -2963,162 +3117,6 @@ object RepeatTrailTestBase {
     expansionMode = ExpandAll,
     accumulators = Set.empty
   )
-}
-
-trait AllReduceTrailTestBase[CONTEXT <: RuntimeContext] {
-  self: RepeatTrailTestBase[CONTEXT] =>
-
-  test("should work with allReduce accumulator") {
-    // (n1:START) → (n2) → (n3) → (n4)
-    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
-
-    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)` =
-      RepeatTrailTestBase.createMeYouTrailParameters(
-        min = 0,
-        max = Limited(2),
-        accumulators = Set(("[]", "currAcc", "nextAcc"))
-      )
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r", "path")
-      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)`)
-      .|.filterExpression(isRepeatTrailUnique("r_inner"))
-      .|.filter(s"NOT ${n3.getId} IN nextAcc")
-      .|.projection("currAcc + [id(b_inner)] AS nextAcc")
-      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
-      .|.argument("me", "a_inner")
-      .nodeByLabelScan("me", "START", IndexOrderNone)
-      .build()
-
-    // when
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
-      Seq(
-        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
-        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
-      )
-    ))
-  }
-
-  test("should work with allReduce variable accumulator") {
-    // (n1:START) → (n2) → (n3) → (n4)
-    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
-
-    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=initialAcc,acc+b,[n2]=acc)` =
-      RepeatTrailTestBase.createMeYouTrailParameters(
-        min = 0,
-        max = Limited(2),
-        accumulators = Set(("initialAcc", "currAcc", "nextAcc"))
-      )
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r", "path")
-      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=initialAcc,acc+b,[n2]=acc)`)
-      .|.filterExpression(isRepeatTrailUnique("r_inner"))
-      .|.filter(s"[${n2.getId}]=nextAcc")
-      .|.projection("currAcc + [id(b_inner)] AS nextAcc")
-      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
-      .|.argument("me", "a_inner")
-      .projection(s"[] AS initialAcc")
-      .nodeByLabelScan("me", "START", IndexOrderNone)
-      .build()
-
-    // when
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
-      Seq(
-        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
-        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
-      )
-    ))
-  }
-
-  test("should work with allReduce node property accumulator") {
-    // (n1:START) → (n2) → (n3) → (n4)
-    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
-    n1.setProperty("prop", 1)
-    n2.setProperty("prop", 2)
-    n3.setProperty("prop", 3) // row passing through n3 will be filtered out
-    n4.setProperty("prop", 4)
-
-    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=initialAcc,acc+b.prop,[2]=acc)` =
-      RepeatTrailTestBase.createMeYouTrailParameters(
-        min = 0,
-        max = Limited(2),
-        accumulators = Set(("initialAcc", "currAcc", "nextAcc"))
-      )
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r", "path")
-      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=initialAcc,acc+b.prop,[2]=acc)`)
-      .|.filterExpression(isRepeatTrailUnique("r_inner"))
-      .|.filter("[2]=nextAcc") // filter out row passing through n3
-      .|.projection("currAcc + [b_inner.prop] AS nextAcc")
-      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
-      .|.argument("me", "a_inner")
-      .projection(s"[] AS initialAcc")
-      .nodeByLabelScan("me", "START", IndexOrderNone)
-      .build()
-
-    // when
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
-      Seq(
-        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
-        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
-      )
-    ))
-  }
-
-  test("should work with allReduce accumulator where accumulator is accessed before allReduce projection") {
-    // NOTE: accumulator should never be accessed early in the RHS like this
-    //       the test is just intended to test slot allocation
-
-    // (n1:START) → (n2) → (n3) → (n4)
-    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
-
-    val `(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)` =
-      RepeatTrailTestBase.createMeYouTrailParameters(
-        min = 0,
-        max = Limited(2),
-        accumulators = Set(("[]", "currAcc", "nextAcc"))
-      )
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r", "path")
-      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) allReduce(acc=[],acc+b,NOT n3 IN acc)`)
-      .|.filterExpression(isRepeatTrailUnique("r_inner"))
-      .|.filter(s"NOT ${n3.getId} IN nextAcc")
-      .|.projection("currAcc + id(b_inner) AS nextAcc")
-      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
-      .|.nonFuseable() // noop, just intended to force pipeline break
-      .|.filter("currAcc IS NOT NULL")
-      .|.argument("me", "a_inner", "currAcc")
-      .nodeByLabelScan("me", "START", IndexOrderNone)
-      .build()
-
-    // when
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r", "path").withRows(inAnyOrder(
-      Seq(
-        Array(n1, n1, emptyList(), emptyList(), emptyList(), pathReference(Array(n1.getId), Array.empty[Long])),
-        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12), pathReference(Array(n1.getId, n2.getId), Array(r12.getId)))
-      )
-    ))
-  }
-
 }
 
 trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
