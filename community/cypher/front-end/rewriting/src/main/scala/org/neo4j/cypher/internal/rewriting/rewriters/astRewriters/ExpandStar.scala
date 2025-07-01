@@ -57,7 +57,7 @@ case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty, in
     case clause @ Return(_, values, _, _, _, excludedNames, _, _) if values.includeExisting =>
       val newReturnItems =
         if (values.includeExisting)
-          returnItems(clause, values.items, values.defaultOrderOnColumns, excludedNames ++ exclude)
+          returnItems(clause, values.items, values.defaultOrderOnColumns, excludedNames ++ exclude ++ inScope)
         else values
       clause.copy(returnItems = newReturnItems, excludedNames = Set.empty)(clause.position)
 
@@ -93,7 +93,7 @@ case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty, in
     }
 
     val clausePos = clause.position
-    val symbolNames = scope.symbolNames -- excludedNames -- listedItems.map(returnItem => returnItem.name) ++ inScope
+    val symbolNames = scope.symbolNames ++ inScope -- excludedNames -- listedItems.map(returnItem => returnItem.name)
     val orderedSymbolNames = defaultOrderOnColumns.map(columns => {
       val newColumns = symbolNames -- columns
       val ordered = columns.filter(symbolNames.contains) ++ newColumns
