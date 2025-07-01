@@ -36,10 +36,12 @@ public final class LatestVersions {
             DbmsRuntimeVersion.getLatestVersion(Config.defaults());
     public static final BinarySupportedKernelVersions BINARY_VERSIONS =
             new BinarySupportedKernelVersions(Config.defaults());
-    public static final LogFormat LATEST_LOG_FORMAT = LogFormat.fromKernelVersion(LATEST_KERNEL_VERSION);
+    public static final LogFormat LATEST_LOG_FORMAT =
+            LogFormat.fromConfigAndKernelVersion(Config.defaults(), LATEST_KERNEL_VERSION);
     public static final LogFormatVersionProvider LATEST_LOG_FORMAT_PROVIDER = () -> LATEST_LOG_FORMAT;
 
     // TODO MERGELOG: remember to update version
+    // NOTE this is only correct if allow_new_log_format_on_upgrade_or_create is false
     public static final KernelVersion LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES =
             LogFormat.getLastVersionPreEnvelopeFormat();
     public static final DbmsRuntimeVersion LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES =

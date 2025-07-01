@@ -99,9 +99,9 @@ class EnvelopedCheckpointLogFileTest {
             ++i;
             checkpointAppender.checkPoint(
                     NULL,
-                    new TransactionId(i, i, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED, i, 3, 4),
+                    new TransactionId(i, i, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED, i, 3, 4),
                     i,
-                    KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED,
+                    KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED,
                     new LogPosition(1, i),
                     new LogPosition(1, i),
                     Instant.now(),
@@ -125,12 +125,8 @@ class EnvelopedCheckpointLogFileTest {
 
     @Test
     void envelopedCheckpointsShouldNotCrossFileBoundariesWithDefaultSegmentSize() {
-        KernelVersion latestEnvelopedKernelVersion =
-                LATEST_KERNEL_VERSION.isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
-                        ? KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED
-                        : LATEST_KERNEL_VERSION;
-        int checkpointRecordSize = DetachedCheckpointLogEntrySerializerV5_22.checkPointRecordSizeDependingOnVersion(
-                latestEnvelopedKernelVersion);
+        int checkpointRecordSize =
+                DetachedCheckpointLogEntrySerializerV5_22.checkPointRecordSizeDependingOnVersion(true);
         assertThat(checkpointRecordSize)
                 .withFailMessage(
                         "Enveloped Checkpoints of size %d bytes cannot be larger than the %d segment size",
@@ -157,7 +153,7 @@ class EnvelopedCheckpointLogFileTest {
         return LogFilesBuilder.builder(
                         databaseLayout,
                         fileSystem,
-                        fixed(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED),
+                        fixed(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED),
                         () -> LogFormat.V10)
                 .withConfig(futureEnabledConf)
                 .withRotationThreshold(rotationThreshold)

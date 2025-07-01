@@ -45,7 +45,7 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.latest_kerne
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.latest_runtime_version;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.KernelVersion.DEFAULT_BOOTSTRAP_VERSION;
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.LogChannelUtils.getReadChannel;
 import static org.neo4j.kernel.impl.transaction.log.LogChannelUtils.getWriteChannel;
@@ -535,7 +535,7 @@ class BatchingTransactionAppenderTest {
             assertEquals(transaction.getLatestCommittedTxWhenStarted(), tx.getLatestCommittedTxWhenStarted());
         }
 
-        if (kernelVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+        if (kernelVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)) {
             verify(logAppendEvent).setLogRotated(eq(false));
         } else {
             verify(logAppendEvent, never()).setLogRotated(anyBoolean());

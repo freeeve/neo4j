@@ -192,7 +192,7 @@ class RecoveryOldAndUpgradedVersionsIT {
         // For system database we have no idea about the contents of the database while starting it
         // and have to pick a version when there are no logs at all - the latest.
         assertKernelVersion(db, LatestVersions.LATEST_KERNEL_VERSION);
-        assertLogFormat(db, LatestVersions.LATEST_KERNEL_VERSION);
+        assertLogFormat(db, LatestVersions.LATEST_LOG_FORMAT);
     }
 
     @Test
@@ -215,10 +215,14 @@ class RecoveryOldAndUpgradedVersionsIT {
     }
 
     void assertLogFormat(GraphDatabaseAPI db, KernelVersion expectedKernelVersion) {
+        assertLogFormat(db, LogFormat.fromKernelVersion(expectedKernelVersion));
+    }
+
+    void assertLogFormat(GraphDatabaseAPI db, LogFormat expectedLogFormat) {
         assertThat(db.getDependencyResolver()
                         .resolveDependency(LogFormatVersionProvider.class)
                         .getCurrentLogFormat())
-                .isEqualTo(LogFormat.fromKernelVersion(expectedKernelVersion));
+                .isEqualTo(expectedLogFormat);
     }
 
     private void removeTransactionLogs(DatabaseLayout dbLayout) throws IOException {

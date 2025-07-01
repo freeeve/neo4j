@@ -34,7 +34,6 @@ import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseSettings.CheckpointPolicy.PERIODIC;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.io.ByteUnit.kibiBytes;
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.LogVersionRepository.UNKNOWN_LOG_OFFSET;
@@ -59,6 +58,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
@@ -173,7 +173,9 @@ class TransactionLogServiceIT {
             List<LogChannel> logFileChannels = logReaders.getChannels();
             // Tx split over several files with envelopes
             int expectedLogChannelsSize =
-                    LATEST_KERNEL_VERSION.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED) ? 1 : 3;
+                    Config.defaults().get(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create)
+                            ? 3
+                            : 1;
             assertThat(logFileChannels).hasSize(expectedLogChannelsSize);
             assertThat(logFiles.logFiles()).hasSizeGreaterThanOrEqualTo(numberOfTransactions);
 
@@ -212,9 +214,9 @@ class TransactionLogServiceIT {
             int txLogsAfterCheckpoint = 3;
             // the transaction log service did not return the last (empty) transaction log file
             var visibleTxLogsAfterCheckpoints =
-                    LATEST_KERNEL_VERSION.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
-                            ? txLogsAfterCheckpoint - 1
-                            : txLogsAfterCheckpoint;
+                    Config.defaults().get(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create)
+                            ? txLogsAfterCheckpoint
+                            : txLogsAfterCheckpoint - 1;
             int checkpointLogs = 1;
 
             assertThat(logFiles.logFiles()).hasSize(txLogsAfterCheckpoint + checkpointLogs);
@@ -789,7 +791,9 @@ class TransactionLogServiceIT {
                         GraphDatabaseInternalSettings.latest_kernel_version,
                         LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES.version(),
                         GraphDatabaseInternalSettings.latest_runtime_version,
-                        LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES.getVersion()))
+                        LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES.getVersion(),
+                        GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create,
+                        false))
                 .build()) {
 
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);

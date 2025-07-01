@@ -336,7 +336,7 @@ class DetachedLogTailScannerTest {
     void twoLogFilesStartAndCommitInDifferentFiles(int startLogVersion, int endLogVersion) throws Exception {
         // Hard to fake the required rotation in enveloped logs, but this case is supported there too (much more likely
         // to have a split in the middle of an entry though)
-        assumeTrue(LATEST_KERNEL_VERSION.isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
+        assumeTrue(LATEST_KERNEL_VERSION.isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED));
         // given
         long txId = BASE_APPEND_INDEX + 1;
         setupLogFiles(endLogVersion, logFile(start(txId)), logFile(commit(txId)));
@@ -388,7 +388,7 @@ class DetachedLogTailScannerTest {
         // then
         // Enveloped logs are less forgiving to corruption and will "not find" the append index
         long expectedFirstAppendIndexAfterCheckpoint =
-                LATEST_KERNEL_VERSION.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED) ? 0 : 2;
+                LATEST_KERNEL_VERSION.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED) ? 0 : 2;
         assertLatestCheckPoint(true, true, expectedFirstAppendIndexAfterCheckpoint, false, logTailInformation);
     }
 

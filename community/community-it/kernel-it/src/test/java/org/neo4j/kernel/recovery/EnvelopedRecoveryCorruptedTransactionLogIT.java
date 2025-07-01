@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.recovery;
 
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 import static org.neo4j.test.LatestVersions.LATEST_RUNTIME_VERSION;
 
 import java.util.Map;
@@ -28,6 +28,7 @@ import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEntrySerializerV5_22;
 
 class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransactionLogIT {
     // TODO MERGELOG turn into no-op when default format
@@ -35,18 +36,23 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
     protected Map<Setting<?>, Object> additionalConfig() {
         return Map.of(
                 GraphDatabaseInternalSettings.latest_kernel_version,
-                VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED.version(),
+                VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED.version(),
                 GraphDatabaseInternalSettings.latest_runtime_version,
-                LATEST_RUNTIME_VERSION.kernelVersion().isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                LATEST_RUNTIME_VERSION.kernelVersion().isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)
                         ? LATEST_RUNTIME_VERSION.getVersion()
                         : DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion(),
-                GraphDatabaseInternalSettings.envelope_log_format_on_future,
+                GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create,
                 true);
     }
 
     @Override
     protected KernelVersion kernelVersion() {
-        return VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+        return VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
+    }
+
+    @Override
+    protected int checkpointRecordSize() {
+        return DetachedCheckpointLogEntrySerializerV5_22.checkPointRecordSizeDependingOnVersion(true);
     }
 
     @Override

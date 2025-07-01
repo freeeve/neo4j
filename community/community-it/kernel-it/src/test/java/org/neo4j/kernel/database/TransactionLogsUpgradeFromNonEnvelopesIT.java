@@ -63,6 +63,7 @@ class TransactionLogsUpgradeFromNonEnvelopesIT extends TransactionLogsUpgradeIT 
         builder.setConfig(
                 GraphDatabaseInternalSettings.latest_runtime_version,
                 LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES.getVersion());
+        builder.setConfig(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, false);
         return builder;
     }
 

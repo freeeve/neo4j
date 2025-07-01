@@ -76,7 +76,7 @@ class EnvelopeFuzzerTest {
 
     private static final long PREV_INDEX = -1;
 
-    private static final KernelVersion KERNEL_VERSION = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+    private static final KernelVersion KERNEL_VERSION = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 
     @Inject
     private RandomSupport random;

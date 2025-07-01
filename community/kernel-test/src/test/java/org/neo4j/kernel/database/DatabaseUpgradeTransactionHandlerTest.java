@@ -48,6 +48,8 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.KernelImpl;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.kernel.internal.event.InternalTransactionEventListener;
 import org.neo4j.lock.Lock;
@@ -229,6 +231,8 @@ class DatabaseUpgradeTransactionHandlerTest {
                 .when(dbmsRuntimeVersionProvider)
                 .getVersion();
         KernelVersionProvider kernelVersionProvider = this::getKernelVersion;
+        LogFormatVersionProvider logFormatVersionProvider =
+                () -> LogFormat.fromKernelVersion(kernelVersionProvider.kernelVersion());
         DatabaseTransactionEventListeners databaseTransactionEventListeners =
                 mock(DatabaseTransactionEventListeners.class);
         doAnswer(inv -> listener = inv.getArgument(0, InternalTransactionEventListener.class))
@@ -246,12 +250,13 @@ class DatabaseUpgradeTransactionHandlerTest {
         DatabaseUpgradeTransactionHandler handler = new DatabaseUpgradeTransactionHandler(
                 dbmsRuntimeVersionProvider,
                 kernelVersionProvider,
+                logFormatVersionProvider,
                 databaseTransactionEventListeners,
                 lock,
                 logProvider,
                 Config.defaults(),
                 kernelMock);
-        handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx) -> {
+        handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx, currentLogFormat) -> {
             // The tx being sent in here is just a mock, so we create the tx here
             // and treat it as a regular tx to see that we get pass beforeCommit for the upgrade tx.
             doATransaction(false, true, tx.getTransactionSequenceNumber());

@@ -32,6 +32,7 @@ import static org.neo4j.internal.helpers.collection.MapUtil.store;
 import static org.neo4j.kernel.recovery.RecoveryHelpers.getLatestCheckpoint;
 import static org.neo4j.kernel.recovery.RecoveryHelpers.removeLastCheckpointRecordFromLogFile;
 import static org.neo4j.storemigration.StoreMigrationTestUtils.runStoreMigrationCommandFromSameJvm;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 import static org.neo4j.test.UpgradeTestUtil.assertKernelVersion;
 
 import java.io.IOException;
@@ -131,6 +132,7 @@ class LogFormatSelectionIT {
                 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
 
         createBuilder();
+        builder.setConfig(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, false);
         managementService = builder.build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(dbName);
 
@@ -142,7 +144,7 @@ class LogFormatSelectionIT {
         shutdown();
         createBuilderNoAutomaticUpgrade();
         builder.setConfig(
-                GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade, allowFormatSwitchOnUpgrade);
+                GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, allowFormatSwitchOnUpgrade);
         managementService = configureGloriousFutureAsLatest(builder).build();
         db = (GraphDatabaseAPI) managementService.database(dbName);
 
@@ -163,12 +165,12 @@ class LogFormatSelectionIT {
     void formatOnNewDb(String dbName, boolean allowFormatSwitchOnUpgrade) throws IOException {
         // Should only allow to use the new format if setting says okay
         LogFormat expectedFormat = allowFormatSwitchOnUpgrade
-                ? LogFormat.fromKernelVersion(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)
+                ? LogFormat.V10
                 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
 
         createBuilder();
         builder.setConfig(
-                GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade, allowFormatSwitchOnUpgrade);
+                GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, allowFormatSwitchOnUpgrade);
         managementService = configureGloriousFutureAsLatest(builder).build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(dbName);
 
@@ -206,13 +208,14 @@ class LogFormatSelectionIT {
 
         createBuilderNoAutomaticUpgrade();
         builder.setConfig(
-                GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade, allowFormatSwitchOnUpgrade);
+                GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, allowFormatSwitchOnUpgrade);
         builder.setConfig(GraphDatabaseSettings.fail_on_missing_files, false);
         managementService = configureGloriousFutureAsLatest(builder).build();
         db = (GraphDatabaseAPI) managementService.database(dbName);
 
         if (!SYSTEM_DATABASE_NAME.equals(dbName)) { // System takes latest version on startup without logs
-            assertKernelVersionAndLogFormat(db, LatestVersions.LATEST_KERNEL_VERSION);
+            assertKernelVersion(db, LatestVersions.LATEST_KERNEL_VERSION);
+            assertLogFormat(db, expectedFormat);
 
             UpgradeTestUtil.upgradeDatabase(
                     managementService, db, LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
@@ -228,7 +231,7 @@ class LogFormatSelectionIT {
     @ParameterizedTest
     @MethodSource("formatSwitchAllowedAndDbName")
     void recoveryOverUpgradeTransaction(String dbName, boolean allowFormatSwitchOnUpgrade) throws Throwable {
-        LogFormat expectedFormat = allowFormatSwitchOnUpgrade
+        LogFormat expectedFormat = newFormatExpected(allowFormatSwitchOnUpgrade)
                 ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)
                 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
 
@@ -238,7 +241,7 @@ class LogFormatSelectionIT {
 
         builder = configureGloriousFutureAsLatest(builder)
                 .setConfig(
-                        GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade,
+                        GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create,
                         allowFormatSwitchOnUpgrade);
         managementService = builder.build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(dbName);
@@ -255,7 +258,8 @@ class LogFormatSelectionIT {
         assertThat(getLatestCheckpoint(dbLayout, fs).kernelVersion()).isEqualTo(LatestVersions.LATEST_KERNEL_VERSION);
 
         // Turn on the setting now and see that old decision is respected during recovery anyway.
-        managementService = builder.setConfig(GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade, true)
+        managementService = builder.setConfig(
+                        GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, true)
                 .build();
         db = (GraphDatabaseAPI) managementService.database(dbName);
         LogFiles logFiles = db.getDependencyResolver().resolveDependency(LogFiles.class);
@@ -273,6 +277,7 @@ class LogFormatSelectionIT {
                 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
 
         createBuilder();
+        builder.setConfig(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, false);
         managementService = builder.build();
         GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
 
@@ -284,7 +289,7 @@ class LogFormatSelectionIT {
                 Map.of(
                         GraphDatabaseInternalSettings.latest_kernel_version.name(),
                         "" + KernelVersion.GLORIOUS_FUTURE.version(),
-                        GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade.name(),
+                        GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create.name(),
                         Boolean.toString(allowFormatSwitchOnUpgrade)),
                 config);
         String[] args = {"--verbose", "--additional-config", config.toString(), DEFAULT_DATABASE_NAME};
@@ -299,9 +304,8 @@ class LogFormatSelectionIT {
     @ValueSource(booleans = {true, false})
     void importSelectsLogFormatBasedOnSetting(boolean allowNewFormat) throws Exception {
         // Should only allow to use the new format if setting says okay
-        LogFormat expectedFormat = allowNewFormat
-                ? LogFormat.fromKernelVersion(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)
-                : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
+        LogFormat expectedFormat =
+                allowNewFormat ? LogFormat.V10 : LogFormat.fromKernelVersion(LatestVersions.LATEST_KERNEL_VERSION);
 
         // GIVEN
         Path dbConfig = testDirectory.file("neo4j.properties");
@@ -311,7 +315,7 @@ class LogFormatSelectionIT {
                         testDirectory.absolutePath().toString(),
                         preallocate_logical_logs.name(),
                         FALSE,
-                        GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade.name(),
+                        GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create.name(),
                         Boolean.toString(allowNewFormat),
                         GraphDatabaseInternalSettings.latest_kernel_version.name(),
                         "" + KernelVersion.GLORIOUS_FUTURE.version(),
@@ -342,6 +346,10 @@ class LogFormatSelectionIT {
                         LogFormatVersionProvider.THROWING_PROVIDER)
                 .build();
         checkLogFormatOfLatestFiles(logFiles, expectedFormat);
+    }
+
+    private static boolean newFormatExpected(boolean allowFormatSwitchOnUpgrade) {
+        return allowFormatSwitchOnUpgrade || LATEST_LOG_FORMAT.equals(LogFormat.V10);
     }
 
     private void runImport(ExecutionContext ctx, String... arguments) throws Exception {

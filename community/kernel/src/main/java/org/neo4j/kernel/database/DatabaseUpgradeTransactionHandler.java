@@ -35,6 +35,8 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.KernelImpl;
 import org.neo4j.kernel.impl.api.MaximumTransactionLimitExceededException;
 import org.neo4j.kernel.impl.locking.LockAcquisitionTimeoutException;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.internal.event.DatabaseTransactionEventListeners;
 import org.neo4j.kernel.internal.event.InternalTransactionEventListener;
 import org.neo4j.lock.Lock;
@@ -45,6 +47,7 @@ import org.neo4j.storageengine.api.LongReference;
 class DatabaseUpgradeTransactionHandler {
     private final DbmsRuntimeVersionProvider dbmsRuntimeVersionProvider;
     private final KernelVersionProvider kernelVersionProvider;
+    private final LogFormatVersionProvider logFormatVersionProvider;
     private final DatabaseTransactionEventListeners transactionEventListeners;
     private final AtomicBoolean unregistered = new AtomicBoolean();
 
@@ -72,6 +75,7 @@ class DatabaseUpgradeTransactionHandler {
     DatabaseUpgradeTransactionHandler(
             DbmsRuntimeVersionProvider dbmsRuntimeVersionProvider,
             KernelVersionProvider kernelVersionProvider,
+            LogFormatVersionProvider logFormatVersionProvider,
             DatabaseTransactionEventListeners transactionEventListeners,
             UpgradeLocker locker,
             InternalLogProvider logProvider,
@@ -79,6 +83,7 @@ class DatabaseUpgradeTransactionHandler {
             KernelImpl kernelApi) {
         this.dbmsRuntimeVersionProvider = dbmsRuntimeVersionProvider;
         this.kernelVersionProvider = kernelVersionProvider;
+        this.logFormatVersionProvider = logFormatVersionProvider;
         this.transactionEventListeners = transactionEventListeners;
         this.locker = locker;
         this.log = logProvider.getLog(this.getClass());
@@ -87,7 +92,8 @@ class DatabaseUpgradeTransactionHandler {
     }
 
     interface InternalUpgradeTransactionHandler {
-        void upgrade(KernelVersion from, KernelVersion to, KernelTransaction tx) throws TransactionFailureException;
+        void upgrade(KernelVersion from, KernelVersion to, KernelTransaction tx, LogFormat currentLogFormat)
+                throws TransactionFailureException;
     }
 
     /**
@@ -138,7 +144,10 @@ class DatabaseUpgradeTransactionHandler {
                                 // Save a reference to this tx and let it through beforeCommit
                                 upgradeTxSeqNbr = upgradeTx.getTransactionSequenceNumber();
                                 internalUpgradeTransactionHandler.upgrade(
-                                        currentKernelVersion, kernelVersionToUpgradeTo, upgradeTx);
+                                        currentKernelVersion,
+                                        kernelVersionToUpgradeTo,
+                                        upgradeTx,
+                                        logFormatVersionProvider.getCurrentLogFormat());
                                 upgradeTx.commit();
                             } finally {
                                 upgradeTxSeqNbr = LongReference.NULL;

@@ -48,8 +48,8 @@ public class DetachedCheckpointLogEntrySerializerV5_22 extends LogEntrySerialize
     // EnvelopedCheckpointLogFileTest.envelopedCheckpointsShouldNotCrossFileBoundariesWithDefaultSegmentSize
     // in particular is ensuring that we don't create checkpoints of a size that can be split across checkpoint files
     // when enveloped which could potentially cause issues with recovery under corruption.
-    public static int checkPointRecordSizeDependingOnVersion(KernelVersion version) {
-        if (version.isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+    public static int checkPointRecordSizeDependingOnVersion(boolean usesEnvelopes) {
+        if (!usesEnvelopes) {
             return RECORD_LENGTH_BYTES;
         }
         // The checksum and kernel version are only in the envelope header

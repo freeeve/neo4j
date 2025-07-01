@@ -212,7 +212,7 @@ class LogEntrySerializerDispatcherTest {
         expectedChecksums.put(KernelVersion.V5_25, -460838645);
         expectedChecksums.put(KernelVersion.V2025_04, -1150487212);
         expectedChecksums.put(KernelVersion.V2025_05, 1531023797);
-        if (version.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+        if (version.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)) {
             expectedChecksums.put(KernelVersion.V2025_07, -361070784);
         } else {
             expectedChecksums.put(KernelVersion.V2025_07, 77942250);

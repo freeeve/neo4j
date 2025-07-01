@@ -210,7 +210,7 @@ class EagerlyReversedCommandBatchCursorTest {
                 // rotate after position capture to ensure consistency with verify loop
                 // should never be required with enveloped log files
                 assertTrue(LatestVersions.LATEST_KERNEL_VERSION.isLessThan(
-                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
+                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED));
                 logFile.rotate();
             }
             previousChecksum = writer.append(

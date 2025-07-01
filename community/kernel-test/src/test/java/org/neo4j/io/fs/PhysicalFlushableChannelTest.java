@@ -325,8 +325,7 @@ class PhysicalFlushableChannelTest {
 
             // THEN
             assertEquals(
-                    estimateBytesWrittenToLogChannel(
-                            Long.BYTES + Integer.BYTES, LATEST_KERNEL_VERSION, logHeader, true),
+                    estimateBytesWrittenToLogChannel(Long.BYTES + Integer.BYTES, logHeader, true),
                     positionAfterSomeData.getByteOffset() - initialPosition.getByteOffset());
         }
     }

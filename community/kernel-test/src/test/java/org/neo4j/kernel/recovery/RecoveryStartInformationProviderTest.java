@@ -42,7 +42,6 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -210,8 +209,7 @@ class RecoveryStartInformationProviderTest {
 
         // then
         verify(monitor).noCheckPointFound();
-        var logFormat = LogFormat.fromKernelVersion(kernelVersion);
-        var startOffset = logFormat.getDefaultDataStartByteOffset();
+        var startOffset = LATEST_LOG_FORMAT.getDefaultDataStartByteOffset();
         assertEquals(new LogPosition(0, startOffset), recoveryStartInformation.transactionLogPosition());
         assertEquals(LogPosition.UNSPECIFIED, recoveryStartInformation.getCheckpointPosition());
         assertEquals(10L, recoveryStartInformation.firstAppendIndexAfterLastCheckPoint());

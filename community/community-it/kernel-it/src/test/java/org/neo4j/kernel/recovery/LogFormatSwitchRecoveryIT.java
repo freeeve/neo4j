@@ -124,11 +124,11 @@ public class LogFormatSwitchRecoveryIT {
         return builder.setConfig(
                         GraphDatabaseInternalSettings.latest_runtime_version,
                         findDbmsVersionMatchingKernelVersion(
-                                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)
                                 .getVersion())
                 .setConfig(
                         GraphDatabaseInternalSettings.latest_kernel_version,
-                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED.version())
+                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED.version())
                 .setConfig(GraphDatabaseInternalSettings.envelope_log_format_on_future, true);
     }
 
@@ -174,7 +174,7 @@ public class LogFormatSwitchRecoveryIT {
                 }
             }
         }
-        assertKernelVersion(testDb, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED);
+        assertKernelVersion(testDb, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);
     }
 
     private record DatabaseAndSnapshot(GraphDatabaseAPI testDb, Path snapshot, DatabaseLayout layout) {}
@@ -203,7 +203,7 @@ public class LogFormatSwitchRecoveryIT {
         assertKernelVersion(testDb, LatestVersions.LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES);
         // add some nodes and relationships to restore on the new version
         writeGraph(testDb, 3);
-        assertKernelVersion(testDb, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED);
+        assertKernelVersion(testDb, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);
         return new DatabaseAndSnapshot(testDb, initialState, layout);
     }
 
@@ -223,11 +223,11 @@ public class LogFormatSwitchRecoveryIT {
                 .set(
                         GraphDatabaseInternalSettings.latest_runtime_version,
                         findDbmsVersionMatchingKernelVersion(
-                                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)
                                 .getVersion())
                 .set(
                         GraphDatabaseInternalSettings.latest_kernel_version,
-                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED
+                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED
                                 .version()) // allow truncation of corrupted file
                 .set(GraphDatabaseInternalSettings.fail_on_corrupted_log_files, !allowCorruption)
                 .build();
@@ -241,7 +241,7 @@ public class LogFormatSwitchRecoveryIT {
         GraphDatabaseAPI testDb = (GraphDatabaseAPI) managementService.database(dbName);
         // validate all 3 generations restored
         verifyGraph(testDb, 3);
-        assertKernelVersion(testDb, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED);
+        assertKernelVersion(testDb, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);
     }
 
     @Test

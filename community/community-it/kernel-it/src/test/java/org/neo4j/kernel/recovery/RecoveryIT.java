@@ -132,7 +132,6 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.version.VersionStorageTracer;
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.availability.CompositeDatabaseAvailabilityGuard;
 import org.neo4j.kernel.database.DatabaseTracers;
@@ -637,7 +636,7 @@ class RecoveryIT {
         removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
         // append data that will cause broken next entry
         int minimumBytesToConsiderBrokenRecord =
-                LATEST_KERNEL_VERSION.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                Config.defaults().get(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create)
                         ? LogEnvelopeHeader.HEADER_SIZE + 1
                         : 4;
         byte[] brokenRecord = new byte[minimumBytesToConsiderBrokenRecord];

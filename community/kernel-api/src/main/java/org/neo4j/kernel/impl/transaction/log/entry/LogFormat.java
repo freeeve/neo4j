@@ -47,7 +47,7 @@ public enum LogFormat {
      * - 8 bytes version
      * - 8 bytes last committed tx id
      */
-    V6((byte) 6, 16, KernelVersion.V2_3, KernelVersion.V2_3, UNKNOWN_LOG_SEGMENT_SIZE) {
+    V6((byte) 6, 16, KernelVersion.V2_3, KernelVersion.V2_3, KernelVersion.V2_3, UNKNOWN_LOG_SEGMENT_SIZE) {
         @Override
         public LogHeader deserializeHeader(long logVersion, ByteBuffer buffer) {
             long previousCommittedTx = buffer.getLong();
@@ -94,7 +94,7 @@ public enum LogFormat {
      *   |          version          | last tx | store id | reserved |
      *  </pre>
      */
-    V7((byte) 7, 64, KernelVersion.V4_2, KernelVersion.V4_4, UNKNOWN_LOG_SEGMENT_SIZE) {
+    V7((byte) 7, 64, KernelVersion.V4_2, KernelVersion.V4_2, KernelVersion.V4_4, UNKNOWN_LOG_SEGMENT_SIZE) {
         @Override
         public LogHeader deserializeHeader(long logVersion, ByteBuffer buffer) {
             long previousCommittedTx = buffer.getLong();
@@ -147,7 +147,7 @@ public enum LogFormat {
      *   |          version          | last tx | store id | reserved |
      *  </pre>
      */
-    V8((byte) 8, 128, KernelVersion.V5_0, KernelVersion.V5_19, UNKNOWN_LOG_SEGMENT_SIZE) {
+    V8((byte) 8, 128, KernelVersion.V5_0, KernelVersion.V5_0, KernelVersion.V5_19, UNKNOWN_LOG_SEGMENT_SIZE) {
         @Override
         public LogHeader deserializeHeader(long logVersion, ByteBuffer buffer) throws IOException {
             long previousCommittedTx = buffer.getLong();
@@ -207,7 +207,13 @@ public enum LogFormat {
         }
     },
 
-    V9((byte) 9, 128, KernelVersion.V5_20, getLastVersionPreEnvelopeFormat(), UNKNOWN_LOG_SEGMENT_SIZE) {
+    V9(
+            (byte) 9,
+            128,
+            KernelVersion.V5_20,
+            KernelVersion.V5_20,
+            getLastVersionPreEnvelopeFormat(),
+            UNKNOWN_LOG_SEGMENT_SIZE) {
         @Override
         public LogHeader deserializeHeader(long logVersion, ByteBuffer buffer) throws IOException {
             long ignored = buffer.getLong();
@@ -289,7 +295,8 @@ public enum LogFormat {
     V10(
             (byte) 10,
             128,
-            KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED,
+            KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM,
+            KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED,
             KernelVersion.GLORIOUS_FUTURE,
             LogSegments.DEFAULT_LOG_SEGMENT_SIZE) {
         @Override
@@ -361,19 +368,7 @@ public enum LogFormat {
     };
 
     public static KernelVersion getLastVersionPreEnvelopeFormat() {
-        Config config = Config.defaults();
-        KernelVersion latestVersion = KernelVersion.getLatestVersion(config);
-        if (config.get(GraphDatabaseInternalSettings.envelope_log_format_on_current)) {
-            // Envelopes will be latest, so need the one before
-            KernelVersion highestLowerThanLatest = KernelVersion.EARLIEST;
-            for (KernelVersion value : KernelVersion.VERSIONS) {
-                if (value.isLessThan(latestVersion) && value.isAtLeast(highestLowerThanLatest)) {
-                    highestLowerThanLatest = value;
-                }
-            }
-            return highestLowerThanLatest;
-        }
-        return latestVersion;
+        return KernelVersion.getLatestVersion(Config.defaults());
     }
 
     public static final int BIGGEST_HEADER;
@@ -403,10 +398,16 @@ public enum LogFormat {
     private final KernelVersion toKernelVersion;
     private final int defaultSegmentBlockSize;
 
-    LogFormat(byte versionByte, int headerSize, KernelVersion from, KernelVersion to, int defaultSegmentBlockSize) {
+    LogFormat(
+            byte versionByte,
+            int headerSize,
+            KernelVersion possibleFrom, // Can be turned on with settings from this version
+            KernelVersion guaranteedFrom,
+            KernelVersion to,
+            int defaultSegmentBlockSize) {
         this.versionByte = versionByte;
         this.headerSize = headerSize;
-        this.fromKernelVersion = from;
+        this.fromKernelVersion = guaranteedFrom;
         this.toKernelVersion = to;
         this.defaultSegmentBlockSize = defaultSegmentBlockSize;
     }
@@ -545,20 +546,16 @@ public enum LogFormat {
      * happen simultaneously on any additional cluster members.
      */
     public static LogFormat fromConfigAndKernelVersion(Config config, KernelVersion kernelVersion) {
-        // Since VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM and VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED
-        // are both connected to the same version right now, VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED
+        // To be able to test upgrade that doesn't turn on the new format,
+        // VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED
         // (that in the future will control the version enveloped logs are guaranteed from) needs the
-        // additional test only envelope_log_format_on_current or envelope_log_format_on_future setting
-        // on to actually turn on envelopes.
-        if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)
-                || kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
-            if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
-                    && (config.get(GraphDatabaseInternalSettings.envelope_log_format_on_current)
-                            || config.get(GraphDatabaseInternalSettings.envelope_log_format_on_future))) {
+        // additional test only envelope_log_format_on_future setting on to actually turn on envelopes.
+        if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)) {
+            if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)
+                    && config.get(GraphDatabaseInternalSettings.envelope_log_format_on_future)) {
                 return V10;
             }
-            if (kernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_CAN_EXIST_FROM)
-                    && config.get(GraphDatabaseInternalSettings.allow_upgrading_log_format_on_upgrade)) {
+            if (config.get(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create)) {
                 return V10;
             }
             return V9;
@@ -569,11 +566,20 @@ public enum LogFormat {
     // The serialization of the upgrade command with log format doesn't exist before 2025.05
     // Therefore only allow picking a LogFormat based on settings + kernel version, as opposed to only kernel version
     // when going from 2025.05 or higher.
-    public static LogFormat pickLogFormatOnUpgrade(KernelVersion from, KernelVersion to, Config config) {
+    public static LogFormat pickLogFormatOnUpgrade(
+            KernelVersion from, KernelVersion to, Config config, LogFormat currentLogFormat) {
+        LogFormat logFormat;
         if (from.isAtLeast(KernelVersion.VERSION_UPGRADE_CONTAINS_LOG_FORMAT)) {
-            return LogFormat.fromConfigAndKernelVersion(config, to);
+            logFormat = LogFormat.fromConfigAndKernelVersion(config, to);
+        } else {
+            logFormat = LogFormat.fromKernelVersion(to);
         }
-        return LogFormat.fromKernelVersion(to);
+
+        // Don't allow downgrade just because setting has been turned off.
+        if (logFormat.getVersionByte() < currentLogFormat.getVersionByte()) {
+            return currentLogFormat;
+        }
+        return logFormat;
     }
 
     private static boolean checkUnderflow(

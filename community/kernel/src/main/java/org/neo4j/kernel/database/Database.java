@@ -700,17 +700,18 @@ public class Database extends AbstractDatabase {
         DatabaseUpgradeTransactionHandler handler = new DatabaseUpgradeTransactionHandler(
                 globalDependencies.resolveDependency(DbmsRuntimeVersionProvider.class),
                 metadataCache,
+                metadataCache,
                 databaseTransactionEventListeners,
                 UpgradeLocker.DEFAULT,
                 internalLogProvider,
                 databaseConfig,
                 kernelModule.kernelAPI());
 
-        handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx) -> tx.upgrade()
+        handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx, currentLogFormat) -> tx.upgrade()
                 .upgradeKernel(new Upgrade.KernelUpgrade(
                         fromKernelVersion,
                         toKernelVersion,
-                        pickLogFormatOnUpgrade(fromKernelVersion, toKernelVersion, databaseConfig))));
+                        pickLogFormatOnUpgrade(fromKernelVersion, toKernelVersion, databaseConfig, currentLogFormat))));
     }
 
     private void validateStoreAndTxLogs(

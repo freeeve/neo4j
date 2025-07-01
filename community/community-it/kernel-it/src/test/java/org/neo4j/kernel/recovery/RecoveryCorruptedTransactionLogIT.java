@@ -175,8 +175,7 @@ class RecoveryCorruptedTransactionLogIT {
 
     @BeforeEach
     void setUp() {
-        CHECKPOINT_RECORD_SIZE =
-                DetachedCheckpointLogEntrySerializerV5_22.checkPointRecordSizeDependingOnVersion(kernelVersion());
+        CHECKPOINT_RECORD_SIZE = checkpointRecordSize();
         LATEST_LOG_SERIALIZATION = RecordStorageCommandReaderFactory.INSTANCE.get(kernelVersion());
         CONFIG = Config.defaults(additionalConfig());
         BINARY_VERSIONS = new BinarySupportedKernelVersions(CONFIG);
@@ -193,6 +192,10 @@ class RecoveryCorruptedTransactionLogIT {
         txOffsetAfterStart = startStopDatabaseAndGetTxOffset();
     }
 
+    protected int checkpointRecordSize() {
+        return DetachedCheckpointLogEntrySerializerV5_22.checkPointRecordSizeDependingOnVersion(false);
+    }
+
     protected KernelVersion kernelVersion() {
         return LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES;
     }
@@ -202,7 +205,9 @@ class RecoveryCorruptedTransactionLogIT {
                 GraphDatabaseInternalSettings.latest_kernel_version,
                 LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES.version(),
                 GraphDatabaseInternalSettings.latest_runtime_version,
-                LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES.getVersion());
+                LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES.getVersion(),
+                GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create,
+                false);
     }
 
     @Test
@@ -1102,7 +1107,7 @@ class RecoveryCorruptedTransactionLogIT {
         // This test doesn't make sense for envelopes. Either the zero byte is first in the header, or first in the
         // content, either way the checksum validation would discover it. And this test where it is first in the
         // header doesn't break the tx because the first byte of the checksum is zero.
-        Assumptions.assumeTrue(kernelVersion().isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
+        Assumptions.assumeTrue(kernelVersion().isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED));
 
         // There was a case where corrupted transaction logs could be truncated even without the
         // fail on truncate setting disabled. If the first byte on a transaction boundary was 0 the reader
@@ -1157,7 +1162,7 @@ class RecoveryCorruptedTransactionLogIT {
         // This test doesn't make sense for envelopes. Either the zero byte is first in the header, or first in the
         // content, either way the checksum validation would discover it. And this test where it is first in the
         // header doesn't break the tx because the first byte of the checksum is zero.
-        Assumptions.assumeTrue(kernelVersion().isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
+        Assumptions.assumeTrue(kernelVersion().isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED));
 
         // There was a case where corrupted transaction logs could be truncated even without reporting it.
         // If the first byte on a transaction boundary was 0 the reader

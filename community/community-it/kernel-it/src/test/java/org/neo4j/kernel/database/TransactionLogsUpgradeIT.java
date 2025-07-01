@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.automatic_upgrade_enabled;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.KernelVersion.GLORIOUS_FUTURE;
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 import static org.neo4j.kernel.TxLogValidationUtils.assertLogHeaderExpectedVersion;
 import static org.neo4j.kernel.TxLogValidationUtils.assertWholeTransactionsIn;
 import static org.neo4j.kernel.TxLogValidationUtils.assertWholeTransactionsWithCorrectVersionInSpecificLogVersion;
@@ -82,12 +82,13 @@ class TransactionLogsUpgradeIT {
     protected GraphDatabaseAPI testDb;
     protected CommandReaderFactory commandReaderFactory;
     private static final KernelVersion EXPECTED_HEADER_VERSION_LATEST_FORMAT =
-            LATEST_KERNEL_VERSION.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+            LATEST_KERNEL_VERSION.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)
                     ? LATEST_KERNEL_VERSION
                     : null; /* pre-envelope format doesn't include the version */
 
     protected TestDatabaseManagementServiceBuilder configureStartUp(TestDatabaseManagementServiceBuilder builder) {
         builder.setConfig(GraphDatabaseSettings.logical_log_rotation_threshold, DEFAULT_LOG_SEGMENT_SIZE * 3L);
+        builder.setConfig(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, false);
         return builder;
     }
 
@@ -120,7 +121,7 @@ class TransactionLogsUpgradeIT {
                         GraphDatabaseInternalSettings.latest_runtime_version,
                         DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())
                 .setConfig(GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())
-                .setConfig(GraphDatabaseInternalSettings.envelope_log_format_on_future, true);
+                .setConfig(GraphDatabaseInternalSettings.allow_new_log_format_on_upgrade_or_create, true);
     }
 
     @ParameterizedTest

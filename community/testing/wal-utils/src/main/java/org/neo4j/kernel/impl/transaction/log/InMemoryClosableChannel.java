@@ -20,7 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import static java.lang.Math.toIntExact;
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 
 import java.io.Closeable;
 import java.io.Flushable;
@@ -251,7 +251,7 @@ public class InMemoryClosableChannel
         if (currentVersion == null) {
             throw new RuntimeException("putVersion must be called at least once.");
         }
-        if (currentVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+        if (currentVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)) {
             return writer.putChecksum();
         }
         return 0;
@@ -480,7 +480,7 @@ public class InMemoryClosableChannel
             if (currentVersion == null) {
                 throw ReadPastEndException.INSTANCE;
             }
-            if (currentVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+            if (currentVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)) {
                 return get();
             }
             return currentVersion.version();
@@ -488,7 +488,7 @@ public class InMemoryClosableChannel
 
         @Override
         public boolean rewindAfterMarkAndGetVersion() {
-            return currentVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED);
+            return currentVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);
         }
 
         @Override
@@ -498,7 +498,7 @@ public class InMemoryClosableChannel
 
         @Override
         public int endChecksumAndValidate() throws IOException {
-            if (currentVersion.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+            if (currentVersion.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)) {
                 int fakeChecksum = (int) this.checksum.getValue();
                 beginChecksum();
                 return fakeChecksum;
@@ -617,7 +617,7 @@ public class InMemoryClosableChannel
 
         @Override
         public Writer putVersion(byte version) {
-            if (KernelVersion.getForVersion(version).isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+            if (KernelVersion.getForVersion(version).isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)) {
                 return put(version);
             }
             return this;

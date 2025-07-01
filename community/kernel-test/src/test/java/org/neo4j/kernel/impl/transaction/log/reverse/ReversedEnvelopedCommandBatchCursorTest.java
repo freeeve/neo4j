@@ -92,7 +92,7 @@ import org.neo4j.test.extension.RandomExtension;
 @Neo4jLayoutExtension
 @ExtendWith({RandomExtension.class, LifeExtension.class})
 class ReversedEnvelopedCommandBatchCursorTest {
-    private static final KernelVersion kernelVersion = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+    private static final KernelVersion kernelVersion = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
     public static final long ROTATION_THRESHOLD = ByteUnit.mebiBytes(10);
     private final InternalLogProvider logProvider = new AssertableLogProvider(true);
     private final ReverseTransactionCursorLoggingMonitor monitor =

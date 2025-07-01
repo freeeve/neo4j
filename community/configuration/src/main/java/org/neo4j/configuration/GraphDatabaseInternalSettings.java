@@ -1451,21 +1451,16 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.dbms.latest_kernel_version", BYTE, null).build();
 
     @Internal
-    @Description("Just to be used in tests: A way to make envelope log format the current format")
-    public static final Setting<Boolean> envelope_log_format_on_current =
-            newBuilder("internal.dbms.envelope_log_format_on", BOOL, false).build();
-
-    @Internal
     @Description("Just to be used in tests: A way to make envelope log format the format on GLORIOUS_FUTURE.")
     public static final Setting<Boolean> envelope_log_format_on_future = newBuilder(
                     "internal.dbms.envelope_log_format_on_future", BOOL, false)
             .build();
 
     @Internal
-    @Description("A way to turn on upgrade to the next log format. The upgrade will happen on the next kernel "
-            + "version upgrade. Also controls format for new databases")
-    public static final Setting<Boolean> allow_upgrading_log_format_on_upgrade = newBuilder(
-                    "internal.dbms.allow_upgrade_log_format_on_upgrade", BOOL, false)
+    @Description("A way to turn on the next log format. Any new databases will get the format and any existing "
+            + "ones will upgrade to it on the next kernel version upgrade.")
+    public static final Setting<Boolean> allow_new_log_format_on_upgrade_or_create = newBuilder(
+                    "internal.dbms.allow_new_log_format_on_upgrade_or_create", BOOL, false)
             .build();
 
     @Internal

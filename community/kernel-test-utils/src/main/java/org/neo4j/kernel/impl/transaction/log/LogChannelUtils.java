@@ -86,16 +86,15 @@ public final class LogChannelUtils {
     }
 
     public static int estimateBytesWrittenToLogChannel(
-            int dataSize, KernelVersion kernelVersion, LogHeader logHeader, boolean withChecksumAndVersion) {
-        return estimateBytesWrittenToLogChannel(
-                dataSize, kernelVersion, withChecksumAndVersion, logHeader.getSegmentBlockSize());
+            int dataSize, LogHeader logHeader, boolean withChecksumAndVersion) {
+        return estimateBytesWrittenToLogChannel(dataSize, withChecksumAndVersion, logHeader);
     }
 
     public static int estimateBytesWrittenToLogChannel(
-            int dataSize, KernelVersion kernelVersion, boolean withChecksumAndVersion, int segmentSize) {
-        var logFormat = LogFormat.fromKernelVersion(kernelVersion);
-        if (logFormat.usesSegments()) {
-            int estimatedSegmentsRequired = ((dataSize - 1) / (segmentSize - LogEnvelopeHeader.HEADER_SIZE)) + 1;
+            int dataSize, boolean withChecksumAndVersion, LogHeader logHeader) {
+        if (logHeader.getLogFormatVersion().usesSegments()) {
+            int estimatedSegmentsRequired =
+                    ((dataSize - 1) / (logHeader.getSegmentBlockSize() - LogEnvelopeHeader.HEADER_SIZE)) + 1;
             return estimatedSegmentsRequired * LogEnvelopeHeader.HEADER_SIZE + dataSize;
         } else {
             if (withChecksumAndVersion) {

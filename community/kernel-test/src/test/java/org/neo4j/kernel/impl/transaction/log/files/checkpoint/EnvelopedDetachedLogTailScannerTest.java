@@ -58,7 +58,7 @@ import org.neo4j.test.extension.Neo4jLayoutExtension;
 
 @Neo4jLayoutExtension
 public class EnvelopedDetachedLogTailScannerTest {
-    private static final KernelVersion kernelVersion = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+    private static final KernelVersion kernelVersion = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 
     @Inject
     protected FileSystemAbstraction fs;

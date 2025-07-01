@@ -20,7 +20,7 @@
 package org.neo4j.internal.batchimport.input;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
 
 import java.io.Flushable;
 import java.io.IOException;
@@ -118,7 +118,7 @@ class ValueTypeTest {
 
         @Override
         public CountingChannel putVersion(byte version) {
-            if (KernelVersion.getForVersion(version).isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+            if (KernelVersion.getForVersion(version).isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)) {
                 // version is not part of the data when writing envelopes
                 return this;
             }
