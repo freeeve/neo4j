@@ -60,6 +60,7 @@ import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -118,12 +119,88 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       .atPosition(pos.offset, pos.line, pos.column)
       .build()
 
+  private def gqlWrongType(expr: String, context: String, expectedTypes: Seq[String], pos: InputPosition) =
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
+          .withParam(GqlParams.StringParam.input, expr)
+          .withParam(GqlParams.StringParam.context, context)
+          .withParam(GqlParams.ListParam.valueTypeList, expectedTypes.asJava)
+          .atPosition(pos.offset, pos.line, pos.column)
+          .build()
+      ).atPosition(pos.offset, pos.line, pos.column)
+      .build()
+
   private val initialState =
     SemanticState.clean
       .withFeature(SemanticFeature.MultipleDatabases)
       .withFeature(SemanticFeature.RelationshipPropertyValueAccessRules)
 
   // Privilege command tests
+
+  test("GRANT WRITE ON GRAPH * TO role, 42") {
+    val grantPrivilege = GrantPrivilege(
+      GraphPrivilege(
+        WriteAction,
+        AllGraphsScope()(pos1)
+      )(pos2),
+      immutable = false,
+      None,
+      List(LabelAllQualifier()(_)),
+      List(literalString("role", pos3), literalInt(42, pos4))
+    )(p)
+
+    grantPrivilege.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+      .error(
+        gqlWrongType("42", "rolename", Seq("STRING NOT NULL"), pos4),
+        initialState,
+        "rolename must be a String, or a String parameter.",
+        pos4
+      ).errors
+  }
+
+  test("DENY WRITE ON GRAPH * TO role, 42") {
+    val denyPrivilege = DenyPrivilege(
+      GraphPrivilege(
+        WriteAction,
+        AllGraphsScope()(pos1)
+      )(pos2),
+      immutable = false,
+      None,
+      List(LabelAllQualifier()(_)),
+      List(literalString("role", pos3), literalInt(42, pos4))
+    )(p)
+
+    denyPrivilege.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+      .error(
+        gqlWrongType("42", "rolename", Seq("STRING NOT NULL"), pos4),
+        initialState,
+        "rolename must be a String, or a String parameter.",
+        pos4
+      ).errors
+  }
+
+  test("REVOKE WRITE ON GRAPH * FROM role, 42") {
+    val revokePrivilege = RevokePrivilege(
+      GraphPrivilege(
+        WriteAction,
+        AllGraphsScope()(pos1)
+      )(pos2),
+      immutableOnly = false,
+      None,
+      List(LabelAllQualifier()(_)),
+      List(literalString("role", pos3), literalInt(42, pos4)),
+      RevokeBothType()(pos)
+    )(p)
+
+    revokePrivilege.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+      .error(
+        gqlWrongType("42", "rolename", Seq("STRING NOT NULL"), pos4),
+        initialState,
+        "rolename must be a String, or a String parameter.",
+        pos4
+      ).errors
+  }
 
   object attrLoader {
 
@@ -1414,7 +1491,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       })
   }
 
-  // Create/Alter user
+  // User command tests
 
   private def authId(id: String)(p: InputPosition): AuthId = authId(literalString(id))(p)
   private def authId(id: Expression)(p: InputPosition): AuthId = AuthId(id)(p)
@@ -2392,7 +2469,46 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "id must be a String, or a String parameter.", pos3).errors
+      .error(
+        gqlWrongType("42", "id", Seq("STRING NOT NULL"), pos3),
+        initialState,
+        "id must be a String, or a String parameter.",
+        pos3
+      ).errors
+  }
+
+  test("CREATE USER foo SET AUTH PROVIDER 'foo' { SET ID $numberParam }") {
+    val createUser = CreateUser(
+      literalString("foo"),
+      UserOptions(None, None),
+      IfExistsThrowError,
+      List(Auth("foo", List(authId(parameter("numberParam", CTInteger, position = pos3))(pos2)))(pos1)),
+      None
+    )(p)
+
+    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+      .error(
+        gqlWrongType("$numberParam", "id", Seq("STRING NOT NULL"), pos3),
+        initialState,
+        "id must be a String, or a String parameter.",
+        pos3
+      ).errors
+  }
+
+  test("RENAME USER foo TO true") {
+    val renameUser = RenameUser(
+      literalString("foo"),
+      literalBoolean(booleanValue = true, pos2),
+      ifExists = false
+    )(p)
+
+    renameUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+      .error(
+        gqlWrongType("true", "to username", Seq("STRING NOT NULL"), pos2),
+        initialState,
+        "to username must be a String, or a String parameter.",
+        pos2
+      ).errors
   }
 
   test("ALTER USER foo") {
@@ -3068,7 +3184,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "id must be a String, or a String parameter.", pos3).errors
+      .error(
+        gqlWrongType("42", "id", Seq("STRING NOT NULL"), pos3),
+        initialState,
+        "id must be a String, or a String parameter.",
+        pos3
+      ).errors
   }
 
   test("ALTER USER foo REMOVE AUTH PROVIDER 42") {
@@ -3244,6 +3365,23 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         initialState,
         "Duplicate `SET AUTH 'foo'` clause.",
         pos3
+      ).errors
+  }
+
+  // Role command test
+
+  test("DROP ROLE 3.5 IF EXISTS") {
+    val dropRole = DropRole(
+      literalFloat(3.5, pos),
+      ifExists = true
+    )(p)
+
+    dropRole.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+      .error(
+        gqlWrongType("3.5", "rolename", Seq("STRING NOT NULL"), pos),
+        initialState,
+        "rolename must be a String, or a String parameter.",
+        pos
       ).errors
   }
 }

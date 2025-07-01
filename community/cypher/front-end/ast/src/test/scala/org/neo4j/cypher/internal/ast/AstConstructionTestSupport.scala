@@ -352,10 +352,15 @@ trait AstConstructionTestSupport {
   def literalString(stringValue: String): StringLiteral =
     StringLiteral(stringValue)(pos.withInputLength(0))
 
-  def literalBoolean(booleanValue: Boolean): BooleanLiteral = if (booleanValue) {
-    True()(pos)
+  def literalString(stringValue: String, position: InputPosition): StringLiteral =
+    StringLiteral(stringValue)(position.withInputLength(0))
+
+  def literalBoolean(booleanValue: Boolean): BooleanLiteral = literalBoolean(booleanValue, pos)
+
+  def literalBoolean(booleanValue: Boolean, position: InputPosition): BooleanLiteral = if (booleanValue) {
+    True()(position)
   } else {
-    False()(pos)
+    False()(position)
   }
 
   def literalInt(value: Long): SignedDecimalIntegerLiteral =
@@ -369,6 +374,9 @@ trait AstConstructionTestSupport {
 
   def literalFloat(floatValue: Double): DecimalDoubleLiteral =
     DecimalDoubleLiteral(floatValue.toString)(pos)
+
+  def literalFloat(floatValue: Double, position: InputPosition): DecimalDoubleLiteral =
+    DecimalDoubleLiteral(floatValue.toString)(position)
 
   def sensitiveLiteral(stringVal: String): SensitiveStringLiteral =
     SensitiveStringLiteral(stringVal.getBytes(StandardCharsets.UTF_8))(pos.withInputLength(0))

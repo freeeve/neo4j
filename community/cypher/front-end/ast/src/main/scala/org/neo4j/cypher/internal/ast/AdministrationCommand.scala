@@ -118,7 +118,13 @@ object AdministrationCommand {
     expression match {
       case _: StringLiteral                            => success
       case p: Parameter if p.parameterType == CTString => success
-      case exp => SemanticCheck.error(SemanticError(s"$value must be a String, or a String parameter.", exp.position))
+      case exp => SemanticCheck.error(SemanticError.invalidEntityType(
+          ExpressionStringifier().apply(exp),
+          value,
+          Seq("STRING NOT NULL"),
+          s"$value must be a String, or a String parameter.",
+          exp.position
+        ))
     }
 }
 
@@ -1212,7 +1218,9 @@ final case class DenyPrivilege(
     privilege match {
       case GraphPrivilege(MergeAdminAction, _) =>
         SemanticCheck.error(SemanticError.denyMergeUnsupported(position))
-      case _ => super.semanticCheck
+      case _ => super.semanticCheck chain semanticCheckFold(roleNames)(roleName =>
+          checkIsStringLiteralOrParameter("rolename", roleName)
+        )
     }
   }
 }
