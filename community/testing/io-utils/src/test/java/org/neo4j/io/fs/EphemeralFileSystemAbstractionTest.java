@@ -19,6 +19,8 @@
  */
 package org.neo4j.io.fs;
 
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,6 +28,9 @@ import static org.neo4j.io.fs.FileSystemAbstraction.INVALID_FILE_DESCRIPTOR;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.StandardOpenOption;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 public class EphemeralFileSystemAbstractionTest extends FileSystemAbstractionTest {
@@ -63,5 +68,27 @@ public class EphemeralFileSystemAbstractionTest extends FileSystemAbstractionTes
         }
         buffer.flip();
         assertThat(buffer.get()).isEqualTo((byte) 1);
+    }
+
+    @Test
+    void shouldFailToOpenFileThatAlreadyExistsWithOpenOptionCreateNew() throws IOException {
+        fsa.mkdirs(path);
+        final var file = path.resolve("file");
+        // Create file
+        fsa.open(file, Set.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE));
+        // Try to create again
+        assertThatThrownBy(() -> fsa.open(file, Set.of(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)))
+                .isInstanceOf(FileAlreadyExistsException.class);
+    }
+
+    @Test
+    void shouldSucceedInOpeningFileThatAlreadyExistsWithOpenOptionCreate() throws IOException {
+        fsa.mkdirs(path);
+        final var file = path.resolve("file");
+        // Create file
+        fsa.open(file, Set.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE));
+        // Try to create again
+        assertThatNoException()
+                .isThrownBy(() -> fsa.open(file, Set.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE)));
     }
 }

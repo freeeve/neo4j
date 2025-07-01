@@ -42,6 +42,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Clock;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -161,7 +162,7 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
 
     @Override
     public synchronized StoreChannel open(Path fileName, Set<OpenOption> options) throws IOException {
-        return getStoreChannel(fileName);
+        return getStoreChannel(fileName, options.contains(StandardOpenOption.CREATE_NEW));
     }
 
     @Override
@@ -190,7 +191,7 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
 
     @Override
     public synchronized StoreChannel read(Path fileName) throws IOException {
-        return getStoreChannel(fileName);
+        return getStoreChannel(fileName, false);
     }
 
     @Override
@@ -418,9 +419,12 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
         return found.toArray(new Path[0]);
     }
 
-    private StoreChannel getStoreChannel(Path fileName) throws IOException {
+    private synchronized StoreChannel getStoreChannel(Path fileName, boolean createExclusive) throws IOException {
         EphemeralFileData data = files.get(canonicalFile(fileName));
         if (data != null) {
+            if (createExclusive) {
+                throw new FileAlreadyExistsException("'" + fileName + "' already exists");
+            }
             return new StoreFileChannel(new EphemeralFileChannel(
                     data,
                     () -> new EphemeralFileStillOpenException(
