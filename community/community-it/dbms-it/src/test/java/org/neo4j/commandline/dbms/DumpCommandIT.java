@@ -86,10 +86,12 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DisabledForRoot;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.utils.TestDirectory;
 import picocli.CommandLine;
 
 @Neo4jLayoutExtension
+@SkipOnSpd(reason = "Plain dump/load tests do not work for SPD")
 class DumpCommandIT {
     @Inject
     private TestDirectory testDirectory;
