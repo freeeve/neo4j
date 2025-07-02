@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.parser.v25.ast.factory
 
 import org.antlr.v4.runtime.tree.TerminalNode
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.CatalogName
@@ -29,6 +30,7 @@ import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphFunctionReference
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
@@ -66,6 +68,7 @@ import org.neo4j.cypher.internal.ast.SetPropertyItem
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Skip
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.StrictlyAdditiveProjection
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsConcurrencyParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
@@ -244,7 +247,7 @@ trait StatementBuilder extends Cypher25ParserListener {
 
   final override def exitReturnItems(ctx: Cypher25Parser.ReturnItemsContext): Unit = {
     ctx.ast = ReturnItems(
-      includeExisting = ctx.TIMES() != null,
+      if (ctx.TIMES() != null) AdditiveProjection else FreeProjection,
       items = astSeq(ctx.returnItem())
     )(pos(ctx))
   }
@@ -474,7 +477,7 @@ trait StatementBuilder extends Cypher25ParserListener {
   ): Unit = {
     ctx.ast = With(
       distinct = false,
-      ReturnItems(includeExisting = true, Seq.empty)(pos(ctx)),
+      ReturnItems(AdditiveProjection, Seq.empty)(pos(ctx)),
       None,
       None,
       None,
@@ -495,9 +498,8 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast = With(
       distinct = false,
       ReturnItems(
-        includeExisting = true,
-        astSeq(ctx.children, offset = 1, step = 2),
-        overrideExisting = false
+        StrictlyAdditiveProjection,
+        astSeq(ctx.children, offset = 1, step = 2)
       )(pos(ctx)),
       None,
       None,
@@ -678,7 +680,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     val limit = astOpt[Limit](ctx.limit())
     ctx.ast = With(
       distinct = false,
-      ReturnItems(includeExisting = true, Seq.empty)(pos(ctx)),
+      ReturnItems(AdditiveProjection, Seq.empty)(pos(ctx)),
       orderBy,
       skip,
       limit,

@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.CallClause
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.GraphSelection
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -102,7 +103,7 @@ trait RewriteProcedureCalls {
           Return(
             distinct = false,
             returnItems = ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               items = callResults.map(item =>
                 AliasedReturnItem(item.variable.copyId, item.variable.copyId)(resolved.position)
               )

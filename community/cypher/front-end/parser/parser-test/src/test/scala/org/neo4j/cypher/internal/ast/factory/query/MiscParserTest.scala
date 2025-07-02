@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast.factory.query
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Remove
@@ -263,7 +264,7 @@ class MiscParserTest extends AstParsingTestBase {
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             List(UnaliasedReturnItem(varFor("m"), "m")(InputPosition(22, 1, 23))),
             None
           )(InputPosition(22, 1, 23)),
@@ -434,7 +435,7 @@ class MiscParserTest extends AstParsingTestBase {
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(AliasedReturnItem(
               ShortestPathExpression(ShortestPathsPatternPart(
                 RelationshipChain(
@@ -600,7 +601,11 @@ class MiscParserTest extends AstParsingTestBase {
   test("RETURN '\\\\'") {
     parsesTo[Statements](Statements(List(SingleQuery(List(Return(
       false,
-      ReturnItems(false, List(UnaliasedReturnItem(StringLiteral("\\")(pos.withInputLength(0)), "'\\\\'")(pos)), None)(
+      ReturnItems(
+        FreeProjection,
+        List(UnaliasedReturnItem(StringLiteral("\\")(pos.withInputLength(0)), "'\\\\'")(pos)),
+        None
+      )(
         pos
       ),
       None,

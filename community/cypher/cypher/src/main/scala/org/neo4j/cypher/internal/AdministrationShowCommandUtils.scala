@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Return
@@ -142,7 +143,7 @@ object AdministrationShowCommandUtils {
       // No YIELD or RETURN so just make up a RETURN with everything
       case (None, _) => Seq(Return(
           distinct = false,
-          ReturnItems(includeExisting = false, symbolsToReturnItems(defaultSymbols.map(_.name)))(InputPosition.NONE),
+          ReturnItems(FreeProjection, symbolsToReturnItems(defaultSymbols.map(_.name)))(InputPosition.NONE),
           genDefaultOrderBy(defaultSymbols.map(_.name), defaultOrder),
           None,
           None

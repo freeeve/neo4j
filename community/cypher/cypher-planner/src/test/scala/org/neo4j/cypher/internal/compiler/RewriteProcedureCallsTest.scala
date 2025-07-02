@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -75,7 +76,7 @@ class RewriteProcedureCallsTest extends CypherFunSuite with AstConstructionTestS
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(v"x", v"x")(pos),
               AliasedReturnItem(v"y", v"y")(pos)

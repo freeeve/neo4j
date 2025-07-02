@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
 import org.neo4j.cypher.internal.ast.AddedInRewriteShowCommands
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ProjectionClause
@@ -122,7 +123,7 @@ case object RewriteShowQuery extends Step with DefaultPostCondition with Prepara
       commandClause.moveWhereToProjection,
       With(
         distinct = false,
-        ReturnItems(includeExisting = true, Seq(), Some(defaultColumnOrder))(commandClause.position),
+        ReturnItems(AdditiveProjection, Seq(), Some(defaultColumnOrder))(commandClause.position),
         None,
         None,
         None,
@@ -134,7 +135,7 @@ case object RewriteShowQuery extends Step with DefaultPostCondition with Prepara
   }
 
   private def returnClause(position: InputPosition, defaultOrderOnColumns: List[String]): Return =
-    Return(ReturnItems(includeExisting = true, Seq(), Some(defaultOrderOnColumns))(position))(position)
+    Return(ReturnItems(AdditiveProjection, Seq(), Some(defaultOrderOnColumns))(position))(position)
       .copy(addedInRewrite = true)(position)
 
   private def lastPosition(c: ProjectionClause): InputPosition = {

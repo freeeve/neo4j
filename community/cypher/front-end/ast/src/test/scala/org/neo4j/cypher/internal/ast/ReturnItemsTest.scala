@@ -39,7 +39,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
     val item1 = AliasedReturnItem(literalString("a"), varFor("n"))(pos)
     val item2 = AliasedReturnItem(literalString("b"), varFor("n"))(pos)
 
-    val items = ReturnItems(includeExisting = false, Seq(item1, item2)) _
+    val items = ReturnItems(FreeProjection, Seq(item1, item2)) _
 
     val result = items.semanticCheck.run(SemanticState.clean)
 
@@ -56,7 +56,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
     val item1 = UnaliasedReturnItem(literalString("a"), "a") _
     val item2 = UnaliasedReturnItem(literalString("a"), "a") _
 
-    val items = ReturnItems(includeExisting = false, Seq(item1, item2)) _
+    val items = ReturnItems(FreeProjection, Seq(item1, item2)) _
 
     val result = items.semanticCheck.run(SemanticState.clean)
 
@@ -73,7 +73,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
     val item1 = AliasedReturnItem(literalString("a"), varFor("n"))(pos)
     val item2 = AliasedReturnItem(literalString("a"), varFor("m"))(pos)
 
-    val items = ReturnItems(includeExisting = false, Seq(item1, item2)) _
+    val items = ReturnItems(FreeProjection, Seq(item1, item2)) _
 
     val result = items.semanticCheck.run(SemanticState.clean)
 
@@ -177,7 +177,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
 
     tests.foreach { returnItems =>
       val result = ReturnItems.checkAmbiguousGrouping(
-        ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE)
+        ReturnItems(FreeProjection, returnItems)(InputPosition.NONE)
       ).run(SemanticState.clean, SemanticCheckContext.default)
 
       withClue(s"returnItems threw unexpected error: $returnItems") {
@@ -360,7 +360,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
 
     tests.foreach { case Scenario(returnItems, invalidExpr) =>
       val result = ReturnItems.checkAmbiguousGrouping(
-        ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE)
+        ReturnItems(FreeProjection, returnItems)(InputPosition.NONE)
       ).run(SemanticState.clean, SemanticCheckContext.default)
       val expectedErrorMessage = SemanticError.implicitGroupingExpressionInAggregationColumnErrorMessage(invalidExpr)
 
@@ -379,7 +379,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
       autoAliasedReturnItem(add(count(varFor("nx")), varFor("ny", InputPosition(4, 2, 3)), InputPosition(7, 3, 4)))
     )
     val result = ReturnItems.checkAmbiguousGrouping(
-      ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE)
+      ReturnItems(FreeProjection, returnItems)(InputPosition.NONE)
     ).run(SemanticState.clean, SemanticCheckContext.default)
 
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)

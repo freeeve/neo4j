@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.composite
 
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SubqueryCall
@@ -264,7 +265,7 @@ object CompositeQueryFragmenter {
       (parameter -> importVariable, ast.AliasedReturnItem(parameter, importVariable)(importVariable.position))
     }.unzip
     val position = scopeImports.head.position
-    val returnItems = ReturnItems(false, rewrittenItems)(position)
+    val returnItems = ReturnItems(FreeProjection, rewrittenItems)(position)
     // For convenience, return both a map of the new parameters and the rewritten WITH clause.
     ParameterisedWithClause(parameters.toMap, ast.With(returnItems)(position))
   }

@@ -771,7 +771,7 @@ case class TopLevelBraces(
         val returnVariables = innerQuery.returnVariables
         Return(returnItems =
           ReturnItems(
-            returnVariables.includeExisting,
+            if (returnVariables.includeExisting) AdditiveProjection else FreeProjection,
             returnVariables.explicitVariables.map(v =>
               AliasedReturnItem(v.copyId, v.copyId)(position)
             )

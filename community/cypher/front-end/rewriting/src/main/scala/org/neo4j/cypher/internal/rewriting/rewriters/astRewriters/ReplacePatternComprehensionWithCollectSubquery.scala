@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.CollectExpression
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -126,7 +127,7 @@ case class ReplacePatternComprehensionWithCollectSubquery(
           where = where
         )(pattern.position),
         Return(ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           items = Seq(returnItem)
         )(projection.position))(projection.position)
       ))(pc.position)

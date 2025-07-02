@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
 import org.neo4j.cypher.internal.ast.AddedInRewriteProcCall
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.ProcedureResult
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -45,7 +46,7 @@ case object ExpandCallWhere extends Step with DefaultPostCondition with Preparat
         case unresolved @ UnresolvedCall(_, _, _, Some(result @ ProcedureResult(_, optWhere @ Some(where))), _, _) =>
           val newResult = result.copy(where = None)(result.position)
           val newUnresolved = unresolved.copy(declaredResult = Some(newResult))(unresolved.position)
-          val newItems = ReturnItems(includeExisting = true, Seq.empty)(where.position)
+          val newItems = ReturnItems(AdditiveProjection, Seq.empty)(where.position)
           val newWith =
             With(distinct = false, newItems, None, None, None, optWhere, AddedInRewriteProcCall)(where.position)
           Seq(newUnresolved, newWith)

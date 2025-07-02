@@ -1918,7 +1918,7 @@ case class With(
     super.clauseSpecificSemanticCheck chain checkProjectionItems(returnItems)
 
   override def withReturnItems(items: Seq[ReturnItem]): With =
-    this.copy(returnItems = ReturnItems(returnItems.includeExisting, items)(returnItems.position))(this.position)
+    this.copy(returnItems = ReturnItems(returnItems.projectionType, items)(returnItems.position))(this.position)
 
   private def checkProjectionItems(returnItems: ReturnItems): SemanticCheck =
     withType match {
@@ -1980,18 +1980,18 @@ case class Return(
       SemanticPatternCheck.checkValidPropertyKeyNamesInReturnItems(returnItems)
 
   override def withReturnItems(items: Seq[ReturnItem]): Return =
-    this.copy(returnItems = ReturnItems(returnItems.includeExisting, items)(returnItems.position))(this.position)
+    this.copy(returnItems = ReturnItems(returnItems.projectionType, items)(returnItems.position))(this.position)
 
   def withReturnItems(returnItems: ReturnItems): Return =
     this.copy(returnItems = returnItems)(this.position)
 
   private def checkVariableScope: SemanticState => Seq[SemanticError] = s =>
     returnItems match {
-      case ReturnItems(star, _, _, _)
-        if star && s.currentScope.isEmpty && context == ScopeClauseSubqueryCall =>
+      case ReturnItems(AdditiveProjection, _, _)
+        if s.currentScope.isEmpty && context == ScopeClauseSubqueryCall =>
         Seq(SemanticError.invalidUseOfReturnStar(position))
-      case ReturnItems(star, _, _, _)
-        if star && (s.currentScope.isEmpty && s.currentScope.parent.fold(true)(_.isEmpty)) =>
+      case ReturnItems(AdditiveProjection, _, _)
+        if (s.currentScope.isEmpty && s.currentScope.parent.fold(true)(_.isEmpty)) =>
         Seq(SemanticError.invalidUseOfReturnStar(position))
       case _ =>
         Seq.empty
@@ -2010,7 +2010,7 @@ case class Yield(
   override def name: String = "YIELD"
 
   override def withReturnItems(items: Seq[ReturnItem]): Yield =
-    this.copy(returnItems = ReturnItems(returnItems.includeExisting, items)(returnItems.position))(this.position)
+    this.copy(returnItems = ReturnItems(returnItems.projectionType, items)(returnItems.position))(this.position)
 
   def withReturnItems(returnItems: ReturnItems): Yield =
     this.copy(returnItems = returnItems)(this.position)

@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Access
 import org.neo4j.cypher.internal.ast.AccessDatabaseAction
 import org.neo4j.cypher.internal.ast.ActionResourceBase
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
@@ -137,6 +138,7 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.FileResource
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.FulltextIndexes
 import org.neo4j.cypher.internal.ast.FunctionQualifier
 import org.neo4j.cypher.internal.ast.GrantPrivilege
@@ -1540,28 +1542,28 @@ class AstGenerator(
 
   def _with: Gen[With] = for {
     distinct <- boolean
-    inclExisting <- boolean
+    projectionType <- oneOf(AdditiveProjection, FreeProjection)
     retItems <- oneOrMore(_returnItem)
     orderBy <- option(_orderBy)
     skip <- option(_skip)
     limit <- option(_limit)
     where <- option(_where)
-  } yield With(distinct, ReturnItems(inclExisting, retItems)(pos), orderBy, skip, limit, where)(pos)
+  } yield With(distinct, ReturnItems(projectionType, retItems)(pos), orderBy, skip, limit, where)(pos)
 
   def _orderByAndPageStatement: Gen[With] = for {
     orderBy <- option(_orderBy)
     skip <- option(_skip)
     limit <- option(_limit)
-  } yield With(distinct = false, ReturnItems(includeExisting = true, Seq.empty)(pos), orderBy, skip, limit, None)(pos)
+  } yield With(distinct = false, ReturnItems(AdditiveProjection, Seq.empty)(pos), orderBy, skip, limit, None)(pos)
 
   def _return: Gen[Return] = for {
     distinct <- boolean
-    inclExisting <- boolean
+    projectionType <- oneOf(AdditiveProjection, FreeProjection)
     retItems <- oneOrMore(_returnItem)
     orderBy <- option(_orderBy)
     skip <- option(_skip)
     limit <- option(_limit)
-  } yield Return(distinct, ReturnItems(inclExisting, retItems)(pos), orderBy, skip, limit)(pos)
+  } yield Return(distinct, ReturnItems(projectionType, retItems)(pos), orderBy, skip, limit)(pos)
 
   def _finish: Gen[Finish] = const(Finish()(pos))
 
@@ -1571,7 +1573,7 @@ class AstGenerator(
     skip <- option(_signedDecIntLit.map(Skip(_)(pos)))
     limit <- option(_signedDecIntLit.map(Limit(_)(pos)))
     where <- option(_where)
-  } yield Yield(ReturnItems(includeExisting = false, retItems)(pos), orderBy, skip, limit, where)(pos)
+  } yield Yield(ReturnItems(FreeProjection, retItems)(pos), orderBy, skip, limit, where)(pos)
 
   def _yieldItem: Gen[ReturnItem] = for {
     var1 <- _variable
@@ -2246,7 +2248,7 @@ class AstGenerator(
     val (orderBy, where) = CommandClause.updateAliasedVariablesFromYieldInOrderByAndWhere(yieldClause)
     val withClause = With(
       distinct = false,
-      ReturnItems(includeExisting = true, Seq(), itemOrder)(returnItems.position),
+      ReturnItems(AdditiveProjection, Seq(), itemOrder)(returnItems.position),
       orderBy,
       yieldClause.skip,
       yieldClause.limit,
@@ -2260,7 +2262,7 @@ class AstGenerator(
   private def getFullWithStarFromYield =
     With(
       distinct = false,
-      ReturnItems(includeExisting = true, Seq())(pos),
+      ReturnItems(AdditiveProjection, Seq())(pos),
       None,
       None,
       None,

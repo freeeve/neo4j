@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ShowAliases
@@ -49,7 +50,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
           _,
           Some(Left((
             Yield(
-              ReturnItems(returnStar, _, Some(columns), _),
+              ReturnItems(AdditiveProjection, _, Some(columns)),
               None,
               None,
               None,
@@ -58,7 +59,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
             None
           ))),
           _
-        ) if returnStar =>
+        ) =>
         columns shouldBe List(
           "name",
           "type",
@@ -90,7 +91,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
           None,
           Some(Left((
             Yield(
-              ReturnItems(returnStar, _, Some(columns), _),
+              ReturnItems(AdditiveProjection, _, Some(columns)),
               None,
               None,
               None,
@@ -99,7 +100,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
             None
           ))),
           _
-        ) if returnStar =>
+        ) =>
         columns shouldBe List(
           "name",
           "composite",
@@ -129,7 +130,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
           true,
           Some(Left((
             Yield(
-              ReturnItems(returnStar, _, Some(columns), _),
+              ReturnItems(AdditiveProjection, _, Some(columns)),
               None,
               None,
               None,
@@ -138,7 +139,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
             None
           ))),
           _
-        ) if returnStar =>
+        ) =>
         columns shouldBe List(
           "role"
         )
@@ -168,7 +169,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
           false,
           Some(Left((
             Yield(
-              ReturnItems(returnStar, _, Some(columns), _),
+              ReturnItems(AdditiveProjection, _, Some(columns)),
               None,
               None,
               None,
@@ -177,7 +178,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
             None
           ))),
           _
-        ) if returnStar =>
+        ) =>
         columns shouldBe List(
           "command"
         )

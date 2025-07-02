@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.GraphSelection
 import org.neo4j.cypher.internal.ast.InputDataStream
 import org.neo4j.cypher.internal.ast.Query
@@ -122,7 +123,7 @@ case class FabricStitcher(
         Variable(Apply.CALL_IN_TX_ROW)(pos, Variable.isIsolatedDefault)
       )(pos)
     val postUnwindWith = With(ReturnItems(
-      includeExisting = false,
+      FreeProjection,
       items =
         for {
           varName <- originalExec.importColumns :+ Apply.CALL_IN_TX_ROW_ID
@@ -438,7 +439,7 @@ private object Ast {
     conditionally(
       columns.nonEmpty,
       With(ReturnItems(
-        includeExisting = false,
+        FreeProjection,
         items =
           for {
             varName <- columns
@@ -468,7 +469,7 @@ private object Ast {
 
   def aliasedReturn(names: Seq[String], pos: InputPosition): Return =
     Return(ReturnItems(
-      includeExisting = false,
+      FreeProjection,
       items =
         for {
           name <- names

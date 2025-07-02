@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItem
@@ -50,20 +51,16 @@ case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty, in
 
   private val rewriter = Rewriter.lift {
     case clause @ With(_, values, _, _, _, _, _) if values.includeExisting =>
-      val newReturnItems =
-        if (values.includeExisting) returnItems(clause, values.items, values.defaultOrderOnColumns) else values
+      val newReturnItems = returnItems(clause, values.items, values.defaultOrderOnColumns)
       clause.copy(returnItems = newReturnItems)(clause.position)
 
     case clause @ Return(_, values, _, _, _, excludedNames, _, _) if values.includeExisting =>
       val newReturnItems =
-        if (values.includeExisting)
-          returnItems(clause, values.items, values.defaultOrderOnColumns, excludedNames ++ exclude ++ inScope)
-        else values
+        returnItems(clause, values.items, values.defaultOrderOnColumns, excludedNames ++ exclude ++ inScope)
       clause.copy(returnItems = newReturnItems, excludedNames = Set.empty)(clause.position)
 
     case clause @ Yield(values, _, _, _, _) if values.includeExisting =>
-      val newReturnItems =
-        if (values.includeExisting) returnItems(clause, values.items, values.defaultOrderOnColumns) else values
+      val newReturnItems = returnItems(clause, values.items, values.defaultOrderOnColumns)
       clause.copy(returnItems = newReturnItems)(clause.position)
 
     case clause @ ScopeClauseSubqueryCall(iq, importAll, imports, _, _) =>
@@ -108,7 +105,7 @@ case class ExpandStar(state: SemanticState, exclude: Set[String] = Set.empty, in
     }
 
     val newItems = expandedItems ++ listedItems
-    ReturnItems(includeExisting = false, newItems)(clausePos)
+    ReturnItems(FreeProjection, newItems)(clausePos)
   }
 
   private def importVariables(call: SubqueryCall): Seq[Variable] = {

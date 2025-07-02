@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.factory.expression
 
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -877,7 +878,7 @@ class ExpressionLabelExpressionsParserTest extends AstParsingTestBase {
     parsesTo[Statements](Statements(Seq(SingleQuery(Seq(Return(
       distinct = false,
       ReturnItems(
-        includeExisting = false,
+        FreeProjection,
         Seq(UnaliasedReturnItem(
           ListComprehension(
             ExtractScope(
@@ -909,7 +910,7 @@ class ExpressionLabelExpressionsParserTest extends AstParsingTestBase {
     parsesTo[Statements](Statements(Seq(SingleQuery(Seq(Return(
       distinct = false,
       ReturnItems(
-        includeExisting = false,
+        FreeProjection,
         Seq(UnaliasedReturnItem(
           ListComprehension(
             ExtractScope(

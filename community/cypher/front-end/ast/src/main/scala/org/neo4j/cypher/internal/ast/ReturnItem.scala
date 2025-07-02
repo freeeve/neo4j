@@ -37,28 +37,22 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 /**
  *
- * @param includeExisting       Users must specify return items for the projection, either all variables (*), no variables (-), or explicit expressions.
- *                              Neo4j does not support the no variables case on the surface, but it may appear as the result of expanding the star (*) when no variables are in scope.
- *                              This field is true if the dash (-) was used by a user.
+ * @param projectionType The projection type describes whether existing variables are included and if whether they can be overridden.
  *
  * @param defaultOrderOnColumns For some clauses the default order of alphabetical columns is inconvenient, primarily show command clauses.
  *                              If this field is set, the given order will be used instead of the alphabetical order.
  */
 final case class ReturnItems(
-  includeExisting: Boolean,
+  projectionType: ProjectionType,
   items: Seq[ReturnItem],
-  defaultOrderOnColumns: Option[List[String]] = None,
-  overrideExisting: Boolean = true
+  defaultOrderOnColumns: Option[List[String]] = None
 )(val position: InputPosition) extends ASTNode with SemanticCheckable with SemanticAnalysisTooling {
-
-  def withExisting(includeExisting: Boolean): ReturnItems =
-    copy(includeExisting = includeExisting)(position)
 
   def withDefaultOrderOnColumns(defaultOrderOnColumns: List[String]): ReturnItems =
     copy(defaultOrderOnColumns = Some(defaultOrderOnColumns))(position)
 
   def semanticCheck: SemanticCheck = {
-    SemanticCheck.when(!overrideExisting) {
+    SemanticCheck.when(projectionType == StrictlyAdditiveProjection) {
       SemanticCheck.fromFunction((state: SemanticState) => {
         items.collectFirst {
           case AliasedReturnItem(_, variable) if state.currentScope.symbolNames contains variable.name =>
@@ -101,6 +95,13 @@ final case class ReturnItems(
   def containsAggregate: Boolean = items.exists(_.expression.containsAggregate)
 
   def isSimple: Boolean = items.forall(_.expression.isSimple)
+
+  /*
+   * Users must specify return items for the projection, either all variables (*), no variables (-), or explicit expressions.
+   * Neo4j does not support the no variables case on the surface, but it may appear as the result of expanding the star (*) when no variables are in scope.
+   * This field is true if the dash (-) was used by a user.
+   */
+  val includeExisting: Boolean = projectionType == AdditiveProjection || projectionType == StrictlyAdditiveProjection
 }
 
 sealed trait ReturnItem extends ASTNode with SemanticCheckable {
@@ -116,6 +117,20 @@ sealed trait ReturnItem extends ASTNode with SemanticCheckable {
 
   def withName(name: LogicalVariable)(position: InputPosition): ReturnItem
 }
+
+sealed trait ProjectionType
+
+// Do not include existing variables (unless explicitly listed in the return items)
+// WITH x, YIELD x, RETURN x, SKIP ..., LIMIT ..., ORDER BY ..., FILTER ...
+case object FreeProjection extends ProjectionType
+
+// Include existing variables, allow override
+// WITH *, YIELD *, RETURN *
+case object AdditiveProjection extends ProjectionType
+
+// Including existing variables, fail on override
+// LET ...
+case object StrictlyAdditiveProjection extends ProjectionType
 
 case class UnaliasedReturnItem(expression: Expression, inputText: String)(val position: InputPosition)
     extends ReturnItem {

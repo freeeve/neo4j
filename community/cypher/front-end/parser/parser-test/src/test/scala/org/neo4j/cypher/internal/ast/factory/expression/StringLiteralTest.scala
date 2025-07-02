@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.factory.expression
 
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.Return
@@ -41,7 +42,7 @@ class StringLiteralTest extends AstParsingTestBase {
                 Return(
                   distinct = false,
                   returnItems = ReturnItems(
-                    includeExisting = true,
+                    AdditiveProjection,
                     items = List(),
                     defaultOrderOnColumns = None
                   )(pos),
@@ -77,7 +78,7 @@ class StringLiteralTest extends AstParsingTestBase {
                   Return(
                     distinct = false,
                     returnItems = ReturnItems(
-                      includeExisting = true,
+                      AdditiveProjection,
                       items = List(),
                       defaultOrderOnColumns = None
                     )(pos),
@@ -113,7 +114,7 @@ class StringLiteralTest extends AstParsingTestBase {
                 Return(
                   distinct = false,
                   returnItems = ReturnItems(
-                    includeExisting = true,
+                    AdditiveProjection,
                     items = List(),
                     defaultOrderOnColumns = None
                   )(pos),
@@ -149,7 +150,7 @@ class StringLiteralTest extends AstParsingTestBase {
                   Return(
                     distinct = false,
                     returnItems = ReturnItems(
-                      includeExisting = true,
+                      AdditiveProjection,
                       items = List(),
                       defaultOrderOnColumns = None
                     )(pos),

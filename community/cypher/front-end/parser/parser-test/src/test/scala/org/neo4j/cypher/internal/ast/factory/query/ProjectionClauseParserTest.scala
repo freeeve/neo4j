@@ -17,9 +17,11 @@
 package org.neo4j.cypher.internal.ast.factory.query
 
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
@@ -28,19 +30,19 @@ import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 class ProjectionClauseParserTest extends AstParsingTestBase {
 
   test("WITH *") {
-    parsesTo[Clause](ast.With(ast.ReturnItems(includeExisting = true, Seq.empty)(pos))(pos))
+    parsesTo[Clause](ast.With(ast.ReturnItems(AdditiveProjection, Seq.empty)(pos))(pos))
   }
 
   test("WITH 1 AS a") {
     parsesTo[Clause](ast.With(ast.ReturnItems(
-      includeExisting = false,
+      FreeProjection,
       Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
     )(pos))(pos))
   }
 
   test("WITH *, 1 AS a") {
     parsesTo[Clause](ast.With(ast.ReturnItems(
-      includeExisting = true,
+      AdditiveProjection,
       Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
     )(pos))(pos))
   }
@@ -48,7 +50,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
   test("WITH * OFFSET 1 LIMIT 1") {
     parsesTo[Clause](ast.With(
       distinct = false,
-      ast.ReturnItems(includeExisting = true, Seq.empty)(pos),
+      ast.ReturnItems(AdditiveProjection, Seq.empty)(pos),
       orderBy = None,
       skip = Some(skip(1)),
       limit = Some(limit(1)),
@@ -60,7 +62,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
     parsesTo[Clause](ast.With(
       distinct = false,
       ast.ReturnItems(
-        includeExisting = false,
+        FreeProjection,
         Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
       )(pos),
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
@@ -74,7 +76,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
     parsesTo[Clause](ast.With(
       distinct = false,
       ast.ReturnItems(
-        includeExisting = false,
+        FreeProjection,
         Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
       )(pos),
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
@@ -88,7 +90,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
     parsesTo[Clause](ast.With(
       distinct = false,
       ast.ReturnItems(
-        includeExisting = true,
+        AdditiveProjection,
         Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
       )(pos),
       orderBy = None,
@@ -114,19 +116,19 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
   }
 
   test("RETURN *") {
-    parsesTo[Clause](ast.Return(ast.ReturnItems(includeExisting = true, Seq.empty)(pos))(pos))
+    parsesTo[Clause](ast.Return(ast.ReturnItems(AdditiveProjection, Seq.empty)(pos))(pos))
   }
 
   test("RETURN 1 AS a") {
     parsesTo[Clause](ast.Return(ast.ReturnItems(
-      includeExisting = false,
+      FreeProjection,
       Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
     )(pos))(pos))
   }
 
   test("RETURN *, 1 AS a") {
     parsesTo[Clause](ast.Return(ast.ReturnItems(
-      includeExisting = true,
+      AdditiveProjection,
       Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
     )(pos))(pos))
   }
@@ -134,7 +136,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
   test("RETURN * SKIP 1 LIMIT 1") {
     parsesTo[Clause](ast.Return(
       distinct = false,
-      ast.ReturnItems(includeExisting = true, Seq.empty)(pos),
+      ast.ReturnItems(AdditiveProjection, Seq.empty)(pos),
       orderBy = None,
       skip = Some(skip(1)),
       limit = Some(limit(1))
@@ -145,7 +147,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
     parsesTo[Clause](ast.Return(
       distinct = false,
       ast.ReturnItems(
-        includeExisting = false,
+        FreeProjection,
         items = List(
           AliasedReturnItem(
             literalInt(1),
@@ -163,7 +165,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
     parsesTo[Clause](ast.Return(
       distinct = false,
       ast.ReturnItems(
-        includeExisting = false,
+        FreeProjection,
         items = List(
           AliasedReturnItem(
             literalInt(1),
@@ -181,7 +183,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
     parsesTo[Clause](ast.Return(
       distinct = false,
       ast.ReturnItems(
-        includeExisting = true,
+        AdditiveProjection,
         items = List(
           AliasedReturnItem(
             literalInt(1),

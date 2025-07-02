@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -88,7 +89,7 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
           val pos = clause.position
           val withClause = With(
             distinct = false,
-            ReturnItems(includeExisting = false, withReturnItems.toIndexedSeq)(pos),
+            ReturnItems(FreeProjection, withReturnItems.toIndexedSeq)(pos),
             None,
             None,
             None,

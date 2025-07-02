@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.Return
@@ -137,7 +138,7 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
       with_(literal(2).as("x")),
       importingWithSubqueryCall(
         with_(literal(2).as("x")),
-        Return(ReturnItems(includeExisting = true, Seq())(itemsPos))(pos)
+        Return(ReturnItems(AdditiveProjection, Seq())(itemsPos))(pos)
       ),
       return_(literal(2).as("y"))
     )
@@ -165,11 +166,11 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
       importingWithSubqueryCall(union(
         singleQuery(
           with_(literal(1).as("x")),
-          Return(ReturnItems(includeExisting = true, Seq())(itemsPos1))(pos)
+          Return(ReturnItems(AdditiveProjection, Seq())(itemsPos1))(pos)
         ),
         singleQuery(
           with_(literal(3).as("x")),
-          Return(ReturnItems(includeExisting = true, Seq())(itemsPos2))(pos)
+          Return(ReturnItems(AdditiveProjection, Seq())(itemsPos2))(pos)
         )
       )),
       return_(literal(2).as("y"))

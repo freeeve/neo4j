@@ -1156,13 +1156,13 @@ trait AstConstructionTestSupport {
   }
 
   def with_(items: ReturnItem*): With =
-    With(ReturnItems(includeExisting = false, items)(pos))(pos)
+    With(ReturnItems(FreeProjection, items)(pos))(pos)
 
   def withAll(items: ReturnItem*): With =
-    With(ReturnItems(includeExisting = true, items)(pos))(pos)
+    With(ReturnItems(AdditiveProjection, items)(pos))(pos)
 
   def withDistinct(items: ReturnItem*): With =
-    With(distinct = true, ReturnItems(includeExisting = false, items)(pos), None, None, None, None)(pos)
+    With(distinct = true, ReturnItems(FreeProjection, items)(pos), None, None, None, None)(pos)
 
   def withAdditionalItemsTyped(withType: WithType, items: ReturnItem*): With =
     With(distinct = false, returnAdditionalItems(items: _*), None, None, None, None, withType = withType)(pos)
@@ -1221,39 +1221,41 @@ trait AstConstructionTestSupport {
     return_(items.map(item => aliasedReturnItem(varFor(item))): _*)
 
   def return_(items: ReturnItem*): Return =
-    Return(ReturnItems(includeExisting = false, items)(pos))(pos)
+    Return(ReturnItems(FreeProjection, items)(pos))(pos)
 
   def return_(ob: OrderBy, items: ReturnItem*): Return =
-    Return(distinct = false, ReturnItems(includeExisting = false, items)(pos), Some(ob), None, None)(pos)
+    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), Some(ob), None, None)(pos)
 
   def return_(skip: Skip, items: ReturnItem*): Return =
-    Return(distinct = false, ReturnItems(includeExisting = false, items)(pos), None, Some(skip), None)(pos)
+    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), None, Some(skip), None)(pos)
 
   def return_(limit: Limit, items: ReturnItem*): Return =
-    Return(distinct = false, ReturnItems(includeExisting = false, items)(pos), None, None, Some(limit))(pos)
+    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), None, None, Some(limit))(pos)
 
   def return_(ob: OrderBy, skip: Skip, limit: Limit, items: ReturnItem*): Return =
-    Return(distinct = false, ReturnItems(includeExisting = false, items)(pos), Some(ob), Some(skip), Some(limit))(pos)
+    Return(distinct = false, ReturnItems(FreeProjection, items)(pos), Some(ob), Some(skip), Some(limit))(pos)
 
   def returnDistinct(items: ReturnItem*): Return =
-    Return(distinct = true, ReturnItems(includeExisting = false, items)(pos), None, None, None)(pos)
+    Return(distinct = true, ReturnItems(FreeProjection, items)(pos), None, None, None)(pos)
 
   def returnDistinct(ob: OrderBy, skip: Skip, limit: Limit, items: ReturnItem*): Return =
-    Return(distinct = true, ReturnItems(includeExisting = false, items)(pos), Some(ob), Some(skip), Some(limit))(pos)
+    Return(distinct = true, ReturnItems(FreeProjection, items)(pos), Some(ob), Some(skip), Some(limit))(pos)
 
   def returnAll: Return = Return(returnAllItems)(pos)
 
   def returnAll(items: ReturnItem*): Return =
-    Return(ReturnItems(includeExisting = true, items)(pos))(pos)
+    Return(ReturnItems(AdditiveProjection, items)(pos))(pos)
 
-  def returnAllItems: ReturnItems = ReturnItems(includeExisting = true, Seq.empty)(pos)
+  def returnAllItems: ReturnItems = ReturnItems(AdditiveProjection, Seq.empty)(pos)
 
-  def returnAllItems(position: InputPosition): ReturnItems = ReturnItems(includeExisting = true, Seq.empty)(position)
+  def returnAllItems(position: InputPosition): ReturnItems = ReturnItems(AdditiveProjection, Seq.empty)(position)
 
-  def returnItems(items: ReturnItem*): ReturnItems = ReturnItems(includeExisting = false, items)(pos)
+  def returnItems(items: ReturnItem*): ReturnItems = ReturnItems(FreeProjection, items)(pos)
+
+  def returnAllItems(items: ReturnItem*): ReturnItems = ReturnItems(AdditiveProjection, items)(pos)
 
   def returnAdditionalItems(items: ReturnItem*): ReturnItems =
-    ReturnItems(includeExisting = true, items, overrideExisting = false)(pos)
+    ReturnItems(StrictlyAdditiveProjection, items)(pos)
 
   def returnItem(expr: Expression, text: String, position: InputPosition = pos): UnaliasedReturnItem =
     UnaliasedReturnItem(expr, text)(position)

@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.parser.v5.ast.factory
 
 import org.antlr.v4.runtime.tree.TerminalNode
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.CatalogName
@@ -27,6 +28,7 @@ import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphFunctionReference
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
@@ -241,7 +243,7 @@ trait StatementBuilder extends Cypher5ParserListener {
 
   final override def exitReturnItems(ctx: Cypher5Parser.ReturnItemsContext): Unit = {
     ctx.ast = ReturnItems(
-      includeExisting = ctx.TIMES() != null,
+      if (ctx.TIMES() != null) AdditiveProjection else FreeProjection,
       items = astSeq(ctx.returnItem())
     )(pos(ctx))
   }
@@ -645,7 +647,7 @@ trait StatementBuilder extends Cypher5ParserListener {
     val limit = astOpt[Limit](ctx.limit())
     ctx.ast = With(
       distinct = false,
-      ReturnItems(includeExisting = true, Seq.empty)(pos(ctx)),
+      ReturnItems(AdditiveProjection, Seq.empty)(pos(ctx)),
       orderBy,
       skip,
       limit,

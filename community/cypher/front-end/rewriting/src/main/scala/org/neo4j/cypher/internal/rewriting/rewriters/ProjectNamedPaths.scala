@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.rewriting.rewriters
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.ProjectionClause
@@ -222,7 +223,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
         val newAcc = subquery.innerQuery.folder.treeFold(acc) {
           case query: SingleQuery => innerAcc =>
               val allReturnItems: Seq[ReturnItem] = query.partitionedClauses.importingWith.collect {
-                case With(_, ReturnItems(_, items, _, _), _, _, _, _, _) => items
+                case With(_, ReturnItems(_, items, _), _, _, _, _, _) => items
               }.getOrElse(Seq[ReturnItem]())
 
               val (pathReturnItems, nonPathReturnItems) = allReturnItems.partition {
@@ -244,7 +245,7 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
                   val returnItems: Seq[ReturnItem] = (returnItemsWithVariablesFromPaths ++ nonPathReturnItems).distinct
                   Some(With(
                     distinct = false,
-                    ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE),
+                    ReturnItems(FreeProjection, returnItems)(InputPosition.NONE),
                     None,
                     None,
                     None,

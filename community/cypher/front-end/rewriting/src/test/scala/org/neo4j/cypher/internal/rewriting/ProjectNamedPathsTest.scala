@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.OrderBy
@@ -255,7 +256,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
             )
@@ -272,7 +273,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(p, p)(pos)
           )
@@ -307,7 +308,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
             )
@@ -324,7 +325,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(p, p)(pos)
           )
@@ -361,7 +362,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -378,7 +379,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -415,7 +416,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(a, a)(pos)
             )
@@ -431,7 +432,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
             )
@@ -446,7 +447,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -463,7 +464,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -506,7 +507,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(b, b)(pos),
               AliasedReturnItem(r, r)(pos),
@@ -524,7 +525,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(
                 PathExpression(NodePathStep(
@@ -545,7 +546,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(
                 p,
@@ -565,7 +566,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(NodePathStep(
@@ -619,7 +620,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(
                 PathExpression(NodePathStep(
@@ -642,7 +643,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(NodePathStep(
@@ -696,7 +697,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -713,7 +714,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(NodePathStep(
@@ -763,7 +764,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(b, b)(pos),
               AliasedReturnItem(r, r)(pos),
@@ -781,7 +782,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(
                 PathExpression(NodePathStep(
@@ -802,7 +803,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -819,7 +820,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(NodePathStep(
@@ -875,7 +876,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -892,7 +893,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(NodePathStep(
@@ -949,7 +950,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(b, b)(pos),
               AliasedReturnItem(r, r)(pos),
@@ -969,7 +970,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(
                 PathExpression(NodePathStep(
@@ -997,7 +998,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -1014,7 +1015,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(NodePathStep(
@@ -1069,7 +1070,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -1086,7 +1087,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(
@@ -1148,7 +1149,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(s, s)(pos),
               AliasedReturnItem(r, r)(pos),
@@ -1168,7 +1169,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(
                 PathExpression(
@@ -1196,7 +1197,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -1213,7 +1214,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(
@@ -1263,7 +1264,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -1280,7 +1281,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -1317,7 +1318,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(a, a)(pos)
             )
@@ -1333,7 +1334,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos),
               AliasedReturnItem(a, a)(pos)
@@ -1349,7 +1350,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -1366,7 +1367,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -1405,7 +1406,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -1422,7 +1423,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -1461,7 +1462,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(a, a)(pos),
               AliasedReturnItem(b, b)(pos)
@@ -1478,7 +1479,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         With(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos),
               AliasedReturnItem(b, b)(pos)
@@ -1494,7 +1495,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
         Return(
           distinct = false,
           ReturnItems(
-            includeExisting = false,
+            FreeProjection,
             Seq(
               AliasedReturnItem(literalInt(1), one)(pos)
             )
@@ -1511,7 +1512,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -1549,7 +1550,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           Return(
             distinct = false,
             ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               Seq(
                 AliasedReturnItem(literalInt(1), one)(pos)
               )
@@ -1566,7 +1567,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           Return(
             distinct = false,
             ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               Seq(
                 AliasedReturnItem(literalInt(2), one)(pos)
               )
@@ -1591,7 +1592,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -1629,7 +1630,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           With(
             distinct = false,
             ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               Seq(
                 AliasedReturnItem(a, a)(pos)
               )
@@ -1645,7 +1646,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           With(
             distinct = false,
             ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               Seq(
                 AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
               )
@@ -1660,7 +1661,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           Return(
             distinct = false,
             ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               Seq(
                 AliasedReturnItem(literalInt(1), one)(pos)
               )
@@ -1677,7 +1678,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           With(
             distinct = false,
             ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               Seq(
                 AliasedReturnItem(a, a)(pos)
               )
@@ -1693,7 +1694,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           With(
             distinct = false,
             ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               Seq(
                 AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
               )
@@ -1708,7 +1709,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           Return(
             distinct = false,
             ReturnItems(
-              includeExisting = false,
+              FreeProjection,
               Seq(
                 AliasedReturnItem(literalInt(2), one)(pos)
               )
@@ -1727,7 +1728,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -1761,7 +1762,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       With(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -1776,7 +1777,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(p, p)(pos)
           )
@@ -1811,7 +1812,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       With(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos),
             AliasedReturnItem(a, a)(pos)
@@ -1827,7 +1828,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(p, p)(pos)
           )
@@ -1864,7 +1865,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       With(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(PathExpression(NodePathStep(a, NilPathStep()(pos))(pos))(pos), p)(pos)
           )
@@ -1890,7 +1891,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       With(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(p, p)(pos),
             AliasedReturnItem(PathExpression(NodePathStep(b, NilPathStep()(pos))(pos))(pos), q)(pos)
@@ -1906,7 +1907,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(p, p)(pos),
             AliasedReturnItem(q, q)(pos)
@@ -2082,7 +2083,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(
               PathExpression(NodePathStep(
@@ -2144,7 +2145,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           List(
             AliasedReturnItem(literalInt(1), varFor("x"))(pos)
           )
@@ -2180,7 +2181,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       With(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(function("length", pathExpression), l)(pos),
             AliasedReturnItem(CountStar()(pos), x)(pos)
@@ -2196,7 +2197,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       With(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(l, l)(pos),
             AliasedReturnItem(x, x)(pos)
@@ -2212,7 +2213,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(add(l, x), varFor("l + x"))(pos)
           )
@@ -2257,7 +2258,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       With(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(aId, aId)(pos)
           )
@@ -2272,7 +2273,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           List(
             AliasedReturnItem(aId, aId)(pos)
           )
@@ -2322,7 +2323,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       With(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(
             AliasedReturnItem(pathExpressionA, pId)(pos)
           )
@@ -2337,7 +2338,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           List(
             AliasedReturnItem(pId, pId)(pos)
           )

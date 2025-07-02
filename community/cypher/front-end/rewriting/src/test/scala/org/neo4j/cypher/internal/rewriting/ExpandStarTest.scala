@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
@@ -380,7 +381,7 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
     ).getOrElse(List.empty)
     w.copy(returnItems =
       w.returnItems.copy(
-        includeExisting = false,
+        FreeProjection,
         items = returnItems,
         defaultOrderOnColumns = None
       )(w.returnItems.position)

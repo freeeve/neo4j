@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.rewriting.conditions
 
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -47,7 +48,7 @@ class ContainsNamedPathOnlyForShortestPathTest extends CypherFunSuite with AstCo
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(AliasedReturnItem(varFor("n"), varFor("n"))(pos))
         )(pos),
         None,
@@ -75,7 +76,7 @@ class ContainsNamedPathOnlyForShortestPathTest extends CypherFunSuite with AstCo
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(AliasedReturnItem(varFor("n"), varFor("n"))(pos))
         )(pos),
         None,
@@ -102,7 +103,7 @@ class ContainsNamedPathOnlyForShortestPathTest extends CypherFunSuite with AstCo
       Return(
         distinct = false,
         ReturnItems(
-          includeExisting = false,
+          FreeProjection,
           Seq(AliasedReturnItem(varFor("n"), varFor("n"))(pos))
         )(pos),
         None,

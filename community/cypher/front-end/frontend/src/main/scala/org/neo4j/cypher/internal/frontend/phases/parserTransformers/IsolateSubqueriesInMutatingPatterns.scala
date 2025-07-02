@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CreateOrInsert
@@ -164,7 +165,7 @@ case object IsolateSubqueriesInMutatingPatterns extends StatementRewriter
             // That projects the extracted expressions
             val withClause = With(
               ReturnItems(
-                includeExisting = true,
+                AdditiveProjection,
                 items = rewrittenExpressions.map {
                   case RewrittenExpression(name, expression) =>
                     AliasedReturnItem(

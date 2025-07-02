@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.InputDataStream
 import org.neo4j.cypher.internal.ast.LoadCSV
@@ -262,7 +263,7 @@ object ClauseConverters extends LabelExpressionConversion {
     position: QueryProjection.Position
   ): PlannerQueryBuilder =
     clause match {
-      case Return(distinct, ReturnItems(star, items, _, _), optOrderBy, skip, limit, _, _, _) if !star =>
+      case Return(distinct, ReturnItems(FreeProjection, items, _), optOrderBy, skip, limit, _, _, _) =>
         val queryPagination = QueryPagination().withSkip(skip).withLimit(limit)
 
         val projection =
@@ -523,9 +524,9 @@ object ClauseConverters extends LabelExpressionConversion {
   }
 
   private def asReturnItems(current: QueryGraph, returnItems: ReturnItems): Seq[AliasedReturnItem] = returnItems match {
-    case ReturnItems(star, items, _, _) if star =>
+    case ri @ ReturnItems(_, items, _) if ri.includeExisting =>
       (QueryProjection.forVariables(current.allCoveredIds) ++ items).asInstanceOf[Seq[AliasedReturnItem]]
-    case ReturnItems(_, items, _, _) =>
+    case ReturnItems(_, items, _) =>
       items.asInstanceOf[Seq[AliasedReturnItem]]
     case _ =>
       Seq.empty

@@ -158,7 +158,7 @@ class OrderTest extends CypherFunSuite with AstConstructionTestSupport {
     tests.foreach { test =>
       val orderBy = OrderBy(test.sortItems)(InputPosition.NONE)
       val result =
-        orderBy.checkIllegalOrdering(ReturnItems(includeExisting = false, test.returnItems)(InputPosition.NONE))
+        orderBy.checkIllegalOrdering(ReturnItems(FreeProjection, test.returnItems)(InputPosition.NONE))
           .run(SemanticState.clean, SemanticCheckContext.default)
 
       result.errors should have size 0
@@ -181,7 +181,7 @@ class OrderTest extends CypherFunSuite with AstConstructionTestSupport {
       autoAliasedReturnItem(add(CountStar()(InputPosition(20, 1, 21)), literalInt(1)))
     )
     val orderBy = OrderBy(sortItems)(InputPosition.NONE)
-    val result = orderBy.checkIllegalOrdering(ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE))
+    val result = orderBy.checkIllegalOrdering(ReturnItems(FreeProjection, returnItems)(InputPosition.NONE))
       .run(SemanticState.clean, SemanticCheckContext.default)
     result.errors should equal(Seq(
       // Reports all offending aggregation expressions.
@@ -202,7 +202,7 @@ class OrderTest extends CypherFunSuite with AstConstructionTestSupport {
       autoAliasedReturnItem(add(CountStar()(InputPosition(20, 1, 21)), literalInt(1)))
     )
     val orderBy = OrderBy(sortItems)(InputPosition.NONE)
-    val result = orderBy.checkIllegalOrdering(ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE)).get
+    val result = orderBy.checkIllegalOrdering(ReturnItems(FreeProjection, returnItems)(InputPosition.NONE)).get
       .run(SemanticState.clean, SemanticCheckContext.default)
     val expectedErrorMessage = SemanticError.aggregateExpressionsInOrderBy(Seq("count(*)"), failingPosition).msg
 

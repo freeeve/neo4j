@@ -17,9 +17,11 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Finish
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
@@ -122,7 +124,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
       }
 
       val newItems = expandedItems ++ listedItems
-      ReturnItems(includeExisting = false, newItems)(clausePos)
+      ReturnItems(FreeProjection, newItems)(clausePos)
     }
 
     topDown(Rewriter.lift {
@@ -142,7 +144,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
         val selectionWith =
           With(
             ReturnItems(
-              true,
+              AdditiveProjection,
               Seq(AliasedReturnItem(
                 CaseExpression(
                   expression = None,
@@ -165,7 +167,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
             With(
               false,
               ReturnItems(
-                includeExisting = true,
+                AdditiveProjection,
                 Seq.empty
               )(pos),
               None,

@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.rewriting.conditions
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -48,7 +49,7 @@ class ContainsNoNodesOfTypeTest extends CypherFunSuite with AstConstructionTestS
   test("Fails when finding UnaliasedReturnItem") {
     val ast: ASTNode = Return(
       false,
-      ReturnItems(includeExisting = false, Seq(UnaliasedReturnItem(varFor("foo"), "foo") _)) _,
+      ReturnItems(FreeProjection, Seq(UnaliasedReturnItem(varFor("foo"), "foo") _)) _,
       None,
       None,
       None

@@ -17,6 +17,7 @@
 
 package org.neo4j.cypher.internal.parser.v5.ast.factory
 
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AllConstraints
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
@@ -31,6 +32,7 @@ import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.ExecutableBy
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.FulltextIndexes
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.KeyConstraints
@@ -185,9 +187,9 @@ trait DdlShowBuilder extends Cypher5ParserListener {
   ): Unit = {
     val returnItems =
       if (ctx.TIMES() != null)
-        ReturnItems(includeExisting = true, Seq.empty)(pos(ctx.YIELD().getSymbol))
+        ReturnItems(AdditiveProjection, Seq.empty)(pos(ctx.YIELD().getSymbol))
       else {
-        ReturnItems(includeExisting = false, astSeq[ReturnItem](ctx.yieldItem()))(pos(ctx.yieldItem().get(0)))
+        ReturnItems(FreeProjection, astSeq[ReturnItem](ctx.yieldItem()))(pos(ctx.yieldItem().get(0)))
       }
     ctx.ast = Yield(
       returnItems,
@@ -697,7 +699,7 @@ object DdlShowBuilder {
       val (orderBy, where) = CommandClause.updateAliasedVariablesFromYieldInOrderByAndWhere(yieldClause)
       With(
         distinct = false,
-        ReturnItems(includeExisting = true, Seq(), itemOrder)(returnItems.position),
+        ReturnItems(AdditiveProjection, Seq(), itemOrder)(returnItems.position),
         orderBy,
         yieldClause.skip,
         yieldClause.limit,

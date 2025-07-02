@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ShowAliases
@@ -100,7 +101,7 @@ case object ExpandShowWhere extends Step with DefaultPostCondition with Preparat
   private def whereToYield(where: Where, defaultColumns: List[String]): Some[Left[(Yield, None.type), Nothing]] =
     Some(Left((
       Yield(
-        ReturnItems(includeExisting = true, Seq.empty, Some(defaultColumns))(where.position),
+        ReturnItems(AdditiveProjection, Seq.empty, Some(defaultColumns))(where.position),
         None,
         None,
         None,

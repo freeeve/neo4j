@@ -17,9 +17,11 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
+import org.neo4j.cypher.internal.ast.AdditiveProjection
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Finish
+import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
@@ -138,7 +140,7 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
       val sq = Seq(ScopeClauseSubqueryCall(updated, isImportingAll = true, Seq.empty, None, optional = false)(pos))
 
       val returnItems = ReturnItems(
-        returnVars.includeExisting,
+        if (returnVars.includeExisting) AdditiveProjection else FreeProjection,
         returnsVarsWithAnon.map { case (o, anon) =>
           AliasedReturnItem(anon.copyId, Variable(o.name)(o.position, isIsolated = false))(o.position)
         }.toSeq
@@ -171,7 +173,7 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
             val pos = fin.position
             val returnItems =
               Seq(AliasedReturnItem(Count(Null()(pos))(pos), Variable(varName)(pos, isIsolated = false))(pos))
-            With(ReturnItems(includeExisting = false, returnItems)(pos), AddedInRewriteGeneral)(pos)
+            With(ReturnItems(FreeProjection, returnItems)(pos), AddedInRewriteGeneral)(pos)
           case x => x
         }
         acc.add(clauses.dropRight(1) :+ rewrittenFinish, Set(varName))

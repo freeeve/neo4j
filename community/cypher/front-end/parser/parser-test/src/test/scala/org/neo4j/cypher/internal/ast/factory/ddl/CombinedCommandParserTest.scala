@@ -1428,9 +1428,9 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           returnCypher5Types
         )(pos),
         returnClause(
-          returnItems(
+          returnAllItems(
             ast.AliasedReturnItem(isNotNull(literalString("")), varFor("ጤ", variablesAreEscaped))(pos)
-          ).withExisting(true),
+          ),
           Some(orderBy(
             ast.DescSortItem(SignedHexIntegerLiteral("-0x1")(pos))(pos),
             ast.DescSortItem(varFor("怭", variablesAreEscaped))(pos)
