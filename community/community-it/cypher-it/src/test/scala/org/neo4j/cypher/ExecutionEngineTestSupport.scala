@@ -159,168 +159,41 @@ trait ExecutionEngineHelper {
 
   protected def eengine: ExecutionEngine
 
-  /** Parameter object representing a query to be executed */
-  protected case class ExecutableQuery(
-    query: QueryType,
-    params: Map[String, Any],
-    queryExecutionConfiguration: QueryExecutionConfiguration,
-    tx: Option[InternalTransaction],
-    deadlockRetry: Boolean,
-    input: InputDataStream,
-    monitor: Option[QueryExecutionMonitor],
-    maximumResultRows: Option[Long],
-    runOnSpd: Boolean
-  ) {
+  protected def executableQuery(query: QueryType): ExecutableQuery =
+    ExecutableQuery(
+      graph,
+      query,
+      Map.empty,
+      QueryExecutionConfiguration.DEFAULT_CONFIG,
+      tx = None,
+      input = NoInput,
+      deadlockRetry = false,
+      monitor = None,
+      maximumResultRows = None,
+      databaseMode = TransactionalContext.DatabaseMode.SINGLE
+    )
 
-    def withParams(params: Map[String, Any]): ExecutableQuery =
-      copy(params = params)
-
-    def withDeadlockRetry: ExecutableQuery = copy(deadlockRetry = true)
-
-    def withTransaction(tx: InternalTransaction): ExecutableQuery = copy(tx = Some(tx))
-
-    def withConfig(queryExecutionConfiguration: QueryExecutionConfiguration): ExecutableQuery =
-      copy(queryExecutionConfiguration = queryExecutionConfiguration)
-
-    def withInput(input: InputDataStream): ExecutableQuery =
-      copy(input = input)
-
-    def withMonitor(monitor: QueryExecutionMonitor): ExecutableQuery =
-      copy(monitor = Some(monitor))
-
-    def withMaximumResultRows(rows: Long): ExecutableQuery =
-      copy(maximumResultRows = Some(rows))
-
-    def withMaximumResultRows(rows: Option[Long]): ExecutableQuery =
-      copy(maximumResultRows = rows)
-
-    def withSpd(runOnSpd: Boolean): ExecutableQuery =
-      copy(runOnSpd = runOnSpd)
-
-    private def execute(tx: InternalTransaction) = {
-      val subscriber = maximumResultRows match {
-        case Some(limit) => new RecordingQuerySubscriber(new QuerySubscriberProbe {
-            var count = 0
-            override def onRecordCompleted(): Unit = {
-              count += 1
-              if (count > limit) {
-                throw new ResultRecordLimitExceededException(s"Exceeded result record limit of $limit")
-              }
-            }
-          })
-        case None => new RecordingQuerySubscriber
-      }
-
-      val mode = if (runOnSpd) TransactionalContext.DatabaseMode.SHARDED else TransactionalContext.DatabaseMode.SINGLE
-      query match {
-        case ExecutionEngineHelper.TextQuery(text) =>
-          val context = graph.transactionalContext(tx, query = text -> params.toMap, queryExecutionConfiguration, mode)
-          val tbqc = new TransactionBoundQueryContext(TransactionalContextWrapper(context), new ResourceManager)
-          RewindableExecutionResult(
-            eengine.execute(
-              text,
-              ValueUtils.asParameterMapValue(asJavaMapDeep(params)),
-              context,
-              profile = false,
-              prePopulate = false,
-              subscriber,
-              monitor.getOrElse(eengine.defaultQueryExecutionMonitor)
-            ),
-            context,
-            tbqc,
-            subscriber
-          )
-
-        case ExecutionEngineHelper.ParsedQuery(fpq) =>
-          val context = graph.transactionalContext(tx, query = fpq.description -> params.toMap, dbMode = mode)
-          val tbqc = new TransactionBoundQueryContext(TransactionalContextWrapper(context), new ResourceManager)
-          RewindableExecutionResult(
-            eengine.execute(
-              query = fpq,
-              params = ValueUtils.asParameterMapValue(asJavaMapDeep(params)),
-              context = context,
-              prePopulate = false,
-              input = input,
-              queryMonitor = monitor.getOrElse(eengine.defaultQueryExecutionMonitor),
-              subscriber = subscriber
-            ),
-            context,
-            tbqc,
-            subscriber
-          )
-      }
-    }
-
-    private def withTx[T](f: InternalTransaction => T): T =
-      tx match {
-        case Some(tx) => f(tx)
-        case None     => graph.withTx(f)
-      }
-
-    @tailrec
-    private def retry(block: => RewindableExecutionResult): RewindableExecutionResult = {
-      try {
-        block
-      } catch {
-        case _: DeadlockDetectedException =>
-          retry(block)
-      }
-    }
-
-    def execute(): RewindableExecutionResult = {
-      if (deadlockRetry) {
-        retry(withTx(execute))
-      } else {
-        withTx(execute)
-      }
-    }
-
-    def executeOfficial(): Result = {
-      query match {
-        case TextQuery(text) =>
-          withTx(_.execute(text, asJavaMapDeep(params)))
-        case ParsedQuery(_) => throw new IllegalArgumentException("Cannot execute fully parsed query via tx.execute")
-      }
-    }
-  }
-
-  protected object ExecutableQuery {
-
-    def apply(query: QueryType): ExecutableQuery =
-      new ExecutableQuery(
-        query,
-        Map.empty,
-        QueryExecutionConfiguration.DEFAULT_CONFIG,
-        tx = None,
-        input = NoInput,
-        deadlockRetry = false,
-        monitor = None,
-        maximumResultRows = None,
-        runOnSpd = false
-      )
-
-    def apply(query: String): ExecutableQuery = apply(TextQuery(query))
-    def apply(fpq: FullyParsedQuery): ExecutableQuery = apply(ParsedQuery(fpq))
-  }
+  protected def executableQuery(query: String): ExecutableQuery = executableQuery(TextQuery(query))
+  protected def executableQuery(fpq: FullyParsedQuery): ExecutableQuery = executableQuery(ParsedQuery(fpq))
 
   protected def execute(q: String, params: (String, Any)*): RewindableExecutionResult =
-    ExecutableQuery(q).withParams(params.toMap).execute()
+    executableQuery(q).withParams(params.toMap).execute()
 
   protected def execute(q: String, params: Map[String, Any]): RewindableExecutionResult =
-    ExecutableQuery(q).withParams(params).execute()
+    executableQuery(q).withParams(params).execute()
 
   protected def executeWithQueryExecutionConfiguration(
     q: String,
     params: Map[String, Any],
     queryExecutionConfiguration: QueryExecutionConfiguration
   ): RewindableExecutionResult =
-    ExecutableQuery(q).withParams(params).withConfig(queryExecutionConfiguration).execute()
+    executableQuery(q).withParams(params).withConfig(queryExecutionConfiguration).execute()
 
   protected def executeWithRetry(q: String, params: (String, Any)*): RewindableExecutionResult =
-    ExecutableQuery(q).withParams(params.toMap).withDeadlockRetry.execute()
+    executableQuery(q).withParams(params.toMap).withDeadlockRetry.execute()
 
   protected def execute(q: String, params: Map[String, Any], tx: InternalTransaction): RewindableExecutionResult =
-    ExecutableQuery(q).withParams(params).withTransaction(tx).execute()
+    executableQuery(q).withParams(params).withTransaction(tx).execute()
 
   protected def execute(
     q: String,
@@ -328,22 +201,155 @@ trait ExecutionEngineHelper {
     tx: InternalTransaction,
     config: QueryExecutionConfiguration
   ): RewindableExecutionResult =
-    ExecutableQuery(q).withParams(params).withTransaction(tx).withConfig(config).execute()
+    executableQuery(q).withParams(params).withTransaction(tx).withConfig(config).execute()
 
   protected def execute(
     fpq: FullyParsedQuery,
     params: Map[String, Any],
     input: InputDataStream
   ): RewindableExecutionResult =
-    ExecutableQuery(fpq).withParams(params).withInput(input).execute()
+    executableQuery(fpq).withParams(params).withInput(input).execute()
 
   protected def executeOfficial(tx: InternalTransaction, q: String, params: (String, Any)*): Result =
-    ExecutableQuery(q).withTransaction(tx).withParams(params.toMap).executeOfficial()
+    executableQuery(q).withTransaction(tx).withParams(params.toMap).executeOfficial()
 
   protected def executeScalar[T](q: String, params: (String, Any)*): T =
-    ExecutionEngineHelper.scalar[T](ExecutableQuery(q).withParams(params.toMap).execute().toList)
+    ExecutionEngineHelper.scalar[T](executableQuery(q).withParams(params.toMap).execute().toList)
 
   protected def asScalaResult(result: Result): Iterator[Map[String, Any]] = result.asScala.map(converter.asDeepScalaMap)
 
-  class ResultRecordLimitExceededException(msg: String) extends Exception(msg)
 }
+
+/** Parameter object representing a query to be executed */
+case class ExecutableQuery(
+  graph: GraphDatabaseQueryService,
+  query: QueryType,
+  params: Map[String, Any],
+  queryExecutionConfiguration: QueryExecutionConfiguration,
+  tx: Option[InternalTransaction],
+  deadlockRetry: Boolean,
+  input: InputDataStream,
+  monitor: Option[QueryExecutionMonitor],
+  maximumResultRows: Option[Long],
+  databaseMode: TransactionalContext.DatabaseMode
+)(implicit indexSearchMonitor: IndexSearchMonitor) extends GraphIcing {
+
+  def withParams(params: Map[String, Any]): ExecutableQuery =
+    copy(params = params)
+
+  def withDeadlockRetry: ExecutableQuery = copy(deadlockRetry = true)
+
+  def withTransaction(tx: InternalTransaction): ExecutableQuery = copy(tx = Some(tx))
+
+  def withConfig(queryExecutionConfiguration: QueryExecutionConfiguration): ExecutableQuery =
+    copy(queryExecutionConfiguration = queryExecutionConfiguration)
+
+  def withGraph(graph: GraphDatabaseQueryService): ExecutableQuery =
+    copy(graph = graph)
+
+  def withInput(input: InputDataStream): ExecutableQuery =
+    copy(input = input)
+
+  def withMonitor(monitor: QueryExecutionMonitor): ExecutableQuery =
+    copy(monitor = Some(monitor))
+
+  def withMaximumResultRows(rows: Long): ExecutableQuery =
+    copy(maximumResultRows = Some(rows))
+
+  def withMaximumResultRows(rows: Option[Long]): ExecutableQuery =
+    copy(maximumResultRows = rows)
+
+  def withSpd(runOnSpd: Boolean): ExecutableQuery =
+    copy(databaseMode =
+      if (runOnSpd) TransactionalContext.DatabaseMode.SHARDED else TransactionalContext.DatabaseMode.SINGLE
+    )
+
+  private def execute(tx: InternalTransaction) = {
+    val subscriber = maximumResultRows match {
+      case Some(limit) => new RecordingQuerySubscriber(new QuerySubscriberProbe {
+          var count = 0
+          override def onRecordCompleted(): Unit = {
+            count += 1
+            if (count > limit) {
+              throw new ResultRecordLimitExceededException(s"Exceeded result record limit of $limit")
+            }
+          }
+        })
+      case None => new RecordingQuerySubscriber
+    }
+
+    val eengine = ExecutionEngineHelper.createEngine(graph)
+    query match {
+      case ExecutionEngineHelper.TextQuery(text) =>
+        val context =
+          graph.transactionalContext(tx, query = text -> params.toMap, queryExecutionConfiguration, databaseMode)
+        val tbqc = new TransactionBoundQueryContext(TransactionalContextWrapper(context), new ResourceManager)
+        RewindableExecutionResult(
+          eengine.execute(
+            text,
+            ValueUtils.asParameterMapValue(asJavaMapDeep(params)),
+            context,
+            profile = false,
+            prePopulate = false,
+            subscriber,
+            monitor.getOrElse(eengine.defaultQueryExecutionMonitor)
+          ),
+          context,
+          tbqc,
+          subscriber
+        )
+
+      case ExecutionEngineHelper.ParsedQuery(fpq) =>
+        val context = graph.transactionalContext(tx, query = fpq.description -> params.toMap, dbMode = databaseMode)
+        val tbqc = new TransactionBoundQueryContext(TransactionalContextWrapper(context), new ResourceManager)
+        RewindableExecutionResult(
+          eengine.execute(
+            query = fpq,
+            params = ValueUtils.asParameterMapValue(asJavaMapDeep(params)),
+            context = context,
+            prePopulate = false,
+            input = input,
+            queryMonitor = monitor.getOrElse(eengine.defaultQueryExecutionMonitor),
+            subscriber = subscriber
+          ),
+          context,
+          tbqc,
+          subscriber
+        )
+    }
+  }
+
+  private def withTx[T](f: InternalTransaction => T): T =
+    tx match {
+      case Some(tx) => f(tx)
+      case None     => graph.withTx(f)
+    }
+
+  @tailrec
+  private def retry(block: => RewindableExecutionResult): RewindableExecutionResult = {
+    try {
+      block
+    } catch {
+      case _: DeadlockDetectedException =>
+        retry(block)
+    }
+  }
+
+  def execute(): RewindableExecutionResult = {
+    if (deadlockRetry) {
+      retry(withTx(execute))
+    } else {
+      withTx(execute)
+    }
+  }
+
+  def executeOfficial(): Result = {
+    query match {
+      case TextQuery(text) =>
+        withTx(_.execute(text, asJavaMapDeep(params)))
+      case ParsedQuery(_) => throw new IllegalArgumentException("Cannot execute fully parsed query via tx.execute")
+    }
+  }
+}
+
+class ResultRecordLimitExceededException(msg: String) extends Exception(msg)

@@ -570,4 +570,16 @@ trait GraphDatabaseTestSupport
       )
     }
   }
+
+  implicit class ExecutableQueryExtension(query: ExecutableQuery) {
+
+    /** Simple way to run a single query against a local db for debugging */
+    def withGraph(path: Path, name: String = DEFAULT_DATABASE_NAME): ExecutableQuery = {
+      // the reason this method is in GraphDatabaseTestSupport and not in ExecutableQuery is because here we have
+      // a method for creating a DBMS that is overridden to return an enterprise DBMS in enterprise tests
+      val dbms = createDatabaseFactory(path).build()
+      val database = dbms.database(name)
+      query.withGraph(new GraphDatabaseCypherService(database))
+    }
+  }
 }
