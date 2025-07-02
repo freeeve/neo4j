@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
@@ -511,6 +512,13 @@ private class DefaultExpressionStringifier(
 
       case PathExpression(pathStep) =>
         pathSteps(pathStep)
+
+      case AllReducePredicate(Variable(acc), init, reductionStep, predicate) =>
+        val a = backtick(acc)
+        val i = inner(ast)(init)
+        val r = inner(ast)(reductionStep)
+        val p = inner(ast)(predicate)
+        s"allReduce($a = $i, $r, $p)"
 
       case ReduceExpression(ReduceScope(Variable(acc), Variable(identifier), expression), init, list) =>
         val a = backtick(acc)

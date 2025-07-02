@@ -28,8 +28,6 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 
 class AllReducePredicateParserTest extends AstParsingTestBase {
 
-  override protected def ignorePrettifier: Boolean = true // Prettifier round trip fails here, bug?
-
   test("allReduce(acc = 0, 1, 2)") {
     parsesToAllReducePredicate {
       AllReducePredicate(
