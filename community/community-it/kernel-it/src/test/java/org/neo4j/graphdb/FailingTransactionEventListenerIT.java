@@ -24,10 +24,10 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import org.junit.jupiter.api.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.graphdb.event.TransactionEventListenerAdapter;
 import org.neo4j.kernel.impl.api.KernelTransactions;
-import org.neo4j.kernel.internal.event.GlobalTransactionEventListeners;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 
@@ -47,14 +47,14 @@ public class FailingTransactionEventListenerIT {
     private GraphDatabaseService db;
 
     @Inject
-    private GlobalTransactionEventListeners txEventListeners;
+    private DatabaseManagementService managementService;
 
     @Inject
     private KernelTransactions kernelTransactions;
 
     @Test
     void shouldNotReturnTxToPoolTwiceWhenFailingInBeforeCommitEventListener() {
-        txEventListeners.registerTransactionEventListener(DEFAULT_DATABASE_NAME, FAILING_BEFORE_COMMIT);
+        managementService.registerTransactionEventListener(DEFAULT_DATABASE_NAME, FAILING_BEFORE_COMMIT);
 
         assertThatThrownBy(() -> {
             try (Transaction tx = db.beginTx()) {

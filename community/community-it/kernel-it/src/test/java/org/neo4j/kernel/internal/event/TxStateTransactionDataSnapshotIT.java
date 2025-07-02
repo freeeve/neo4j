@@ -39,6 +39,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension
 class TxStateTransactionDataSnapshotIT {
@@ -53,6 +54,7 @@ class TxStateTransactionDataSnapshotIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Properties read from store will be null for graph shard, resulting in less memory tracked")
     void countRemovedNodeWithPropertiesInTransactionStateSnapshot() {
         long nodeIdToDelete;
         int attachedPropertySize = (int) ByteUnit.mebiBytes(1);
@@ -89,6 +91,7 @@ class TxStateTransactionDataSnapshotIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Properties read from store will be null for graph shard, resulting in less memory tracked")
     void countRemovedRelationshipsWithPropertiesInTransactionStateSnapshot() {
         List<Long> relationshipsIdToDelete;
         int attachedPropertySize = (int) ByteUnit.mebiBytes(1);
@@ -133,6 +136,7 @@ class TxStateTransactionDataSnapshotIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Properties read from store will be null for graph shard, resulting in less memory tracked")
     void countChangedNodeInTransactionStateSnapshot() {
         long nodeIdToChange;
         int attachedPropertySize = (int) ByteUnit.mebiBytes(1);
@@ -179,6 +183,7 @@ class TxStateTransactionDataSnapshotIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Properties read from store will be null for graph shard, resulting in less memory tracked")
     void countChangedRelationshipInTransactionStateSnapshot() {
         long relationshipIdToChange;
         int attachedPropertySize = (int) ByteUnit.mebiBytes(1);

@@ -73,6 +73,7 @@ import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.TestLabels;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension
 class TestTransactionEvents {
@@ -194,6 +195,7 @@ class TestTransactionEvents {
     }
 
     @Test
+    @SkipOnSpd(reason = "Prev value read from store, https://trello.com/c/mPrKilTq/11771-transaction-listeners-for-spd")
     void shouldGetCorrectTransactionDataUponCommit() {
         // Create new data, nothing modified, just added/created
         ExpectedTransactionData expectedData = new ExpectedTransactionData();
@@ -380,6 +382,7 @@ class TestTransactionEvents {
     }
 
     @Test
+    @SkipOnSpd(reason = "Prev value read from store, https://trello.com/c/mPrKilTq/11771-transaction-listeners-for-spd")
     void deleteNodeRelTriggerPropertyRemoveEvents() {
         String node1Id;
         String node2Id;
@@ -624,6 +627,7 @@ class TestTransactionEvents {
     }
 
     @Test
+    @SkipOnSpd(reason = "Relationship deleted check based on the properties that were removed, none for graph shard")
     void shouldAccessRelationshipDataInAfterCommit() {
         // GIVEN
         final AtomicInteger accessCount = new AtomicInteger();
