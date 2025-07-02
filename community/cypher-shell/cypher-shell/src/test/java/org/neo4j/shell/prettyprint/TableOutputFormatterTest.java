@@ -136,7 +136,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
 
         Value point2d = new PointValue(new InternalPoint2D(4326, 42.78, 56.7));
         Value point3d = new PointValue(new InternalPoint3D(4326, 1.7, 26.79, 34.23));
-        Record record = new InternalRecord(keys, new Value[] {point2d, point3d});
+        Record record = new InternalRecord(keys, List.of(point2d, point3d));
 
         // when
         String actual = verbosePrinter.format(new ListBoltResult(asList(record), mock(ResultSummary.class)));
@@ -152,7 +152,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         List<String> keys = asList("d");
 
         Value duration = new DurationValue(new InternalIsoDuration(1, 2, 3, 4));
-        Record record = new InternalRecord(keys, new Value[] {duration});
+        Record record = new InternalRecord(keys, List.of(duration));
 
         // when
         String actual = verbosePrinter.format(new ListBoltResult(asList(record), mock(ResultSummary.class)));
@@ -167,7 +167,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         List<String> keys = asList("d");
 
         Value duration = new DurationValue(new InternalIsoDuration(1, 2, 3, 0));
-        Record record = new InternalRecord(keys, new Value[] {duration});
+        Record record = new InternalRecord(keys, List.of(duration));
 
         // when
         String actual = verbosePrinter.format(new ListBoltResult(asList(record), mock(ResultSummary.class)));
@@ -186,7 +186,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         List<String> keys = asList("col1", "col2");
 
         Value value = new NodeValue(new InternalNode(1, labels, propertiesAsMap));
-        Record record = new InternalRecord(keys, new Value[] {value});
+        Record record = new InternalRecord(keys, List.of(value));
 
         // when
         String actual = verbosePrinter.format(new ListBoltResult(asList(record), mock(ResultSummary.class)));
@@ -207,7 +207,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         RelationshipValue relationship =
                 new RelationshipValue(new InternalRelationship(1, 1, 2, "RELATIONSHIP_TYPE", propertiesAsMap));
 
-        Record record = new InternalRecord(keys, new Value[] {relationship});
+        Record record = new InternalRecord(keys, List.of(relationship));
 
         // when
         String actual = verbosePrinter.format(new ListBoltResult(asList(record), mock(ResultSummary.class)));
@@ -263,7 +263,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         InternalPath internalPath = new InternalPath(segments, nodes, relationships);
         Value value = new PathValue(internalPath);
 
-        Record record = new InternalRecord(keys, new Value[] {value});
+        Record record = new InternalRecord(keys, List.of(value));
 
         // when
         String actual = verbosePrinter.format(new ListBoltResult(asList(record), mock(ResultSummary.class)));
@@ -825,14 +825,14 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
 
     private static Record record(List<String> cols, List<Object> data) {
         assert cols.size() == data.size();
-        Value[] values = data.stream().map(Values::value).toArray(Value[]::new);
+        var values = data.stream().map(Values::value).toList();
         return new InternalRecord(cols, values);
     }
 
     class ThrowAfterN implements Iterator<Record> {
         int counter = 0;
         int n;
-        Record record = new InternalRecord(List.of("i"), new IntegerValue[] {new IntegerValue(1)});
+        Record record = new InternalRecord(List.of("i"), List.of(new IntegerValue(1)));
 
         public ThrowAfterN(int n) {
             this.n = n;

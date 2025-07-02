@@ -371,7 +371,8 @@ public class TableOutputFormatter implements OutputFormatter {
         }
         String[] columns = info.keySet().toArray(new String[0]);
         StringBuilder sb = new StringBuilder();
-        Record record = new InternalRecord(asList(columns), info.values().toArray(new Value[0]));
+        Record record =
+                new InternalRecord(asList(columns), info.values().stream().toList());
         formatResultAndCountRows(columns, Collections.singletonList(record).iterator(), line -> sb.append(line)
                 .append(OutputFormatter.NEWLINE));
         return sb.toString();
