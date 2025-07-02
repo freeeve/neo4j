@@ -177,7 +177,7 @@ public interface SchemaWrite {
      * Drop the constraint with the given name.
      *
      * @param name             The name of the constraint to be dropped.
-     * @param canDropDependent if the drop is privileged to drop a dependent constraint
+     * @param canDropDependent if the drop is allowed to drop a dependent constraint
      */
     void constraintDrop(String name, boolean canDropDependent) throws SchemaKernelException;
 
@@ -185,7 +185,7 @@ public interface SchemaWrite {
      * Drop the specific constraint.
      *
      * @param constraint descriptor of the constraint
-     * @param canDropDependent if the drop is privileged to drop a dependent constraint
+     * @param canDropDependent if the drop is allowed to drop a dependent constraint
      */
     void constraintDrop(ConstraintDescriptor constraint, boolean canDropDependent) throws SchemaKernelException;
 }
