@@ -76,6 +76,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccessExtended;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.time.SystemNanoClock;
@@ -172,7 +173,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             PagePrefetcher pagePrefetcher,
             StoreIdGenerator storeIdGenerator,
             DependencyResolver databaseDependencies,
-            ExceptionHandlerService exceptionHandlerService)
+            ExceptionHandlerService exceptionHandlerService,
+            VectorStoreCreator vectorStoreCreator)
             throws IOException {
         return delegate.instantiate(
                 fs,
@@ -199,7 +201,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 pagePrefetcher,
                 storeIdGenerator,
                 databaseDependencies,
-                exceptionHandlerService);
+                exceptionHandlerService,
+                vectorStoreCreator);
     }
 
     @Override

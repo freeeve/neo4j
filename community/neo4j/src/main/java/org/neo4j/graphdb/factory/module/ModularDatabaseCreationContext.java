@@ -82,6 +82,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
 
@@ -127,6 +128,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final DatabaseStartupController startupController;
     private final GlobalMemoryGroupTracker transactionsMemoryPool;
     private final GlobalMemoryGroupTracker otherMemoryPool;
+    private final VectorStoreCreator vectorStoreCreator;
     private final DatabaseMonitorsFactory databaseMonitorsFactory;
     private final StoreIdGenerator storeIdGenerator;
     private final ReadOnlyDatabases readOnlyDatabases;
@@ -157,6 +159,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             DatabaseIdContext databaseIdContext,
             TransactionalProcessFactory commitProcessFactory,
             TokenHolders tokenHolders,
+            VectorStoreCreator vectorStoreCreator,
             DatabaseStartupController databaseStartupController,
             ReadOnlyDatabases readOnlyDatabases,
             IOControllerService ioControllerService,
@@ -178,6 +181,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.idController = databaseIdContext.getIdController();
         this.transactionsMemoryPool = globalModule.getTransactionsMemoryPool();
         this.otherMemoryPool = globalModule.getOtherMemoryPool();
+        this.vectorStoreCreator = vectorStoreCreator;
         this.databaseMonitorsFactory = databaseMonitorsFactory;
         this.storeIdGenerator = storeIdGenerator;
         this.exceptionHandlerService = exceptionHandlerService;
@@ -479,5 +483,9 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
                 TransactionLogFilesHelper.DEFAULT_FILENAME_PREDICATE,
                 BufferingIdGeneratorFactory.PAGED_ID_BUFFER_FILE_NAME_FILTER,
                 IS_DEFAULT_TMP_SUFFIX);
+    }
+
+    public VectorStoreCreator getVectorStoreCreator() {
+        return vectorStoreCreator;
     }
 }

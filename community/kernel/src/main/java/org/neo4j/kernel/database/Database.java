@@ -185,6 +185,7 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
 import org.neo4j.storageengine.api.MetadataProvider;
@@ -256,6 +257,7 @@ public class Database extends AbstractDatabase {
     private final CursorContextFactory cursorContextFactory;
     private final VersionStorageFactory versionStorageFactory;
     private final CommandCommitListeners commandCommitListeners;
+    private final VectorStoreCreator vectorStoreCreator;
     private MemoryTracker otherDatabaseMemoryTracker;
     private RecoveryCleanupWorkCollector recoveryCleanupWorkCollector;
     private DatabaseTransactionEventListeners databaseTransactionEventListeners;
@@ -320,6 +322,7 @@ public class Database extends AbstractDatabase {
         this.kernelTransactionsFactory = transactionsFactory.kernelTransactionsFactory();
         this.pagePrefetcher = context.getPagePrefetcher();
         this.storeIdGenerator = context.storeIdGenerator();
+        this.vectorStoreCreator = context.getVectorStoreCreator();
     }
 
     /**
@@ -441,7 +444,8 @@ public class Database extends AbstractDatabase {
                         otherDatabaseMemoryTracker,
                         ioController,
                         internalLogProvider,
-                        tailMetadata)
+                        tailMetadata,
+                        vectorStoreCreator)
                 .recoveryPredicate(RecoveryPredicate.ALL)
                 .monitors(databaseMonitors)
                 .extensionFactories(extensionFactories)
@@ -496,7 +500,8 @@ public class Database extends AbstractDatabase {
                 pagePrefetcher,
                 storeIdGenerator,
                 databaseDependencies,
-                exceptionHandlerService);
+                exceptionHandlerService,
+                vectorStoreCreator);
 
         var metadataProvider = databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 

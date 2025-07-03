@@ -141,6 +141,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.LogFilesInitializer;
@@ -272,7 +273,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             PagePrefetcher pagePrefetcher,
             StoreIdGenerator storeIdGenerator,
             DependencyResolver databaseDependencies,
-            ExceptionHandlerService exceptionHandlerService) {
+            ExceptionHandlerService exceptionHandlerService,
+            VectorStoreCreator vectorStoreCreator) {
         return new RecordStorageEngine(
                 formatSpecificDatabaseLayout(databaseLayout),
                 config,

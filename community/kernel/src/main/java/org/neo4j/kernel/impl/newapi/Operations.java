@@ -166,6 +166,7 @@ import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.values.storable.Value;
+import org.neo4j.values.storable.Vector;
 
 /**
  * Collects all Kernel API operations and guards them from being used outside of transaction.
@@ -205,7 +206,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private CursorContext cursorContext;
     private boolean hasCursors; // have we initialize cursors for this transaction ?
-    private boolean typeConstraintVectorTypeEnabled;
 
     public Operations(
             KernelRead kernelRead,
@@ -248,8 +248,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints);
         this.alwaysUseLatestIndexProvider = config.get(GraphDatabaseInternalSettings.always_use_latest_index_provider);
         this.transactionStateBehaviour = transactionStateBehaviour;
-        this.typeConstraintVectorTypeEnabled =
-                kernelVersionProvider.kernelVersion().isAtLeast(KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED);
     }
 
     public void initialize(CursorContext cursorContext) {
@@ -2553,7 +2551,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     propertyType.userDescription());
         }
 
-        if (!typeConstraintVectorTypeEnabled && TypeRepresentation.hasVectorTypes(propertyType)) {
+        if (TypeRepresentation.hasVectorTypes(propertyType)) {
             assertSupportedInVersion(
                     KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED,
                     "Failed to create property type constraint with %s.",
@@ -2633,6 +2631,14 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 txState.indexDoDrop(index);
             }
         }
+    }
+
+    @Override
+    public void createVectorStore(Vector.CoordinateType coordinateType, int dimensions) {
+        ktx.assertOpen();
+        assertSupportedInVersion(
+                KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED, "Failed to create property vector store.");
+        ktx.txState().createVectorStore(coordinateType, dimensions);
     }
 
     private void exclusiveLock(ResourceType resource, long[] resourceIds) {

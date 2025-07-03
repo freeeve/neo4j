@@ -41,6 +41,7 @@ import org.neo4j.kernel.impl.api.LeaseService;
 import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.api.TransactionsFactory;
 import org.neo4j.kernel.impl.constraints.StandardConstraintSemantics;
+import org.neo4j.kernel.impl.core.IsolatedTransactionVectorStoreCreator;
 import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.CommunityVersionStorageFactory;
@@ -117,6 +118,7 @@ public class DefaultDatabaseContextFactory
                     idContextFactory.createIdContext(namedDatabaseId, contextFactory, databaseConfig, true),
                     commitProcessFactory,
                     createTokenHolderProvider(this::kernel),
+                    new IsolatedTransactionVectorStoreCreator(this::kernel),
                     new GlobalAvailabilityGuardController(globalModule.getGlobalAvailabilityGuard()),
                     components.readOnlyDatabases(),
                     controllerService,

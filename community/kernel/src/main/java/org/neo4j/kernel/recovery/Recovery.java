@@ -140,6 +140,7 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.RecoveryState;
@@ -259,7 +260,7 @@ public final class Recovery {
                 : requiredChecker.isRecoveryRequiredAt(databaseLayout, memoryTracker);
     }
 
-    public static Context context(
+    public static Context contextWithNoLogTail(
             FileSystemAbstraction fs,
             PageCache pageCache,
             DatabaseTracers tracers,
@@ -278,7 +279,8 @@ public final class Recovery {
                 tracers,
                 ioController,
                 logProvider,
-                emptyLogsFallbackKernelVersion);
+                emptyLogsFallbackKernelVersion,
+                VectorStoreCreator.FAILING);
     }
 
     public static Context context(
@@ -292,7 +294,40 @@ public final class Recovery {
             InternalLogProvider logProvider,
             LogTailMetadata logTail) {
         return new Context(
-                fs, pageCache, databaseLayout, config, memoryTracker, tracers, ioController, logProvider, logTail);
+                fs,
+                pageCache,
+                databaseLayout,
+                config,
+                memoryTracker,
+                tracers,
+                ioController,
+                logProvider,
+                logTail,
+                VectorStoreCreator.FAILING);
+    }
+
+    public static Context context(
+            FileSystemAbstraction fs,
+            PageCache pageCache,
+            DatabaseTracers tracers,
+            Config config,
+            DatabaseLayout databaseLayout,
+            MemoryTracker memoryTracker,
+            IOController ioController,
+            InternalLogProvider logProvider,
+            LogTailMetadata logTail,
+            VectorStoreCreator vectorStoreCreator) {
+        return new Context(
+                fs,
+                pageCache,
+                databaseLayout,
+                config,
+                memoryTracker,
+                tracers,
+                ioController,
+                logProvider,
+                logTail,
+                vectorStoreCreator);
     }
 
     /**
@@ -319,6 +354,7 @@ public final class Recovery {
         private RecoveryMode mode = RecoveryMode.FULL;
         private long awaitIndexesOnlineMillis;
         private final KernelVersionProvider emptyLogsFallbackKernelVersion;
+        private VectorStoreCreator vectorStoreCreator;
 
         private Context(
                 FileSystemAbstraction fileSystemAbstraction,
@@ -329,7 +365,8 @@ public final class Recovery {
                 DatabaseTracers tracers,
                 IOController ioController,
                 InternalLogProvider logProvider,
-                KernelVersionProvider emptyLogsFallbackKernelVersion) {
+                KernelVersionProvider emptyLogsFallbackKernelVersion,
+                VectorStoreCreator vectorStoreCreator) {
             requireNonNull(pageCache);
             requireNonNull(fileSystemAbstraction);
             requireNonNull(databaseLayout);
@@ -343,6 +380,7 @@ public final class Recovery {
             this.ioController = ioController;
             this.logProvider = requireNonNull(logProvider);
             this.emptyLogsFallbackKernelVersion = emptyLogsFallbackKernelVersion;
+            this.vectorStoreCreator = vectorStoreCreator;
         }
 
         private Context(
@@ -354,7 +392,8 @@ public final class Recovery {
                 DatabaseTracers tracers,
                 IOController ioController,
                 InternalLogProvider logProvider,
-                LogTailMetadata logTail) {
+                LogTailMetadata logTail,
+                VectorStoreCreator vectorStoreCreator) {
             requireNonNull(pageCache);
             requireNonNull(fileSystemAbstraction);
             requireNonNull(databaseLayout);
@@ -370,6 +409,7 @@ public final class Recovery {
             // No need for the kernelVersionProvider if we are guaranteed a log tail.
             this.emptyLogsFallbackKernelVersion = KernelVersionProvider.THROWING_PROVIDER;
             this.providedLogTail = Optional.of(logTail);
+            this.vectorStoreCreator = vectorStoreCreator;
         }
 
         /**
@@ -475,7 +515,8 @@ public final class Recovery {
                     context.rollbackIncompleteTransactions,
                     context.awaitIndexesOnlineMillis,
                     context.emptyLogsFallbackKernelVersion,
-                    context.mode);
+                    context.mode,
+                    context.vectorStoreCreator);
         } finally {
             config.removeAllLocalListeners();
         }
@@ -511,7 +552,8 @@ public final class Recovery {
             boolean rollbackIncompleteTransactions,
             long awaitIndexesOnlineMillis,
             KernelVersionProvider emptyLogsFallbackKernelVersion,
-            RecoveryMode mode)
+            RecoveryMode mode,
+            VectorStoreCreator vectorStoreCreator)
             throws IOException {
         InternalLog recoveryLog = logProvider.getLog(Recovery.class);
 
@@ -635,7 +677,8 @@ public final class Recovery {
                 PagePrefetcher.DISABLED,
                 StoreIdGenerator.UNIQUE_ID,
                 dependenciesOf(recoveryVersionStorage),
-                new ExceptionHandlerService(logService.getInternalLogProvider()));
+                new ExceptionHandlerService(logService.getInternalLogProvider()),
+                vectorStoreCreator);
 
         // multi versioned stores recovery does not support format mode atm
         if (multiversion) {

@@ -29,11 +29,14 @@ import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.values.storable.ValueTuple;
+import org.neo4j.values.storable.Vector;
 
 /**
  * A visitor for visiting the changes that have been made in a transaction.
  */
 public interface TxStateVisitor extends AutoCloseable {
+    record VectorStoreIdType(Vector.CoordinateType coordinate, int dimensions) {}
+
     void visitCreatedNode(long id);
 
     void visitDeletedNode(long id);
@@ -63,6 +66,8 @@ public interface TxStateVisitor extends AutoCloseable {
     void visitValueIndexUpdate(IndexDescriptor descriptor, long entityId, ValueTuple values, EntityChange entityChange);
 
     void visitKernelUpgrade(Upgrade.KernelUpgrade kernelUpgrade);
+
+    void visitCreateVectorStore(VectorStoreIdType vectorStoreToCreate);
 
     @Override
     void close() throws KernelException;
@@ -113,6 +118,9 @@ public interface TxStateVisitor extends AutoCloseable {
 
         @Override
         public void visitKernelUpgrade(Upgrade.KernelUpgrade kernelUpgrade) {}
+
+        @Override
+        public void visitCreateVectorStore(VectorStoreIdType vectorStoreToCreate) {}
 
         @Override
         public void close() {}
@@ -200,6 +208,11 @@ public interface TxStateVisitor extends AutoCloseable {
         @Override
         public void visitKernelUpgrade(Upgrade.KernelUpgrade kernelUpgrade) {
             actual.visitKernelUpgrade(kernelUpgrade);
+        }
+
+        @Override
+        public void visitCreateVectorStore(VectorStoreIdType vectorStoreToCreate) {
+            actual.visitCreateVectorStore(vectorStoreToCreate);
         }
 
         @Override

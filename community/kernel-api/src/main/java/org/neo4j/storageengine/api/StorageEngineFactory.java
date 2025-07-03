@@ -83,6 +83,7 @@ import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccessExtended;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.time.SystemNanoClock;
@@ -182,7 +183,8 @@ public interface StorageEngineFactory {
             PagePrefetcher pagePrefetcher,
             StoreIdGenerator storeIdGenerator,
             DependencyResolver databaseDependencies,
-            ExceptionHandlerService exceptionHandlerService)
+            ExceptionHandlerService exceptionHandlerService,
+            VectorStoreCreator vectorStoreCreator)
             throws IOException;
 
     /**

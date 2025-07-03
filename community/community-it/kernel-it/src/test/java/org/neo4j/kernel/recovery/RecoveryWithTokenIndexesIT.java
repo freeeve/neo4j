@@ -159,7 +159,7 @@ class RecoveryWithTokenIndexesIT {
 
     private void recoverDatabase(DatabaseLayout layout, FileSystemAbstraction fs, PageCache cache) throws Exception {
         assertTrue(Recovery.isRecoveryRequired(fs, layout, config, INSTANCE));
-        performRecovery(Recovery.context(
+        performRecovery(Recovery.contextWithNoLogTail(
                 fs,
                 cache,
                 DatabaseTracers.EMPTY,

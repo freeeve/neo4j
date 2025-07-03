@@ -1711,7 +1711,7 @@ class RecoveryIT {
         fileSystem.deleteFileOrThrow(idFile);
         assertTrue(isRecoveryRequired(layout));
 
-        performRecovery(context(
+        performRecovery(Recovery.contextWithNoLogTail(
                 fileSystem,
                 pageCache,
                 EMPTY,
@@ -1745,7 +1745,7 @@ class RecoveryIT {
         assertTrue(isRecoveryRequired(layout));
 
         Config config = defaults(Map.of(GraphDatabaseSettings.keep_logical_logs, "keep_none"));
-        performRecovery(context(
+        performRecovery(Recovery.contextWithNoLogTail(
                 fileSystem,
                 pageCache,
                 EMPTY,
@@ -1935,7 +1935,7 @@ class RecoveryIT {
         monitors.addMonitorListener(monitor);
         Config config = Config.defaults();
 
-        Recovery.performRecovery(context(
+        Recovery.performRecovery(Recovery.contextWithNoLogTail(
                         fileSystem,
                         pageCache,
                         EMPTY,
@@ -2418,7 +2418,7 @@ class RecoveryIT {
         additionalConfiguration(config);
         assertTrue(isRecoveryRequired(databaseLayout, config, databaseTracers));
 
-        Recovery.performRecovery(context(
+        Recovery.performRecovery(Recovery.contextWithNoLogTail(
                         fileSystem,
                         pageCache,
                         databaseTracers,

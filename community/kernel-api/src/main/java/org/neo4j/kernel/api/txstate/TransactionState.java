@@ -27,6 +27,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
+import org.neo4j.values.storable.Vector;
 
 /**
  * Kernel transaction state, please see {@link org.neo4j.kernel.impl.api.state.TxState} for implementation details.
@@ -105,4 +106,12 @@ public interface TransactionState extends ReadableTransactionState {
      * that are still in memory in this particular transaction state(it may be backed by the store)
      */
     MemoryTracker memoryTracker();
+
+    /**
+     * Create a vector store for the given coordinate type and dimensions.
+     * Note that the vector store only gets created during commit of the transaction, not during this call.
+     * A transaction is only allowed to create a single vector store. Calling this method more than once in
+     * a transaction will throw an Exception.
+     */
+    void createVectorStore(Vector.CoordinateType coordinateType, int dimensions);
 }

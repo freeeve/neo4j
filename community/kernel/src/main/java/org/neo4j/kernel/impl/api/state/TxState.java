@@ -88,6 +88,7 @@ import org.neo4j.storageengine.api.txstate.memory.TxStateMemoryConsumer;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
+import org.neo4j.values.storable.Vector;
 
 /**
  * This class contains transaction-local changes to the graph. These changes can then be used to augment reads from the
@@ -126,6 +127,8 @@ public class TxState implements TransactionState {
 
     private MutableMap<IndexDescriptor, Map<ValueTuple, MutableLongDiffSets>> indexUpdates;
     private Upgrade.KernelUpgrade upgrade;
+    private TxStateVisitor.VectorStoreIdType vectorStoreToCreate;
+
     private final ScopedMemoryTracker stateMemoryTracker;
     private final TransactionStateBehaviour behaviour;
     private final ApplyEnrichmentStrategy enrichmentStrategy;
@@ -279,6 +282,10 @@ public class TxState implements TransactionState {
                         .getRemoved()
                         .forEach(entityId -> visitor.visitValueIndexUpdate(indexDescriptor, entityId, values, REMOVED));
             }));
+        }
+
+        if (vectorStoreToCreate != null) {
+            visitor.visitCreateVectorStore(vectorStoreToCreate);
         }
 
         if (upgrade != null) {
@@ -877,6 +884,13 @@ public class TxState implements TransactionState {
     public void kernelDoUpgrade(Upgrade.KernelUpgrade kernelUpgrade) {
         assert upgrade == null;
         upgrade = kernelUpgrade;
+        changed();
+    }
+
+    @Override
+    public void createVectorStore(Vector.CoordinateType coordinateType, int dimensions) {
+        assert vectorStoreToCreate == null;
+        vectorStoreToCreate = new TxStateVisitor.VectorStoreIdType(coordinateType, dimensions);
         changed();
     }
 

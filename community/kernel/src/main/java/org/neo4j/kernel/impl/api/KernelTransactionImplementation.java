@@ -215,7 +215,7 @@ public class KernelTransactionImplementation
     // Logic
     private final TransactionEventListeners transactionEventListeners;
     private final ConstraintIndexCreator constraintIndexCreator;
-    private final StorageEngine storageEngine;
+    protected final StorageEngine storageEngine;
     private final TransactionTracer transactionTracer;
     private final Pool<KernelTransactionImplementation> pool;
 

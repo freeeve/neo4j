@@ -20,7 +20,6 @@
 package org.neo4j.kernel.recovery;
 
 import static org.neo4j.kernel.impl.pagecache.ConfigurableStandalonePageCacheFactory.createPageCache;
-import static org.neo4j.kernel.recovery.Recovery.context;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -109,7 +108,7 @@ public final class RecoveryHelpers {
             throws IOException {
         try (JobScheduler jobScheduler = JobSchedulerFactory.createInitialisedScheduler(Clocks.nanoClock());
                 PageCache pageCache = createPageCache(fileSystem, config, jobScheduler, PageCacheTracer.NULL)) {
-            return Recovery.performRecovery(context(
+            return Recovery.performRecovery(Recovery.contextWithNoLogTail(
                     fileSystem,
                     pageCache,
                     DatabaseTracers.EMPTY,

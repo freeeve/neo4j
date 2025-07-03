@@ -26,6 +26,7 @@ import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.Vector;
 
 /**
  * Defines the write operations of the Kernel API.
@@ -163,4 +164,12 @@ public interface Write {
      * @return The removed value, or Values.NO_VALUE if the relationship did not have the property before
      */
     Value relationshipRemoveProperty(long relationship, int propertyKey) throws EntityNotFoundException;
+
+    /**
+     * Create a vector store for the given coordinate type and dimensions.
+     * Note that the vector store only gets created during commit of the transaction, not during this call.
+     * A transaction is only allowed to create a single vector store. Calling this method more than once in
+     * a transaction will throw an Exception.
+     */
+    void createVectorStore(Vector.CoordinateType coordinateType, int dimensions);
 }

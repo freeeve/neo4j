@@ -112,7 +112,7 @@ public class DatabaseRecoveryFacade implements RecoveryFacade {
             boolean rollbackIncompleteTransactions)
             throws IOException {
         monitor.recoveryStarted();
-        var recoveryContext = Recovery.context(
+        var recoveryContext = Recovery.contextWithNoLogTail(
                 fs,
                 pageCache,
                 tracers,

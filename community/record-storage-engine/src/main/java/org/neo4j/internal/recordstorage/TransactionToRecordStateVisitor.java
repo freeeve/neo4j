@@ -23,6 +23,7 @@ import java.util.OptionalLong;
 import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.exceptions.FeatureUnsupportedOnStoreFormatException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.Upgrade;
 import org.neo4j.internal.kernel.api.exceptions.schema.DuplicateSchemaRuleException;
@@ -53,6 +54,7 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
     private final boolean transientMissingSchema;
     private final MemoryTracker memoryTracker;
     private final TokenNameLookup tokenNameLookup;
+    private final String storeFormat;
 
     TransactionToRecordStateVisitor(
             TransactionRecordState recordState,
@@ -63,7 +65,8 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
             StoreCursors storeCursors,
             boolean transientMissingSchema,
             MemoryTracker memoryTracker,
-            TokenNameLookup tokenNameLookup) {
+            TokenNameLookup tokenNameLookup,
+            String storeFormat) {
         this.recordState = recordState;
         this.schemaState = schemaState;
         this.schemaStorage = schemaRuleAccess;
@@ -74,6 +77,7 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
         this.transientMissingSchema = transientMissingSchema;
         this.memoryTracker = memoryTracker;
         this.tokenNameLookup = tokenNameLookup;
+        this.storeFormat = storeFormat;
     }
 
     @Override
@@ -255,5 +259,10 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
     @Override
     public void visitCreatedRelationshipTypeToken(long id, String name, boolean internal) {
         recordState.createRelationshipTypeToken(name, id, internal);
+    }
+
+    @Override
+    public void visitCreateVectorStore(VectorStoreIdType vectorStoreToCreate) {
+        throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
     }
 }

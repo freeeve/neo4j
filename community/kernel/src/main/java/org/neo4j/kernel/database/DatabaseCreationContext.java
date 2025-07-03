@@ -64,6 +64,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
@@ -169,4 +170,6 @@ public interface DatabaseCreationContext {
     StoreIdGenerator storeIdGenerator();
 
     ExceptionHandlerService getExceptionHandlerService();
+
+    VectorStoreCreator getVectorStoreCreator();
 }
