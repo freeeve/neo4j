@@ -22,6 +22,9 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsErrorParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
+import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
+import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepScope
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
@@ -713,6 +716,77 @@ trait AstConstructionTestSupport {
     expression: Expression
   ): ReduceExpression =
     ReduceExpression(ReduceScope(accumulator, variable, expression)(pos), init, collection)(pos)
+
+  def allReduce(
+    accumulator: LogicalVariable,
+    init: Expression,
+    groupVariable: LogicalVariable,
+    allReduceStepExpression: Expression,
+    allReducePredicate: Expression
+  ): AllReducePredicate = {
+    AllReducePredicate(
+      scope = AllReduceScope(
+        accumulator = accumulator,
+        reductionStepScope = ReductionStepScope(
+          singletonVariable = groupVariable,
+          reductionStep = allReduceStepExpression
+        )(pos),
+        predicate = allReducePredicate
+      )(pos),
+      groupVariable = groupVariable,
+      init = init
+    )(pos)
+  }
+
+  def allReduceFallBack(
+    accumulator: LogicalVariable,
+    init: Expression,
+    groupVariable: LogicalVariable,
+    allReduceStepExpression: Expression,
+    allReducePredicate: Expression,
+    nextAnonymousVariable: LogicalVariable
+  ): Expression = {
+    val state = accumulator
+    val stateAcc = "accumulator"
+    val stateResult = "result"
+    Property(
+      reduce(
+        accumulator = state,
+        init = mapOf(stateAcc -> init, stateResult -> trueLiteral),
+        variable = groupVariable,
+        collection = groupVariable,
+        expression = caseExpression(
+          expression = None,
+          default = Some(containerIndex(
+            listComprehension(
+              variable = nextAnonymousVariable,
+              collection = listOf(allReduceStepExpression.replaceAllOccurrencesBy(
+                accumulator,
+                prop(state, stateAcc)
+              )),
+              predicate = None,
+              extractExpression = Some(mapOf(
+                (stateAcc, nextAnonymousVariable),
+                (
+                  stateResult,
+                  ands(
+                    prop(state, stateResult),
+                    allReducePredicate.replaceAllOccurrencesBy(
+                      accumulator,
+                      nextAnonymousVariable
+                    )
+                  )
+                )
+              ))
+            ),
+            0
+          )),
+          alternatives = equals(prop(accumulator, "result"), falseLiteral) -> accumulator
+        )
+      ),
+      propName(stateResult)
+    )(pos)
+  }
 
   def listComprehension(
     variable: LogicalVariable,
