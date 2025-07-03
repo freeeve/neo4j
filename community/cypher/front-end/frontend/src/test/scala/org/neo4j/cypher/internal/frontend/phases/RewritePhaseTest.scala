@@ -114,8 +114,13 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
       withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty, additionalExpectedAstUpdates))
     }
 
-  def rewriteAndAssert(q: String, verify: Statement => Unit, features: SemanticFeature*): Unit = {
-    CypherVersion.values().foreach { version =>
+  def rewriteAndAssert(
+    q: String,
+    verify: Statement => Unit,
+    disabledVersions: Set[CypherVersion] = Set.empty,
+    features: Seq[SemanticFeature] = Seq.empty
+  ): Unit = {
+    (CypherVersion.values().toSet -- disabledVersions).foreach { version =>
       withClue(s"CYPHER $version\n") {
         val state = prepareFrom(version, q, rewriterPhaseUnderTest, features: _*)
         verify.apply(state.statement())

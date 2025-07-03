@@ -712,7 +712,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     val reductionStep = ctxChild(ctx, 6).ast[Expression]()
     val predicate = ctxChild(ctx, 8).ast[Expression]()
 
-    ctx.ast = AllReducePredicate(accumulator, init, reductionStep, predicate)(pos(ctx))
+    ctx.ast = AllReducePredicate.unchecked(accumulator, init, reductionStep, predicate)(pos(ctx))
   }
 
   final override def exitListItemsPredicate(ctx: Cypher25Parser.ListItemsPredicateContext): Unit = {

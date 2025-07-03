@@ -212,6 +212,25 @@ class SemanticStateTest extends CypherFunSuite with AstConstructionTestSupport {
     ))
   }
 
+  test("should list all symbol names from local scope and parent scope, but not sibling scope") {
+    val errorOrStates =
+      for {
+        parent <- SemanticState.clean.declareVariable(varFor("foo", DummyPosition(0)), CTNode)
+        sibling = parent.newChildScope
+        sibling2 <- sibling.declareVariable(varFor("bar", DummyPosition(0)), CTNode)
+        child = sibling2.newSiblingScope
+        child2 <- child.declareVariable(varFor("baz", DummyPosition(0)), CTNode)
+      } yield (child2, sibling2)
+
+    val (state1, state2) = errorOrStates match {
+      case Right(states) => (states._1, states._2)
+      case _             => throw new InternalError("should have no semantic error")
+    }
+
+    state1.currentScope.availableSymbolNames should equal(Set("foo", "baz"))
+    state2.currentScope.availableSymbolNames should equal(Set("foo", "bar"))
+  }
+
   test("should override symbol in parent") {
     val s1 = SemanticState.clean.declareVariable(varFor("foo", DummyPosition(0)), CTNode).getOrElse(fail())
     val s2 = s1.newChildScope.declareVariable(varFor("foo", DummyPosition(0)), CTString).getOrElse(fail())

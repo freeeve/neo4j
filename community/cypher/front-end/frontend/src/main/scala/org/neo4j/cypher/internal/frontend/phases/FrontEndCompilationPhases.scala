@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.RemoveDuplicateUseClauses
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveAllReduceGroupVariable
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveSimpleDynamicExpressions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
@@ -82,6 +83,7 @@ trait FrontEndCompilationPhases {
         PreparatoryRewriting,
         RemoveDuplicateUseClauses,
         ReplacePatternComprehensionWithCollectSubqueryRewriter,
+        ResolveAllReduceGroupVariable,
         SemanticAnalysis,
         SemanticTypeCheck,
         SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures),

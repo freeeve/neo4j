@@ -632,7 +632,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
             } chain
             recordCurrentScope(q) // We need to record the inner scope of q to import the variables for later checks.
         } chain entityBindings.foldSemanticCheck { entityBinding =>
-          declareVariable(entityBinding.group, _.expressionType(entityBinding.singleton).actual.wrapInList)
+          declareGroupVariable(entityBinding.group, _.expressionType(entityBinding.singleton).actual.wrapInList)
         }
 
       case p @ ParenthesizedPath(pattern, _) =>

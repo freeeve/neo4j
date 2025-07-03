@@ -121,6 +121,9 @@ object SemanticCheck {
   /** Creates a check which changes the current state to `s`. Does not produce any errors. */
   def setState(s: SemanticState): SemanticCheck = fromFunction(_ => SemanticCheckResult.success(s))
 
+  /** Creates a check which applies `f` to the current state. Does not produce any errors. */
+  def mapState(f: SemanticState => SemanticState): SemanticCheck = fromFunction(s => SemanticCheckResult.success(f(s)))
+
   /** Creates the next check from the current state. */
   def fromState(f: SemanticState => SemanticCheck): SemanticCheck = success.flatMap(res => f(res.state))
 

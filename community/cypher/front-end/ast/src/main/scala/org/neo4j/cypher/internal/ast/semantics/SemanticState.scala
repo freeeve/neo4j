@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.semantics.Scope.DeclarationsAndDependencies
 import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeLocation
+import org.neo4j.cypher.internal.expressions.AllReducePredicateUnchecked
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -92,13 +93,15 @@ final case class SymbolUse(use: Ref[LogicalVariable]) {
  * @param definition  the definition
  * @param uses        all uses of the symbol. The definition is not a use.
  * @param unionSymbol if the symbol is only a variable introduced to keep track of UNION return values
+ * @param groupVariable symbol is a group variable introduced by a quantified pattern
  */
 final case class Symbol(
   name: String,
   types: TypeSpec,
   definition: SymbolUse,
   uses: Set[SymbolUse],
-  unionSymbol: Boolean = false
+  unionSymbol: Boolean = false,
+  groupVariable: Boolean = false
 ) {
 
   /**
@@ -278,9 +281,13 @@ final case class Scope(symbolTable: Map[String, Symbol], children: Seq[Scope]) e
     types: TypeSpec,
     definition: SymbolUse,
     uses: Set[SymbolUse],
-    unionVariable: Boolean = false
-  ): Scope =
-    copy(symbolTable = symbolTable.updated(variable, Symbol(variable, types, definition, uses, unionVariable)))
+    unionVariable: Boolean = false,
+    groupVariable: Boolean = false
+  ): Scope = {
+    copy(symbolTable =
+      symbolTable.updated(variable, Symbol(variable, types, definition, uses, unionVariable, groupVariable))
+    )
+  }
 
   /**
    * All symbol definitions of this scope and its children,
@@ -355,7 +362,9 @@ final case class Scope(symbolTable: Map[String, Symbol], children: Seq[Scope]) e
   private def dumpTree(indent: String, builder: StringBuilder): Unit = {
     symbolTable.keys.toSeq.sorted.foreach { key =>
       val symbol = symbolTable(key)
-      val symbolText = symbol.positionsAndUniqueIdString.toSeq.sorted.map(x => s"${x._1}(${x._2})").mkString(" ")
+      val groupVarMark = if (symbol.groupVariable) " *" else ""
+      val symbolText =
+        symbol.positionsAndUniqueIdString.toSeq.sorted.map(x => s"${x._1}(${x._2})$groupVarMark").mkString(" ")
       builder.append(s"$indent$key: $symbolText${System.lineSeparator}")
     }
     children.foreach { child => child.dumpSingle(indent, builder) }
@@ -396,10 +405,17 @@ object SemanticState {
     def symbolNames: Set[String] = scope.symbolNames
 
     /**
-     * Local symbol names of this scope and all parent scopes.
+     * Local symbol definitions of this scope and all parent scopes.
      */
     def availableSymbolDefinitions: Set[SymbolUse] = {
       scope.symbolDefinitions ++ location.up.toSet.flatMap((l: ScopeZipper.Location) => l.availableSymbolDefinitions)
+    }
+
+    /**
+     * Local symbol names of this scope and all parent scopes.
+     */
+    def availableSymbolNames: Set[String] = {
+      scope.symbolNames ++ location.up.toSet.flatMap((l: ScopeZipper.Location) => l.availableSymbolNames)
     }
 
     def importValuesFromScope(other: Scope, exclude: Set[String] = Set.empty): ScopeLocation =
@@ -410,9 +426,10 @@ object SemanticState {
       types: TypeSpec,
       definition: SymbolUse,
       uses: Set[SymbolUse],
-      unionVariable: Boolean = false
+      unionVariable: Boolean = false,
+      groupVariable: Boolean = false
     ): ScopeLocation =
-      location.replace(scope.updateVariable(variable, types, definition, uses, unionVariable))
+      location.replace(scope.updateVariable(variable, types, definition, uses, unionVariable, groupVariable))
 
     /**
      * Calculates the declarations and dependencies based on the symbol tables in scope and parent scope.
@@ -453,7 +470,8 @@ case class SemanticState(
   declareVariablesToSuppressDuplicateErrors: Boolean = true,
   semanticCheckHasRunOnce: Boolean = false,
   targetGraph: Option[GraphReference] = None,
-  workingGraph: Option[GraphReference] = None
+  workingGraph: Option[GraphReference] = None,
+  resolvedGroupVariables: ASTAnnotationMap[AllReducePredicateUnchecked, String] = ASTAnnotationMap.empty
 ) {
 
   def scopeTree: Scope = currentScope.rootScope
@@ -486,7 +504,8 @@ case class SemanticState(
     possibleTypes: TypeSpec,
     maybePreviousDeclaration: Option[Symbol] = None,
     overriding: Boolean = false,
-    unionVariable: Boolean = false
+    unionVariable: Boolean = false,
+    groupVariable: Boolean = false
   ): Either[SemanticError, SemanticState] =
     currentScope.localSymbol(variable.name) match {
       case Some(_) if !overriding =>
@@ -497,7 +516,7 @@ case class SemanticState(
             (previousDeclaration.definition, previousDeclaration.uses ++ Set(SymbolUse(variable)))
           case None => (SymbolUse(variable), Set.empty[SymbolUse])
         }
-        Right(updateVariable(variable, possibleTypes, definition, uses, unionVariable))
+        Right(updateVariable(variable, possibleTypes, definition, uses, unionVariable, groupVariable))
     }
 
   def addNotification(notification: InternalNotification): SemanticState =
@@ -509,12 +528,26 @@ case class SemanticState(
   ): Either[SemanticError, SemanticState] =
     this.symbol(variable.name) match {
       case None =>
-        Right(updateVariable(variable, possibleTypes, SymbolUse(variable), Set.empty))
+        Right(updateVariable(
+          variable,
+          possibleTypes,
+          SymbolUse(variable),
+          Set.empty,
+          unionVariable = false,
+          groupVariable = false
+        ))
 
       case Some(symbol) =>
         val inferredTypes = symbol.types intersect possibleTypes
         if (inferredTypes.nonEmpty) {
-          Right(updateVariable(variable, inferredTypes, symbol.definition, symbol.uses + SymbolUse(variable)))
+          Right(updateVariable(
+            variable,
+            inferredTypes,
+            symbol.definition,
+            symbol.uses + SymbolUse(variable),
+            symbol.unionSymbol,
+            symbol.groupVariable
+          ))
         } else {
           val existingTypes = symbol.types.mkString(", ", " or ")
           val expectedTypes = possibleTypes.mkString(", ", " or ")
@@ -533,7 +566,14 @@ case class SemanticState(
       case None =>
         Left(SemanticError.variableNotDefined(variable.name, variable.position))
       case Some(symbol) =>
-        Right(updateVariable(variable, symbol.types, symbol.definition, symbol.uses + SymbolUse(variable)))
+        Right(updateVariable(
+          variable,
+          symbol.types,
+          symbol.definition,
+          symbol.uses + SymbolUse(variable),
+          symbol.unionSymbol,
+          symbol.groupVariable
+        ))
     }
 
   def specifyType(expression: Expression, possibleTypes: TypeSpec): Either[SemanticError, SemanticState] =
@@ -566,10 +606,11 @@ case class SemanticState(
     types: TypeSpec,
     definition: SymbolUse,
     uses: Set[SymbolUse],
-    unionVariable: Boolean = false
+    unionVariable: Boolean,
+    groupVariable: Boolean
   ): SemanticState =
     copy(
-      currentScope = currentScope.updateVariable(variable.name, types, definition, uses, unionVariable),
+      currentScope = currentScope.updateVariable(variable.name, types, definition, uses, unionVariable, groupVariable),
       typeTable = typeTable.updated(variable, ExpressionTypeInfo(types))
     )
 

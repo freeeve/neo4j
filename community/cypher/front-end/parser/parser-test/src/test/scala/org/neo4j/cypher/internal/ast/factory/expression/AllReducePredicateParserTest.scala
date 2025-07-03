@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
+import org.neo4j.cypher.internal.expressions.AllReducePredicateUnchecked
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
@@ -30,7 +31,7 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
 
   test("allReduce(acc = 0, 1, 2)") {
     parsesToAllReducePredicate {
-      AllReducePredicate(
+      AllReducePredicate.unchecked(
         accumulator = v"acc",
         init = literalInt(0),
         reductionStep = literalInt(1),
@@ -41,7 +42,7 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
 
   test("allReduce(acc = [], acc + r, size(acc) <= $hops)") {
     parsesToAllReducePredicate {
-      AllReducePredicate(
+      AllReducePredicate.unchecked(
         accumulator = v"acc",
         init = listOf(),
         reductionStep = add(v"acc", v"r"),
@@ -52,11 +53,11 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
 
   test("allReduce(acc = 0, acc + 1, allReduce(nestedAcc = acc, nestedAcc + 2, acc < nestedAcc))") {
     parsesToAllReducePredicate {
-      AllReducePredicate(
+      AllReducePredicate.unchecked(
         accumulator = v"acc",
         init = literalInt(0),
         reductionStep = add(v"acc", literalInt(1)),
-        predicate = AllReducePredicate(
+        predicate = AllReducePredicate.unchecked(
           accumulator = v"nestedAcc",
           init = v"acc",
           reductionStep = add(v"nestedAcc", literalInt(2)),
@@ -72,7 +73,7 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
     }
   }
 
-  private def parsesToAllReducePredicate(arp: AllReducePredicate): Unit = {
+  private def parsesToAllReducePredicate(arp: AllReducePredicateUnchecked): Unit = {
     parsesIn[Expression] {
       case Cypher25 => _.toAst(arp)
       case Cypher5 => _.toAst {
@@ -83,7 +84,7 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
 
   private val allReducePredicateToFunctionInvocationRewriter: Rewriter = bottomUp {
     Rewriter.lift {
-      case arp: AllReducePredicate =>
+      case arp: AllReducePredicateUnchecked =>
         function("allReduce", equals(arp.accumulator, arp.init), arp.reductionStep, arp.predicate)
     }
   }

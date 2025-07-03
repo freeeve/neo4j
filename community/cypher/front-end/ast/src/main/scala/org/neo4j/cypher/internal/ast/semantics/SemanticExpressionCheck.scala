@@ -34,9 +34,11 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.TokenType
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.checkValidLabels
+import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeLocation
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
+import org.neo4j.cypher.internal.expressions.AllReducePredicateUnchecked
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
@@ -932,10 +934,37 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           SemanticState.recordCurrentScope(x) chain
           specifyType(CTList(CTAny).covariant, x)
 
-      // FALLBACK
+      case x: AllReducePredicateUnchecked =>
+        requireFeatureSupport("allReduce() function", SemanticFeature.AllReduceFunctionAvailable, x.position)
+          .ifOkChain {
+            check(ctx, x.init) chain
+              withScopedState {
+                declareVariable(x.accumulator, types(x.init)) chain
+                  AllReducePredicateChecks.reductionStepFirstPassCheck(x) chain
+                  check(ctx, x.predicate) chain
+                  expectType(CTBoolean.covariant, x.predicate) chain
+                  specifyType(CTBoolean, x)
+              }
+          }
 
       case x: AllReducePredicate =>
         requireFeatureSupport("allReduce() function", SemanticFeature.AllReduceFunctionAvailable, x.position)
+          .ifOkChain {
+            check(ctx, x.init) chain
+              withScopedState {
+                declareVariable(x.accumulator, types(x.init)) chain
+                  ensureDefined(x.groupVariable) chain
+                  withScopedState {
+                    declareVariable(x.singletonVariable, unwrapLists(types(x.groupVariable))) chain
+                      simple(x.reductionStep)
+                  } chain
+                  check(ctx, x.predicate) chain
+                  expectType(CTBoolean.covariant, x.predicate) chain
+                  specifyType(CTBoolean, x)
+              }
+          }
+
+      // FALLBACK
 
       case x: Expression => semanticCheckFallback(ctx, x)
     }
@@ -1291,6 +1320,91 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case _: NumberFormatException =>
         // We rely on getting a SemanticError from Type checking otherwise
         SemanticCheck.success
+    }
+  }
+
+  private object AllReducePredicateChecks {
+
+    def reductionStepFirstPassCheck(arp: AllReducePredicateUnchecked): SemanticCheck = {
+      SemanticCheck.fromState { initialState =>
+        val newDefinitions: Map[String, SymbolUse] =
+          groupVariableDefinitionsInScope(initialState.currentScope)
+            .view.mapValues(sym => SymbolUse(sym.asVariable.copyId))
+            .toMap
+
+        withScopedState {
+          redeclareGroupVariablesAsSingletons(newDefinitions) chain
+            withScopedState {
+              SemanticExpressionCheck.simple(arp.reductionStep) chain
+                checkAndRecordExactlyOneGroupVariableIsReferenced(arp, newDefinitions)
+            }
+        } chain
+          resetScopeTree(initialState.currentScope)
+      }
+    }
+
+    private def groupVariableDefinitionsInScope(loc: ScopeLocation): Map[String, SymbolUse] = {
+      loc
+        .availableSymbolNames
+        .flatMap(name => loc.symbol(name))
+        .collect { case sym if sym.groupVariable => sym.name -> sym.definition }
+        .toMap
+    }
+
+    private def redeclareGroupVariablesAsSingletons(newDefinitions: Map[String, SymbolUse]): SemanticCheck = {
+      SemanticCheck.mapState { state =>
+        val loc = newDefinitions.foldLeft(state.currentScope) {
+          case (loc, (name, sym)) =>
+            loc.updateVariable(
+              variable = name,
+              types = types(sym.asVariable)(state).unwrapLists,
+              definition = sym,
+              uses = Set.empty,
+              groupVariable = false
+            )
+        }
+        state.copy(currentScope = loc)
+      }
+    }
+
+    private def checkAndRecordExactlyOneGroupVariableIsReferenced(
+      x: AllReducePredicateUnchecked,
+      groupVariableDefinitions: Map[String, SymbolUse]
+    ): SemanticCheck = {
+      SemanticCheck.fromFunction { state =>
+        val usedDependencies: Set[SymbolUse] = {
+          val allSymbols: Map[String, Set[Symbol]] =
+            state.currentScope.scope.allSymbols
+
+          allSymbols.values.toSet.flatten
+            .collect { case sym if sym.uses.nonEmpty => sym.definition }
+        }
+
+        val groupVarDeps =
+          groupVariableDefinitions
+            .map(_.swap)
+            .view
+            .filterKeys(usedDependencies)
+            .toMap
+
+        if (groupVarDeps.size == 1) {
+          val groupVarName = groupVarDeps.values.head
+          SemanticCheckResult.success(state.copy(
+            resolvedGroupVariables = state.resolvedGroupVariables.updated(x, groupVarName)
+          ))
+        } else {
+          // TODO GQL error
+          SemanticCheckResult.error(
+            state,
+            s"Wrong number of group variables: ${groupVarDeps.size}",
+            x.reductionStep.position
+          )
+        }
+      }
+    }
+
+    private def resetScopeTree(loc: ScopeLocation): SemanticCheck = {
+      SemanticCheck.mapState(_.copy(currentScope = loc))
     }
   }
 }

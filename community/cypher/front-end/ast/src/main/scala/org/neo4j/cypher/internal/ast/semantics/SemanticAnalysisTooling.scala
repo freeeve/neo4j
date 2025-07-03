@@ -342,7 +342,12 @@ trait SemanticAnalysisTooling {
     possibleTypes: TypeSpec,
     maybePreviousDeclaration: Option[Symbol]
   ): SemanticState => Either[SemanticError, SemanticState] =
-    (_: SemanticState).declareVariable(v, possibleTypes, maybePreviousDeclaration)
+    (_: SemanticState).declareVariable(
+      v,
+      possibleTypes,
+      maybePreviousDeclaration,
+      groupVariable = maybePreviousDeclaration.fold(false)(_.groupVariable)
+    )
 
   /**
    * @param overriding if `true` then a previous occurrence of that variable is overridden.
@@ -352,10 +357,24 @@ trait SemanticAnalysisTooling {
     v: LogicalVariable,
     typeGen: TypeGenerator,
     maybePreviousDeclaration: Option[Symbol] = None,
-    overriding: Boolean = false
+    overriding: Boolean = false,
+    groupVariable: Boolean = false
   ): SemanticState => Either[SemanticError, SemanticState] =
     (s: SemanticState) =>
-      s.declareVariable(v, typeGen(s), maybePreviousDeclaration, overriding)
+      s.declareVariable(
+        v,
+        typeGen(s),
+        maybePreviousDeclaration,
+        overriding,
+        groupVariable = groupVariable
+      )
+
+  def declareGroupVariable(
+    v: LogicalVariable,
+    typeGen: TypeGenerator
+  ): SemanticState => Either[SemanticError, SemanticState] =
+    (s: SemanticState) =>
+      s.declareVariable(v, typeGen(s), groupVariable = true)
 
   def implicitVariable(
     v: LogicalVariable,
@@ -423,6 +442,9 @@ trait SemanticAnalysisTooling {
     types(expression)(_).unwrapLists
 
   def types(expression: Expression): TypeGenerator = _.expressionType(expression).actual
+
+  def unwrapLists(typeGen: TypeGenerator): TypeGenerator =
+    (state: SemanticState) => typeGen(state).unwrapLists
 }
 
 object SemanticAnalysisTooling {
