@@ -49,6 +49,8 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
+import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -273,15 +275,19 @@ public class TransactionLogChecker {
                         // Pre 5.20 there was no append index in the start entry - use txId from commit entry instead.
                         getIndexFromCommitEntry = true;
                     } else {
-                        long currentAppendIndex = startEntry.getAppendIndex();
-                        validateExpectedAppendIndex(logHeader, previouslySeenAppendIndex, fileType, currentAppendIndex);
-                        previouslySeenAppendIndex++;
+                        previouslySeenAppendIndex = validateExpectedAppendIndex(
+                                startEntry.getAppendIndex(), logHeader, previouslySeenAppendIndex, fileType);
                     }
                 } else if (getIndexFromCommitEntry && entry instanceof LogEntryCommit commitEntry) {
-                    long currentAppendIndex = commitEntry.getTxId();
-                    validateExpectedAppendIndex(logHeader, previouslySeenAppendIndex, fileType, currentAppendIndex);
-                    previouslySeenAppendIndex++;
+                    previouslySeenAppendIndex = validateExpectedAppendIndex(
+                            commitEntry.getTxId(), logHeader, previouslySeenAppendIndex, fileType);
                     getIndexFromCommitEntry = false;
+                } else if (entry instanceof LogEntryChunkStart chunkStart) {
+                    previouslySeenAppendIndex = validateExpectedAppendIndex(
+                            chunkStart.getAppendIndex(), logHeader, previouslySeenAppendIndex, fileType);
+                } else if (entry instanceof LogEntryRollback rollback) {
+                    previouslySeenAppendIndex = validateExpectedAppendIndex(
+                            rollback.getAppendIndex(), logHeader, previouslySeenAppendIndex, fileType);
                 } else if (entry instanceof AbstractDetachedCheckpointLogEntry) {
                     // The old format checkpoint logs never kept track of append indexes for the checkpoint entry.
                     // It did however still keep track in the file headers.
@@ -294,8 +300,8 @@ public class TransactionLogChecker {
         return new LastFileInfo(seenVersion, previouslySeenAppendIndex);
     }
 
-    private static void validateExpectedAppendIndex(
-            LogHeader logHeader, long previouslySeenAppendIndex, FileType fileType, long currentAppendIndex) {
+    private static long validateExpectedAppendIndex(
+            long currentAppendIndex, LogHeader logHeader, long previouslySeenAppendIndex, FileType fileType) {
         if (currentAppendIndex != previouslySeenAppendIndex + 1) {
             throw new InconsistentTransactionLogException(
                     "%s file version %d contains entry with out of order append index '%d' seen after '%d'"
@@ -305,6 +311,7 @@ public class TransactionLogChecker {
                                     currentAppendIndex,
                                     previouslySeenAppendIndex));
         }
+        return previouslySeenAppendIndex + 1;
     }
 
     static class VersionCheckingEnvelopeReadChannel extends EnvelopeReadChannel {
