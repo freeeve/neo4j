@@ -2434,6 +2434,42 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     )
   }
 
+  test("should not push predicate below an aliasing projection which predicate depends on") {
+    val query =
+      """
+        |MATCH (a)-[r]->(b)
+        |WITH a AS x
+        |WHERE x.prop > 123
+        |RETURN x
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("cacheN[x.prop] > 123")
+      .remoteBatchProperties("cacheNFromStore[x.prop]")
+      .projection("a AS x")
+      .allRelationshipsScan("(a)-[]->()")
+      .build()
+  }
+
+  test("should not push predicate below a function call projection which predicate depends on") {
+    val query =
+      """
+        |MATCH (a)-[r]->(b)
+        |WITH startNode(r) AS x
+        |WHERE x.prop > 123
+        |RETURN x
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("cacheN[x.prop] > 123")
+      .remoteBatchProperties("cacheNFromStore[x.prop]")
+      .projection("startNode(r) AS x")
+      .allRelationshipsScan("()-[r]->()")
+      .build()
+  }
+
   def temporalRuntimeConstant(functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {
     RuntimeConstant(
       varFor("anon_0"),

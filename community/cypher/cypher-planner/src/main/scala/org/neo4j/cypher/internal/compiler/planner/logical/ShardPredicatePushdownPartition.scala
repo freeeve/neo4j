@@ -110,7 +110,13 @@ object ShardPredicatePushdownPartition {
           (acc, expr) =>
             acc match {
               case (noUncachedPropAccesses, supportedUncachedPropAccesses, unsupportedUncachedPropAccesses) =>
-                supportsPredicatesPushdown(context.semanticTable, expr, alreadyCachedProperties, context) match {
+                supportsPredicatesPushdown(
+                  context.semanticTable,
+                  expr,
+                  alreadyCachedProperties,
+                  input.availableSymbols,
+                  context
+                ) match {
                   case PredicatePushdownSupported(logicalVariable) =>
                     (
                       noUncachedPropAccesses,
@@ -216,6 +222,7 @@ object ShardPredicatePushdownPartition {
     semanticTable: SemanticTable,
     expression: Expression,
     alreadyCachedProperties: CachedProperties,
+    availableSymbols: Set[LogicalVariable],
     context: LogicalPlanningContext
   ): PredicatesPushdownSupport = {
     @tailrec
@@ -245,7 +252,9 @@ object ShardPredicatePushdownPartition {
             }
 
           case Property(variable: LogicalVariable, propertyKeyName) =>
-            if (
+            if (!availableSymbols.contains(variable)) {
+              Left(PredicatePushdownUnsupported)
+            } else if (
               (
                 knownUncachedPropertyAccesses.variable.exists(_ != variable) &&
                   !alreadyCachedProperties.contains(variable, propertyKeyName) &&

@@ -54,13 +54,15 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
 
   private val context: LogicalPlanningContext =
     newMockedLogicalPlanningContext(newMockedPlanContext(), semanticTable = mockedSemanticTable)
-  private val fakePlan: FakeLeafPlan = fakeLogicalPlanFor(context.staticComponents.planningAttributes, "x")
+
+  private def fakePlanWithAvailableSymbolsForPredicates(exprs: Set[Expression]): FakeLeafPlan =
+    fakeLogicalPlanFor(context.staticComponents.planningAttributes, exprs.flatMap(_.dependencies).map(_.name).toSeq: _*)
 
   test("should not allow expressions with multiple dependencies") {
     val predicates: Set[Expression] = Set(greaterThan(prop("var1", "prop1"), prop("var2", "prop2")))
 
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(predicates),
       context,
       predicates
     ) shouldEqual ShardPredicatePushdownPartition.withFilterOnMainWithRemoteProperties(predicates)
@@ -79,7 +81,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       )
     )
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(predicates),
       context,
       predicates
     ) shouldEqual ShardPredicatePushdownPartition.withPreFilterBeforePushdown(predicates)
@@ -93,7 +95,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(contains(prop("a", "str"), collect(prop("a", "str2"))))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -114,7 +116,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(endsWith(prop("a", "str"), collect(prop("a", "str2"))))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -135,7 +137,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(startsWith(prop("a", "str"), collect(prop("a", "str2"))))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -156,7 +158,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(lessThan(prop("a", "num"), countStar()))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -177,7 +179,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(lessThanOrEqual(prop("a", "num"), countStar()))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -198,7 +200,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(greaterThan(prop("a", "num"), countStar()))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -219,7 +221,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(greaterThanOrEqual(prop("a", "num"), countStar()))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -240,7 +242,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(equals(prop("a", "num"), countStar()))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -261,7 +263,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(in(prop("a", "num"), countStar()))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -282,7 +284,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
     val unsupportedForPushdown: Set[Expression] = Set(notEquals(prop("a", "num"), countStar()))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(supportedForPushdown ++ unsupportedForPushdown),
       context,
       supportedForPushdown ++ unsupportedForPushdown
     ) shouldEqual new ShardPredicatePushdownPartition(
@@ -298,7 +300,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
   test("should allow valid listliterals") {
     val listLiteralExpr = in(listOf(prop("n", "prop")), listOfInt(1))
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(Set(listLiteralExpr)),
       context,
       Set(listLiteralExpr)
     ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(varFor("n"), Set(listLiteralExpr))
@@ -311,7 +313,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     )
 
     ShardPredicatePushdownPartition(
-      fakePlan,
+      fakePlanWithAvailableSymbolsForPredicates(Set(andedPropertyInequality)),
       context,
       Set(andedPropertyInequality)
     ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(varFor("n"), Set(andedPropertyInequality))
@@ -331,17 +333,20 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
 
       override def updateSemanticTableWithTokens(table: SemanticTable): SemanticTable = mockedSemanticTable
     }.withLogicalPlanningContext { (_, context) =>
+      val predicates: Set[Expression] = Set(selectivePredicate1, selectivePredicate2, otherPredicate)
+
       // let the incoming plan have a cardinality of 10
-      val plan = fakeLogicalPlanFor("y")
+      val plan = fakePlanWithAvailableSymbolsForPredicates(predicates)
       context.staticComponents.planningAttributes.solveds.set(plan.id, SinglePlannerQuery.empty)
       context.staticComponents.planningAttributes.cardinalities.set(plan.id, 10.0)
       context.staticComponents.planningAttributes.providedOrders.set(plan.id, ProvidedOrder.empty)
 
       // the selected predicates to push down should be for variable "a", i.e., selectivePredicate1 and selectivePredicate2.
+
       ShardPredicatePushdownPartition(
         plan,
         context,
-        Set(selectivePredicate1, selectivePredicate2, otherPredicate)
+        predicates
       ) shouldEqual new ShardPredicatePushdownPartition(
         preFilterBeforePushdown = Set.empty,
         filterOnShards = Option(PushedPredicatesDetails(
@@ -357,7 +362,7 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     val pushdownablePredicate = equals(prop("a", "str"), literalInt(42))
     val slottedContext = context.copy(settings = context.settings.copy(executionModel = Volcano))
 
-    val plan = fakeLogicalPlanFor(slottedContext.staticComponents.planningAttributes, "y")
+    val plan = fakePlanWithAvailableSymbolsForPredicates(Set(pushdownablePredicate))
 
     // the otherwise pushdownable predicate should not have been pushed down.
     ShardPredicatePushdownPartition(
@@ -375,11 +380,11 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
 
     val context: LogicalPlanningContext =
       newMockedLogicalPlanningContext(newMockedPlanContext(), semanticTable = mockedTableWithRelationships)
-    val fakePlan: FakeLeafPlan = fakeLogicalPlanFor(context.staticComponents.planningAttributes, "x")
-
     val predicates: Set[Expression] = Set(
       equals(prop("a", "num"), prop("a", "num"))
     )
+    val fakePlan: FakeLeafPlan = fakePlanWithAvailableSymbolsForPredicates(predicates)
+
     ShardPredicatePushdownPartition(
       fakePlan,
       context,
@@ -430,5 +435,22 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       context,
       predicates
     ) shouldEqual ShardPredicatePushdownPartition.withPreFilterBeforePushdown(predicates)
+  }
+
+  test("should not push down predicates when their dependencies are not available") {
+    val predicates: Set[Expression] = Set(
+      equals(prop("a", "num"), prop("a", "num")),
+      equals(prop("a", "str"), literalInt(42)),
+      equals(prop("a", "str"), parameter("str", CTInteger))
+    )
+    ShardPredicatePushdownPartition(
+      fakePlanWithAvailableSymbolsForPredicates(Set.empty),
+      context,
+      predicates
+    ) shouldEqual ShardPredicatePushdownPartition(
+      preFilterBeforePushdown = Set.empty,
+      filterOnShards = None,
+      filterOnMainWithRemoteProperties = predicates
+    )
   }
 }
