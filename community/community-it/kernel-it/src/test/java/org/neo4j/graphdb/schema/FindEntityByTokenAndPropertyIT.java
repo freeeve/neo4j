@@ -101,7 +101,7 @@ public class FindEntityByTokenAndPropertyIT {
     void cleanDb() {
         /* Not all storage engines support vector types. */
         random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(db)
-                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 3 /* Test assumes that three keys fit */));
         random.reset();
 
         // Clean reused db between every test
