@@ -24,6 +24,7 @@ import com.github.benmanes.caffeine.cache.Policy
 import com.github.benmanes.caffeine.cache.RemovalCause
 import com.github.benmanes.caffeine.cache.RemovalListener
 import com.github.benmanes.caffeine.cache.stats.CacheStats
+import org.neo4j.util.VisibleForTesting
 
 import java.lang
 import java.util
@@ -31,9 +32,10 @@ import java.util.Collections
 import java.util.Map
 import java.util.concurrent.ConcurrentMap
 import java.util.function
+import java.util.function.BiConsumer
 import java.util.function.BiFunction
 
-class TwoLayerCache[K, V](val primary: Cache[K, V], val secondary: Cache[K, V]) extends Cache[K, V] {
+class TwoLayerCache[K, V](primary: Cache[K, V], secondary: Cache[K, V]) extends Cache[K, V] {
 
   override def getIfPresent(key: K): V = {
     val p = primary.getIfPresent(key)
@@ -43,22 +45,27 @@ class TwoLayerCache[K, V](val primary: Cache[K, V], val secondary: Cache[K, V]) 
 
   override def get(key: K, mappingFunction: function.Function[_ >: K, _ <: V]): V = {
     val p = primary.get(key, mappingFunction)
-    if (p != null) p
-    else secondary.getIfPresent(key)
+    if (p != null) {
+      secondary.invalidate(key)
+      p
+    } else {
+      secondary.getIfPresent(key)
+    }
   }
 
-  override def getAllPresent(keys: lang.Iterable[_ <: K]): util.Map[K, V] = {
-    throw new UnsupportedOperationException()
-  }
+  override def getAllPresent(keys: lang.Iterable[_ <: K]): util.Map[K, V] = throw unsupported
 
   override def getAll(
     keys: lang.Iterable[_ <: K],
     mappingFunction: function.Function[_ >: util.Set[_ <: K], _ <: util.Map[_ <: K, _ <: V]]
   ): util.Map[K, V] = {
-    throw new UnsupportedOperationException()
+    throw unsupported
   }
 
-  override def put(key: K, value: V): Unit = primary.put(key, value)
+  override def put(key: K, value: V): Unit = {
+    secondary.invalidate(key)
+    primary.put(key, value)
+  }
 
   override def putAll(map: util.Map[_ <: K, _ <: V]): Unit = primary.putAll(map)
 
@@ -81,70 +88,65 @@ class TwoLayerCache[K, V](val primary: Cache[K, V], val secondary: Cache[K, V]) 
 
   override def stats(): CacheStats = primary.stats().plus(secondary.stats())
 
-  // Warning! Breaks contract of asMap, returns a snapshot of the current cache (with few exceptions)!
+  // Warning! Breaks contract of asMap, this implementation returns a snapshot (with few exceptions)!
   override def asMap(): ConcurrentMap[K, V] = new ConcurrentMap[K, V]() {
-
-    // Lazy to avoid expensive copy when not needed
+    // Lazy to avoid expensive snapshotting when not needed
     private lazy val snapshot = {
-      val map = util.HashMap.newHashMap[K, V](math.min(estimatedSize(), Int.MaxValue).toInt)
+      val map = util.HashMap.newHashMap[K, V](primary.asMap().size() + secondary.asMap().size())
       map.putAll(secondary.asMap())
       map.putAll(primary.asMap())
       Collections.unmodifiableMap(map)
     }
 
-    override def size(): Int = snapshot.size()
+    // Methods that works as expected on the underlying map
+    // ====================================================
 
-    override def isEmpty: Boolean = snapshot.isEmpty
-
-    override def containsKey(key: Any): Boolean = snapshot.containsKey(key)
-
-    override def containsValue(value: Any): Boolean = snapshot.containsValue(value)
-
-    override def get(key: Any): V = snapshot.get(key)
-
-    override def put(key: K, value: V): V = throw new UnsupportedOperationException()
-
-    override def remove(key: Any): V = throw new UnsupportedOperationException()
-
-    override def putAll(m: util.Map[_ <: K, _ <: V]): Unit = throw new UnsupportedOperationException()
-
-    override def clear(): Unit = throw new UnsupportedOperationException()
-
-    override def keySet(): util.Set[K] = snapshot.keySet()
-
-    override def values(): util.Collection[V] = snapshot.values()
-
-    override def entrySet(): util.Set[Map.Entry[K, V]] = snapshot.entrySet()
-
-    override def equals(obj: Any): Boolean = snapshot.equals(obj)
-
-    override def hashCode(): Int = snapshot.hashCode()
-
-    override def computeIfAbsent(key: K, mappingFunction: function.Function[_ >: K, _ <: V]): V =
-      throw new UnsupportedOperationException()
-
-    override def computeIfPresent(key: K, remappingFunction: BiFunction[_ >: K, _ >: V, _ <: V]): V =
-      throw new UnsupportedOperationException()
-
-    override def compute(key: K, remappingFunction: BiFunction[_ >: K, _ >: V, _ <: V]): V =
-      throw new UnsupportedOperationException()
-
-    override def merge(key: K, value: V, remappingFunction: BiFunction[_ >: V, _ >: V, _ <: V]): V =
-      throw new UnsupportedOperationException()
-
-    override def replaceAll(function: BiFunction[_ >: K, _ >: V, _ <: V]): Unit =
-      throw new UnsupportedOperationException()
-
-    override def remove(key: Any, value: Any): Boolean = throw new UnsupportedOperationException()
-
-    override def putIfAbsent(key: K, value: V): V = throw new UnsupportedOperationException()
+    override def put(key: K, value: V): V = {
+      secondary.invalidate(key)
+      val oldValue = primary.asMap().put(key, value)
+      oldValue
+    }
 
     // Note, this is called from the query cache (at the time of writing).
     override def replace(key: K, oldValue: V, newValue: V): Boolean = {
       primary.asMap().replace(key, oldValue, newValue) || secondary.asMap().replace(key, oldValue, newValue)
     }
 
-    override def replace(key: K, value: V): V = throw new UnsupportedOperationException()
+    override def forEach(action: BiConsumer[_ >: K, _ >: V]): Unit = {
+      val primaryMap = primary.asMap()
+      primaryMap.forEach(action)
+      val secondaryMap = secondary.asMap()
+      secondaryMap.forEach((key, value) => if (!primaryMap.containsKey(key)) action.accept(key, value))
+    }
+
+    // Methods that relies on the snapshot
+    // ===================================
+
+    override def size(): Int = snapshot.size()
+    override def isEmpty: Boolean = snapshot.isEmpty
+    override def containsKey(key: Any): Boolean = snapshot.containsKey(key)
+    override def containsValue(value: Any): Boolean = snapshot.containsValue(value)
+    override def get(key: Any): V = snapshot.get(key)
+    override def keySet(): util.Set[K] = snapshot.keySet()
+    override def values(): util.Collection[V] = snapshot.values()
+    override def entrySet(): util.Set[Map.Entry[K, V]] = snapshot.entrySet()
+    override def equals(obj: Any): Boolean = snapshot.equals(obj)
+    override def hashCode(): Int = snapshot.hashCode()
+
+    // Unsupported methods
+    // ===================
+
+    override def remove(key: Any): V = throw unsupported
+    override def putAll(m: util.Map[_ <: K, _ <: V]): Unit = throw unsupported
+    override def clear(): Unit = throw unsupported
+    override def computeIfAbsent(key: K, f: function.Function[_ >: K, _ <: V]): V = throw unsupported
+    override def computeIfPresent(key: K, f: BiFunction[_ >: K, _ >: V, _ <: V]): V = throw unsupported
+    override def compute(key: K, f: BiFunction[_ >: K, _ >: V, _ <: V]): V = throw unsupported
+    override def merge(key: K, value: V, f: BiFunction[_ >: V, _ >: V, _ <: V]): V = throw unsupported
+    override def replaceAll(f: BiFunction[_ >: K, _ >: V, _ <: V]): Unit = throw unsupported
+    override def remove(key: Any, value: Any): Boolean = throw unsupported
+    override def putIfAbsent(key: K, value: V): V = throw unsupported
+    override def replace(key: K, value: V): V = throw unsupported
   }
 
   override def cleanUp(): Unit = {
@@ -156,14 +158,26 @@ class TwoLayerCache[K, V](val primary: Cache[K, V], val secondary: Cache[K, V]) 
     primary.policy()
   }
 
+  private def unsupported: UnsupportedOperationException = new UnsupportedOperationException()
+
+  @VisibleForTesting
+  def getPrimary: Cache[K, V] = primary
+
+  @VisibleForTesting
+  def getSecondary: Cache[K, V] = secondary
 }
 
 object TwoLayerCache {
 
-  def evictionListener[K, V](receiver: Cache[K, V]): RemovalListener[K, V] =
-    (key: K, value: V, cause: RemovalCause) => {
+  class EvictionListener[K, V](receiver: Cache[K, V]) extends RemovalListener[K, V] {
+
+    final override def onRemoval(key: K, value: V, cause: RemovalCause): Unit = {
       if (cause.wasEvicted()) {
-        receiver.put(key, value)
+        val old = receiver.asMap().put(key, value)
+        onPut(key, old, value)
       }
     }
+
+    def onPut(key: K, oldValue: V, value: V): Unit = {}
+  }
 }

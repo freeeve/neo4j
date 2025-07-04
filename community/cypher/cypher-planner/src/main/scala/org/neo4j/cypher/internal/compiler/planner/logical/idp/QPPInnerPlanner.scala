@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
 import com.github.benmanes.caffeine.cache.Cache
 import org.neo4j.cypher.internal.cache.CacheSize
-import org.neo4j.cypher.internal.cache.ExecutorBasedCaffeineCacheFactory
+import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.CacheBackedQPPInnerPlanner.CacheKeyInner
@@ -88,7 +88,7 @@ class CacheBackedQPPInnerPlanner(planner: => QPPInnerPlanner) extends QPPInnerPl
   ): LogicalPlan = {
     val cacheKeyOuter = CacheKeyOuter(qpp, fromLeft)
     val cacheMaxSize = CacheSize.Static(CACHE_MAX_SIZE)
-    val cache = caches.getOrElse(cacheKeyOuter, ExecutorBasedCaffeineCacheFactory.createCache(cacheMaxSize))
+    val cache = caches.getOrElse(cacheKeyOuter, CaffeineCacheFactory.newSynchronousCache(cacheMaxSize))
     val cacheKeyInner = CacheKeyInner(extractedPredicates.requiredSymbols, labelInfoOuter)
 
     Option(cache.getIfPresent(cacheKeyInner)) match {

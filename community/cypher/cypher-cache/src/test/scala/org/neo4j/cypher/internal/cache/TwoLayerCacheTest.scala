@@ -38,6 +38,14 @@ class TwoLayerCacheTest extends CypherFunSuite {
     cache.getIfPresent("first") should be("first")
   }
 
+  test("should put a value 2") {
+    val (cache, _, _, _) = setup()
+
+    cache.asMap().put("first", "first")
+
+    cache.getIfPresent("first") should be("first")
+  }
+
   test("should putAll values") {
     val (cache, _, _, _) = setup()
 
@@ -77,9 +85,6 @@ class TwoLayerCacheTest extends CypherFunSuite {
     }
 
     val map = cache.asMap()
-    assertThrows[UnsupportedOperationException] {
-      map.put("key", "new value")
-    }
     assertThrows[UnsupportedOperationException] {
       map.remove("key")
     }
@@ -125,11 +130,32 @@ class TwoLayerCacheTest extends CypherFunSuite {
     secondary.getIfPresent("first") should be("first")
   }
 
+  test("should evict from primary to secondary on maximum size == 0 2") {
+    val (cache, primary, secondary, _) = setup(primarySize = 0, secondarySize = 1)
+
+    cache.asMap().put("first", "first")
+
+    cache.getIfPresent("first") should be("first")
+    primary.getIfPresent("first") should be(null)
+    secondary.getIfPresent("first") should be("first")
+  }
+
   test("should evict from primary to secondary on size > 0") {
     val (cache, primary, secondary, _) = setup(primarySize = 1, secondarySize = 1)
 
     cache.put("first", "first")
     cache.put("second", "second")
+
+    primary.getIfPresent("first") should be(null)
+    primary.getIfPresent("second") should be("second")
+    secondary.getIfPresent("first") should be("first")
+  }
+
+  test("should evict from primary to secondary on size > 0 2") {
+    val (cache, primary, secondary, _) = setup(primarySize = 1, secondarySize = 1)
+
+    cache.asMap().put("first", "first")
+    cache.asMap().put("second", "second")
 
     primary.getIfPresent("first") should be(null)
     primary.getIfPresent("second") should be("second")
@@ -146,12 +172,37 @@ class TwoLayerCacheTest extends CypherFunSuite {
     secondary.getIfPresent("first") should be(null)
   }
 
+  test("should evict from secondary on maximum size == 0 2") {
+    val (cache, primary, secondary, _) = setup(primarySize = 0, secondarySize = 0)
+
+    cache.asMap().put("first", "first")
+
+    cache.getIfPresent("first") should be(null)
+    primary.getIfPresent("first") should be(null)
+    secondary.getIfPresent("first") should be(null)
+  }
+
   test("should evict from secondary on maximum size > 0 ") {
     val (cache, primary, secondary, _) = setup(primarySize = 1, secondarySize = 1)
 
     cache.put("first", "first")
     cache.put("second", "second")
     cache.put("third", "third")
+
+    cache.getIfPresent("first") should be(null)
+    cache.getIfPresent("second") should be("second")
+    cache.getIfPresent("third") should be("third")
+
+    primary.getAllPresent(util.List.of("first", "second", "third")) should be(util.Map.of("third", "third"))
+    secondary.getAllPresent(util.List.of("first", "second", "third")) should be(util.Map.of("second", "second"))
+  }
+
+  test("should evict from secondary on maximum size > 0 2") {
+    val (cache, primary, secondary, _) = setup(primarySize = 1, secondarySize = 1)
+
+    cache.asMap().put("first", "first")
+    cache.asMap().put("second", "second")
+    cache.asMap().put("third", "third")
 
     cache.getIfPresent("first") should be(null)
     cache.getIfPresent("second") should be("second")
@@ -246,11 +297,13 @@ class TwoLayerCacheTest extends CypherFunSuite {
         (runnable: Runnable) => runnable.run()
       ).build[String, String]()
 
-    val primary = Caffeine.newBuilder().maximumSize(primarySize).ticker(ticker).expireAfterWrite(
-      Duration.ofNanos(1000)
-    ).evictionListener(
-      TwoLayerCache.evictionListener(secondary)
-    ).executor((runnable: Runnable) => runnable.run()).build[String, String]()
+    val primary = Caffeine.newBuilder()
+      .maximumSize(primarySize)
+      .ticker(ticker)
+      .expireAfterWrite(Duration.ofNanos(1000))
+      .evictionListener(new TwoLayerCache.EvictionListener(secondary))
+      .executor((runnable: Runnable) => runnable.run())
+      .build[String, String]()
 
     val cache = new TwoLayerCache(primary, secondary)
     (cache, primary, secondary, ticker)

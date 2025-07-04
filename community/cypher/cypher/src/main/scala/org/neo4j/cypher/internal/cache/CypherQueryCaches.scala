@@ -562,9 +562,7 @@ class CypherQueryCaches(
       case None        => 0
     }
 
-    // Warning! When shared cache is enabled this implementation is slow (see SharedCacheContainer).
-    override def estimatedSize(): Long =
-      maybeCache.fold(0L)(_.estimatedSize())
+    override def estimatedSize(): Long = maybeCache.fold(0L)(_.estimatedSize())
   })
 
   /**
@@ -609,39 +607,30 @@ class CypherQueryCaches(
 
   private object stats extends QueryCacheStatistics {
 
-    // Warning! When shared cache is enabled this implementation is slow (see SharedCacheContainer).
     override def preParserCacheEntries(): Long =
       preParserCache.estimatedSize()
 
-    // Warning! When shared cache is enabled this implementation is slow (see SharedCacheContainer).
     override def astCacheEntries(): Long =
       allCaches.asScala
         .collect { case c: AstCache.Cache => c.estimatedSize() }
         .sum
 
-    // Warning! When shared cache is enabled this implementation is slow (see SharedCacheContainer).
     override def logicalPlanCacheEntries(): Long =
       allCaches.asScala
         .collect { case c: LogicalPlanCache.Cache => c.estimatedSize() }
         .sum
 
-    // Warning! When shared cache is enabled this implementation is slow (see SharedCacheContainer).
-    override def executionPlanCacheEntries(): Long =
-      executionPlanCache.estimatedSize()
+    override def executionPlanCacheEntries(): Long = executionPlanCache.estimatedSize()
 
-    // Warning! When shared cache is enabled this implementation is slow (see SharedCacheContainer).
-    override def executableQueryCacheEntries(): Long =
-      executableQueryCache.estimatedSize()
+    override def executableQueryCacheEntries(): Long = executableQueryCache.estimatedSize()
 
     // Warning! This is O(n).
     override def executableQueryCacheCodeGenSize(): Long =
       executableQueryCache.values.map(_.value.codeGenByteCodeSize).sum
 
-    override def numberOfReplans(): Long =
-      cacheTracers.executablePlan.numberOfReplans
+    override def numberOfReplans(): Long = cacheTracers.executablePlan.numberOfReplans
 
-    override def replanWaitTime(): Long =
-      cacheTracers.executablePlan.replanWaitTime
+    override def replanWaitTime(): Long = cacheTracers.executablePlan.replanWaitTime
 
     override def metricsPerCacheKind(): java.util.Map[String, CacheMetrics] = {
       (cacheTracers.perCacheKind: Map[String, CacheMetrics]).asJava

@@ -24,14 +24,39 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import com.github.benmanes.caffeine.cache.RemovalCause
 import com.github.benmanes.caffeine.cache.RemovalListener
 import com.github.benmanes.caffeine.cache.Ticker
+import org.neo4j.cypher.internal.cache.CaffeineCacheFactory.CacheConf
+import org.neo4j.cypher.internal.cache.CaffeineCacheFactory.newCache
+import org.neo4j.cypher.internal.cache.SharedExecutorBasedCaffeineCacheFactory.BackingCache
+import org.neo4j.cypher.internal.cache.SharedExecutorBasedCaffeineCacheFactory.InternalListeners
+import org.neo4j.cypher.internal.cache.SharedExecutorBasedCaffeineCacheFactory.SizeEstimation
+import org.neo4j.util.VisibleForTesting
 
 import java.util.concurrent.Executor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 import scala.collection.concurrent.TrieMap
 
-object ExecutorBasedCaffeineCacheFactory {
+object CaffeineCacheFactory {
+
+  case class CacheConf[K <: AnyRef, V <: AnyRef](
+    executor: Executor,
+    size: CacheSize,
+    evictionListener: Option[RemovalListener[K, V]] = None,
+    removalListener: Option[RemovalListener[K, V]] = None,
+    softValues: Boolean = false,
+    ttlAfterWriteMs: Option[Long] = None,
+    ticker: Option[Ticker] = None
+  ) {
+
+    def withType[K2 <: AnyRef, V2 <: AnyRef](
+      eviction: RemovalListener[K2, V2],
+      removal: RemovalListener[K2, V2]
+    ): CacheConf[K2, V2] = {
+      CacheConf(executor, size, Some(eviction), Some(removal), softValues, ttlAfterWriteMs, ticker)
+    }
+  }
 
   /**
    * Please note that this constructor creates a cache with a synchronous executor. Caffeine would normally perform
@@ -40,79 +65,25 @@ object ExecutorBasedCaffeineCacheFactory {
    * this as it would give users observability into the thread pool and your cache, as well as improve cache
    * performance. Instead, use this constructor when all you need is a Map with a size limit and evictions.
    */
-  def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize): Cache[K, V] = {
+  def newSynchronousCache[K <: AnyRef, V <: AnyRef](size: CacheSize): Cache[K, V] = {
     val currentThreadExecutor = new Executor {
       def execute(command: Runnable): Unit = command.run()
     }
-    createCache(currentThreadExecutor, size)
+    newCache(CacheConf[K, V](currentThreadExecutor, size))
   }
 
-  def createCache[K <: AnyRef, V <: AnyRef](executor: Executor, size: CacheSize): Cache[K, V] =
-    size.withSize[K, V, Cache[K, V]](size =>
-      Caffeine
-        .newBuilder()
-        .executor(executor)
+  def newCache[K <: AnyRef, V <: AnyRef](conf: CacheConf[K, V]): Cache[K, V] =
+    conf.size.withSize[K, V, Cache[K, V]] { size =>
+      var builder = Caffeine.newBuilder().asInstanceOf[Caffeine[K, V]]
+        .executor(conf.executor)
         .maximumSize(size)
-        .build[K, V]()
-    )
-
-  def createCache[K <: AnyRef, V <: AnyRef](
-    executor: Executor,
-    removalListener: RemovalListener[K, V],
-    size: CacheSize
-  ): Cache[K, V] =
-    size.withSize[K, V, Cache[K, V]](size =>
-      Caffeine
-        .newBuilder()
-        .executor(executor)
-        .maximumSize(size)
-        .evictionListener(removalListener)
-        .build[K, V]()
-    )
-
-  def createSoftValuesCache[K <: AnyRef, V <: AnyRef](
-    executor: Executor,
-    removalListener: RemovalListener[K, V],
-    size: CacheSize
-  ): Cache[K, V] = {
-    size.withSize[K, V, Cache[K, V]](size =>
-      Caffeine
-        .newBuilder()
-        .executor(executor)
-        .maximumSize(size)
-        .evictionListener(removalListener)
-        .softValues()
-        .build[K, V]()
-    )
-  }
-
-  def createCache[K <: AnyRef, V <: AnyRef](executor: Executor, size: CacheSize, ttlAfterAccess: Long): Cache[K, V] = {
-    size.withSize[K, V, Cache[K, V]](size =>
-      Caffeine
-        .newBuilder()
-        .executor(executor)
-        .maximumSize(size)
-        .expireAfterAccess(ttlAfterAccess, TimeUnit.MILLISECONDS)
-        .build[K, V]()
-    )
-  }
-
-  def createCache[K <: AnyRef, V <: AnyRef](
-    executor: Executor,
-    ticker: Ticker,
-    ttlAfterWrite: Long,
-    size: CacheSize
-  ): Cache[K, V] =
-    size.withSize[K, V, Cache[K, V]](size =>
-      Caffeine
-        .newBuilder()
-        .executor(executor)
-        .maximumSize(size)
-        .ticker(ticker)
-        .expireAfterWrite(ttlAfterWrite, TimeUnit.MILLISECONDS)
-        .build[K, V]()
-    )
-
+      builder = conf.evictionListener.fold(builder)(listener => builder.evictionListener(listener))
+      builder = conf.removalListener.fold(builder)(listener => builder.removalListener(listener))
+      builder = if (conf.softValues) builder.softValues() else builder
+      builder = conf.ttlAfterWriteMs.fold(builder)(ttlMs => builder.expireAfterWrite(ttlMs, TimeUnit.MILLISECONDS))
+      builder = conf.ticker.fold(builder)(ticker => builder.ticker(ticker))
+      builder.build[K, V]()
+    }
 }
 
 trait CacheFactory {
@@ -120,251 +91,196 @@ trait CacheFactory {
 }
 
 trait CaffeineCacheFactory extends CacheFactory {
-  def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize): Cache[K, V]
-  def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize, removalListener: RemovalListener[K, V]): Cache[K, V]
+  protected def executor: Executor
+  private[cache] def create[K <: AnyRef, V <: AnyRef](conf: CacheConf[K, V]): Cache[K, V]
+
+  final def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize): Cache[K, V] = create(CacheConf(executor, size))
+
+  final def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize, eviction: RemovalListener[K, V]): Cache[K, V] =
+    create(CacheConf(executor, size, Some(eviction)))
+
+  final def createCache[K <: AnyRef, V <: AnyRef](ticker: Ticker, ttlAfterWrite: Long, size: CacheSize): Cache[K, V] =
+    create(CacheConf(executor, size, ttlAfterWriteMs = Some(ttlAfterWrite), ticker = Some(ticker)))
 
   def createWithSoftBackingCache[K <: AnyRef, V <: AnyRef](
     primarySize: CacheSize,
     secondarySize: CacheSize,
-    removalListener: RemovalListener[K, V]
+    evictionListener: RemovalListener[K, V]
   ): Cache[K, V]
-
-  def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize, ttlAfterAccess: Long): Cache[K, V]
-  def createCache[K <: AnyRef, V <: AnyRef](ticker: Ticker, ttlAfterWrite: Long, size: CacheSize): Cache[K, V]
 }
 
 trait CacheTracerRepository {
-  def tracerForCacheKind(cacheKind: String): CacheTracer[_]
+  def tracerForCacheKind(kind: String): CacheTracer[_]
 }
 
-class ExecutorBasedCaffeineCacheFactory(executor: Executor) extends CaffeineCacheFactory {
+class ExecutorBasedCaffeineCacheFactory(override protected val executor: Executor) extends CaffeineCacheFactory {
 
-  override def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize): Cache[K, V] = {
-    ExecutorBasedCaffeineCacheFactory.createCache(executor, size)
-  }
-
-  override def createCache[K <: AnyRef, V <: AnyRef](
-    size: CacheSize,
-    removalListener: RemovalListener[K, V]
-  ): Cache[K, V] = {
-    ExecutorBasedCaffeineCacheFactory.createCache(executor, removalListener, size)
+  override private[cache] def create[K <: AnyRef, V <: AnyRef](conf: CacheConf[K, V]): Cache[K, V] = {
+    require(conf.removalListener.isEmpty) // Shared cache needs changes to support an additional removal listener.
+    newCache(conf)
   }
 
   override def createWithSoftBackingCache[K <: AnyRef, V <: AnyRef](
     strongSize: CacheSize,
     softSize: CacheSize,
-    removalListener: RemovalListener[K, V]
+    evictionListener: RemovalListener[K, V]
   ): Cache[K, V] = {
-    val secondary = ExecutorBasedCaffeineCacheFactory.createSoftValuesCache(executor, removalListener, softSize)
-    val primary = ExecutorBasedCaffeineCacheFactory.createCache(
-      executor,
-      TwoLayerCache.evictionListener(secondary),
-      strongSize
-    )
+    val secondary = newCache(CacheConf(executor, softSize, Some(evictionListener), softValues = true))
+    val primary = newCache(CacheConf(executor, strongSize, Some(new TwoLayerCache.EvictionListener(secondary))))
     new TwoLayerCache[K, V](primary, secondary)
   }
-
-  override def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize, ttlAfterAccess: Long): Cache[K, V] = {
-    ExecutorBasedCaffeineCacheFactory.createCache(executor, size, ttlAfterAccess)
-  }
-
-  override def createCache[K <: AnyRef, V <: AnyRef](
-    ticker: Ticker,
-    ttlAfterWrite: Long,
-    size: CacheSize
-  ): Cache[K, V] =
-    ExecutorBasedCaffeineCacheFactory.createCache(executor, ticker, ttlAfterWrite, size)
 
   override def resolveCacheKind(kind: String): CaffeineCacheFactory = this
 }
 
-class SharedExecutorBasedCaffeineCacheFactory(executor: Executor, val cacheTracerRepository: CacheTracerRepository)
-    extends CacheFactory {
-  self =>
+final class SharedExecutorBasedCaffeineCacheFactory(
+  executor: Executor,
+  val cacheTracerRepository: CacheTracerRepository
+) extends CacheFactory { self =>
 
-  case class InternalRemovalListener[K, V](listener: RemovalListener[K, V]) extends RemovalListener[(Int, K), V] {
-    private val externalListeners: TrieMap[Int, RemovalListener[K, V]] = scala.collection.concurrent.TrieMap()
-    private val sharedCacheListener: RemovalListener[K, V] = listener
+  private[this] val backingCacheByKind = new scala.collection.concurrent.TrieMap[String, BackingCache[_, _]]()
 
-    override def onRemoval(key: (Int, K), value: V, cause: RemovalCause): Unit = key match {
-      case (id, innerKey) =>
-        externalListeners.get(id).foreach(_.onRemoval(innerKey, value, cause))
-        sharedCacheListener.onRemoval(innerKey, value, cause)
+  override def resolveCacheKind(kind: String): SharedCacheFactoryForKind = new SharedCacheFactoryForKind(kind)
+
+  def close(databaseId: Int): Unit = backingCacheByKind.values.foreach(_.close(databaseId))
+
+  private def tracer[K](kind: String): CacheTracer[K] = {
+    cacheTracerRepository.tracerForCacheKind(kind).asInstanceOf[CacheTracer[K]]
+  }
+
+  @VisibleForTesting
+  def getCacheSizeOf(kind: String): Long = backingCacheByKind.get(kind) match {
+    case Some(cache) =>
+      cache.cache.cleanUp()
+      cache.cache.estimatedSize()
+    case None => 0L
+  }
+
+  @VisibleForTesting
+  def cleanUpCache(kind: String): Unit = backingCacheByKind.get(kind).foreach(_.cache.cleanUp())
+
+  @VisibleForTesting
+  def invalidateAllEntries(kind: String): Unit = backingCacheByKind.get(kind).foreach(_.cache.invalidateAll())
+
+  @VisibleForTesting
+  private[cache] def backingCache(kind: String): Option[BackingCache[_, _]] = backingCacheByKind.get(kind)
+
+  class SharedCacheFactoryForKind(kind: String) extends CaffeineCacheFactory {
+    override protected def executor: Executor = self.executor
+
+    override def resolveCacheKind(kind: String): SharedCacheFactoryForKind = this
+
+    override private[cache] def create[K <: AnyRef, V <: AnyRef](conf: CacheConf[K, V]): SharedCacheContainer[K, V] = {
+      val id = SharedCacheContainerIdGen.getNewId
+      val backingCache = backingCacheByKind.getOrElseUpdate(kind, newBackingCache(conf))
+        .asInstanceOf[BackingCache[K, V]]
+
+      val sizeEstimation = SizeEstimation()
+      backingCache.listeners.registerDb(id, sizeEstimation, conf.evictionListener)
+
+      SharedCacheContainer(backingCache.cache, id, tracer[K](kind), self, sizeEstimation)
     }
-
-    def registerExternalListener(id: Int, listener: RemovalListener[K, V]): Unit =
-      externalListeners.update(id, listener)
-
-    def unregisterExternalListener(id: Int): Unit = externalListeners.remove(id)
-  }
-
-  private val cacheKindToCache: TrieMap[String, Cache[_, _]] = scala.collection.concurrent.TrieMap()
-
-  private val cacheKindToListener: TrieMap[String, InternalRemovalListener[_, _]] =
-    scala.collection.concurrent.TrieMap()
-
-  def getCacheSizeOf(kind: String): Long = {
-    cacheKindToCache.get(kind) match {
-      case Some(cache) =>
-        cache.cleanUp()
-        cache.estimatedSize()
-      case None => 0L
-    }
-  }
-
-  /**
-   * Call this to get better cache statistics
-   */
-  def cleanUpCache(kind: String): Unit = {
-    cacheKindToCache.get(kind).foreach(_.cleanUp())
-  }
-
-  /**
-   * For testing purposes only.
-   */
-  def invalidateAllEntries(kind: String): Unit = {
-    cacheKindToCache.get(kind).foreach(_.invalidateAll())
-  }
-
-  private def tracer[K <: AnyRef](cacheKind: String): CacheTracer[K] = {
-    cacheTracerRepository.tracerForCacheKind(cacheKind).asInstanceOf[CacheTracer[K]]
-  }
-
-  def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize, cacheKind: String): Cache[K, V] = {
-    SharedCacheContainer(
-      cacheKindToCache.getOrElseUpdate(
-        cacheKind,
-        ExecutorBasedCaffeineCacheFactory.createCache[(Int, K), V](executor, size)
-      ).asInstanceOf[Cache[(Int, K), V]],
-      SharedCacheContainerIdGen.getNewId,
-      tracer(cacheKind),
-      this
-    )
-  }
-
-  def createCache[K <: AnyRef, V <: AnyRef](
-    size: CacheSize,
-    removalListener: RemovalListener[K, V],
-    cacheKind: String
-  ): Cache[K, V] =
-    createCacheWithRemovalListener(
-      removalListener,
-      cacheKind,
-      ExecutorBasedCaffeineCacheFactory.createCache[(Int, K), V](executor, _, size)
-    )
-
-  private def createCacheWithRemovalListener[V <: AnyRef, K <: AnyRef](
-    removalListener: RemovalListener[K, V],
-    cacheKind: String,
-    createBackingCache: InternalRemovalListener[K, V] => Cache[(Int, K), V]
-  ): SharedCacheContainer[K, V] = {
-    val id = SharedCacheContainerIdGen.getNewId
-    val globalTracer: CacheTracer[K] = tracer(cacheKind)
-    val globalRemovalListener: RemovalListener[K, V] =
-      (key: K, _: V, _: RemovalCause) => globalTracer.discard(key, "")
-    val internalRemovalListener =
-      cacheKindToListener
-        .getOrElseUpdate(cacheKind, InternalRemovalListener(globalRemovalListener))
-        .asInstanceOf[InternalRemovalListener[K, V]]
-    internalRemovalListener.registerExternalListener(id, removalListener)
-
-    SharedCacheContainer(
-      cacheKindToCache.getOrElseUpdate(
-        cacheKind,
-        createBackingCache(internalRemovalListener)
-      ).asInstanceOf[Cache[(Int, K), V]],
-      id,
-      globalTracer,
-      // will call back when the container is closed, so that `close(id)` can unregister the removal listener(s)
-      this
-    )
-  }
-
-  def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize, ttlAfterAccess: Long, cacheKind: String): Cache[K, V] = {
-    SharedCacheContainer(
-      cacheKindToCache.getOrElseUpdate(
-        cacheKind,
-        ExecutorBasedCaffeineCacheFactory.createCache(executor, size, ttlAfterAccess)
-      ).asInstanceOf[Cache[(Int, K), V]],
-      SharedCacheContainerIdGen.getNewId,
-      tracer(cacheKind),
-      this
-    )
-  }
-
-  def createCache[K <: AnyRef, V <: AnyRef](
-    ticker: Ticker,
-    ttlAfterWrite: Long,
-    size: CacheSize,
-    cacheKind: String
-  ): Cache[K, V] = {
-    SharedCacheContainer(
-      cacheKindToCache.getOrElseUpdate(
-        cacheKind,
-        ExecutorBasedCaffeineCacheFactory.createCache(executor, ticker, ttlAfterWrite, size)
-      ).asInstanceOf[Cache[(Int, K), V]],
-      SharedCacheContainerIdGen.getNewId,
-      tracer(cacheKind),
-      this
-    )
-  }
-
-  def createSoftBackingCache[K <: AnyRef, V <: AnyRef](
-    internalRemovalListener: InternalRemovalListener[K, V],
-    strongSize: CacheSize,
-    softSize: CacheSize
-  ): Cache[(Int, K), V] = {
-    val secondary = ExecutorBasedCaffeineCacheFactory.createSoftValuesCache[(Int, K), V](
-      executor,
-      internalRemovalListener,
-      softSize
-    )
-    val primary = ExecutorBasedCaffeineCacheFactory.createCache[(Int, K), V](
-      executor,
-      TwoLayerCache.evictionListener(secondary),
-      strongSize
-    )
-    new TwoLayerCache[(Int, K), V](primary, secondary)
-  }
-
-  def createWithSoftBackingCache[K <: AnyRef, V <: AnyRef](
-    strongSize: CacheSize,
-    softSize: CacheSize,
-    removalListener: RemovalListener[K, V],
-    cacheKind: String
-  ): Cache[K, V] =
-    createCacheWithRemovalListener(removalListener, cacheKind, createSoftBackingCache(_, strongSize, softSize))
-
-  override def resolveCacheKind(kind: String): CaffeineCacheFactory = new CaffeineCacheFactory {
-    override def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize): Cache[K, V] = self.createCache(size, kind)
-
-    override def createCache[K <: AnyRef, V <: AnyRef](
-      size: CacheSize,
-      removalListener: RemovalListener[K, V]
-    ): Cache[K, V] =
-      self.createCache(size, removalListener, kind)
-
-    override def createCache[K <: AnyRef, V <: AnyRef](size: CacheSize, ttlAfterAccess: Long): Cache[K, V] =
-      self.createCache(size, ttlAfterAccess, kind)
-
-    override def createCache[K <: AnyRef, V <: AnyRef](
-      ticker: Ticker,
-      ttlAfterWrite: Long,
-      size: CacheSize
-    ): Cache[K, V] =
-      self.createCache(ticker, ttlAfterWrite, size, kind)
-    override def resolveCacheKind(kind: String): CaffeineCacheFactory = this
 
     override def createWithSoftBackingCache[K <: AnyRef, V <: AnyRef](
       primarySize: CacheSize,
       secondarySize: CacheSize,
-      removalListener: RemovalListener[K, V]
-    ): Cache[K, V] =
-      self.createWithSoftBackingCache(primarySize, secondarySize, removalListener, kind)
+      evictionListener: RemovalListener[K, V]
+    ): SharedCacheContainer[K, V] = {
+      val id = SharedCacheContainerIdGen.getNewId
+      val backingCache = backingCacheByKind.getOrElseUpdate(kind, newSoftValuesBackingCache(primarySize, secondarySize))
+        .asInstanceOf[BackingCache[K, V]]
+
+      val sizeEstimation = SizeEstimation()
+      backingCache.listeners.registerDb(id, sizeEstimation, Some(evictionListener))
+
+      SharedCacheContainer(backingCache.cache, id, tracer[K](kind), self, sizeEstimation)
+    }
+
+    private def newSoftValuesBackingCache[K <: AnyRef, V <: AnyRef](
+      primarySize: CacheSize,
+      secondarySize: CacheSize
+    ): BackingCache[K, V] = {
+      val secondary = newBackingCache[K, V](CacheConf(executor, secondarySize, softValues = true))
+      val primaryEviction = new TwoLayerCache.EvictionListener(secondary.cache) {
+        private[this] val listeners = secondary.listeners
+        override def onPut(key: (Int, K), oldValue: V, value: V): Unit =
+          if (oldValue ne value) listeners.onPut(key._1)
+      }
+      val primary = newCache[(Int, K), V](CacheConf(
+        executor = executor,
+        size = primarySize,
+        evictionListener = Some(primaryEviction),
+        removalListener = Some(secondary.listeners.removalListener)
+      ))
+      val backingCache = new TwoLayerCache[(Int, K), V](primary, secondary.cache)
+      BackingCache(kind, backingCache, secondary.listeners)
+    }
+
+    private def newBackingCache[K <: AnyRef, V <: AnyRef](conf: CacheConf[K, V]): BackingCache[K, V] = {
+      require(conf.removalListener.isEmpty) // Needs changes below to support an additional removal listener.
+      val listeners = new InternalListeners[K, V](tracer[K](kind))
+      BackingCache(kind, newCache(conf.withType(listeners.evictionListener, listeners.removalListener)), listeners)
+    }
+  }
+}
+
+object SharedExecutorBasedCaffeineCacheFactory {
+
+  private case class DbListeners[K, V](eviction: Option[RemovalListener[K, V]], removal: SizeEstimation)
+
+  abstract private class DbListener[K, V](
+    private[this] val dbListeners: TrieMap[Int, DbListeners[K, V]]
+  ) extends RemovalListener[(Int, K), V] {
+
+    final override def onRemoval(key: (Int, K), value: V, cause: RemovalCause): Unit = dbListeners.get(key._1) match {
+      case Some(listeners) => onRemoval(listeners, key._2, value, cause)
+      case None            =>
+    }
+
+    def onRemoval(listeners: DbListeners[K, V], key: K, value: V, cause: RemovalCause): Unit
   }
 
-  def close(databaseId: Int): Unit =
-    cacheKindToListener.values.foreach(_.unregisterExternalListener(databaseId))
+  final class InternalListeners[K, V](tracer: CacheTracer[K]) {
+    private[this] val dbListeners: TrieMap[Int, DbListeners[K, V]] = new scala.collection.concurrent.TrieMap()
+
+    val evictionListener: RemovalListener[(Int, K), V] = new DbListener(dbListeners) {
+      override def onRemoval(listeners: DbListeners[K, V], key: K, value: V, cause: RemovalCause): Unit = {
+        listeners.eviction.foreach(listener => listener.onRemoval(key, value, cause))
+        tracer.discard(key, "")
+      }
+    }
+
+    val removalListener: RemovalListener[(Int, K), V] = new DbListener(dbListeners) {
+      override def onRemoval(listeners: DbListeners[K, V], key: K, value: V, cause: RemovalCause): Unit = {
+        listeners.removal.onRemoval()
+      }
+    }
+
+    def onPut(id: Int): Unit = dbListeners.get(id).foreach(_.removal.onPut())
+
+    def registerDb(id: Int, size: SizeEstimation, external: Option[RemovalListener[K, V]]): Unit = {
+      dbListeners.put(id, DbListeners(external, size))
+    }
+
+    def unregisterListeners(id: Int): Unit = dbListeners.remove(id)
+  }
+
+  case class BackingCache[K, V](kind: String, cache: Cache[(Int, K), V], listeners: InternalListeners[K, V]) {
+    def close(id: Int): Unit = listeners.unregisterListeners(id)
+  }
+
+  /**
+   * This class provides O(1) size estimation of caches backed by a shared cache.
+   * The estimated size is used for certain metrics,
+   * which became very slow in the previous implementation (to the point of making metrics totally un-responsive)
+   * in dbmses with many databases and high cache size.
+   */
+  case class SizeEstimation() {
+    private[this] val sizeEstimate = new AtomicLong(0)
+    def onRemoval(): Unit = sizeEstimate.decrementAndGet()
+    def onPut(): Unit = sizeEstimate.incrementAndGet()
+    def sizeEstimate(): Long = math.max(0L, sizeEstimate.get())
+  }
 }
 
 object SharedCacheContainerIdGen {

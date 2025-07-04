@@ -27,13 +27,12 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import java.util.Collections
 
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsScala
 
 class SharedCacheContainerTest extends CypherFunSuite {
-
-  private val factory = new ExecutorBasedCaffeineCacheFactory(_.run())
 
   case class TestData(
     cacheContainer0: SharedCacheContainer[String, String],
@@ -44,14 +43,17 @@ class SharedCacheContainerTest extends CypherFunSuite {
   )
 
   private def setup(): TestData = {
-    val backingCache = factory.createCache[(Int, String), String](size = CacheSize.Static(10))
-    val tracer0: CacheTracer[String] = mock[CacheTracer[String]]
-    val tracer1: CacheTracer[String] = mock[CacheTracer[String]]
-    val sharedExecutorBasedCaffeineCacheFactory = mock[SharedExecutorBasedCaffeineCacheFactory]
-    val cacheContainer0 = SharedCacheContainer(backingCache, 0, tracer0, sharedExecutorBasedCaffeineCacheFactory)
-    val cacheContainer1 = SharedCacheContainer(backingCache, 1, tracer1, sharedExecutorBasedCaffeineCacheFactory)
-
-    TestData(cacheContainer0, tracer0, cacheContainer1, tracer1, backingCache)
+    val tracers = new CacheTracerRepository {
+      override def tracerForCacheKind(kind: String): CacheTracer[_] = mock[CacheTracer[String]]
+    }
+    val factory = new SharedExecutorBasedCaffeineCacheFactory(_.run(), tracers)
+    val size = CacheSize.Static(10)
+    val cache0 = factory.resolveCacheKind("a").createCache(size)
+      .asInstanceOf[SharedCacheContainer[String, String]]
+    val cache1 = factory.resolveCacheKind("a").createCache(size)
+      .asInstanceOf[SharedCacheContainer[String, String]]
+    cache0.inner shouldBe cache1.inner
+    TestData(cache0, cache0.tracer, cache1, cache1.tracer, cache0.inner)
   }
 
   test("should support put") {
@@ -62,21 +64,24 @@ class SharedCacheContainerTest extends CypherFunSuite {
     cc1.put("b", "b")
 
     // Then
-    bc.getIfPresent((0, "a")) should be("a")
-    bc.getIfPresent((1, "a")) should be(null)
-    bc.getIfPresent((0, "b")) should be(null)
-    bc.getIfPresent((1, "b")) should be("b")
+    bc.getIfPresent((cc0.id, "a")) should be("a")
+    bc.getIfPresent((cc1.id, "a")) should be(null)
+    bc.getIfPresent((cc0.id, "b")) should be(null)
+    bc.getIfPresent((cc1.id, "b")) should be("b")
 
     verifyNoInteractions(t0)
     verifyNoInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSeq shouldBe Seq("a")
+    cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq("b")
   }
 
   test("should support getIfPresent") {
     val TestData(cc0, t0, cc1, t1, bc) = setup()
 
     // When
-    bc.put((0, "a"), "a")
-    bc.put((1, "b"), "b")
+    bc.put((cc0.id, "a"), "a")
+    bc.put((cc1.id, "b"), "b")
 
     // Then
     cc0.getIfPresent("a") should be("a")
@@ -92,14 +97,17 @@ class SharedCacheContainerTest extends CypherFunSuite {
     o1.verify(t1).cacheMiss("a", "")
     o1.verify(t1).cacheHit("b", "")
     verifyNoMoreInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSeq shouldBe Seq("a")
+    cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq("b")
   }
 
   test("should support get") {
     val TestData(cc0, t0, cc1, t1, bc) = setup()
 
     // When
-    bc.put((0, "a"), "a")
-    bc.put((1, "b"), "b")
+    bc.put((cc0.id, "a"), "a")
+    bc.put((cc1.id, "b"), "b")
 
     // Then
     cc0.get("a", x => x) should be("a")
@@ -107,10 +115,10 @@ class SharedCacheContainerTest extends CypherFunSuite {
     cc1.get("a", x => x) should be("a")
     cc1.get("b", x => x) should be("b")
 
-    bc.getIfPresent((0, "a")) should be("a")
-    bc.getIfPresent((1, "a")) should be("a")
-    bc.getIfPresent((0, "b")) should be("b")
-    bc.getIfPresent((1, "b")) should be("b")
+    bc.getIfPresent((cc0.id, "a")) should be("a")
+    bc.getIfPresent((cc1.id, "a")) should be("a")
+    bc.getIfPresent((cc0.id, "b")) should be("b")
+    bc.getIfPresent((cc1.id, "b")) should be("b")
 
     val o0 = Mockito.inOrder(t0)
     o0.verify(t0).cacheHit("a", "")
@@ -120,35 +128,41 @@ class SharedCacheContainerTest extends CypherFunSuite {
     o1.verify(t1).cacheMiss("a", "")
     o1.verify(t1).cacheHit("b", "")
     verifyNoMoreInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSet shouldBe Set("a", "b")
+    cc1.asMap().values().iterator().asScala.toSet shouldBe Set("b", "a")
   }
 
   test("should support invalidate") {
     val TestData(cc0, t0, cc1, t1, bc) = setup()
 
     // When
-    bc.put((0, "a"), "a")
-    bc.put((1, "b"), "b")
+    bc.put((cc0.id, "a"), "a")
+    bc.put((cc1.id, "b"), "b")
 
     cc0.invalidate("a")
     cc1.invalidate("b")
 
     // Then
-    bc.getIfPresent((0, "a")) should be(null)
-    bc.getIfPresent((1, "a")) should be(null)
-    bc.getIfPresent((0, "b")) should be(null)
-    bc.getIfPresent((1, "b")) should be(null)
+    bc.getIfPresent((cc0.id, "a")) should be(null)
+    bc.getIfPresent((cc1.id, "a")) should be(null)
+    bc.getIfPresent((cc0.id, "b")) should be(null)
+    bc.getIfPresent((cc1.id, "b")) should be(null)
 
     verifyNoInteractions(t0)
     verifyNoInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSeq shouldBe Seq()
+    cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq()
   }
 
   test("should support estimatedSize") {
     val TestData(cc0, t0, cc1, t1, bc) = setup()
 
     // When
-    bc.put((0, "a"), "a")
-    bc.put((0, "b"), "b")
-    bc.put((1, "b"), "b")
+    cc0.put("a", "a")
+    cc0.put("b", "b")
+    cc1.put("b", "b")
 
     // Then
     cc0.estimatedSize() should be(2)
@@ -156,15 +170,18 @@ class SharedCacheContainerTest extends CypherFunSuite {
 
     verifyNoInteractions(t0)
     verifyNoInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSet shouldBe Set("a", "b")
+    cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq("b")
   }
 
   test("should support cleanUp") {
     val TestData(cc0, t0, cc1, t1, bc) = setup()
 
     // When
-    bc.put((0, "a"), "a")
-    bc.put((0, "b"), "b")
-    bc.put((1, "b"), "b")
+    bc.put((cc0.id, "a"), "a")
+    bc.put((cc0.id, "b"), "b")
+    bc.put((cc1.id, "b"), "b")
 
     // Then
     noException should be thrownBy cc0.cleanUp()
@@ -172,15 +189,18 @@ class SharedCacheContainerTest extends CypherFunSuite {
 
     verifyNoInteractions(t0)
     verifyNoInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSet shouldBe Set("a", "b")
+    cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq("b")
   }
 
   test("should support stats") {
     val TestData(cc0, t0, cc1, t1, bc) = setup()
 
     // When
-    bc.put((0, "a"), "a")
-    bc.put((0, "b"), "b")
-    bc.put((1, "b"), "b")
+    bc.put((cc0.id, "a"), "a")
+    bc.put((cc0.id, "b"), "b")
+    bc.put((cc1.id, "b"), "b")
 
     // Then
     // Currently, the implementation simply forwards `stats` to the backing cache.
@@ -190,26 +210,32 @@ class SharedCacheContainerTest extends CypherFunSuite {
 
     verifyNoInteractions(t0)
     verifyNoInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSet shouldBe Set("a", "b")
+    cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq("b")
   }
 
   test("should support invalidateAll") {
-    val TestData(cc0, t0, _, t1, bc) = setup()
+    val TestData(cc0, t0, cc1, t1, bc) = setup()
 
     // When
-    bc.put((0, "a"), "a")
-    bc.put((0, "b"), "b")
-    bc.put((1, "b"), "b")
+    bc.put((cc0.id, "a"), "a")
+    bc.put((cc0.id, "b"), "b")
+    bc.put((cc1.id, "b"), "b")
 
     cc0.invalidateAll()
 
     // Then
-    bc.getIfPresent((0, "a")) should be(null)
-    bc.getIfPresent((1, "a")) should be(null)
-    bc.getIfPresent((0, "b")) should be(null)
-    bc.getIfPresent((1, "b")) should be("b")
+    bc.getIfPresent((cc0.id, "a")) should be(null)
+    bc.getIfPresent((cc1.id, "a")) should be(null)
+    bc.getIfPresent((cc0.id, "b")) should be(null)
+    bc.getIfPresent((cc1.id, "b")) should be("b")
 
     verifyNoInteractions(t0)
     verifyNoInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSeq shouldBe Seq()
+    cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq("b")
   }
 
   test("should throw on unsupported methods") {
@@ -249,24 +275,27 @@ class SharedCacheContainerTest extends CypherFunSuite {
   }
 
   test("should support asMap().replace(K, V, V)") {
-    val TestData(cc0, t0, _, t1, bc) = setup()
+    val TestData(cc0, t0, cc1, t1, bc) = setup()
 
     // When
-    bc.put((0, "a"), "a")
-    bc.put((0, "b"), "b")
-    bc.put((1, "b"), "b")
+    bc.put((cc0.id, "a"), "a")
+    bc.put((cc0.id, "b"), "b")
+    bc.put((cc1.id, "b"), "b")
 
     cc0.asMap().replace("a", "a", "A") should be(true)
     cc0.asMap().replace("b", "a", "A") should be(false)
 
     // Then
-    bc.getIfPresent((0, "a")) should be("A")
-    bc.getIfPresent((1, "a")) should be(null)
-    bc.getIfPresent((0, "b")) should be("b")
-    bc.getIfPresent((1, "b")) should be("b")
+    bc.getIfPresent((cc0.id, "a")) should be("A")
+    bc.getIfPresent((cc1.id, "a")) should be(null)
+    bc.getIfPresent((cc0.id, "b")) should be("b")
+    bc.getIfPresent((cc1.id, "b")) should be("b")
 
     verifyNoInteractions(t0)
     verifyNoInteractions(t1)
+
+    cc0.asMap().values().iterator().asScala.toSet shouldBe Set("A", "b")
+    cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq("b")
   }
 
   // policy method remains untested for now.

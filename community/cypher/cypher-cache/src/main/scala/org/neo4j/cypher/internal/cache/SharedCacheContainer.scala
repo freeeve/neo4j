@@ -22,11 +22,11 @@ package org.neo4j.cypher.internal.cache
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Policy
 import com.github.benmanes.caffeine.cache.stats.CacheStats
+import org.neo4j.cypher.internal.cache.SharedExecutorBasedCaffeineCacheFactory.SizeEstimation
 
 import java.io.Closeable
 import java.lang
 import java.util
-import java.util.Collections.unmodifiableCollection
 import java.util.Optional
 import java.util.OptionalInt
 import java.util.OptionalLong
@@ -35,7 +35,6 @@ import java.util.concurrent.ConcurrentMap
 import java.util.concurrent.TimeUnit
 import java.util.function
 import java.util.function.BiFunction
-import java.util.function.Consumer
 
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -56,12 +55,15 @@ import scala.jdk.CollectionConverters.MapHasAsScala
  * @tparam K The key type of the cache.
  * @tparam V The value type of the cache.
  */
-case class SharedCacheContainer[K, V](
+case class SharedCacheContainer[K, V <: AnyRef](
   inner: Cache[(Int, K), V],
   id: Int,
   tracer: CacheTracer[K],
-  cacheFactory: SharedExecutorBasedCaffeineCacheFactory
+  cacheFactory: SharedExecutorBasedCaffeineCacheFactory,
+  sizeEstimation: SizeEstimation
 ) extends Cache[K, V] with Closeable {
+  private[this] val innerAsMap = inner.asMap()
+  private[this] val mapRepresentation = new MapRepresentation
 
   override def get(key: K, mappingFunction: function.Function[_ >: K, _ <: V]): V = {
     var hit = true
@@ -71,6 +73,7 @@ case class SharedCacheContainer[K, V](
     if (hit) {
       tracer.cacheHit(key, "")
     } else {
+      sizeEstimation.onPut()
       tracer.cacheMiss(key, "")
     }
 
@@ -79,111 +82,98 @@ case class SharedCacheContainer[K, V](
 
   override def getIfPresent(key: K): V = {
     val result = inner.getIfPresent((id, key))
-    Option(result) match {
-      case None => tracer.cacheMiss(key, "")
-      case _    => tracer.cacheHit(key, "")
-    }
+    if (result eq null) tracer.cacheMiss(key, "")
+    else tracer.cacheHit(key, "")
 
     result
   }
 
-  override def put(key: K, value: V): Unit = inner.put((id, key), value)
-  override def invalidate(key: K): Unit = inner.invalidate((id, key))
-
-  /**
-   * Returns the estimated size of the cache.
-   *
-   * Warning!! The current implementation is slow, O(n) where n is the total number of shared(!) entries.
-   *           Compared to O(1) typically.
-   *           If you optimise the implementation, please update comments similar to this where this is called and
-   *           update the documentation of `server.memory.query_cache.sharing_enabled`.
-   */
-  override def estimatedSize(): Long = {
-    var count = 0
-    forEachKey(_ => count += 1)
-    count
+  override def put(key: K, value: V): Unit = {
+    if (innerAsMap.put((id, key), value) ne value) {
+      sizeEstimation.onPut()
+    }
   }
+
+  override def invalidate(key: K): Unit = inner.invalidate((id, key))
+  override def estimatedSize(): Long = sizeEstimation.sizeEstimate()
   override def cleanUp(): Unit = inner.cleanUp()
   override def stats(): CacheStats = inner.stats()
 
-  override def invalidateAll(): Unit =
-    forEachKey(inner.invalidate)
-
-  private def forEachKey(f: ((Int, K)) => Unit): Unit = {
-    val consumer = new Consumer[(Int, K)]() {
-      override def accept(key: (Int, K)): Unit = if (key._1 == id) f(key)
+  override def invalidateAll(): Unit = {
+    innerAsMap.forEach { case (key, _) =>
+      if (key._1 == id) inner.invalidate(key)
     }
-    inner.asMap().keySet().forEach(consumer)
   }
 
-  // These could very well be implemented using different approaches. However, we should know the use-case first before choosing an implementation.
-  override def getAllPresent(keys: lang.Iterable[_ <: K]): util.Map[K, V] = throw new UnsupportedOperationException
-
-  override def getAll(
-    keys: lang.Iterable[_ <: K],
-    mappingFunction: function.Function[_ >: util.Set[_ <: K], _ <: util.Map[_ <: K, _ <: V]]
-  ): util.Map[K, V] = throw new UnsupportedOperationException
-  override def putAll(map: util.Map[_ <: K, _ <: V]): Unit = throw new UnsupportedOperationException
-  override def invalidateAll(keys: lang.Iterable[_ <: K]): Unit = throw new UnsupportedOperationException
-
-  override def asMap(): ConcurrentMap[K, V] = new ConcurrentMap[K, V]() {
-    private val innerMap = inner.asMap()
-
-    override def size(): Int = throw new UnsupportedOperationException()
-
-    override def isEmpty: Boolean = throw new UnsupportedOperationException()
-
-    override def containsKey(key: Any): Boolean = throw new UnsupportedOperationException()
-
-    override def containsValue(value: Any): Boolean = throw new UnsupportedOperationException()
-
-    override def get(key: Any): V = throw new UnsupportedOperationException()
-
-    override def put(key: K, value: V): V = throw new UnsupportedOperationException()
-
-    override def remove(key: Any): V = throw new UnsupportedOperationException()
-
-    override def putAll(m: util.Map[_ <: K, _ <: V]): Unit = throw new UnsupportedOperationException()
-
-    override def clear(): Unit = throw new UnsupportedOperationException()
-
-    override def keySet(): util.Set[K] = throw new UnsupportedOperationException()
-
-    // TODO, this implementation is incorrect. It does not filter on the id.
-    override def values(): util.Collection[V] = unmodifiableCollection(innerMap.values())
-
-    override def entrySet(): util.Set[java.util.Map.Entry[K, V]] = throw new UnsupportedOperationException()
-
-    override def computeIfAbsent(key: K, mappingFunction: function.Function[_ >: K, _ <: V]): V =
-      throw new UnsupportedOperationException()
-
-    override def computeIfPresent(key: K, remappingFunction: BiFunction[_ >: K, _ >: V, _ <: V]): V =
-      throw new UnsupportedOperationException()
-
-    override def compute(key: K, remappingFunction: BiFunction[_ >: K, _ >: V, _ <: V]): V =
-      throw new UnsupportedOperationException()
-
-    override def merge(key: K, value: V, remappingFunction: BiFunction[_ >: V, _ >: V, _ <: V]): V =
-      throw new UnsupportedOperationException()
-
-    override def replaceAll(function: BiFunction[_ >: K, _ >: V, _ <: V]): Unit =
-      throw new UnsupportedOperationException()
-
-    override def remove(key: Any, value: Any): Boolean = throw new UnsupportedOperationException()
-
-    override def putIfAbsent(key: K, value: V): V = throw new UnsupportedOperationException()
-
-    override def replace(key: K, oldValue: V, newValue: V): Boolean = {
-      innerMap.replace((id, key), oldValue, newValue)
-    }
-
-    override def replace(key: K, value: V): V = throw new UnsupportedOperationException()
-  }
+  override def asMap(): ConcurrentMap[K, V] = mapRepresentation
 
   override def policy(): Policy[K, V] = new SharedCacheContainer.Policy(inner.policy(), id)
 
-  override def close(): Unit =
-    cacheFactory.close(id)
+  override def close(): Unit = cacheFactory.close(id)
+
+  private def unsupported = new UnsupportedOperationException
+
+  // These could very well be implemented using different approaches. However, we should know the use-case first before choosing an implementation.
+  override def getAllPresent(keys: lang.Iterable[_ <: K]): util.Map[K, V] = throw unsupported
+  override def putAll(map: util.Map[_ <: K, _ <: V]): Unit = throw unsupported
+  override def invalidateAll(keys: lang.Iterable[_ <: K]): Unit = throw unsupported
+
+  override def getAll(
+    keys: lang.Iterable[_ <: K],
+    f: function.Function[_ >: util.Set[_ <: K], _ <: util.Map[_ <: K, _ <: V]]
+  ): util.Map[K, V] = throw unsupported
+
+  final private class MapRepresentation extends ConcurrentMap[K, V] {
+
+    override def replace(key: K, oldValue: V, newValue: V): Boolean = {
+      val didReplace = innerAsMap.replace((id, key), oldValue, newValue)
+      if (didReplace && (oldValue ne newValue)) sizeEstimation.onPut()
+      didReplace
+    }
+
+    override def values(): util.Collection[V] = new util.AbstractCollection[V] {
+      override def iterator(): util.Iterator[V] = new util.Iterator[V] {
+        private[this] val entries = innerAsMap.entrySet().iterator()
+        private[this] var nextEntry: V = _
+        override def hasNext: Boolean = {
+          while (entries.hasNext && nextEntry == null) {
+            val current = entries.next()
+            if (current.getKey._1 == id) nextEntry = current.getValue
+          }
+          nextEntry != null
+        }
+        override def next(): V = {
+          if (hasNext) {
+            val result = nextEntry
+            nextEntry = null.asInstanceOf[V]
+            result
+          } else throw new NoSuchElementException()
+        }
+      }
+      override def size(): Int = throw unsupported
+    }
+
+    // Thinking of adding more support? Don't forget to test estimatedSize in SharedCachePropertyTest.
+    override def size(): Int = throw unsupported
+    override def isEmpty: Boolean = throw unsupported
+    override def containsKey(key: Any): Boolean = throw unsupported
+    override def containsValue(value: Any): Boolean = throw unsupported
+    override def get(key: Any): V = throw unsupported
+    override def put(key: K, value: V): V = throw unsupported
+    override def remove(key: Any): V = throw unsupported
+    override def putAll(m: util.Map[_ <: K, _ <: V]): Unit = throw unsupported
+    override def clear(): Unit = throw unsupported
+    override def keySet(): util.Set[K] = throw unsupported
+    override def entrySet(): util.Set[java.util.Map.Entry[K, V]] = throw unsupported
+    override def computeIfAbsent(key: K, f: function.Function[_ >: K, _ <: V]): V = throw unsupported
+    override def computeIfPresent(key: K, f: BiFunction[_ >: K, _ >: V, _ <: V]): V = throw unsupported
+    override def compute(key: K, f: BiFunction[_ >: K, _ >: V, _ <: V]): V = throw unsupported
+    override def merge(key: K, value: V, f: BiFunction[_ >: V, _ >: V, _ <: V]): V = throw unsupported
+    override def replaceAll(f: BiFunction[_ >: K, _ >: V, _ <: V]): Unit = throw unsupported
+    override def remove(key: Any, value: Any): Boolean = throw unsupported
+    override def putIfAbsent(key: K, value: V): V = throw unsupported
+    override def replace(key: K, value: V): V = throw unsupported
+  }
 }
 
 object SharedCacheContainer {
