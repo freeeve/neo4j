@@ -52,6 +52,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
+import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidEndOfFileReadException;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
@@ -231,7 +232,8 @@ public class TransactionLogChecker {
             while (prevPos < (pos = versionCheckingEnvelopeReadChannel.goToNextEntry())) {
                 prevPos = pos;
             }
-        } catch (ReadPastEndException e) {
+            // InvalidEndOfFileReadException is fine as we are looking at only a single file
+        } catch (InvalidEndOfFileReadException | ReadPastEndException e) {
             // Got to the end - good
             return false;
         }

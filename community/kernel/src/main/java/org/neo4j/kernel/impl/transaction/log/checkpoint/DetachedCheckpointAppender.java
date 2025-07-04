@@ -251,28 +251,37 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
     }
 
     public RotatableFile.RotationInfo rotate() throws IOException {
-        channel = rotateChannel(channel, context.getKernelVersionProvider());
+        int checksum = writer.currentChecksum().orElse(BASE_TX_CHECKSUM);
+        channel = rotateChannel(channel, context.getKernelVersionProvider(), checksum);
         LogHeader logHeader = logHeader(channel.getLogVersion());
         writer.setChannel(channel, logHeader);
         return new RotatableFile.RotationInfo(channel.getPath(), logHeader);
     }
 
     public RotatableFile.RotationInfo rotate(KernelVersion kernelVersion) throws IOException {
-        channel = rotateChannel(channel, fixed(kernelVersion));
+        int checksum = writer.currentChecksum().orElse(BASE_TX_CHECKSUM);
+        channel = rotateChannel(channel, fixed(kernelVersion), checksum);
+        LogHeader logHeader = logHeader(channel.getLogVersion());
+        writer.setChannel(channel, logHeader);
+        return new RotatableFile.RotationInfo(channel.getPath(), logHeader);
+    }
+
+    public RotatableFile.RotationInfo rotate(KernelVersion kernelVersion, int checksum) throws IOException {
+        channel = rotateChannel(channel, fixed(kernelVersion), checksum);
         LogHeader logHeader = logHeader(channel.getLogVersion());
         writer.setChannel(channel, logHeader);
         return new RotatableFile.RotationInfo(channel.getPath(), logHeader);
     }
 
     private PhysicalLogVersionedStoreChannel rotateChannel(
-            PhysicalLogVersionedStoreChannel channel, KernelVersionProvider kernelVersionProvider) throws IOException {
+            PhysicalLogVersionedStoreChannel channel, KernelVersionProvider kernelVersionProvider, int checksum)
+            throws IOException {
         long newLogVersion = logVersionRepository.incrementAndGetCheckpointLogVersion();
         writer.prepareForFlush().flush();
 
         long endSize = channel.position();
         channel.truncate(endSize);
 
-        int checksum = writer.currentChecksum().orElse(BASE_TX_CHECKSUM);
         var newChannel = channelAllocator.createLogChannel(
                 newLogVersion,
                 AppendIndexProvider.UNKNOWN_APPEND_INDEX,

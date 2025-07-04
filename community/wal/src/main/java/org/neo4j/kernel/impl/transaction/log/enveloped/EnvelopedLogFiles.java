@@ -301,21 +301,17 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         return logFilesMetadata.get().logHeader().getLastAppendIndex();
     }
 
-    private void rotateCurrentFile() throws IOException {
+    private void rotateCurrentFile(long lastAppendIndex, int checksum) throws IOException {
         if (appendingChannel == null) {
             throw new IllegalStateException("Cannot rotate if not initialised");
         } else {
             var nextVersion = currentWriteChannel.version() + 1;
             var newStoreChannel = createNewStoreChannel(
                     nextVersion,
-                    logHeaderFactory.createLogHeader(
-                            nextVersion,
-                            appendingChannel.currentIndex(),
-                            appendingChannel.currentChecksum(),
-                            segmentBlockSize));
+                    logHeaderFactory.createLogHeader(nextVersion, lastAppendIndex, checksum, segmentBlockSize));
             appendingChannel.prepareForFlush().flush();
             currentWriteChannel.channel().truncate(currentWriteChannel.channel().position());
-            updateState(newStoreChannel, appendingChannel.currentChecksum(), appendingChannel.currentIndex());
+            updateState(newStoreChannel, checksum, lastAppendIndex);
         }
     }
 
@@ -454,8 +450,14 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
         @Override
         public void rotateLogFile(LogRotateEvents logRotateEvents) throws IOException {
+            throw new UnsupportedOperationException("envelope channel rotation checks are done internally");
+        }
+
+        @Override
+        public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum)
+                throws IOException {
             try (var event = logRotateEvents.beginLogRotate()) {
-                envelopedLogFiles.rotateCurrentFile();
+                envelopedLogFiles.rotateCurrentFile(lastAppendIndex, previousChecksum);
                 event.rotationCompleted(0); // TODO add clock
             }
         }

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.util.function.LongSupplier;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.RotatableFile;
@@ -43,13 +44,15 @@ public class FileLogRotation implements LogRotation {
     private long lastRotationCompleted;
     private final LongSupplier lastAppendIndexSupplier;
     private final LongSupplier currentFileVersionSupplier;
+    private final KernelVersionProvider kernelVersionProvider;
 
     public static LogRotation checkpointLogRotation(
             CheckpointLogFile checkpointLogFile,
             LogFile logFile,
             Clock clock,
             Panic databasePanic,
-            LogRotationMonitor monitor) {
+            LogRotationMonitor monitor,
+            KernelVersionProvider kernelVersionProvider) {
         return new FileLogRotation(
                 checkpointLogFile,
                 LogRotationMonitor.LogType.CHECKPOINT,
@@ -57,11 +60,16 @@ public class FileLogRotation implements LogRotation {
                 databasePanic,
                 monitor,
                 () -> logFile.getLogFileInformation().getLastEntryAppendIndex(),
-                checkpointLogFile::getCurrentLogVersion);
+                checkpointLogFile::getCurrentLogVersion,
+                kernelVersionProvider);
     }
 
     public static LogRotation transactionLogRotation(
-            LogFile logFile, Clock clock, Panic databasePanic, LogRotationMonitor monitor) {
+            LogFile logFile,
+            Clock clock,
+            Panic databasePanic,
+            LogRotationMonitor monitor,
+            KernelVersionProvider kernelVersionProvider) {
         return new FileLogRotation(
                 logFile,
                 LogRotationMonitor.LogType.TRANSACTIONS,
@@ -69,7 +77,8 @@ public class FileLogRotation implements LogRotation {
                 databasePanic,
                 monitor,
                 () -> logFile.getLogFileInformation().getLastEntryAppendIndex(),
-                logFile::getCurrentLogVersion);
+                logFile::getCurrentLogVersion,
+                kernelVersionProvider);
     }
 
     private FileLogRotation(
@@ -79,7 +88,8 @@ public class FileLogRotation implements LogRotation {
             Panic databasePanic,
             LogRotationMonitor monitor,
             LongSupplier lastAppendIndexSupplier,
-            LongSupplier currentFileVersionSupplier) {
+            LongSupplier currentFileVersionSupplier,
+            KernelVersionProvider kernelVersionProvider) {
         this.clock = clock;
         this.monitor = monitor;
         this.type = type;
@@ -87,6 +97,7 @@ public class FileLogRotation implements LogRotation {
         this.rotatableFile = rotatableFile;
         this.lastAppendIndexSupplier = lastAppendIndexSupplier;
         this.currentFileVersionSupplier = currentFileVersionSupplier;
+        this.kernelVersionProvider = kernelVersionProvider;
     }
 
     @Override
@@ -159,6 +170,19 @@ public class FileLogRotation implements LogRotation {
                     lastAppendIndexSupplier.getAsLong(),
                     currentFileVersionSupplier,
                     rotatableFile::rotate);
+        }
+    }
+
+    @Override
+    public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum)
+            throws IOException {
+        synchronized (rotatableFile) {
+            doRotate(
+                    logRotateEvents,
+                    lastAppendIndex,
+                    currentFileVersionSupplier,
+                    () -> rotatableFile.rotate(
+                            kernelVersionProvider.kernelVersion(), lastAppendIndex, previousChecksum));
         }
     }
 

@@ -131,7 +131,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                 context, fileHelper, logHeaderCache, new LogFileChannelNativeAccessor(fileSystem, context));
         this.readerLogVersionBridge = ReaderLogVersionBridge.forFile(this);
         this.rotationMonitor = context.getMonitors().newMonitor(LogRotationMonitor.class);
-        this.logRotation = transactionLogRotation(this, context.getClock(), databaseHealth, rotationMonitor);
+        this.logRotation = transactionLogRotation(
+                this, context.getClock(), databaseHealth, rotationMonitor, context.getKernelVersionProvider());
         this.memoryTracker = context.getMemoryTracker();
         this.logger = context.getLogProvider().getLog(TransactionLogFile.class);
     }

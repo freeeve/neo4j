@@ -28,7 +28,6 @@ import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.MVCC_INCOMPLETE_REVERSE_RECOVERY;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.RECOVERY;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.REVERSE_RECOVERY;
-import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 
 import java.io.Closeable;
@@ -437,15 +436,18 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
 
         @Override
         public void rotateLogFile(LogRotateEvents logRotateEvents) throws IOException {
+            // rotation should only occur due to envelope file size limits
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum)
+                throws IOException {
             long newLogVersion = channel.getLogVersion() + 1;
             writer.prepareForFlush().flush();
             channel.truncate(channel.position());
             PhysicalLogVersionedStoreChannel newLog = logFile.createLogChannelForVersion(
-                    newLogVersion,
-                    appendIndexProvider::getLastAppendIndex,
-                    versionProvider,
-                    writer.currentChecksum().orElse(BASE_TX_CHECKSUM),
-                    logFormatVersionProvider);
+                    newLogVersion, () -> lastAppendIndex, versionProvider, previousChecksum, logFormatVersionProvider);
             channel.close();
             channel = newLog;
             writer.setChannel(channel, logFile.extractHeader(channel.getLogVersion()));

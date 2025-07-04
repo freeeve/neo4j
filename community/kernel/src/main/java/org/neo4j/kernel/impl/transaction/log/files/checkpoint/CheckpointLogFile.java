@@ -97,7 +97,12 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         this.log = context.getLogProvider().getLog(getClass());
         var rotationMonitor = context.getMonitors().newMonitor(LogRotationMonitor.class);
         var checkpointRotation = checkpointLogRotation(
-                this, logFiles.getLogFile(), context.getClock(), context.getDatabaseHealth(), rotationMonitor);
+                this,
+                logFiles.getLogFile(),
+                context.getClock(),
+                context.getDatabaseHealth(),
+                rotationMonitor,
+                context.getKernelVersionProvider());
         this.binarySupportedKernelVersions = context.getBinarySupportedKernelVersions();
         this.checkpointAppender = new DetachedCheckpointAppender(
                 logFiles,
@@ -352,10 +357,9 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
-    public RotationInfo rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) {
-        // Checkpoint log handles checksums and append indexes internally, this one should not ever be needed for
-        // checkpoint log file.
-        throw new UnsupportedOperationException("Checkpoint log does not support this type of rotation");
+    public RotationInfo rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) throws IOException {
+        // Checkpoint files are written with a fixed lastAppendIndex in the file header, so this is ignored
+        return checkpointAppender.rotate(kernelVersion, checksum);
     }
 
     @Override

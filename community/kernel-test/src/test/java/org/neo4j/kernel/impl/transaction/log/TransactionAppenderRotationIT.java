@@ -35,9 +35,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.DatabaseConfig;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
@@ -45,6 +48,7 @@ import org.neo4j.kernel.impl.api.txid.IdStoreTransactionIdGenerator;
 import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
@@ -113,7 +117,7 @@ class TransactionAppenderRotationIT {
 
         LogAppendEvent logAppendEvent =
                 new RotationLogAppendEvent(logFiles.getLogFile().getLogRotation());
-        CompleteTransaction completeTransaction = prepareTransaction();
+        CompleteTransaction completeTransaction = prepareTransaction(LatestVersions.LATEST_KERNEL_VERSION);
         transactionAppender.append(completeTransaction, logAppendEvent);
 
         LogFile logFile = logFiles.getLogFile();
@@ -121,6 +125,39 @@ class TransactionAppenderRotationIT {
         assertEquals(1, logRangeInfo.highestVersion());
         LogHeader logHeader = LogHeaderReader.readLogHeader(fileSystem, logRangeInfo.highestFile(), INSTANCE);
         assertEquals(2, logHeader.getLastAppendIndex());
+    }
+
+    @Test
+    void appendIndexOnEnvelopedRotationsIsCorrectDespitePreIncrementInBatchAppender()
+            throws IOException, ExecutionException, InterruptedException {
+        LogFiles logFiles = getEnvelopedLogFiles(logVersionRepository, transactionIdStore, appendIndexProvider);
+        life.add(logFiles);
+        Panic databasePanic = getDatabaseHealth();
+
+        TransactionAppender transactionAppender = createTransactionAppender(
+                logFiles, databasePanic, transactionIdStore, jobScheduler, appendIndexProvider);
+
+        life.add(transactionAppender);
+
+        LogFile logFile = logFiles.getLogFile();
+
+        long prevLogVersion = -1L;
+        while (logFile.getCurrentLogVersion() < 5) {
+            LogAppendEvent logAppendEvent = new LogAppendEvent.Empty();
+            long prevAppendIndex = appendIndexProvider.getLastAppendIndex();
+            CompleteTransaction completeTransaction =
+                    prepareTransaction(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);
+            // during append the new appendIndex is claimed before the write and was being captured
+            // by mistake during the size based rotation
+            transactionAppender.append(completeTransaction, logAppendEvent);
+            if (logFile.getCurrentLogVersion() != prevLogVersion) {
+                long newLogVersion = logFile.getCurrentLogVersion();
+                LogHeader logHeader = logFile.extractHeader(newLogVersion);
+                // confirm that the file header actually refers to the previous appendIndex not the new one
+                assertEquals(prevAppendIndex, logHeader.getLastAppendIndex());
+                prevLogVersion = newLogVersion;
+            }
+        }
     }
 
     private static TransactionAppender createTransactionAppender(
@@ -141,10 +178,10 @@ class TransactionAppenderRotationIT {
                 "le db");
     }
 
-    private CompleteTransaction prepareTransaction() {
-        List<StorageCommand> commands = createCommands();
-        CompleteCommandBatch transactionRepresentation = new CompleteCommandBatch(
-                commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LatestVersions.LATEST_KERNEL_VERSION, ANONYMOUS);
+    private CompleteTransaction prepareTransaction(KernelVersion kernelVersion) {
+        List<StorageCommand> commands = createCommands(kernelVersion);
+        CompleteCommandBatch transactionRepresentation =
+                new CompleteCommandBatch(commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, kernelVersion, ANONYMOUS);
         var transactionCommitment = new TransactionCommitment(transactionIdStore);
         return new CompleteTransaction(
                 transactionRepresentation,
@@ -154,8 +191,8 @@ class TransactionAppenderRotationIT {
                 new IdStoreTransactionIdGenerator(transactionIdStore));
     }
 
-    private static List<StorageCommand> createCommands() {
-        return singletonList(new TestCommand());
+    private static List<StorageCommand> createCommands(KernelVersion kernelVersion) {
+        return singletonList(new TestCommand(kernelVersion));
     }
 
     private LogFiles getLogFiles(
@@ -170,6 +207,35 @@ class TransactionAppenderRotationIT {
                         LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
                         LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
+                .withLogVersionRepository(logVersionRepository)
+                .withTransactionIdStore(transactionIdStore)
+                .withAppendIndexProvider(appendIndexProvider)
+                .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
+                .withStoreId(storeId)
+                .build();
+    }
+
+    private LogFiles getEnvelopedLogFiles(
+            SimpleLogVersionRepository logVersionRepository,
+            SimpleTransactionIdStore transactionIdStore,
+            AppendIndexProvider appendIndexProvider)
+            throws IOException {
+        var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
+        var config = Config.newBuilder()
+                .set(
+                        GraphDatabaseInternalSettings.latest_runtime_version,
+                        DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())
+                .set(
+                        GraphDatabaseInternalSettings.latest_kernel_version,
+                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED.version())
+                .build();
+        return LogFilesBuilder.builder(
+                        layout,
+                        fileSystem,
+                        () -> KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED,
+                        () -> LogFormat.fromKernelVersion(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED))
+                .withConfig(config)
+                .withRotationThreshold(ByteUnit.kibiBytes(256))
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)

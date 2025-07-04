@@ -61,6 +61,9 @@ public interface LogRotation {
         public void rotateLogFile(LogRotateEvents logRotateEvents) {}
 
         @Override
+        public void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum) {}
+
+        @Override
         public void locklessRotateLogFile(
                 LogRotateEvents logRotateEvents,
                 KernelVersion kernelVersion,
@@ -114,15 +117,25 @@ public interface LogRotation {
             throws IOException;
 
     /**
-     * Force a log rotation.
-     * @throws IOException
+     * Force a log rotation. Generally should only be used in tests
+     * @param logRotateEvents - A trace event for the current log append operation.
+     * @throws IOException - Thrown on file system errors during rotation
      */
     void rotateLogFile(LogRotateEvents logRotateEvents) throws IOException;
 
     /**
+     * Force a log rotation with provided parameters in new header.
+     *
+     * @param logRotateEvents - A trace event for the current log append operation.
+     * @param lastAppendIndex - Append index of last entry in previous log file to include in fle header if supported in LogFormat
+     * @param previousChecksum - Checksum of last entry in previous log file to include in fle header if supported in LogFormat
+     * @throws IOException - Thrown on file system errors during rotation
+     */
+    void rotateLogFile(LogRotateEvents logRotateEvents, long lastAppendIndex, int previousChecksum) throws IOException;
+    /**
      * Force a log rotation without taking any additional locks.
      * Only use this if the logFile lock is already taken, or there can be no other concurrent operations.
-     * @throws IOException
+     * @throws IOException - Thrown on file system errors during rotation
      */
     void locklessRotateLogFile(
             LogRotateEvents logRotateEvents, KernelVersion kernelVersion, long lastAppendIndex, int previousChecksum)

@@ -627,7 +627,8 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
 
     private void rotateLogFile() throws IOException {
         try (var logAppendEvent = logTracers.logAppend()) {
-            logRotation.rotateLogFile(logAppendEvent);
+            // use our definition of appendIndex as appendIndexProvider may be pre-incremented
+            logRotation.rotateLogFile(logAppendEvent, currentIndex, previousChecksum);
             // and notify the event tracer
             logAppendEvent.setLogRotated(true);
         }
