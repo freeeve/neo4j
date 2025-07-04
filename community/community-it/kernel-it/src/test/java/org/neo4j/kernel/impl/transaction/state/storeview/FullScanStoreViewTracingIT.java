@@ -84,6 +84,7 @@ class FullScanStoreViewTracingIT {
         assertThatTracing(database)
                 .record(pins(103).noFaults())
                 .block(pins(128).noFaults())
+                .spd(pins(114).noFaults())
                 .matches(pageCacheTracer);
     }
 }

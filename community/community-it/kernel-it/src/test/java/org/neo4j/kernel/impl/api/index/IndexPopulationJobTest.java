@@ -231,6 +231,7 @@ class IndexPopulationJobTest {
         assertThatTracing(db)
                 .record(pins(12).faults(2))
                 .block(pins(11).faults(2))
+                .spd(pins(10).faults(2))
                 .matches(pageCacheTracer);
     }
 
@@ -291,6 +292,7 @@ class IndexPopulationJobTest {
         assertThatTracing(db)
                 .record(pins(12).faults(2))
                 .block(pins(11).faults(2))
+                .spd(pins(10).faults(2))
                 .matches(pageCacheTracer);
     }
 
