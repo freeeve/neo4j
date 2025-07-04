@@ -472,7 +472,7 @@ abstract class VarLengthBound(val relName: Variable, val bound: Long) extends Bo
   def getRewrittenPredicate: InequalityExpression = {
     val pos = position
     val size: Expression => FunctionInvocation = FunctionInvocation(FunctionName("size")(pos), _)(pos)
-    val literal = SignedDecimalIntegerLiteral(bound.toString)(pos)
+    val literal = SignedDecimalIntegerLiteral(bound.toString)(pos.zeroLength)
 
     getInequalityExpression(size(relName), literal, pos)
   }

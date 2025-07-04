@@ -616,7 +616,7 @@ class IndexSeekTest extends CypherFunSuite {
   private def variable(name: String) = SingleQueryExpression(Variable(name)(pos, Variable.isIsolatedDefault))
 
   private def string(x: String) = StringLiteral(x)(pos.withInputLength(0))
-  private def intLiteral(x: Int) = SignedDecimalIntegerLiteral(x.toString)(pos)
+  private def intLiteral(x: Int) = SignedDecimalIntegerLiteral(x.toString)(pos.zeroLength)
 
   private def lt(x: Literal) =
     RangeQueryExpression(InequalitySeekRangeWrapper(RangeLessThan(NonEmptyList(ExclusiveBound(x))))(pos))

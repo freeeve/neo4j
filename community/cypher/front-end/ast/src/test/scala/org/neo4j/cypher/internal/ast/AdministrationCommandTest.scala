@@ -82,10 +82,10 @@ import scala.reflect.runtime.universe.typeOf
 
 class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestSupport {
   private val p = InputPosition.withLength(13, 12, 11, 10)
-  private val pos1 = InputPosition(2, 1, 3)
-  private val pos2 = InputPosition(16, 5, 4)
-  private val pos3 = InputPosition(23, 7, 6)
-  private val pos4 = InputPosition(37, 8, 9)
+  private val pos1 = InputPosition(2, 1, 3).withInputLength(2)
+  private val pos2 = InputPosition(16, 5, 4).withInputLength(4)
+  private val pos3 = InputPosition(23, 7, 6).withInputLength(2)
+  private val pos4 = InputPosition(37, 8, 9).withInputLength(2)
 
   private def gqlAuthProviderNotAllowedEmpty(pos: InputPosition) =
     ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
@@ -3372,7 +3372,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
   test("DROP ROLE 3.5 IF EXISTS") {
     val dropRole = DropRole(
-      literalFloat(3.5, pos),
+      literalFloat(3.5, pos.withInputLength(3)),
       ifExists = true
     )(p)
 
@@ -3381,7 +3381,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         gqlWrongType("3.5", "rolename", Seq("STRING NOT NULL"), pos),
         initialState,
         "rolename must be a String, or a String parameter.",
-        pos
+        pos.withInputLength(3)
       ).errors
   }
 }

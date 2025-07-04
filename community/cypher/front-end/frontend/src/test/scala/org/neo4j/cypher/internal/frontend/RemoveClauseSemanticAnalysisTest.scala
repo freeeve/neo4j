@@ -39,7 +39,7 @@ class RemoveClauseSemanticAnalysisTest
       "node or relationship property key",
       List("String"),
       "Type mismatch: node or relationship property key must be given as String, but was Integer",
-      p(24, 1, 25)
+      p(24, 1, 25).withInputLength(1)
     ))
   }
 
@@ -49,7 +49,7 @@ class RemoveClauseSemanticAnalysisTest
       "node or relationship property key",
       List("String"),
       "Type mismatch: node or relationship property key must be given as String, but was Float",
-      p(28, 1, 29)
+      p(28, 1, 29).withInputLength(3)
     ))
   }
 

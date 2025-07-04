@@ -204,7 +204,7 @@ import scala.language.implicitConversions
 object Ast extends AstConstructionTestSupport
 
 trait AstConstructionTestSupport {
-  protected val pos: InputPosition = InputPosition.NONE
+  protected val pos: InputPosition.Range = InputPosition.NONE
   protected val defaultPos: InputPosition = InputPosition(0, 1, 1)
 
   implicit def withPos[T](expr: InputPosition => T): T = expr(pos)
@@ -361,16 +361,16 @@ trait AstConstructionTestSupport {
   def literalBoolean(booleanValue: Boolean): BooleanLiteral = literalBoolean(booleanValue, pos)
 
   def literalBoolean(booleanValue: Boolean, position: InputPosition): BooleanLiteral = if (booleanValue) {
-    True()(position)
+    True()(position.withInputLength(4))
   } else {
-    False()(position)
+    False()(position.withInputLength(5))
   }
 
   def literalInt(value: Long): SignedDecimalIntegerLiteral =
     SignedDecimalIntegerLiteral(value.toString)(pos)
 
   def literalInt(value: Long, position: InputPosition): SignedDecimalIntegerLiteral =
-    SignedDecimalIntegerLiteral(value.toString)(position)
+    SignedDecimalIntegerLiteral(value.toString)(position.withInputLength(value.toString.length))
 
   def literalUnsignedInt(intValue: Int): PathLengthQuantifier =
     PathLengthQuantifier(intValue.toString)(pos)
@@ -379,7 +379,7 @@ trait AstConstructionTestSupport {
     DecimalDoubleLiteral(floatValue.toString)(pos)
 
   def literalFloat(floatValue: Double, position: InputPosition): DecimalDoubleLiteral =
-    DecimalDoubleLiteral(floatValue.toString)(position)
+    DecimalDoubleLiteral(floatValue.toString)(position.withInputLength(floatValue.toString.length))
 
   def sensitiveLiteral(stringVal: String): SensitiveStringLiteral =
     SensitiveStringLiteral(stringVal.getBytes(StandardCharsets.UTF_8))(pos.withInputLength(0))

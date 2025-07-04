@@ -34,7 +34,6 @@ import org.neo4j.cypher.internal.frontend.phases.SyntaxUsageMetricKey
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
-import org.neo4j.cypher.internal.rewriting.conditions.SensitiveLiteralsExtracted
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Condition
@@ -82,7 +81,6 @@ case object CollectSyntaxUsageMetrics
     // FrontEndCompilationPhases.parsingBase
     !DeprecatedSyntaxReplaced,
     !DeprecatedSemanticsReplaced,
-    !SensitiveLiteralsExtracted,
     !SubqueriesInMutatingPatternsIsolated
   ) ++ PreparatoryRewriting.postConditions.map(!_)
 

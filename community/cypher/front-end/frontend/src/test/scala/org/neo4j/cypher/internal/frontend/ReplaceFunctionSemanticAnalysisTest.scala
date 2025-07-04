@@ -71,7 +71,7 @@ class ReplaceFunctionSemanticAnalysisTest extends CypherFunSuite with NameBasedS
             Long.MaxValue,
             "-1",
             "The limit needs to be greater than or equal to 0.",
-            p(34, 1, 35)
+            p(34, 1, 35).withInputLength(2)
           )
         )
     }
@@ -89,7 +89,7 @@ class ReplaceFunctionSemanticAnalysisTest extends CypherFunSuite with NameBasedS
         35
       ),
       "Type mismatch: expected Integer but was Float",
-      p(34, 1, 35)
+      p(34, 1, 35).withInputLength(3)
     )
   }
 }

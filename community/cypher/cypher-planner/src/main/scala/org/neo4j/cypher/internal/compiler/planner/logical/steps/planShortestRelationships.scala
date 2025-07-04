@@ -280,7 +280,7 @@ case object planShortestRelationships {
       if (shortestRelationship.single) {
         lpp.planTop(
           rhsProjected,
-          SignedDecimalIntegerLiteral("1")(pos),
+          SignedDecimalIntegerLiteral("1")(pos.zeroLength),
           sortDescription,
           Seq.empty,
           InterestingOrder.empty,

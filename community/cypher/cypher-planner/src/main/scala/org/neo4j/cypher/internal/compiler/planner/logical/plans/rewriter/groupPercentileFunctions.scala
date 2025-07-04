@@ -230,9 +230,9 @@ case class groupPercentileFunctions(
         val name = functionName.name
         val isDiscrete =
           if (name.equalsIgnoreCase(PercentileDisc.name)) {
-            True()(pos)
+            True()(pos.zeroLength)
           } else if (name.equalsIgnoreCase(PercentileCont.name)) {
-            False()(pos)
+            False()(pos.zeroLength)
           } else {
             throw new IllegalArgumentException(s"Unexpected function name: $name")
           }

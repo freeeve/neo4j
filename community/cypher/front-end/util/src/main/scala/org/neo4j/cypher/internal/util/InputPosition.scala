@@ -28,6 +28,9 @@ sealed trait InputPosition {
   /** The column in the query string */
   def column: Int
 
+  /** Length in characters in the query string. */
+  def length: Option[Int]
+
   /**
    * Offset this position by a number of characters and return the new position.
    */
@@ -39,25 +42,33 @@ sealed trait InputPosition {
       this
   }
 
-  def withInputLength(length: Int): InputPosition.Range = {
-    InputPosition.withLength(offset, line, column, length)
-  }
-
+  def withInputLength(length: Int): InputPosition.Range = InputPosition.withLength(offset, line, column, length)
+  def zeroLength: InputPosition.Range = InputPosition.withLength(offset, line, column, 0)
   override def toString = s"line $line, column $column (offset: $offset)"
+  def verboseString: String = s"line $line, column $column (offset: $offset, length: ${length.getOrElse("-")})"
 }
 
 object InputPosition {
-  case class Simple(offset: Int, line: Int, column: Int) extends InputPosition
+
+  case class Simple(offset: Int, line: Int, column: Int) extends InputPosition {
+    override def length: Option[Int] = None
+  }
 
   /**
-   * Input position with input length.
-   * Input length is the character length in the input string that is represented by the associated ast node.
+   * Input position and length of characters in the input query.
+   *
+   * @param offset offset in chars (not code points)
+   * @param line line number starting at 1
+   * @param column column in line starting at 1
+   * @param inputLength length in the input query in chars (not code points).
    */
-  case class Range(offset: Int, line: Int, column: Int, inputLength: Int) extends InputPosition
+  case class Range(offset: Int, line: Int, column: Int, inputLength: Int) extends InputPosition {
+    override def length: Option[Int] = Some(inputLength)
+  }
 
   implicit val byOffset: Ordering[InputPosition] = Ordering.by(_.offset)
 
-  val NONE: InputPosition = Simple(0, 0, 0)
+  val NONE: InputPosition.Range = Range(0, 0, 0, 0)
 
   def apply(offset: Int, line: Int, column: Int): InputPosition = new Simple(offset, line, column)
 

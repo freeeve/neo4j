@@ -135,7 +135,7 @@ case class LabelExpressionNormalizer(entityExpression: Expression, entityType: O
           HasALabel(copy(entityExpression))(wildcard.position)
         case Some(RELATIONSHIP_TYPE) =>
           // all relationships have a type
-          True()(wildcard.position)
+          True()(wildcard.position.zeroLength)
       }
   }
 

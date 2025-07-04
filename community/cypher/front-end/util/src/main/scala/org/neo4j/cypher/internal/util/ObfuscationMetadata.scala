@@ -16,14 +16,24 @@
  */
 package org.neo4j.cypher.internal.util
 
-final case class ObfuscationMetadata(
+final case class ObfuscationMetadata private (
   sensitiveLiteralOffsets: Vector[LiteralOffset],
   sensitiveParameterNames: Set[String]
 ) {
   def isEmpty: Boolean = sensitiveLiteralOffsets.isEmpty && sensitiveParameterNames.isEmpty
+
+  def merge(other: ObfuscationMetadata): ObfuscationMetadata = ObfuscationMetadata(
+    sensitiveLiteralOffsets.appendedAll(other.sensitiveLiteralOffsets),
+    sensitiveParameterNames.union(other.sensitiveParameterNames)
+  )
 }
 
 object ObfuscationMetadata {
+
+  def apply(offsets: Vector[LiteralOffset], params: Set[String]): ObfuscationMetadata = {
+    new ObfuscationMetadata(offsets.distinct.sortBy(_.start(0)), params)
+  }
+
   def empty() = new ObfuscationMetadata(Vector.empty, Set.empty)
 }
 

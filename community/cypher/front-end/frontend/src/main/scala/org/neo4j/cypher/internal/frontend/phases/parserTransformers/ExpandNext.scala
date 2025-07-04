@@ -172,7 +172,10 @@ case object ExpandNext extends StatementRewriter with StepSequencer.Step with Pa
           case fin: Finish =>
             val pos = fin.position
             val returnItems =
-              Seq(AliasedReturnItem(Count(Null()(pos))(pos), Variable(varName)(pos, isIsolated = false))(pos))
+              Seq(AliasedReturnItem(
+                Count(Null()(pos.zeroLength))(pos),
+                Variable(varName)(pos, isIsolated = false)
+              )(pos))
             With(ReturnItems(FreeProjection, returnItems)(pos), AddedInRewriteGeneral)(pos)
           case x => x
         }

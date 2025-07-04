@@ -138,10 +138,10 @@ case class ForAllRepetitionsPredicateRewriter(
     AllIterablePredicate(
       iterVar,
       functions.Range.asInvocation(
-        SignedDecimalIntegerLiteral("0")(pos),
+        SignedDecimalIntegerLiteral("0")(pos.zeroLength),
         Subtract(
           functions.Size(far.groupVariableAnchor.copyId)(pos),
-          SignedDecimalIntegerLiteral("1")(pos)
+          SignedDecimalIntegerLiteral("1")(pos.zeroLength)
         )(pos)
       )(pos),
       Some(rewrittenPredicate)

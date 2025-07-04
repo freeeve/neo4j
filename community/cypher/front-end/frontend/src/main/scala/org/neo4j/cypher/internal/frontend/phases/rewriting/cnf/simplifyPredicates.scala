@@ -77,14 +77,14 @@ case class simplifyPredicates(semanticState: SemanticState, cancellationChecker:
     case Ands(exps) if exps.isEmpty =>
       throw new IllegalStateException("Found an instance of Ands with empty expressions")
     case Ors(exps) if exps.isEmpty => throw new IllegalStateException("Found an instance of Ors with empty expressions")
-    case p @ Ands(exps) if exps.contains(F) => False()(p.position)
-    case p @ Ors(exps) if exps.contains(T)  => True()(p.position)
+    case p @ Ands(exps) if exps.contains(F) => False()(p.position.zeroLength)
+    case p @ Ors(exps) if exps.contains(T)  => True()(p.position.zeroLength)
     case p @ Ands(exps) if exps.size == 1   => simplifyToInnerExpression(p, exps.head)
     case p @ Ors(exps) if exps.size == 1    => simplifyToInnerExpression(p, exps.head)
     case p @ Ands(exps) if exps.contains(T) =>
       val nonTrue = exps.filterNot(T == _)
       if (nonTrue.isEmpty)
-        True()(p.position)
+        True()(p.position.zeroLength)
       else if (nonTrue.size == 1)
         simplifyToInnerExpression(p, nonTrue.head)
       else
@@ -92,7 +92,7 @@ case class simplifyPredicates(semanticState: SemanticState, cancellationChecker:
     case p @ Ors(exps) if exps.contains(F) =>
       val nonFalse = exps.filterNot(F == _)
       if (nonFalse.isEmpty)
-        False()(p.position)
+        False()(p.position.zeroLength)
       else if (nonFalse.size == 1)
         simplifyToInnerExpression(p, nonFalse.head)
       else
@@ -103,8 +103,8 @@ case class simplifyPredicates(semanticState: SemanticState, cancellationChecker:
         AllIterablePredicate(FilterScope(variable, Some(predicate))(fs.position), expression)(all.position)
       }
       Ands(predicates.endoRewrite(copyVariables))(all.position)
-    case p @ Not(True())  => False()(p.position)
-    case p @ Not(False()) => True()(p.position)
+    case p @ Not(True())  => False()(p.position.zeroLength)
+    case p @ Not(False()) => True()(p.position.zeroLength)
     case expression       => expression
   }
 

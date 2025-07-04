@@ -641,13 +641,13 @@ class MiscParserTest extends AstParsingTestBase {
       Statements(Seq(singleQuery(return_(
         returnItem(
           add(
-            SignedDecimalIntegerLiteral("1")(InputPosition(7, 1, 8)),
-            SignedDecimalIntegerLiteral("2")(InputPosition(24, 1, 25))
+            SignedDecimalIntegerLiteral("1")(InputPosition(7, 1, 8).withInputLength(1)),
+            SignedDecimalIntegerLiteral("2")(InputPosition(24, 1, 25).withInputLength(1))
           ),
           "1 +  /* hello */ 2"
         ),
         returnItem(
-          SignedDecimalIntegerLiteral("3")(InputPosition(27, 1, 28)),
+          SignedDecimalIntegerLiteral("3")(InputPosition(27, 1, 28).withInputLength(1)),
           "3"
         )
       ))))

@@ -763,7 +763,7 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       "dynamic label",
       List("String", "List<String>"),
       "Type mismatch: expected String or List<String> but was Integer",
-      p(11, 1, 12)
+      p(11, 1, 12).withInputLength(1)
     ))
   }
 

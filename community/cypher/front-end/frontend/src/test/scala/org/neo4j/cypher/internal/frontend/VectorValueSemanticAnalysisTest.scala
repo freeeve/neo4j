@@ -48,7 +48,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
         4096,
         "-1",
         s"Invalid input. '-1' is not a valid value. Must be a number in the range 1 to 4096.",
-        p(25, 1, 26)
+        p(25, 1, 26).withInputLength(2)
       )
     )
   }
@@ -62,7 +62,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
         4096,
         "5000",
         s"Invalid input. '5000' is not a valid value. Must be a number in the range 1 to 4096.",
-        p(25, 1, 26)
+        p(25, 1, 26).withInputLength(4)
       )
     )
   }
@@ -79,7 +79,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
         15
       ),
       "Type mismatch: expected String, List<Float>, List<Integer> or List<Number> but was Integer",
-      p(14, 1, 15)
+      p(14, 1, 15).withInputLength(1)
     )
   }
 
@@ -209,7 +209,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
           40
         ),
         "Type mismatch: expected List<T> but was Integer",
-        p(39, 1, 40)
+        p(39, 1, 40).withInputLength(1)
       )
     )
   }

@@ -88,7 +88,7 @@ object EqualEquivalent {
     case Equals(lhs, rhs)                      => Some((lhs, rhs))
     case In(lhs, ListLiteral(Seq(singleItem))) => Some((lhs, singleItem))
     case In(lhs, p @ Parameter(_, _: ListType, ExactSize(1))) =>
-      Some((lhs, ContainerIndex(p, SignedDecimalIntegerLiteral("0")(p.position))(p.position)))
+      Some((lhs, ContainerIndex(p, SignedDecimalIntegerLiteral("0")(p.position.zeroLength))(p.position)))
     case _ => None
   }
 }

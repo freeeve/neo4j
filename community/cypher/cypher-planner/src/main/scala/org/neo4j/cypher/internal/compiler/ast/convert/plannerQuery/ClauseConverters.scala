@@ -1069,26 +1069,26 @@ object ClauseConverters extends LabelExpressionConversion {
       case (builder, RemovePropertyItem(Property(variable: Variable, propertyKey)))
         if acc.semanticTable.typeFor(variable).is(CTNode) =>
         builder.amendQueryGraph(_.addMutatingPatterns(
-          SetNodePropertyPattern(variable, propertyKey, Null()(propertyKey.position))
+          SetNodePropertyPattern(variable, propertyKey, Null()(propertyKey.position.zeroLength))
         ))
 
       // REMOVE rel.prop
       case (builder, RemovePropertyItem(Property(variable: Variable, propertyKey)))
         if acc.semanticTable.typeFor(variable).is(CTRelationship) =>
         builder.amendQueryGraph(_.addMutatingPatterns(
-          SetRelationshipPropertyPattern(variable, propertyKey, Null()(propertyKey.position))
+          SetRelationshipPropertyPattern(variable, propertyKey, Null()(propertyKey.position.zeroLength))
         ))
 
       // REMOVE rel.prop when unknown whether node or rel
       case (builder, RemovePropertyItem(Property(variable, propertyKey))) =>
         builder.amendQueryGraph(_.addMutatingPatterns(
-          SetPropertyPattern(variable, propertyKey, Null()(propertyKey.position))
+          SetPropertyPattern(variable, propertyKey, Null()(propertyKey.position.zeroLength))
         ))
 
       // REMOVE rel[<expr>]
       case (builder, RemoveDynamicPropertyItem(ContainerIndex(entity, prop))) =>
         builder.amendQueryGraph(_.addMutatingPatterns(
-          SetDynamicPropertyPattern(entity, prop, Null()(prop.position))
+          SetDynamicPropertyPattern(entity, prop, Null()(prop.position.zeroLength))
         ))
 
       case (_, other) =>

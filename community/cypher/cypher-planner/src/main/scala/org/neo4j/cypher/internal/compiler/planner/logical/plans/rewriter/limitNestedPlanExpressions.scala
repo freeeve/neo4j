@@ -68,24 +68,22 @@ case class limitNestedPlanExpressions(cardinalities: Cardinalities, otherAttribu
         _,
         _
       ) if shouldInsertLimitOnTopOf(plan) =>
-      val newPlan =
-        planLimitOnTopOf(plan, SignedDecimalIntegerLiteral("1")(npe.position))(otherAttributes.copy(plan.id))
+      val count = SignedDecimalIntegerLiteral("1")(npe.position.zeroLength)
+      val newPlan = planLimitOnTopOf(plan, count)(otherAttributes.copy(plan.id))
       cardinalities.set(newPlan.id, Cardinality.SINGLE)
       fi.copy(args = IndexedSeq(npe.copy(newPlan)(npe.position)))(fi.position)
 
     case ci @ ContainerIndex(npe @ NestedPlanCollectExpression(plan, _, _), index)
       if shouldInsertLimitOnTopOf(plan) && index.isConstantForQuery =>
-      val newPlan = planLimitOnTopOf(plan, Add(SignedDecimalIntegerLiteral("1")(npe.position), index)(npe.position))(
-        otherAttributes.copy(plan.id)
-      )
+      val count = Add(SignedDecimalIntegerLiteral("1")(npe.position.zeroLength), index)(npe.position)
+      val newPlan = planLimitOnTopOf(plan, count)(otherAttributes.copy(plan.id))
       cardinalities.set(newPlan.id, Cardinality.SINGLE)
       ci.copy(expr = npe.copy(newPlan)(npe.position))(ci.position)
 
     case ls @ ListSlice(npe @ NestedPlanCollectExpression(plan, _, _), _, Some(to))
       if shouldInsertLimitOnTopOf(plan) && to.isConstantForQuery =>
-      val newPlan = planLimitOnTopOf(plan, Add(SignedDecimalIntegerLiteral("1")(npe.position), to)(npe.position))(
-        otherAttributes.copy(plan.id)
-      )
+      val count = Add(SignedDecimalIntegerLiteral("1")(npe.position.zeroLength), to)(npe.position)
+      val newPlan = planLimitOnTopOf(plan, count)(otherAttributes.copy(plan.id))
       cardinalities.set(newPlan.id, Cardinality.SINGLE)
       ls.copy(list = npe.copy(newPlan)(npe.position))(ls.position)
 
@@ -97,7 +95,7 @@ case class limitNestedPlanExpressions(cardinalities: Cardinalities, otherAttribu
         _
       ) if shouldInsertLimitOnTopOf(plan) =>
       val newPlan =
-        planLimitOnTopOf(plan, SignedDecimalIntegerLiteral("1")(npe.position))(otherAttributes.copy(plan.id))
+        planLimitOnTopOf(plan, SignedDecimalIntegerLiteral("1")(npe.position.zeroLength))(otherAttributes.copy(plan.id))
       cardinalities.set(newPlan.id, Cardinality.SINGLE)
       fi.copy(args = IndexedSeq(npe.copy(newPlan)(npe.position)))(fi.position)
   }

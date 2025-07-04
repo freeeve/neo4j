@@ -298,7 +298,7 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
         val slot = slotConfiguration(key)
         slot match {
           case LongSlot(offset, true, _) => IsPrimitiveNull(offset)
-          case LongSlot(_, false, _)     => False()(e.position)
+          case LongSlot(_, false, _)     => False()(e.position.zeroLength)
           case _                         => e
         }
 
@@ -421,12 +421,12 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
               } else {
                 // Else if not using DISTINCT, the Count() function only cares if the value != Values.NO_VALUE, so we just use a static Literal expression in place of the entity
                 slot match {
-                  case LongSlot(offset, true, CTNode) => Some(NullCheck(offset, True()(v.position)))
+                  case LongSlot(offset, true, CTNode) => Some(NullCheck(offset, True()(v.position.zeroLength)))
                   case LongSlot(_, false, CTNode) =>
-                    Some(True()(v.position)) // Can never be null so we do not even have to check the slot
-                  case LongSlot(offset, true, CTRelationship) => Some(NullCheck(offset, True()(v.position)))
+                    Some(True()(v.position.zeroLength)) // Can never be null so we do not even have to check the slot
+                  case LongSlot(offset, true, CTRelationship) => Some(NullCheck(offset, True()(v.position.zeroLength)))
                   case LongSlot(_, false, CTRelationship) =>
-                    Some(True()(v.position)) // Can never be null so we do not even have to check the slot
+                    Some(True()(v.position.zeroLength)) // Can never be null so we do not even have to check the slot
                   case _ => None // Don't know how to specialize this
                 }
               }
@@ -483,7 +483,7 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
             NullCheck(offset, HasALabelFromSlot(offset))
 
           case LongSlot(_, _, CTRelationship) =>
-            True()(e.position)
+            True()(e.position.zeroLength)
 
           case _ => e // Don't know how to specialize this
         }
@@ -702,7 +702,7 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
         e
 
     val shortcutWhenDifferentTypes: expressions.Expression =
-      if (positiveCheck) False()(e.position) else True()(e.position)
+      if (positiveCheck) False()(e.position.zeroLength) else True()(e.position.zeroLength)
     val slot1 = slots(k1)
     val slot2 = slots(k2)
 

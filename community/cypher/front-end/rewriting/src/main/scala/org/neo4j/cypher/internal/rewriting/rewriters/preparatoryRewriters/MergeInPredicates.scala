@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.rewriting.conditions.LiteralsExtracted
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
-import org.neo4j.cypher.internal.rewriting.conditions.SensitiveLiteralsExtracted
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -86,10 +85,7 @@ import org.neo4j.cypher.internal.util.topDown
  */
 case object MergeInPredicates extends Step with DefaultPostCondition with PreparatoryRewritingRewriterFactory {
 
-  override def preConditions: Set[StepSequencer.Condition] = Set(
-    !LiteralsExtracted,
-    !SensitiveLiteralsExtracted
-  )
+  override def preConditions: Set[StepSequencer.Condition] = Set(!LiteralsExtracted)
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 
@@ -128,7 +124,7 @@ case object MergeInPredicates extends Step with DefaultPostCondition with Prepar
         if (list.nonEmpty)
           In(predicand, ListLiteral(list)(positions.listPosition))(positions.exprPosition)
         else
-          False()(positions.exprPosition)
+          False()(positions.exprPosition.zeroLength)
       case _ =>
         original
     }
@@ -143,7 +139,7 @@ case object MergeInPredicates extends Step with DefaultPostCondition with Prepar
             In(predicand, ListLiteral(list)(positions.listPosition))(positions.exprPosition)
           )(positions.exprPosition)
         else
-          True()(positions.exprPosition)
+          True()(positions.exprPosition.zeroLength)
       case _ =>
         original
     }
@@ -234,7 +230,7 @@ case object MergeInPredicates extends Step with DefaultPostCondition with Prepar
       }
 
     def copy(newLhs: Expression, newRhs: Expression): Expression = (newLhs, newRhs) match {
-      case (False(), _) | (_, False()) => False()(and.position)
+      case (False(), _) | (_, False()) => False()(and.position.zeroLength)
       case (True(), newRhs)            => newRhs
       case (newLhs, True())            => newLhs
       case _                           => and.copy(newLhs, newRhs)(and.position)
@@ -254,7 +250,7 @@ case object MergeInPredicates extends Step with DefaultPostCondition with Prepar
       }
 
     def copy(newLhs: Expression, newRhs: Expression): Expression = (newLhs, newRhs) match {
-      case (True(), _) | (_, True()) => True()(or.position)
+      case (True(), _) | (_, True()) => True()(or.position.zeroLength)
       case (False(), newRhs)         => newRhs
       case (newLhs, False())         => newLhs
       case _                         => or.copy(newLhs, newRhs)(or.position)

@@ -173,7 +173,11 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
       assert { result =>
         (result.errors, expected) match {
           case (Seq(error), Seq(expected)) =>
-            error shouldEqual expected
+            withClue(s"""position: ${error.position.verboseString}
+                        |expected position: ${expected.position.verboseString}
+                        |""".stripMargin) {
+              error shouldEqual expected
+            }
           case (actual, expected) =>
             actual should contain theSameElementsAs expected
         }

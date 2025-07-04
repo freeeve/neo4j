@@ -692,7 +692,7 @@ class AstGenerator(
 
   private val anonVarNameCount = new AtomicLong()
 
-  protected val pos: InputPosition = InputPosition.NONE
+  protected val pos: InputPosition.Range = InputPosition.NONE
 
   private val usesCypher5 = whenAstDifferUseCypherVersion == CypherVersion.Cypher5
 

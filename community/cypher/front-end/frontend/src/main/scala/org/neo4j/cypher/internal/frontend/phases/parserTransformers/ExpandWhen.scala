@@ -132,7 +132,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
         val pos = wh.position
 
         val conditionalListName = anonymousVariableNameGenerator.nextName
-        val falseList: List[BooleanLiteral] = List.fill(branches.length + 1)(False()(pos))
+        val falseList: List[BooleanLiteral] = List.fill(branches.length + 1)(False()(pos.zeroLength))
 
         /**
          *  WITH *, CASE
@@ -149,9 +149,9 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
                 CaseExpression(
                   expression = None,
                   alternatives = branches.zipWithIndex.map { case (branch, index) =>
-                    (branch.predicate.get, ListLiteral(falseList.updated(index, True()(pos)))(pos))
+                    (branch.predicate.get, ListLiteral(falseList.updated(index, True()(pos.zeroLength)))(pos))
                   }.toList,
-                  default = Some(ListLiteral(falseList.updated(branches.size, True()(pos)))(pos))
+                  default = Some(ListLiteral(falseList.updated(branches.size, True()(pos.zeroLength)))(pos))
                 )(pos),
                 Variable(conditionalListName)(pos, false)
               )(pos))
@@ -176,7 +176,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
               Some(
                 Where(ContainerIndex(
                   Variable(conditionalListName)(pos, false),
-                  SignedDecimalIntegerLiteral(index.toString)(pos)
+                  SignedDecimalIntegerLiteral(index.toString)(pos.zeroLength)
                 )(pos))(pos)
               ),
               withType = AddedInRewriteGeneral

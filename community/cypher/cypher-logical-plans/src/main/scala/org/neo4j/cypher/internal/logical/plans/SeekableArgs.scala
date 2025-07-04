@@ -71,7 +71,7 @@ case class ManySeekableArgs(expr: Expression) extends SeekableArgs {
       }
 
     case p @ Parameter(_, ListType(_, _), ExactSize(1)) =>
-      SingleQueryExpression(ContainerIndex(p, SignedDecimalIntegerLiteral("0")(p.position))(p.position))
+      SingleQueryExpression(ContainerIndex(p, SignedDecimalIntegerLiteral("0")(p.position.zeroLength))(p.position))
 
     case _ =>
       ManyQueryExpression(expr)

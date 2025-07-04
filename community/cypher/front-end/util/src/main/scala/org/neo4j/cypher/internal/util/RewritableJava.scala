@@ -59,6 +59,6 @@ object RewritableJava {
   def includesPosition(product: Product): Boolean = {
     val constructor = copyConstructor(product)
     val params = constructor.getParameterTypes
-    params.last.isAssignableFrom(classOf[InputPosition])
+    classOf[InputPosition].isAssignableFrom(params.last)
   }
 }

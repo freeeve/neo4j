@@ -42,7 +42,7 @@ case object simplifyPredicates extends Rewriter with BottomUpMergeableRewriter {
       Equals(exp, idValueExpr)(in.position)
 
     case in @ In(exp, p @ Parameter(_, _: ListType, ExactSize(1))) =>
-      Equals(exp, ContainerIndex(p, SignedDecimalIntegerLiteral("0")(p.position))(p.position))(in.position)
+      Equals(exp, ContainerIndex(p, SignedDecimalIntegerLiteral("0")(p.position.zeroLength))(p.position))(in.position)
 
     // This form is used to make composite index seeks and scans
     case AndedPropertyInequalities(_, _, predicates) if predicates.size == 1 =>

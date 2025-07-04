@@ -139,7 +139,8 @@ case object RewriteShowQuery extends Step with DefaultPostCondition with Prepara
       .copy(addedInRewrite = true)(position)
 
   private def lastPosition(c: ProjectionClause): InputPosition = {
-    c.folder.treeFold(InputPosition.NONE) {
+    val noPosition: InputPosition = InputPosition.NONE
+    c.folder.treeFold(noPosition) {
       case node: ASTNode => acc => TraverseChildren(Seq(acc, node.position).max)
     }
   }

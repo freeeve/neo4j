@@ -230,7 +230,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         Long.MaxValue,
         "0",
         "Invalid input. '0' is not a valid value. Must be a positive integer.",
-        p(40, 3, 22)
+        p(40, 3, 22).withInputLength(1)
       )
     )
   }
@@ -249,7 +249,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         Long.MaxValue,
         "-1",
         "Invalid input. '-1' is not a valid value. Must be a positive integer.",
-        p(40, 3, 22)
+        p(40, 3, 22).withInputLength(2)
       )
     )
   }
@@ -268,13 +268,13 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         Long.MaxValue,
         "1.5",
         "Invalid input. '1.5' is not a valid value. Must be a positive integer.",
-        p(40, 3, 22)
+        p(40, 3, 22).withInputLength(3)
       ),
       SemanticError.typeMismatch(
         List("Integer"),
         "Float",
         "Type mismatch: expected Integer but was Float",
-        p(40, 3, 22)
+        p(40, 3, 22).withInputLength(3)
       )
     )
   }
@@ -318,7 +318,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         Long.MaxValue,
         "NULL",
         "Invalid input. 'NULL' is not a valid value. Must be a positive integer.",
-        p(40, 3, 22)
+        p(40, 3, 22).withInputLength(4)
       )
     )
   }
@@ -330,7 +330,11 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN TRANSACTIONS OF $batchSize ROWS
          |""".stripMargin
-    run(query).hasError(getGql22003(batchSize, 40, 3, 22), "integer is too large", p(40, 3, 22))
+    run(query).hasError(
+      getGql22003(batchSize, 40, 3, 22),
+      "integer is too large",
+      p(40, 3, 22).withInputLength(batchSize.length)
+    )
   }
 
   test("CALL IN TRANSACTIONS with batchSize with a variable reference") {
@@ -421,7 +425,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         Long.MaxValue,
         "0",
         "Invalid input. '0' is not a valid value. Must be a positive integer.",
-        p(24, 3, 6)
+        p(24, 3, 6).withInputLength(1)
       )
     )
   }
@@ -440,7 +444,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         Long.MaxValue,
         "-1",
         "Invalid input. '-1' is not a valid value. Must be a positive integer.",
-        p(24, 3, 6)
+        p(24, 3, 6).withInputLength(2)
       )
     )
   }
@@ -459,13 +463,13 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         Long.MaxValue,
         "1.5",
         "Invalid input. '1.5' is not a valid value. Must be a positive integer.",
-        p(24, 3, 6)
+        p(24, 3, 6).withInputLength(3)
       ),
       SemanticError.typeMismatch(
         List("Integer"),
         "Float",
         "Type mismatch: expected Integer but was Float",
-        p(24, 3, 6)
+        p(24, 3, 6).withInputLength(3)
       )
     )
   }
@@ -509,7 +513,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         Long.MaxValue,
         "NULL",
         "Invalid input. 'NULL' is not a valid value. Must be a positive integer.",
-        p(24, 3, 6)
+        p(24, 3, 6).withInputLength(4)
       )
     )
   }
@@ -521,7 +525,11 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |  CREATE ()
          |} IN $concurrency CONCURRENT TRANSACTIONS
          |""".stripMargin
-    run(query).hasError(getGql22003(concurrency, 24, 3, 6), "integer is too large", p(24, 3, 6))
+    run(query).hasError(
+      getGql22003(concurrency, 24, 3, 6),
+      "integer is too large",
+      p(24, 3, 6).withInputLength(concurrency.length)
+    )
   }
 
   test("CALL IN TRANSACTIONS with concurrency as a variable reference") {

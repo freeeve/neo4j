@@ -45,7 +45,6 @@ class PrettifierPropertyTest extends CypherFunSuite
     sizeRange = 12
   )
 
-  // Enable when the test runs in reasonable time
   test("Prettifier output should parse to the same ast - Cypher 5 version") {
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)
@@ -54,7 +53,6 @@ class PrettifierPropertyTest extends CypherFunSuite
     }
   }
 
-  // Enable when the test runs in reasonable time
   test("Prettifier output should parse to the same ast - Cypher 25 version") {
     // To reproduce test failures, enable the following line with the seed from the TC build
     // setScalaCheckInitialSeed(seed)

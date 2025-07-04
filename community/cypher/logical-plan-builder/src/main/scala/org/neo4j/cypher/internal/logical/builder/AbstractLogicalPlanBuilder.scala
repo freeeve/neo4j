@@ -1614,8 +1614,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     ids: AnyVal*
   ): IMPL = {
     val idExpressions: Seq[Expression] = ids.map {
-      case x @ (_: Long | _: Int)     => SignedDecimalIntegerLiteral(x.toString)(pos)
-      case x @ (_: Float | _: Double) => DecimalDoubleLiteral(x.toString)(pos)
+      case x @ (_: Long | _: Int)     => SignedDecimalIntegerLiteral(x.toString)(pos.zeroLength)
+      case x @ (_: Float | _: Double) => DecimalDoubleLiteral(x.toString)(pos.zeroLength)
       case x                          => throw new IllegalArgumentException(s"$x is not a supported value for ID")
     }
     val p = patternParser.parse(pattern)
@@ -1757,8 +1757,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             } catch {
               case _: Exception => StringLiteral(x)(pos.withInputLength(0))
             }
-          case x @ (_: Long | _: Int)     => SignedDecimalIntegerLiteral(x.toString)(pos)
-          case x @ (_: Float | _: Double) => DecimalDoubleLiteral(x.toString)(pos)
+          case x @ (_: Long | _: Int)     => SignedDecimalIntegerLiteral(x.toString)(pos.zeroLength)
+          case x @ (_: Float | _: Double) => DecimalDoubleLiteral(x.toString)(pos.zeroLength)
           case x                          => throw new IllegalArgumentException(s"$x is not a supported value for ID")
         }
         ManySeekableArgs(ListLiteral(idExpressions)(pos))
@@ -3171,7 +3171,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     maybeReportAs: Option[String] = None,
     maybeRetryTimeout: Option[FiniteDuration] = None
   ): IMPL = {
-    val maybeDurationExpr = maybeRetryTimeout.map(t => DecimalDoubleLiteral(t.toUnit(SECONDS).toString)(pos))
+    val maybeDurationExpr = maybeRetryTimeout.map(t => DecimalDoubleLiteral(t.toUnit(SECONDS).toString)(pos.zeroLength))
     transactionForeach(
       batchSize,
       concurrency,
@@ -3213,7 +3213,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     maybeReportAs: Option[String] = None,
     maybeRetryTimeout: Option[FiniteDuration] = None
   ): IMPL = {
-    val maybeDurationExpr = maybeRetryTimeout.map(t => DecimalDoubleLiteral(t.toUnit(SECONDS).toString)(pos))
+    val maybeDurationExpr = maybeRetryTimeout.map(t => DecimalDoubleLiteral(t.toUnit(SECONDS).toString)(pos.zeroLength))
     transactionApply(
       batchSize,
       concurrency,
@@ -3518,10 +3518,10 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   private def relTypeName(s: String): RelTypeName = RelTypeName(s)(pos)
 
   private def literalInt(value: Long): SignedDecimalIntegerLiteral =
-    SignedDecimalIntegerLiteral(value.toString)(pos)
+    SignedDecimalIntegerLiteral(value.toString)(pos.zeroLength)
 
   private def literalFloat(value: Double): DecimalDoubleLiteral =
-    DecimalDoubleLiteral(value.toString)(pos)
+    DecimalDoubleLiteral(value.toString)(pos.zeroLength)
   def literalString(str: String): StringLiteral = StringLiteral(str)(pos.withInputLength(0))
 
   def function(name: String, args: Expression*): FunctionInvocation =
@@ -3529,7 +3529,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 }
 
 object AbstractLogicalPlanBuilder {
-  val pos: InputPosition = InputPosition.NONE
+  val pos: InputPosition.Range = InputPosition.NONE
 
   case class Predicate(entity: String, predicate: String) {
 

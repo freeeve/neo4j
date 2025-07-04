@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.parser.ast.util.Util.ifExistsDo
 import org.neo4j.cypher.internal.parser.ast.util.Util.lastChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.nodeChild
 import org.neo4j.cypher.internal.parser.ast.util.Util.pos
+import org.neo4j.cypher.internal.parser.ast.util.Util.rangePos
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.ConstraintIsNotNullContext
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser.ConstraintIsUniqueContext
@@ -484,7 +485,9 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
 
   def exitShards(ctx: Cypher25Parser.ShardsContext): Unit = {
     ctx.ast = ShardDefinition(
-      SignedDecimalIntegerLiteral(ctx.propertyShard().UNSIGNED_DECIMAL_INTEGER().getText)(pos(ctx)).value.intValue(),
+      SignedDecimalIntegerLiteral(
+        ctx.propertyShard().UNSIGNED_DECIMAL_INTEGER().getText
+      )(rangePos(ctx)).value.intValue(),
       if (ctx.graphShard() != null && ctx.graphShard().topology() != null)
         Some(ctx.graphShard().topology().ast[Topology]())
       else None,

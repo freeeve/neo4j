@@ -86,7 +86,7 @@ class Paginate(val args: CucumberSalad.Ingredients) extends ScenarioGenerator wi
         } yield skip -> limit
         val skipLimit = new Random(args.rand.nextInt()).shuffle(skipLimitCombinations).take(4)
         val newSteps = skipLimit.flatMap { case (skip, limit) =>
-          val skipLiteral = SignedDecimalIntegerLiteral(skip.toString)(pos)
+          val skipLiteral = SignedDecimalIntegerLiteral(skip.toString)(pos.zeroLength)
           val newSkip = ret.skip.map(_.expression).map(Add(_, skipLiteral)(pos)).getOrElse(skipLiteral)
           val newItems = ret.returnItems.items.zipWithIndex.map { case (item, index) =>
             val name = Variable(columnNames.get(index))(pos, Variable.isIsolatedDefault)
@@ -95,7 +95,7 @@ class Paginate(val args: CucumberSalad.Ingredients) extends ScenarioGenerator wi
           val newReturn = ret.copy(
             returnItems = ret.returnItems.copy(items = newItems)(pos),
             skip = Some(Skip(newSkip)(pos)),
-            limit = Some(Limit(SignedDecimalIntegerLiteral((limit).toString)(pos))(pos))
+            limit = Some(Limit(SignedDecimalIntegerLiteral(limit.toString)(pos.zeroLength))(pos))
           )(pos)
           val newStatement = statement.endoRewrite(topDown(Rewriter.lift {
             case oldReturn if oldReturn eq ret => newReturn

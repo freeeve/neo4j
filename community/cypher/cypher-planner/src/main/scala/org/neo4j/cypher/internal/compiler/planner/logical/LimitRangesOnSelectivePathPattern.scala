@@ -117,7 +117,7 @@ case class LimitRangesOnSelectivePathPattern(rewriteQuantifiersAbove: Int) {
     val pos = InputPosition.NONE
     GreaterThanOrEqual(
       FunctionInvocation(FunctionName("size")(pos), variable)(pos),
-      SignedDecimalIntegerLiteral(min)(pos)
+      SignedDecimalIntegerLiteral(min)(pos.zeroLength)
     )(pos)
   }
 
@@ -125,7 +125,7 @@ case class LimitRangesOnSelectivePathPattern(rewriteQuantifiersAbove: Int) {
     val pos = InputPosition.NONE
     LessThanOrEqual(
       FunctionInvocation(FunctionName("size")(pos), variable)(pos),
-      SignedDecimalIntegerLiteral(max)(pos)
+      SignedDecimalIntegerLiteral(max)(pos.zeroLength)
     )(pos)
   }
 }

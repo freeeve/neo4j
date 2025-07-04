@@ -17,29 +17,22 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.Statement
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.Literal
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.AST_REWRITE
-import org.neo4j.cypher.internal.frontend.phases.If
 import org.neo4j.cypher.internal.frontend.phases.Phase
-import org.neo4j.cypher.internal.frontend.phases.Transformer
-import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.LiteralsExtracted
 import org.neo4j.cypher.internal.rewriting.conditions.SensitiveLiteralsExtracted
-import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.bottomUp
-import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 
 /**
  * Extracts all literals of the query and replaces them with `SensitiveLiteral`
  */
-case object ExtractSensitiveLiterals extends Phase[BaseContext, BaseState, BaseState] with StepSequencer.Step
-    with ParsePipelineTransformerFactory {
+case object ExtractSensitiveLiterals extends Phase[BaseContext, BaseState, BaseState] with StepSequencer.Step {
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
     val rewriter: Rewriter = bottomUp(Rewriter.lift {
@@ -56,12 +49,4 @@ case object ExtractSensitiveLiterals extends Phase[BaseContext, BaseState, BaseS
   )
   override def postConditions: Set[StepSequencer.Condition] = Set(SensitiveLiteralsExtracted)
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty
-
-  override def getTransformer(
-    literalExtractionStrategy: LiteralExtractionStrategy,
-    parameterTypeMapping: Map[String, ParameterTypeInfo],
-    semanticFeatures: Seq[SemanticFeature],
-    obfuscateLiterals: Boolean
-  ): Transformer[BaseContext, BaseState, BaseState] =
-    If((_: BaseState) => obfuscateLiterals)(ExtractSensitiveLiterals)
 }

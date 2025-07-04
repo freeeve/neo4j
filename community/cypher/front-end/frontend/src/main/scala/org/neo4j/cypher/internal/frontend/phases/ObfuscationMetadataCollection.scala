@@ -45,11 +45,11 @@ case object ObfuscationMetadataCollection extends Phase[BaseContext, BaseState, 
     val extractedParamNames = from.maybeExtractedParams.map(_.keySet.map(_.name)).getOrElse(Set.empty)
     val parameters = from.statement().folder.findAllByClass[Parameter]
 
-    val offsets =
-      collectSensitiveLiteralOffsets(from.statement(), from.maybeExtractedParams.getOrElse(Map.empty))
+    val offsets = collectSensitiveLiteralOffsets(from.statement(), from.maybeExtractedParams.getOrElse(Map.empty))
     val sensitiveParams = collectSensitiveParameterNames(parameters, extractedParamNames)
+    val metadata = ObfuscationMetadata(offsets, sensitiveParams)
 
-    from.withObfuscationMetadata(ObfuscationMetadata(offsets, sensitiveParams))
+    from.withObfuscationMetadata(from.maybeObfuscationMetadata.fold(metadata)(_.merge(metadata)))
   }
 
   private def collectSensitiveLiteralOffsets(
@@ -84,8 +84,7 @@ case object ObfuscationMetadataCollection extends Phase[BaseContext, BaseState, 
     }
 
     val fromStatement = statement.folder.treeFold(Vector.empty[LiteralOffset])(partial)
-    val fromStatementAndExtracted = extractedParameters.folder.treeFold(fromStatement)(partial)
-    fromStatementAndExtracted.distinct.sortBy(_.start(0))
+    extractedParameters.folder.treeFold(fromStatement)(partial)
   }
 
   private def collectSensitiveParameterNames(

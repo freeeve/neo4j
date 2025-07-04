@@ -75,6 +75,7 @@ import org.neo4j.cypher.internal.ir.RunQueryAtProjection
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanStringTest.WhiteList
 import org.neo4j.cypher.internal.util.IdentityMap
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -337,7 +338,8 @@ object LogicalPlanStringTest {
       classOf[AssertNotStandard],
       classOf[AssertNotVirtualSpd],
       classOf[AssertNotGraphShard],
-      classOf[AssertNotPropertyShard]
+      classOf[AssertNotPropertyShard],
+      classOf[InputPosition]
     )
 
     val whiteListedMethodNames: Set[String] = Set(

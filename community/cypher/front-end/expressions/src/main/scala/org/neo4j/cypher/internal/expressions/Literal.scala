@@ -26,6 +26,7 @@ import scala.util.matching.Regex
 sealed trait Literal extends Expression {
   def value: AnyRef
   def asCanonicalStringVal: String
+  def position: InputPosition.Range
   def asSensitiveLiteral: Literal with SensitiveLiteral
   override def isConstantForQuery: Boolean = true
 }
@@ -43,24 +44,20 @@ sealed trait IntegerLiteral extends NumberLiteral {
 sealed trait SignedIntegerLiteral extends IntegerLiteral
 sealed trait UnsignedIntegerLiteral extends IntegerLiteral
 
-case class SignedDecimalIntegerLiteral(stringVal: String)(val position: InputPosition)
+case class SignedDecimalIntegerLiteral(stringVal: String)(override val position: InputPosition.Range)
     extends IntegerLiteral with SignedIntegerLiteral with StringDecimalInteger {
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new SignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral {
-      override def literalLength: Int = stringVal.length
-    }
+    new SignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral
 }
 
 case class UnsignedDecimalIntegerLiteral(
   stringVal: String
-)(val position: InputPosition)
+)(override val position: InputPosition.Range)
     extends IntegerLiteral with UnsignedIntegerLiteral with StringDecimalInteger {
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new UnsignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral {
-      override def literalLength: Int = stringVal.length
-    }
+    new UnsignedDecimalIntegerLiteral(stringVal)(position) with SensitiveLiteral
 }
 
 sealed abstract class OctalIntegerLiteral(stringVal: String) extends IntegerLiteral {
@@ -79,13 +76,11 @@ object OctalIntegerLiteral {
   }
 }
 
-case class SignedOctalIntegerLiteral(stringVal: String)(val position: InputPosition)
+case class SignedOctalIntegerLiteral(stringVal: String)(override val position: InputPosition.Range)
     extends OctalIntegerLiteral(stringVal) with SignedIntegerLiteral {
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new SignedOctalIntegerLiteral(stringVal)(position) with SensitiveLiteral {
-      override def literalLength: Int = stringVal.length
-    }
+    new SignedOctalIntegerLiteral(stringVal)(position) with SensitiveLiteral
 }
 
 sealed abstract class HexIntegerLiteral(stringVal: String) extends IntegerLiteral {
@@ -104,26 +99,23 @@ object HexIntegerLiteral {
   }
 }
 
-case class SignedHexIntegerLiteral(stringVal: String)(val position: InputPosition) extends HexIntegerLiteral(stringVal)
+case class SignedHexIntegerLiteral(stringVal: String)(override val position: InputPosition.Range)
+    extends HexIntegerLiteral(stringVal)
     with SignedIntegerLiteral {
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new SignedHexIntegerLiteral(stringVal)(position) with SensitiveLiteral {
-      override def literalLength: Int = stringVal.length
-    }
+    new SignedHexIntegerLiteral(stringVal)(position) with SensitiveLiteral
 }
 
 sealed trait DoubleLiteral extends NumberLiteral {
   def value: java.lang.Double
 }
 
-case class DecimalDoubleLiteral(stringVal: String)(val position: InputPosition) extends DoubleLiteral {
+case class DecimalDoubleLiteral(stringVal: String)(override val position: InputPosition.Range) extends DoubleLiteral {
   lazy val value: java.lang.Double = DecimalDoubleLiteral.stringToDouble(stringVal)
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new DecimalDoubleLiteral(stringVal)(position) with SensitiveLiteral {
-      override def literalLength: Int = stringVal.length
-    }
+    new DecimalDoubleLiteral(stringVal)(position) with SensitiveLiteral
 }
 
 object DecimalDoubleLiteral {
@@ -148,9 +140,7 @@ case class StringLiteral(value: String)(val position: InputPosition.Range) exten
   }
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
-    new StringLiteral(value)(position) with SensitiveLiteral {
-      override def literalLength: Int = position.inputLength
-    }
+    new StringLiteral(value)(position) with SensitiveLiteral
 }
 
 final case class SensitiveStringLiteral(value: Array[Byte])(val position: InputPosition.Range)
@@ -168,70 +158,58 @@ final case class SensitiveStringLiteral(value: Array[Byte])(val position: InputP
 
   override def hashCode(): Int = util.Arrays.hashCode(value)
 
-  override def literalLength: Int = position.inputLength
-
   override def isConstantForQuery: Boolean = true
 }
 
 trait SensitiveLiteral {
-  val position: InputPosition
+  val position: InputPosition.Range
 
   /**
    * Number of characters of the literal including quotes
    */
-  def literalLength: Int
+  final def literalLength: Int = position.inputLength
 }
 
-case class Null()(val position: InputPosition) extends Literal {
+case class Null()(override val position: InputPosition.Range) extends Literal {
   val value = null
 
   override def asCanonicalStringVal = "NULL"
 
-  override def asSensitiveLiteral: Literal with SensitiveLiteral = new Null()(position) with SensitiveLiteral {
-    override def literalLength: Int = 4
-  }
+  override def asSensitiveLiteral: Literal with SensitiveLiteral = new Null()(position) with SensitiveLiteral
 }
 
 object Null {
   val NULL: Null = Null()(InputPosition.NONE)
 }
 
-case class Infinity()(val position: InputPosition) extends Literal {
+case class Infinity()(override val position: InputPosition.Range) extends Literal {
   val value: java.lang.Double = Double.PositiveInfinity
 
   override def asCanonicalStringVal = "Infinity"
 
-  override def asSensitiveLiteral: Literal with SensitiveLiteral = new Infinity()(position) with SensitiveLiteral {
-    override def literalLength: Int = 8
-  }
+  override def asSensitiveLiteral: Literal with SensitiveLiteral = new Infinity()(position) with SensitiveLiteral
 }
 
-case class NaN()(val position: InputPosition) extends Literal {
+case class NaN()(override val position: InputPosition.Range) extends Literal {
   val value: java.lang.Double = Double.NaN
   override def asCanonicalStringVal = "NaN"
 
-  override def asSensitiveLiteral: Literal with SensitiveLiteral = new NaN()(position) with SensitiveLiteral {
-    override def literalLength: Int = 3
-  }
+  override def asSensitiveLiteral: Literal with SensitiveLiteral = new NaN()(position) with SensitiveLiteral
 }
 
 sealed trait BooleanLiteral extends Literal
 
-case class True()(val position: InputPosition) extends BooleanLiteral {
+case class True()(override val position: InputPosition.Range) extends BooleanLiteral {
   val value: java.lang.Boolean = true
 
   override def asCanonicalStringVal = "true"
 
-  override def asSensitiveLiteral: Literal with SensitiveLiteral = new True()(position) with SensitiveLiteral {
-    override def literalLength: Int = 4
-  }
+  override def asSensitiveLiteral: Literal with SensitiveLiteral = new True()(position) with SensitiveLiteral
 }
 
-case class False()(val position: InputPosition) extends BooleanLiteral {
+case class False()(override val position: InputPosition.Range) extends BooleanLiteral {
   val value: java.lang.Boolean = false
   override def asCanonicalStringVal = "false"
 
-  override def asSensitiveLiteral: Literal with SensitiveLiteral = new False()(position) with SensitiveLiteral {
-    override def literalLength: Int = 5
-  }
+  override def asSensitiveLiteral: Literal with SensitiveLiteral = new False()(position) with SensitiveLiteral
 }

@@ -135,7 +135,7 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithChangeStatement(state
       List("String", "List<String>"),
       "Integer",
       "Type mismatch: expected String or List<String> but was Integer",
-      if (statement == ChangeStatement.SET) InputPosition(23, 1, 24) else InputPosition(26, 1, 27)
+      (if (statement == ChangeStatement.SET) InputPosition(23, 1, 24) else InputPosition(26, 1, 27)).withInputLength(1)
     ))
   }
 

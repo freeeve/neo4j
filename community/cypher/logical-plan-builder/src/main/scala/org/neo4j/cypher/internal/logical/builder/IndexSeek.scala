@@ -730,8 +730,8 @@ object IndexSeek {
     val paramQueue = mutable.Queue.from(paramExpr)
     def value(value: String): Expression =
       value match {
-        case INT(int)             => SignedDecimalIntegerLiteral(int)(pos)
-        case STRING(str)          => StringLiteral(str)(pos.withInputLength(0))
+        case INT(int)             => SignedDecimalIntegerLiteral(int)(pos.zeroLength)
+        case STRING(str)          => StringLiteral(str)(pos.zeroLength)
         case ID_PATTERN(variable) => VariableParser.unescapedVar(variable)
         case PARAM =>
           if (paramQueue.isEmpty) throw new IllegalArgumentException(

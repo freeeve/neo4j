@@ -48,33 +48,37 @@ trait LiteralBuilder extends Cypher25ParserListener {
   override def exitLiteral(ctx: Cypher25Parser.LiteralContext): Unit = {
     ctx.ast = ctx.children.get(0) match {
       case rule: AstRuleCtx => rule.ast
-      case token: TerminalNode => token.getSymbol.getType match {
-          case Cypher25Parser.TRUE                          => True()(pos(ctx))
-          case Cypher25Parser.FALSE                         => False()(pos(ctx))
-          case Cypher25Parser.INF | Cypher25Parser.INFINITY => Infinity()(pos(ctx))
-          case Cypher25Parser.NAN                           => NaN()(pos(ctx))
-          case Cypher25Parser.NULL                          => Null()(pos(ctx))
+      case token: TerminalNode =>
+        val pos = rangePos(ctx)
+        token.getSymbol.getType match {
+          case Cypher25Parser.TRUE                          => True()(pos)
+          case Cypher25Parser.FALSE                         => False()(pos)
+          case Cypher25Parser.INF | Cypher25Parser.INFINITY => Infinity()(pos)
+          case Cypher25Parser.NAN                           => NaN()(pos)
+          case Cypher25Parser.NULL                          => Null()(pos)
         }
       case other => throw new IllegalStateException(s"Unexpected child $other")
     }
   }
 
   final override def exitNumberLiteral(ctx: Cypher25Parser.NumberLiteralContext): Unit = {
+    val pos = rangePos(ctx)
     ctx.ast = lastChild[TerminalNode](ctx).getSymbol.getType match {
-      case Cypher25Parser.UNSIGNED_DECIMAL_INTEGER => SignedDecimalIntegerLiteral(ctx.getText)(pos(ctx))
-      case Cypher25Parser.DECIMAL_DOUBLE           => DecimalDoubleLiteral(ctx.getText)(pos(ctx))
-      case Cypher25Parser.UNSIGNED_HEX_INTEGER     => SignedHexIntegerLiteral(ctx.getText)(pos(ctx))
-      case Cypher25Parser.UNSIGNED_OCTAL_INTEGER   => SignedOctalIntegerLiteral(ctx.getText)(pos(ctx))
+      case Cypher25Parser.UNSIGNED_DECIMAL_INTEGER => SignedDecimalIntegerLiteral(ctx.getText)(pos)
+      case Cypher25Parser.DECIMAL_DOUBLE           => DecimalDoubleLiteral(ctx.getText)(pos)
+      case Cypher25Parser.UNSIGNED_HEX_INTEGER     => SignedHexIntegerLiteral(ctx.getText)(pos)
+      case Cypher25Parser.UNSIGNED_OCTAL_INTEGER   => SignedOctalIntegerLiteral(ctx.getText)(pos)
     }
   }
 
   final override def exitSignedIntegerLiteral(
     ctx: Cypher25Parser.SignedIntegerLiteralContext
   ): Unit = {
+    val pos = rangePos(ctx)
     ctx.ast = if (ctx.MINUS() != null) {
-      SignedDecimalIntegerLiteral("-" + ctx.UNSIGNED_DECIMAL_INTEGER().getText)(pos(ctx))
+      SignedDecimalIntegerLiteral("-" + ctx.UNSIGNED_DECIMAL_INTEGER().getText)(pos)
     } else {
-      SignedDecimalIntegerLiteral(ctx.UNSIGNED_DECIMAL_INTEGER().getText)(pos(ctx))
+      SignedDecimalIntegerLiteral(ctx.UNSIGNED_DECIMAL_INTEGER().getText)(pos)
     }
   }
 

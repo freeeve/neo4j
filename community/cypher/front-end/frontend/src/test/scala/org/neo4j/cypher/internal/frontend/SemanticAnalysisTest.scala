@@ -1517,11 +1517,11 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
 
   test("Should type check predicates in FilteringExpression") {
     val queries = Seq(
-      ("RETURN [x IN [1,2,3] WHERE 42 | x + 1] AS foo", p(27, 1, 28)),
-      ("RETURN all(x IN [1,2,3] WHERE 42) AS foo", p(30, 1, 31)),
-      ("RETURN any(x IN [1,2,3] WHERE 42) AS foo", p(30, 1, 31)),
-      ("RETURN none(x IN [1,2,3] WHERE 42) AS foo", p(31, 1, 32)),
-      ("RETURN single(x IN [1,2,3] WHERE 42) AS foo", p(33, 1, 34))
+      ("RETURN [x IN [1,2,3] WHERE 42 | x + 1] AS foo", p(27, 1, 28).withInputLength(2)),
+      ("RETURN all(x IN [1,2,3] WHERE 42) AS foo", p(30, 1, 31).withInputLength(2)),
+      ("RETURN any(x IN [1,2,3] WHERE 42) AS foo", p(30, 1, 31).withInputLength(2)),
+      ("RETURN none(x IN [1,2,3] WHERE 42) AS foo", p(31, 1, 32).withInputLength(2)),
+      ("RETURN single(x IN [1,2,3] WHERE 42) AS foo", p(33, 1, 34).withInputLength(2))
     )
     queries.foreach { case (query, pos) =>
       val msg = "Type mismatch: expected Boolean but was Integer"
@@ -1810,7 +1810,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
       "argument at index 0 of function normalize()",
       List("String"),
       "Type mismatch: expected String but was Integer",
-      InputPosition(17, 1, 18)
+      InputPosition(17, 1, 18).withInputLength(1)
     ))
   }
 

@@ -253,5 +253,5 @@ case class PlanRewriterContext(
 }
 
 object PlanRewriterContext {
-  val pos: InputPosition = InputPosition.NONE
+  val pos: InputPosition.Range = InputPosition.NONE
 }

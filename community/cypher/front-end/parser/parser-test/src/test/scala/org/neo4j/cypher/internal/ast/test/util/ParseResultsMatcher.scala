@@ -517,6 +517,7 @@ object PrettifyToTheSameAst extends Matcher[ParseResult] with AstParsing {
 /** Assert that the query can be obfuscated and that the obfuscated query is parsable if the ****** is replaced. */
 object ObfuscatorSanity extends Matcher[ParseResult] with AstParsing {
   private val IntReplacement = "(?i)(SKIP|LIMIT|OFFSET) +\\$obfuscationReplacement".r
+  private val ReplacementPlusWord = "\\$obfuscationReplacement\\w".r
 
   override def apply(result: ParseResult): MatchResult = {
     val mismatch = result match {
@@ -566,8 +567,7 @@ object ObfuscatorSanity extends Matcher[ParseResult] with AstParsing {
     }
 
     // Try to collect obfuscation metadata
-    val obfMetadata = Try((ExtractSensitiveLiterals andThen
-      ObfuscationMetadataCollection)
+    val obfMetadata = Try((ExtractSensitiveLiterals andThen ObfuscationMetadataCollection)
       .transform(InitialState(query, null, new AnonymousVariableNameGenerator).withStatement(ast), context)
       .obfuscationMetadata())
 
@@ -581,6 +581,8 @@ object ObfuscatorSanity extends Matcher[ParseResult] with AstParsing {
       q
     }
 
+    val replacementsAreIntact = paramQuery.forall(q => ReplacementPlusWord.findFirstIn(q).isEmpty)
+
     // Parse the parameterized query
     val parsedParamQuery = paramQuery.map(q => Try(StatementsParsers.parse(parser, q)))
     val parsedParamQueryFailure = parsedParamQuery
@@ -588,7 +590,8 @@ object ObfuscatorSanity extends Matcher[ParseResult] with AstParsing {
       .getOrElse("")
 
     Option.when(!parsedParamQuery.exists(_.isSuccess) ||
-      obfMetadata.toOption.exists(_.sensitiveLiteralOffsets.exists(_.length.isEmpty)))(
+      obfMetadata.toOption.exists(_.sensitiveLiteralOffsets.exists(_.length.isEmpty)) ||
+      !replacementsAreIntact)(
       Vector(
         obfMetadata,
         obfQuery.getOrElse("Not Available"),

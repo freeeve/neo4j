@@ -97,7 +97,7 @@ case class AllReduceFallback(
       expression = None,
       alternatives = List(
         // if (state.result == false) state
-        Equals(Property(state, stateResult)(pos), False()(pos))(pos) -> state
+        Equals(Property(state, stateResult)(pos), False()(pos.zeroLength))(pos) -> state
       ),
       default = Some(
         // [nextAcc IN [reductionStepExpression(state.accumulator, reductionStepScopeSingletonVariable)] |
@@ -138,7 +138,7 @@ case class AllReduceFallback(
               )(pos)
             )
           )(pos),
-          SignedDecimalIntegerLiteral("0")(pos)
+          SignedDecimalIntegerLiteral("0")(pos.zeroLength)
         )(pos)
       )
     )(pos)
@@ -152,7 +152,7 @@ case class AllReduceFallback(
       init = MapExpression(Seq(
         // Provide the initial value for the accumulator and set the intermediate result to true
         stateAcc -> allReducePredicate.init,
-        stateResult -> True()(pos)
+        stateResult -> True()(pos.zeroLength)
       ))(pos),
       list = allReducePredicate.groupVariable
     )(pos)

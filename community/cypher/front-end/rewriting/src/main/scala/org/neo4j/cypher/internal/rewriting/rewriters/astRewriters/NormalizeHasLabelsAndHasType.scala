@@ -51,7 +51,7 @@ trait HasLabelsAndHasTypeNormalizer extends Rewriter {
     case p @ HasALabelOrType(e) if isNode(e) =>
       HasALabel(e)(p.position)
     case p @ HasALabelOrType(e) if isRelationship(e) =>
-      True()(p.position)
+      True()(p.position.zeroLength)
     case e =>
       e
   }

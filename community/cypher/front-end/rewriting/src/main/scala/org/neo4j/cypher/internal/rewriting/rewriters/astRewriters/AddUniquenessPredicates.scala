@@ -141,7 +141,7 @@ case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnec
 
     val interRelUniqueness = pairs.collect {
       case (x: SingleRelationship, y: SingleRelationship) if x.name == y.name =>
-        Seq(False()(pos))
+        Seq(False()(pos.zeroLength))
 
       case (x: SingleRelationship, y: SingleRelationship) if !x.isAlwaysDifferentFrom(y) =>
         Seq(DifferentRelationships(x.variable.copyId, y.variable.copyId)(pos))
@@ -169,7 +169,7 @@ case object AddUniquenessPredicates extends AddRelationshipPredicates[NodeConnec
         val yRels = y.innerRelationships.filter(innerY => x.innerRelationships.exists(!_.isAlwaysDifferentFrom(innerY)))
         Option.when(xRels.nonEmpty && yRels.nonEmpty) {
           if (xRels.map(_.name).intersect(yRels.map(_.name)).nonEmpty && !(x.canBeEmpty || y.canBeEmpty)) {
-            False()(pos)
+            False()(pos.zeroLength)
           } else {
             val xList = reduceLists(xRels.map(_.variable.copyId), pos)
             val yList = reduceLists(yRels.map(_.variable.copyId), pos)

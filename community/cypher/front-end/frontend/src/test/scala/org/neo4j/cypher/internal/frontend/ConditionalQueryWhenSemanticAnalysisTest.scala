@@ -31,8 +31,8 @@ class ConditionalQueryWhenSemanticAnalysisTest
   test("WHEN predicate type mismatch") {
     for {
       (query, actual, pos) <- Seq(
-        ("WHEN 1 THEN RETURN 1 AS x", "Integer", p(5, 1, 6)),
-        ("WHEN 1.0 THEN RETURN 1 AS x", "Float", p(5, 1, 6)),
+        ("WHEN 1 THEN RETURN 1 AS x", "Integer", p(5, 1, 6).withInputLength(1)),
+        ("WHEN 1.0 THEN RETURN 1 AS x", "Float", p(5, 1, 6).withInputLength(3)),
         ("WHEN {key: 'Value'} THEN RETURN 1 AS x", "Map", p(5, 1, 6)),
         (
           "WHEN point({latitude: toFloat('13.43'), longitude: toFloat('56.21')}) THEN RETURN 1 AS x",
@@ -139,7 +139,7 @@ class ConditionalQueryWhenSemanticAnalysisTest
             List("Boolean"),
             "Integer",
             "Type mismatch: expected Boolean but was Integer",
-            p(5, 1, 6)
+            p(5, 1, 6).withInputLength(1)
           ),
           SemanticError.typeMismatch(
             List("Boolean"),

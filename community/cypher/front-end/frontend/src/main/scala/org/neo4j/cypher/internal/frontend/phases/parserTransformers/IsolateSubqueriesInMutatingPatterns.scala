@@ -156,7 +156,7 @@ case object IsolateSubqueriesInMutatingPatterns extends StatementRewriter
               // Therefore, we introduce a useless UNWIND, so that the following WITH is not seen as an importing WITH.
               val uselessUnwindVarName = anonymousVariableNameGenerator.nextName
               Some(Unwind(
-                ListLiteral(Seq(False()(uc.position)))(uc.position),
+                ListLiteral(Seq(False()(uc.position.zeroLength)))(uc.position),
                 Variable(uselessUnwindVarName)(uc.position, Variable.isIsolatedDefault)
               )(uc.position))
             } else None

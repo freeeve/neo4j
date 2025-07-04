@@ -47,7 +47,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
       SemanticError(
         GqlHelper.getGql42001_42N38(0, 0, 0),
         "Multiple result columns with the same name are not supported",
-        InputPosition(0, 0, 0)
+        pos
       )
     )
   }
@@ -64,7 +64,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
       SemanticError(
         GqlHelper.getGql42001_42N38(0, 0, 0),
         "Multiple result columns with the same name are not supported",
-        InputPosition(0, 0, 0)
+        pos
       )
     )
   }

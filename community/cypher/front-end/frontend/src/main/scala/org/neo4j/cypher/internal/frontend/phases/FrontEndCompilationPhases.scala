@@ -78,7 +78,6 @@ trait FrontEndCompilationPhases {
         CollectSyntaxUsageMetrics,
         ExpandNext,
         ExpandWhen,
-        ExtractSensitiveLiterals,
         IsolateSubqueriesInMutatingPatterns,
         PreparatoryRewriting,
         RemoveDuplicateUseClauses,
@@ -103,7 +102,12 @@ trait FrontEndCompilationPhases {
   }
 
   def parsingBase(config: ParsingConfig, parameters: MapValue): Transformer[BaseContext, BaseState, BaseState] = {
-    Parse andThen postParsingBase(config) andThen
+    Parse andThen
+      If((_: BaseState) => config.obfuscateLiterals)(
+        // Needs to be done before any other rewrites to not miss literals
+        ExtractSensitiveLiterals.andThen(ObfuscationMetadataCollection)
+      ) andThen
+      postParsingBase(config) andThen
       If((_: BaseState) => config.resolveSimpleDynamicExpressions)(
         IfChangedSetSemantics.using(ResolveSimpleDynamicExpressions(parameters))
       ) andThen

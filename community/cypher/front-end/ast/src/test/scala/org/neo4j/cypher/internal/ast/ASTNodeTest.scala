@@ -58,7 +58,7 @@ class ASTNodeTest extends CypherFunSuite {
   }
 
   test("rewrite should duplicate ASTNode carrying InputPosition") {
-    case class AddWithPos(lhs: Exp, rhs: Exp)(override val position: InputPosition) extends Exp
+    case class AddWithPos(lhs: Exp, rhs: Exp)(override val position: InputPosition.Range) extends Exp
 
     val ast = Add(Val(1), AddWithPos(Val(2), Val(3))(DummyPosition(0)))
 

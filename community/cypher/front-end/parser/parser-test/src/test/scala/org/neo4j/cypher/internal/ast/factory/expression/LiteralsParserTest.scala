@@ -182,20 +182,20 @@ class LiteralsParserTest extends AstParsingTestBase
   }
 
   test("keyword literals") {
-    "  \n NaN" should parse[Literal].toAstPositioned(NaN()(InputPosition(4, 2, 2)))
-    "   nan" should parse[Literal].toAstPositioned(NaN()(InputPosition(3, 1, 4)))
-    "  \n inf" should parse[Literal].toAstPositioned(Infinity()(InputPosition(4, 2, 2)))
-    " INF" should parse[Literal].toAstPositioned(Infinity()(InputPosition(1, 1, 2)))
-    "  INFINITY" should parse[Literal].toAstPositioned(Infinity()(InputPosition(2, 1, 3)))
-    "  \n null" should parse[Literal].toAstPositioned(Null()(InputPosition(4, 2, 2)))
-    " NULL" should parse[Literal].toAstPositioned(Null()(InputPosition(1, 1, 2)))
-    " ( \n NaN)" should parse[Expression].toAstPositioned(NaN()(InputPosition(5, 2, 2)))
-    " (  nan  )" should parse[Expression].toAstPositioned(NaN()(InputPosition(4, 1, 5)))
-    "  (\n inf )" should parse[Expression].toAstPositioned(Infinity()(InputPosition(5, 2, 2)))
-    " (INF)" should parse[Expression].toAstPositioned(Infinity()(InputPosition(2, 1, 3)))
-    "(  INFINITY)" should parse[Expression].toAstPositioned(Infinity()(InputPosition(3, 1, 4)))
-    "  \n (null)" should parse[Expression].toAstPositioned(Null()(InputPosition(5, 2, 3)))
-    " (NULL)" should parse[Expression].toAstPositioned(Null()(InputPosition(2, 1, 3)))
+    "  \n NaN" should parse[Literal].toAstPositioned(NaN()(InputPosition(4, 2, 2).withInputLength(3)))
+    "   nan" should parse[Literal].toAstPositioned(NaN()(InputPosition(3, 1, 4).withInputLength(3)))
+    "  \n inf" should parse[Literal].toAstPositioned(Infinity()(InputPosition(4, 2, 2).withInputLength(3)))
+    " INF" should parse[Literal].toAstPositioned(Infinity()(InputPosition(1, 1, 2).withInputLength(3)))
+    "  INFINITY" should parse[Literal].toAstPositioned(Infinity()(InputPosition(2, 1, 3).withInputLength(8)))
+    "  \n null" should parse[Literal].toAstPositioned(Null()(InputPosition(4, 2, 2).withInputLength(4)))
+    " NULL" should parse[Literal].toAstPositioned(Null()(InputPosition(1, 1, 2).withInputLength(4)))
+    " ( \n NaN)" should parse[Expression].toAstPositioned(NaN()(InputPosition(5, 2, 2).withInputLength(3)))
+    " (  nan  )" should parse[Expression].toAstPositioned(NaN()(InputPosition(4, 1, 5).withInputLength(3)))
+    "  (\n inf )" should parse[Expression].toAstPositioned(Infinity()(InputPosition(5, 2, 2).withInputLength(3)))
+    " (INF)" should parse[Expression].toAstPositioned(Infinity()(InputPosition(2, 1, 3).withInputLength(3)))
+    "(  INFINITY)" should parse[Expression].toAstPositioned(Infinity()(InputPosition(3, 1, 4).withInputLength(8)))
+    "  \n (null)" should parse[Expression].toAstPositioned(Null()(InputPosition(5, 2, 3).withInputLength(4)))
+    " (NULL)" should parse[Expression].toAstPositioned(Null()(InputPosition(2, 1, 3).withInputLength(4)))
   }
 
   test("string literal escape sequences") {

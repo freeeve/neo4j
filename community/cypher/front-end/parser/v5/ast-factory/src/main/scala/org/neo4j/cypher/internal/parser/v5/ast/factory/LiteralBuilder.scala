@@ -49,11 +49,11 @@ trait LiteralBuilder extends Cypher5ParserListener {
     ctx.ast = ctx.children.get(0) match {
       case rule: AstRuleCtx => rule.ast
       case token: TerminalNode => token.getSymbol.getType match {
-          case Cypher5Parser.TRUE                         => True()(pos(ctx))
-          case Cypher5Parser.FALSE                        => False()(pos(ctx))
-          case Cypher5Parser.INF | Cypher5Parser.INFINITY => Infinity()(pos(ctx))
-          case Cypher5Parser.NAN                          => NaN()(pos(ctx))
-          case Cypher5Parser.NULL                         => Null()(pos(ctx))
+          case Cypher5Parser.TRUE                         => True()(rangePos(ctx))
+          case Cypher5Parser.FALSE                        => False()(rangePos(ctx))
+          case Cypher5Parser.INF | Cypher5Parser.INFINITY => Infinity()(rangePos(ctx))
+          case Cypher5Parser.NAN                          => NaN()(rangePos(ctx))
+          case Cypher5Parser.NULL                         => Null()(rangePos(ctx))
         }
       case other => throw new IllegalStateException(s"Unexpected child $other")
     }
@@ -61,10 +61,10 @@ trait LiteralBuilder extends Cypher5ParserListener {
 
   final override def exitNumberLiteral(ctx: Cypher5Parser.NumberLiteralContext): Unit = {
     ctx.ast = lastChild[TerminalNode](ctx).getSymbol.getType match {
-      case Cypher5Parser.UNSIGNED_DECIMAL_INTEGER => SignedDecimalIntegerLiteral(ctx.getText)(pos(ctx))
-      case Cypher5Parser.DECIMAL_DOUBLE           => DecimalDoubleLiteral(ctx.getText)(pos(ctx))
-      case Cypher5Parser.UNSIGNED_HEX_INTEGER     => SignedHexIntegerLiteral(ctx.getText)(pos(ctx))
-      case Cypher5Parser.UNSIGNED_OCTAL_INTEGER   => SignedOctalIntegerLiteral(ctx.getText)(pos(ctx))
+      case Cypher5Parser.UNSIGNED_DECIMAL_INTEGER => SignedDecimalIntegerLiteral(ctx.getText)(rangePos(ctx))
+      case Cypher5Parser.DECIMAL_DOUBLE           => DecimalDoubleLiteral(ctx.getText)(rangePos(ctx))
+      case Cypher5Parser.UNSIGNED_HEX_INTEGER     => SignedHexIntegerLiteral(ctx.getText)(rangePos(ctx))
+      case Cypher5Parser.UNSIGNED_OCTAL_INTEGER   => SignedOctalIntegerLiteral(ctx.getText)(rangePos(ctx))
     }
   }
 
@@ -72,9 +72,9 @@ trait LiteralBuilder extends Cypher5ParserListener {
     ctx: Cypher5Parser.SignedIntegerLiteralContext
   ): Unit = {
     ctx.ast = if (ctx.MINUS() != null) {
-      SignedDecimalIntegerLiteral("-" + ctx.UNSIGNED_DECIMAL_INTEGER().getText)(pos(ctx))
+      SignedDecimalIntegerLiteral("-" + ctx.UNSIGNED_DECIMAL_INTEGER().getText)(rangePos(ctx))
     } else {
-      SignedDecimalIntegerLiteral(ctx.UNSIGNED_DECIMAL_INTEGER().getText)(pos(ctx))
+      SignedDecimalIntegerLiteral(ctx.UNSIGNED_DECIMAL_INTEGER().getText)(rangePos(ctx))
     }
   }
 

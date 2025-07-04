@@ -175,7 +175,7 @@ object Util {
   @inline def rangePos(ctx: ParserRuleContext): InputPosition.Range = {
     val start = pos(ctx)
     val stopToken = ctx.stop.asInstanceOf[CypherToken]
-    start.withInputLength(stopToken.inputOffset(stopToken.getStopIndex) - start.offset + 1)
+    start.withInputLength(stopToken.inputOffset(stopToken.getStopIndex + 1) - start.offset)
   }
 
   def ifExistsDo(replace: Boolean, ifNotExists: Boolean): IfExistsDo = {

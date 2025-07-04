@@ -54,7 +54,7 @@ object PredicateHelper {
   def coerceToPredicate(predicate: Expression): Expression = predicate match {
     case e: ListComprehension => GreaterThan(
         FunctionInvocation(FunctionName(functions.Size.name)(e.position), e)(e.position),
-        SignedDecimalIntegerLiteral("0")(e.position)
+        SignedDecimalIntegerLiteral("0")(e.position.zeroLength)
       )(e.position)
     case e if isPredicate(e) => e
     case e                   => CoerceToPredicate(e)
