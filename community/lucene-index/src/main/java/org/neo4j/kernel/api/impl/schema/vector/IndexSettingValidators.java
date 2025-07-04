@@ -225,7 +225,7 @@ class IndexSettingValidators {
 
         @Override
         Value map(VectorSimilarityFunction similarityFunction) {
-            return Values.stringValue(similarityFunction.name());
+            return Values.stringValue(similarityFunction.functionName());
         }
 
         @Override

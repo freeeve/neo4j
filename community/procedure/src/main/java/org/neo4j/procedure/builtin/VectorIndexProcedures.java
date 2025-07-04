@@ -20,6 +20,7 @@
 package org.neo4j.procedure.builtin;
 
 import static java.lang.Math.clamp;
+import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.EUCLIDEAN;
 import static org.neo4j.procedure.Mode.READ;
 import static org.neo4j.procedure.Mode.SCHEMA;
 import static org.neo4j.procedure.Mode.WRITE;
@@ -61,7 +62,6 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
 import org.neo4j.kernel.api.procedure.QueryLanguageScope;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -252,7 +252,7 @@ public class VectorIndexProcedures {
             throw new IllegalArgumentException("'vector' must be a non-null numerical array");
         }
         // assume EUCLIDEAN as the bare minimum invariant
-        entity.setProperty(propKey, VectorSimilarityFunctions.EUCLIDEAN.toValidVector(vector));
+        entity.setProperty(propKey, EUCLIDEAN.toValidVector(vector));
     }
 
     private static float[] validateAndConvertQuery(IndexDescriptor index, VectorCandidate query) {

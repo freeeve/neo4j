@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
@@ -35,13 +34,13 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
     private final LucenePartitionIndexWriter writer;
     private final IndexUpdateIgnoreStrategy ignoreStrategy;
     private final VectorDocumentStructure documentStructure;
-    private final LuceneVectorSimilarityFunction similarityFunction;
+    private final Neo4jVectorSimilarityFunction similarityFunction;
 
     VectorIndexPopulatingUpdater(
             LucenePartitionIndexWriter writer,
             IndexUpdateIgnoreStrategy ignoreStrategy,
             VectorDocumentStructure documentStructure,
-            LuceneVectorSimilarityFunction similarityFunction) {
+            Neo4jVectorSimilarityFunction similarityFunction) {
         this.writer = writer;
         this.documentStructure = documentStructure;
         this.ignoreStrategy = ignoreStrategy;

@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene;
 
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
+import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 
 public interface LuceneDocument {
 
@@ -27,8 +27,7 @@ public interface LuceneDocument {
 
     void addStringField(String key, String string, boolean store);
 
-    void addKnnFloatVectorField(
-            String key, float[] vector, VectorSimilarityFunctions.LuceneVectorSimilarityFunction lucene);
+    void addKnnFloatVectorField(String key, float[] vector, Neo4jVectorSimilarityFunction lucene);
 
     String get(String key);
 

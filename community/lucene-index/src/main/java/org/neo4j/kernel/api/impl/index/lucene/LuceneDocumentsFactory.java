@@ -20,8 +20,8 @@
 package org.neo4j.kernel.api.impl.index.lucene;
 
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DocumentsFactory;
+import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
 import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.Value;
 
@@ -69,7 +69,7 @@ public interface LuceneDocumentsFactory {
             VectorDocumentStructure vectorDocumentStructure,
             long id,
             VectorCandidate candidate,
-            VectorSimilarityFunctions.LuceneVectorSimilarityFunction similarityFunction);
+            Neo4jVectorSimilarityFunction similarityFunction);
 
     LuceneDocument newDocument();
 }

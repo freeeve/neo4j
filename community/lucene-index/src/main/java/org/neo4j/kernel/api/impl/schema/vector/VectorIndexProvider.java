@@ -42,7 +42,6 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractLuceneIndexProvider;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.codec.VectorCodecV2;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
@@ -200,15 +199,14 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
         }
     }
 
-    private LuceneVectorSimilarityFunction vectorSimilarityFunctionFrom(VectorIndexConfig vectorIndexConfig) {
+    private Neo4jVectorSimilarityFunction vectorSimilarityFunctionFrom(VectorIndexConfig vectorIndexConfig) {
         final var vectorSimilarityFunction = vectorIndexConfig.similarityFunction();
-        if (!(vectorSimilarityFunction instanceof final LuceneVectorSimilarityFunction luceneSimilarityFunction)) {
-            throw new IllegalArgumentException(
-                    "'%s' vector similarity function is expected to be compatible with Lucene. Provided: %s"
-                            .formatted(vectorSimilarityFunction.name(), vectorSimilarityFunction));
+        if (vectorSimilarityFunction instanceof Neo4jVectorSimilarityFunction sf) {
+            return sf;
         }
-
-        return luceneSimilarityFunction;
+        throw new IllegalArgumentException(
+                "'%s' vector similarity function is expected to be compatible with Lucene. Provided: %s"
+                        .formatted(vectorSimilarityFunction.functionName(), vectorSimilarityFunction));
     }
 
     /**

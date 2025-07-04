@@ -19,6 +19,10 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.EUCLIDEAN;
+import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.L2_NORM_COSINE;
+import static org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction.SIMPLE_COSINE;
+
 import java.util.Comparator;
 import java.util.Locale;
 import java.util.OptionalInt;
@@ -86,7 +90,7 @@ public enum VectorIndexVersion {
             2048,
             512,
             3200,
-            Sets.mutable.of(VectorSimilarityFunctions.EUCLIDEAN, VectorSimilarityFunctions.SIMPLE_COSINE),
+            Sets.mutable.of(EUCLIDEAN, SIMPLE_COSINE),
             BooleanSets.immutable.empty()) {
         @Override
         protected RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators() {
@@ -126,7 +130,7 @@ public enum VectorIndexVersion {
             4096,
             512,
             3200,
-            Sets.mutable.of(VectorSimilarityFunctions.EUCLIDEAN, VectorSimilarityFunctions.L2_NORM_COSINE),
+            Sets.mutable.of(EUCLIDEAN, L2_NORM_COSINE),
             BooleanSets.immutable.of(false, true)) {
         @Override
         protected RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators() {
@@ -149,8 +153,7 @@ public enum VectorIndexVersion {
                                             IndexSetting.vector_Dimensions(),
                                             new Range<>(1, maxDimensions()),
                                             OptionalInt.empty()),
-                                    new SimilarityFunctionValidator(
-                                            nameToSimilarityFunction(), VectorSimilarityFunctions.L2_NORM_COSINE),
+                                    new SimilarityFunctionValidator(nameToSimilarityFunction(), L2_NORM_COSINE),
                                     new QuantizationEnabledValidator(supportedQuantizationBooleans(), false, true),
                                     new IntegerValidator(IndexSetting.vector_Hnsw_M(), 16, new Range<>(1, maxHnswM())),
                                     new IntegerValidator(
@@ -209,7 +212,7 @@ public enum VectorIndexVersion {
 
         this.maxDimensions = maxDimensions;
         this.similarityFunctions = supportedSimilarityFunctions.toImmutableMap(
-                similarityFunction -> similarityFunction.name().toUpperCase(Locale.ROOT),
+                similarityFunction -> similarityFunction.functionName().toUpperCase(Locale.ROOT),
                 similarityFunction -> similarityFunction);
         this.quantizationBooleans = supportedQuantizationEnableds.toImmutable();
         this.maxHnswM = maxHnswM;

@@ -42,8 +42,8 @@ import org.neo4j.graphdb.schema.IndexSettingUtil;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.internal.schema.SettingsAccessor.IndexSettingObjectMapAccessor;
+import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.SequenceValue;
@@ -65,28 +65,20 @@ public class VectorTestUtils {
     public static final RichIterable<AnyValue> L2_NORM_COSINE_VALID_VECTORS;
     public static final RichIterable<AnyValue> L2_NORM_COSINE_INVALID_VECTORS;
 
-    public static RichIterable<AnyValue> validVectorsFor(VectorSimilarityFunction function) {
-        if (function == VectorSimilarityFunctions.EUCLIDEAN) {
-            return EUCLIDEAN_VALID_VECTORS;
-        } else if (function == VectorSimilarityFunctions.SIMPLE_COSINE) {
-            return SIMPLE_COSINE_VALID_VECTORS;
-        } else if (function == VectorSimilarityFunctions.L2_NORM_COSINE) {
-            return L2_NORM_COSINE_VALID_VECTORS;
-        } else {
-            throw new IllegalArgumentException("unknown similarity function: %s".formatted(function));
-        }
+    public static RichIterable<AnyValue> validVectorsFor(Neo4jVectorSimilarityFunction function) {
+        return switch (function) {
+            case EUCLIDEAN -> EUCLIDEAN_VALID_VECTORS;
+            case SIMPLE_COSINE -> SIMPLE_COSINE_VALID_VECTORS;
+            case L2_NORM_COSINE -> L2_NORM_COSINE_VALID_VECTORS;
+        };
     }
 
-    public static RichIterable<AnyValue> invalidVectorsFor(VectorSimilarityFunction function) {
-        if (function == VectorSimilarityFunctions.EUCLIDEAN) {
-            return EUCLIDEAN_INVALID_VECTORS;
-        } else if (function == VectorSimilarityFunctions.SIMPLE_COSINE) {
-            return SIMPLE_COSINE_INVALID_VECTORS;
-        } else if (function == VectorSimilarityFunctions.L2_NORM_COSINE) {
-            return L2_NORM_COSINE_INVALID_VECTORS;
-        } else {
-            throw new IllegalArgumentException("unknown similarity function: %s".formatted(function));
-        }
+    public static RichIterable<AnyValue> invalidVectorsFor(Neo4jVectorSimilarityFunction function) {
+        return switch (function) {
+            case EUCLIDEAN -> EUCLIDEAN_INVALID_VECTORS;
+            case SIMPLE_COSINE -> SIMPLE_COSINE_INVALID_VECTORS;
+            case L2_NORM_COSINE -> L2_NORM_COSINE_INVALID_VECTORS;
+        };
     }
 
     static {
@@ -694,7 +686,7 @@ public class VectorTestUtils {
         }
 
         public VectorIndexSettings withSimilarityFunction(VectorSimilarityFunction similarityFunction) {
-            return withSimilarityFunction(similarityFunction.name());
+            return withSimilarityFunction(similarityFunction.functionName());
         }
 
         public VectorIndexSettings withSimilarityFunction(String similarityFunction) {

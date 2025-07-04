@@ -30,7 +30,6 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.AbstractLuceneIndexAccessor;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
@@ -39,14 +38,14 @@ import org.neo4j.values.storable.Value;
 
 class VectorIndexAccessor extends AbstractLuceneIndexAccessor<VectorIndexReader, DatabaseIndex<VectorIndexReader>> {
     private final VectorDocumentStructure documentStructure;
-    private final LuceneVectorSimilarityFunction similarityFunction;
+    private final Neo4jVectorSimilarityFunction similarityFunction;
 
     protected VectorIndexAccessor(
             DatabaseIndex<VectorIndexReader> luceneIndex,
             IndexDescriptor descriptor,
             IndexUpdateIgnoreStrategy ignoreStrategy,
             VectorDocumentStructure documentStructure,
-            LuceneVectorSimilarityFunction similarityFunction) {
+            Neo4jVectorSimilarityFunction similarityFunction) {
         super(luceneIndex, descriptor, ignoreStrategy);
         this.documentStructure = documentStructure;
         this.similarityFunction = similarityFunction;

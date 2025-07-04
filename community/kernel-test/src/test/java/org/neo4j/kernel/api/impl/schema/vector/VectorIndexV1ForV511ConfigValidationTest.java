@@ -289,7 +289,7 @@ class VectorIndexV1ForV511ConfigValidationTest {
                         "is an unsupported",
                         SIMILARITY_FUNCTION.getSettingName(),
                         VERSION.supportedSimilarityFunctions()
-                                .collect(VectorSimilarityFunction::name)
+                                .collect(VectorSimilarityFunction::functionName)
                                 .toString());
     }
 
@@ -352,7 +352,7 @@ class VectorIndexV1ForV511ConfigValidationTest {
                         "is an unsupported",
                         SIMILARITY_FUNCTION.getSettingName(),
                         VERSION.supportedSimilarityFunctions()
-                                .collect(VectorSimilarityFunction::name)
+                                .collect(VectorSimilarityFunction::functionName)
                                 .toString());
     }
 

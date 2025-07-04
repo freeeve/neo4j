@@ -39,7 +39,7 @@ import org.neo4j.kernel.api.schema.vector.VectorTestUtils;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 import org.neo4j.values.AnyValue;
 
-class VectorSimilarityFunctionsTest {
+class Neo4jVectorSimilarityFunctionTest {
 
     @TestInstance(Lifecycle.PER_CLASS)
     abstract static class TestBase {
@@ -132,7 +132,7 @@ class VectorSimilarityFunctionsTest {
     public final class Euclidean extends TestBase {
 
         public Euclidean() {
-            super(VectorSimilarityFunctions.EUCLIDEAN);
+            super(Neo4jVectorSimilarityFunction.EUCLIDEAN);
         }
 
         @Override
@@ -150,7 +150,7 @@ class VectorSimilarityFunctionsTest {
     public final class SimpleCosine extends TestBase {
 
         public SimpleCosine() {
-            super(VectorSimilarityFunctions.SIMPLE_COSINE);
+            super(Neo4jVectorSimilarityFunction.SIMPLE_COSINE);
         }
 
         @Override
@@ -168,7 +168,7 @@ class VectorSimilarityFunctionsTest {
     public final class L2NormCosine extends TestBase {
 
         public L2NormCosine() {
-            super(VectorSimilarityFunctions.L2_NORM_COSINE);
+            super(Neo4jVectorSimilarityFunction.L2_NORM_COSINE);
         }
 
         @Override

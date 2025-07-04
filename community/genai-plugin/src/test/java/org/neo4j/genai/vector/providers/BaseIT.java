@@ -46,7 +46,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.genai.util.ParametersTest;
 import org.neo4j.genai.vector.VectorEncoding;
 import org.neo4j.genai.vector.VectorEncoding.InternalBatchRow;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
+import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -120,7 +120,7 @@ abstract class BaseIT {
     @ParameterizedTest
     @MethodSource
     void shouldGenerateApproximatelyExpectedEmbeddings(Supplier<Stream<Value>> supplier) {
-        final var similarity = VectorSimilarityFunctions.EUCLIDEAN;
+        final var similarity = Neo4jVectorSimilarityFunction.EUCLIDEAN;
         if (expectedVectors != null) {
             assertThat(supplier.get()).zipSatisfy(expectedVectors, (vector, expectedVector) -> {
                 if (expectedVector == null) {

@@ -23,7 +23,7 @@ import org.neo4j.values.AnyValue;
 import org.neo4j.values.VectorCandidate;
 
 public interface VectorSimilarityFunction extends VectorDistanceFunction {
-    String name();
+    String functionName();
 
     /**
      * Returns a float[] if the provided value is a valid vector candidate in the context of the vector similarity

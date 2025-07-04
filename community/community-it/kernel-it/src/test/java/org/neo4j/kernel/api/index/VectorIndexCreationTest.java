@@ -330,12 +330,13 @@ public class VectorIndexCreationTest {
                 final var index = ref.getValue();
 
                 // config committed in tx
-                assertSettingHasValue(SETTING, index.getIndexConfig(), Values.stringValue(similarityFunction.name()));
+                assertSettingHasValue(
+                        SETTING, index.getIndexConfig(), Values.stringValue(similarityFunction.functionName()));
                 // config via schema store
                 assertSettingHasValue(
                         SETTING,
                         findIndex(index.getName()).getIndexConfig(),
-                        Values.stringValue(similarityFunction.name()));
+                        Values.stringValue(similarityFunction.functionName()));
             }
 
             Iterable<Arguments> shouldAcceptSupported() {
@@ -355,12 +356,13 @@ public class VectorIndexCreationTest {
                 final var index = ref.getValue();
 
                 // config committed in tx
-                assertSettingHasValue(SETTING, index.getIndexConfig(), Values.stringValue(similarityFunction.name()));
+                assertSettingHasValue(
+                        SETTING, index.getIndexConfig(), Values.stringValue(similarityFunction.functionName()));
                 // config via schema store
                 assertSettingHasValue(
                         SETTING,
                         findIndex(index.getName()).getIndexConfig(),
-                        Values.stringValue(similarityFunction.name()));
+                        Values.stringValue(similarityFunction.functionName()));
             }
 
             static Iterable<VectorSimilarityFunction> shouldAcceptSupportedCoreAPI() {
@@ -397,7 +399,7 @@ public class VectorIndexCreationTest {
                                 "Supported",
                                 version.supportedSimilarityFunctions()
                                         .asLazy()
-                                        .collect(VectorSimilarityFunction::name)
+                                        .collect(VectorSimilarityFunction::functionName)
                                         .toString());
             }
         }

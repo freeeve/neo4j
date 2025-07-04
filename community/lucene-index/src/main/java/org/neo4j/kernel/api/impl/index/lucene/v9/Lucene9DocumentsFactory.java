@@ -26,8 +26,8 @@ import org.apache.lucene.index.IndexOptions;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream;
+import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
 import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
@@ -69,7 +69,7 @@ public class Lucene9DocumentsFactory implements LuceneDocumentsFactory {
             VectorDocumentStructure vectorDocumentStructure,
             long id,
             VectorCandidate candidate,
-            VectorSimilarityFunctions.LuceneVectorSimilarityFunction similarityFunction) {
+            Neo4jVectorSimilarityFunction similarityFunction) {
         final var vector = similarityFunction.maybeToValidVector(candidate);
         if (vector == null) {
             return null;

@@ -25,8 +25,9 @@ import org.apache.lucene.document.KnnFloatVectorField;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
+import org.apache.lucene.index.VectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
+import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 
 class Lucene9Document implements LuceneDocument {
     final Document document;
@@ -55,13 +56,20 @@ class Lucene9Document implements LuceneDocument {
     }
 
     @Override
-    public void addKnnFloatVectorField(
-            String key, float[] vector, VectorSimilarityFunctions.LuceneVectorSimilarityFunction similarityFunction) {
-        document.add(new KnnFloatVectorField(key, vector, similarityFunction.toLucene()));
+    public void addKnnFloatVectorField(String key, float[] vector, Neo4jVectorSimilarityFunction similarityFunction) {
+        document.add(new KnnFloatVectorField(key, vector, toLucene(similarityFunction)));
     }
 
     @Override
     public String get(String key) {
         return document.get(key);
+    }
+
+    private static VectorSimilarityFunction toLucene(Neo4jVectorSimilarityFunction similarityFunction) {
+        return switch (similarityFunction) {
+            case EUCLIDEAN -> VectorSimilarityFunction.EUCLIDEAN;
+            case SIMPLE_COSINE -> VectorSimilarityFunction.COSINE;
+            case L2_NORM_COSINE -> VectorSimilarityFunction.DOT_PRODUCT;
+        };
     }
 }
