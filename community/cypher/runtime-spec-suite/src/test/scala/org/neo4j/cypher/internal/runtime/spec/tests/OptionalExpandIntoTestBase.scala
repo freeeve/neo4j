@@ -34,7 +34,6 @@ import org.neo4j.graphdb.Label
 import org.neo4j.graphdb.Label.label
 import org.neo4j.graphdb.RelationshipType
 
-import scala.Boolean.box
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
 object OptionalExpandIntoTestBase
@@ -1180,7 +1179,7 @@ abstract class OptionalExpandIntoTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, inputValues(Array(x1, y1), Array(x2, y2)))
 
     // then
-    runtimeResult should beColumns("y", "p").withRows(Seq(Array(y1, "this is the value"), Array(y2, null)))
+    runtimeResult should beColumns("y", "p").withRows(Seq(Array[Any](y1, "this is the value"), Array(y2, null)))
   }
 
   test("should handle end node being deleted midstream") {
@@ -1215,6 +1214,6 @@ abstract class OptionalExpandIntoTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, inputValues(Array(x1, y1), Array(x2, y2)))
 
     // then
-    runtimeResult should beColumns("x", "p").withRows(Seq(Array(x1, "this is the value"), Array(x2, null)))
+    runtimeResult should beColumns("x", "p").withRows(Seq(Array[Any](x1, "this is the value"), Array(x2, null)))
   }
 }

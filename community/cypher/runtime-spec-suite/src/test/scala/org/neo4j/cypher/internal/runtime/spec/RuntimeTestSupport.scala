@@ -1005,9 +1005,9 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     val executionMode = if (profile) ProfileMode else NormalMode
     val (keys, values) =
       parameters.mapValues {
-        case m: MapValue         => m
-        case m: Map[String, Any] => VirtualValues.map(m.keys.toArray, m.values.map(Values.of).toArray)
-        case v                   => Values.of(v)
+        case m: MapValue  => m
+        case m: Map[_, _] => VirtualValues.map(m.keys.map(_.toString).toArray, m.values.map(Values.of).toArray)
+        case v            => Values.of(v)
       }.unzip match { case (a, b) => (a.toArray, b.toArray[AnyValue]) }
 
     val paramsMap = VirtualValues.map(keys, values)

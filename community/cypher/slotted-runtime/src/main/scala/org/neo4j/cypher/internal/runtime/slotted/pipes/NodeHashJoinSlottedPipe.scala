@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe.S
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe.copyDataFromRow
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe.fillKeyArray
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.exceptions.InternalException
 import org.neo4j.kernel.impl.util.collection.ProbeTable
 import org.neo4j.values.storable.LongArray
 import org.neo4j.values.storable.Values
@@ -241,6 +242,10 @@ object NodeHashJoinSlottedPipe {
       source.getRefAt(fromOffset) match {
         case node: VirtualNodeValue        => target.setLongAt(toOffset, node.id())
         case rel: VirtualRelationshipValue => target.setLongAt(toOffset, rel.id())
+        case x => throw InternalException.internalError(
+            getClass.getSimpleName,
+            s"Unexpected value encountered in RefToLongSlotMapper.copyRow: $x"
+          )
       }
     }
   }

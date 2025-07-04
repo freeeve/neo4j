@@ -667,7 +667,7 @@ abstract class OrderedUnionTestBase[CONTEXT <: RuntimeContext](
 
     // then
     val expected = for {
-      res <- nodes ++ Seq(1, 2, 3, 4, 5, 6, 7)
+      res <- nodes ++ Seq[Any](1, 2, 3, 4, 5, 6, 7)
     } yield Array(res)
 
     runtimeResult should beColumns("res").withRows(expected)
@@ -817,7 +817,7 @@ abstract class OrderedUnionTestBase[CONTEXT <: RuntimeContext](
     // then
     val expected = for {
       x <- nodes
-      res <- x +: Seq(1, 2, 3, 4, 5, 6, 7)
+      res <- x +: Seq[Any](1, 2, 3, 4, 5, 6, 7)
     } yield Array[Any](res)
 
     runtimeResult should beColumns("res").withRows(inOrder(expected))
@@ -849,7 +849,7 @@ abstract class OrderedUnionTestBase[CONTEXT <: RuntimeContext](
     // then
     val expected = for {
       x <- nodes
-      res <- nodes ++ Seq(1, 2, 3, 4, 5, 6, 7)
+      res <- nodes ++ Seq[Any](1, 2, 3, 4, 5, 6, 7)
     } yield Array(x, res)
 
     runtimeResult should beColumns("x", "res").withRows(expected)
@@ -909,7 +909,7 @@ abstract class OrderedUnionTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = nodes.flatMap(n => Array(Array(n, 1), Array(n, 2)))
+    val expected = nodes.flatMap(n => Array(Array[Any](n, 1), Array[Any](n, 2)))
     runtimeResult should beColumns("a", "x").withRows(inOrder(expected))
   }
 
@@ -1246,7 +1246,8 @@ abstract class OrderedUnionTestBase[CONTEXT <: RuntimeContext](
       .allNodeScan("n")
       .build()
 
-    val expected = nodes.head +: nodes.map(n => n) :+ VirtualValues.node(nNodes) // Sorry, this is a bit fragile
+    val expected: Seq[Any] =
+      nodes.head +: nodes.map(n => n) :+ VirtualValues.node(nNodes) // Sorry, this is a bit fragile
     execute(query, runtime) should beColumns("n").withRows(singleColumn(expected))
   }
 

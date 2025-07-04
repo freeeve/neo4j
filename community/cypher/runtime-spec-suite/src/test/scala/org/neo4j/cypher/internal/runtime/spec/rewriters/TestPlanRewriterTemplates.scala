@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriterConfig.PlanRewriterStepConfig
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.RewriterStopper
 import org.neo4j.cypher.internal.util.RewriterWithParent
 import org.neo4j.cypher.internal.util.bottomUpWithParent
 import org.neo4j.cypher.internal.util.topDown
@@ -53,7 +54,7 @@ object TestPlanRewriterTemplates {
       RewriterWithParent.lift {
         case (pr: ProduceResult, _) =>
           pr
-        case (p: LogicalPlan, parent: Option[LogicalPlan])
+        case (p: LogicalPlan, parent)
           if isParentOkToInterject(parent) && randomShouldApply(weight, random) =>
           rewritePlan(p)
       },
@@ -102,21 +103,21 @@ object TestPlanRewriterTemplates {
     }
   }
 
-  def isParentOkToInterject(parent: Option[LogicalPlan]): Boolean = {
+  def isParentOkToInterject(parent: Option[AnyRef]): Boolean = {
     parent match {
       case Some(_: AssertSameNode | _: AssertSameRelationship) =>
         // AssertSameNode and AssertSameRelationship are only supported by rewriter in pipelined, and it relies on assumptions about the possible plans,
         // so we cannot insert a plan between it and its children
         false
-      case _ =>
-        true
+      case Some(_: LogicalPlan) => true
+      case _                    => false
     }
   }
 
   // --------------------------------------------------------------------------
   // Stoppers
   // --------------------------------------------------------------------------
-  def onlyRewriteLogicalPlansStopper(a: AnyRef): Boolean = a match {
+  val onlyRewriteLogicalPlansStopper: RewriterStopper = {
     // Only rewrite logical plans
     case _: LogicalPlan => false
     case _              => true

@@ -1058,7 +1058,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = nodes.map(n => Array(n, 1))
+    val expected = nodes.map(n => Array[Any](n, 1))
     runtimeResult should beColumns("x", "xs").withRows(expected)
   }
 

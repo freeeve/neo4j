@@ -50,10 +50,10 @@ trait RewritingRuntimeTest[CONTEXT <: RuntimeContext] {
     workloadMode: Boolean,
     logProvider: InternalLogProvider
   ): RuntimeTestSupport[CONTEXT] = {
-    new RewritingRuntimeTestSupport[CONTEXT](graphDb, edition, runtime, workloadMode, logProvider, debugOptions)
+    new RewritingRuntimeTestSupport(graphDb, edition, runtime, workloadMode, logProvider, debugOptions)
   }
 
-  class RewritingRuntimeTestSupport[CONTEXT <: RuntimeContext](
+  class RewritingRuntimeTestSupport(
     graphDb: GraphDatabaseService,
     edition: Edition[CONTEXT],
     runtime: CypherRuntime[CONTEXT],

@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.physicalplanning.LongSlot
 import org.neo4j.cypher.internal.physicalplanning.RefSlot
 import org.neo4j.cypher.internal.physicalplanning.Slot
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
-import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.SlotKey
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.SlotWithKeyAndAliases
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.VariableSlotKey
 import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationBuilder
@@ -648,7 +647,8 @@ class SlottedRowTest extends CypherFunSuite {
           }
           SlottedRow(slots.build())
         }
-      val (rowA, rowB) = rows match { case Seq(a, b) => a -> b }
+      val rowA = rows(0)
+      val rowB = rows(1)
 
       rowA.set("x", value)
       if (!slotB.isLongSlot) rowB.isRefInitialized(0) shouldBe false
@@ -682,7 +682,7 @@ class SlottedRowTest extends CypherFunSuite {
   }
 
   // Note offset might not be the same as in the input slot
-  private def slotsFrom(keyValues: (SlotKey, Slot)*): SlotConfiguration = {
+  private def slotsFrom(keyValues: (VariableSlotKey, Slot)*): SlotConfiguration = {
     if (keyValues.map(_._2).exists(s => s.isLongSlot && s.typ != CTNode && s.typ != CTRelationship)) {
       SlotConfiguration(
         keyValues.map { case (k, v) => SlotWithKeyAndAliases(k, v, Set.empty) },

@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.exceptions.InternalException
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualValues
 
@@ -53,6 +54,8 @@ case class ManySeekArgs(coll: Expression) extends SeekArgs {
   def expressions(ctx: ReadableRow, state: QueryState): ListValue = {
     coll(ctx, state) match {
       case IsList(values) => values
+      case x =>
+        throw InternalException.internalError(getClass.getSimpleName, s"Unexpected value $x")
     }
   }
 }

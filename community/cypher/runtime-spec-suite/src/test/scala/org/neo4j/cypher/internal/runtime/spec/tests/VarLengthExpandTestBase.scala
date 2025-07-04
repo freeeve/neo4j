@@ -74,7 +74,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       for {
         path <- paths
         length <- 1 to 5
-      } yield Array(path.startNode, path.take(length).endNode())
+      } yield Array[Any](path.startNode, path.take(length).endNode())
 
     runtimeResult should beColumns("x", "y").withRows(expected)
   }
@@ -98,7 +98,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       for {
         path <- paths
         length <- 0 to 5
-      } yield Array(path.startNode, path.take(length).endNode())
+      } yield Array[Any](path.startNode, path.take(length).endNode())
 
     runtimeResult should beColumns("x", "y").withRows(expected)
   }
@@ -123,7 +123,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         length <- 1 to 5
       } yield {
         val pathPrefix = path.take(length)
-        Array[Object](pathPrefix.startNode, pathPrefix.relationships(), pathPrefix.endNode())
+        Array[Any](pathPrefix.startNode, pathPrefix.relationships(), pathPrefix.endNode())
       }
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
@@ -149,7 +149,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         length <- 0 to 5
       } yield {
         val pathPrefix = path.take(length)
-        Array[Object](pathPrefix.startNode, pathPrefix.relationships(), pathPrefix.endNode())
+        Array[Any](pathPrefix.startNode, pathPrefix.relationships(), pathPrefix.endNode())
       }
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
@@ -171,10 +171,10 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // then
     val expected =
       Array(
-        Array(n1, Array(r1), n2),
-        Array(n1, Array(r1, r3), n3),
-        Array(n1, Array(r2), n2),
-        Array(n1, Array(r2, r3), n3)
+        Array[Any](n1, Array(r1), n2),
+        Array[Any](n1, Array(r1, r3), n3),
+        Array[Any](n1, Array(r2), n2),
+        Array[Any](n1, Array(r2, r3), n3)
       )
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
@@ -196,11 +196,11 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // then
     val expected =
       Array(
-        Array(n1, Array.empty, n1),
-        Array(n1, Array(r1), n2),
-        Array(n1, Array(r1, r3), n3),
-        Array(n1, Array(r2), n2),
-        Array(n1, Array(r2, r3), n3)
+        Array[Any](n1, Array.empty, n1),
+        Array[Any](n1, Array(r1), n2),
+        Array[Any](n1, Array(r1, r3), n3),
+        Array[Any](n1, Array(r2), n2),
+        Array[Any](n1, Array(r2, r3), n3)
       )
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
@@ -222,8 +222,8 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // then
     val expected =
       Array(
-        Array(n1, Array(r1), n2),
-        Array(n1, Array(r2), n2)
+        Array[Any](n1, Array(r1), n2),
+        Array[Any](n1, Array(r2), n2)
       )
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
@@ -245,9 +245,9 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // then
     val expected =
       Array(
-        Array(n1, Array.empty, n1),
-        Array(n1, Array(r1), n2),
-        Array(n1, Array(r2), n2)
+        Array[Any](n1, Array.empty, n1),
+        Array[Any](n1, Array(r1), n2),
+        Array[Any](n1, Array(r2), n2)
       )
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
@@ -273,7 +273,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         length <- 2 to 4
       } yield {
         val pathPrefix = path.take(length)
-        Array[Object](pathPrefix.startNode, pathPrefix.relationships(), pathPrefix.endNode())
+        Array[Any](pathPrefix.startNode, pathPrefix.relationships(), pathPrefix.endNode())
       }
 
     runtimeResult should beColumns("x", "r", "y").withRows(expected)

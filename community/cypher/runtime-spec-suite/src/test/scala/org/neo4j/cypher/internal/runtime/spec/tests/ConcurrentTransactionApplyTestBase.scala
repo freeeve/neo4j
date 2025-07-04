@@ -885,7 +885,7 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
     batchSize: Int,
     errorProbe: Prober.Probe,
     onErrorBehaviour: InTransactionsOnErrorBehaviour,
-    maybeRetryTimeout: Option[FiniteDuration] = None
+    maybeRetryTimeout: Option[FiniteDuration]
   ): LogicalQuery = {
     new LogicalQueryBuilder(this)
       .produceResults("i", "u")

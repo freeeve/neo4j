@@ -1326,7 +1326,7 @@ abstract class OptionalExpandAllTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime, inputValues(Array(x), Array(xDeleted)))
 
     // then
-    val expected = ys.map(y => Array(y, "this is the value")) :+ Array(null, null)
+    val expected = ys.map(y => Array[Any](y, "this is the value")) :+ Array[Any](null, null)
     runtimeResult should beColumns("y", "p").withRows(expected)
   }
 }

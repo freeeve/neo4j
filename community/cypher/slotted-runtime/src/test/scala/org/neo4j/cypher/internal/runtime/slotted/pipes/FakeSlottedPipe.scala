@@ -65,6 +65,7 @@ case class FakeSlottedPipe(data: Iterable[Map[Any, Any]], slots: SlotConfigurati
           slots.cachedPropSlot(cachedProp.runtimeKey).foreach(refSlot =>
             result.setCachedPropertyAt(refSlot.offset, ValueUtils.of(value).asInstanceOf[Value])
           )
+        case x => throw new IllegalArgumentException(x.toString())
       }
       result
     }

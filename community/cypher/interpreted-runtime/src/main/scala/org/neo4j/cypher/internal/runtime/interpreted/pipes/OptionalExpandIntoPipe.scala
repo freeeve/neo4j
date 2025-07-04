@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.getRow
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.relationshipSelectionCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.traceRelationshipSelectionCursor
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.helpers.CachingExpandInto
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualNodeValue
@@ -121,11 +122,17 @@ case class OptionalExpandIntoPipe(
                 } finally {
                   nodeCursor.close()
                 }
+
+              case x =>
+                throw InternalException.internalError(getClass.getSimpleName, s"Unexpected value $x")
             }
 
           case IsNoValue() =>
             maybeRelName.foreach(relName => row.set(relName, Values.NO_VALUE))
             ClosingIterator.single(row)
+
+          case x =>
+            throw InternalException.internalError(getClass.getSimpleName, s"Unexpected value $x")
         }
     }.closing(expandInto)
   }

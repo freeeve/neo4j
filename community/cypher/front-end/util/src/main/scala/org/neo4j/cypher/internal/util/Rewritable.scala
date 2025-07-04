@@ -440,7 +440,7 @@ object bottomUpWithParent {
 
   private class BottomUpWithParentRewriter(
     rewriter: RewriterWithParent,
-    stopper: AnyRef => Boolean,
+    stopper: RewriterStopper,
     cancellation: CancellationChecker
   ) extends Rewriter {
 
@@ -479,7 +479,7 @@ object bottomUpWithParent {
         }
       } else {
         val next = currentJobs.head
-        if (stopper(next)) {
+        if (stopper.shouldStop(next)) {
           stack.pop() match {
             case (job :: jobs, doneJobs) => stack.push((jobs, doneJobs += job))
             case _                       => throw new IllegalStateException("No jobs")
@@ -494,7 +494,7 @@ object bottomUpWithParent {
 
   def apply(
     rewriter: RewriterWithParent,
-    stopper: AnyRef => Boolean = _ => false,
+    stopper: RewriterStopper = RewriterStopper.neverStop,
     cancellation: CancellationChecker
   ): Rewriter =
     new BottomUpWithParentRewriter(rewriter, stopper, cancellation)

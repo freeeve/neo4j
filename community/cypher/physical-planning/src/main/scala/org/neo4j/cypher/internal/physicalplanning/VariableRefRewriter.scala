@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ir.DeleteExpression
 import org.neo4j.cypher.internal.ir.DeleteMutatingPattern
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
+import org.neo4j.cypher.internal.ir.SetDynamicPropertyPattern
 import org.neo4j.cypher.internal.ir.SetLabelPattern
 import org.neo4j.cypher.internal.ir.SetMutatingPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertiesFromMapPattern
@@ -68,6 +69,8 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
@@ -163,6 +166,7 @@ import org.neo4j.cypher.internal.runtime.ast.VariableRef
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.topDown
+import org.neo4j.exceptions.InternalException
 
 /**
  * Rewrites some variables to VariableRef that might fail SlottedRewriter.
@@ -184,8 +188,8 @@ object VariableRefRewriter extends Rewriter {
               a.copy(groupingExpressions = varMap(grouping), aggregationExpressions = varMap(aggregation))(SameId(a.id))
             case d @ OrderedDistinct(_, grouping, _) =>
               d.copy(groupingExpressions = varMap(grouping))(SameId(d.id))
-            case p @ Projection(_, project) =>
-              p.copy(projectExpressions = varMap(project))(SameId(p.id))
+            case pr @ Projection(_, project) =>
+              pr.copy(projectExpressions = varMap(project))(SameId(pr.id))
 
           }
         case leaf: NodeLogicalLeafPlan => leaf match {
@@ -455,6 +459,35 @@ object VariableRefRewriter extends Rewriter {
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
+
+            case s @ DynamicDirectedRelationshipTypeScan(
+                idName,
+                startNode,
+                _,
+                endNode,
+                argumentIds,
+                _
+              ) =>
+              s.copy(
+                idName = idName.map(varRef),
+                startNode = startNode.map(varRef),
+                endNode = endNode.map(varRef),
+                argumentIds = argumentIds.map(varRef)
+              )(SameId(s.id))
+            case s @ DynamicUndirectedRelationshipTypeScan(
+                idName,
+                leftNode,
+                _,
+                rightNode,
+                argumentIds,
+                _
+              ) =>
+              s.copy(
+                idName = idName.map(varRef),
+                leftNode = leftNode.map(varRef),
+                rightNode = rightNode.map(varRef),
+                argumentIds = argumentIds.map(varRef)
+              )(SameId(s.id))
           }
         case p @ AllNodesScan(node, args) =>
           p.copy(idName = varRef(node), argumentIds = args.map(varRef))(SameId(p.id))
@@ -621,6 +654,8 @@ object VariableRefRewriter extends Rewriter {
         case s: SetNodePropertiesPattern                => s.copy(variable = VariableRef(s.variable))
         case s: SetLabelPattern                         => s.copy(variable = VariableRef(s.variable))
         case s: RemoveLabelPattern                      => s.copy(variable = VariableRef(s.variable))
+        case _: SetDynamicPropertyPattern =>
+          throw InternalException.internalError(getClass.getSimpleName, s"Unexpected SetDynamicPropertyPattern")
       }
     case d: DeleteMutatingPattern => d match {
         case d: DeleteExpression => d

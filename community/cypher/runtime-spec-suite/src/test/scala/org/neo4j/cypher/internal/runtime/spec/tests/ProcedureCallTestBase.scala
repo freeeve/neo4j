@@ -204,7 +204,7 @@ abstract class ProcedureCallTestBase[CONTEXT <: RuntimeContext](
 
   test("should call read int procedure") {
     // given
-    val nodes = givenGraph {
+    givenGraph {
       nodeGraph(sizeHint)
     }
 

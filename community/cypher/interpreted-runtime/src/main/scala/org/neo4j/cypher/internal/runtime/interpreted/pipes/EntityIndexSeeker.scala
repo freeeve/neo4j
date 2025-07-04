@@ -297,6 +297,9 @@ trait EntityIndexSeeker {
             bboxes.map(bbox => PropertyIndexQuery.boundingBox(propertyId, bbox.first(), bbox.other()))
           case _ => Nil
         }
+
+      case x =>
+        throw InternalException.internalError(getClass.getSimpleName, s"Unexpected expression $x")
     }
   }
 
@@ -359,6 +362,9 @@ trait EntityIndexSeeker {
 
         // combined = [[1, "a", 3.0], [1, "b", 3.0]]
         combine(indexQueries)
+
+      case x =>
+        throw InternalException.internalError(getClass.getSimpleName, s"Unexpected value $x")
     }
 
   private def computeCompositeQueries(

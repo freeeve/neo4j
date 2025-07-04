@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.runtime.memory.MemoryTrackerForOperatorProvider
 import org.neo4j.cypher.internal.runtime.memory.QueryMemoryTracker
 import org.neo4j.cypher.internal.util.AggregationSkippedNull
 import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.exceptions.InternalException
 import org.neo4j.graphdb.TransactionFailureException
 import org.neo4j.internal.kernel
 import org.neo4j.internal.kernel.api.IndexReadSession
@@ -457,12 +458,18 @@ case class CommunityCypherRowFactory() extends CypherRowFactory {
   override def copyWith(row: ReadableRow): CypherRow = row match {
     case context: MapCypherRow =>
       context.createClone()
+
+    case x =>
+      throw InternalException.internalError(getClass.getSimpleName, s"Unexpected row type $x")
   }
 
   // Not using polymorphism here, instead cast since the cost of being megamorhpic is too high
   override def copyWith(row: ReadableRow, key: String, value: AnyValue): CypherRow = row match {
     case context: MapCypherRow =>
       context.copyWith(key, value)
+
+    case x =>
+      throw InternalException.internalError(getClass.getSimpleName, s"Unexpected row type $x")
   }
 
   // Not using polymorphism here, instead cast since the cost of being megamorhpic is too high
@@ -470,6 +477,9 @@ case class CommunityCypherRowFactory() extends CypherRowFactory {
     row match {
       case context: MapCypherRow =>
         context.copyWith(key1, value1, key2, value2)
+
+      case x =>
+        throw InternalException.internalError(getClass.getSimpleName, s"Unexpected row type $x")
     }
 
   // Not using polymorphism here, instead cast since the cost of being megamorhpic is too high
@@ -484,5 +494,8 @@ case class CommunityCypherRowFactory() extends CypherRowFactory {
   ): CypherRow = row match {
     case context: MapCypherRow =>
       context.copyWith(key1, value1, key2, value2, key3, value3)
+
+    case x =>
+      throw InternalException.internalError(getClass.getSimpleName, s"Unexpected row type $x")
   }
 }

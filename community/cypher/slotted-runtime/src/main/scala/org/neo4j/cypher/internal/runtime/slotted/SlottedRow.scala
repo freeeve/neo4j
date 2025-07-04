@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.DuplicatedSl
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.KeyedSlot
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.MetaDataSlotKey
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.OuterNestedApplyPlanSlotKey
+import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.PlanningSlotKey
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.SlotKey
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.SlotWithKeyAndAliases
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.VariableSlotKey
@@ -507,6 +508,8 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
             setRefAt(thisOffset, otherRow.getRefAt(otherOffset))
           }
         case _: DuplicatedSlotKey => // Ignore
+        case _: PlanningSlotKey =>
+          throw InternalException.internalError(getClass.getSimpleName, "PlanningSlotKey encountered during execution")
       }
       i += 1
     }
@@ -536,14 +539,13 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
   }
 
   override def isNull(key: String): Boolean = {
-    slots.get(key) match {
-      case Some(slot) => slot.slotType match {
-          case NodeNullableLongSlot | RelNullableLongSlot =>
-            entityIsNull(getLongAt(slot.offset))
-          case NodeNullableRefSlot | RelNullableRefSlot =>
-            isRefInitialized(slot.offset) && (getRefAtWithoutCheckingInitialized(slot.offset) eq NO_VALUE)
-          case _ => false
-        }
+    val slot = slots(key)
+    slot.slotType match {
+      case NodeNullableLongSlot | RelNullableLongSlot =>
+        entityIsNull(getLongAt(slot.offset))
+      case NodeNullableRefSlot | RelNullableRefSlot =>
+        isRefInitialized(slot.offset) && (getRefAtWithoutCheckingInitialized(slot.offset) eq NO_VALUE)
+      case _ => false
     }
   }
 

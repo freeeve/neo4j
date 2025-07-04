@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.runtime.slotted.Ascending
 import org.neo4j.cypher.internal.runtime.slotted.ColumnOrder
 import org.neo4j.cypher.internal.runtime.slotted.Descending
 import org.neo4j.cypher.internal.runtime.slotted.SlottedExecutionContextOrdering
-import org.neo4j.cypher.internal.runtime.slotted.SlottedRow
 import org.neo4j.cypher.internal.runtime.slotted.pipes.TopSlottedPipeTestSupport.AscendingOrder
 import org.neo4j.cypher.internal.runtime.slotted.pipes.TopSlottedPipeTestSupport.DescendingOrder
 import org.neo4j.cypher.internal.runtime.slotted.pipes.TopSlottedPipeTestSupport.list
@@ -323,14 +322,13 @@ object TopSlottedPipeTestSupport {
     val topPipe = createTopPipe(source, topOrderBy, limit, withTies)
 
     val results = topPipe.createResults(QueryStateHelper.emptyWithValueSerialization)
-    results.map {
-      case c: SlottedRow =>
-        slot.slot match {
-          case RefSlot(offset, _, _) =>
-            c.getRefAt(offset)
-          case LongSlot(offset, _, _) =>
-            c.getLongAt(offset)
-        }
+    results.map { c =>
+      slot.slot match {
+        case RefSlot(offset, _, _) =>
+          c.getRefAt(offset)
+        case LongSlot(offset, _, _) =>
+          c.getLongAt(offset)
+      }
     }.toList
   }
 
@@ -356,17 +354,16 @@ object TopSlottedPipeTestSupport {
 
     val topPipe = createTopPipe(source, topOrderBy, limit, withTies)
 
-    topPipe.createResults(QueryStateHelper.emptyWithValueSerialization).map {
-      case c: SlottedRow =>
-        (slots(0).slot, slots(1).slot) match {
-          case (RefSlot(offset1, _, _), RefSlot(offset2, _, _)) =>
-            (c.getRefAt(offset1), c.getRefAt(offset2))
-          case _ =>
-            throw InternalException.internalError(
-              this.getClass.getSimpleName,
-              "LongSlot not yet supported in the test framework"
-            )
-        }
+    topPipe.createResults(QueryStateHelper.emptyWithValueSerialization).map { c =>
+      (slots(0).slot, slots(1).slot) match {
+        case (RefSlot(offset1, _, _), RefSlot(offset2, _, _)) =>
+          (c.getRefAt(offset1), c.getRefAt(offset2))
+        case _ =>
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            "LongSlot not yet supported in the test framework"
+          )
+      }
     }.toList
   }
 

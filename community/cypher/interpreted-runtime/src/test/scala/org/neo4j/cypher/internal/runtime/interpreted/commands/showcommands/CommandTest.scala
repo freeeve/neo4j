@@ -88,6 +88,7 @@ class CommandTest extends ShowCommandTestBase {
     thrown.gqlStatusObject() match {
       case gso: ErrorGqlStatusObjectImplementation =>
         assertTrue(gso.cause().get().statusDescription().contains(originOperation))
+      case x => fail(s"Wrong status object $x")
     }
   }
 

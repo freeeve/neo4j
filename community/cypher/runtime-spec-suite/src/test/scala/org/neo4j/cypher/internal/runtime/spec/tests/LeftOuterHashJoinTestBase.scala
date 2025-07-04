@@ -286,7 +286,7 @@ abstract class LeftOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
 
   test("should work when LHS is empty when on RHS of apply") {
     // given
-    val nodes = givenGraph {
+    givenGraph {
       nodeGraph(sizeHint)
     }
 

@@ -316,6 +316,7 @@ case class CommunityExpressionConverter(
             Float32VectorValueConstructorFunction(vectorExpression, dimensionExpression)
           case _: FloatType =>
             Float64VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case x => throw InternalException.internalError(getClass.getSimpleName, s"Unexpected vector type: $x")
         }
       case _: internal.expressions.CountStar       => commands.expressions.CountStar()
       case e: internal.expressions.LogicalProperty => toCommandProperty(id, e, self)
@@ -629,6 +630,11 @@ case class CommunityExpressionConverter(
             self.toCommandPredicate(id, nestedExpression)
           case _: NestedPlanExpression =>
             throw InternalException.internalError(this.getClass.getSimpleName, "should have been rewritten away")
+          case x =>
+            throw InternalException.internalError(
+              this.getClass.getSimpleName,
+              s"unexpected Exists argument ${x.getClass.getSimpleName}"
+            )
         }
       case Exp      => commands.expressions.ExpFunction(self.toCommandExpression(id, invocation.arguments.head))
       case File     => commands.expressions.File()
@@ -914,6 +920,9 @@ case class CommunityExpressionConverter(
           firstArg,
           secondArg
         )
+
+      case x =>
+        throw InternalException.internalError(getClass.getSimpleName, s"Unexpected function '${x.name}'")
     }
 
   private def toCommandProperty(

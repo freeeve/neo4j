@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.relati
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.traceRelationshipSelectionCursor
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor
 import org.neo4j.internal.kernel.api.helpers.CachingExpandInto
@@ -144,6 +145,9 @@ case class ExpandIntoPipe(
             }
 
           case IsNoValue() => ClosingIterator.empty
+
+          case x =>
+            throw InternalException.internalError(getClass.getSimpleName, s"Unexpected value $x")
         }
     }.closing(expandInto)
   }

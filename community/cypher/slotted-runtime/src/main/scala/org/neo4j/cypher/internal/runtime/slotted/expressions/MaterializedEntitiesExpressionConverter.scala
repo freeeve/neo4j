@@ -53,6 +53,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.values.TokenType.P
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.exceptions.InternalException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.MapValueBuilder
@@ -257,6 +258,11 @@ case class MaterializedEntityHasLabelOrType(entity: commands.expressions.Express
 
     case relationship: RelationshipValue =>
       IsMatchResult(relationship.`type`().equals(labelOrType))
+
+    case x => throw InternalException.internalError(
+        getClass.getSimpleName,
+        s"Unexpected value encountered in MaterializedEntityHasLabelOrType.isMatch: $x"
+      )
   }
 
   override def toString = s"$entity:$labelOrType"

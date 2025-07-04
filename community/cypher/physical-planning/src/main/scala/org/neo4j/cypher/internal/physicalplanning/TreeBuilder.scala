@@ -138,6 +138,8 @@ trait TreeBuilder[T, ARGUMENT] {
           val output = onTwoChildPlanComingFromRight(current, leftOutput, rightOutput, argument)
           argumentStack.pop()
           outputStack.push(output)
+
+        case _ => throw InternalException.internalError(getClass.getSimpleName, "Incorrect tree traversal")
       }
 
       comingFrom = current

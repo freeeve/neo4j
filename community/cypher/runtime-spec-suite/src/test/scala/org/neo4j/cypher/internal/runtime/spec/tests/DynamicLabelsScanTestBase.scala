@@ -277,7 +277,7 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = for { ab <- List(1, 2); cd <- cdNodes } yield Array(ab, cd)
+    val expected = for { ab <- List(1, 2); cd <- cdNodes } yield Array[Any](ab, cd)
     runtimeResult should beColumns("x", "y").withRows(expected)
   }
 

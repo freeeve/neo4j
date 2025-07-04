@@ -169,7 +169,7 @@ abstract class AggregationTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should count(*) under apply with limit") {
-    val node = givenGraph { nodeGraph(1).head }
+    givenGraph { nodeGraph(1) }
     val unwindSize = sizeHint
 
     // when
@@ -309,7 +309,7 @@ abstract class AggregationTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should count(*) on single grouping column under apply with limit") {
-    val node = givenGraph { nodeGraph(1).head }
+    givenGraph { nodeGraph(1) }
     val unwindSize = sizeHint
 
     // when

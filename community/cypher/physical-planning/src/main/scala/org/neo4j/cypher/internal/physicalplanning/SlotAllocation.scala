@@ -476,6 +476,11 @@ class SingleQuerySlotAllocator private[physicalplanning] (
             argumentStack.pop()
           }
           resultStack.push(result)
+
+        case _ => throw InternalException.internalError(
+            getClass.getSimpleName,
+            "Incorrect plan traversal during slot allocation"
+          )
       }
 
       comingFrom = current
@@ -655,7 +660,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
             val nestedSlots = nestedPhysicalPlan.slotConfigurations(e.plan.id)
             e match {
               case NestedPlanCollectExpression(_, projection, _) =>
-                allocateExpressionsInternal(projection, nestedSlots, semanticTable, planId, cancellationChecker)
+                allocateExpressionsInternal(projection, nestedSlots, semanticTable, planId, cancellationChecker, acc)
               case _ => // do nothing
             }
 
