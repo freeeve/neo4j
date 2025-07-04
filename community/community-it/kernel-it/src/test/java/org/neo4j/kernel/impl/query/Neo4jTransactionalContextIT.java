@@ -912,7 +912,10 @@ class Neo4jTransactionalContextIT {
         // we are forcing the TERMINATE TRANSACTION to execute to completion
         // so that we can be ready to make assertions on the terminationReason
         //noinspection ResultOfMethodCallIgnored
-        innerTx.execute("TERMINATE TRANSACTION 'neo4j-transaction-" + userTransactionId + "'").stream()
+        innerTx
+                .execute("TERMINATE TRANSACTION '%s-transaction-%d'"
+                        .formatted(databaseAPI.databaseName(), userTransactionId))
+                .stream()
                 .toList();
 
         // Then
