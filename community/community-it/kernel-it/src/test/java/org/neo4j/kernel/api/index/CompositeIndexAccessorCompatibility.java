@@ -66,7 +66,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -107,12 +106,14 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
         List<Long> ids = LongStream.rangeClosed(1L, 10L).boxed().toList();
         final RandomValues rv = RandomValues.create(
                 random.random(),
-                RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2));
+                RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2)
+                        .build());
         Supplier<Value> randomValue = () -> rv.nextValueOfTypes(testSuite.supportedValueTypes());
 
         updateAndCommit(ids.stream()
                 .map(id -> add(id, descriptor, randomValue.get(), randomValue.get()))
-                .collect(Collectors.toUnmodifiableList()));
+                .toList());
 
         assertThat(query(allEntries())).isEqualTo(ids);
     }

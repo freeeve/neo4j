@@ -44,12 +44,12 @@ trait PropertyIndexTestSupport[CONTEXT <: RuntimeContext] {
       ValueType.BYTE,
       ValueType.BYTE_ARRAY,
       // TODO: Vector cypher literal
-      ValueType.INT8VECTOR,
-      ValueType.INT16VECTOR,
-      ValueType.INT32VECTOR,
-      ValueType.INT64VECTOR,
-      ValueType.FLOAT32VECTOR,
-      ValueType.FLOAT64VECTOR
+      ValueType.INT8_VECTOR,
+      ValueType.INT16_VECTOR,
+      ValueType.INT32_VECTOR,
+      ValueType.INT64_VECTOR,
+      ValueType.FLOAT32_VECTOR,
+      ValueType.FLOAT64_VECTOR
     )
     ValueType.ALL_TYPES.toSeq.filterNot(unsupportedTypes.contains)
   }

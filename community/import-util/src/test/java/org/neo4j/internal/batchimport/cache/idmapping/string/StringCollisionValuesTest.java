@@ -53,8 +53,10 @@ class StringCollisionValuesTest {
 
     @BeforeEach
     void before() {
-        random.withConfiguration(RandomValues.defaults().stringMaxLength(RandomValues.MAX_BMP_CODE_POINT));
-        random.reset();
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .stringMaxLength(RandomValues.MAX_BMP_CODE_POINT)
+                        .build())
+                .reset();
     }
 
     private static Stream<BiFunction<FileSystemAbstraction, Path, NumberArrayFactory>> data() {

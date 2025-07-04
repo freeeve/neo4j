@@ -229,7 +229,9 @@ abstract class CompositeRandomizedIndexAccessorCompatibility extends IndexAccess
             ValueTuple value;
             RandomValues randomValues = RandomValues.create(
                     random.random(),
-                    RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2));
+                    RandomValues.newConfigurationBuilder()
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2)
+                            .build());
             var maxTries = 0;
             do {
                 value = ValueTuple.of(

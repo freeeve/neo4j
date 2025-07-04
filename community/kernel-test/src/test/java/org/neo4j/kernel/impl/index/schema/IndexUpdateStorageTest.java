@@ -61,7 +61,10 @@ class IndexUpdateStorageTest {
     @Test
     void shouldAddZeroEntries() throws IOException {
         int blockSize = 1000;
-        random.withConfiguration(RandomValues.defaults().maxVectorNumBytes(blockSize));
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(blockSize)
+                        .build())
+                .reset();
         // given
         try (IndexUpdateStorage<RangeKey> storage = new IndexUpdateStorage<>(
                 directory.getFileSystem(),
@@ -83,7 +86,10 @@ class IndexUpdateStorageTest {
     void shouldAddFewEntries() throws IOException {
         int blockSize = 1000;
         int numEntries = 5;
-        random.withConfiguration(RandomValues.defaults().maxVectorNumBytes(blockSize / numEntries));
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(blockSize / numEntries)
+                        .build())
+                .reset();
         // given
         try (IndexUpdateStorage<RangeKey> storage = new IndexUpdateStorage<>(
                 directory.getFileSystem(),
@@ -105,8 +111,10 @@ class IndexUpdateStorageTest {
     void shouldAddManyEntries() throws IOException {
         int blockSize = 10_000;
         int numEntries = 1_000;
-        random.withConfiguration(RandomValues.defaults().maxVectorNumBytes(blockSize / numEntries));
-        random.reset();
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(blockSize / numEntries)
+                        .build())
+                .reset();
         // given
         try (IndexUpdateStorage<RangeKey> storage = new IndexUpdateStorage<>(
                 directory.getFileSystem(),

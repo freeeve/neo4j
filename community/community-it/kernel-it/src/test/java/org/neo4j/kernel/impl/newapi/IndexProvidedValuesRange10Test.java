@@ -24,12 +24,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unorderedValues;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
-import static org.neo4j.values.storable.RandomValues.IS_VECTOR_TYPE;
+import static org.neo4j.values.storable.RandomValues.excluding;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -88,17 +86,14 @@ abstract class IndexProvidedValuesRange10Test extends KernelAPIReadTestBase<Read
             tx.schema().awaitIndexesOnline(5, MINUTES);
             tx.commit();
         }
-        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb)
-                .maxVectorNumBytes(
-                        RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2 /* Tests assume two keys fit in index */);
-        randomRule.withConfiguration(configuration);
-        randomRule.reset();
+        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfigurationBuilder(graphDb)
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / 2 /* Tests assume two keys fit in index */)
+                .build();
+        randomRule.withConfiguration(configuration).reset();
 
         ValueType[] targetedTypes = SORTABLE_TYPES;
         if (!configuration.includeVectorTypes()) {
-            targetedTypes = Arrays.stream(targetedTypes)
-                    .filter(Predicate.not(IS_VECTOR_TYPE))
-                    .toArray(ValueType[]::new);
+            targetedTypes = excluding(targetedTypes, RandomValues.IS_VECTOR_TYPE);
         }
 
         try (Transaction tx = graphDb.beginTx()) {

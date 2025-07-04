@@ -93,7 +93,7 @@ class MemoryEstimationFuzzTest {
         // For strings the size of the individual elements will vary
         // and it is not always true that a bigger array uses more memory
         // than a smaller one
-        return () -> Arrays.stream(ValueType.arrayTypes())
+        return () -> Arrays.stream(ValueType.ARRAY_TYPES)
                 .filter(t -> t != ValueType.STRING_ARRAY
                         && t != ValueType.STRING_ALPHANUMERIC_ARRAY
                         && t != ValueType.STRING_ASCII_ARRAY

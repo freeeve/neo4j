@@ -153,8 +153,9 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
     void shouldApplyLargeAmountOfInterleavedRandomUpdates() throws Exception {
         // given
         populator.create();
-        var cfg = RandomValues.defaults()
-                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / LARGE_AMOUNT_OF_UPDATES);
+        var cfg = RandomValues.newConfigurationBuilder()
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / LARGE_AMOUNT_OF_UPDATES)
+                .build();
         var randomValues = RandomValues.create(random.random(), cfg);
         Random updaterRandom = new Random(random.seed());
         Iterator<ValueIndexEntryUpdate> updates = valueCreatorUtil.randomUpdateGenerator(randomValues);

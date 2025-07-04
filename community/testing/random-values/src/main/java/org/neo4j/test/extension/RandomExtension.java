@@ -53,7 +53,7 @@ public class RandomExtension extends StatefulFieldExtension<RandomSupport>
     private final RandomValues.Configuration config;
 
     public RandomExtension() {
-        this(RandomValues.defaults());
+        this(RandomValues.DEFAULT_CONFIGURATION);
     }
 
     public RandomExtension(RandomValues.Configuration config) {

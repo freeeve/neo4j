@@ -29,7 +29,7 @@ import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_C
 import static org.neo4j.kernel.impl.index.schema.NativeIndexKey.Inclusion.NEUTRAL;
 import static org.neo4j.kernel.impl.index.schema.ValueCreatorUtil.FRACTION_DUPLICATE_NON_UNIQUE;
 import static org.neo4j.kernel.impl.index.schema.ValueCreatorUtil.countUniqueValues;
-import static org.neo4j.values.storable.RandomValues.typesOfGroup;
+import static org.neo4j.values.storable.RandomValues.typesOfGroups;
 import static org.neo4j.values.storable.ValueGroup.NUMBER;
 
 import java.io.IOException;
@@ -157,7 +157,7 @@ public class FullScanNonUniqueIndexSamplerTest extends IndexTestUtil<RangeKey, N
     }
 
     private static ValueCreatorUtil<RangeKey> createValueCreatorUtil() {
-        return new ValueCreatorUtil<>(index, typesOfGroup(NUMBER), FRACTION_DUPLICATE_NON_UNIQUE);
+        return new ValueCreatorUtil<>(index, typesOfGroups(NUMBER), FRACTION_DUPLICATE_NON_UNIQUE);
     }
 
     @Override

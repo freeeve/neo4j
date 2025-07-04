@@ -31,12 +31,11 @@ import scala.collection.mutable.ArrayBuffer
 object InputDataStreamTestSupport {
 
   val RANDOM_VALUE_CONFIG: RandomValues.Configuration =
-    RandomValues.defaults()
-      .stringMinLength(0)
-      .stringMaxLength(50)
-      .arrayMinLength(0)
-      .arrayMaxLength(10)
+    RandomValues.newConfigurationBuilder
+      .stringLength(0, 50)
+      .arrayLength(0, 10)
       .maxCodePoint(RandomValues.MAX_BMP_CODE_POINT)
+      .build
 }
 
 /**

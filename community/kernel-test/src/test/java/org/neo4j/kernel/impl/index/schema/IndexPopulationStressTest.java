@@ -263,7 +263,9 @@ abstract class IndexPopulationStressTest {
             List<Long> removed = new ArrayList<>();
             RandomValues randomValues = RandomValues.create(
                     new Random(random.seed() + THREADS),
-                    RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                    RandomValues.newConfigurationBuilder()
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                            .build());
             while (insertersDone.getCount() > 0) {
                 // Do updates now and then
                 Thread.sleep(10);
@@ -389,7 +391,9 @@ abstract class IndexPopulationStressTest {
         private void reset() {
             randomValues = RandomValues.create(
                     new Random(seed),
-                    RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                    RandomValues.newConfigurationBuilder()
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                            .build());
             nextEntityId = startEntityId;
         }
 

@@ -128,8 +128,9 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
     RandomValues randomValues(int numPropertiesPerPage) {
         return RandomValues.create(
                 random.random(),
-                RandomValues.defaults()
-                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / (numPropertiesPerPage + 1)));
+                RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / (numPropertiesPerPage + 1))
+                        .build());
     }
 
     protected List<Long> query(PropertyIndexQuery... predicates) throws Exception {

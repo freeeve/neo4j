@@ -62,10 +62,11 @@ class IndexKeyStorageTest {
 
     @BeforeEach
     void createLayout() {
-        random.withConfiguration(RandomValues.defaults()
-                .maxVectorNumBytes(
-                        BLOCK_SIZE / 2 /* TODO: Adjust tests to make more sense in the context of vectors. */));
-        random.reset();
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(
+                                BLOCK_SIZE / 2 /* TODO: Adjust tests to make more sense in the context of vectors. */)
+                        .build())
+                .reset();
         this.numberOfSlots = random.nextInt(1, 3);
         this.layout = new RangeLayout(numberOfSlots);
     }

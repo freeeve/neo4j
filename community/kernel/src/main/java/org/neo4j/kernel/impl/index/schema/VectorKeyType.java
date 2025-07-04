@@ -66,12 +66,12 @@ public abstract sealed class VectorKeyType extends Type
     private static ValueGroup fromCoordinateType(CoordinateType coordinateType) {
         /* Note: This ensures that we represent all CoordinateTypes. */
         return switch (coordinateType) {
-            case INTEGER8 -> ValueGroup.INT8VECTOR;
-            case INTEGER16 -> ValueGroup.INT16VECTOR;
-            case INTEGER32 -> ValueGroup.INT32VECTOR;
-            case INTEGER64 -> ValueGroup.INT64VECTOR;
-            case FLOAT32 -> ValueGroup.FLOAT32VECTOR;
-            case FLOAT64 -> ValueGroup.FLOAT64VECTOR;
+            case INTEGER8 -> ValueGroup.INT8_VECTOR;
+            case INTEGER16 -> ValueGroup.INT16_VECTOR;
+            case INTEGER32 -> ValueGroup.INT32_VECTOR;
+            case INTEGER64 -> ValueGroup.INT64_VECTOR;
+            case FLOAT32 -> ValueGroup.FLOAT32_VECTOR;
+            case FLOAT64 -> ValueGroup.FLOAT64_VECTOR;
         };
     }
 

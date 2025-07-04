@@ -52,8 +52,12 @@ import java.time.Period;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.SplittableRandom;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -62,6 +66,7 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
+import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.list.primitive.LongList;
 
@@ -73,10 +78,10 @@ import org.eclipse.collections.api.list.primitive.LongList;
  * Can generate both {@link Value} and "raw" instances. The "raw" type of a value type means
  * the corresponding Core API type if such type exists. For example, {@code String[]} is the raw type of {@link TextArray}.
  * <p>
- * The length of strings will be governed by {@link RandomValues.Configuration#stringMinLength()} and
- * {@link RandomValues.Configuration#stringMaxLength()} and
- * the length of arrays will be governed by {@link RandomValues.Configuration#arrayMinLength()} and
- * {@link RandomValues.Configuration#arrayMaxLength()}
+ * The length of strings will be governed by {@link Configuration#stringMinLength()} and
+ * {@link Configuration#stringMaxLength()} and
+ * the length of arrays will be governed by {@link Configuration#arrayMinLength()} and
+ * {@link Configuration#arrayMaxLength()}
  * unless method provide explicit arguments for those configurations in which case the provided argument will be used instead.
  */
 public class RandomValues {
@@ -98,22 +103,22 @@ public class RandomValues {
         boolean includeVectorTypes();
 
         int maxVectorNumBytes();
+
+        int minVectorDimensions();
+
+        int maxVectorDimensions();
+
+        int[] vectorDimensionChoices();
+
+        Set<ValueType> allowedTypes();
     }
 
-    private static final RecordConfiguration DEFAULTS = new RecordConfiguration(
-            5,
-            20,
-            1,
-            10,
-            Character.MIN_CODE_POINT,
-            Character.MAX_CODE_POINT,
-            true,
-            MAX_VECTOR_DIMENSIONS * Double.BYTES);
-    public static final Configuration DEFAULT_CONFIGURATION = DEFAULTS;
-
-    public static RandomValues.RecordConfiguration defaults() {
-        return RandomValues.DEFAULTS;
+    public static ConfigurationBuilder newConfigurationBuilder() {
+        return new ConfigurationBuilder();
     }
+
+    public static final Configuration DEFAULT_CONFIGURATION =
+            newConfigurationBuilder().build();
 
     /* This information is duplicated and could end up out-of-sync,
        but since it is a major hassle to decouple this everywhere the tradeoff is reasonable.
@@ -124,12 +129,10 @@ public class RandomValues {
     public static final int MAX_BMP_CODE_POINT = 0xFFFF;
     static final int MAX_ASCII_CODE_POINT = 0x7F;
 
-    private static final ValueType[] ARRAY_TYPES = ValueType.arrayTypes();
     private static final long NANOS_PER_SECOND = 1_000_000_000L;
 
     private final Generator generator;
     private final Configuration configuration;
-    private final ValueType[] configuredTypes;
 
     private RandomValues(Generator generator) {
         this(generator, DEFAULT_CONFIGURATION);
@@ -138,7 +141,6 @@ public class RandomValues {
     private RandomValues(Generator generator, Configuration configuration) {
         this.generator = generator;
         this.configuration = configuration;
-        this.configuredTypes = configuredTypes(configuration);
     }
 
     /**
@@ -201,7 +203,7 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextValue() {
-        return nextValueOfTypes(configuredTypes);
+        return nextValueOfTypes(configuration.allowedTypes());
     }
 
     /**
@@ -214,12 +216,21 @@ public class RandomValues {
     }
 
     /**
+     * Returns the next {@link Value}, distributed uniformly among the provided value types.
+     *
+     * @see RandomValues
+     */
+    public Value nextValueOfTypes(Collection<ValueType> types) {
+        return nextValueOfType(among(types));
+    }
+
+    /**
      * Returns the next size number of {@link Value}, distributed uniformly among the supported value types.
      *
      * @see RandomValues
      */
     public Value[] nextValues(int size) {
-        return nextValuesOfTypes(size, configuredTypes);
+        return nextValuesOfTypes(size, configuration.allowedTypes());
     }
 
     /**
@@ -228,6 +239,15 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value[] nextValuesOfTypes(int size, ValueType... types) {
+        return nextValuesOfTypes(size, Arrays.asList(types));
+    }
+
+    /**
+     * Returns the next size number of {@link Value}, distributed uniformly among the provided value types.
+     *
+     * @see RandomValues
+     */
+    public Value[] nextValuesOfTypes(int size, Collection<ValueType> types) {
         var values = new Value[size];
         for (int i = 0; i < size; i++) {
             values[i] = nextValueOfType(among(types));
@@ -255,8 +275,16 @@ public class RandomValues {
                 (T[]) Array.newInstance(among.getClass().getComponentType(), length));
     }
 
-    public static ValueType[] typesOfGroup(ValueGroup valueGroup) {
-        return Arrays.stream(ALL_TYPES).filter(t -> t.valueGroup == valueGroup).toArray(ValueType[]::new);
+    public static ValueType[] typesOfGroups(ValueGroup... valueGroups) {
+        return Arrays.stream(ALL_TYPES)
+                .filter(t -> ArrayUtils.contains(valueGroups, t.valueGroup))
+                .toArray(ValueType[]::new);
+    }
+
+    public static ValueType[] typesOfCategories(ValueCategory... valueCategories) {
+        return Arrays.stream(ALL_TYPES)
+                .filter(t -> ArrayUtils.contains(valueCategories, t.valueGroup.category()))
+                .toArray(ValueType[]::new);
     }
 
     /**
@@ -265,114 +293,60 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextValueOfType(ValueType type) {
-        switch (type) {
-            case BOOLEAN:
-                return nextBooleanValue();
-            case BYTE:
-                return nextByteValue();
-            case SHORT:
-                return nextShortValue();
-            case STRING:
-                return nextTextValue();
-            case INT:
-                return nextIntValue();
-            case LONG:
-                return nextLongValue();
-            case FLOAT:
-                return nextFloatValue();
-            case DOUBLE:
-                return nextDoubleValue();
-            case CHAR:
-                return nextCharValue();
-            case STRING_ALPHANUMERIC:
-                return nextAlphaNumericTextValue();
-            case STRING_ASCII:
-                return nextAsciiTextValue();
-            case STRING_BMP:
-                return nextBasicMultilingualPlaneTextValue();
-            case LOCAL_DATE_TIME:
-                return nextLocalDateTimeValue();
-            case DATE:
-                return nextDateValue();
-            case LOCAL_TIME:
-                return nextLocalTimeValue();
-            case PERIOD:
-                return nextPeriod();
-            case DURATION:
-                return nextDuration();
-            case TIME:
-                return nextTimeValue();
-            case DATE_TIME:
-                return nextDateTimeValue();
-            case CARTESIAN_POINT:
-                return nextCartesianPoint();
-            case CARTESIAN_POINT_3D:
-                return nextCartesian3DPoint();
-            case GEOGRAPHIC_POINT:
-                return nextGeographicPoint();
-            case GEOGRAPHIC_POINT_3D:
-                return nextGeographic3DPoint();
-            case BOOLEAN_ARRAY:
-                return nextBooleanArray();
-            case BYTE_ARRAY:
-                return nextByteArray();
-            case SHORT_ARRAY:
-                return nextShortArray();
-            case INT_ARRAY:
-                return nextIntArray();
-            case LONG_ARRAY:
-                return nextLongArray();
-            case FLOAT_ARRAY:
-                return nextFloatArray();
-            case DOUBLE_ARRAY:
-                return nextDoubleArray();
-            case CHAR_ARRAY:
-                return nextCharArray();
-            case STRING_ARRAY:
-                return nextTextArray();
-            case STRING_ALPHANUMERIC_ARRAY:
-                return nextAlphaNumericTextArray();
-            case STRING_ASCII_ARRAY:
-                return nextAsciiTextArray();
-            case STRING_BMP_ARRAY:
-                return nextBasicMultilingualPlaneTextArray();
-            case LOCAL_DATE_TIME_ARRAY:
-                return nextLocalDateTimeArray();
-            case DATE_ARRAY:
-                return nextDateArray();
-            case LOCAL_TIME_ARRAY:
-                return nextLocalTimeArray();
-            case PERIOD_ARRAY:
-                return nextPeriodArray();
-            case DURATION_ARRAY:
-                return nextDurationArray();
-            case TIME_ARRAY:
-                return nextTimeArray();
-            case DATE_TIME_ARRAY:
-                return nextDateTimeArray();
-            case CARTESIAN_POINT_ARRAY:
-                return nextCartesianPointArray();
-            case CARTESIAN_POINT_3D_ARRAY:
-                return nextCartesian3DPointArray();
-            case GEOGRAPHIC_POINT_ARRAY:
-                return nextGeographicPointArray();
-            case GEOGRAPHIC_POINT_3D_ARRAY:
-                return nextGeographic3DPointArray();
-            case INT8VECTOR:
-                return nextInt8Vector();
-            case INT16VECTOR:
-                return nextInt16Vector();
-            case INT32VECTOR:
-                return nextInt32Vector();
-            case INT64VECTOR:
-                return nextInt64Vector();
-            case FLOAT32VECTOR:
-                return nextFloat32Vector();
-            case FLOAT64VECTOR:
-                return nextFloat64Vector();
-            default:
-                throw new IllegalArgumentException("Unknown value type: " + type);
-        }
+        return switch (type) {
+            case BOOLEAN -> nextBooleanValue();
+            case BYTE -> nextByteValue();
+            case SHORT -> nextShortValue();
+            case STRING -> nextTextValue();
+            case INT -> nextIntValue();
+            case LONG -> nextLongValue();
+            case FLOAT -> nextFloatValue();
+            case DOUBLE -> nextDoubleValue();
+            case CHAR -> nextCharValue();
+            case STRING_ALPHANUMERIC -> nextAlphaNumericTextValue();
+            case STRING_ASCII -> nextAsciiTextValue();
+            case STRING_BMP -> nextBasicMultilingualPlaneTextValue();
+            case LOCAL_DATE_TIME -> nextLocalDateTimeValue();
+            case DATE -> nextDateValue();
+            case LOCAL_TIME -> nextLocalTimeValue();
+            case PERIOD -> nextPeriod();
+            case DURATION -> nextDuration();
+            case TIME -> nextTimeValue();
+            case DATE_TIME -> nextDateTimeValue();
+            case CARTESIAN_POINT -> nextCartesianPoint();
+            case CARTESIAN_POINT_3D -> nextCartesian3DPoint();
+            case GEOGRAPHIC_POINT -> nextGeographicPoint();
+            case GEOGRAPHIC_POINT_3D -> nextGeographic3DPoint();
+            case BOOLEAN_ARRAY -> nextBooleanArray();
+            case BYTE_ARRAY -> nextByteArray();
+            case SHORT_ARRAY -> nextShortArray();
+            case INT_ARRAY -> nextIntArray();
+            case LONG_ARRAY -> nextLongArray();
+            case FLOAT_ARRAY -> nextFloatArray();
+            case DOUBLE_ARRAY -> nextDoubleArray();
+            case CHAR_ARRAY -> nextCharArray();
+            case STRING_ARRAY -> nextTextArray();
+            case STRING_ALPHANUMERIC_ARRAY -> nextAlphaNumericTextArray();
+            case STRING_ASCII_ARRAY -> nextAsciiTextArray();
+            case STRING_BMP_ARRAY -> nextBasicMultilingualPlaneTextArray();
+            case LOCAL_DATE_TIME_ARRAY -> nextLocalDateTimeArray();
+            case DATE_ARRAY -> nextDateArray();
+            case LOCAL_TIME_ARRAY -> nextLocalTimeArray();
+            case PERIOD_ARRAY -> nextPeriodArray();
+            case DURATION_ARRAY -> nextDurationArray();
+            case TIME_ARRAY -> nextTimeArray();
+            case DATE_TIME_ARRAY -> nextDateTimeArray();
+            case CARTESIAN_POINT_ARRAY -> nextCartesianPointArray();
+            case CARTESIAN_POINT_3D_ARRAY -> nextCartesian3DPointArray();
+            case GEOGRAPHIC_POINT_ARRAY -> nextGeographicPointArray();
+            case GEOGRAPHIC_POINT_3D_ARRAY -> nextGeographic3DPointArray();
+            case INT8_VECTOR -> nextInt8Vector();
+            case INT16_VECTOR -> nextInt16Vector();
+            case INT32_VECTOR -> nextInt32Vector();
+            case INT64_VECTOR -> nextInt64Vector();
+            case FLOAT32_VECTOR -> nextFloat32Vector();
+            case FLOAT64_VECTOR -> nextFloat64Vector();
+        };
     }
 
     public Int8Vector nextInt8Vector(int minDim, int maxDim) {
@@ -382,7 +356,8 @@ public class RandomValues {
     }
 
     public Int8Vector nextInt8Vector() {
-        return nextInt8Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Byte.BYTES));
+        final int dimension = chooseDimension(Byte.BYTES);
+        return nextInt8Vector(dimension, dimension);
     }
 
     public Int16Vector nextInt16Vector(int minDim, int maxDim) {
@@ -392,7 +367,8 @@ public class RandomValues {
     }
 
     public Int16Vector nextInt16Vector() {
-        return nextInt16Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Short.BYTES));
+        final int dimension = chooseDimension(Short.BYTES);
+        return nextInt16Vector(dimension, dimension);
     }
 
     public Int32Vector nextInt32Vector(int minDim, int maxDim) {
@@ -402,7 +378,8 @@ public class RandomValues {
     }
 
     public Int32Vector nextInt32Vector() {
-        return nextInt32Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Integer.BYTES));
+        final int dimension = chooseDimension(Integer.BYTES);
+        return nextInt32Vector(dimension, dimension);
     }
 
     public Int64Vector nextInt64Vector(int minDim, int maxDim) {
@@ -412,7 +389,8 @@ public class RandomValues {
     }
 
     public Int64Vector nextInt64Vector() {
-        return nextInt64Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Long.BYTES));
+        final int dimension = chooseDimension(Long.BYTES);
+        return nextInt64Vector(dimension, dimension);
     }
 
     public Float32Vector nextFloat32Vector(int minDim, int maxDim) {
@@ -422,7 +400,8 @@ public class RandomValues {
     }
 
     public Float32Vector nextFloat32Vector() {
-        return nextFloat32Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Float.BYTES));
+        final int dimension = chooseDimension(Float.BYTES);
+        return nextFloat32Vector(dimension, dimension);
     }
 
     public Float64Vector nextFloat64Vector(int minDim, int maxDim) {
@@ -432,11 +411,8 @@ public class RandomValues {
     }
 
     public Float64Vector nextFloat64Vector() {
-        return nextFloat64Vector(MIN_VECTOR_DIMENSIONS, maxDimensions(Double.BYTES));
-    }
-
-    private int maxDimensions(int size) {
-        return Math.min(maxVectorNumBytes() / size, MAX_VECTOR_DIMENSIONS);
+        final int dimension = chooseDimension(Double.BYTES);
+        return nextFloat64Vector(dimension, dimension);
     }
 
     /**
@@ -445,7 +421,7 @@ public class RandomValues {
      * @see RandomValues
      */
     public ArrayValue nextArray() {
-        return (ArrayValue) nextValueOfType(among(ARRAY_TYPES));
+        return (ArrayValue) nextValueOfType(among(ValueType.ARRAY_TYPES));
     }
 
     /**
@@ -650,22 +626,15 @@ public class RandomValues {
      */
     public NumberValue nextNumberValue() {
         int type = generator.nextInt(6);
-        switch (type) {
-            case 0:
-                return nextByteValue();
-            case 1:
-                return nextShortValue();
-            case 2:
-                return nextIntValue();
-            case 3:
-                return nextLongValue();
-            case 4:
-                return nextFloatValue();
-            case 5:
-                return nextDoubleValue();
-            default:
-                throw new IllegalArgumentException("Unknown value type " + type);
-        }
+        return switch (type) {
+            case 0 -> nextByteValue();
+            case 1 -> nextShortValue();
+            case 2 -> nextIntValue();
+            case 3 -> nextLongValue();
+            case 4 -> nextFloatValue();
+            case 5 -> nextDoubleValue();
+            default -> throw new IllegalArgumentException("Unknown value type " + type);
+        };
     }
 
     public CharValue nextCharValue() {
@@ -754,13 +723,20 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextVectorValue() {
-        return nextValueOfTypes(
-                ValueType.INT8VECTOR,
-                ValueType.INT16VECTOR,
-                ValueType.INT32VECTOR,
-                ValueType.INT64VECTOR,
-                ValueType.FLOAT32VECTOR,
-                ValueType.FLOAT64VECTOR);
+        return nextValueOfTypes(typesOfCategories(ValueCategory.VECTOR));
+    }
+
+    public VectorValue nextVectorValue(int minDim, int maxDim) {
+        final ValueType type = among(typesOfCategories(ValueCategory.VECTOR));
+        return switch (type) {
+            case INT8_VECTOR -> nextInt8Vector(minDim, maxDim);
+            case INT16_VECTOR -> nextInt16Vector(minDim, maxDim);
+            case INT32_VECTOR -> nextInt32Vector(minDim, maxDim);
+            case INT64_VECTOR -> nextInt64Vector(minDim, maxDim);
+            case FLOAT32_VECTOR -> nextFloat32Vector(minDim, maxDim);
+            case FLOAT64_VECTOR -> nextFloat64Vector(minDim, maxDim);
+            default -> throw new IllegalStateException("Unexpected vector type: " + type);
+        };
     }
 
     private TextValue nextTextValue(int minLength, int maxLength, CodePointFactory codePointFactory) {
@@ -1561,7 +1537,29 @@ public class RandomValues {
         return among.get(nextInt(among.size()));
     }
 
+    public int among(IntIterable among) {
+        int offset = nextInt(among.size());
+        final var iterator = among.intIterator();
+        while (offset-- > 0) {
+            iterator.next();
+        }
+        return iterator.next();
+    }
+
     public <T> T among(RichIterable<T> among) {
+        int offset = nextInt(among.size());
+        final var iterator = among.iterator();
+        while (offset-- > 0) {
+            iterator.next();
+        }
+        return iterator.next();
+    }
+
+    public <T> T among(Collection<T> among) {
+        if (among instanceof final List<T> list) {
+            return among(list);
+        }
+
         int offset = nextInt(among.size());
         final var iterator = among.iterator();
         while (offset-- > 0) {
@@ -1646,6 +1644,27 @@ public class RandomValues {
         return configuration.stringMinLength();
     }
 
+    private int chooseDimension(int size) {
+        final int[] dimensions = configuration.vectorDimensionChoices();
+        final int dimension;
+        if (dimensions != null) {
+            assert dimensions.length > 0;
+            dimension = among(dimensions);
+        } else {
+            dimension = intBetween(minDimensions(), Math.min(maxVectorNumBytes() / size, maxDimensions()));
+        }
+        assert dimension * size <= maxVectorNumBytes();
+        return dimension;
+    }
+
+    private int minDimensions() {
+        return Math.max(configuration.minVectorDimensions(), MIN_VECTOR_DIMENSIONS);
+    }
+
+    private int maxDimensions() {
+        return Math.min(configuration.maxVectorDimensions(), MAX_VECTOR_DIMENSIONS);
+    }
+
     private int maxVectorNumBytes() {
         return configuration.maxVectorNumBytes();
     }
@@ -1663,118 +1682,185 @@ public class RandomValues {
     public static final Predicate<ValueType> IS_VECTOR_TYPE =
             t -> t.valueRepresentation.valueGroup().category() == ValueCategory.VECTOR;
 
-    private static ValueType[] configuredTypes(Configuration config) {
-        if (!config.includeVectorTypes()) {
-            return excluding(ALL_TYPES, IS_VECTOR_TYPE);
+    public static class ConfigurationBuilder {
+        private int stringMinLength = 5;
+        private int stringMaxLength = 20;
+        private int arrayMinLength = 1;
+        private int arrayMaxLength = 10;
+        private int minCodePoint = Character.MIN_CODE_POINT;
+        private int maxCodePoint = Character.MAX_CODE_POINT;
+        private int minVectorDimensions = MIN_VECTOR_DIMENSIONS;
+        private int maxVectorDimensions = MAX_VECTOR_DIMENSIONS;
+        private int[] vectorDimensionChoices = null;
+        private int maxVectorNumBytes = MAX_VECTOR_DIMENSIONS * Double.BYTES;
+        private Set<ValueType> allowedTypes = EnumSet.allOf(ValueType.class);
+
+        private ConfigurationBuilder() {}
+
+        public Configuration build() {
+            // Even if vector dimension choices explicitly set
+            // Configuration interface can still query min/max vector dimensions
+            if (vectorDimensionChoices != null) {
+                Arrays.sort(vectorDimensionChoices);
+                minVectorDimensions = vectorDimensionChoices[0];
+                maxVectorDimensions = vectorDimensionChoices[vectorDimensionChoices.length - 1];
+            }
+
+            return new ConfigurationRecord(
+                    stringMinLength,
+                    stringMaxLength,
+                    arrayMinLength,
+                    arrayMaxLength,
+                    minCodePoint,
+                    maxCodePoint,
+                    minVectorDimensions,
+                    maxVectorDimensions,
+                    vectorDimensionChoices,
+                    maxVectorNumBytes,
+                    Collections.unmodifiableSet(allowedTypes));
         }
-        return ALL_TYPES;
+
+        public ConfigurationBuilder stringMinLength(int length) {
+            this.stringMinLength = length;
+            return this;
+        }
+
+        public ConfigurationBuilder stringMaxLength(int length) {
+            this.stringMaxLength = length;
+            return this;
+        }
+
+        public ConfigurationBuilder stringLength(int min, int max) {
+            assert min <= max : "min must be greater or equal to max";
+            return stringMinLength(min).stringMaxLength(max);
+        }
+
+        public ConfigurationBuilder stringLength(int length) {
+            return stringLength(length, length);
+        }
+
+        public ConfigurationBuilder arrayMinLength(int length) {
+            this.arrayMinLength = length;
+            return this;
+        }
+
+        public ConfigurationBuilder arrayMaxLength(int length) {
+            this.arrayMaxLength = length;
+            return this;
+        }
+
+        public ConfigurationBuilder arrayLength(int min, int max) {
+            assert min <= max : "min must be greater or equal to max";
+            return arrayMinLength(min).arrayMaxLength(max);
+        }
+
+        public ConfigurationBuilder arrayLength(int length) {
+            return arrayLength(length, length);
+        }
+
+        public ConfigurationBuilder minCodePoint(int codePoint) {
+            this.minCodePoint = codePoint;
+            return this;
+        }
+
+        public ConfigurationBuilder maxCodePoint(int codePoint) {
+            this.maxCodePoint = codePoint;
+            return this;
+        }
+
+        public ConfigurationBuilder codePoints(int min, int max) {
+            assert min <= max : "min must be greater or equal to max";
+            return minCodePoint(min).maxCodePoint(max);
+        }
+
+        public ConfigurationBuilder minVectorDimensions(int dimensions) {
+            assert vectorDimensionChoices == null
+                    : "cannot set minimum vector dimensions with explicit vector dimension choices";
+            this.minVectorDimensions = dimensions;
+            return this;
+        }
+
+        public ConfigurationBuilder maxVectorDimensions(int dimensions) {
+            this.maxVectorDimensions = dimensions;
+            return this;
+        }
+
+        public ConfigurationBuilder vectorDimensions(int min, int max) {
+            assert min <= max : "min must be greater or equal to max";
+            return minVectorDimensions(min).maxVectorDimensions(max);
+        }
+
+        public ConfigurationBuilder vectorDimensionChoices(int... dimensions) {
+            if (dimensions == null) {
+                this.vectorDimensionChoices = null;
+                return this;
+            }
+
+            assert dimensions.length > 0 : "must provide at least one vector dimension";
+            this.vectorDimensionChoices = dimensions.clone();
+            return this;
+        }
+
+        public ConfigurationBuilder maxVectorNumBytes(int maxVectorNumBytes) {
+            this.maxVectorNumBytes = maxVectorNumBytes;
+            return this;
+        }
+
+        public ConfigurationBuilder includeVectorTypes(boolean includeVectorTypes) {
+            if (includeVectorTypes) {
+                Arrays.stream(ALL_TYPES).filter(IS_VECTOR_TYPE).forEach(allowedTypes::add);
+            } else {
+                allowedTypes.removeIf(IS_VECTOR_TYPE);
+            }
+            return this;
+        }
+
+        public ConfigurationBuilder allowedTypes(ValueType... allowedTypes) {
+            assert allowedTypes != null && allowedTypes.length > 0 : "must provide at least one type";
+            return allowedTypes(EnumSet.copyOf(Arrays.asList(allowedTypes)));
+        }
+
+        public ConfigurationBuilder allowedTypes(Set<ValueType> allowedTypes) {
+            assert allowedTypes != null && !allowedTypes.isEmpty() : "must provide at least one type";
+            this.allowedTypes = allowedTypes;
+            return this;
+        }
     }
 
-    public record RecordConfiguration(
+    private record ConfigurationRecord(
             int stringMinLength,
             int stringMaxLength,
             int arrayMinLength,
             int arrayMaxLength,
             int minCodePoint,
             int maxCodePoint,
-            boolean includeVectorTypes,
-            int maxVectorNumBytes)
+            int minVectorDimensions,
+            int maxVectorDimensions,
+            int[] vectorDimensionChoices,
+            int maxVectorNumBytes,
+            Set<ValueType> allowedTypes)
             implements Configuration {
 
-        public RecordConfiguration stringMinLength(int length) {
-            return new RecordConfiguration(
-                    length,
-                    stringMaxLength,
-                    arrayMinLength,
-                    arrayMaxLength,
-                    minCodePoint,
-                    maxCodePoint,
-                    includeVectorTypes,
-                    maxVectorNumBytes);
+        private ConfigurationRecord {
+            // configuration invariants
+            assert stringMinLength <= stringMaxLength;
+            assert arrayMinLength <= arrayMaxLength;
+            assert minCodePoint <= maxCodePoint;
+            if (vectorDimensionChoices != null) {
+                assert vectorDimensionChoices.length > 0;
+                assert vectorDimensionChoices[0] == minVectorDimensions;
+                assert vectorDimensionChoices[vectorDimensionChoices.length - 1] == maxVectorDimensions;
+            }
+            assert MIN_VECTOR_DIMENSIONS <= minVectorDimensions;
+            assert minVectorDimensions <= maxVectorDimensions;
+            assert maxVectorDimensions <= MAX_VECTOR_DIMENSIONS;
+            assert maxVectorNumBytes <= maxVectorNumBytes * Double.BYTES;
+            assert allowedTypes != null && !allowedTypes.isEmpty();
         }
 
-        public RecordConfiguration stringMaxLength(int length) {
-            return new RecordConfiguration(
-                    stringMinLength,
-                    length,
-                    arrayMinLength,
-                    arrayMaxLength,
-                    minCodePoint,
-                    maxCodePoint,
-                    includeVectorTypes,
-                    maxVectorNumBytes);
-        }
-
-        public RecordConfiguration arrayMinLength(int length) {
-            return new RecordConfiguration(
-                    stringMinLength,
-                    stringMaxLength,
-                    length,
-                    arrayMaxLength,
-                    minCodePoint,
-                    maxCodePoint,
-                    includeVectorTypes,
-                    maxVectorNumBytes);
-        }
-
-        public RecordConfiguration arrayMaxLength(int length) {
-            return new RecordConfiguration(
-                    stringMinLength,
-                    stringMaxLength,
-                    arrayMinLength,
-                    length,
-                    minCodePoint,
-                    maxCodePoint,
-                    includeVectorTypes,
-                    maxVectorNumBytes);
-        }
-
-        public RecordConfiguration minCodePoint(int codepoint) {
-            return new RecordConfiguration(
-                    stringMinLength,
-                    stringMaxLength,
-                    arrayMinLength,
-                    arrayMaxLength,
-                    codepoint,
-                    maxCodePoint,
-                    includeVectorTypes,
-                    maxVectorNumBytes);
-        }
-
-        public RecordConfiguration maxCodePoint(int codepoint) {
-            return new RecordConfiguration(
-                    stringMinLength,
-                    stringMaxLength,
-                    arrayMinLength,
-                    arrayMaxLength,
-                    minCodePoint,
-                    codepoint,
-                    includeVectorTypes,
-                    maxVectorNumBytes);
-        }
-
-        public RecordConfiguration includeVectorTypes(boolean include) {
-            return new RecordConfiguration(
-                    stringMinLength,
-                    stringMaxLength,
-                    arrayMinLength,
-                    arrayMaxLength,
-                    minCodePoint,
-                    maxCodePoint,
-                    include,
-                    maxVectorNumBytes);
-        }
-
-        public RecordConfiguration maxVectorNumBytes(int numBytes) {
-            return new RecordConfiguration(
-                    stringMinLength,
-                    stringMaxLength,
-                    arrayMinLength,
-                    arrayMaxLength,
-                    minCodePoint,
-                    maxCodePoint,
-                    includeVectorTypes,
-                    numBytes);
+        @Override
+        public boolean includeVectorTypes() {
+            return allowedTypes.stream().anyMatch(IS_VECTOR_TYPE);
         }
     }
 }

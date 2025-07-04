@@ -60,8 +60,10 @@ class ValuesReadWriteTest {
 
     @BeforeEach
     void setup() {
-        random.withConfiguration(RandomValues.defaults().maxVectorNumBytes(CHUNK_SIZE / MAX_NUM_WRITES));
-        random.reset();
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(CHUNK_SIZE / MAX_NUM_WRITES)
+                        .build())
+                .reset();
     }
 
     @ParameterizedTest

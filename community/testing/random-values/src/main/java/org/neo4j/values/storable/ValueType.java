@@ -125,12 +125,12 @@ public enum ValueType {
     GEOGRAPHIC_POINT_ARRAY(ValueRepresentation.GEOMETRY_ARRAY, PointArray.class, true, EXTREME_GEOGRAPHIC_POINT_ARRAY),
     GEOGRAPHIC_POINT_3D_ARRAY(
             ValueRepresentation.GEOMETRY_ARRAY, PointArray.class, true, EXTREME_GEOGRAPHIC_POINT_3D_ARRAY),
-    INT8VECTOR(ValueRepresentation.INT8_VECTOR, Int8Vector.class, EXTREME_INT8_VECTOR),
-    INT16VECTOR(ValueRepresentation.INT16_VECTOR, Int16Vector.class, EXTREME_INT16_VECTOR),
-    INT32VECTOR(ValueRepresentation.INT32_VECTOR, Int32Vector.class, EXTREME_INT32_VECTOR),
-    INT64VECTOR(ValueRepresentation.INT64_VECTOR, Int64Vector.class, EXTREME_INT64_VECTOR),
-    FLOAT32VECTOR(ValueRepresentation.FLOAT32_VECTOR, Float32Vector.class, EXTREME_FLOAT32_VECTOR),
-    FLOAT64VECTOR(ValueRepresentation.FLOAT64_VECTOR, Float64Vector.class, EXTREME_FLOAT64_VECTOR);
+    INT8_VECTOR(ValueRepresentation.INT8_VECTOR, Int8Vector.class, EXTREME_INT8_VECTOR),
+    INT16_VECTOR(ValueRepresentation.INT16_VECTOR, Int16Vector.class, EXTREME_INT16_VECTOR),
+    INT32_VECTOR(ValueRepresentation.INT32_VECTOR, Int32Vector.class, EXTREME_INT32_VECTOR),
+    INT64_VECTOR(ValueRepresentation.INT64_VECTOR, Int64Vector.class, EXTREME_INT64_VECTOR),
+    FLOAT32_VECTOR(ValueRepresentation.FLOAT32_VECTOR, Float32Vector.class, EXTREME_FLOAT32_VECTOR),
+    FLOAT64_VECTOR(ValueRepresentation.FLOAT64_VECTOR, Float64Vector.class, EXTREME_FLOAT64_VECTOR);
 
     public final ValueRepresentation valueRepresentation;
     public final ValueGroup valueGroup;
@@ -160,7 +160,6 @@ public enum ValueType {
 
     public static final ValueType[] ALL_TYPES = ValueType.values();
 
-    public static ValueType[] arrayTypes() {
-        return Arrays.stream(ALL_TYPES).filter(t -> t.arrayType).toArray(ValueType[]::new);
-    }
+    public static final ValueType[] ARRAY_TYPES =
+            Arrays.stream(ALL_TYPES).filter(t -> t.arrayType).toArray(ValueType[]::new);
 }

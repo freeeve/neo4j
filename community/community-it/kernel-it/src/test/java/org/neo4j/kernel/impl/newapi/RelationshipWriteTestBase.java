@@ -68,8 +68,8 @@ public abstract class RelationshipWriteTestBase<G extends KernelAPIWriteTestSupp
     @BeforeEach
     void setup() {
         /* Not all storage engines support vectors. */
-        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb));
-        random.reset();
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb))
+                .reset();
     }
 
     @Test

@@ -350,8 +350,9 @@ class MemoryRecommendationsCommandTest {
             var db = dbms.database(databaseName);
             RandomValues randomValues = RandomValues.create(
                     random.random(),
-                    RandomValuesUtils.selectStorageEngineDependentConfiguration(db)
-                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                    RandomValuesUtils.selectStorageEngineDependentConfigurationBuilder(db)
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                            .build());
             for (IndexType indexType : Arrays.stream(IndexType.values())
                     .filter(type -> type != IndexType.LOOKUP)
                     .toList()) {

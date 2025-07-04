@@ -52,7 +52,10 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
         // given
         ValueType[] types = randomSetOfSupportedTypes();
         RandomValues rv = RandomValues.create(
-                random.random(), RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                random.random(),
+                RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                        .build());
         List<Value> values = generateValuesFromType(rv, types, new HashSet<>(), 30_000);
         List<ValueIndexEntryUpdate> updates = generateUpdatesFromValues(values, new MutableLong());
         updateAndCommit(updates);
@@ -75,7 +78,10 @@ abstract class SimpleRandomizedIndexAccessorCompatibility extends IndexAccessorC
         TreeSet<ValueAndId> sortedValues = new TreeSet<>((v1, v2) -> Values.COMPARATOR.compare(v1.value, v2.value));
         MutableLong nextId = new MutableLong();
         RandomValues rv = RandomValues.create(
-                random.random(), RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                random.random(),
+                RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                        .build());
 
         // A couple of rounds of updates followed by lots of range verifications
         for (int i = 0; i < 5; i++) {

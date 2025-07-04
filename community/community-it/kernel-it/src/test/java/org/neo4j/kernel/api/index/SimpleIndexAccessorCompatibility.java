@@ -895,7 +895,9 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
             // given
             RandomValues rv = RandomValues.create(
                     random.random(),
-                    RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                    RandomValues.newConfigurationBuilder()
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                            .build());
             Value value = rv.nextValueOfType(valueType);
             updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(PropertyIndexQuery.exact(0, value)));
@@ -921,7 +923,9 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
             // given
             RandomValues rv = RandomValues.create(
                     random.random(),
-                    RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY));
+                    RandomValues.newConfigurationBuilder()
+                            .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                            .build());
             Value value = rv.nextValueOfType(valueType);
             updateAndCommit(singletonList(ValueIndexEntryUpdate.add(entityId, descriptor, value)));
             assertEquals(singletonList(entityId), query(PropertyIndexQuery.exact(0, value)));

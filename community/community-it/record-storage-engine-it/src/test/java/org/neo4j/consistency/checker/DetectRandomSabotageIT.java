@@ -175,9 +175,10 @@ public class DetectRandomSabotageIT {
         dbms = getDbms(directory.homePath());
         db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
 
-        random.withConfiguration(
-                RandomValues.defaults().includeVectorTypes(false) /* Record engine does not support vectors. */);
-        random.reset();
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .includeVectorTypes(false)
+                        .build() /* Record engine does not support vectors. */)
+                .reset();
 
         // Create some nodes
         MutableLongList nodeIds = createNodes(db);

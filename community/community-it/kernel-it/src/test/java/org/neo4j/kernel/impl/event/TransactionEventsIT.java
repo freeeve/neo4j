@@ -91,8 +91,8 @@ class TransactionEventsIT {
 
     @BeforeEach
     void setup() {
-        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
-        random.reset();
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(db))
+                .reset();
     }
 
     @Test

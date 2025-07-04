@@ -30,15 +30,29 @@ public class RandomValuesUtils {
      * <p/>>
      * Utility to select default configuration for when tests are executed under multiple storage engines.
      */
-    public static RandomValues.RecordConfiguration selectStorageEngineDependentConfiguration(
+    public static RandomValues.Configuration selectStorageEngineDependentConfiguration(GraphDatabaseService dbms) {
+        return selectStorageEngineDependentConfigurationBuilder(dbms).build();
+    }
+
+    public static RandomValues.Configuration selectStorageEngineDependentConfiguration(String storageEngineName) {
+        return selectStorageEngineDependentConfigurationBuilder(storageEngineName)
+                .build();
+    }
+
+    public static RandomValues.ConfigurationBuilder selectStorageEngineDependentConfigurationBuilder(
             GraphDatabaseService dbms) {
         var storageEngine = ((GraphDatabaseAPI) dbms)
                 .getDependencyResolver()
                 .resolveOptionalDependency(StorageEngineFactory.class)
                 .orElseThrow();
-        return switch (storageEngine.name()) {
-            case "block" -> RandomValues.defaults();
-            default -> RandomValues.defaults().includeVectorTypes(false);
+        return selectStorageEngineDependentConfigurationBuilder(storageEngine.name());
+    }
+
+    public static RandomValues.ConfigurationBuilder selectStorageEngineDependentConfigurationBuilder(
+            String storageEngineName) {
+        return switch (storageEngineName) {
+            case "block" -> RandomValues.newConfigurationBuilder();
+            default -> RandomValues.newConfigurationBuilder().includeVectorTypes(false);
         };
     }
 }

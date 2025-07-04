@@ -85,8 +85,8 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
     @BeforeEach
     void setup() {
         /* Not all storage engines support vectors. */
-        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb));
-        random.reset();
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb))
+                .reset();
     }
 
     @Test

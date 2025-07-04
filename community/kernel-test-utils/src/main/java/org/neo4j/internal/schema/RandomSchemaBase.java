@@ -58,7 +58,7 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
         defaultRelationshipTypeIdsArrayMaxLength = defaultRelationshipTypeIdsArrayMaxLength();
         defaultPropertyKeyIdsArrayMaxLength = defaultPropertyKeyIdsArrayMaxLength();
         values = RandomValues.create(rng, valuesConfiguration());
-        textTypes = RandomValues.typesOfGroup(ValueGroup.TEXT);
+        textTypes = RandomValues.typesOfGroups(ValueGroup.TEXT);
     }
 
     protected abstract int maxPropertyKeyId();
@@ -80,9 +80,11 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
     }
 
     protected RandomValues.Configuration valuesConfiguration() {
-        var defaults = RandomValues.defaults();
-        return defaults.stringMaxLength(200)
-                .minCodePoint(defaults.minCodePoint() + 1 /* Avoid null-bytes in our strings */);
+        return RandomValues.newConfigurationBuilder()
+                .stringMaxLength(200)
+                .minCodePoint(
+                        RandomValues.DEFAULT_CONFIGURATION.minCodePoint() + 1 /* Avoid null-bytes in our strings */)
+                .build();
     }
 
     public Stream<SchemaRule> schemaRules() {

@@ -55,8 +55,8 @@ class CreateWithSpecificIdKernelWriteTest extends KernelAPIWriteTestBase<WriteTe
     @BeforeEach
     void setup() {
         /* Not all storage engines supports vectors. */
-        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb));
-        random.reset();
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb))
+                .reset();
     }
 
     // We need some coordination here since these test suites runs with PER_CLASS mode

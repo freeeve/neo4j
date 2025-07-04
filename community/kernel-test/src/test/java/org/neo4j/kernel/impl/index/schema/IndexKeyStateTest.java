@@ -134,13 +134,13 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
 
     @BeforeEach
     void setupRandomConfig() {
-        random = random.withConfiguration(RandomValues.defaults()
-                .stringMinLength(0)
-                .stringMaxLength(50)
-                .arrayMinLength(0)
-                .maxCodePoint(RandomValues.MAX_BMP_CODE_POINT)
-                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / MAX_NUM_SLOTS));
-        random.reset();
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .stringLength(0, 50)
+                        .arrayMinLength(0)
+                        .maxCodePoint(RandomValues.MAX_BMP_CODE_POINT)
+                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / MAX_NUM_SLOTS)
+                        .build())
+                .reset();
     }
 
     @ParameterizedTest
@@ -852,7 +852,7 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
                 29;
             case GEOMETRY -> getGeometrySize(value);
             case TEXT -> getStringSize(value);
-            case INT8VECTOR, INT16VECTOR, INT32VECTOR, INT64VECTOR, FLOAT32VECTOR, FLOAT64VECTOR ->
+            case INT8_VECTOR, INT16_VECTOR, INT32_VECTOR, INT64_VECTOR, FLOAT32_VECTOR, FLOAT64_VECTOR ->
                 // typeName: VectorKeyType
                 getVectorSize(value);
             default ->

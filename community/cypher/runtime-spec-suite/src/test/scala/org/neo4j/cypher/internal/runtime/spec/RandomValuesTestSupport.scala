@@ -41,9 +41,10 @@ trait RandomValuesTestSupport extends TestSuiteMixin with TestSuite {
   }
 
   def randomValuesConfiguration(): RandomValues.Configuration = {
-    RandomValues.defaults().minCodePoint(
-      Character.MIN_CODE_POINT
-    ).maxCodePoint(10_000).includeVectorTypes(false /* TODO: Vector cypher expression */ );
+    RandomValues.newConfigurationBuilder.codePoints(
+      Character.MIN_CODE_POINT,
+      10_000
+    ).includeVectorTypes(false /* TODO: Vector cypher expression */ ).build
   }
 
   def randomValue(valueType: ValueType): Value = randomValues.nextValueOfType(valueType)

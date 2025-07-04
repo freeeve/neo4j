@@ -73,9 +73,10 @@ public abstract class AbstractRecordFormatTest {
 
     @BeforeEach
     public void before() {
-        random.withConfiguration(
-                RandomValues.defaults().includeVectorTypes(false) /* Record engine does not support vectors. */);
-        random.reset();
+        random.withConfiguration(RandomValues.newConfigurationBuilder()
+                        .includeVectorTypes(false)
+                        .build() /* Record engine does not support vectors. */)
+                .reset();
         generators = new LimitedRecordGenerators(random.randomValues(), entityBits, propertyBits, 40, 16, -1, formats);
     }
 

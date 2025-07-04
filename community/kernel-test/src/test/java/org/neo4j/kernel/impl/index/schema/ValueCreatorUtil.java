@@ -74,7 +74,9 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
     private ValueIndexEntryUpdate[] someUpdates(RandomSupport random, ValueType[] types, double fractionDuplicates) {
         RandomValues rv = RandomValues.create(
                 random.random(),
-                RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / N_VALUES));
+                RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / N_VALUES)
+                        .build());
         RandomValueGenerator valueGenerator = new RandomValueGenerator(rv, types, fractionDuplicates);
         RandomUpdateGenerator randomUpdateGenerator = new RandomUpdateGenerator(valueGenerator);
         ValueIndexEntryUpdate[] result = new ValueIndexEntryUpdate[N_VALUES];
@@ -87,7 +89,9 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
     ValueIndexEntryUpdate[] someUpdatesWithDuplicateValues(RandomSupport randomRule) {
         RandomValues randomValues = RandomValues.create(
                 randomRule.random(),
-                RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / N_VALUES));
+                RandomValues.newConfigurationBuilder()
+                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / N_VALUES)
+                        .build());
         Iterator<Value> valueIterator = new RandomValueGenerator(randomValues, supportedTypes(), fractionDuplicates());
         Value[] someValues = new Value[N_VALUES];
         for (int i = 0; i < N_VALUES; i++) {
@@ -108,7 +112,9 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         Iterator<Value> valueIterator = new RandomValueGenerator(
                 RandomValues.create(
                         random.random(),
-                        RandomValues.defaults().maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)),
+                        RandomValues.newConfigurationBuilder()
+                                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                                .build()),
                 types,
                 fractionDuplicates());
         return new RandomUpdateGenerator(valueIterator);
@@ -204,7 +210,7 @@ record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         private boolean extremeValueOfTypeCanBeStoredInIndex(ValueType value) {
             return switch (value) {
                 /* The extreme value of these types can not be stored in a single page, and does hence not fit in the index key */
-                case INT16VECTOR, INT32VECTOR, INT64VECTOR, FLOAT32VECTOR, FLOAT64VECTOR -> false;
+                case INT16_VECTOR, INT32_VECTOR, INT64_VECTOR, FLOAT32_VECTOR, FLOAT64_VECTOR -> false;
                 default -> true;
             };
         }

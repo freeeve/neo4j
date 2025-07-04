@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -102,15 +101,13 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
             tx.commit();
         }
 
-        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb)
-                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY);
-        randomRule.withConfiguration(configuration);
-        randomRule.reset();
+        final var configuration = RandomValuesUtils.selectStorageEngineDependentConfigurationBuilder(graphDb)
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                .build();
+        randomRule.withConfiguration(configuration).reset();
 
         if (!configuration.includeVectorTypes()) {
-            targetedTypes = Arrays.stream(ALL_ORDERABLE)
-                    .filter(Predicate.not(RandomValues.IS_VECTOR_TYPE))
-                    .toArray(ValueType[]::new);
+            targetedTypes = RandomValues.excluding(ALL_ORDERABLE, RandomValues.IS_VECTOR_TYPE);
         } else {
             targetedTypes = ALL_ORDERABLE;
         }

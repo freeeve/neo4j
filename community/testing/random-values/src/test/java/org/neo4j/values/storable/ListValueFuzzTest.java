@@ -44,7 +44,7 @@ class ListValueFuzzTest {
     @Test
     void shouldBeStorableIfAppendToStorableWithCompatibleTypes() {
         for (int i = 0; i < ITERATIONS; i++) {
-            for (ValueType valueType : ValueType.arrayTypes()) {
+            for (ValueType valueType : ValueType.ARRAY_TYPES) {
                 // Given
                 ArrayValue arrayValue = (ArrayValue) random.nextValue(valueType);
                 ListValue inner = fromArray(arrayValue);
@@ -61,7 +61,7 @@ class ListValueFuzzTest {
     @Test
     void shouldNotBeStorableIfAppendToStorableWithIncompatibleTypes() {
         for (int i = 0; i < ITERATIONS; i++) {
-            for (ValueType valueType : ValueType.arrayTypes()) {
+            for (ValueType valueType : ValueType.ARRAY_TYPES) {
                 // Given
                 ArrayValue arrayValue = (ArrayValue) random.nextValue(valueType);
                 ListValue inner = fromArray(arrayValue);
@@ -78,7 +78,7 @@ class ListValueFuzzTest {
     @Test
     void shouldBeStorableIfPrependToStorableWithCompatibleTypes() {
         for (int i = 0; i < ITERATIONS; i++) {
-            for (ValueType valueType : ValueType.arrayTypes()) {
+            for (ValueType valueType : ValueType.ARRAY_TYPES) {
                 // Given
                 ArrayValue arrayValue = (ArrayValue) random.nextValue(valueType);
                 ListValue inner = fromArray(arrayValue);
@@ -95,7 +95,7 @@ class ListValueFuzzTest {
     @Test
     void shouldNotBeStorableIfPrependToStorableWithIncompatibleTypes() {
         for (int i = 0; i < ITERATIONS; i++) {
-            for (ValueType valueType : ValueType.arrayTypes()) {
+            for (ValueType valueType : ValueType.ARRAY_TYPES) {
                 // Given
                 ArrayValue arrayValue = (ArrayValue) random.nextValue(valueType);
                 ListValue inner = fromArray(arrayValue);

@@ -220,8 +220,9 @@ class MultipleIndexPopulationStressIT {
                 executor.submit(() -> {
                     ChangeRandomEntities changeRandomEntities = new ChangeRandomEntities(
                             db,
-                            RandomValues.create(RandomValues.defaults()
-                                    .includeVectorTypes(false) /* Record engine does not support vectors. */),
+                            RandomValues.create(RandomValues.newConfigurationBuilder()
+                                    .includeVectorTypes(false)
+                                    .build() /* Record engine does not support vectors. */),
                             nodeCount,
                             relCount);
                     while (!end.get()) {
@@ -372,8 +373,9 @@ class MultipleIndexPopulationStressIT {
         try (RandomDataInput input = new RandomDataInput(
                         nodeCount,
                         relCount,
-                        RandomValues.defaults()
-                                .includeVectorTypes(false) /* Record engine does not support vectors. */);
+                        RandomValues.newConfigurationBuilder()
+                                .includeVectorTypes(false)
+                                .build() /* Record engine does not support vectors. */);
                 JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
             RecordDatabaseLayout layout = RecordDatabaseLayout.of(config);
             IndexImporterFactory indexImporterFactory = new IndexImporterFactoryImpl();
