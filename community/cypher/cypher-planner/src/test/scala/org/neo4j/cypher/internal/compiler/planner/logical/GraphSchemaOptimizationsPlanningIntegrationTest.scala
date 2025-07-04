@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.ands
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
+import org.neo4j.internal.schema.EndpointType
 
 import java.lang.Boolean.TRUE
 
@@ -946,4 +947,217 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .nodeByLabelScan("n", "Actor") // n:Actor implies n:Person
       .build()
   }
+
+  test("Should plan indexSeek when label can be implied by relationship type and end-node constraint - END") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Entity", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .addRelationshipEndpointLabelConstraint("R", "Person", EndpointType.END)
+      .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.01, uniqueSelectivity = 0.01)
+      .setRelationshipCardinality("()-[:R]->(:Person)", 500)
+      .setAllNodesCardinality(3000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .build()
+
+    val query = "MATCH (n)-[r:R]->(m {firstName: 'Pierre'}) Return *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .expandAll("(m)<-[r:R]-(n)")
+      .nodeIndexOperator("m:Person(firstName = 'Pierre')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test("Should plan indexSeek when label can be implied by relationship type and end-node constraint - START") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1_200)
+      .setLabelCardinality("A", 400)
+      .setRelationshipCardinality("()-[:R]->()", 600)
+      .setRelationshipCardinality("(:A)-[:R]->()", 600)
+      .addNodeIndex("A", List("prop"), 0.4, 0.5)
+      .addRelationshipEndpointLabelConstraint("R", "A", EndpointType.START)
+      .build()
+
+    val query = "MATCH (n:A {prop: 'Pierre'})-[r:R]->(m) Return *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .expandAll("(n)-[r:R]->(m)")
+      .nodeIndexOperator("n:A(prop = 'Pierre')", getValue = Map("prop" -> GetValue))
+      .build()
+  }
+
+  test(
+    "Should plan indexSeek when label can be implied by relationship type and end-node constraint - Explicit label preference"
+  ) {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(3000)
+        .setLabelCardinality("Person", 1000)
+        .setLabelCardinality("Actor", 1000)
+        .addRelationshipEndpointLabelConstraint("R", "Person", EndpointType.START)
+        .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.4, uniqueSelectivity = 0.5)
+        .addNodeIndex("Actor", Seq("firstName"), existsSelectivity = 0.1, uniqueSelectivity = 0.1)
+        .setRelationshipCardinality("()-[:R]->()", 1000)
+        .setRelationshipCardinality("(:Person)-[:R]->()", 1000)
+        .setRelationshipCardinality("()-[:R]->(:Actor)", 1000)
+        .setRelationshipCardinality("(:Person)-[:R]->(:Actor)", 1000)
+        .build()
+
+    val query = "MATCH (n {firstName: 'Bosse'})-[r:R]->(m:Actor {firstName: 'Pierre'}) Return *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("n.firstName = 'Bosse'")
+      .expandAll("(m)<-[r:R]-(n)")
+      .nodeIndexOperator("m:Actor(firstName = 'Pierre')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "Should plan indexSeek when label can be implied by relationship type and end-node constraint - Implicit label preference"
+  ) {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(3000)
+        .setLabelCardinality("Person", 1000)
+        .setLabelCardinality("Actor", 1000)
+        .addRelationshipEndpointLabelConstraint("R", "Person", EndpointType.START)
+        .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.1, uniqueSelectivity = 0.1)
+        .addNodeIndex("Actor", Seq("firstName"), existsSelectivity = 0.4, uniqueSelectivity = 0.5)
+        .setRelationshipCardinality("()-[:R]->()", 1000)
+        .setRelationshipCardinality("(:Person)-[:R]->()", 1000)
+        .setRelationshipCardinality("()-[:R]->(:Actor)", 1000)
+        .setRelationshipCardinality("(:Person)-[:R]->(:Actor)", 1000)
+        .build()
+
+    val query = "MATCH (n {firstName: 'Bosse'})-[r:R]->(m:Actor {firstName: 'Pierre'}) Return *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("m.firstName = 'Pierre'", "m:Actor")
+      .expandAll("(n)-[r:R]->(m)")
+      .nodeIndexOperator("n:Person(firstName = 'Bosse')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "Should plan indexSeek when label can be implied by relationship type and end-node constraint - Should not add unnecessary filter on implied label"
+  ) {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(3000)
+        .setLabelCardinality("Person", 1000)
+        .setLabelCardinality("Actor", 500)
+        .addRelationshipEndpointLabelConstraint("R", "Person", EndpointType.START)
+        .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.4, uniqueSelectivity = 0.5)
+        .addNodeIndex("Actor", Seq("firstName"), existsSelectivity = 0.1, uniqueSelectivity = 0.1)
+        .setRelationshipCardinality("()-[:R]->()", 1000)
+        .setRelationshipCardinality("(:Person)-[:R]->()", 1000)
+        .setRelationshipCardinality("(:Actor)-[:R]->()", 500)
+        .build()
+
+    val query = "MATCH (n:Actor {firstName: 'Bosse'})-[r:R]->() Return *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .expandAll("(n)-[r:R]->()")
+      .nodeIndexOperator("n:Actor(firstName = 'Bosse')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "Should plan indexSeek when label can be implied by relationship type and end-node constraint chained with node label constraint - START"
+  ) {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Entity", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .addRelationshipEndpointLabelConstraint("R", "Actor", EndpointType.START)
+      .addNodeLabelConstraint("Actor", "Person")
+      .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.01, uniqueSelectivity = 0.01)
+      .setRelationshipCardinality("(:Person)-[:R]->()", 500)
+      .setRelationshipCardinality("(:Actor)-[:R]->()", 500)
+      .setAllNodesCardinality(3000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .build()
+
+    val query = "MATCH (n {firstName: 'Pierre'})-[r:R]->(m) Return *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .expandAll("(n)-[r:R]->(m)")
+      .nodeIndexOperator("n:Person(firstName = 'Pierre')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "Should plan indexSeek when label can be implied by relationship type and end-node constraint chained with node label constraint - END"
+  ) {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Entity", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .addRelationshipEndpointLabelConstraint("R", "Actor", EndpointType.END)
+      .addNodeLabelConstraint("Actor", "Person")
+      .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.01, uniqueSelectivity = 0.01)
+      .setRelationshipCardinality("()-[:R]->(:Person)", 500)
+      .setRelationshipCardinality("()-[:R]->(:Actor)", 500)
+      .setAllNodesCardinality(3000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .build()
+
+    val query = "MATCH (n)-[r:R]->(m {firstName: 'Pierre'}) Return *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .expandAll("(m)<-[r:R]-(n)")
+      .nodeIndexOperator("m:Person(firstName = 'Pierre')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "Should plan indexSeek when label can be implied by relationship type and end-node constraint chained with node label constraint - Where clause"
+  ) {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Entity", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .addRelationshipEndpointLabelConstraint("R", "Actor", EndpointType.END)
+      .addNodeLabelConstraint("Actor", "Person")
+      .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.01, uniqueSelectivity = 0.01)
+      .setRelationshipCardinality("()-[:R]->(:Person)", 500)
+      .setRelationshipCardinality("()-[:R]->(:Actor)", 500)
+      .setAllNodesCardinality(3000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .build()
+
+    val query = "MATCH (n)-[r:R]->(m) WHERE m.firstName = 'Pierre' RETURN *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .expandAll("(m)<-[r:R]-(n)")
+      .nodeIndexOperator("m:Person(firstName = 'Pierre')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "Should NOT plan indexSeek when label cannot be implied by relationship type and end-node constraint due to bidirectional relationship"
+  ) {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Entity", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .addRelationshipEndpointLabelConstraint("R", "Actor", EndpointType.END)
+      .addNodeLabelConstraint("Actor", "Person")
+      .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.01, uniqueSelectivity = 0.01)
+      .setRelationshipCardinality("()-[:R]->(:Person)", 500)
+      .setRelationshipCardinality("()-[:R]->(:Actor)", 250)
+      .setRelationshipCardinality("(:Person)-[:R]->()", 500)
+      .setRelationshipCardinality("(:Actor)-[:R]->()", 250)
+      .setAllNodesCardinality(3000)
+      .setRelationshipCardinality("()-[:R]->()", 1000)
+      .build()
+
+    val query = "MATCH (n)-[r:R]-(m) WHERE m.firstName = 'Pierre' RETURN *"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("m.firstName = 'Pierre'")
+      .relationshipTypeScan("(n)-[r:R]-(m)")
+      .build()
+  }
+
 }

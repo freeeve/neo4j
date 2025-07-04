@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.internal.schema.EndpointType
 
 class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
 
@@ -227,6 +228,38 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
     }
   }
 
+  test("should resolve implied labels from relationship endpoint constraints") {
+    parse("match (n)-[r:R]->() return *") { query =>
+      val planContext = mockPlanContext(
+        labelIds = Map("Z" -> 42),
+        relTypeIds = Map("R" -> 123),
+        relationshipEndpointLabelConstraints = Map("R" -> Map(EndpointType.START -> "Z"))
+      )
+
+      val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
+
+      semanticTable.id(relTypeName("R")) shouldEqual Some(RelTypeId(123))
+      semanticTable.id(labelName("Z")) shouldEqual Some(LabelId(42))
+    }
+  }
+
+  test("should resolve chained implied labels from relationship endpoint constraints") {
+    parse("match (n)-[r:R]->() return *") { query =>
+      val planContext = mockPlanContext(
+        labelIds = Map("Z" -> 42, "Y" -> 321),
+        relTypeIds = Map("R" -> 123),
+        relationshipEndpointLabelConstraints = Map("R" -> Map(EndpointType.START -> "Z")),
+        nodeLabelConstraints = Map("Z" -> Set("Y"))
+      )
+
+      val semanticTable = ResolveTokens.resolve(query, SemanticTable())(planContext)
+
+      semanticTable.id(relTypeName("R")) shouldEqual Some(RelTypeId(123))
+      semanticTable.id(labelName("Z")) shouldEqual Some(LabelId(42))
+      semanticTable.id(labelName("Y")) shouldEqual Some(LabelId(321))
+    }
+  }
+
   private def parseTest(
     queryText: String,
     versions: Seq[CypherVersion] = CypherVersion.values()
@@ -257,7 +290,8 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
     labelIds: Map[String, Int] = Map.empty,
     propertyIds: Map[String, Int] = Map.empty,
     relTypeIds: Map[String, Int] = Map.empty,
-    nodeLabelConstraints: Map[String, Set[String]] = Map.empty
+    nodeLabelConstraints: Map[String, Set[String]] = Map.empty,
+    relationshipEndpointLabelConstraints: Map[String, Map[EndpointType, String]] = Map.empty
   ): PlanContext = {
     new NotImplementedPlanContext {
       override def getOptLabelId(labelName: String): Option[Int] = labelIds.get(labelName)
@@ -265,6 +299,8 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
       override def getOptRelTypeId(relTypeName: String): Option[Int] = relTypeIds.get(relTypeName)
       override def getNodeLabelConstraints(constrainedLabel: String): Set[String] =
         nodeLabelConstraints.getOrElse(constrainedLabel, Set.empty)
+      override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] =
+        relationshipEndpointLabelConstraints.getOrElse(relTypeName, Map.empty)
     }
   }
 }

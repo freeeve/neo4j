@@ -121,6 +121,7 @@ import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -484,6 +485,8 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
       override def storageHasPropertyColocation: Boolean = false
 
       override def getNodeLabelConstraints(constrainedLabel: String): Set[String] = Set.empty
+
+      override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] = Map.empty
     }
 
     // Hack to guarantee coverage across cypher versions :/.

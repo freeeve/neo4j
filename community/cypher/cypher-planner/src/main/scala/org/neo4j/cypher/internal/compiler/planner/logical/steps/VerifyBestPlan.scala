@@ -70,7 +70,7 @@ object VerifyBestPlan {
 
     if (expected != constructed) {
       val expectedSolved: PlannerQuery = expected.withoutHints(expected.allHints)
-      val actualSolved: PlannerQuery = constructed.withoutHints(constructed.allHints)
+      val actualSolved: PlannerQuery = constructed.withoutHints(constructed.allHints).withoutImpliedExpressions
       if (expectedSolved != actualSolved) {
         val expectedTitle = "Expected"
         val actualTitle = "Actual"

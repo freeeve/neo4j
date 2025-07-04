@@ -34,11 +34,14 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.NodeIndexL
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabels
+import org.neo4j.cypher.internal.expressions.HasLabelsExpression
+import org.neo4j.cypher.internal.expressions.ImpliedLabel
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.PartialPredicate.PartialPredicateWrapper
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
@@ -48,6 +51,7 @@ import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.notifications.NodeIndexLookupUnfulfillableNotification
 
 case class NodeIndexLeafPlanner(planProviders: Seq[NodeIndexPlanProvider], restrictions: LeafPlanRestrictions)
@@ -89,7 +93,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
 
   case class NodeIndexMatch(
     variable: LogicalVariable,
-    labelPredicate: HasLabels,
+    labelPredicate: HasLabelsExpression,
     labelName: LabelName,
     labelId: LabelId,
     propertyPredicates: Seq[IndexCompatiblePredicate],
@@ -122,7 +126,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
 
   case class NodePredicateSet(
     variable: LogicalVariable,
-    labelPredicate: HasLabels,
+    labelPredicate: HasLabelsExpression,
     symbolicName: LabelName,
     propertyPredicates: Seq[IndexCompatiblePredicateWithValueBehavior]
   ) extends PredicateSet {
@@ -133,15 +137,23 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
     override def getEntityType: EntityType = NODE_TYPE
 
     private def solvedLabelPredicate: Expression = {
-      if (labelPredicate.labels == Seq(symbolicName)) {
-        labelPredicate
-      } else {
-        // using index with a parent (implied) label
-        PartialPredicateWrapper(
-          coveredPredicate = labelPredicate.copy(labels = Seq(symbolicName))(labelPredicate.position),
-          coveringPredicate = labelPredicate
-        )
+      labelPredicate match {
+        case labelPredicate @ HasLabels(_, labels) => if (labels == Seq(symbolicName)) {
+            labelPredicate
+          } else {
+            // using index with a parent (implied) label
+            PartialPredicateWrapper(
+              coveredPredicate = labelPredicate.copy(labels = Seq(symbolicName))(labelPredicate.position),
+              coveringPredicate = labelPredicate
+            )
+          }
+        case il: ImpliedLabel => il
+        case _ =>
+          throw new IllegalStateException(
+            s"Expected label predicate to be HasLabels or ImpliedLabel, but got: $labelPredicate"
+          )
       }
+
     }
   }
 
@@ -160,7 +172,40 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
     val predicates = qg.selections.flatPredicates.toSet
     val allLabelPredicatesMap: Map[LogicalVariable, Set[HasLabels]] = qg.selections.labelPredicates
 
-    if (allLabelPredicatesMap.isEmpty) {
+    def labelIsAlreadyExplicitOnNode(label: String, variable: LogicalVariable): Boolean = {
+      allLabelPredicatesMap.get(variable)
+        .exists(
+          _.exists(
+            _.labels.exists(
+              _.name == label
+            )
+          )
+        )
+    }
+    val impliedEndpointLabelsMap = qg.patternRelationships.filter(_.dir != BOTH)
+      .flatMap { patRel =>
+        patRel.types
+          .flatMap(typ => planContext.getRelationshipEndpointLabelConstraints(typ.name))
+          .flatMap { case (endPointType, impliedLabel) =>
+            val variable = endPointType match {
+              case EndpointType.START => patRel.inOrder._1
+              case EndpointType.END   => patRel.inOrder._2
+            }
+
+            if (labelIsAlreadyExplicitOnNode(impliedLabel, variable))
+              None
+            else
+              Some(variable -> ImpliedLabel(
+                HasLabels(
+                  variable,
+                  Seq(LabelName(impliedLabel)(variable.position))
+                )(variable.position)
+              )(variable.position))
+          }
+      }
+      .toMap
+
+    if (allLabelPredicatesMap.isEmpty && impliedEndpointLabelsMap.isEmpty) {
       Set.empty[NodeIndexMatch]
     } else {
       val compatiblePropertyPredicates = findIndexCompatiblePredicates(
@@ -174,11 +219,12 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
       val matches = for {
         propertyPredicates <- compatiblePropertyPredicates.groupBy(_.variable)
         variable = propertyPredicates._1
-        labelPredicates = allLabelPredicatesMap.getOrElse(variable, Set.empty)
+        labelPredicates =
+          impliedEndpointLabelsMap.get(variable).toSeq ++ allLabelPredicatesMap.getOrElse(variable, Set.empty)
         indexMatch <- findIndexMatches(
           variable,
           propertyPredicates._2,
-          labelPredicates,
+          labelPredicates.toSet,
           interestingOrderConfig,
           semanticTable,
           planContext,
@@ -196,7 +242,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
   private def findIndexMatches(
     variable: LogicalVariable,
     indexCompatiblePredicates: Set[IndexCompatiblePredicate],
-    labelPredicates: Set[HasLabels],
+    labelPredicates: Set[HasLabelsExpression],
     interestingOrderConfig: InterestingOrderConfig,
     tokenTable: TokenTable,
     planContext: PlanContext,
@@ -207,7 +253,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
     graphSchemaOptimizations: GraphSchemaOptimizations
   ): Set[NodeIndexMatch] = for {
     labelPredicate <- labelPredicates
-    labelName <- graphSchemaOptimizations.addImpliedLabels(labelPredicate.labels.toSet)
+    labelName <- graphSchemaOptimizations.addImpliedLabels(labelPredicate.hasLabels.labels.toSet)
     labelId: LabelId <- tokenTable.id(labelName).toSet
     indexDescriptor <- indexDescriptorsForLabel(
       labelId,

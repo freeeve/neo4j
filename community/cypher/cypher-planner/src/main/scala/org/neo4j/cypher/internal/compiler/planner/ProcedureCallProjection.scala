@@ -41,4 +41,7 @@ case class ProcedureCallProjection(call: ResolvedCall) extends AbstractProcedure
   override def allHints: ListSet[Hint] = ListSet.empty
 
   override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this
+
+  override def withoutImpliedExpressions: QueryHorizon = this
+
 }

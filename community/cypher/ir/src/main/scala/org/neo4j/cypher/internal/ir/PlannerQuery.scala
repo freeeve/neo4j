@@ -44,6 +44,7 @@ sealed trait PlannerQuery {
 
   def allHints: ListSet[Hint]
   def withoutHints(hintsToIgnore: ListSet[Hint]): PlannerQuery
+  def withoutImpliedExpressions: PlannerQuery
   def numHints: Int
   def visitHints[A](acc: A)(f: (A, Hint, QueryGraph) => A): A
 
@@ -94,6 +95,11 @@ case class UnionQuery(
   override def withoutHints(hintsToIgnore: ListSet[Hint]): PlannerQuery = copy(
     lhs = lhs.withoutHints(hintsToIgnore),
     rhs = rhs.withoutHints(hintsToIgnore)
+  )
+
+  override def withoutImpliedExpressions: PlannerQuery = copy(
+    lhs = lhs.withoutImpliedExpressions,
+    rhs = rhs.withoutImpliedExpressions
   )
 
   override def numHints: Int = lhs.numHints + rhs.numHints
@@ -184,6 +190,14 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
       queryGraph = queryGraph.removeHints(hintsToIgnore),
       horizon = horizon.withoutHints(hintsToIgnore),
       tail = tail.map(x => x.withoutHints(hintsToIgnore))
+    )
+  }
+
+  override def withoutImpliedExpressions: SinglePlannerQuery = {
+    copy(
+      queryGraph = queryGraph.removeImpliedExpressions(),
+      horizon = horizon.withoutImpliedExpressions,
+      tail = tail.map(x => x.withoutImpliedExpressions)
     )
   }
 

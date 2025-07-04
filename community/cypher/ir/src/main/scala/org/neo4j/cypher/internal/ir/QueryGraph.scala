@@ -309,6 +309,10 @@ final case class QueryGraph private (
     optionalMatches = optionalMatches.map(_.removeHints(hintsToIgnore))
   )
 
+  def removeImpliedExpressions(): QueryGraph = copy(
+    selections = selections.withoutImpliedPredicates
+  )
+
   def removeArguments(): QueryGraph = withArgumentIds(Set.empty)
 
   /**

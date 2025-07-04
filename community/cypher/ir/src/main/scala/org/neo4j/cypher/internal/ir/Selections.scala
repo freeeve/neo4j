@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
+import org.neo4j.cypher.internal.expressions.ImpliedLabel
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Not
@@ -74,6 +75,9 @@ case class Selections private (predicates: Set[Predicate]) {
     val (truePartition, falsePartition) = predicates.partition(expression)
     (new Selections(truePartition), new Selections(falsePartition))
   }
+
+  def withoutImpliedPredicates: Selections =
+    this.copy(predicates.filterNot(_.isImplied))
 
   /**
    * The top level label predicates for each variable.
@@ -212,6 +216,7 @@ object Selections {
     def unapply(p: Predicate): Option[HasLabels] = p match {
       case Predicate(_, hasLabels: HasLabels)                             => Some(hasLabels)
       case Predicate(_, PartialPredicateWrapper(hasLabels: HasLabels, _)) => Some(hasLabels)
+      case Predicate(_, ImpliedLabel(hasLabel))                           => Some(hasLabel)
       case _                                                              => None
     }
   }

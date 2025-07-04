@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.ir
 
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.ImpliedLabel
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 
 case class Predicate(dependencies: Set[LogicalVariable], expr: Expression) {
@@ -28,6 +29,11 @@ case class Predicate(dependencies: Set[LogicalVariable], expr: Expression) {
 
   def hasDependenciesMetForRequiredSymbol(symbols: Set[LogicalVariable], required: LogicalVariable): Boolean =
     dependencies.contains(required) && hasDependenciesMet(symbols)
+
+  def isImplied: Boolean = expr match {
+    case _: ImpliedLabel => true
+    case _               => false
+  }
 }
 
 object Predicate {

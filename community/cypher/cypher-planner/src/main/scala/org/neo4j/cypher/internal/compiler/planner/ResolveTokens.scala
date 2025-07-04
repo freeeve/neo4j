@@ -61,7 +61,9 @@ case object ResolveTokens extends Phase[PlannerContext, BaseState, BaseState] wi
             .pipe(resolveLabelName(token.name, _))
             .pipe(resolveImpliedLabelNames(token.name, _))
       case token: RelTypeName =>
-        acc => resolveRelTypeName(token.name, acc)
+        acc =>
+          acc.pipe(resolveRelTypeName(token.name, _))
+            .pipe(resolveImpliedEndpointLabelNames(token.name, _))
     }
   }
 
@@ -99,6 +101,16 @@ case object ResolveTokens extends Phase[PlannerContext, BaseState, BaseState] wi
       case Some(id) =>
         semanticTable.addResolvedRelTypeName(name, id)
       case None => semanticTable
+    }
+  }
+
+  private def resolveImpliedEndpointLabelNames(name: String, semanticTable: SemanticTable)(
+    implicit planContext: PlanContext
+  ): SemanticTable = {
+    val impliedLabels = planContext.getRelationshipEndpointLabelConstraints(name)
+    impliedLabels.values.foldLeft(semanticTable) { (acc, l) =>
+      val resolvedRelImpliedLabel = resolveLabelName(l, acc)
+      resolveImpliedLabelNames(l, resolvedRelImpliedLabel)
     }
   }
 

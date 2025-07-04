@@ -42,14 +42,24 @@ trait DynamicLabelsOrTypeExpressions extends LabelOrTypeCheckExpression {
   def labelsOrTypes: Seq[Expression]
 }
 
+trait HasLabelsExpression extends LabelCheckExpression {
+  def hasLabels: HasLabels
+}
+
+case class ImpliedLabel(hasLabels: HasLabels)(val position: InputPosition) extends HasLabelsExpression {
+  override def expression: Expression = hasLabels
+}
+
 /**
  * Checks if expression has all labels
  */
 case class HasLabels(expression: Expression, labels: Seq[LabelName])(val position: InputPosition)
-    extends LabelCheckExpression {
+    extends HasLabelsExpression {
 
   override def asCanonicalStringVal =
     s"${expression.asCanonicalStringVal}${labels.map(_.asCanonicalStringVal).mkString(":", ":", "")}"
+
+  override def hasLabels: HasLabels = this
 }
 
 /**
