@@ -50,6 +50,7 @@ import org.neo4j.server.NeoBootstrapper;
 
 abstract class BootloaderOsAbstraction {
     static final long UNKNOWN_PID = Long.MAX_VALUE;
+    private static final int TEST_VERSION = Integer.getInteger("test.temp.vm.version", 21);
 
     protected final Bootloader bootloader;
 
@@ -174,7 +175,7 @@ abstract class BootloaderOsAbstraction {
 
     private void checkJavaVersion() {
         int version = bootloader.environment.version().feature();
-        if (version != 21) {
+        if (version != 21 && version != TEST_VERSION) {
             // too new java
             printBadRuntime();
         } else {
