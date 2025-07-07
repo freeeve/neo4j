@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
+import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.ContextualPropertyAccess
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
@@ -40,6 +41,7 @@ import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
+import org.neo4j.cypher.internal.logical.plans.ExistenceQueryExpression
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
@@ -246,6 +248,19 @@ object RemoteBatchingStrategy {
       }
     }
 
+    // #EntityIndexSeekPlanProvider.predicatesForIndexSeek replaces non-seekable predicates with range-scannable ones.
+    // The non-seekable predicates will then run as a filter on the main shard.
+    // Therefore, for such predicates we will need to use the index to fetch properties, otherwise we will end-up with a redundant remoteBatchProperties call.
+    private def isPredicateExecutedLater(propertyPredicate: IndexCompatiblePredicate): Boolean =
+      propertyPredicate.queryExpression match {
+        case ExistenceQueryExpression() => propertyPredicate.predicate match {
+            case _: ExistsExpression =>
+              false // the original query was an existence query, so no other predicate to execute later
+            case _ => true // the original query was not an existence query, so we will execute this predicate later
+          }
+        case _ => false
+      }
+
     private def shouldGetPropertyValue(
       propertyPredicate: IndexCompatiblePredicate,
       propsAccessForPredsMap: PropertyAccessInPredicates,
@@ -257,6 +272,7 @@ object RemoteBatchingStrategy {
         propertyPredicate.propertyKeyName.name
       )
 
+      isPredicateExecutedLater(propertyPredicate) ||
       propsAccessForPredsMap
         .propertyAccessInPredicatesOtherThat(propertyAccess, propertyPredicate.predicate) ||
       allHorizonAcceses.contains(propertyAccess) ||

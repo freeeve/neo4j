@@ -97,42 +97,47 @@ object ShardPredicatePushdownPartition {
     context: LogicalPlanningContext,
     predicates: Set[Expression]
   ): ShardPredicatePushdownPartition = {
+
+    val alreadyCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
+
+    val (noPropAccesses, supportedPropAccesses, unsupportedPropAccesses) =
+      predicates.foldLeft(
+        (Set.empty[Expression], Map.empty[LogicalVariable, Set[Expression]], Set.empty[Expression])
+      ) {
+        (acc, expr) =>
+          acc match {
+            case (noUncachedPropAccesses, supportedUncachedPropAccesses, unsupportedUncachedPropAccesses) =>
+              supportsPredicatesPushdown(
+                context.semanticTable,
+                expr,
+                alreadyCachedProperties,
+                input.availableSymbols,
+                context
+              ) match {
+                case PredicatePushdownSupported(logicalVariable) =>
+                  (
+                    noUncachedPropAccesses,
+                    supportedUncachedPropAccesses.updatedWith(logicalVariable) {
+                      case Some(existingExprs) => Some(existingExprs + expr)
+                      case None                => Some(Set(expr))
+                    },
+                    unsupportedUncachedPropAccesses
+                  )
+                case PredicatePushdownUnsupported if containsUncachedPropertyAccess(expr, alreadyCachedProperties) =>
+                  (noUncachedPropAccesses, supportedUncachedPropAccesses, unsupportedUncachedPropAccesses + expr)
+                case PredicatePushdownUnsupported =>
+                  (noUncachedPropAccesses + expr, supportedUncachedPropAccesses, unsupportedUncachedPropAccesses)
+              }
+          }
+      }
     if (context.settings.executionModel == Volcano) {
       // Predicate pushdown is not supported in the slotted runtime. Lets filter everything in main.
-      ShardPredicatePushdownPartition.withFilterOnMainWithRemoteProperties(predicates)
+      ShardPredicatePushdownPartition(
+        noPropAccesses,
+        None,
+        unsupportedPropAccesses ++ supportedPropAccesses.values.flatten
+      )
     } else {
-      val alreadyCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
-
-      val (noPropAccesses, supportedPropAccesses, unsupportedPropAccesses) =
-        predicates.foldLeft(
-          (Set.empty[Expression], Map.empty[LogicalVariable, Set[Expression]], Set.empty[Expression])
-        ) {
-          (acc, expr) =>
-            acc match {
-              case (noUncachedPropAccesses, supportedUncachedPropAccesses, unsupportedUncachedPropAccesses) =>
-                supportsPredicatesPushdown(
-                  context.semanticTable,
-                  expr,
-                  alreadyCachedProperties,
-                  input.availableSymbols,
-                  context
-                ) match {
-                  case PredicatePushdownSupported(logicalVariable) =>
-                    (
-                      noUncachedPropAccesses,
-                      supportedUncachedPropAccesses.updatedWith(logicalVariable) {
-                        case Some(existingExprs) => Some(existingExprs + expr)
-                        case None                => Some(Set(expr))
-                      },
-                      unsupportedUncachedPropAccesses
-                    )
-                  case PredicatePushdownUnsupported if containsUncachedPropertyAccess(expr, alreadyCachedProperties) =>
-                    (noUncachedPropAccesses, supportedUncachedPropAccesses, unsupportedUncachedPropAccesses + expr)
-                  case PredicatePushdownUnsupported =>
-                    (noUncachedPropAccesses + expr, supportedUncachedPropAccesses, unsupportedUncachedPropAccesses)
-                }
-            }
-        }
       val predicatesToPushdownToShard = mostSelectivePredicates(input, context, supportedPropAccesses)
 
       ShardPredicatePushdownPartition(

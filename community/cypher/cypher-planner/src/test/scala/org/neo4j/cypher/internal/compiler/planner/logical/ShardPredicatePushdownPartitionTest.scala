@@ -372,6 +372,27 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
     ) shouldEqual ShardPredicatePushdownPartition.withFilterOnMainWithRemoteProperties(Set(pushdownablePredicate))
   }
 
+  test("should support pre-filtering in the slotted runtime") {
+    val context: LogicalPlanningContext =
+      newMockedLogicalPlanningContext(newMockedPlanContext(), semanticTable = mockedSemanticTable)
+    val slottedContext = context.copy(settings = context.settings.copy(executionModel = Volcano))
+    val fakePlan: FakeLeafPlan = fakeLogicalPlanFor(slottedContext.staticComponents.planningAttributes, "x")
+    // given the property num is already cached for variable a
+    slottedContext.staticComponents.planningAttributes.cachedPropertiesPerPlan.set(
+      fakePlan.id,
+      CachedProperties.singleton(varFor("a"), varFor("a"), NODE_TYPE, Set(PropertyKeyName("num")(InputPosition.NONE)))
+    )
+
+    val predicates: Set[Expression] = Set(
+      equals(prop("a", "num"), prop("a", "num"))
+    )
+    ShardPredicatePushdownPartition(
+      fakePlan,
+      slottedContext,
+      predicates
+    ) shouldEqual ShardPredicatePushdownPartition.withPreFilterBeforePushdown(predicates)
+  }
+
   test("should support predicate pushdown for relationships") {
     val mockedTableWithRelationships = mock[SemanticTable]
     when(mockedTableWithRelationships.typeFor(any[Expression])).thenReturn(

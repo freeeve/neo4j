@@ -391,6 +391,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     .setRelationshipCardinality("()-[]->(:Person)", 2052169 + 1003605 + 180623)
     .addNodeIndex("Person", List("id"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 9892.0, isUnique = true)
     .addNodeIndex("Person", List("firstName"), existsSelectivity = 1.0, uniqueSelectivity = 1 / 1323.0)
+    .addNodeIndex("Person", List("firstName", "lastName"), existsSelectivity = 1.0, uniqueSelectivity = 1 / 3532.0)
     .addNodeIndex("Message", List("creationDate"), existsSelectivity = 1.0, uniqueSelectivity = 10 / 3055774.0)
     .addNodeIndex("City", List("name"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 1343.0)
     .addNodeIndex("Country", List("name"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 111.0)
@@ -2432,6 +2433,57 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .relationshipTypeScan("()-[r:KNOWS]->()", IndexOrderNone)
         .build()
     )
+  }
+
+  test("need not fetch properties from composite index when the filter is applied on the index itself") {
+    val query = """
+                  |MATCH (p:Person)
+                  |WHERE p.firstName='Spongebob' AND p.lastName='Squarepants'
+                  |RETURN p
+                  |""".stripMargin
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("p")
+      .nodeIndexOperator(
+        "p:Person(firstName = 'Spongebob', lastName = 'Squarepants')",
+        getValue = Map("firstName" -> DoNotGetValue, "lastName" -> DoNotGetValue),
+        supportPartitionedScan = false
+      )
+      .build()
+  }
+
+  test("should fetch properties from composite index for filtering on multiple properties") {
+    val query = """
+                  |MATCH (p:Person)
+                  |WHERE p.firstName STARTS WITH "J" AND p.lastName STARTS WITH "Smith"
+                  |RETURN p
+                  |""".stripMargin
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("p")
+      .filter("cacheN[p.lastName] STARTS WITH 'Smith'")
+      .nodeIndexOperator(
+        "p:Person(firstName STARTS WITH 'J', lastName)",
+        indexOrder = IndexOrderNone,
+        getValue = Map("firstName" -> DoNotGetValue, "lastName" -> GetValue),
+        supportPartitionedScan = false
+      )
+      .build()
+  }
+
+  test("should fetch property from a single index when filtering using composed queries") {
+    val query = """
+                  |MATCH (p:Person)
+                  |WHERE p.firstName STARTS WITH "Sponge" AND p.firstName ENDS WITH "bob"
+                  |RETURN p
+                  |""".stripMargin
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("p")
+      .filter("cacheN[p.firstName] ENDS WITH 'bob'")
+      .nodeIndexOperator(
+        "p:Person(firstName STARTS WITH 'Sponge')",
+        indexOrder = IndexOrderNone,
+        getValue = Map("firstName" -> GetValue)
+      )
+      .build()
   }
 
   test("should not push predicate below an aliasing projection which predicate depends on") {
