@@ -25,6 +25,10 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.expressions.NullCheckAssert
 import org.neo4j.cypher.internal.expressions.NullCheckAssert.NullCheckAssertException
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.ir.EagernessReason
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationshipWithDynamicType
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
@@ -34,6 +38,7 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RecordingRuntimeResult
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.util.RuntimeUnsatisfiableRelationshipTypeExpression
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException
@@ -904,6 +909,30 @@ abstract class DynamicRelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("r").withRows(singleColumn(rels))
+  }
+
+  test("should work with merge and a nonexistent rel type") {
+    assume(!isParallel)
+    assume(!isPipelined || canFuse)
+
+    givenGraph {
+      circleGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults()
+      .emptyResult()
+      .merge(
+        Seq(createNodeFull("a"), createNodeFull("b")),
+        Seq(createRelationshipWithDynamicType("r", "a", "'Foo'", "b", OUTGOING))
+      )
+      .dynamicRelationshipTypeScan("(a)-[r]->(b)", "$all('Foo')", IndexOrderNone)
+      .build(readOnly = false)
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns().withStatistics(nodesCreated = 2, relationshipsCreated = 1)
   }
 
   test("should handle nonexistent type array with Any") {

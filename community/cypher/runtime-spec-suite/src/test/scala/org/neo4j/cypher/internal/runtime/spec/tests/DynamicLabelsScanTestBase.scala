@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.expressions.NullCheckAssert
 import org.neo4j.cypher.internal.expressions.NullCheckAssert.NullCheckAssertException
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
@@ -333,6 +334,59 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x").withRows(singleColumn(nodes))
+  }
+
+  test("should handle nonexistent label with Any") {
+    givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "'NONEXISTENT_LABEL'", Any)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
+  test("should handle nonexistent label with All") {
+    givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "'NONEXISTENT_LABEL'", All)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
+  test("should work with merge and a nonexistent label") {
+    assume(!isParallel)
+    assume(!isPipelined || canFuse)
+
+    givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults()
+      .emptyResult()
+      .merge(Seq(createNodeFull("n", dynamicLabels = Seq("'Foo'"))))
+      .dynamicNodeByLabelsScan("n", "'Foo'", All)
+      .build(readOnly = false)
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns().withStatistics(nodesCreated = 1, labelsAdded = 1)
   }
 
   test("should handle nonexistent label array with Any") {
