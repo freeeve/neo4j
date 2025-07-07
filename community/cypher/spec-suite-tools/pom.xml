@@ -162,6 +162,12 @@
             <artifactId>neo4j-test-util</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.lihaoyi</groupId>
+                    <artifactId>sourcecode_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
