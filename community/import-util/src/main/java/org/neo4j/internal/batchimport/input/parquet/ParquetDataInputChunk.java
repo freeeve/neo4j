@@ -96,6 +96,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
         List<Object> readData = iterator.next();
         List<String> labels = new ArrayList<>(filteredLabelsOrTypes);
         StringBuilder idValue = new StringBuilder();
+        StringBuilder startIdValue = new StringBuilder();
+        StringBuilder endIdValue = new StringBuilder();
         var type = filteredLabelsOrTypes.isEmpty()
                 ? ""
                 : filteredLabelsOrTypes.iterator().next();
@@ -110,6 +112,9 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             if (parquetColumn.isIdColumn()) {
                 if (idType == IdType.STRING
                         && (parquetColumn.columnIdType() == IdType.STRING || parquetColumn.columnIdType() == null)) {
+                    if (!idValue.isEmpty()) {
+                        idValue.append(ParquetInput.DELIMITER);
+                    }
                     idValue.append(resolveIdByType(readDatum, null));
                 } else if (idType == IdType.INTEGER || parquetColumn.columnIdType() == IdType.INTEGER) {
                     entityToHydrate.id(
@@ -146,13 +151,30 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             }
             // relationship
             if (parquetColumn.isStartId()) {
-                entityToHydrate.startId(
-                        resolveIdByType(readDatum, null), groups.get(parquetDataFile.relationshipStartIdGroupName()));
+                if (idType == IdType.STRING
+                        && (parquetColumn.columnIdType() == IdType.STRING || parquetColumn.columnIdType() == null)) {
+                    if (!startIdValue.isEmpty()) {
+                        startIdValue.append(ParquetInput.DELIMITER);
+                    }
+                    startIdValue.append(resolveIdByType(readDatum, null));
+                } else {
+                    entityToHydrate.startId(
+                            resolveIdByType(readDatum, null),
+                            groups.get(parquetDataFile.relationshipStartIdGroupName()));
+                }
                 isRelationshipEntity = true;
             }
             if (parquetColumn.isEndId()) {
-                entityToHydrate.endId(
-                        resolveIdByType(readDatum, null), groups.get(parquetDataFile.relationshipEndIdGroupName()));
+                if (idType == IdType.STRING
+                        && (parquetColumn.columnIdType() == IdType.STRING || parquetColumn.columnIdType() == null)) {
+                    if (!endIdValue.isEmpty()) {
+                        endIdValue.append(ParquetInput.DELIMITER);
+                    }
+                    endIdValue.append(resolveIdByType(readDatum, null));
+                } else {
+                    entityToHydrate.endId(
+                            resolveIdByType(readDatum, null), groups.get(parquetDataFile.relationshipEndIdGroupName()));
+                }
                 isRelationshipEntity = true;
             }
             if (parquetColumn.isType()) {
@@ -169,6 +191,16 @@ class ParquetDataInputChunk implements ParquetInputChunk {
         }
         if (idType == IdType.STRING && !idValue.isEmpty()) {
             entityToHydrate.id(idValue.toString(), groups.get(parquetDataFile.groupName()));
+        }
+        if (idType == IdType.STRING && !startIdValue.isEmpty()) {
+            entityToHydrate.startId(
+                    resolveIdByType(startIdValue.toString(), null),
+                    groups.get(parquetDataFile.relationshipStartIdGroupName()));
+        }
+        if (idType == IdType.STRING && !endIdValue.isEmpty()) {
+            entityToHydrate.endId(
+                    resolveIdByType(endIdValue.toString(), null),
+                    groups.get(parquetDataFile.relationshipStartIdGroupName()));
         }
         entityToHydrate.endOfEntity();
         return true;

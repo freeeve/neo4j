@@ -1578,8 +1578,89 @@ class ParquetInputTest {
     }
 
     @Test
+    void multipleIdColumnsRequireStringIdType() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part1:ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2:ID")),
+                List.of(new Object[] {123, 456}, new Object[] {3, 6}));
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Having multiple :ID columns requires idType: STRING");
+    }
+
+    @Test
+    void shouldHandleMultipleNodeIdColumnsWithSameExplicitGroup() throws Exception {
+        Group group = groups.getOrCreate("MyGroup");
+        String idHeader = ":ID(%s)".formatted(group.name());
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part1%s".formatted(idHeader)),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2%s".formatted(idHeader))),
+                List.of(new Object[] {123, 456}, new Object[] {3, 6}));
+        var input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(
+                    nodes,
+                    group,
+                    "123%s456".formatted(ParquetInput.DELIMITER),
+                    properties("part1", 123, "part2", 456),
+                    labels());
+            assertNextNode(
+                    nodes,
+                    group,
+                    "3%s6".formatted(ParquetInput.DELIMITER),
+                    properties("part1", 3, "part2", 6),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldNotFailWithDifferentIdsCombinedToVirtuallyTheSameId() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part1:ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2:ID")),
+                List.of(new Object[] {123, 456}, new Object[] {1234, 56}));
+        var input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(
+                    nodes,
+                    "123%s456".formatted(ParquetInput.DELIMITER),
+                    properties("part1", 123, "part2", 456),
+                    labels());
+            assertNextNode(
+                    nodes,
+                    "1234%s56".formatted(ParquetInput.DELIMITER),
+                    properties("part1", 1234, "part2", 56),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void multipleNodeIdColumnsRequireSameGroup() throws Exception {
+        Group group1 = groups.getOrCreate("MyGroup1");
+        Group group2 = groups.getOrCreate("MyGroup2");
+        String idHeader1 = ":ID(%s)".formatted(group1.name());
+        String idHeader2 = ":ID(%s)".formatted(group2.name());
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part1%s".formatted(idHeader1)),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("part2%s".formatted(idHeader2))),
+                List.of(new Object[] {123, 456}, new Object[] {3, 6}));
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("There are multiple :ID columns, but they are referring to different groups");
+    }
+
+    @Test
     void shouldHaveRelationshipsSpecifyStartEndNodeIdGroupsInHeader() throws Exception {
-        // GIVEN
         var startGroupName = "StartGroup";
         var endGroupName = "EndGroup";
         Path relationshipFile = createParquetFile(
@@ -1605,10 +1686,63 @@ class ParquetInputTest {
                 INTEGER,
                 groups,
                 MONITOR);
-        // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertRelationship(relationships, startGroupName, 123L, endGroupName, 234L, "TYPE", properties());
             assertRelationship(relationships, startGroupName, 345L, endGroupName, 456L, "TYPE", properties());
+            assertFalse(readNext(relationships));
+        }
+    }
+
+    @Test
+    void shouldCorrectlyAssignCombinedIdsFromNodesToRelationships() throws Exception {
+        var groupName = "aGroup";
+        Path relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                                .named("id1:START_ID(%s)".formatted(groupName)),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                                .named("id2:START_ID(%s)".formatted(groupName)),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":TYPE"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                                .named("id3:END_ID(%s)".formatted(groupName)),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32)
+                                .named("id4:END_ID(%s)".formatted(groupName))),
+                List.of(new Object[] {123, 333, "TYPE", 234, 444}, new Object[] {345, 555, "TYPE", 456, 666}));
+        Path nodeFile1 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("id1:ID(%s)".formatted(groupName)),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("id2:ID(%s)".formatted(groupName))),
+                List.of(new Object[] {123, 333}, new Object[] {345, 555}));
+        Path nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("id3:ID(%s)".formatted(groupName)),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("id4:ID(%s)".formatted(groupName))),
+                List.of(new Object[] {234, 444}, new Object[] {456, 666}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
+                Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
+                STRING,
+                groups,
+                MONITOR);
+        try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
+            assertRelationship(
+                    relationships,
+                    groupName,
+                    "123%c333".formatted(ParquetInput.DELIMITER),
+                    groupName,
+                    "234%c444".formatted(ParquetInput.DELIMITER),
+                    "TYPE",
+                    properties());
+            assertRelationship(
+                    relationships,
+                    groupName,
+                    "345%c555".formatted(ParquetInput.DELIMITER),
+                    groupName,
+                    "456%c666".formatted(ParquetInput.DELIMITER),
+                    "TYPE",
+                    properties());
             assertFalse(readNext(relationships));
         }
     }
@@ -2656,8 +2790,16 @@ class ParquetInputTest {
                         groups,
                         new ParquetMonitor(System.out));
                 var nodes = input.nodes(Collector.STRICT).iterator()) {
-            assertNextNode(nodes, "ABC123", properties("id1", "ABC", "id2", "123", "name", "First"), Set.of("Person"));
-            assertNextNode(nodes, "ABC456", properties("id1", "ABC", "id2", "456", "name", "Second"), Set.of("Person"));
+            assertNextNode(
+                    nodes,
+                    "ABC%s123".formatted(ParquetInput.DELIMITER),
+                    properties("id1", "ABC", "id2", "123", "name", "First"),
+                    Set.of("Person"));
+            assertNextNode(
+                    nodes,
+                    "ABC%s456".formatted(ParquetInput.DELIMITER),
+                    properties("id1", "ABC", "id2", "456", "name", "Second"),
+                    Set.of("Person"));
             assertFalse(readNext(nodes));
         }
     }
