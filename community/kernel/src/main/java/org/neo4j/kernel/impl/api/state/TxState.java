@@ -245,17 +245,17 @@ public class TxState implements TransactionState {
         }
 
         if (indexChanges != null) {
+            indexChanges.getRemoved().forEach(visitor::visitRemovedIndex);
             for (IndexDescriptor indexDescriptor : indexChanges.getAdded()) {
                 visitor.visitAddedIndex(indexDescriptor);
             }
-            indexChanges.getRemoved().forEach(visitor::visitRemovedIndex);
         }
 
         if (constraintsChanges != null) {
+            constraintsChanges.getRemoved().forEach(visitor::visitRemovedConstraint);
             for (ConstraintDescriptor added : constraintsChanges.getAdded()) {
                 visitor.visitAddedConstraint(added);
             }
-            constraintsChanges.getRemoved().forEach(visitor::visitRemovedConstraint);
         }
 
         if (createdLabelTokens != null) {
