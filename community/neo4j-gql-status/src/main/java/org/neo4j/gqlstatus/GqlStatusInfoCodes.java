@@ -2926,6 +2926,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "unsupported distance metric",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I64(
+            new GqlStatus("42I64"),
+            "{ %s } currently not supported after `NEXT` { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.context, GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "unsupported aggregation",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",

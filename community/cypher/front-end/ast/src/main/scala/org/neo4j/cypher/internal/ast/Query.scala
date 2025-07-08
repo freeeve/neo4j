@@ -44,7 +44,10 @@ import org.neo4j.cypher.internal.ast.semantics.Symbol
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.expressions.containsAggregate
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
@@ -1352,11 +1355,63 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
     )
   }
 
+  sealed trait ProblematicAggregation
+  private case object NoIssue extends ProblematicAggregation
+  private case class InProblematicContext(msg: String) extends ProblematicAggregation
+
+  private case class ProblematicAggregationFound(isDistinct: Boolean, msg: String, position: InputPosition)
+      extends ProblematicAggregation
+
+  private def errorOnAggregation: SemanticCheck = {
+    val directlyContainsAggregation = queries.tail.collectFirst {
+      case q: Query =>
+        q.folder.treeFold[ProblematicAggregation](NoIssue) {
+          case _: Union =>
+            _ => TraverseChildren(InProblematicContext("when used in a `UNION`"))
+          case _: TopLevelBraces =>
+            _ => TraverseChildren(InProblematicContext("when wrapped in braces. Try without braces"))
+          case _: UseGraph =>
+            _ => TraverseChildren(InProblematicContext("when used after a `USE` clause"))
+          case _: SubqueryCall         => _ => SkipChildren(NoIssue)
+          case _: ConditionalQueryWhen => _ => SkipChildren(NoIssue)
+          case r: Return => {
+            case acc: InProblematicContext if r.distinct =>
+              SkipChildren(ProblematicAggregationFound(isDistinct = true, acc.msg, r.position))
+            case acc => TraverseChildren(acc)
+          }
+          case w: With => {
+            case acc: InProblematicContext if w.distinct =>
+              SkipChildren(ProblematicAggregationFound(isDistinct = true, acc.msg, w.position))
+            case acc => TraverseChildren(acc)
+          }
+          case exp: Expression => {
+            case acc: InProblematicContext if containsAggregate(exp) =>
+              SkipChildren(ProblematicAggregationFound(isDistinct = false, acc.msg, exp.position))
+            case acc => TraverseChildren(acc)
+          }
+        }
+      case _ =>
+    }
+
+    directlyContainsAggregation match {
+      case _ @Some(ProblematicAggregationFound(isDistinct, msg, pos)) =>
+        SemanticCheck.error(SemanticError.unsupportedAggregationInNEXT(
+          if (isDistinct) "`DISTINCT` is" else "Aggregations are",
+          msg,
+          pos
+        ))
+      case _ =>
+        SemanticCheck.success
+    }
+
+  }
+
   private def semanticCheckAbstract(check: Query => SemanticCheck): SemanticCheck = {
     val trunk = queries.dropRight(1)
-    trunk.foldLeft(CheckWithPrevious(check)) {
-      case (accCheck, q) => accCheck.checkQuery(q)
-    }.accumulator chain
+    errorOnAggregation chain
+      trunk.foldLeft(CheckWithPrevious(check)) {
+        case (accCheck, q) => accCheck.checkQuery(q)
+      }.accumulator chain
       withScopedState(fromState(s =>
         setState(s.recordWorkingGraph(None)) chain
           when(trunk.last.isReturning) { importValuesFromRecordedFinalScope(trunk.last) } chain
