@@ -42,6 +42,12 @@ public enum ValueType {
     DATE_TIME_WITH_ZONE_NAME,
     DURATION,
     NULL,
+    INT_8_VECTOR,
+    INT_16_VECTOR,
+    INT_32_VECTOR,
+    INT_64_VECTOR,
+    FLOAT_32_VECTOR,
+    FLOAT_64_VECTOR,
     /** Undefined type, reserved for future use */
     RESERVED
 }

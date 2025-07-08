@@ -255,32 +255,32 @@ class ValueWriter implements AnyValueWriter<IOException> {
     }
 
     @Override
-    public void writeInt8Vector(byte[] values) throws RuntimeException {
-        throw new UnsupportedOperationException("Cannot write vectors");
+    public void writeInt8Vector(byte[] values) throws IOException {
+        ValueStream.writeInt8Vector(out, values);
     }
 
     @Override
-    public void writeInt16Vector(short[] values) throws RuntimeException {
-        throw new UnsupportedOperationException("Cannot write vectors");
+    public void writeInt16Vector(short[] values) throws IOException {
+        ValueStream.writeInt16Vector(out, values);
     }
 
     @Override
-    public void writeInt32Vector(int[] values) throws RuntimeException {
-        throw new UnsupportedOperationException("Cannot write vectors");
+    public void writeInt32Vector(int[] values) throws IOException {
+        ValueStream.writeInt32Vector(out, values);
     }
 
     @Override
-    public void writeInt64Vector(long[] values) throws RuntimeException {
-        throw new UnsupportedOperationException("Cannot write vectors");
+    public void writeInt64Vector(long[] values) throws IOException {
+        ValueStream.writeInt64Vector(out, values);
     }
 
     @Override
-    public void writeFloat32Vector(float[] values) throws RuntimeException {
-        throw new UnsupportedOperationException("Cannot write vectors");
+    public void writeFloat32Vector(float[] values) throws IOException {
+        ValueStream.writeFloat32Vector(out, values);
     }
 
     @Override
-    public void writeFloat64Vector(double[] values) throws RuntimeException {
-        throw new UnsupportedOperationException("Cannot write vectors");
+    public void writeFloat64Vector(double[] values) throws IOException {
+        ValueStream.writeFloat64Vector(out, values);
     }
 }

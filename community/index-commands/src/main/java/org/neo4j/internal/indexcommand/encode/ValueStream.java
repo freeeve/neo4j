@@ -105,6 +105,13 @@ public class ValueStream {
 
     static final byte NULL = (byte) 0xE5;
 
+    static final byte INT_8_VECTOR = (byte) 0xE6;
+    static final byte INT_16_VECTOR = (byte) 0xE7;
+    static final byte INT_32_VECTOR = (byte) 0xE8;
+    static final byte INT_64_VECTOR = (byte) 0xE9;
+    static final byte FLOAT_32_VECTOR = (byte) 0xEA;
+    static final byte FLOAT_64_VECTOR = (byte) 0xEB;
+
     private static final long PLUS_2_TO_THE_31 = 2147483648L;
     private static final long PLUS_2_TO_THE_15 = 32768L;
     private static final long PLUS_2_TO_THE_7 = 128L;
@@ -139,6 +146,12 @@ public class ValueStream {
             case BYTES -> byteArray(readBytes(in, unpackBytesHeader(in)));
             case ARRAY -> readArray(in);
             case NULL -> Values.NO_VALUE;
+            case INT_8_VECTOR -> readInt8Vector(in);
+            case INT_16_VECTOR -> readInt16Vector(in);
+            case INT_32_VECTOR -> readInt32Vector(in);
+            case INT_64_VECTOR -> readInt64Vector(in);
+            case FLOAT_32_VECTOR -> readFloat32Vector(in);
+            case FLOAT_64_VECTOR -> readFloat64Vector(in);
             default -> throw new IllegalArgumentException("Unknown value type: " + valType);
         };
     }
@@ -292,6 +305,69 @@ public class ValueStream {
         return data;
     }
 
+    private static Value readInt8Vector(PeekableChannel in) throws IOException {
+        // Read marker byte, has only been peeked so far.
+        in.get();
+        int dimensions = readInteger(in);
+        byte[] array = readRawBytes(in, dimensions);
+        return Values.int8Vector(array);
+    }
+
+    private static Value readInt16Vector(PeekableChannel in) throws IOException {
+        // Read marker byte, has only been peeked so far.
+        in.get();
+        int dimensions = readInteger(in);
+        short[] array = new short[dimensions];
+        for (int i = 0; i < dimensions; i++) {
+            array[i] = in.getShort();
+        }
+        return Values.int16Vector(array);
+    }
+
+    private static Value readInt32Vector(PeekableChannel in) throws IOException {
+        // Read marker byte, has only been peeked so far.
+        in.get();
+        int dimensions = readInteger(in);
+        int[] array = new int[dimensions];
+        for (int i = 0; i < dimensions; i++) {
+            array[i] = in.getInt();
+        }
+        return Values.int32Vector(array);
+    }
+
+    private static Value readInt64Vector(PeekableChannel in) throws IOException {
+        // Read marker byte, has only been peeked so far.
+        in.get();
+        int dimensions = readInteger(in);
+        long[] array = new long[dimensions];
+        for (int i = 0; i < dimensions; i++) {
+            array[i] = in.getLong();
+        }
+        return Values.int64Vector(array);
+    }
+
+    private static Value readFloat32Vector(PeekableChannel in) throws IOException {
+        // Read marker byte, has only been peeked so far.
+        in.get();
+        int dimensions = readInteger(in);
+        float[] array = new float[dimensions];
+        for (int i = 0; i < dimensions; i++) {
+            array[i] = in.getFloat();
+        }
+        return Values.float32Vector(array);
+    }
+
+    private static Value readFloat64Vector(PeekableChannel in) throws IOException {
+        // Read marker byte, has only been peeked so far.
+        in.get();
+        int dimensions = readInteger(in);
+        double[] array = new double[dimensions];
+        for (int i = 0; i < dimensions; i++) {
+            array[i] = in.getDouble();
+        }
+        return Values.float64Vector(array);
+    }
+
     private static ValueType peekNextType(PeekableChannel in) throws IOException {
         return type(in.peek());
     }
@@ -324,6 +400,12 @@ public class ValueStream {
             case BYTES_8, BYTES_16, BYTES_32 -> ValueType.BYTES;
             case ARRAY_8, ARRAY_16, ARRAY_32 -> ValueType.ARRAY;
             case NULL -> ValueType.NULL;
+            case INT_8_VECTOR -> ValueType.INT_8_VECTOR;
+            case INT_16_VECTOR -> ValueType.INT_16_VECTOR;
+            case INT_32_VECTOR -> ValueType.INT_32_VECTOR;
+            case INT_64_VECTOR -> ValueType.INT_64_VECTOR;
+            case FLOAT_32_VECTOR -> ValueType.FLOAT_32_VECTOR;
+            case FLOAT_64_VECTOR -> ValueType.FLOAT_64_VECTOR;
             default -> ValueType.RESERVED;
         };
     }
@@ -503,6 +585,52 @@ public class ValueStream {
             write(out, epochSecondLocal);
             write(out, nano);
             write(out, zoneId);
+        }
+    }
+
+    static void writeInt8Vector(WritableChannel out, byte[] coordinates) throws IOException {
+        out.put(INT_8_VECTOR);
+        write(out, coordinates.length);
+        out.put(coordinates, 0, coordinates.length);
+    }
+
+    static void writeInt16Vector(WritableChannel out, short[] coordinates) throws IOException {
+        out.put(INT_16_VECTOR);
+        write(out, coordinates.length);
+        for (short v : coordinates) {
+            out.putShort(v);
+        }
+    }
+
+    static void writeInt32Vector(WritableChannel out, int[] coordinates) throws IOException {
+        out.put(INT_32_VECTOR);
+        write(out, coordinates.length);
+        for (int v : coordinates) {
+            out.putInt(v);
+        }
+    }
+
+    static void writeInt64Vector(WritableChannel out, long[] coordinates) throws IOException {
+        out.put(INT_64_VECTOR);
+        write(out, coordinates.length);
+        for (long v : coordinates) {
+            out.putLong(v);
+        }
+    }
+
+    static void writeFloat32Vector(WritableChannel out, float[] coordinates) throws IOException {
+        out.put(FLOAT_32_VECTOR);
+        write(out, coordinates.length);
+        for (float v : coordinates) {
+            out.putFloat(v);
+        }
+    }
+
+    static void writeFloat64Vector(WritableChannel out, double[] coordinates) throws IOException {
+        out.put(FLOAT_64_VECTOR);
+        write(out, coordinates.length);
+        for (double v : coordinates) {
+            out.putDouble(v);
         }
     }
 

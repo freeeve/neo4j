@@ -21,7 +21,6 @@ package org.neo4j.internal.indexcommand.encode;
 
 import static java.time.ZoneOffset.UTC;
 import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -33,22 +32,49 @@ import java.time.OffsetTime;
 import java.time.Period;
 import java.time.ZonedDateTime;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
+import org.neo4j.test.RandomSupport;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 
+@ExtendWith(RandomExtension.class)
 class ValueStreamTest {
-    private final InMemoryClosableChannel channel = new InMemoryClosableChannel();
+
+    @Inject
+    private RandomSupport random;
+
+    private InMemoryClosableChannel channel;
+
+    @BeforeEach
+    void setup() {
+        // For header and stuff, let's be generous
+        final int extraBytes = 100;
+        channel = new InMemoryClosableChannel(Double.BYTES * VectorValue.MAX_VECTOR_DIMENSIONS + extraBytes);
+    }
 
     @ParameterizedTest
     @MethodSource("values")
     void testValues(Value value) throws IOException {
+        ValueStream.write(channel, value);
+        AnyValue readValue = ValueStream.readValue(new PeekableChannel(channel));
+        assertEquals(value, readValue);
+    }
+
+    @RepeatedTest(100)
+    void testRandomValues() throws IOException {
+        final Value value = random.nextValue();
         ValueStream.write(channel, value);
         AnyValue readValue = ValueStream.readValue(new PeekableChannel(channel));
         assertEquals(value, readValue);
@@ -110,19 +136,7 @@ class ValueStreamTest {
                 Values.pointArray(new PointValue[] {
                     PointValue.maxPointValueOf(CoordinateReferenceSystem.CARTESIAN),
                     PointValue.minPointValueOf(CoordinateReferenceSystem.CARTESIAN_3D)
-                }));
-    }
-
-    @ParameterizedTest
-    @MethodSource("vectors")
-    void testVectors(Value value) {
-        assertThatThrownBy(() -> ValueStream.write(channel, value))
-                .isInstanceOf(UnsupportedOperationException.class)
-                .hasMessage("Cannot write vectors");
-    }
-
-    private static Stream<Value> vectors() {
-        return Stream.of(
+                }),
                 Values.int8Vector((byte) 1, (byte) 2),
                 Values.int16Vector((short) 1, (short) 2),
                 Values.int32Vector(1, 2),
