@@ -52,7 +52,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
       distinct = false,
       ast.ReturnItems(AdditiveProjection, Seq.empty)(pos),
       orderBy = None,
-      skip = Some(skip(1)),
+      skip = Some(offset(1)),
       limit = Some(limit(1)),
       where = None
     )(pos))
@@ -66,7 +66,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
         Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
       )(pos),
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
-      skip = Some(skip(1)),
+      skip = Some(offset(1)),
       limit = Some(limit(1)),
       where = None
     )(pos))
@@ -94,7 +94,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
         Seq(ast.AliasedReturnItem(literalInt(1), varFor("a"))(pos))
       )(pos),
       orderBy = None,
-      skip = Some(skip(1)),
+      skip = Some(offset(1)),
       limit = Some(limit(1)),
       where = None
     )(pos))
@@ -156,7 +156,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
         )
       )(pos),
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
-      skip = Some(skip(1)),
+      skip = Some(offset(1)),
       limit = Some(limit(1))
     )(pos))
   }
@@ -192,7 +192,7 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
         )
       )(pos),
       orderBy = Some(OrderBy(List(AscSortItem(varFor(name = "a"))(pos)))(pos)),
-      skip = Some(skip(1)),
+      skip = Some(offset(1)),
       limit = Some(limit(1))
     )(pos))
   }

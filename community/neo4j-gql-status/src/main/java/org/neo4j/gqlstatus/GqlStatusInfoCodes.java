@@ -2926,6 +2926,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "unsupported distance metric",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I63(
+            new GqlStatus("42I63"),
+            "`ORDER BY`, `{ %s }` and `LIMIT` can only be used in this order in `RETURN`.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "wrong subclause order",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42I64(
             new GqlStatus("42I64"),
             "{ %s } currently not supported after `NEXT` { %s }.",

@@ -68,7 +68,7 @@ class PrettifierIT extends CypherFunSuite {
       """MATCH (a)
         |WITH DISTINCT a, b AS X, 3 + 3 AS six
         |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
-        |  SKIP 1
+        |  OFFSET 1
         |  LIMIT 2
         |  WHERE true""".stripMargin,
     "MATCH (n WHERE n:N)" -> "MATCH (n WHERE n:N)",
@@ -137,7 +137,7 @@ class PrettifierIT extends CypherFunSuite {
         |  LIMIT 1""".stripMargin,
     "ORDER BY a.prop OFFSET 1 LIMIT 1" ->
       """ORDER BY a.prop ASCENDING
-        |  SKIP 1
+        |  OFFSET 1
         |  LIMIT 1""".stripMargin,
     "ORDER BY a.prop LIMIT 1" ->
       """ORDER BY a.prop ASCENDING
@@ -145,7 +145,7 @@ class PrettifierIT extends CypherFunSuite {
     "LIMIT 10 ORDER BY a.prop OFFSET 1 LIMIT 1" ->
       """LIMIT 10
         |ORDER BY a.prop ASCENDING
-        |  SKIP 1
+        |  OFFSET 1
         |  LIMIT 1""".stripMargin,
     FailsInCypher5("filter 1 = 1", "FILTER WHERE 1 = 1"),
     FailsInCypher5("filter where 1 = 1", "FILTER WHERE 1 = 1"),

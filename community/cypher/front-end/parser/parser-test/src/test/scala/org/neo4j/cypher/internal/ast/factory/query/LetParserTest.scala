@@ -215,7 +215,7 @@ class LetParserTest extends AstParsingTestBase {
           match_(Seq(nodePat(Some("a"))), None),
           withAllTyped(
             Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-            Some(skip(1)),
+            Some(offset(1)),
             Some(limit(1)),
             ParsedAsOrderBy
           ),
@@ -233,7 +233,7 @@ class LetParserTest extends AstParsingTestBase {
           expectedWith,
           withAllTyped(
             Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-            Some(skip(1)),
+            Some(offset(1)),
             Some(limit(1)),
             ParsedAsOrderBy
           ),

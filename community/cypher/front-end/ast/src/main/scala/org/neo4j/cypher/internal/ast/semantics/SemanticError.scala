@@ -724,6 +724,18 @@ object SemanticError {
     SemanticError(gql, s"$name can only be used at the end of the query.", position)
   }
 
+  def invalidSubclauseOrder(name: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I63)
+        .withParam(GqlParams.StringParam.clause, name)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
+      .build()
+
+    SemanticError(gql, gql.cause().get().gqlStatusObject().getMessage, position)
+  }
+
   def invalidUseOfReturnStar(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)

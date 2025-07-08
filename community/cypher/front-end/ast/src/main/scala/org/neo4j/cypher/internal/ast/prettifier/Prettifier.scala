@@ -1118,7 +1118,7 @@ case class Prettifier(
       s"${INDENT}MERGE $p$a"
     }
 
-    def asString(o: Skip): String = s"${INDENT}SKIP ${expr(o.expression)}"
+    def asString(o: Skip): String = s"${INDENT}${o.name} ${expr(o.expression)}"
     def asString(o: Limit): String = s"${INDENT}LIMIT ${expr(o.expression)}"
 
     def asString(o: OrderBy): String = s"${INDENT}ORDER BY " + {

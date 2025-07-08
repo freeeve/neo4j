@@ -100,7 +100,7 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
       _.toAst(
         withAllTyped(
           Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-          Some(skip(1)),
+          Some(offset(1)),
           Some(limit(1)),
           ParsedAsOrderBy
         )
@@ -113,7 +113,7 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
       _.toAst(
         withAllTyped(
           Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-          Some(skip(1)),
+          Some(offset(1)),
           None,
           ParsedAsOrderBy
         )
@@ -124,7 +124,7 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
   test("OFFSET 1 LIMIT 1") {
     parsesIn[Clause](version =>
       _.toAst(
-        withAllTyped(None, Some(skip(1)), Some(limit(1)), ParsedAsSkip)
+        withAllTyped(None, Some(offset(1)), Some(limit(1)), ParsedAsSkip)
       )
     )
   }
@@ -132,7 +132,7 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
   test("OFFSET 1") {
     parsesIn[Clause](version =>
       _.toAst(
-        withAllTyped(None, Some(skip(1)), None, ParsedAsSkip)
+        withAllTyped(None, Some(offset(1)), None, ParsedAsSkip)
       )
     )
   }
@@ -144,7 +144,7 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
           withAllTyped(None, None, Some(limit(1)), ParsedAsLimit),
           withAllTyped(
             Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-            Some(skip(1)),
+            Some(offset(1)),
             None,
             ParsedAsOrderBy
           )
@@ -158,7 +158,7 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
       _.toAst(
         Statements(Seq(SingleQuery(Seq(
           withAllTyped(None, None, Some(limit(1)), ParsedAsLimit),
-          withAllTyped(None, Some(skip(1)), None, ParsedAsSkip),
+          withAllTyped(None, Some(offset(1)), None, ParsedAsSkip),
           withAllTyped(
             Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
             None,
@@ -180,7 +180,7 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
             Some(limit(1)),
             ParsedAsOrderBy
           ),
-          withAllTyped(None, Some(skip(1)), None, ParsedAsSkip)
+          withAllTyped(None, Some(offset(1)), None, ParsedAsSkip)
         ))(pos)))
       )
     )
@@ -208,14 +208,14 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
         Statements(Seq(SingleQuery(Seq(
           withAllTyped(
             Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-            Some(skip(1)),
+            Some(offset(1)),
             Some(limit(1)),
             ParsedAsOrderBy
           ),
-          withAllTyped(None, Some(skip(1)), None, ParsedAsSkip),
+          withAllTyped(None, Some(offset(1)), None, ParsedAsSkip),
           withAllTyped(
             Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-            Some(skip(1)),
+            Some(offset(1)),
             Some(limit(1)),
             ParsedAsOrderBy
           )
@@ -263,14 +263,14 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
           match_(Seq(nodePat(Some("a"))), None),
           withAllTyped(
             Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-            Some(skip(1)),
+            Some(offset(1)),
             Some(limit(1)),
             ParsedAsOrderBy
           ),
-          withAllTyped(None, Some(skip(1)), None, ParsedAsSkip),
+          withAllTyped(None, Some(offset(1)), None, ParsedAsSkip),
           withAllTyped(
             Some(orderBy(sortItem(prop(varFor("a"), "prop")))),
-            Some(skip(1)),
+            Some(offset(1)),
             Some(limit(1)),
             ParsedAsOrderBy
           ),
@@ -279,5 +279,4 @@ class OrderByAndPageParserTest extends AstParsingTestBase {
       )
     )
   }
-
 }

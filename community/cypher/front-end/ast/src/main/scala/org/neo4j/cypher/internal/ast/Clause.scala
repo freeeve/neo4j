@@ -1875,10 +1875,11 @@ sealed trait ProjectionClause extends HorizonClause {
 sealed trait WithType
 sealed trait MayBeImportingWithType extends WithType
 sealed trait NotImportingWithType extends WithType
+sealed trait OrderByOrPaginationWithType extends NotImportingWithType
 case object DefaultWith extends MayBeImportingWithType
-case object ParsedAsOrderBy extends NotImportingWithType
-case object ParsedAsSkip extends NotImportingWithType
-case object ParsedAsLimit extends NotImportingWithType
+case object ParsedAsOrderBy extends OrderByOrPaginationWithType
+case object ParsedAsSkip extends OrderByOrPaginationWithType
+case object ParsedAsLimit extends OrderByOrPaginationWithType
 case object ParsedAsFilter extends NotImportingWithType
 case object ParsedAsLet extends NotImportingWithType
 case object ParsedAsYield extends NotImportingWithType

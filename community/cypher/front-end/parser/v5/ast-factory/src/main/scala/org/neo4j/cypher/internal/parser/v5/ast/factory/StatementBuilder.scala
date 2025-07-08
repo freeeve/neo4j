@@ -265,7 +265,8 @@ trait StatementBuilder extends Cypher5ParserListener {
     }
   }
 
-  final override def exitSkip(ctx: Cypher5Parser.SkipContext): Unit = ctx.ast = Skip(astChild(ctx, 1))(pos(ctx))
+  final override def exitSkip(ctx: Cypher5Parser.SkipContext): Unit =
+    ctx.ast = Skip(astChild(ctx, 1), ctx.SKIPROWS() != null)(pos(ctx))
 
   final override def exitLimit(ctx: Cypher5Parser.LimitContext): Unit = ctx.ast = Limit(astChild(ctx, 1))(pos(ctx))
 

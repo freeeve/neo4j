@@ -1370,6 +1370,9 @@ trait AstConstructionTestSupport {
   def skip(value: Long, position: InputPosition = pos): Skip =
     Skip(literalInt(value, increasePos(position, 5)))(position)
 
+  def offset(value: Long, position: InputPosition = pos): Skip =
+    Skip(literalInt(value, increasePos(position, 5)), parsedAsSkip = false)(position)
+
   def limit(value: Long, position: InputPosition = pos): Limit =
     Limit(literalInt(value, increasePos(position, 6)))(position)
 
