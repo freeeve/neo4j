@@ -49,6 +49,17 @@ public class TransactionConflictException extends TransientFailureException {
         this.highestClosed = versionContext.highestClosed();
     }
 
+    private TransactionConflictException(
+            ErrorGqlStatusObject gqlStatusObject,
+            DatabaseFile databaseFile,
+            VersionContext versionContext,
+            String message) {
+        super(gqlStatusObject, message);
+        this.databaseFile = databaseFile;
+        this.observedVersion = versionContext.chainHeadVersion();
+        this.highestClosed = versionContext.highestClosed();
+    }
+
     private TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, String message, Exception cause) {
         super(gqlStatusObject, message, cause);
     }
@@ -73,6 +84,15 @@ public class TransactionConflictException extends TransientFailureException {
 
     public static TransactionConflictException transactionConflict(DatabaseFile databaseFile, long pageId) {
         return new TransactionConflictException(GQL_STATUS, databaseFile, pageId);
+    }
+
+    public static TransactionConflictException denseRelationshipTransactionConflict(
+            DatabaseFile denseDatabaseFile, VersionContext versionContext, long denseRelationshipId) {
+        return new TransactionConflictException(
+                GQL_STATUS,
+                denseDatabaseFile,
+                versionContext,
+                createMessageDense(denseDatabaseFile.getName(), denseRelationshipId, versionContext));
     }
 
     @Override
@@ -105,6 +125,16 @@ public class TransactionConflictException extends TransientFailureException {
     private static String createMessage(String databaseFileName, long pageId, VersionContext versionContext) {
         return "Concurrent modification exception. Page " + pageId + " in '"
                 + databaseFileName + "' store is modified already by transaction "
+                + versionContext.chainHeadVersion() + ", while ongoing transaction highest visible is: "
+                + versionContext.highestClosed()
+                + ", with not yet visible transaction ids are: "
+                + Arrays.toString(versionContext.notVisibleTransactionIds()) + ".";
+    }
+
+    private static String createMessageDense(
+            String denseRelationshipStoreName, long denseRelationshipId, VersionContext versionContext) {
+        return "Concurrent modification exception. Dense relationship " + denseRelationshipId + " in '"
+                + denseRelationshipStoreName + "' store is modified already by transaction "
                 + versionContext.chainHeadVersion() + ", while ongoing transaction highest visible is: "
                 + versionContext.highestClosed()
                 + ", with not yet visible transaction ids are: "

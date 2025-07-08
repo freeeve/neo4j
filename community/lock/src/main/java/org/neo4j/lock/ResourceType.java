@@ -69,6 +69,12 @@ import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
  *
  *     <dt>{@link #NODE_LOCAL_IDS} - Node id</dt>
  *     <dd>Lock the node-local relationship ids of a node to prevent concurrent updates. Block-format only</dd>
+ *
+ *     <dt>{@link #PAGE} - Store aware page id</dt>
+ *     <dd>Lock a page in specific store</dd>
+ *
+ *     <dt>{@link #DENSE_VALIDATION} - unique identifier of relationship in dense store</dt>
+ *     <dd>Lock the dense relationships for transaction validation in block format. Only used in block mvcc</dd>
  * </dl>
  */
 public enum ResourceType {
@@ -84,7 +90,8 @@ public enum ResourceType {
     RELATIONSHIP_GROUP(9),
     PAGE(10),
     NODE_RELATIONSHIPS(11),
-    NODE_LOCAL_IDS(12);
+    NODE_LOCAL_IDS(12),
+    DENSE_VALIDATION(13);
 
     private static final ImmutableIntObjectMap<ResourceType> idToType;
 
