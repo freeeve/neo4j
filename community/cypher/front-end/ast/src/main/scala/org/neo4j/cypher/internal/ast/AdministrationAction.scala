@@ -58,6 +58,24 @@ case object StopDatabaseAction extends DatabaseAction("STOP")
 
 case object AccessDatabaseAction extends DatabaseAction("ACCESS")
 
+case object AlterDatabaseAction extends DatabaseAction("ALTER DATABASE")
+
+case object SetDatabaseAccessAction extends DatabaseAction("SET DATABASE ACCESS")
+
+case object SetDatabaseDefaultLanguageAction extends DatabaseAction("SET DATABASE DEFAULT LANGUAGE")
+
+/*
+ * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since
+ * that is what they need to grant. ALTER DATABASE SET TOPOLOGY will check this.
+ */
+case object AlterDatabaseTopologyAction extends DatabaseAction("ALTER DATABASE")
+
+/*
+ * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since
+ * that is what they need to grant. ALTER DATABASE SET / REMOVE OPTION will check this.
+ */
+case object AlterDatabaseOptionsAction extends DatabaseAction("ALTER DATABASE")
+
 abstract class IndexManagementAction(override val name: String) extends DatabaseAction(name)
 
 case object AllIndexActions extends IndexManagementAction("INDEX MANAGEMENT")
@@ -165,24 +183,6 @@ case object AllDatabaseManagementActions extends DatabaseManagementAction("DATAB
 case object CreateDatabaseAction extends DatabaseManagementAction("CREATE DATABASE")
 
 case object DropDatabaseAction extends DatabaseManagementAction("DROP DATABASE")
-
-case object AlterDatabaseAction extends DatabaseManagementAction("ALTER DATABASE")
-
-case object SetDatabaseAccessAction extends DatabaseManagementAction("SET DATABASE ACCESS")
-
-case object SetDatabaseDefaultLanguageAction extends DatabaseManagementAction("SET DATABASE DEFAULT LANGUAGE")
-
-/*
- * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since
- * that is what they need to grant. ALTER DATABASE SET TOPOLOGY will check this.
- */
-case object AlterDatabaseTopologyAction extends DatabaseManagementAction("ALTER DATABASE")
-
-/*
- * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since
- * that is what they need to grant. ALTER DATABASE SET / REMOVE OPTION will check this.
- */
-case object AlterDatabaseOptionsAction extends DatabaseManagementAction("ALTER DATABASE")
 
 case object CompositeDatabaseManagementActions extends DatabaseManagementAction("COMPOSITE DATABASE MANAGEMENT")
 

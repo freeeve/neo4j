@@ -241,7 +241,7 @@ case class AssertCanAlterDatabase(
   source: PrivilegePlan,
   namespacedName: DatabaseName,
   actionsForCompositeDatabases: Seq[DbmsAction],
-  actionsForDatabases: Seq[DbmsAction]
+  actionsForDatabases: Seq[DatabaseAction]
 )(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
 
 case class AssertAllowedDbmsActionsOrSelf(user: Either[String, Parameter], actions: Seq[DbmsAction])(implicit

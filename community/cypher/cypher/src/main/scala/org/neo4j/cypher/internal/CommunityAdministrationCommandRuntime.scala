@@ -234,10 +234,22 @@ case class CommunityAdministrationCommandRuntime(
 
     // Check rights for ALTER DATABASE, does the same as AssertAllowedDbmsActions
     // using the non-composite privileges, since community doesn't have composite databases
-    case AssertCanAlterDatabase(source, _, _, actions) => context =>
+    case AssertCanAlterDatabase(source, database, _, actions) => context =>
         AuthorizationAndPredicateExecutionPlan(
           securityAuthorizationHandler,
-          (_, securityContext) => checkActions(actions, securityContext),
+          (params, securityContext) =>
+            actions.map(action =>
+              (
+                action,
+                securityContext.allowsAdminAction(
+                  new AdminActionOnResource(
+                    ActionMapper.asKernelAction(action),
+                    new DatabaseScope(runtimeStringValue(database, params)),
+                    Segment.ALL
+                  )
+                )
+              )
+            ),
           violationMessage = adminActionErrorMessage,
           source = getSource(Some(source), context)
         )

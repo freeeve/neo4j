@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.factory.ddl.privilege
 
+import org.neo4j.cypher.internal.ast.AdministrationAction
 import org.neo4j.cypher.internal.ast.AllAliasManagementActions
 import org.neo4j.cypher.internal.ast.AllDatabaseManagementActions
 import org.neo4j.cypher.internal.ast.AllDbmsAction
@@ -34,7 +35,6 @@ import org.neo4j.cypher.internal.ast.CreateCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateRoleAction
 import org.neo4j.cypher.internal.ast.CreateUserAction
-import org.neo4j.cypher.internal.ast.DbmsAction
 import org.neo4j.cypher.internal.ast.DropAliasAction
 import org.neo4j.cypher.internal.ast.DropCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.DropDatabaseAction
@@ -65,7 +65,7 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
   // Impersonate and execute privileges have their own files and are not in this list
 
-  def privilegeTests(command: String, preposition: String, privilegeFunc: dbmsPrivilegeFunc): Unit = {
+  def privilegeTests(command: String, preposition: String, privilegeFunc: adminPrivilegeFunc): Unit = {
     Seq[Immutable](true, false).foreach {
       immutable =>
         val immutableString = maybeImmutable(immutable)
@@ -112,7 +112,7 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
           ("ALTER ALIAS", AlterAliasAction),
           ("SHOW ALIAS", ShowAliasAction)
         ).foreach {
-          case (privilege: String, action: DbmsAction) =>
+          case (privilege: String, action: AdministrationAction) =>
             test(s"$command$immutableString $privilege ON DBMS $preposition role") {
               parsesTo[Statements](privilegeFunc(action, Seq(literalRole), immutable)(pos))
             }

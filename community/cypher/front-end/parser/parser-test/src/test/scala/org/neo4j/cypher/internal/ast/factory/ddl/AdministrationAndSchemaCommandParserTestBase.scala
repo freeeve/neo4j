@@ -17,6 +17,9 @@
 package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.AllDatabasesScope
+import org.neo4j.cypher.internal.ast.DatabaseAction
+import org.neo4j.cypher.internal.ast.DbmsAction
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
@@ -193,6 +196,8 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     Immutable
   ) => InputPosition => ast.Statement
 
+  type adminPrivilegeFunc = (ast.AdministrationAction, Seq[Expression], Immutable) => InputPosition => ast.Statement
+
   type dbmsPrivilegeFunc = (ast.DbmsAction, Seq[Expression], Immutable) => InputPosition => ast.Statement
 
   type executeProcedurePrivilegeFunc =
@@ -260,17 +265,26 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     ast.GrantPrivilege(ast.DatabasePrivilege(d, s)(pos), i, None, q, r)
 
   def grantDbmsPrivilege(
-    a: ast.DbmsAction,
+    a: ast.AdministrationAction,
     r: Seq[Expression],
     i: Immutable
-  ): InputPosition => ast.Statement =
+  ): InputPosition => ast.Statement = {
+
+    val (privilege, qualifier) = a match {
+      case dbmsAction: DbmsAction =>
+        (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
+      case databaseAction: DatabaseAction =>
+        (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
+      case _ => throw new IllegalStateException(a.toString)
+    }
     ast.GrantPrivilege(
-      ast.DbmsPrivilege(a)(pos),
+      privilege,
       i,
       None,
-      List(ast.AllQualifier()(pos)),
+      List(qualifier),
       r
     )
+  }
 
   def grantExecuteProcedurePrivilege(
     a: ast.DbmsAction,
@@ -345,17 +359,25 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     ast.DenyPrivilege(ast.DatabasePrivilege(d, s)(pos), i, None, q, r)
 
   def denyDbmsPrivilege(
-    a: ast.DbmsAction,
+    a: ast.AdministrationAction,
     r: Seq[Expression],
     i: Immutable
-  ): InputPosition => ast.Statement =
+  ): InputPosition => ast.Statement = {
+    val (privilege, qualifier) = a match {
+      case dbmsAction: DbmsAction =>
+        (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
+      case databaseAction: DatabaseAction =>
+        (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
+      case _ => throw new IllegalStateException(a.toString)
+    }
     ast.DenyPrivilege(
-      ast.DbmsPrivilege(a)(pos),
+      privilege,
       i,
       None,
-      List(ast.AllQualifier()(pos)),
+      List(qualifier),
       r
     )
+  }
 
   def denyExecuteProcedurePrivilege(
     a: ast.DbmsAction,
@@ -424,7 +446,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     revokeQualifiedDatabasePrivilege(ast.RevokeGrantType()(pos), d, s, q, r, i)
 
   def revokeGrantDbmsPrivilege(
-    a: ast.DbmsAction,
+    a: ast.AdministrationAction,
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
@@ -489,7 +511,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     revokeQualifiedDatabasePrivilege(ast.RevokeDenyType()(pos), d, s, q, r, i)
 
   def revokeDenyDbmsPrivilege(
-    a: ast.DbmsAction,
+    a: ast.AdministrationAction,
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
@@ -554,7 +576,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     revokeQualifiedDatabasePrivilege(ast.RevokeBothType()(pos), d, s, q, r, i)
 
   def revokeDbmsPrivilege(
-    a: ast.DbmsAction,
+    a: ast.AdministrationAction,
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
@@ -612,18 +634,27 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
 
   def revokeDbmsPrivilege(
     rt: ast.RevokeType,
-    a: ast.DbmsAction,
+    a: ast.AdministrationAction,
     r: Seq[Expression],
     i: Immutable
-  ): InputPosition => ast.Statement =
+  ): InputPosition => ast.Statement = {
+    val (privilege, qualifier) = a match {
+      case dbmsAction: DbmsAction =>
+        (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
+      case databaseAction: DatabaseAction =>
+        (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
+      case _ => throw new IllegalStateException(a.toString)
+    }
+
     ast.RevokePrivilege(
-      ast.DbmsPrivilege(a)(pos),
+      privilege,
       i,
       None,
-      List(ast.AllQualifier()(pos)),
+      List(qualifier),
       r,
       rt
     )
+  }
 
   def revokeQualifiedDbmsPrivilege(
     rt: ast.RevokeType,

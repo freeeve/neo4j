@@ -3118,9 +3118,6 @@ class AstGenerator(
     DropCompositeDatabaseAction,
     AlterCompositeDatabaseAction,
     CompositeDatabaseManagementActions,
-    AlterDatabaseAction,
-    SetDatabaseAccessAction,
-    SetDatabaseDefaultLanguageAction,
     AllAliasManagementActions,
     CreateAliasAction,
     DropAliasAction,
@@ -3139,6 +3136,9 @@ class AstGenerator(
     StartDatabaseAction,
     StopDatabaseAction,
     AllDatabaseAction,
+    AlterDatabaseAction,
+    SetDatabaseAccessAction,
+    SetDatabaseDefaultLanguageAction,
     AccessDatabaseAction,
     AllIndexActions,
     CreateIndexAction,
@@ -3405,11 +3405,19 @@ class AstGenerator(
   def _databasePrivilege: Gen[PrivilegeCommand] = for {
     databaseAction <- _databaseAction
     dbNames <- oneOrMore(_databaseName)
-    databaseScope <- oneOf(
-      NamedDatabasesScope(dbNames)(pos),
-      AllDatabasesScope()(pos),
-      HomeDatabaseScope()(pos)
-    )
+    //  Temporary until we add syntax for alter database privileges on specific dbs
+    databaseScope <-
+      if (
+        databaseAction == AlterDatabaseAction || databaseAction == SetDatabaseDefaultLanguageAction || databaseAction == SetDatabaseAccessAction
+      ) {
+        const(AllDatabasesScope()(pos))
+      } else {
+        oneOf(
+          NamedDatabasesScope(dbNames)(pos),
+          AllDatabasesScope()(pos),
+          HomeDatabaseScope()(pos)
+        )
+      }
     databaseQualifier <- _databaseQualifier(databaseAction.isInstanceOf[TransactionManagementAction])
     roleNames <- _listOfStringLiteralOrParam
     revokeType <- _revokeType

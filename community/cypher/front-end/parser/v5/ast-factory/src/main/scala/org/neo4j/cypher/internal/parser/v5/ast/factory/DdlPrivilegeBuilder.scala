@@ -398,7 +398,11 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
           }
         case _ => throw new IllegalStateException()
       }
-    ctx.ast = (DbmsPrivilege(action)(pos(ctx)), None, qualifier)
+    ctx.ast = action match {
+      case a: DbmsAction     => (DbmsPrivilege(a)(pos(ctx)), None, qualifier)
+      case a: DatabaseAction => (DatabasePrivilege(a, AllDatabasesScope()(pos(ctx)))(pos(ctx)), None, qualifier)
+      case _                 => throw new IllegalStateException()
+    }
   }
 
   override def exitDbmsPrivilegeExecute(ctx: Cypher5Parser.DbmsPrivilegeExecuteContext): Unit = {
@@ -532,7 +536,12 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
       else if (ctx.AUTH() != null) SetAuthAction
       else if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) SetDatabaseDefaultLanguageAction
       else SetDatabaseAccessAction
-      allQualifier(DbmsPrivilege(action)(p), None)
+
+      action match {
+        case a: DbmsAction     => allQualifier(DbmsPrivilege(a)(p), None)
+        case a: DatabaseAction => allDbQualifier(DatabasePrivilege(a, AllDatabasesScope()(p))(p), None)
+        case _                 => throw new IllegalStateException()
+      }
     } else {
       val scope = ctx.graphScope().ast[GraphScope]()
       if (ctx.LABEL() != null) {
