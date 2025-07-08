@@ -662,6 +662,78 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     }
   }
 
+  test("""ALTER CURRENT GRAPH TYPE SET { ()-[:REL => {p :: STRING}]-() }""") {
+    // missing direction
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: '>'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (:Label)<-[:REL =>]-() }""") {
+    // wrong direction
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '<', expected: '-'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (:Label =>)<-[:REL =>]->(:Label) }""") {
+    // double direction
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '<', expected: ',', '-', 'REQUIRE' or '}'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR ()-[r:REL =>]-() REQUIRE r.p IS KEY }""") {
+    // missing direction
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: '>'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT name FOR ()<-[r:REL]-() REQUIRE r.p IS NOT NULL }""") {
+    // wrong direction
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '<', expected: '-' or 'REQUIRE'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR ()<-[r:REL]->() REQUIRE r.p IS :: INT }""") {
+    // double direction
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '<', expected: '-' or 'REQUIRE'."
+        )
+    }
+  }
+
   test("""ALTER CURRENT GRAPH TYPE SET { (:Person => {name :: STRING IS REL KEY}) }""") {
     parsesIn[Statements] {
       case Cypher5 => cypher5Error

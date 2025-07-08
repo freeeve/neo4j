@@ -71,6 +71,7 @@ class CommunityCompilerFactory(
         queryCaches,
         cypherPlanner,
         dependencies.resolveDependency(classOf[DatabaseReferenceRepository]),
+        CommunitySchemaCommandRuntime,
         dependencies.resolveDependency(classOf[InternalNotificationStats]),
         dependencies.resolveDependency(classOf[InternalUsageStats])
       )
@@ -85,6 +86,7 @@ class CommunityCompilerFactory(
       planner,
       runtime,
       CommunityRuntimeContextManager(log, runtimeConfig),
+      CommunitySchemaCommandRuntime,
       kernelMonitors,
       queryCaches
     )

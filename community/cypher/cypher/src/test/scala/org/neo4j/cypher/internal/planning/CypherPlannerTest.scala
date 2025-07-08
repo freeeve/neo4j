@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.planning
 
 import org.neo4j.common
 import org.neo4j.configuration.Config
+import org.neo4j.cypher.internal.CommunitySchemaCommandRuntime
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.InterpretedRuntime
 import org.neo4j.cypher.internal.ast.Where
@@ -289,6 +290,7 @@ class CypherPlannerTest extends CypherFunSuite {
       caches,
       CypherPlannerOption.default,
       null,
+      CommunitySchemaCommandRuntime,
       null,
       new InternalUsageStatsImpl
     )

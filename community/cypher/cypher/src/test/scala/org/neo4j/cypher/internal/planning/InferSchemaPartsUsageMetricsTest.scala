@@ -23,6 +23,7 @@ import org.neo4j.common
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy
+import org.neo4j.cypher.internal.CommunitySchemaCommandRuntime
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.InterpretedRuntime
@@ -297,6 +298,7 @@ class InferSchemaPartsUsageMetricsTest extends CypherFunSuite with CypherVersion
       caches,
       CypherPlannerOption.default,
       null,
+      CommunitySchemaCommandRuntime,
       null,
       new InternalUsageStatsImpl
     )

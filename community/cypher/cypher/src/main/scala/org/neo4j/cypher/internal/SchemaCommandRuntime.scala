@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.ast.RelationshipKey
 import org.neo4j.cypher.internal.ast.RelationshipPropertyExistence
 import org.neo4j.cypher.internal.ast.RelationshipPropertyType
 import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
-import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.constraint.ConstraintCommandPlanner
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
@@ -43,7 +42,6 @@ import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Type
 import org.neo4j.cypher.internal.index.IndexCommandPlanner
-import org.neo4j.cypher.internal.logical.plans.AlterCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.CreateConstraint
 import org.neo4j.cypher.internal.logical.plans.CreateFulltextIndex
 import org.neo4j.cypher.internal.logical.plans.CreateIndex
@@ -67,9 +65,7 @@ import org.neo4j.cypher.internal.procs.SchemaExecutionPlan
 import org.neo4j.cypher.internal.runtime.ConstraintInformation
 import org.neo4j.cypher.internal.runtime.IndexInformation
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
-import org.neo4j.cypher.internal.runtime.InternalQueryType
 import org.neo4j.cypher.internal.runtime.QueryContext
-import org.neo4j.cypher.internal.runtime.SCHEMA_WRITE
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.CantCompileQueryException
@@ -99,7 +95,7 @@ import scala.language.implicitConversions
 /**
  * This runtime takes on queries that require no planning such as schema commands
  */
-object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
+trait SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
   override def name: String = "schema"
 
   override def correspondingRuntimeOption: Option[CypherRuntimeOption] = None
@@ -112,16 +108,276 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
     logicalToExecutable.applyOrElse(state.logicalPlan, throwCantCompile).apply(context)
   }
 
-  def throwCantCompile(unknownPlan: LogicalPlan): Nothing = {
+  protected def throwCantCompile(unknownPlan: LogicalPlan): Nothing = {
     throw CantCompileQueryException.planNotSchemaCommand(unknownPlan.getClass.getSimpleName)
   }
 
-  def queryType(logicalPlan: LogicalPlan): Option[InternalQueryType] =
-    if (logicalToExecutable.isDefinedAt(logicalPlan)) {
-      Some(SCHEMA_WRITE)
-    } else None
+  def isApplicable(logicalPlan: LogicalPlan): Boolean =
+    logicalToExecutable.isDefinedAt(logicalPlan)
 
-  val logicalToExecutable: PartialFunction[LogicalPlan, RuntimeContext => ExecutionPlan] = {
+  def logicalToExecutable: PartialFunction[LogicalPlan, RuntimeContext => ExecutionPlan]
+}
+
+object SchemaCommandRuntime {
+
+  // Shared helper methods for the various schema commands
+
+  def getName(name: Option[Either[String, Parameter]], params: MapValue): Option[String] =
+    name.map(getName(_, params))
+
+  def getName(name: Either[String, Parameter], params: MapValue): String = name match {
+    case Left(stringName) => stringName
+    case Right(paramName) =>
+      params.get(paramName.name) match {
+        case s: StringValue => s.stringValue()
+        case x =>
+          throw ParameterWrongTypeException.expectedStringButGotType(
+            paramName.name,
+            x.getTypeName,
+            x.prettify()
+          )
+      }
+  }
+
+  def getEntityInfo(entityName: ElementTypeName, ctx: QueryContext): (Int, EntityType) = entityName match {
+    // returns (entityId, EntityType)
+    case label: LabelName     => (ctx.getOrCreateLabelId(label.name), EntityType.NODE)
+    case relType: RelTypeName => (ctx.getOrCreateRelTypeId(relType.name), EntityType.RELATIONSHIP)
+    case _: DynamicLabelExpression =>
+      throw new IllegalStateException(
+        s"Did not expect Dynamic Labels here"
+      )
+    case _: DynamicRelTypeExpression =>
+      throw new IllegalStateException(
+        s"Did not expect Dynamic Relationships here"
+      )
+  }
+
+  def getMultipleEntityInfo(
+    entityName: Either[List[LabelName], List[RelTypeName]],
+    ctx: QueryContext
+  ): (List[Int], EntityType) =
+    entityName match {
+      // returns (entityIds, EntityType)
+      case Left(labels)    => (labels.map(label => ctx.getOrCreateLabelId(label.name)), EntityType.NODE)
+      case Right(relTypes) => (relTypes.map(relType => ctx.getOrCreateRelTypeId(relType.name)), EntityType.RELATIONSHIP)
+    }
+
+  def convertConstraintTypeToConstraintMatcher(assertion: CreateConstraintType)
+    : ConstraintDescriptor => Boolean =
+    assertion match {
+      case NodePropertyExistence             => c => c.isNodePropertyExistenceConstraint
+      case RelationshipPropertyExistence     => c => c.isRelationshipPropertyExistenceConstraint
+      case _: NodePropertyUniqueness         => c => c.isNodeUniquenessConstraint
+      case _: RelationshipPropertyUniqueness => c => c.isRelationshipUniquenessConstraint
+      case _: NodeKey                        => c => c.isNodeKeyConstraint
+      case _: RelationshipKey                => c => c.isRelationshipKeyConstraint
+      case NodePropertyType(propType) =>
+        c => c.isNodePropertyTypeConstraint && checkTypes(propType, c.asPropertyTypeConstraint().propertyType())
+      case RelationshipPropertyType(propType) =>
+        c =>
+          c.isRelationshipPropertyTypeConstraint &&
+            checkTypes(propType, c.asPropertyTypeConstraint().propertyType())
+    }
+
+  // Checks if the pre-existing constraints property type (preExistingTypes)
+  // is the same as the property type of the constraint to be created (askedForType)
+  private def checkTypes(askedForType: CypherType, preExistingTypes: PropertyTypeSet): Boolean =
+    preExistingTypes.equals(PropertyTypeMapper.asPropertyTypeSet(askedForType))
+
+  implicit def propertyToId(ctx: QueryContext)(property: PropertyKeyName): PropertyKeyId =
+    PropertyKeyId(ctx.getOrCreatePropertyKeyId(property.name))
+
+  def labelPropWithName(
+    ctx: QueryContext
+  )(label: LabelName, prop: PropertyKeyName, name: Option[String]): (Int, Int, Option[String]) =
+    (ctx.getOrCreateLabelId(label.name), ctx.getOrCreatePropertyKeyId(prop.name), name)
+
+  def typePropWithName(
+    ctx: QueryContext
+  )(relType: RelTypeName, prop: PropertyKeyName, name: Option[String]): (Int, Int, Option[String]) =
+    (ctx.getOrCreateRelTypeId(relType.name), ctx.getOrCreatePropertyKeyId(prop.name), name)
+
+  def indexInfo(
+    indexType: String,
+    nameOption: Option[String],
+    entityName: ElementTypeName,
+    properties: Seq[PropertyKeyName],
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val pattern = getPrettyEntityPattern(entityName)
+    val propertyString = getPrettyPropertyPattern(properties, "(", ")")
+    pretty"${asPrettyString.raw(indexType)} INDEX$name IF NOT EXISTS FOR $pattern ON $propertyString${prettyOptions(options)}".prettifiedString
+  }
+
+  def fulltextIndexInfo(
+    nameOption: Option[String],
+    entityNames: Either[List[LabelName], List[RelTypeName]],
+    properties: Seq[PropertyKeyName],
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val pattern = entityNames match {
+      case Left(labels) =>
+        val innerPattern = labels.map(l => asPrettyString(l.name)).mkPrettyString("e:", "|", "")
+        pretty"($innerPattern)"
+      case Right(relTypes) =>
+        val innerPattern = relTypes.map(r => asPrettyString(r.name)).mkPrettyString("e:", "|", "")
+        pretty"()-[$innerPattern]-()"
+    }
+    val propertyString = getPrettyPropertyPattern(properties, "[", "]")
+    pretty"FULLTEXT INDEX$name IF NOT EXISTS FOR $pattern ON EACH $propertyString${prettyOptions(options)}".prettifiedString
+  }
+
+  def lookupIndexInfo(
+    nameOption: Option[String],
+    entityType: EntityType,
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val (pattern, function) = getPrettyLookupIndexPatternAndFunction(entityType == EntityType.NODE)
+    pretty"LOOKUP INDEX$name IF NOT EXISTS FOR $pattern ON EACH $function${prettyOptions(options)}".prettifiedString
+  }
+
+  def existingIndexInfo(
+    ctx: QueryContext,
+    getInfoParts: () => IndexInformation
+  ): String = {
+    try {
+      // Assert we are allowed to see the index description
+      ctx.assertShowIndexAllowed()
+
+      // Fetch the relevant index parts
+      val IndexInformation(isNode, indexType, name, entityNames, properties) = getInfoParts()
+
+      // Create string description
+      val nameString = getPrettyName(Some(name))
+      val (pattern, on) = indexType match {
+        case IndexType.LOOKUP =>
+          val (pattern, function) = getPrettyLookupIndexPatternAndFunction(isNode)
+          (pattern, pretty"EACH $function")
+        case IndexType.FULLTEXT =>
+          val innerPattern = entityNames.map(e => asPrettyString(e)).mkPrettyString("e:", "|", "")
+          val pattern = if (isNode) pretty"($innerPattern)" else pretty"()-[$innerPattern]-()"
+          val propertyString = getPrettyPropertyPattern(properties, "[", "]")
+          (pattern, pretty"EACH $propertyString")
+        case _ =>
+          // indexes have exactly one label/relType, unless FULLTEXT or LOOKUP which is handled above
+          val pattern = getPrettyEntityPattern(isNode, entityNames.head)
+          val propertyString = getPrettyPropertyPattern(properties, "(", ")")
+          (pattern, propertyString)
+      }
+      pretty"${asPrettyString.raw(indexType.name())} INDEX$nameString FOR $pattern ON $on".prettifiedString
+    } catch {
+      // Not allowed to see index description, only show `index`
+      case _: AuthorizationViolationException => "index"
+    }
+  }
+
+  def constraintInfo(
+    nameOption: Option[String],
+    entityName: ElementTypeName,
+    properties: Seq[Property],
+    constraintType: CreateConstraintType,
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val pattern = getPrettyEntityPattern(entityName)
+    val propertyString = getPrettyPropertyPattern(properties.map(p => p.propertyKey), "(", ")")
+    val prettyAssertion = asPrettyString.raw(constraintType.predicate)
+    pretty"CONSTRAINT$name IF NOT EXISTS FOR $pattern REQUIRE $propertyString $prettyAssertion${prettyOptions(options)}".prettifiedString
+  }
+
+  def existingConstraintInfo(
+    ctx: QueryContext,
+    getInfoParts: () => ConstraintInformation,
+    cypherVersion: CypherVersion
+  ): String = {
+    try {
+      // Assert we are allowed to see the constraint description
+      ctx.assertShowConstraintAllowed()
+
+      // Fetch the relevant constraint parts
+      val ConstraintInformation(isNode, constraintType, name, entityName, properties, propertyType) = getInfoParts()
+
+      // Create string description
+      val nameString = getPrettyName(Some(name))
+      val pattern = getPrettyEntityPattern(isNode, entityName)
+      val propertyString = getPrettyPropertyPattern(properties, "(", ")")
+      val assertion = constraintType match {
+        case EXISTS => "IS NOT NULL"
+        case UNIQUE_EXISTS =>
+          if (cypherVersion == CypherVersion.Cypher5)
+            if (isNode) "IS NODE KEY" else "IS RELATIONSHIP KEY"
+          else "IS KEY"
+        case UNIQUE                      => "IS UNIQUE"
+        case PROPERTY_TYPE               => s"IS :: ${propertyType.get}"
+        case RELATIONSHIP_ENDPOINT_LABEL => ""
+        case NODE_LABEL_EXISTENCE        => ""
+      }
+      val prettyAssertion = asPrettyString.raw(assertion)
+      // Currently don't have a constraint command for endpoint and node label existence constraints so let's return the same as if the user wasn't allowed to see the constraint for now
+      // Once we have graph type commands, lets use `(:Label1 => :Label2)`, `(:Label)-[:REL_TYPE =>]->()` and `()-[:REL_TYPE =>]->(:Label)` with correct labels and relationship types
+      // as they don't have constraint commands and that would be their representation in the graph type
+      if (constraintType == RELATIONSHIP_ENDPOINT_LABEL || constraintType == NODE_LABEL_EXISTENCE) "constraint"
+      else pretty"CONSTRAINT$nameString FOR $pattern REQUIRE $propertyString $prettyAssertion".prettifiedString
+    } catch {
+      // Not allowed to see constraint description, only show `constraint`
+      case _: AuthorizationViolationException => "constraint"
+    }
+  }
+
+  def vectorIndexVersion(ctx: QueryContext): VectorIndexVersion =
+    VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(ctx.getConfig))
+
+  private def getPrettyName(nameOption: Option[String]): PrettyString =
+    getPrettyStringName(nameOption.map(Left(_)))
+
+  private def getPrettyEntityPattern(entityName: ElementTypeName): PrettyString = entityName match {
+    case label: LabelName     => pretty"(e:${asPrettyString(label)})"
+    case relType: RelTypeName => pretty"()-[e:${asPrettyString(relType)}]-()"
+    case _: DynamicLabelExpression =>
+      throw new IllegalStateException(
+        s"Did not expect Dynamic Labels here"
+      )
+    case _: DynamicRelTypeExpression =>
+      throw new IllegalStateException(
+        s"Did not expect Dynamic Labels here"
+      )
+  }
+
+  private def getPrettyEntityPattern(isNode: Boolean, entityName: String): PrettyString =
+    if (isNode) {
+      pretty"(e:${asPrettyString(entityName)})"
+    } else {
+      pretty"()-[e:${asPrettyString(entityName)}]-()"
+    }
+
+  private def getPrettyLookupIndexPatternAndFunction(isNode: Boolean): (PrettyString, PrettyString) =
+    if (isNode) {
+      (pretty"(e)", pretty"${asPrettyString.raw(Labels.name)}(e)")
+    } else {
+      (pretty"()-[e]-()", pretty"${asPrettyString.raw(Type.name)}(e)")
+    }
+
+  private def getPrettyPropertyPattern(properties: Seq[PropertyKeyName], start: String, end: String): PrettyString =
+    properties.map(asPrettyString(_)).mkPrettyString(s"${start}e.", ", e.", end)
+
+  private def getPrettyPropertyPattern(properties: List[String], start: String, end: String): PrettyString =
+    properties.map(asPrettyString(_)).mkPrettyString(s"${start}e.", ", e.", end)
+
+  def indexContext(ctx: QueryContext): IndexProviderContext = ctx.asInstanceOf[IndexProviderContext]
+
+}
+
+/**
+ * This runtime takes on queries that require no planning such as schema commands.
+ * It covers the community only queries and the enterprise constraint commands to not change their existing exceptions.
+ */
+object CommunitySchemaCommandRuntime extends SchemaCommandRuntime {
+
+  override val logicalToExecutable: PartialFunction[LogicalPlan, RuntimeContext => ExecutionPlan] = {
     // CREATE CONSTRAINT [name] [IF NOT EXISTS] FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS NODE KEY [OPTIONS {...}]
     case CreateConstraint(source, nodeKey: NodeKey, label: LabelName, props, name, options) => context =>
         SchemaExecutionPlan(
@@ -362,258 +618,5 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           ),
           None
         )
-
-    // ALTER CURRENT GRAPH TYPE ...
-    case _: AlterCurrentGraphType => ???
   }
-
-  def getName(name: Option[Either[String, Parameter]], params: MapValue): Option[String] =
-    name.map(getName(_, params))
-
-  def getName(name: Either[String, Parameter], params: MapValue): String = name match {
-    case Left(stringName) => stringName
-    case Right(paramName) =>
-      params.get(paramName.name) match {
-        case s: StringValue => s.stringValue()
-        case x =>
-          throw ParameterWrongTypeException.expectedStringButGotType(
-            paramName.name,
-            x.getTypeName,
-            x.prettify()
-          )
-      }
-  }
-
-  def getEntityInfo(entityName: ElementTypeName, ctx: QueryContext): (Int, EntityType) = entityName match {
-    // returns (entityId, EntityType)
-    case label: LabelName     => (ctx.getOrCreateLabelId(label.name), EntityType.NODE)
-    case relType: RelTypeName => (ctx.getOrCreateRelTypeId(relType.name), EntityType.RELATIONSHIP)
-    case _: DynamicLabelExpression =>
-      throw new IllegalStateException(
-        s"Did not expect Dynamic Labels here"
-      )
-    case _: DynamicRelTypeExpression =>
-      throw new IllegalStateException(
-        s"Did not expect Dynamic Relationships here"
-      )
-  }
-
-  def getMultipleEntityInfo(
-    entityName: Either[List[LabelName], List[RelTypeName]],
-    ctx: QueryContext
-  ): (List[Int], EntityType) =
-    entityName match {
-      // returns (entityIds, EntityType)
-      case Left(labels)    => (labels.map(label => ctx.getOrCreateLabelId(label.name)), EntityType.NODE)
-      case Right(relTypes) => (relTypes.map(relType => ctx.getOrCreateRelTypeId(relType.name)), EntityType.RELATIONSHIP)
-    }
-
-  def isApplicable(logicalPlanState: LogicalPlanState): Boolean =
-    logicalToExecutable.isDefinedAt(logicalPlanState.maybeLogicalPlan.get)
-
-  def convertConstraintTypeToConstraintMatcher(assertion: CreateConstraintType)
-    : ConstraintDescriptor => Boolean =
-    assertion match {
-      case NodePropertyExistence             => c => c.isNodePropertyExistenceConstraint
-      case RelationshipPropertyExistence     => c => c.isRelationshipPropertyExistenceConstraint
-      case _: NodePropertyUniqueness         => c => c.isNodeUniquenessConstraint
-      case _: RelationshipPropertyUniqueness => c => c.isRelationshipUniquenessConstraint
-      case _: NodeKey                        => c => c.isNodeKeyConstraint
-      case _: RelationshipKey                => c => c.isRelationshipKeyConstraint
-      case NodePropertyType(propType) =>
-        c => c.isNodePropertyTypeConstraint && checkTypes(propType, c.asPropertyTypeConstraint().propertyType())
-      case RelationshipPropertyType(propType) =>
-        c =>
-          c.isRelationshipPropertyTypeConstraint &&
-            checkTypes(propType, c.asPropertyTypeConstraint().propertyType())
-    }
-
-  // Checks if the pre-existing constraints property type (preExistingTypes)
-  // is the same as the property type of the constraint to be created (askedForType)
-  private def checkTypes(askedForType: CypherType, preExistingTypes: PropertyTypeSet): Boolean =
-    preExistingTypes.equals(PropertyTypeMapper.asPropertyTypeSet(askedForType))
-
-  implicit def propertyToId(ctx: QueryContext)(property: PropertyKeyName): PropertyKeyId =
-    PropertyKeyId(ctx.getOrCreatePropertyKeyId(property.name))
-
-  def labelPropWithName(
-    ctx: QueryContext
-  )(label: LabelName, prop: PropertyKeyName, name: Option[String]): (Int, Int, Option[String]) =
-    (ctx.getOrCreateLabelId(label.name), ctx.getOrCreatePropertyKeyId(prop.name), name)
-
-  def typePropWithName(
-    ctx: QueryContext
-  )(relType: RelTypeName, prop: PropertyKeyName, name: Option[String]): (Int, Int, Option[String]) =
-    (ctx.getOrCreateRelTypeId(relType.name), ctx.getOrCreatePropertyKeyId(prop.name), name)
-
-  def indexInfo(
-    indexType: String,
-    nameOption: Option[String],
-    entityName: ElementTypeName,
-    properties: Seq[PropertyKeyName],
-    options: Options
-  ): String = {
-    val name = getPrettyName(nameOption)
-    val pattern = getPrettyEntityPattern(entityName)
-    val propertyString = getPrettyPropertyPattern(properties, "(", ")")
-    pretty"${asPrettyString.raw(indexType)} INDEX$name IF NOT EXISTS FOR $pattern ON $propertyString${prettyOptions(options)}".prettifiedString
-  }
-
-  def fulltextIndexInfo(
-    nameOption: Option[String],
-    entityNames: Either[List[LabelName], List[RelTypeName]],
-    properties: Seq[PropertyKeyName],
-    options: Options
-  ): String = {
-    val name = getPrettyName(nameOption)
-    val pattern = entityNames match {
-      case Left(labels) =>
-        val innerPattern = labels.map(l => asPrettyString(l.name)).mkPrettyString("e:", "|", "")
-        pretty"($innerPattern)"
-      case Right(relTypes) =>
-        val innerPattern = relTypes.map(r => asPrettyString(r.name)).mkPrettyString("e:", "|", "")
-        pretty"()-[$innerPattern]-()"
-    }
-    val propertyString = getPrettyPropertyPattern(properties, "[", "]")
-    pretty"FULLTEXT INDEX$name IF NOT EXISTS FOR $pattern ON EACH $propertyString${prettyOptions(options)}".prettifiedString
-  }
-
-  def lookupIndexInfo(
-    nameOption: Option[String],
-    entityType: EntityType,
-    options: Options
-  ): String = {
-    val name = getPrettyName(nameOption)
-    val (pattern, function) = getPrettyLookupIndexPatternAndFunction(entityType == EntityType.NODE)
-    pretty"LOOKUP INDEX$name IF NOT EXISTS FOR $pattern ON EACH $function${prettyOptions(options)}".prettifiedString
-  }
-
-  def existingIndexInfo(
-    ctx: QueryContext,
-    getInfoParts: () => IndexInformation
-  ): String = {
-    try {
-      // Assert we are allowed to see the index description
-      ctx.assertShowIndexAllowed()
-
-      // Fetch the relevant index parts
-      val IndexInformation(isNode, indexType, name, entityNames, properties) = getInfoParts()
-
-      // Create string description
-      val nameString = getPrettyName(Some(name))
-      val (pattern, on) = indexType match {
-        case IndexType.LOOKUP =>
-          val (pattern, function) = getPrettyLookupIndexPatternAndFunction(isNode)
-          (pattern, pretty"EACH $function")
-        case IndexType.FULLTEXT =>
-          val innerPattern = entityNames.map(e => asPrettyString(e)).mkPrettyString("e:", "|", "")
-          val pattern = if (isNode) pretty"($innerPattern)" else pretty"()-[$innerPattern]-()"
-          val propertyString = getPrettyPropertyPattern(properties, "[", "]")
-          (pattern, pretty"EACH $propertyString")
-        case _ =>
-          // indexes have exactly one label/relType, unless FULLTEXT or LOOKUP which is handled above
-          val pattern = getPrettyEntityPattern(isNode, entityNames.head)
-          val propertyString = getPrettyPropertyPattern(properties, "(", ")")
-          (pattern, propertyString)
-      }
-      pretty"${asPrettyString.raw(indexType.name())} INDEX$nameString FOR $pattern ON $on".prettifiedString
-    } catch {
-      // Not allowed to see index description, only show `index`
-      case _: AuthorizationViolationException => "index"
-    }
-  }
-
-  def constraintInfo(
-    nameOption: Option[String],
-    entityName: ElementTypeName,
-    properties: Seq[Property],
-    constraintType: CreateConstraintType,
-    options: Options
-  ): String = {
-    val name = getPrettyName(nameOption)
-    val pattern = getPrettyEntityPattern(entityName)
-    val propertyString = getPrettyPropertyPattern(properties.map(p => p.propertyKey), "(", ")")
-    val prettyAssertion = asPrettyString.raw(constraintType.predicate)
-    pretty"CONSTRAINT$name IF NOT EXISTS FOR $pattern REQUIRE $propertyString $prettyAssertion${prettyOptions(options)}".prettifiedString
-  }
-
-  def existingConstraintInfo(
-    ctx: QueryContext,
-    getInfoParts: () => ConstraintInformation,
-    cypherVersion: CypherVersion
-  ): String = {
-    try {
-      // Assert we are allowed to see the constraint description
-      ctx.assertShowConstraintAllowed()
-
-      // Fetch the relevant constraint parts
-      val ConstraintInformation(isNode, constraintType, name, entityName, properties, propertyType) = getInfoParts()
-
-      // Create string description
-      val nameString = getPrettyName(Some(name))
-      val pattern = getPrettyEntityPattern(isNode, entityName)
-      val propertyString = getPrettyPropertyPattern(properties, "(", ")")
-      val assertion = constraintType match {
-        case EXISTS => "IS NOT NULL"
-        case UNIQUE_EXISTS =>
-          if (cypherVersion == CypherVersion.Cypher5)
-            if (isNode) "IS NODE KEY" else "IS RELATIONSHIP KEY"
-          else "IS KEY"
-        case UNIQUE                      => "IS UNIQUE"
-        case PROPERTY_TYPE               => s"IS :: ${propertyType.get}"
-        case RELATIONSHIP_ENDPOINT_LABEL => ""
-        case NODE_LABEL_EXISTENCE        => ""
-      }
-      val prettyAssertion = asPrettyString.raw(assertion)
-      // Currently don't have a constraint command for endpoint and node label existence constraints so let's return the same as if the user wasn't allowed to see the constraint for now
-      // Once we have graph type commands, lets use `(:Label1 => :Label2)`, `(:Label)-[:REL_TYPE =>]->()` and `()-[:REL_TYPE =>]->(:Label)` with correct labels and relationship types
-      // as they don't have constraint commands and that would be their representation in the graph type
-      if (constraintType == RELATIONSHIP_ENDPOINT_LABEL || constraintType == NODE_LABEL_EXISTENCE) "constraint"
-      else pretty"CONSTRAINT$nameString FOR $pattern REQUIRE $propertyString $prettyAssertion".prettifiedString
-    } catch {
-      // Not allowed to see constraint description, only show `constraint`
-      case _: AuthorizationViolationException => "constraint"
-    }
-  }
-
-  def vectorIndexVersion(ctx: QueryContext): VectorIndexVersion =
-    VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(ctx.getConfig))
-
-  private def getPrettyName(nameOption: Option[String]): PrettyString =
-    getPrettyStringName(nameOption.map(Left(_)))
-
-  private def getPrettyEntityPattern(entityName: ElementTypeName): PrettyString = entityName match {
-    case label: LabelName     => pretty"(e:${asPrettyString(label)})"
-    case relType: RelTypeName => pretty"()-[e:${asPrettyString(relType)}]-()"
-    case _: DynamicLabelExpression =>
-      throw new IllegalStateException(
-        s"Did not expect Dynamic Labels here"
-      )
-    case _: DynamicRelTypeExpression =>
-      throw new IllegalStateException(
-        s"Did not expect Dynamic Labels here"
-      )
-  }
-
-  private def getPrettyEntityPattern(isNode: Boolean, entityName: String): PrettyString =
-    if (isNode) {
-      pretty"(e:${asPrettyString(entityName)})"
-    } else {
-      pretty"()-[e:${asPrettyString(entityName)}]-()"
-    }
-
-  private def getPrettyLookupIndexPatternAndFunction(isNode: Boolean): (PrettyString, PrettyString) =
-    if (isNode) {
-      (pretty"(e)", pretty"${asPrettyString.raw(Labels.name)}(e)")
-    } else {
-      (pretty"()-[e]-()", pretty"${asPrettyString.raw(Type.name)}(e)")
-    }
-
-  private def getPrettyPropertyPattern(properties: Seq[PropertyKeyName], start: String, end: String): PrettyString =
-    properties.map(asPrettyString(_)).mkPrettyString(s"${start}e.", ", e.", end)
-
-  private def getPrettyPropertyPattern(properties: List[String], start: String, end: String): PrettyString =
-    properties.map(asPrettyString(_)).mkPrettyString(s"${start}e.", ", e.", end)
-
-  def indexContext(ctx: QueryContext): IndexProviderContext = ctx.asInstanceOf[IndexProviderContext]
 }

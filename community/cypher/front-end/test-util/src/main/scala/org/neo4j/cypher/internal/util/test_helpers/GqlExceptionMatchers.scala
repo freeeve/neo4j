@@ -36,7 +36,8 @@ trait GqlExceptionMatchers {
     line: Option[Int] = None,
     column: Option[Int] = None,
     causeMatcher: Option[GqlExceptionMatcher] = None,
-    fuzzyMatch: Boolean = false
+    fuzzyMatch: Boolean = false,
+    regexMatch: Boolean = false
   ) extends BeMatcher[ErrorGqlStatusObject] {
     override def toString(): String = s"GqlExceptionMatcher for $code"
 
@@ -65,7 +66,7 @@ trait GqlExceptionMatchers {
     }
 
     private def invalidStatusDescription(left: ErrorGqlStatusObject): Option[MatchResult] = {
-      if (!fuzzyMatch && left.statusDescription() != statusDescription) {
+      if (!fuzzyMatch && !regexMatch && left.statusDescription() != statusDescription) {
         Some(MatchResult(
           matches = false,
           s"""The status description for ${left.gqlStatus()}:
@@ -81,6 +82,16 @@ trait GqlExceptionMatchers {
           s"""The status description for ${left.gqlStatus()}:
              |${left.statusDescription()}
              |did not contain the expected:
+             |$statusDescription
+             |""".stripMargin,
+          "Unreachable"
+        ))
+      } else if (regexMatch && !left.statusDescription().matches(statusDescription)) {
+        Some(MatchResult(
+          matches = false,
+          s"""The status description for ${left.gqlStatus()}:
+             |${left.statusDescription()}
+             |did not match the expected:
              |$statusDescription
              |""".stripMargin,
           "Unreachable"
@@ -235,9 +246,10 @@ trait GqlExceptionMatchers {
   def gqlStatus(
     code: GqlStatusInfoCodes,
     statusDescription: String,
-    fuzzyStatusDescr: Boolean = false
+    fuzzyStatusDescr: Boolean = false,
+    regexDescr: Boolean = false
   ): GqlExceptionMatcher = {
-    GqlExceptionMatcher(code, statusDescription, fuzzyMatch = fuzzyStatusDescr)
+    GqlExceptionMatcher(code, statusDescription, fuzzyMatch = fuzzyStatusDescr, regexMatch = regexDescr)
   }
 
   def gqlException(

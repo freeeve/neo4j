@@ -24,11 +24,14 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.GqlStatusObject
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.graphdb.schema.IndexType
+import org.neo4j.kernel.impl.coreapi.TransactionImpl
 import org.neo4j.notifications.NotificationImplementation
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.Matcher
 
 import java.nio.file.Path
+
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 abstract class ExecutionEngineFunSuite
     extends CypherFunSuite
@@ -115,7 +118,10 @@ abstract class ExecutionEngineWithoutRestartFunSuite
     var nodeLookupIsMissing = true
     var relLookupIsMissing = true
     withTx { tx =>
-      tx.schema().getConstraints().forEach(_.drop())
+      val kernelApi = tx.asInstanceOf[TransactionImpl].kernelTransaction()
+      kernelApi.schemaRead().constraintsGetAll().asScala.foreach(p =>
+        kernelApi.schemaWrite().constraintDrop(p.getName, true)
+      )
       tx.schema().getIndexes().forEach { i =>
         if (i.getIndexType != IndexType.LOOKUP) {
           i.drop()

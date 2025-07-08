@@ -28,18 +28,18 @@ object CommunityRuntimeFactory {
 
   val interpreted =
     new FallbackRuntime[RuntimeContext](
-      ArraySeq(SchemaCommandRuntime, InterpretedRuntime),
+      ArraySeq(CommunitySchemaCommandRuntime, InterpretedRuntime),
       CypherRuntimeOption.interpreted
     )
 
   val slotted = new FallbackRuntime[RuntimeContext](
-    ArraySeq(SchemaCommandRuntime, CommunitySlottedRuntime),
+    ArraySeq(CommunitySchemaCommandRuntime, CommunitySlottedRuntime),
     CypherRuntimeOption.slotted
   )
 
   val default =
     new FallbackRuntime[RuntimeContext](
-      ArraySeq(SchemaCommandRuntime, CommunitySlottedRuntime),
+      ArraySeq(CommunitySchemaCommandRuntime, CommunitySlottedRuntime),
       CypherRuntimeOption.default
     )
 
@@ -57,7 +57,7 @@ object CommunityRuntimeFactory {
         throw RuntimeUnsupportedException.unsupportedRuntimeInThisVersion(String.valueOf(unsupported))
 
       case unsupported => new FallbackRuntime[RuntimeContext](
-          ArraySeq(UnknownRuntime(unsupported.name), SchemaCommandRuntime, CommunitySlottedRuntime),
+          ArraySeq(UnknownRuntime(unsupported.name), CommunitySchemaCommandRuntime, CommunitySlottedRuntime),
           unsupported
         )
     }

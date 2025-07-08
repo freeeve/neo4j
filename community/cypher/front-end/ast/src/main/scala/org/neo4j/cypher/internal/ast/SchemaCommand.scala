@@ -48,6 +48,8 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 sealed trait SchemaCommand extends StatementWithGraph with SemanticAnalysisTooling {
 
+  def commandDescription: String
+
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand
 
   override def returnColumns: List[LogicalVariable] = List.empty
@@ -74,6 +76,8 @@ sealed trait SchemaCommand extends StatementWithGraph with SemanticAnalysisTooli
 // Indexes
 
 sealed trait CreateIndex extends SchemaCommand {
+  override lazy val commandDescription: String = "CREATE " + indexType.command
+
   // To anonymize the name
   val name: Option[Either[String, Parameter]]
   def withName(name: Option[Either[String, Parameter]]): CreateIndex
@@ -485,6 +489,7 @@ case class DropIndexOnName(
 )(
   val position: InputPosition
 ) extends SchemaCommand {
+  override val commandDescription: String = "DROP INDEX"
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
   override def semanticCheck: SemanticCheck = Seq()
 }
@@ -492,6 +497,8 @@ case class DropIndexOnName(
 // Constraints
 
 sealed trait CreateConstraint extends SchemaCommand {
+  override lazy val commandDescription: String = "CREATE CONSTRAINT ... " + constraintType.predicate
+
   // To anonymize the name
   val name: Option[Either[String, Parameter]]
   def withName(name: Option[Either[String, Parameter]]): CreateConstraint
@@ -791,6 +798,7 @@ case class DropConstraintOnName(
   ifExists: Boolean,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends SchemaCommand {
+  override val commandDescription: String = "DROP CONSTRAINT"
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
   override def semanticCheck: SemanticCheck = Seq()
 }
@@ -802,6 +810,7 @@ case class AlterCurrentGraphType(
   operation: AlterOperation,
   useGraph: Option[GraphSelection] = None
 )(val position: InputPosition) extends SchemaCommand {
+  override val commandDescription: String = "ALTER CURRENT GRAPH TYPE " + operation.name
 
   private def checkForAllowedAlterCommand: SemanticCheck = operation match {
     case AlterCurrentGraphType.Add =>

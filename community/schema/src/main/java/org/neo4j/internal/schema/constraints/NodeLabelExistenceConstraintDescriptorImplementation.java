@@ -301,7 +301,7 @@ final class NodeLabelExistenceConstraintDescriptorImplementation implements Node
 
     @Override
     public String userDescription(TokenNameLookup tokenNameLookup) {
-        return userDescription(TOKEN_ID_NAME_LOOKUP, Mask.NO);
+        return userDescription(tokenNameLookup, Mask.NO);
     }
 
     private IllegalStateException conversionException(Class<? extends ConstraintDescriptor> targetType) {

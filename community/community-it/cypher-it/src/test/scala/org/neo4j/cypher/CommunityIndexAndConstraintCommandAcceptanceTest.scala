@@ -22,9 +22,11 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.QueryStatistics
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
+import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -63,7 +65,9 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   private def anyMap(elems: (String, Any)*): Map[String, Any] = Map[String, Any](elems: _*)
 
   override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
-    GraphDatabaseInternalSettings.graph_type_enabled -> java.lang.Boolean.TRUE
+    GraphDatabaseInternalSettings.graph_type_enabled -> java.lang.Boolean.TRUE,
+    GraphDatabaseInternalSettings.dependent_constraints_enabled -> java.lang.Boolean.TRUE,
+    GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints -> java.lang.Boolean.TRUE
   )
 
   // Index commands
@@ -596,5 +600,237 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
         }
       )
     }
+  }
+
+  // Graph type commands
+
+  test("Alter current graph type with empty graph type") {
+    Seq("SET").foreach(operation =>
+      withClue(operation) {
+        // WHEN
+        val exception = the[CantCompileQueryException] thrownBy {
+          execute(s"CYPHER 25 ALTER CURRENT GRAPH TYPE $operation {}")
+        }
+
+        // THEN
+        exception should be(gqlException(
+          "51N27: 'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              s"'ALTER CURRENT GRAPH TYPE $operation' is not supported in community edition."
+          )
+        ))
+      }
+    )
+
+    // Move up to loop above when implemented
+    Seq("DROP", "ADD", "ALTER").foreach(operation =>
+      withClue(operation) {
+        // WHEN
+        val exception = the[SyntaxException] thrownBy {
+          execute(s"CYPHER 25 ALTER CURRENT GRAPH TYPE $operation {}")
+        }
+
+        // THEN
+        exception should be(gqlException(
+          s"51N31: $operation is not supported in ALTER CURRENT GRAPH TYPE.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N31,
+            "error: system configuration or operation exception - not supported. " +
+              s"$operation is not supported in ALTER CURRENT GRAPH TYPE."
+          ),
+          fuzzyMsg = true
+        ))
+      }
+    )
+  }
+
+  test("Create property uniqueness constraints through graph type") {
+    Seq(
+      s"(e:$label)",
+      s"()-[e:$relType]->()"
+    ).foreach { pattern =>
+      withClue(pattern) {
+        // WHEN
+        val exception = the[CantCompileQueryException] thrownBy {
+          execute(
+            s"""CYPHER 25 ALTER CURRENT GRAPH TYPE SET {
+               | CONSTRAINT $constraintName FOR $pattern REQUIRE e.$prop IS UNIQUE
+               |}""".stripMargin
+          )
+        }
+
+        // THEN
+        exception should be(gqlException(
+          "51N27: 'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition."
+          )
+        ))
+        graph.constraintExists(constraintName) should be(false)
+      }
+    }
+  }
+
+  test("Create key constraints through graph type") {
+    Seq(
+      s"(e:$label)",
+      s"()-[e:$relType]->()"
+    ).foreach { pattern =>
+      withClue(pattern) {
+        // WHEN
+        val exception = the[CantCompileQueryException] thrownBy {
+          execute(
+            s"""CYPHER 25 ALTER CURRENT GRAPH TYPE SET {
+               | CONSTRAINT $constraintName FOR $pattern REQUIRE e.$prop IS KEY
+               |}""".stripMargin
+          )
+        }
+
+        // THEN
+        exception should be(gqlException(
+          "51N27: 'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition."
+          )
+        ))
+        graph.constraintExists(constraintName) should be(false)
+      }
+    }
+  }
+
+  test("Create property existence constraints through graph type") {
+    Seq(
+      s"(:$label => {$prop :: ANY NOT NULL})",
+      s"()-[:$relType => {$prop :: ANY NOT NULL}]->()",
+      s"CONSTRAINT $constraintName FOR (e:$label) REQUIRE e.$prop IS NOT NULL",
+      s"CONSTRAINT $constraintName FOR ()-[e:$relType]->() REQUIRE e.$prop IS NOT NULL"
+    ).foreach { constraint =>
+      withClue(constraint) {
+        // WHEN
+        val exception = the[CantCompileQueryException] thrownBy {
+          execute(
+            s"""CYPHER 25 ALTER CURRENT GRAPH TYPE SET {
+               | $constraint
+               |}""".stripMargin
+          )
+        }
+
+        // THEN
+        exception should be(gqlException(
+          "51N27: 'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition."
+          )
+        ))
+      }
+    }
+  }
+
+  test("Create property type constraints through graph type") {
+    Seq(
+      s"(:$label => {$prop :: STRING})",
+      s"()-[:$relType => {$prop :: STRING}]->()",
+      s"CONSTRAINT $constraintName FOR (e:$label) REQUIRE e.$prop IS :: STRING",
+      s"CONSTRAINT $constraintName FOR ()-[e:$relType]->() REQUIRE e.$prop IS :: STRING"
+    ).foreach { constraint =>
+      withClue(constraint) {
+        // WHEN
+        val exception = the[CantCompileQueryException] thrownBy {
+          execute(
+            s"""CYPHER 25 ALTER CURRENT GRAPH TYPE SET {
+               | $constraint
+               |}""".stripMargin
+          )
+        }
+
+        // THEN
+        exception should be(gqlException(
+          "51N27: 'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition."
+          )
+        ))
+      }
+    }
+  }
+
+  test("Create label existence constraints through graph type") {
+    // WHEN
+    val exception = the[CantCompileQueryException] thrownBy {
+      execute(
+        s"""CYPHER 25 ALTER CURRENT GRAPH TYPE SET {
+           | (:$label => :$relType)
+           |}""".stripMargin
+      )
+    }
+
+    // THEN
+    exception should be(gqlException(
+      "51N27: 'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition.",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. " +
+          "'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition."
+      )
+    ))
+  }
+
+  test("Create label endpoint constraints through graph type") {
+    Seq(
+      s"(:$label)-[:$relType =>]->()",
+      s"()-[:$relType =>]->(:$label)"
+    ).foreach { constraint =>
+      withClue(constraint) {
+        // WHEN
+        val exception = the[CantCompileQueryException] thrownBy {
+          execute(
+            s"""CYPHER 25 ALTER CURRENT GRAPH TYPE SET {
+               | $constraint
+               |}""".stripMargin
+          )
+        }
+
+        // THEN
+        exception should be(gqlException(
+          "51N27: 'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition."
+          )
+        ))
+      }
+    }
+  }
+
+  test("Graph type commands are not available in Cypher 5") {
+    Seq("SET", "DROP", "ADD", "ALTER").foreach(operation =>
+      withClue(operation) {
+        // WHEN
+        val exception = the[SyntaxException] thrownBy {
+          execute(s"CYPHER 5 ALTER CURRENT GRAPH TYPE $operation {}")
+        }
+
+        // THEN
+        exception should be(gqlException(
+          "Invalid input 'GRAPH': expected 'USER SET PASSWORD FROM'",
+          InvalidSyntaxStatus.withCause(
+            GqlStatusInfoCodes.STATUS_42I06,
+            "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER SET PASSWORD FROM'."
+          ),
+          fuzzyMsg = true
+        ))
+      }
+    )
   }
 }

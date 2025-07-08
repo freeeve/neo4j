@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.logical.plans.ProcedureCall
 import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.SchemaIndexLookupUsage
 import org.neo4j.cypher.internal.logical.plans.SchemaLabelIndexUsage
+import org.neo4j.cypher.internal.logical.plans.SchemaLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.SchemaRelationshipIndexUsage
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.options.CypherExecutionMode
@@ -70,6 +71,7 @@ import org.neo4j.cypher.internal.runtime.READ_ONLY
 import org.neo4j.cypher.internal.runtime.READ_WRITE
 import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.ResourceMonitor
+import org.neo4j.cypher.internal.runtime.SCHEMA_WRITE
 import org.neo4j.cypher.internal.runtime.WRITE
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
@@ -120,6 +122,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
   planner: CypherPlanner,
   runtime: CypherRuntime[CONTEXT],
   contextManager: RuntimeContextManager[CONTEXT],
+  schemaCommandRuntime: SchemaCommandRuntime,
   kernelMonitors: Monitors,
   queryCaches: CypherQueryCaches
 ) extends org.neo4j.cypher.internal.Compiler {
@@ -338,11 +341,14 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
     runtime match {
       case m: AdministrationCommandRuntime if m.isApplicableAdministrationCommand(planState.logicalPlan) =>
         DBMS
+      case _
+        if planState.logicalPlan.isInstanceOf[SchemaLogicalPlan] &&
+          schemaCommandRuntime.isApplicable(planState.logicalPlan) =>
+        // _ is a FallbackRuntime mostly, which may or may not contain an instance of SchemaCommandRuntime, so we have to
+        // pass the right one in.
+        SCHEMA_WRITE
       case _ =>
-        val procedureOrSchema = SchemaCommandRuntime.queryType(planState.logicalPlan)
-        if (procedureOrSchema.isDefined) {
-          procedureOrSchema.get
-        } else if (planHasDBMSProcedure(planState.logicalPlan)) {
+        if (planHasDBMSProcedure(planState.logicalPlan)) {
           if (planState.planningAttributes.readOnly) {
             DBMS_READ
           } else {

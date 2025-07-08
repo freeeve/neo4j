@@ -261,7 +261,7 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
     propertyKeyName: PropertyKeyName,
     body: PropertyInlineConstraintBody
   )(implicit refBuilder: ReferenceBuilder[E]): GraphTypeConstraint = {
-    val v = variable.getOrElse(refBuilder.variableNameGenerator())
+    val v = variable.map(_.copyId).getOrElse(refBuilder.variableNameGenerator())
     body match {
       case c: PropertyInlineKeyConstraint => GraphTypeConstraintDefinition(
           None,

@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CommunityCompilerFactory
 import org.neo4j.cypher.internal.CommunityRuntimeContextManager
 import org.neo4j.cypher.internal.CommunityRuntimeFactory
+import org.neo4j.cypher.internal.CommunitySchemaCommandRuntime
 import org.neo4j.cypher.internal.Compiler
 import org.neo4j.cypher.internal.CompilerLibrary
 import org.neo4j.cypher.internal.CypherCurrentCompiler
@@ -107,6 +108,7 @@ class LogicalPlanCacheAcceptanceTest extends CypherFunSuite with GraphDatabaseTe
       caches,
       CypherPlannerOption.default,
       null,
+      CommunitySchemaCommandRuntime,
       null,
       new InternalUsageStatsImpl
     )
@@ -118,6 +120,7 @@ class LogicalPlanCacheAcceptanceTest extends CypherFunSuite with GraphDatabaseTe
         log,
         CypherRuntimeConfiguration.fromCypherConfiguration(CypherConfiguration.fromConfig(Config.defaults()))
       ),
+      CommunitySchemaCommandRuntime,
       kernelMonitors,
       caches
     )

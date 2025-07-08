@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.PlanFingerprintReference
 import org.neo4j.cypher.internal.ReusabilityState
 import org.neo4j.cypher.internal.SchemaCommandRuntime
 import org.neo4j.cypher.internal.ast.AdministrationCommand
+import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.AstCache
@@ -79,6 +80,7 @@ import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ProcedureCall
+import org.neo4j.cypher.internal.logical.plans.SchemaLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.SystemProcedureCall
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
@@ -109,6 +111,7 @@ import org.neo4j.cypher.internal.util.InternalNotificationStats
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.cypher.internal.util.devNullLogger
+import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.DisallowedOnSystemException
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.exceptions.SecurityAdministrationException
@@ -221,6 +224,7 @@ case class CypherPlanner(
   queryCaches: CypherQueryCaches,
   plannerOption: CypherPlannerOption,
   databaseReferenceRepository: DatabaseReferenceRepository,
+  schemaCommandRuntime: SchemaCommandRuntime,
   internalNotificationStats: InternalNotificationStats,
   internalUsageStats: InternalUsageStats
 ) {
@@ -639,7 +643,18 @@ case class CypherPlanner(
               )
           }
         }
-      case _ if SchemaCommandRuntime.isApplicable(logicalPlanState) => (FineToReuse, shouldBeCached)
+      case _ if logicalPlanState.logicalPlan.isInstanceOf[SchemaLogicalPlan] =>
+        // _ is a FallbackRuntime mostly, which may or may not contain an instance of SchemaCommandRuntime, so we have to
+        // pass the right one in.
+        if (schemaCommandRuntime.isApplicable(logicalPlanState.logicalPlan)) {
+          (FineToReuse, shouldBeCached)
+        } else {
+          val name = logicalPlanState.statement() match {
+            case s: SchemaCommand => s.commandDescription
+            case s: Statement     => s.getClass.getSimpleName
+          }
+          throw CantCompileQueryException.schemaCommandUnsupportedInCommunityEdition(name)
+        }
       case _ =>
         val fingerprint = PlanFingerprint.take(
           clock,

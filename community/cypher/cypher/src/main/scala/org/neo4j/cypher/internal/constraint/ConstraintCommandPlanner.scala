@@ -59,7 +59,8 @@ import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.values.virtual.MapValue
 
 /**
- * Create the schema write functions for the constraint command SchemaExecutionPlan's
+ * Create the schema write functions for the community and enterprise constraint command SchemaExecutionPlan's.
+ * The enterprise commands are just here to not change the existing errors for them.
  */
 object ConstraintCommandPlanner {
 

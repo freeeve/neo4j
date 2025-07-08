@@ -225,7 +225,7 @@ class FallbackRuntime[CONTEXT <: RuntimeContext](
     while (i < runtimes.length) {
       val runtime = runtimes(i)
 
-      if (failedAttempt != null && runtime != SchemaCommandRuntime) {
+      if (failedAttempt != null && !runtime.isInstanceOf[SchemaCommandRuntime]) {
         val (failingRuntime, message) = failedAttempt
         logger.log(RuntimeUnsupportedNotification(runtimeConf(failingRuntime), runtimeConf(runtime), message))
         failedAttempt = null
@@ -241,7 +241,7 @@ class FallbackRuntime[CONTEXT <: RuntimeContext](
           lastException = e
 
           if (
-            runtime != SchemaCommandRuntime &&
+            !runtime.isInstanceOf[SchemaCommandRuntime] &&
             requestedRuntime != CypherRuntimeOption.default &&
             i < runtimes.length - 1
           ) {

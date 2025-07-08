@@ -83,6 +83,14 @@ public class CantCompileQueryException extends Neo4jException {
                         .formatted(planName));
     }
 
+    public static CantCompileQueryException schemaCommandUnsupportedInCommunityEdition(String component) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
+                .withParam(GqlParams.StringParam.feat, "'%s'".formatted(component))
+                .withParam(GqlParams.StringParam.edition, "community edition")
+                .build();
+        return new CantCompileQueryException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
     public static CantCompileQueryException planNotRecognisedInAdminCommand(String unknownPlan) {
         var msg = String.format("Plan is not a recognized database administration command: %s", unknownPlan);
         var gql = GqlHelper.get50N00(CantCompileQueryException.class.getSimpleName(), msg);
