@@ -113,8 +113,8 @@ case class RepeatSlottedPipe(
   inner: Pipe,
   repetition: Repetition,
   startSlot: Slot,
-  endOffset: Int,
-  innerStarOffset: Int,
+  endSlot: Slot,
+  innerStartOffset: Int,
   innerEndSlot: Slot,
   groupNodes: Array[GroupSlot],
   groupRelationships: Array[GroupSlot],
@@ -130,6 +130,7 @@ case class RepeatSlottedPipe(
   private[this] val emptyGroupNodes = emptyLists(groupNodes.length)
   private[this] val emptyGroupRelationships = emptyLists(groupRelationships.length)
   private[this] val getStartNodeFunction = makeGetPrimitiveNodeFromSlotFunctionFor(startSlot)
+  private[this] val getEndNodeFunction = makeGetPrimitiveNodeFromSlotFunctionFor(endSlot)
   private[this] val previousAccumulatorSlotOffsets = accumulatorMappings.map(_.previous.offset)
   private[this] val nextAccumulatorSlotOffsets = accumulatorMappings.map(_.next.offset)
 
@@ -264,7 +265,7 @@ case class RepeatSlottedPipe(
           resultRow,
           groupNodes,
           groupRelationships,
-          endOffset,
+          endSlot.offset,
           nodeInScope
         )
         resultRow
@@ -284,7 +285,7 @@ case class RepeatSlottedPipe(
           rhsInnerRow,
           groupNodes,
           groupRelationships,
-          endOffset,
+          endSlot.offset,
           reverseGroupVariableProjections,
           nodeInScope
         )
@@ -360,7 +361,7 @@ case class RepeatSlottedPipe(
               }
               // Run RHS with previous end-node as new innerStartNode
               stackHead = stack.pop()
-              rhsInitialRow.setLongAt(innerStarOffset, stackHead.node)
+              rhsInitialRow.setLongAt(innerStartOffset, stackHead.node)
 
               stackHead match {
                 case t: SlottedTrailState =>
@@ -391,7 +392,7 @@ case class RepeatSlottedPipe(
   }
 
   private def testEndNode(row: CypherRow, endNode: Long): Boolean = {
-    !nodeInScope || row.getLongAt(endOffset) == endNode
+    !nodeInScope || getEndNodeFunction.applyAsLong(row) == endNode
   }
 }
 

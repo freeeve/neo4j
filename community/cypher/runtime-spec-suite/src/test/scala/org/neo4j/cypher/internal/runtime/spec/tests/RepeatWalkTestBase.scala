@@ -53,6 +53,13 @@ import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.RelationshipType.withName
+import org.neo4j.internal.kernel.api.procs.Neo4jTypes
+import org.neo4j.internal.kernel.api.procs.QualifiedName
+import org.neo4j.internal.kernel.api.procs.UserFunctionSignature
+import org.neo4j.kernel.api.procedure.CallableUserFunction.BasicUserFunction
+import org.neo4j.kernel.api.procedure.Context
+import org.neo4j.kernel.impl.util.ValueUtils
+import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.VirtualValues.pathReference
 
 import java.util
@@ -663,6 +670,82 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
         Array(n1, listOf(n1, n2, n3), listOf(n2, n3, n4), listOf(r12, r23, r34))
       )
     ))
+  }
+
+  test("should work with into when end node is projected from user function") {
+    // (n1:START) → (n2) → (n3) → (n4)
+    val (n1, n2, n3, _, r12, r23, _) = smallChainGraph
+
+    val userFunction = new BasicUserFunction(
+      UserFunctionSignature.functionSignature(new QualifiedName("user.custom.getSingleNode"))
+        .out(Neo4jTypes.NTNode).threadSafe().build()
+    ) {
+
+      override def apply(ctx: Context, input: Array[AnyValue]): AnyValue = {
+        ValueUtils.of(n3)
+      }
+    }
+
+    registerFunction(userFunction)
+
+    val `(me) [(a)-[r]->(b)]{0,*} (you) ExpandInto` = `(me) [(a)-[r]->(b)]{0,*} (you)`
+      .copy(expansionMode = ExpandInto)
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "a", "b", "r", "you")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("me"))))
+      .repeatWalk(`(me) [(a)-[r]->(b)]{0,*} (you) ExpandInto`)
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .projection(Map("you" -> function("user.custom.getSingleNode")))
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "a", "b", "r", "you").withRows(inAnyOrder(
+      Seq(
+        Array(n1, listOf(n1, n2), listOf(n2, n3), listOf(r12, r23), n3)
+      )
+    ))
+  }
+
+  test("should work with into when null is projected from user function") {
+    // (n1:START) → (n2) → (n3) → (n4)
+    smallChainGraph
+
+    val userFunction = new BasicUserFunction(
+      UserFunctionSignature.functionSignature(new QualifiedName("user.custom.getSingleNode"))
+        .out(Neo4jTypes.NTNode).threadSafe().build()
+    ) {
+
+      override def apply(ctx: Context, input: Array[AnyValue]): AnyValue = {
+        ValueUtils.of(null)
+      }
+    }
+
+    registerFunction(userFunction)
+
+    val `(me) [(a)-[r]->(b)]{0,*} (you) ExpandInto` = `(me) [(a)-[r]->(b)]{0,*} (you)`
+      .copy(expansionMode = ExpandInto)
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "a", "b", "r", "you")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("me"))))
+      .repeatWalk(`(me) [(a)-[r]->(b)]{0,*} (you) ExpandInto`)
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("me", "a_inner")
+      .projection(Map("you" -> function("user.custom.getSingleNode")))
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "a", "b", "r", "you").withNoRows()
   }
 
   test("should work with filter on rhs 1") {
