@@ -23,6 +23,7 @@ import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Arrays.copyOfRange;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
@@ -31,6 +32,7 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSP
 import static org.neo4j.kernel.impl.transaction.log.rotation.LogRotation.NO_ROTATION;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -42,10 +44,12 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.io.fs.ChecksumWriter;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
+import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.io.memory.ScopedBuffer;
@@ -2197,6 +2201,211 @@ class EnvelopeWriteChannelTest {
         }
     }
 
+    @ParameterizedTest
+    @CsvSource({
+        "256, 225, 20, 10", // entries each fill one segment
+        "256, 20, 20, 5", // 1 byte short of first full segment after first part
+        "256, 20, 20, 10", // 1 byte short of second full segment after first part
+        "256, 194, 20, 1", // Max 31 bytes padding after each entry
+        "256, 193, 20, 1", // 32 bytes space after first entry, so won't pad
+        "256, 97, 20, 5", // Ends half into segment after first part, so won't pad
+        "256, 1000, 20, 7", // Entries span multiple segments, then need padding
+        "1024, 1, 20, 10", // Restart still within one segment, no padding
+    })
+    void directPutAllCanAppendAfterEntryLatePadded(int segmentSize, int dataSize, int entryCount, int splitIndex)
+            throws IOException {
+        // write first set of entries into the source log file
+        final var part1State = writeLogFileEntries(
+                segmentSize, splitIndex, dataSize, new LogContinuityInfo(segmentSize, BASE_TX_ID, BASE_TX_CHECKSUM));
+        // setup enveloped write channel to push raw binary data into
+        try (var copyWriter = writeChannel(storeChannel(2L), segmentSize, buffer(segmentSize))) {
+            directCopyLogData(segmentSize, BASE_TX_ID, copyWriter);
+        }
+        assertThat(directory.fileContent(logPath(1)))
+                .as("files should be binary identical after copy of first section")
+                .isEqualTo(directory.fileContent(logPath(2)));
+
+        // write remaining entries to source file
+        writeLogFileEntries(segmentSize, entryCount - splitIndex, dataSize, part1State);
+
+        // re-attach writer to append further catch up data
+        try (var copyWriter = writeChannel(
+                storeChannel(2L),
+                segmentSize,
+                part1State.lastChecksum(),
+                buffer(segmentSize),
+                NO_ROTATION,
+                LogTracers.NULL,
+                part1State.offset(),
+                part1State.lastAppendIndex())) {
+            // append the new range of entries onto
+            directCopyLogData(segmentSize, part1State.lastAppendIndex + 1L, copyWriter);
+        }
+        assertThat(directory.fileContent(logPath(1)))
+                .as("files should still be binary identical after second catchup")
+                .isEqualTo(directory.fileContent(logPath(2)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+        "256, 225, 20, 10, 15", // no START_OFFSET needed, no padding
+        "256, 20, 20, 5, 15", // START_OFFSET, then 1 byte pad
+        "256, 20, 20, 8 , 10", // START_OFFSET, then 1 byte pad
+        "256, 27, 20, 8, 12", // START_OFFSET, then 24 byte pad
+        "256, 193, 20, 8, 15", // START_OFFSET, then no padding
+        "256, 1024, 20, 11, 15", // Multi-segment data, START_OFFSET, then 16 byte pad
+        "1024, 1, 20, 10, 15", // START_OFFSET, then no pad and continued in same segment
+    })
+    void directPutAllWithStartOffsetChecksumMatches(
+            int segmentSize, int dataSize, int entryCount, int startIndex, int midIndex) throws IOException {
+        // write full set of entries into the source log file
+        final var initialState = writeLogFileEntries(
+                segmentSize, midIndex, dataSize, new LogContinuityInfo(segmentSize, BASE_TX_ID, BASE_TX_CHECKSUM));
+
+        // start copy from point within range
+        try (var copyWriter = writeChannel(storeChannel(2L), segmentSize, buffer(segmentSize))) {
+            directCopyLogData(segmentSize, startIndex + BASE_TX_ID, copyWriter);
+        }
+        int midChecksum = getEndChecksum(segmentSize);
+        assertThat(midChecksum)
+                .as("original and copy should have same checksum despite START_OFFSET")
+                .isEqualTo(initialState.lastChecksum());
+
+        // write remaining entries to source file
+        final var finalState = writeLogFileEntries(segmentSize, entryCount - midIndex, dataSize, initialState);
+
+        // re-attach writer to append further catch up data
+        try (var copyWriter = writeChannel(
+                storeChannel(2L),
+                segmentSize,
+                finalState.lastChecksum(),
+                buffer(segmentSize),
+                NO_ROTATION,
+                LogTracers.NULL,
+                (int) fileSystem.getFileSize(logPath(2L)),
+                finalState.lastAppendIndex())) {
+            // append the new range of entries onto
+            directCopyLogData(segmentSize, initialState.lastAppendIndex + 1L, copyWriter);
+        }
+        int finalChecksum = getEndChecksum(segmentSize);
+        assertThat(finalChecksum)
+                .as("original and copy should still have same checksum despite START_OFFSET and restarted append")
+                .isEqualTo(finalState.lastChecksum());
+    }
+
+    @Test
+    void directPutAllThrowsIfOffsetAlignedWhenCurrentOffsetBeforePadZone() throws IOException {
+        // setup situation
+        final var segmentSize = 256;
+        final var dataSize = 20;
+        final var splitIndex = 8;
+        // write set of entries into the source log file that ends before padding range
+        final var part1State = writeLogFileEntries(
+                segmentSize, splitIndex, dataSize, new LogContinuityInfo(segmentSize, BASE_TX_ID, BASE_TX_CHECKSUM));
+        assertThat(part1State.offset() % segmentSize)
+                .as("After setup, end offset of file should be in early part of segment, but not zero")
+                .isNotZero()
+                .isLessThan(segmentSize - HEADER_SIZE);
+        // setup enveloped write channel to push raw binary data into
+        try (var copyWriter = writeChannel(storeChannel(2L), segmentSize, buffer(segmentSize))) {
+            directCopyLogData(segmentSize, BASE_TX_ID, copyWriter);
+        }
+
+        // re-attach writer to append further catch up data
+        try (var copyWriter = writeChannel(
+                storeChannel(2L),
+                segmentSize,
+                part1State.lastChecksum(),
+                buffer(segmentSize),
+                NO_ROTATION,
+                LogTracers.NULL,
+                part1State.offset(),
+                part1State.lastAppendIndex())) {
+            var dummyBuf = ByteBuffer.allocate(10);
+            assertThatThrownBy(() -> copyWriter.directPutAll(dummyBuf, 5L * segmentSize))
+                    .as("Appending with segment aligned offset should throw if not aligned, or needing late padding")
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_NOT_CONSISTENT);
+        }
+    }
+
+    @Test
+    void directPutAllDoesntThrowOnAlignedOffset() throws IOException {
+        // setup situation
+        final var segmentSize = 256;
+        final var dataSize = (segmentSize / 2) - HEADER_SIZE; // two entries per segment
+        final var splitIndex = 8; // even number to get alignment we want
+        // write set of entries into the source log file that ends aligned
+        final var part1State = writeLogFileEntries(
+                segmentSize, splitIndex, dataSize, new LogContinuityInfo(segmentSize, BASE_TX_ID, BASE_TX_CHECKSUM));
+        assertThat(part1State.offset() % segmentSize)
+                .as("After setup, end offset of file should be on a segment boundary")
+                .isZero();
+        // setup enveloped write channel to push raw binary data into
+        try (var copyWriter = writeChannel(storeChannel(2L), segmentSize, buffer(segmentSize))) {
+            directCopyLogData(segmentSize, BASE_TX_ID, copyWriter);
+        }
+
+        // re-attach writer to append further catch up data
+        try (var copyWriter = writeChannel(
+                storeChannel(2L),
+                segmentSize,
+                part1State.lastChecksum(),
+                buffer(segmentSize),
+                NO_ROTATION,
+                LogTracers.NULL,
+                part1State.offset(),
+                part1State.lastAppendIndex())) {
+            var dummyBuf = ByteBuffer.allocate(10);
+            var beforeOffset = copyWriter.position();
+            assertThatCode(() -> copyWriter.directPutAll(dummyBuf, 5L * segmentSize))
+                    .as("Appending with segment aligned offset and destination channel should not throw")
+                    .doesNotThrowAnyException();
+            assertThat(copyWriter.position() - beforeOffset)
+                    .as("Only data with no padding should be added to copy channel")
+                    .isEqualTo(dummyBuf.limit());
+        }
+    }
+
+    @Test
+    void directPutAllDoesntThrowOnPadSituation() throws IOException {
+        // setup situation
+        final var segmentSize = 256;
+        final var dataSize = segmentSize - HEADER_SIZE - 15; // always requires pad at segment end
+        final var splitIndex = 8;
+        // write set of entries into the source log file that ends with padding at next write
+        final var part1State = writeLogFileEntries(
+                segmentSize, splitIndex, dataSize, new LogContinuityInfo(segmentSize, BASE_TX_ID, BASE_TX_CHECKSUM));
+        assertThat(part1State.offset() % segmentSize)
+                .isNotZero()
+                .as("After setup, end offset should require padding to segment boundary")
+                .isGreaterThanOrEqualTo(segmentSize - HEADER_SIZE);
+        // setup enveloped write channel to push raw binary data into
+        try (var copyWriter = writeChannel(storeChannel(2L), segmentSize, buffer(segmentSize))) {
+            directCopyLogData(segmentSize, BASE_TX_ID, copyWriter);
+        }
+
+        // re-attach writer to append further catch up data
+        try (var copyWriter = writeChannel(
+                storeChannel(2L),
+                segmentSize,
+                part1State.lastChecksum(),
+                buffer(segmentSize),
+                NO_ROTATION,
+                LogTracers.NULL,
+                part1State.offset(),
+                part1State.lastAppendIndex())) {
+            var dummyBuf = ByteBuffer.allocate(10);
+            var beforeOffset = copyWriter.position();
+            // Appending with segment aligned offset when we expect padding should not throw
+            assertThatCode(() -> copyWriter.directPutAll(dummyBuf, 5L * segmentSize))
+                    .doesNotThrowAnyException();
+            assertThat(copyWriter.position() - beforeOffset)
+                    .as("Data appended to copy channel should also include extra padding")
+                    .isEqualTo(dummyBuf.limit() + (segmentSize - (part1State.offset % segmentSize)));
+        }
+    }
+
     private PhysicalLogVersionedStoreChannel storeChannel() throws IOException {
         return storeChannel(1L);
     }
@@ -2566,5 +2775,75 @@ class EnvelopeWriteChannelTest {
 
     private interface LogRotationForChannel extends LogRotation {
         void bindWriteChannel(EnvelopeWriteChannel channel);
+    }
+
+    private record LogContinuityInfo(int offset, long lastAppendIndex, int lastChecksum) {}
+
+    private LogContinuityInfo writeLogFileEntries(
+            int segmentSize, int newEntryCount, int dataSize, LogContinuityInfo startState) throws IOException {
+        int lastChecksum = BASE_TX_CHECKSUM;
+        long lastAppendIndex = BASE_TX_ID;
+        try (var writer = writeChannel(
+                storeChannel(),
+                segmentSize,
+                startState.lastChecksum(),
+                buffer(segmentSize),
+                NO_ROTATION,
+                LogTracers.NULL,
+                startState.offset(),
+                startState.lastAppendIndex())) {
+            for (int i = 0; i < newEntryCount; i++) {
+                writer.beginChecksumForWriting();
+                writer.putVersion(KERNEL_VERSION);
+                writer.putTerm(TERM);
+                writer.putContentType(CONTENT_TYPE);
+                var byteData = new byte[dataSize];
+                Arrays.fill(byteData, (byte) i);
+                writer.put(byteData, byteData.length);
+                lastChecksum = writer.putChecksum();
+                lastAppendIndex = writer.currentIndex();
+            }
+            return new LogContinuityInfo((int) writer.position(), lastAppendIndex, lastChecksum);
+        }
+    }
+
+    private void directCopyLogData(int segmentSize, long startingAppendIndex, EnvelopeWriteChannel copyWriter)
+            throws IOException {
+        var readChannel = storeChannel();
+        try (var reader = new EnvelopeReadChannel(
+                readChannel, segmentSize, LogVersionBridge.NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            long startPos = reader.alignWithStartEntry();
+            while (reader.currentIndex < startingAppendIndex) {
+                startPos = reader.goToNextEntry();
+            }
+            // align raw channel to correct offset
+            readChannel.position(startPos);
+            var readBuf = ByteBuffer.allocate(segmentSize);
+            int sent = (int) startPos;
+            int readBytes;
+            // transfer everything until the current end of file
+            while ((readBytes = readChannel.read(readBuf)) > 0) {
+                readBuf.flip();
+                copyWriter.directPutAll(readBuf, sent);
+                sent += readBytes;
+            }
+            // ensure contents is externally visible
+            copyWriter.prepareForFlush().flush();
+        }
+    }
+
+    private int getEndChecksum(int segmentSize) throws IOException {
+        try (var reader = new EnvelopeReadChannel(
+                storeChannel(2L), segmentSize, LogVersionBridge.NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            reader.alignWithStartEntry();
+            try {
+                while (true) {
+                    reader.goToNextEntry();
+                }
+            } catch (ReadPastEndException ignore) {
+                // Reached end
+            }
+            return reader.getChecksum();
+        }
     }
 }

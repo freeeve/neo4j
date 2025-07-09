@@ -101,6 +101,10 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     static final String ERROR_MSG_TEMPLATE_OFFSET_MUST_NOT_BE_INSIDE_ANOTHER_ENVELOPE =
             "START_OFFSET cannot be inserted while another envelope is still open. Close the current entry first.";
 
+    @VisibleForTesting
+    static final String ERROR_MSG_TEMPLATE_OFFSET_NOT_CONSISTENT =
+            "The provided offset is aligned on a segment, but the existing channel is at a different offset";
+
     private static final byte[] PADDING_ZEROES = new byte[MAX_ZERO_PADDING_SIZE];
 
     private final Checksum checksum = CHECKSUM_FACTORY.get();
@@ -372,6 +376,16 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
             // Should write a start offset envelope if there is not already data up to the offset
             if (offsetIntoSegment != 0 && (currentEnvelopeStart % segmentBlockSize != offsetIntoSegment)) {
                 insertStartOffset(offsetIntoSegment);
+            }
+            // provided offset on segment boundary
+            if (offsetIntoSegment == 0) {
+                // writer about to zero pad, so add missing padding, or throw if state doesn't match
+                int currentStartOffsetIntoSegment = currentEnvelopeStart % segmentBlockSize;
+                if (currentStartOffsetIntoSegment >= (segmentBlockSize - HEADER_SIZE)) {
+                    padSegmentAndGoToNext(false);
+                } else if (currentStartOffsetIntoSegment != 0) {
+                    throw new IllegalStateException(ERROR_MSG_TEMPLATE_OFFSET_NOT_CONSISTENT);
+                }
             }
         }
 

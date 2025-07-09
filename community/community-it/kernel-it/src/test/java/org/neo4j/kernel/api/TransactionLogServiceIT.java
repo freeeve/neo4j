@@ -30,10 +30,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseSettings.CheckpointPolicy.PERIODIC;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.io.ByteUnit.kibiBytes;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.LogVersionRepository.UNKNOWN_LOG_OFFSET;
@@ -47,6 +49,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.channels.ClosedChannelException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +92,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.LogRangeInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogTailInformation;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFile;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointLogFile;
@@ -410,6 +414,84 @@ class TransactionLogServiceIT {
             assertEquals(
                     indexShift - 1 + version, logFile.extractHeader(version).getLastAppendIndex());
         }
+    }
+
+    @Test
+    void bulkAppendForEnvelopesRotatesOnNewFileOnSender() throws IOException {
+        // Only interesting for envelopes
+        assumeTrue(LATEST_LOG_FORMAT.usesSegments());
+        // Currently calls with append index represent first append or new file
+        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+
+        LogFile logFile = logFiles.getLogFile();
+        LogPosition startPosition = logFile.getTransactionLogWriter().getCurrentPosition();
+
+        int dataSize = DEFAULT_LOG_SEGMENT_SIZE / 2;
+        var appendData = ByteBuffers.allocateDirect(dataSize, ByteOrder.LITTLE_ENDIAN, INSTANCE)
+                .put(randomAscii(dataSize).getBytes(UTF_8))
+                .rewind();
+        try {
+            logService.append(
+                    appendData,
+                    OptionalLong.of(1),
+                    Optional.of(LATEST_KERNEL_VERSION.version()),
+                    BASE_TX_CHECKSUM,
+                    UNKNOWN_LOG_OFFSET,
+                    Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
+            appendData.rewind();
+
+            logService.append(
+                    appendData,
+                    OptionalLong.of(2),
+                    Optional.of(LATEST_KERNEL_VERSION.version()),
+                    BASE_TX_CHECKSUM,
+                    DEFAULT_LOG_SEGMENT_SIZE,
+                    Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
+        } finally {
+            ByteBuffers.releaseBuffer(appendData, INSTANCE);
+        }
+
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertThat(logRangeInfo.highestVersion()).isEqualTo(logRangeInfo.lowestVersion() + 1);
+        assertThat(Files.size(logFile.getLogFileForVersion(logRangeInfo.lowestVersion())))
+                .isEqualTo(startPosition.getByteOffset() + dataSize);
+        assertThat(logFile.getTransactionLogWriter().getCurrentPosition())
+                .isEqualTo(new LogPosition(logRangeInfo.highestVersion(), DEFAULT_LOG_SEGMENT_SIZE + dataSize));
+    }
+
+    @Test
+    void bulkAppendForEnvelopesDoesntRotateOnNewFileOnSenderIfAlreadyRotated() throws IOException {
+        // Only interesting for envelopes
+        assumeTrue(LATEST_LOG_FORMAT.usesSegments());
+        // Currently calls with append index represent first append or new file
+        availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
+
+        LogFile logFile = logFiles.getLogFile();
+        logFile.rotate();
+
+        LogRangeInfo logRangeInfo = logFile.getLogRangeInfo();
+        assertThat(logRangeInfo.highestVersion()).isEqualTo(logRangeInfo.lowestVersion() + 1);
+
+        int dataSize = DEFAULT_LOG_SEGMENT_SIZE / 2;
+        var appendData = ByteBuffers.allocateDirect(dataSize, ByteOrder.LITTLE_ENDIAN, INSTANCE)
+                .put(randomAscii(dataSize).getBytes(UTF_8))
+                .rewind();
+        try {
+            logService.append(
+                    appendData,
+                    OptionalLong.of(1),
+                    Optional.of(LATEST_KERNEL_VERSION.version()),
+                    BASE_TX_CHECKSUM,
+                    DEFAULT_LOG_SEGMENT_SIZE,
+                    Optional.of(LATEST_LOG_FORMAT.getVersionByte()));
+        } finally {
+            ByteBuffers.releaseBuffer(appendData, INSTANCE);
+        }
+
+        logRangeInfo = logFile.getLogRangeInfo();
+        assertThat(logRangeInfo.highestVersion()).isEqualTo(logRangeInfo.lowestVersion() + 1);
+        assertThat(logFile.getTransactionLogWriter().getCurrentPosition())
+                .isEqualTo(new LogPosition(logRangeInfo.highestVersion(), DEFAULT_LOG_SEGMENT_SIZE + dataSize));
     }
 
     @Test

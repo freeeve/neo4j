@@ -180,6 +180,13 @@ public class TransactionLogWriter {
                 logRotation.locklessRotateLogFile(
                         logAppendEvent, kernelVersion, appendIndex.getAsLong() - 1, checksum, logFormat);
                 previousKernelVersion = kernelVersion;
+            } else if (logFormat.usesSegments()
+                    && logFormat.getDefaultDataStartByteOffset() == offset
+                    && channel.getCurrentLogPosition().getByteOffset() != offset) {
+                // This rotation is to handle the case where the sender has rotated to a new file in the middle
+                // of a segment, and we must do the same to keep txs aligned on segment boundaries.
+                logRotation.locklessRotateLogFile(
+                        logAppendEvent, kernelVersion, appendIndex.getAsLong() - 1, checksum, logFormat);
             } else {
                 logRotation.locklessBatchedRotateLogIfNeeded(
                         logAppendEvent, appendIndex.getAsLong() - 1, kernelVersion, checksum, logFormat);
