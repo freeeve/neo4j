@@ -574,7 +574,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
             exceptionMessage should endWith(
               "constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown."
             )
-            exception.gqlStatusObject() should be(gqlStatus(
+            exception should be(gqlStatus(
               GqlStatusInfoCodes.STATUS_50N11,
               s"error: general processing exception - constraint creation failed. Unable to create '$constraintNameOrDescr'."
             ).withCause(
@@ -589,10 +589,15 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
       Seq("enforcedLabel", "classification").foreach(column =>
         withClue(cypherVersionString + column) {
           if (usesCypher5) {
-            val exceptionMessage = (the[SyntaxException] thrownBy {
+            val exception = (the[SyntaxException] thrownBy {
               execute(cypherVersionString + "SHOW CONSTRAINTS YIELD " + column)
-            }).getMessage
-            exceptionMessage should startWith(s"Trying to YIELD non-existing column: `$column`")
+            })
+            exception.getMessage should startWith(s"Trying to YIELD non-existing column: `$column`")
+            exception should be(InvalidSyntaxStatus.withCause(gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N04,
+              s"error: data exception - invalid input value. Invalid input '$column' for column name. " +
+                "Expected 'createStatement', 'entityType', 'id', 'labelsOrTypes', 'name', 'options', 'ownedIndex', 'properties', 'propertyType' or 'type'."
+            )))
           } else {
             // no constraints, so empty result but no failure
             execute(cypherVersionString + "SHOW CONSTRAINTS YIELD " + column).toList should have size 0

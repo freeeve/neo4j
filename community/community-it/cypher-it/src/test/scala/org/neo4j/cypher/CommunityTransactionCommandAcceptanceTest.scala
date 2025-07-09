@@ -22,6 +22,7 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.exceptions.SyntaxException
@@ -373,6 +374,10 @@ class CommunityTransactionCommandAcceptanceTest extends TransactionCommandAccept
 
     // THEN
     exception.getMessage should startWith("Variable `parameters` not defined")
+    exception should be(InvalidSyntaxStatus.withCause(gqlStatus(
+      GqlStatusInfoCodes.STATUS_42N62,
+      "error: syntax error or access rule violation - variable not defined. Variable `parameters` not defined."
+    )))
   }
 
   test("Should show current transaction with YIELD *") {
@@ -850,6 +855,10 @@ class CommunityTransactionCommandAcceptanceTest extends TransactionCommandAccept
 
     // THEN
     exception.getMessage should startWith("Invalid input '': expected a string or an expression")
+    exception should be(InvalidSyntaxStatus.withCause(gqlStatus(
+      GqlStatusInfoCodes.STATUS_42I06,
+      "error: syntax error or access rule violation - invalid input. Invalid input '', expected: a string or an expression."
+    )))
   }
 
   test("Should fail to terminate transaction when passing empty list as parameter") {
