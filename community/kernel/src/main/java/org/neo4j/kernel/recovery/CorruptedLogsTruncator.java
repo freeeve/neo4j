@@ -39,6 +39,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
@@ -291,10 +292,8 @@ public class CorruptedLogsTruncator {
             ByteBuffer byteBuffer = scopedBuffer.getBuffer();
             while (channel.read(byteBuffer) >= 0) {
                 byteBuffer.flip();
-                while (byteBuffer.hasRemaining()) {
-                    if (byteBuffer.get() != 0) {
-                        return true;
-                    }
+                if (ByteBuffers.directBufferContainsNonZeroData(byteBuffer)) {
+                    return true;
                 }
                 byteBuffer.clear();
             }

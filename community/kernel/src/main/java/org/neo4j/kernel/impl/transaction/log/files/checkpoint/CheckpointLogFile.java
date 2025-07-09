@@ -37,7 +37,8 @@ import java.util.Optional;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.io.memory.HeapScopedBuffer;
+import org.neo4j.io.memory.ByteBuffers;
+import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
@@ -216,7 +217,7 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     private void verifyNoMoreDataAvailableInFile(FileSystemAbstraction fileSystem, Path currentCheckpointFile)
             throws IOException {
         try (StoreChannel channel = fileSystem.read(currentCheckpointFile)) {
-            try (var scopedBuffer = new HeapScopedBuffer(
+            try (var scopedBuffer = new NativeScopedBuffer(
                     (int) Math.min(fileSystem.getFileSize(currentCheckpointFile), ByteUnit.kibiBytes(10)),
                     ByteOrder.LITTLE_ENDIAN,
                     context.getMemoryTracker())) {
@@ -225,12 +226,10 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
                 buffer.flip();
                 if (buffer.capacity() > BIGGEST_HEADER) {
                     buffer.position(BIGGEST_HEADER);
-                    while (buffer.hasRemaining()) {
-                        if (buffer.get() != 0) {
-                            throw new IllegalStateException(
-                                    "Checkpoint file: `" + currentCheckpointFile
-                                            + "` has unreadable header but looks like it also contains some checkpoint data. Restore from the backup is required.");
-                        }
+                    if (ByteBuffers.directBufferContainsNonZeroData(buffer)) {
+                        throw new IllegalStateException(
+                                "Checkpoint file: `" + currentCheckpointFile
+                                        + "` has unreadable header but looks like it also contains some checkpoint data. Restore from the backup is required.");
                     }
                 }
             }

@@ -24,8 +24,10 @@ import static org.neo4j.io.memory.BufferLeakTracker.ENABLED_TRACKER;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.LongBuffer;
 import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.util.Preconditions;
 
 public final class ByteBuffers {
 
@@ -81,6 +83,26 @@ public final class ByteBuffers {
         } else {
             releaseBufferFallback(byteBuffer, memoryTracker);
         }
+    }
+
+    public static boolean directBufferContainsNonZeroData(ByteBuffer byteBuffer) {
+        Preconditions.checkState(byteBuffer.isDirect(), "Only direct buffers are supported.");
+        int longCount = byteBuffer.remaining() >> 3;
+        if (longCount > 0) {
+            LongBuffer longBuffer = byteBuffer.asLongBuffer();
+            for (int i = 0; i < longCount; i++) {
+                if (longBuffer.get() != 0L) {
+                    return true;
+                }
+            }
+            byteBuffer.position(byteBuffer.position() + (longCount << 3));
+        }
+        while (byteBuffer.hasRemaining()) {
+            if (byteBuffer.get() != 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static ByteBuffer allocateDirectFallback(int capacity, MemoryTracker memoryTracker) {

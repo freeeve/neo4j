@@ -43,7 +43,8 @@ import java.util.List;
 import java.util.ListIterator;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.memory.HeapScopedBuffer;
+import org.neo4j.io.memory.ByteBuffers;
+import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
@@ -558,12 +559,12 @@ public class DetachedLogTailScanner {
         long initialPosition = channel.position();
         try {
             channel.position(logPosition.getByteOffset());
-            try (var scopedBuffer = new HeapScopedBuffer(
+            try (var scopedBuffer = new NativeScopedBuffer(
                     safeCastLongToInt(min(kibiBytes(12), channelLeftovers)), ByteOrder.LITTLE_ENDIAN, memoryTracker)) {
                 ByteBuffer byteBuffer = scopedBuffer.getBuffer();
                 channel.readAll(byteBuffer);
                 byteBuffer.flip();
-                if (!isAllZerosBuffer(byteBuffer)) {
+                if (ByteBuffers.directBufferContainsNonZeroData(byteBuffer)) {
                     throw new RuntimeException(format(
                             "%s log file with version %d has some data available after last readable log entry. "
                                     + "Last readable position %d, read ahead buffer content: %s.",
@@ -597,24 +598,6 @@ public class DetachedLogTailScanner {
         byte[] data = new byte[byteBuffer.limit()];
         byteBuffer.get(data);
         return Arrays.toString(data);
-    }
-
-    private static boolean isAllZerosBuffer(ByteBuffer byteBuffer) {
-        if (byteBuffer.hasArray()) {
-            byte[] array = byteBuffer.array();
-            for (byte b : array) {
-                if (b != 0) {
-                    return false;
-                }
-            }
-        } else {
-            while (byteBuffer.hasRemaining()) {
-                if (byteBuffer.get() != 0) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     private record PostCheckpointInfo(long appendIndex, byte kernelVersion, boolean corruptedLogs) {
