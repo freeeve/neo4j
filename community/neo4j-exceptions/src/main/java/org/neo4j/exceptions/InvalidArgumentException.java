@@ -77,6 +77,11 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, message);
     }
 
+    public static InvalidArgumentException internalError(String msgTitle, String message, Throwable cause) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new InvalidArgumentException(gql, message, cause);
+    }
+
     public static InvalidArgumentException cannotImpersonateUser(String userToImpersonate) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
                 .build();

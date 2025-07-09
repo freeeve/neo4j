@@ -117,6 +117,21 @@ object SemanticError {
     SemanticError(gql, s"$actionName is not supported for property value access rules.", position)
   }
 
+  def mixedListInPBAC(expression: String, position: InputPosition): SemanticError = {
+
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA0)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NAB)
+        .withParam(GqlParams.StringParam.expr, expression)
+        .atPosition(position.offset, position.line, position.column)
+        .build()).build()
+
+    val legacyMsg =
+      s"Failed to administer property rule. The expression: `$expression` is not supported. All elements in a list must be literals of the same type for property-based access control."
+    SemanticError(gql, legacyMsg, position)
+
+  }
+
   def yieldMissingColumn(
     originalName: String,
     expectedColumns: java.util.List[String],

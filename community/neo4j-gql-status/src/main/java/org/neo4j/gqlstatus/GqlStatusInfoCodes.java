@@ -1776,7 +1776,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule",
+            "invalid property-based access control rule",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA1(
             new GqlStatus("22NA1"),
@@ -1784,7 +1784,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.propKey, GqlParams.StringParam.operation},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule involving non-commutative expressions",
+            "invalid property-based access control rule involving non-commutative expressions",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA2(
             new GqlStatus("22NA2"),
@@ -1792,7 +1792,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule involving multiple properties",
+            "invalid property-based access control rule involving multiple properties",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA3(
             new GqlStatus("22NA3"),
@@ -1800,7 +1800,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule involving NaN",
+            "invalid property-based access control rule involving NaN",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA4(
             new GqlStatus("22NA4"),
@@ -1808,7 +1808,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule involving comparison with NULL",
+            "invalid property-based access control rule involving comparison with NULL",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA5(
             new GqlStatus("22NA5"),
@@ -1816,7 +1816,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule involving IS NULL",
+            "invalid property-based access control rule involving IS NULL",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA6(
             new GqlStatus("22NA6"),
@@ -1824,7 +1824,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule involving IS NOT NULL",
+            "invalid property-based access control rule involving IS NOT NULL",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA7(
             new GqlStatus("22NA7"),
@@ -1832,7 +1832,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule involving nontrivial predicates",
+            "invalid property-based access control rule involving nontrivial predicates",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA8(
             new GqlStatus("22NA8"),
@@ -1850,13 +1850,29 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "unexpected map entry",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NAA(
+            new GqlStatus("22NAA"),
+            "The expression { %s } is not supported. Lists containing { %s } values are not supported for property-based access control.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.exprType},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "invalid list for property-based access control rule",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_22NAB(
+            new GqlStatus("22NAB"),
+            "The expression { %s } is not supported. All elements in a list must be literals of the same type for property-based access control.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "mixed type list for property-based access control rule",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22NB0(
             new GqlStatus("22NB0"),
             "The property value access rule pattern { %s } always evaluates to 'NULL'. Use `WHERE` syntax in combination with `IS NULL` instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "invalid property based access control rule involving WHERE and IS NULL",
+            "invalid property-based access control rule involving WHERE and IS NULL",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB1(
             new GqlStatus("22NB1"),

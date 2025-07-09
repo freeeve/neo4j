@@ -39,13 +39,6 @@ public class SyntaxException extends Neo4jException {
     public static final String QUOTE_MISMATCH_ERROR_MESSAGE =
             "Failed to parse string literal. The query must contain an even number of non-escaped quotes.";
 
-    @Deprecated
-    public SyntaxException(String message, String query, Integer offset, Throwable cause) {
-        super(message, cause);
-        this.offset = offset;
-        this.query = query;
-    }
-
     protected SyntaxException(
             ErrorGqlStatusObject gqlStatusObject, String message, String query, Integer offset, Throwable cause) {
         super(gqlStatusObject, message, cause);
@@ -60,11 +53,6 @@ public class SyntaxException extends Neo4jException {
 
     protected SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         this(gqlStatusObject, message, "", null, cause);
-    }
-
-    @Deprecated
-    public SyntaxException(String message) {
-        this(message, "", null, null);
     }
 
     public SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message) {
@@ -183,6 +171,33 @@ public class SyntaxException extends Neo4jException {
                         .build())
                 .build();
         return new SyntaxException(gql, legacyMessage);
+    }
+
+    public static SyntaxException invalidPartInPBAC(String expression, String invalidPart) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA0)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NAA)
+                        .withParam(GqlParams.StringParam.expr, expression)
+                        .withParam(GqlParams.StringParam.exprType, invalidPart)
+                        .build())
+                .build();
+        return new SyntaxException(
+                gql,
+                String.format(
+                        "The expression: `%s` is not supported. Lists containing %s values can not be used for property-based access control.",
+                        expression, invalidPart));
+    }
+
+    public static SyntaxException mixedListInPBAC(String expression) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA0)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NAB)
+                        .withParam(GqlParams.StringParam.expr, expression)
+                        .build())
+                .build();
+        return new SyntaxException(
+                gql,
+                String.format(
+                        "The expression: `%s` is not supported. All elements in a list must be literals of the same type for property-based access control.",
+                        expression));
     }
 
     @Override

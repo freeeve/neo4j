@@ -369,7 +369,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator 1 AND n.prop2 $operator 1` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
           e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
           e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
-          e.gqlStatusObject.cause().get().statusDescription() shouldBe s"error: data exception - invalid property based access control rule involving nontrivial predicates. The expression: 'n.prop1 $operator 1 AND n.prop2 $operator 1' is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
+          e.gqlStatusObject.cause().get().statusDescription() shouldBe s"error: data exception - invalid property-based access control rule involving nontrivial predicates. The expression: 'n.prop1 $operator 1 AND n.prop2 $operator 1' is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
         }
 
         // e.g. FOR (n) WHERE n.prop1 = 1 OR n.prop2 = 1
@@ -501,11 +501,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           result.errors.head.gqlStatusObject should be(
             gqlStatus(
               GqlStatusInfoCodes.STATUS_22NA0,
-              "error: data exception - invalid property based access control rule. Failed to administer property rule."
+              "error: data exception - invalid property-based access control rule. Failed to administer property rule."
             )
               .withCause(
                 GqlStatusInfoCodes.STATUS_22NA3,
-                "error: data exception - invalid property based access control rule involving NaN. 'NaN' is not supported for property-based access control."
+                "error: data exception - invalid property-based access control rule involving NaN. 'NaN' is not supported for property-based access control."
               )
           )
         }
@@ -530,11 +530,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           result.errors.head.msg shouldBe "Failed to administer property rule. `NaN` is not supported for property-based access control."
           result.errors.head.gqlStatusObject should be(gqlStatus(
             GqlStatusInfoCodes.STATUS_22NA0,
-            "error: data exception - invalid property based access control rule. Failed to administer property rule."
+            "error: data exception - invalid property-based access control rule. Failed to administer property rule."
           )
             .withCause(
               GqlStatusInfoCodes.STATUS_22NA3,
-              "error: data exception - invalid property based access control rule involving NaN. 'NaN' is not supported for property-based access control."
+              "error: data exception - invalid property-based access control rule involving NaN. 'NaN' is not supported for property-based access control."
             ))
         }
 
@@ -1320,6 +1320,18 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         result.errors.head.msg shouldBe "Failed to administer property rule. " +
           s"The expression: `${expressionStringifier(expression)}` is not supported. " +
           "All elements in a list must be literals of the same type for property-based access control."
+        result.errors.head.gqlStatusObject should be(
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_22NA0,
+            "error: data exception - invalid property-based access control rule. Failed to administer property rule."
+          )
+            .withCause(
+              GqlStatusInfoCodes.STATUS_22NAB,
+              "error: data exception - mixed type list for property-based access control rule. " +
+                s"The expression '${expressionStringifier(expression)}' is not supported. " +
+                "All elements in a list must be literals of the same type for property-based access control."
+            )
+        )
       }
 
       // e.g. FOR (node) WHERE n.prop1 = 1

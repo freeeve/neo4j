@@ -1060,11 +1060,7 @@ sealed abstract class PrivilegeCommand(
           checkScalarExpression(_) == SemanticCheck.success
         }
       ) SemanticCheck.success
-      else error(
-        s"$FAILED_PROPERTY_RULE The expression: `$stringifyExpression` is not supported. " +
-          s"All elements in a list must be literals of the same type for property-based access control.",
-        expression.position
-      )
+      else error(SemanticError.mixedListInPBAC(stringifyExpression, expression.position))
 
     (expression match {
       case Not(e: BooleanExpression) => e
