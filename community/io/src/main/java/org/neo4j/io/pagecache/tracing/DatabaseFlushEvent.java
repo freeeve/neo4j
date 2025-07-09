@@ -20,11 +20,12 @@
 package org.neo4j.io.pagecache.tracing;
 
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
+import org.neo4j.io.pagecache.tracing.FileFlushEvent.FileFlushEventProvider;
 
 /**
  * Please note that this event is not thread safe since we only can have one database flush in a time.
  */
-public class DatabaseFlushEvent implements AutoCloseablePageCacheTracerEvent {
+public class DatabaseFlushEvent implements AutoCloseablePageCacheTracerEvent, FileFlushEventProvider {
 
     public static final DatabaseFlushEvent NULL = new DatabaseFlushEvent(FileFlushEvent.NULL) {};
 
@@ -56,10 +57,12 @@ public class DatabaseFlushEvent implements AutoCloseablePageCacheTracerEvent {
         millisLimited += flushEvent.limitedMillis();
     }
 
+    @Override
     public FileFlushEvent beginFileFlush(PageSwapper swapper) {
         return flushEvent;
     }
 
+    @Override
     public FileFlushEvent beginFileFlush() {
         return flushEvent;
     }

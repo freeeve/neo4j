@@ -22,6 +22,7 @@ package org.neo4j.io.pagecache.tracing;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.monitoring.PageCacheCounters;
+import org.neo4j.io.pagecache.tracing.FileFlushEvent.FileFlushEventProvider;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 
 /**
@@ -29,7 +30,7 @@ import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
  * whole page cache is doing. Implementations of this interface should be as
  * efficient as possible, lest they severely slow down the page cache.
  */
-public interface PageCacheTracer extends PageCacheCounters {
+public interface PageCacheTracer extends PageCacheCounters, FileFlushEventProvider {
     /**
      * A PageCacheTracer that does nothing other than return the NULL variants of the companion interfaces.
      */
@@ -354,16 +355,6 @@ public interface PageCacheTracer extends PageCacheCounters {
      * @return an EvictionRunEvent to represent the event of this eviction run.
      */
     EvictionRunEvent beginEviction();
-
-    /**
-     * A PagedFile wants to flush all its bound pages.
-     */
-    FileFlushEvent beginFileFlush(PageSwapper swapper);
-
-    /**
-     * The PageCache wants to flush file bound pages.
-     */
-    FileFlushEvent beginFileFlush();
 
     /**
      * Start database flush event

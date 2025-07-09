@@ -172,4 +172,12 @@ public interface FileFlushEvent extends AutoCloseablePageCacheTracerEvent {
         public void chunkFlushed(
                 long notModifiedPages, long flushPerChunk, long buffersPerChunk, long mergesPerChunk) {}
     }
+
+    interface FileFlushEventProvider {
+        /// A PagedFile wants to flush all its bound pages.
+        FileFlushEvent beginFileFlush(PageSwapper swapper);
+
+        ///  The PageCache wants to flush file bound pages.
+        FileFlushEvent beginFileFlush();
+    }
 }
