@@ -459,6 +459,33 @@ abstract class AssertSameNodeTestBase[CONTEXT <: RuntimeContext](
     // then
     a[MergeConstraintConflictException] shouldBe thrownBy(consume(execute(logicalQuery, runtime)))
   }
+
+  test("assert same node on the RHS of an apply with every other seek finding nothing") {
+    givenGraph {
+      uniqueNodeIndex("Honey", "prop")
+      uniqueNodeIndex("Milk", "prop")
+      nodePropertyGraph(sizeHint, { case i if i % 2 == 0 => Map("prop" -> i, "age" -> "old") }, "Honey", "Milk")
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("prop", "age")
+      .projection("n.prop as prop", "n.age as age")
+      .apply()
+      .|.assertSameNode("n")
+      .|.|.nodeIndexOperator("n:Honey(prop = ???)", paramExpr = Some(varFor("x")), unique = true)
+      .|.nodeIndexOperator("n:Milk(prop = ???)", paramExpr = Some(varFor("x")), unique = true)
+      .unwind(s"range(0, ${sizeHint - 1}) AS x")
+      .argument()
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = (0 until sizeHint by 2).map(i => Array[Any](i, "old"))
+    runtimeResult should beColumns("prop", "age")
+      .withRows(expected, listInAnyOrder = true)
+  }
 }
 
 trait EnterpriseAssertSameNodeTestBase[CONTEXT <: RuntimeContext] {
