@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
@@ -117,7 +118,8 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
        * that causes "query" and "prettified" to have different ASTs.
        * This is rewrite removes the tracking.
        */
-      case lel: Leaf if lel.containsIs => lel.copy(containsIs = false)
+      case lel: Leaf if lel.containsIs        => lel.copy(containsIs = false)
+      case lel: DynamicLeaf if lel.containsIs => lel.copy(containsIs = false)
     })
   }
 

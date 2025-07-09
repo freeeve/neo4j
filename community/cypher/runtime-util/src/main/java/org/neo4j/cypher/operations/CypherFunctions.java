@@ -1489,6 +1489,29 @@ public final class CypherFunctions {
     }
 
     @CalledFromGeneratedCode
+    public static boolean hasDynamicLabelsOrTypes(
+            AnyValue entity,
+            AnyValue[] labelOrTypes,
+            NodeCursor nodeCursor,
+            RelationshipScanCursor relCursor,
+            QueryContext queryContext,
+            RuntimeNotifier notifier)
+            throws IllegalTokenNameException {
+        assert entity != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        if (entity instanceof VirtualNodeValue node) {
+            return hasDynamicLabels(node, labelOrTypes, nodeCursor, queryContext);
+        } else if (entity instanceof VirtualRelationshipValue relationship) {
+            return hasDynamicType(relationship, labelOrTypes, relCursor, queryContext, notifier);
+        } else {
+            throw CypherTypeException.invalidTypeForLabelExpression(
+                    entity.toString(),
+                    entity.prettify(),
+                    entity.getTypeName(),
+                    CypherTypeValueMapper.valueType(entity));
+        }
+    }
+
+    @CalledFromGeneratedCode
     public static boolean hasDynamicLabels(
             AnyValue entity, AnyValue[] labelNames, NodeCursor nodeCursor, QueryContext queryContext)
             throws IllegalTokenNameException {
@@ -1509,14 +1532,14 @@ public final class CypherFunctions {
                         } else {
                             throw CypherTypeException.expectedStringNotNull(
                                     "Expected node label to be a string or list of strings.",
-                                    l.prettyPrint(),
+                                    l == NO_VALUE ? "NULL" : l.prettyPrint(),
                                     CypherTypeValueMapper.valueType(l));
                         }
                     }
                 } else {
                     throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                             "Expected node label to be a string or list of strings.",
-                            labelName.prettyPrint(),
+                            labelName == NO_VALUE ? "NULL" : labelName.prettyPrint(),
                             CypherTypeValueMapper.valueType(labelName));
                 }
             }
@@ -1540,7 +1563,7 @@ public final class CypherFunctions {
                 } else {
                     throw CypherTypeException.expectedStringNotNull(
                             "Expected node label to be a string or list of strings.",
-                            l.prettyPrint(),
+                            l == NO_VALUE ? "NULL" : l.prettyPrint(),
                             CypherTypeValueMapper.valueType(l));
                 }
             }
@@ -1548,7 +1571,7 @@ public final class CypherFunctions {
         } else {
             throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                     "Expected node label to be a string or list of strings.",
-                    labelName.prettyPrint(),
+                    labelName == NO_VALUE ? "NULL" : labelName.prettyPrint(),
                     CypherTypeValueMapper.valueType(labelName));
         }
     }
@@ -1604,7 +1627,7 @@ public final class CypherFunctions {
         } else {
             throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                     "Expected relationship type to be a string or list of strings.",
-                    typeName.prettyPrint(),
+                    typeName == NO_VALUE ? "NULL" : typeName.prettyPrint(),
                     CypherTypeValueMapper.valueType(typeName));
         }
     }
@@ -1630,7 +1653,7 @@ public final class CypherFunctions {
         } else {
             throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                     "Expected relationship type to be a string or list of strings.",
-                    labelName.prettyPrint(),
+                    labelName == NO_VALUE ? "NULL" : labelName.prettyPrint(),
                     CypherTypeValueMapper.valueType(labelName));
         }
     }
@@ -1696,6 +1719,28 @@ public final class CypherFunctions {
     }
 
     @CalledFromGeneratedCode
+    public static boolean hasAnyDynamicLabelsOrTypes(
+            AnyValue entity,
+            AnyValue[] labelsOrTypes,
+            NodeCursor nodeCursor,
+            RelationshipScanCursor relCursor,
+            QueryContext queryContext)
+            throws IllegalTokenNameException {
+        assert entity != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        if (entity instanceof VirtualNodeValue node) {
+            return hasAnyDynamicLabel(node, labelsOrTypes, nodeCursor, queryContext);
+        } else if (entity instanceof VirtualRelationshipValue relationship) {
+            return hasAnyDynamicType(relationship, labelsOrTypes, relCursor, queryContext);
+        } else {
+            throw CypherTypeException.invalidTypeForLabelExpression(
+                    entity.toString(),
+                    entity.prettify(),
+                    entity.getTypeName(),
+                    CypherTypeValueMapper.valueType(entity));
+        }
+    }
+
+    @CalledFromGeneratedCode
     public static boolean hasAnyDynamicLabel(
             AnyValue entity, AnyValue[] labels, NodeCursor nodeCursor, QueryContext queryContext)
             throws IllegalTokenNameException {
@@ -1716,14 +1761,14 @@ public final class CypherFunctions {
                         } else {
                             throw CypherTypeException.expectedStringNotNull(
                                     "Expected node label to be a string or list of strings.",
-                                    l.prettyPrint(),
+                                    l == NO_VALUE ? "NULL" : l.prettyPrint(),
                                     CypherTypeValueMapper.valueType(l));
                         }
                     }
                 } else {
                     throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                             "Expected node label to be a string or list of strings.",
-                            labelName.prettyPrint(),
+                            labelName == NO_VALUE ? "NULL" : labelName.prettyPrint(),
                             CypherTypeValueMapper.valueType(labelName));
                 }
             }
@@ -1846,14 +1891,14 @@ public final class CypherFunctions {
                         } else {
                             throw CypherTypeException.expectedStringNotNull(
                                     "Expected relationship type to be a string or list of strings.",
-                                    t.prettyPrint(),
+                                    t == NO_VALUE ? "NULL" : t.prettyPrint(),
                                     CypherTypeValueMapper.valueType(t));
                         }
                     }
                 } else {
                     throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                             "Expected relationship type to be a string or list of strings.",
-                            value.prettyPrint(),
+                            value == NO_VALUE ? "NULL" : value.prettyPrint(),
                             CypherTypeValueMapper.valueType(value));
                 }
             }
@@ -1896,14 +1941,14 @@ public final class CypherFunctions {
                         } else {
                             throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                                     "Expected relationship type to be a string or list of strings.",
-                                    t.prettyPrint(),
+                                    t == NO_VALUE ? "NULL" : t.prettyPrint(),
                                     CypherTypeValueMapper.valueType(t));
                         }
                     }
                 } else {
                     throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                             "Expected relationship type to be a string or list of strings.",
-                            typ.prettyPrint(),
+                            typ == NO_VALUE ? "NULL" : typ.prettyPrint(),
                             CypherTypeValueMapper.valueType(typ));
                 }
             }

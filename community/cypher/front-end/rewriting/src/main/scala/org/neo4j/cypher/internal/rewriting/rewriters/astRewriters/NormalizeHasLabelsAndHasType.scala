@@ -21,6 +21,12 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasALabel
 import org.neo4j.cypher.internal.expressions.HasALabelOrType
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabelsOrTypes
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
+import org.neo4j.cypher.internal.expressions.HasDynamicLabels
+import org.neo4j.cypher.internal.expressions.HasDynamicLabelsOrTypes
+import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
@@ -48,6 +54,14 @@ trait HasLabelsAndHasTypeNormalizer extends Rewriter {
       HasLabels(e, labels.map(l => LabelName(l.name)(l.position)))(p.position)
     case p @ HasLabelsOrTypes(e, labels) if isRelationship(e) =>
       HasTypes(e, labels.map(l => RelTypeName(l.name)(l.position)))(p.position)
+    case p @ HasDynamicLabelsOrTypes(e, expression) if isNode(e) =>
+      HasDynamicLabels(e, expression)(p.position)
+    case p @ HasDynamicLabelsOrTypes(e, expression) if isRelationship(e) =>
+      HasDynamicType(e, expression)(p.position)
+    case p @ HasAnyDynamicLabelsOrTypes(e, expression) if isNode(e) =>
+      HasAnyDynamicLabel(e, expression)(p.position)
+    case p @ HasAnyDynamicLabelsOrTypes(e, expression) if isRelationship(e) =>
+      HasAnyDynamicType(e, expression)(p.position)
     case p @ HasALabelOrType(e) if isNode(e) =>
       HasALabel(e)(p.position)
     case p @ HasALabelOrType(e) if isRelationship(e) =>

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.label_expressions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.frontend.NameBasedSemanticAnalysisTestSuite
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
@@ -270,13 +271,14 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   test(
     """
       |MATCH (n)
-      |WITH [x IN [n] WHERE n:$(A)] AS labelCheck
+      |WITH [x IN [n] WHERE x:$(A)] AS labelCheck
       |RETURN labelCheck
       |""".stripMargin
   ) {
-    run().hasErrorMessages(
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test(
@@ -286,9 +288,10 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN n
       |""".stripMargin
   ) {
-    run().hasErrorMessages(
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test(
@@ -297,9 +300,10 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN n:$(A)
       |""".stripMargin
   ) {
-    run().hasErrorMessages(
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test(
@@ -308,9 +312,10 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN n
       |""".stripMargin
   ) {
-    run().hasErrorMessages(
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 
   test(
@@ -319,8 +324,9 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       |RETURN r
       |""".stripMargin
   ) {
-    run().hasErrorMessages(
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher25)).hasErrorMessages(
       "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses."
     )
+    runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5)).hasNoErrors
   }
 }

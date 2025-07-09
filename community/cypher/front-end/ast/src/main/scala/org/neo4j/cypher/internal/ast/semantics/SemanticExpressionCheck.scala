@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
@@ -30,6 +31,7 @@ import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.TokenType
@@ -514,9 +516,14 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
       case x: LabelExpressionPredicate =>
         check(ctx, x.entity) chain
-          when(x.labelExpression.containsDynamicLabelOrTypeExpression) {
-            SemanticError.dynamicEntityTypeNotAllowed(x.position)
-          } chain
+          fromContext(semanticCheckContext =>
+            when(
+              semanticCheckContext.cypherVersion == CypherVersion.Cypher5 &&
+                x.labelExpression.containsDynamicLabelOrTypeExpression
+            ) {
+              SemanticError.dynamicEntityTypeNotAllowed(x.position)
+            }
+          ) chain
           expectType(CTNode.covariant | CTRelationship.covariant, x.entity) chain
           checkLabelExpressionForLegacyRelationshipTypeDisjunction(x.entity, x.labelExpression) ifOkChain
           checkLabelExpression(None, x.labelExpression) chain

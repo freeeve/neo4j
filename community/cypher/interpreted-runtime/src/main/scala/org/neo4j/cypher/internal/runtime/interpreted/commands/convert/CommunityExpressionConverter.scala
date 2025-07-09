@@ -329,16 +329,18 @@ case class CommunityExpressionConverter(
             disallowSameNode = runtimeConfig.errorIfShortestPathHasCommonNodesAtRuntime,
             operatorId = id
           )
-      case e: internal.expressions.HasLabelsOrTypes   => hasLabelsOrTypes(id, e, self)
-      case e: internal.expressions.HasALabelOrType    => hasALabelOrType(id, e, self)
-      case e: internal.expressions.HasALabel          => hasALabel(id, e, self)
-      case e: internal.expressions.HasLabels          => hasLabels(id, e, self)
-      case e: internal.expressions.HasDynamicLabels   => hasDynamicLabels(id, e, self)
-      case e: internal.expressions.HasAnyLabel        => hasAnyLabel(id, e, self)
-      case e: internal.expressions.HasAnyDynamicLabel => hasAnyDynamicLabel(id, e, self)
-      case e: internal.expressions.HasTypes           => hasTypes(id, e, self)
-      case e: internal.expressions.HasDynamicType     => hasDynamicType(id, e, self)
-      case e: internal.expressions.HasAnyDynamicType  => hasAnyDynamicType(id, e, self)
+      case e: internal.expressions.HasLabelsOrTypes           => hasLabelsOrTypes(id, e, self)
+      case e: internal.expressions.HasALabelOrType            => hasALabelOrType(id, e, self)
+      case e: internal.expressions.HasALabel                  => hasALabel(id, e, self)
+      case e: internal.expressions.HasLabels                  => hasLabels(id, e, self)
+      case e: internal.expressions.HasDynamicLabels           => hasDynamicLabels(id, e, self)
+      case e: internal.expressions.HasAnyLabel                => hasAnyLabel(id, e, self)
+      case e: internal.expressions.HasAnyDynamicLabel         => hasAnyDynamicLabel(id, e, self)
+      case e: internal.expressions.HasAnyDynamicLabelsOrTypes => hasAnyDynamicLabelsOrTypes(id, e, self)
+      case e: internal.expressions.HasDynamicLabelsOrTypes    => hasDynamicLabelsOrTypes(id, e, self)
+      case e: internal.expressions.HasTypes                   => hasTypes(id, e, self)
+      case e: internal.expressions.HasDynamicType             => hasDynamicType(id, e, self)
+      case e: internal.expressions.HasAnyDynamicType          => hasAnyDynamicType(id, e, self)
 
       case e: internal.expressions.ListLiteral =>
         commands.expressions.ListLiteral(toCommandExpression(id, e.expressions, self): _*)
@@ -1055,6 +1057,16 @@ case class CommunityExpressionConverter(
       e.labels.map(self.toCommandExpression(id, _))
     ): Predicate
 
+  private def hasDynamicLabelsOrTypes(
+    id: Id,
+    e: internal.expressions.HasDynamicLabelsOrTypes,
+    self: ExpressionConverters
+  ): Predicate =
+    predicates.HasDynamicLabelsOrTypes(
+      self.toCommandExpression(id, e.entityExpression),
+      e.labelsOrTypes.map(self.toCommandExpression(id, _))
+    ): Predicate
+
   private def hasAnyLabel(
     id: Id,
     e: internal.expressions.HasAnyLabel,
@@ -1073,6 +1085,16 @@ case class CommunityExpressionConverter(
     predicates.HasAnyDynamicLabel(
       self.toCommandExpression(id, e.expression),
       e.labels.map(self.toCommandExpression(id, _))
+    ): Predicate
+
+  private def hasAnyDynamicLabelsOrTypes(
+    id: Id,
+    e: internal.expressions.HasAnyDynamicLabelsOrTypes,
+    self: ExpressionConverters
+  ): Predicate =
+    predicates.HasAnyDynamicLabelsOrTypes(
+      self.toCommandExpression(id, e.entityExpression),
+      e.labelsOrTypes.map(self.toCommandExpression(id, _))
     ): Predicate
 
   private def hasTypes(id: Id, e: internal.expressions.HasTypes, self: ExpressionConverters): Predicate = {

@@ -724,6 +724,32 @@ case class HasDynamicLabels(entity: Expression, labels: Seq[Expression]) extends
   def children: collection.Seq[AstNode[_]] = entity +: labels
 }
 
+case class HasDynamicLabelsOrTypes(entity: Expression, labelsOrTypes: Seq[Expression]) extends Predicate {
+
+  def isMatch(ctx: ReadableRow, state: QueryState): IsMatchResult = {
+    entity(ctx, state) match {
+      case IsNoValue() => IsUnknown
+
+      case value =>
+        IsMatchResult(CypherFunctions.hasDynamicLabelsOrTypes(
+          value,
+          labelsOrTypes.iterator.map(_(ctx, state)).toArray,
+          state.cursors.nodeCursor,
+          state.cursors.relationshipScanCursor,
+          state.query,
+          state
+        ))
+    }
+  }
+
+  def rewrite(f: Expression => Expression): Expression =
+    f(HasDynamicLabelsOrTypes(entity.rewrite(f), labelsOrTypes.map(_.rewrite(f))))
+
+  def arguments: collection.Seq[Expression] = entity +: labelsOrTypes
+
+  def children: collection.Seq[AstNode[_]] = entity +: labelsOrTypes
+}
+
 case class HasAnyLabel(entity: Expression, labels: Seq[KeyToken]) extends Predicate {
 
   override def isMatch(ctx: ReadableRow, state: QueryState): IsMatchResult = entity(ctx, state) match {
@@ -768,6 +794,31 @@ case class HasAnyDynamicLabel(entity: Expression, labels: Seq[Expression]) exten
   override def arguments: collection.Seq[Expression] = entity +: labels
 
   override def children: collection.Seq[AstNode[_]] = entity +: labels
+}
+
+case class HasAnyDynamicLabelsOrTypes(entity: Expression, labelsOrTypes: Seq[Expression]) extends Predicate {
+
+  override def isMatch(ctx: ReadableRow, state: QueryState): IsMatchResult = {
+    entity(ctx, state) match {
+      case IsNoValue() => IsUnknown
+
+      case value =>
+        IsMatchResult(CypherFunctions.hasAnyDynamicLabelsOrTypes(
+          value,
+          labelsOrTypes.iterator.map(_(ctx, state)).toArray,
+          state.cursors.nodeCursor,
+          state.cursors.relationshipScanCursor,
+          state.query
+        ))
+    }
+  }
+
+  override def rewrite(f: Expression => Expression): Expression =
+    f(HasAnyDynamicLabelsOrTypes(entity.rewrite(f), labelsOrTypes.map(_.rewrite(f))))
+
+  override def arguments: collection.Seq[Expression] = entity +: labelsOrTypes
+
+  override def children: collection.Seq[AstNode[_]] = entity +: labelsOrTypes
 }
 
 case class HasType(entity: Expression, typ: KeyToken) extends Predicate {
