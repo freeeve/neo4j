@@ -133,7 +133,6 @@ class DetachedCheckpointLogFileTest {
     @Test
     void shouldFindReachableCheckpointsForDetachedCheckpoints() throws IOException {
         assertThat(checkpointFile.reachableCheckpoints()).isEmpty();
-        assertThat(checkpointFile.getReachableDetachedCheckpoints()).isEmpty();
 
         // Add detached checkpoints
         LogPosition logPosition = new LogPosition(0, 3);
@@ -167,10 +166,6 @@ class DetachedCheckpointLogFileTest {
         assertThat(reachableCheckpoints.size()).isEqualTo(2);
         assertThat(reachableCheckpoints.get(0).transactionLogPosition()).isEqualTo(logPosition);
         assertThat(reachableCheckpoints.get(1).transactionLogPosition()).isEqualTo(logPosition1);
-        List<CheckpointInfo> detachedCheckpoints = checkpointFile.getReachableDetachedCheckpoints();
-        assertThat(detachedCheckpoints.size()).isEqualTo(2);
-        assertThat(detachedCheckpoints.get(0).transactionLogPosition()).isEqualTo(logPosition);
-        assertThat(detachedCheckpoints.get(1).transactionLogPosition()).isEqualTo(logPosition1);
     }
 
     private LogFiles buildLogFiles() throws IOException {

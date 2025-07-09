@@ -374,8 +374,7 @@ class RecoveryCorruptedTransactionLogIT {
         assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
         assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
-        assertThat(logFiles.getCheckpointFile().getReachableDetachedCheckpoints())
-                .hasSize(2); // Recovery completed and shutdown
+        assertThat(logFiles.getCheckpointFile().reachableCheckpoints()).hasSize(2); // Recovery completed and shutdown
 
         removeDatabaseDirectories();
     }
@@ -401,8 +400,7 @@ class RecoveryCorruptedTransactionLogIT {
         assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
         assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
-        assertThat(logFiles.getCheckpointFile().getReachableDetachedCheckpoints())
-                .hasSize(2); // Recovery completed and shutdown
+        assertThat(logFiles.getCheckpointFile().reachableCheckpoints()).hasSize(2); // Recovery completed and shutdown
 
         removeDatabaseDirectories();
     }
@@ -431,8 +429,7 @@ class RecoveryCorruptedTransactionLogIT {
         assertEquals(0, corruptedFilesMonitor.getNumberOfCorruptedCheckpointFiles());
 
         assertThat(logFiles.getCheckpointFile().getMatchedFiles()).hasSize(1);
-        assertThat(logFiles.getCheckpointFile().getReachableDetachedCheckpoints())
-                .hasSize(2); // Recovery completed and shutdown
+        assertThat(logFiles.getCheckpointFile().reachableCheckpoints()).hasSize(2); // Recovery completed and shutdown
 
         removeDatabaseDirectories();
     }
@@ -1320,7 +1317,7 @@ class RecoveryCorruptedTransactionLogIT {
 
     private void replacePartOfFirstCheckpointAndRestOfFileWithZeroes() throws IOException {
         CheckpointFile checkpointFile = logFiles.getCheckpointFile();
-        var checkpoints = checkpointFile.getReachableDetachedCheckpoints();
+        var checkpoints = checkpointFile.reachableCheckpoints();
         if (!checkpoints.isEmpty()) {
             LogPosition logPosition = checkpoints.get(0).checkpointEntryPosition();
             try (StoreChannel storeChannel =

@@ -294,11 +294,6 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
-    public List<CheckpointInfo> getReachableDetachedCheckpoints() throws IOException {
-        return reachableCheckpoints();
-    }
-
-    @Override
     public CheckpointAppender getCheckpointAppender() {
         return checkpointAppender;
     }

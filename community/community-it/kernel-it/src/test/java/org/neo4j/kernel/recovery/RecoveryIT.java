@@ -2556,9 +2556,8 @@ class RecoveryIT {
         GraphDatabaseAPI restartedDatabase = createDatabase();
         try {
             LogFiles logFiles = restartedDatabase.getDependencyResolver().resolveDependency(LogFiles.class);
-            CheckpointInfo checkpointInfo = logFiles.getCheckpointFile()
-                    .getReachableDetachedCheckpoints()
-                    .get(0);
+            CheckpointInfo checkpointInfo =
+                    logFiles.getCheckpointFile().reachableCheckpoints().get(0);
             assertThat(checkpointInfo.reason()).contains("missing logs");
         } finally {
             managementService.shutdown();

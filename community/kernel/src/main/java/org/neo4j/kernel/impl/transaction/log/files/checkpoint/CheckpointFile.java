@@ -55,12 +55,6 @@ public interface CheckpointFile extends Lifecycle, VersionedFile, RotatableFile 
     List<CheckpointInfo> reachableCheckpoints() throws IOException;
 
     /**
-     * List of all reachable checkpoints in separate checkpoint files from earliest to latest available
-     * @return list of checkpoints, empty list if not reachable checkpoints are available in the separate files
-     */
-    List<CheckpointInfo> getReachableDetachedCheckpoints() throws IOException;
-
-    /**
      * @return appender that aware how and where to append checkpoint record in particular implementation of the checkpoint file
      */
     CheckpointAppender getCheckpointAppender();
