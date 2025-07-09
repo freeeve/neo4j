@@ -174,7 +174,7 @@ public interface BoltTestConnection extends AutoCloseable {
      * @throws IOException when transmitting the payload fails.
      */
     default BoltTestConnection send(PackstreamBuf buf) {
-        return this.send(buf.getTarget());
+        return this.send(buf.raw());
     }
 
     /**

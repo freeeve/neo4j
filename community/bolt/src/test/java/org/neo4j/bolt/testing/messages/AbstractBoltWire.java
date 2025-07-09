@@ -134,7 +134,7 @@ public abstract class AbstractBoltWire implements BoltWire {
                 .writeMapHeader(1)
                 .writeString("n")
                 .writeInt(n)
-                .getTarget();
+                .raw();
     }
 
     @Override
@@ -144,7 +144,7 @@ public abstract class AbstractBoltWire implements BoltWire {
                 .writeMapHeader(1)
                 .writeString("n")
                 .writeInt(n)
-                .getTarget();
+                .raw();
     }
 
     @Override
@@ -156,35 +156,35 @@ public abstract class AbstractBoltWire implements BoltWire {
                 .writeInt(n)
                 .writeString("qid")
                 .writeInt(qid)
-                .getTarget();
+                .raw();
     }
 
     @Override
     public ByteBuf rollback() {
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(0, MESSAGE_TAG_ROLLBACK))
-                .getTarget();
+                .raw();
     }
 
     @Override
     public ByteBuf commit() {
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(0, MESSAGE_TAG_COMMIT))
-                .getTarget();
+                .raw();
     }
 
     @Override
     public ByteBuf reset() {
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(0, MESSAGE_TAG_RESET))
-                .getTarget();
+                .raw();
     }
 
     @Override
     public ByteBuf goodbye() {
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(0, MESSAGE_TAG_GOODBYE))
-                .getTarget();
+                .raw();
     }
 
     @Override
@@ -214,7 +214,7 @@ public abstract class AbstractBoltWire implements BoltWire {
                 .writeMap(routingParams, PackstreamBuf::writeString)
                 .writeList(bookmarkStrings, PackstreamBuf::writeString)
                 .writeMap(meta)
-                .getTarget();
+                .raw();
     }
 
     @Override
@@ -272,6 +272,6 @@ public abstract class AbstractBoltWire implements BoltWire {
     public ByteBuf logoff() {
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(0, MESSAGE_TAG_LOGOFF))
-                .getTarget();
+                .raw();
     }
 }

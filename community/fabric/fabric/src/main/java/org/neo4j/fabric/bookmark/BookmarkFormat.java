@@ -82,8 +82,8 @@ public class BookmarkFormat {
             packInternalGraphs(queryRouterBookmark.internalGraphStates());
             packExternalGraphs(queryRouterBookmark.externalGraphStates());
 
-            var heap = new byte[this.buf.getTarget().readableBytes()];
-            buf.getTarget().readBytes(heap);
+            var heap = new byte[this.buf.raw().readableBytes()];
+            buf.raw().readBytes(heap);
 
             return Base64.getEncoder().encodeToString(heap);
         }

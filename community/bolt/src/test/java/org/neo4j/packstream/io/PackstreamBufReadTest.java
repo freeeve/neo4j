@@ -136,7 +136,7 @@ class PackstreamBufReadTest {
             var buffer = mock(ByteBuf.class);
             var wrapped = PackstreamBuf.wrap(buffer);
 
-            assertThat(wrapped.getTarget()).isSameAs(buffer);
+            assertThat(wrapped.raw()).isSameAs(buffer);
         }
 
         {
@@ -146,7 +146,7 @@ class PackstreamBufReadTest {
 
             var wrapped = PackstreamBuf.wrapRetained(buffer);
 
-            assertThat(wrapped.getTarget()).isSameAs(buffer);
+            assertThat(wrapped.raw()).isSameAs(buffer);
         }
     }
 
@@ -195,7 +195,7 @@ class PackstreamBufReadTest {
 
                     assertThat(markerA).isEqualTo(marker.getValue());
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -212,7 +212,7 @@ class PackstreamBufReadTest {
 
                         assertThat(actual).isSameAs(expected);
 
-                        assertThat(buf.getTarget().isReadable()).isFalse();
+                        assertThat(buf.raw().isReadable()).isFalse();
                     });
                 }));
     }
@@ -236,7 +236,7 @@ class PackstreamBufReadTest {
                                     assertThat(mb).isEqualTo(valid);
                                 }
 
-                                assertThat(buf.getTarget().isReadable()).isFalse();
+                                assertThat(buf.raw().isReadable()).isFalse();
                             } catch (UnexpectedTypeMarkerException ex) {
                                 throw new AssertionError(String.format("Failed to decode variation 0x%02X", valid), ex);
                             }
@@ -266,7 +266,7 @@ class PackstreamBufReadTest {
 
                     assertThat(actual).isEqualTo(42);
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -308,7 +308,7 @@ class PackstreamBufReadTest {
 
                     assertThat(mb).isEqualTo(marker.getValue());
 
-                    assertThat(buf.getTarget().readableBytes()).isEqualTo(1);
+                    assertThat(buf.raw().readableBytes()).isEqualTo(1);
                 }));
     }
 
@@ -323,7 +323,7 @@ class PackstreamBufReadTest {
 
                     assertThat(mb).isEqualTo(marker);
 
-                    assertThat(buf.getTarget().readableBytes()).isEqualTo(1);
+                    assertThat(buf.raw().readableBytes()).isEqualTo(1);
                 }));
     }
 
@@ -333,7 +333,7 @@ class PackstreamBufReadTest {
 
         assertSame(buf, buf.readNull());
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 
     @TestFactory
@@ -546,24 +546,25 @@ class PackstreamBufReadTest {
     }
 
     @TestFactory
-    Stream<DynamicTest> shouldReadFloat() {
+    Stream<DynamicTest> shouldReadFloat64() {
         return DoubleStream.of(0.125, 0.25, 0.5, 1, 2, 4, 8)
                 .mapToObj(expected -> dynamicTest(String.format("%.2f", expected), () -> {
                     var buf = prepareBuffer(
                             b -> b.writeByte(TypeMarker.FLOAT64.getValue()).writeDouble(expected));
 
-                    var actual = buf.readFloat();
+                    var actual = buf.readFloat64();
 
                     assertThat(actual).isEqualTo(expected);
                 }));
     }
 
     @TestFactory
-    Stream<DynamicTest> readFloatShouldFailWithUnexpectedTypeMarker() {
+    Stream<DynamicTest> readFloat64ShouldFailWithUnexpectedTypeMarker() {
         return getValidMarkers(TypeMarker.FLOAT64)
                 .map(invalid -> dynamicTest(
                         invalid.name(),
-                        () -> assertThrowsUnexpectedTypeMarker(TypeMarker.FLOAT64, invalid, PackstreamBuf::readFloat)));
+                        () -> assertThrowsUnexpectedTypeMarker(
+                                TypeMarker.FLOAT64, invalid, PackstreamBuf::readFloat64)));
     }
 
     @TestFactory

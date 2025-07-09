@@ -52,7 +52,7 @@ import org.neo4j.values.virtual.MapValueBuilder;
 @BoltTestExtension
 public class StructTypeIT {
 
-    private static <T extends AnyValue> void testSendingOfBoltV2Value(
+    public static <T extends AnyValue> void testSendingOfBoltV2Value(
             BoltWire wire, BoltTestConnection connection, T value) throws Exception {
         connection
                 .send(wire.run(
@@ -63,14 +63,14 @@ public class StructTypeIT {
         assertThat(connection).receivesSuccess().receivesRecord(longValue(42)).receivesSuccess();
     }
 
-    private static <T extends AnyValue> void testReceivingOfBoltV2Value(
+    public static <T extends AnyValue> void testReceivingOfBoltV2Value(
             BoltWire wire, BoltTestConnection connection, String query, T expectedValue) throws Exception {
         connection.send(wire.run(query)).send(wire.pull());
 
         assertThat(connection).receivesSuccess().receivesRecord(expectedValue).receivesSuccess();
     }
 
-    private static <T extends AnyValue> void testSendingAndReceivingOfBoltV2Value(
+    public static <T extends AnyValue> void testSendingAndReceivingOfBoltV2Value(
             BoltWire wire, BoltTestConnection connection, T value) throws Exception {
         connection
                 .send(wire.run("RETURN $value", map(new String[] {"value"}, new AnyValue[] {value})))

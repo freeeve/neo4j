@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import org.neo4j.bolt.protocol.io.StructType;
 import org.neo4j.bolt.protocol.io.writer.DefaultStructWriter;
-import org.neo4j.bolt.protocol.io.writer.LegacyStructWriter;
+import org.neo4j.bolt.protocol.io.writer.StructWriterV40;
 import org.neo4j.bolt.protocol.v44.BoltProtocolV44;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.struct.StructHeader;
@@ -43,7 +43,7 @@ public final class BoltV44Wire extends AbstractBoltWire {
     @Override
     protected void configurePipeline() {
         this.pipeline.addLast(DefaultStructWriter.getInstance());
-        this.pipeline.addFirst(LegacyStructWriter.getInstance());
+        this.pipeline.addFirst(StructWriterV40.getInstance());
     }
 
     @Override

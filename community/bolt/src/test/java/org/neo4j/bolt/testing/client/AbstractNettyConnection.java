@@ -324,7 +324,7 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
         do {
             var length = Math.min(buf.readableBytes(), MAX_CHUNK_SIZE);
 
-            var bytes = buf.readSlice(length);
+            var bytes = buf.readBytes(length);
 
             var header = Unpooled.buffer(2);
             header.writeShort(length);
@@ -332,11 +332,13 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
             this.sendRaw(Unpooled.compositeBuffer(2).addComponent(true, header).addComponent(true, bytes));
 
             if (length == 0) {
+                buf.release();
                 return this;
             }
         } while (buf.isReadable());
 
         this.sendRaw(Unpooled.buffer(2).writeShort(0));
+        buf.release();
         return this;
     }
 

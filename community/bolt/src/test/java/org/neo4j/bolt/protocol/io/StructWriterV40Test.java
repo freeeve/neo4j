@@ -26,7 +26,7 @@ import static org.neo4j.values.storable.Values.stringValue;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.neo4j.bolt.protocol.io.pipeline.WriterContext;
-import org.neo4j.bolt.protocol.io.writer.LegacyStructWriter;
+import org.neo4j.bolt.protocol.io.writer.StructWriterV40;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.values.storable.Values;
@@ -34,7 +34,7 @@ import org.neo4j.values.virtual.MapValueBuilder;
 
 // TODO: Remove along with merge of DefaultBoltValueWriter and LegacyBoltValueWriter - Coverage in remaining tests
 @Deprecated(since = "5.0", forRemoval = true)
-class LegacyStructWriterTest {
+class StructWriterV40Test {
 
     @Test
     void shouldWriteNode() throws PackstreamReaderException {
@@ -49,7 +49,7 @@ class LegacyStructWriterTest {
                 "some_unrelated_string", Values.stringValue("What do you get when you multiply six by nine"));
         var properties = propertyBuilder.build();
 
-        LegacyStructWriter.getInstance().writeNode(ctx, "42", 42, stringArray("foo", "bar", "baz"), properties, false);
+        StructWriterV40.getInstance().writeNode(ctx, "42", 42, stringArray("foo", "bar", "baz"), properties, false);
 
         var header = buf.readStructHeader();
         var nodeId = buf.readInt();
@@ -77,7 +77,7 @@ class LegacyStructWriterTest {
                 "some_unrelated_string", Values.stringValue("What do you get when you multiply six by nine"));
         var properties = propertyBuilder.build();
 
-        LegacyStructWriter.getInstance()
+        StructWriterV40.getInstance()
                 .writeRelationship(
                         ctx, "42", 42, "21", 21, "84", 84, stringValue("LIKES_WORKING_WITH"), properties, false);
 
@@ -110,7 +110,7 @@ class LegacyStructWriterTest {
                 "some_unrelated_string", Values.stringValue("What do you get when you multiply six by nine"));
         var properties = propertyBuilder.build();
 
-        LegacyStructWriter.getInstance().writeUnboundRelationship(ctx, "42", 42, "LIKES_WORKING_WITH", properties);
+        StructWriterV40.getInstance().writeUnboundRelationship(ctx, "42", 42, "LIKES_WORKING_WITH", properties);
 
         var header = buf.readStructHeader();
         var relationshipId = buf.readInt();

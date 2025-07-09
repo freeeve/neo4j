@@ -108,4 +108,34 @@ public class PipelineAnyValueWriter extends PackstreamValueWriter {
     public void writePath(NodeValue[] nodes, RelationshipValue[] relationships) {
         this.context.writePath(nodes, relationships);
     }
+
+    @Override
+    public void writeInt8Vector(byte[] values) {
+        this.context.writeVector(values);
+    }
+
+    @Override
+    public void writeInt16Vector(short[] values) {
+        this.context.writeVector(values);
+    }
+
+    @Override
+    public void writeInt32Vector(int[] values) {
+        this.context.writeVector(values);
+    }
+
+    @Override
+    public void writeInt64Vector(long[] values) {
+        this.context.writeVector(values);
+    }
+
+    @Override
+    public void writeFloat32Vector(float[] values) {
+        this.context.writeVector(values);
+    }
+
+    @Override
+    public void writeFloat64Vector(double[] values) {
+        this.context.writeVector(values);
+    }
 }

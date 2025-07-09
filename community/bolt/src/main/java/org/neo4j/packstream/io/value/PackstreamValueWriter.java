@@ -65,12 +65,12 @@ public abstract class PackstreamValueWriter implements AnyValueWriter<RuntimeExc
 
     @Override
     public void writeFloatingPoint(float value) {
-        this.buf.writeFloat(value);
+        this.buf.writeFloat64(value);
     }
 
     @Override
     public void writeFloatingPoint(double value) {
-        this.buf.writeFloat(value);
+        this.buf.writeFloat64(value);
     }
 
     @Override
@@ -101,36 +101,6 @@ public abstract class PackstreamValueWriter implements AnyValueWriter<RuntimeExc
     @Override
     public void writeByteArray(byte[] value) {
         this.buf.writeBytes(Unpooled.wrappedBuffer(value));
-    }
-
-    @Override
-    public void writeInt8Vector(byte[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void writeInt16Vector(short[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void writeInt32Vector(int[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void writeInt64Vector(long[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void writeFloat32Vector(float[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void writeFloat64Vector(double[] values) throws RuntimeException {
-        throw new UnsupportedOperationException();
     }
 
     @Override

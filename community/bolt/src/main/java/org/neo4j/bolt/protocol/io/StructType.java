@@ -40,7 +40,8 @@ public enum StructType {
     LOCAL_DATE_TIME('d', 2),
     DURATION('E', 4),
     POINT_2D('X', 3),
-    POINT_3D('Y', 4);
+    POINT_3D('Y', 4),
+    VECTOR('V', 2);
 
     private final short tag;
     private final short defaultSize;

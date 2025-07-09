@@ -32,6 +32,8 @@ import static org.neo4j.bolt.protocol.io.StructType.POINT_3D;
 import static org.neo4j.bolt.protocol.io.StructType.RELATIONSHIP;
 import static org.neo4j.bolt.protocol.io.StructType.TIME;
 import static org.neo4j.bolt.protocol.io.StructType.UNBOUND_RELATIONSHIP;
+import static org.neo4j.bolt.protocol.io.StructType.VECTOR;
+import static org.neo4j.packstream.io.TypeMarker.BYTES_TYPES;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,6 +49,7 @@ import java.util.stream.StreamSupport;
 import org.neo4j.bolt.protocol.io.StructType;
 import org.neo4j.bolt.protocol.io.pipeline.WriterContext;
 import org.neo4j.packstream.io.PackstreamBuf;
+import org.neo4j.packstream.io.TypeMarker;
 import org.neo4j.packstream.util.PrimitiveLongIntKeyValueArray;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.TextArray;
@@ -57,11 +60,13 @@ import org.neo4j.values.virtual.RelationshipValue;
 
 /**
  * Provides support for Bolt data types.
- * <p />
- * This writer implementation is present on all connections and acts as a catch-all for all supported Bolt types.
+ * <p/>
+ * This writer implementation is present on all connections and acts as a catch-all for all
+ * supported Bolt types.
  */
 @SuppressWarnings("removal") // TODO: 6.0 - Merge UtcStructWriter with this implementation
 public final class DefaultStructWriter extends UtcStructWriter implements StructWriter {
+
     private static final DefaultStructWriter INSTANCE = new DefaultStructWriter();
 
     private DefaultStructWriter() {}
@@ -87,14 +92,14 @@ public final class DefaultStructWriter extends UtcStructWriter implements Struct
         requireNonNull(crs, "crs cannot be null");
 
         POINT_2D.writeHeader(ctx);
-        ctx.buffer().writeInt(crs.getCode()).writeFloat(x).writeFloat(y);
+        ctx.buffer().writeInt(crs.getCode()).writeFloat64(x).writeFloat64(y);
     }
 
     private void writePoint3d(WriterContext ctx, CoordinateReferenceSystem crs, double x, double y, double z) {
         requireNonNull(crs, "crs cannot be null");
 
         POINT_3D.writeHeader(ctx);
-        ctx.buffer().writeInt(crs.getCode()).writeFloat(x).writeFloat(y).writeFloat(z);
+        ctx.buffer().writeInt(crs.getCode()).writeFloat64(x).writeFloat64(y).writeFloat64(z);
     }
 
     @Override
@@ -173,14 +178,15 @@ public final class DefaultStructWriter extends UtcStructWriter implements Struct
     /**
      * Encodes a path structure to a given buffer.
      * <p>
-     * Within Packstream, paths are encoded as three separate lists: Nodes, Relationships and Indices where the first
-     * two simply encode the unique nodes and relationships present within the path.
+     * Within Packstream, paths are encoded as three separate lists: Nodes, Relationships and Indices
+     * where the first two simply encode the unique nodes and relationships present within the path.
      * <p>
-     * The indices list alternates between the indices of the nodes and relationships within the nodes/relationships
-     * lists respectively (beginning with the first relationship as the first node within the path will _ALWAYS_ be the
-     * first node within th nodes list). While node indices are zero-based as usual, relationship indices are one-based
-     * and signed in order to denote direction. For instance, the index {@code -1} refers to the 0th relationship with
-     * its direction reversed (e.g. it traverses right-to-left instead of left-to-right).
+     * The indices list alternates between the indices of the nodes and relationships within the
+     * nodes/relationships lists respectively (beginning with the first relationship as the first node
+     * within the path will _ALWAYS_ be the first node within th nodes list). While node indices are
+     * zero-based as usual, relationship indices are one-based and signed in order to denote
+     * direction. For instance, the index {@code -1} refers to the 0th relationship with its direction
+     * reversed (e.g. it traverses right-to-left instead of left-to-right).
      * <p>
      * For example:
      * <pre>
@@ -322,5 +328,103 @@ public final class DefaultStructWriter extends UtcStructWriter implements Struct
         ctx.buffer().writeInt(relId).writeString(type);
         ctx.writeValue(properties);
         ctx.buffer().writeString(elementId);
+    }
+
+    private void writeVectorType(PackstreamBuf buf, TypeMarker marker) {
+        buf.writeMarker(BYTES_TYPES, 1).raw().writeByte(marker.getValue());
+    }
+
+    private void writeVectorLength(PackstreamBuf buf, int length) {
+        buf.writeMarker(BYTES_TYPES, length);
+    }
+
+    @Override
+    public void writeVector(WriterContext ctx, byte[] values) {
+        VECTOR.writeHeader(ctx);
+
+        var buffer = ctx.buffer();
+
+        this.writeVectorType(buffer, TypeMarker.INT8);
+        this.writeVectorLength(buffer, values.length);
+
+        // manually write to avoid boxing and unboxing
+        for (var e : values) {
+            buffer.raw().writeByte(e);
+        }
+    }
+
+    @Override
+    public void writeVector(WriterContext ctx, short[] values) {
+        VECTOR.writeHeader(ctx);
+
+        var buffer = ctx.buffer();
+
+        this.writeVectorType(buffer, TypeMarker.INT16);
+        this.writeVectorLength(buffer, values.length << 1);
+
+        // manually write to avoid boxing and unboxing
+        for (var e : values) {
+            buffer.raw().writeShort(e);
+        }
+    }
+
+    @Override
+    public void writeVector(WriterContext ctx, int[] values) {
+        VECTOR.writeHeader(ctx);
+
+        var buffer = ctx.buffer();
+
+        this.writeVectorType(buffer, TypeMarker.INT32);
+        this.writeVectorLength(buffer, values.length << 2);
+
+        // manually write to avoid boxing and unboxing
+        for (var e : values) {
+            buffer.raw().writeInt(e);
+        }
+    }
+
+    @Override
+    public void writeVector(WriterContext ctx, long[] values) {
+        VECTOR.writeHeader(ctx);
+
+        var buffer = ctx.buffer();
+
+        this.writeVectorType(buffer, TypeMarker.INT64);
+        this.writeVectorLength(buffer, values.length << 3);
+
+        // manually write to avoid boxing and unboxing
+        for (var e : values) {
+            buffer.raw().writeLong(e);
+        }
+    }
+
+    @Override
+    public void writeVector(WriterContext ctx, float[] values) {
+        VECTOR.writeHeader(ctx);
+
+        var buffer = ctx.buffer();
+
+        this.writeVectorType(buffer, TypeMarker.FLOAT32);
+        this.writeVectorLength(buffer, values.length << 2);
+
+        // manually write to avoid boxing and unboxing
+        for (var e : values) {
+            buffer.raw().writeFloat(e);
+        }
+    }
+
+    @Override
+    public void writeVector(WriterContext ctx, double[] values) {
+        VECTOR.writeHeader(ctx);
+
+        var buffer = ctx.buffer();
+
+        this.writeVectorType(buffer, TypeMarker.FLOAT64);
+        this.writeVectorLength(buffer, values.length << 3);
+
+        // manually write to avoid boxing and unboxing
+        for (var e : values) {
+            buffer.raw().writeDouble(e);
+        }
     }
 }

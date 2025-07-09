@@ -143,7 +143,7 @@ public class PackstreamValueReader<CTX> {
      * @throws UnexpectedTypeMarkerException when an unexpected type marker is encountered.
      */
     public DoubleValue readDouble() throws UnexpectedTypeMarkerException {
-        return Values.doubleValue(this.buf.readFloat());
+        return Values.doubleValue(this.buf.readFloat64());
     }
 
     /**

@@ -319,6 +319,36 @@ public class WriterPipeline {
         }
 
         @Override
+        public void writeVector(byte[] values) {
+            this.write(writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void writeVector(short[] values) {
+            this.write(writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void writeVector(int[] values) {
+            this.write(writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void writeVector(long[] values) {
+            this.write(writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void writeVector(float[] values) {
+            this.write(writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void writeVector(double[] values) {
+            this.write(writer -> writer.writeVector(this, values));
+        }
+
+        @Override
         public void firePoint(CoordinateReferenceSystem crs, double[] coords) {
             this.fire("point", writer -> writer.writePoint(this, crs, coords));
         }
@@ -399,6 +429,36 @@ public class WriterPipeline {
         @Override
         public void firePath(NodeValue[] nodes, RelationshipValue[] relationships) {
             this.fire("path", writer -> writer.writePath(this, nodes, relationships));
+        }
+
+        @Override
+        public void fireVector(byte[] values) {
+            this.fire("byte_vector", writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void fireVector(short[] values) {
+            this.fire("short_vector", writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void fireVector(int[] values) {
+            this.fire("int_vector", writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void fireVector(long[] values) {
+            this.fire("long_vector", writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void fireVector(float[] values) {
+            this.fire("float_vector", writer -> writer.writeVector(this, values));
+        }
+
+        @Override
+        public void fireVector(double[] values) {
+            this.fire("double_vector", writer -> writer.writeVector(this, values));
         }
     }
 }

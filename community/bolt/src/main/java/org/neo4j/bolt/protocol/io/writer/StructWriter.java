@@ -108,4 +108,28 @@ public interface StructWriter {
     default void writePath(WriterContext ctx, NodeValue[] nodes, RelationshipValue[] relationships) {
         ctx.firePath(nodes, relationships);
     }
+
+    default void writeVector(WriterContext ctx, byte[] values) {
+        ctx.fireVector(values);
+    }
+
+    default void writeVector(WriterContext ctx, short[] values) {
+        ctx.fireVector(values);
+    }
+
+    default void writeVector(WriterContext ctx, int[] values) {
+        ctx.fireVector(values);
+    }
+
+    default void writeVector(WriterContext ctx, long[] values) {
+        ctx.fireVector(values);
+    }
+
+    default void writeVector(WriterContext ctx, float[] values) {
+        ctx.fireVector(values);
+    }
+
+    default void writeVector(WriterContext ctx, double[] values) {
+        ctx.fireVector(values);
+    }
 }

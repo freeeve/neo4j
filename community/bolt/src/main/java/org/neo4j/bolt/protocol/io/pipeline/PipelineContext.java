@@ -75,4 +75,16 @@ public interface PipelineContext {
     void writeUnboundRelationship(String elementId, long relId, String type, MapValue properties);
 
     void writePath(NodeValue[] nodes, RelationshipValue[] relationships);
+
+    void writeVector(byte[] values);
+
+    void writeVector(short[] values);
+
+    void writeVector(int[] values);
+
+    void writeVector(long[] values);
+
+    void writeVector(float[] values);
+
+    void writeVector(double[] values);
 }

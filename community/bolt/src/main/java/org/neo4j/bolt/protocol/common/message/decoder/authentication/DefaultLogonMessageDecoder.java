@@ -50,7 +50,7 @@ public final class DefaultLogonMessageDecoder implements MessageDecoder<LogonMes
 
         var valueReader = connection.valueReader(buffer);
         var meta = AuthenticationMetadataUtils.convertExtraMap(
-                valueReader, buffer.getTarget().readableBytes());
+                valueReader, buffer.raw().readableBytes());
         var authToken = AuthenticationMetadataUtils.extractAuthToken(Collections.emptyList(), meta);
 
         return new LogonMessage(authToken);

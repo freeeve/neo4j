@@ -102,6 +102,6 @@ public final class HelloMessageBuilder
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, MESSAGE_TAG_HELLO))
                 .writeMap(meta)
-                .getTarget();
+                .raw();
     }
 }

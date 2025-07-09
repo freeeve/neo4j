@@ -50,7 +50,7 @@ public class UserAgentIT {
         connection.send(PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, AbstractBoltWire.MESSAGE_TAG_HELLO))
                 .writeMap(Map.of("scheme", "none"))
-                .getTarget());
+                .raw());
 
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailureV40(
@@ -64,7 +64,7 @@ public class UserAgentIT {
         connection.send(PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, AbstractBoltWire.MESSAGE_TAG_HELLO))
                 .writeMap(Map.of("scheme", "none"))
-                .getTarget());
+                .raw());
 
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailureWithCause(

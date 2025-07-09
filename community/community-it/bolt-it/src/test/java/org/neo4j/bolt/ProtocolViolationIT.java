@@ -57,7 +57,7 @@ public class ProtocolViolationIT {
         packer.accept(buf);
 
         connection.send(buf.writeMapHeader(0) // extra
-                .getTarget());
+                .raw());
     }
 
     @ProtocolTest
@@ -312,7 +312,7 @@ public class ProtocolViolationIT {
                 .writeString("foo")
                 .writeString("bar");
         connection.send(buf.writeMapHeader(0) // extra
-                .getTarget());
+                .raw());
 
         BoltConnectionAssertions.assertThat(connection).receivesFailure();
 
@@ -322,7 +322,7 @@ public class ProtocolViolationIT {
                 .writeMapHeader(0) // metadata
         ;
         connection.send(buf.writeMapHeader(0) // extra
-                .getTarget());
+                .raw());
 
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailureFuzzyV40(
@@ -344,7 +344,7 @@ public class ProtocolViolationIT {
                 .writeString("foo")
                 .writeString("bar");
         connection.send(buf.writeMapHeader(0) // extra
-                .getTarget());
+                .raw());
 
         BoltConnectionAssertions.assertThat(connection).receivesFailure();
 
@@ -354,7 +354,7 @@ public class ProtocolViolationIT {
                 .writeMapHeader(0) // metadata
         ;
         connection.send(buf.writeMapHeader(0) // extra
-                .getTarget());
+                .raw());
 
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailureFuzzy(

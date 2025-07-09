@@ -1981,6 +1981,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "index belongs to constraint",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NBD(
+            new GqlStatus("22NBD"),
+            "Unsupported struct tag: { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.value},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "unsupported struct tag",
+            ErrorClassification.CLIENT_ERROR),
     // Graph Type Errors
     STATUS_22NC1(
             new GqlStatus("22NC1"),

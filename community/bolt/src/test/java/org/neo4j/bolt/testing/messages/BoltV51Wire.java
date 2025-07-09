@@ -51,13 +51,13 @@ public class BoltV51Wire extends BoltV50Wire {
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, MESSAGE_TAG_LOGON))
                 .writeMap(authToken)
-                .getTarget();
+                .raw();
     }
 
     @Override
     public ByteBuf logoff() {
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(0, MESSAGE_TAG_LOGOFF))
-                .getTarget();
+                .raw();
     }
 }

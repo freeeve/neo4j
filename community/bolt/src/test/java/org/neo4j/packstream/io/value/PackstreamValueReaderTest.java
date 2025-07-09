@@ -69,7 +69,7 @@ class PackstreamValueReaderTest {
 
         assertThat(value).isSameAs(NO_VALUE);
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 
     @TestFactory
@@ -83,7 +83,7 @@ class PackstreamValueReaderTest {
 
                     assertThat(actual.booleanValue()).isEqualTo(expected);
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -91,14 +91,14 @@ class PackstreamValueReaderTest {
     Stream<DynamicTest> shouldReadFloat() {
         return DoubleStream.of(21.125, 42.25, 84.5, 168)
                 .mapToObj(expected -> dynamicTest(Double.toString(expected), () -> {
-                    var buf = PackstreamBuf.allocUnpooled().writeFloat(expected);
+                    var buf = PackstreamBuf.allocUnpooled().writeFloat64(expected);
 
                     var reader = new PackstreamValueReader<>(null, buf, null);
                     var actual = reader.readDouble();
 
                     assertThat(actual.value()).isEqualTo(expected);
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -118,7 +118,7 @@ class PackstreamValueReaderTest {
 
                 assertThat(actual.asObjectCopy()).isEqualTo(payload);
 
-                assertThat(buf.getTarget().isReadable()).isFalse();
+                assertThat(buf.raw().isReadable()).isFalse();
             });
         });
     }
@@ -136,7 +136,7 @@ class PackstreamValueReaderTest {
 
                 assertThat(actual.stringValue()).isEqualTo(payload);
 
-                assertThat(buf.getTarget().isReadable()).isFalse();
+                assertThat(buf.raw().isReadable()).isFalse();
             });
         });
     }
@@ -162,7 +162,7 @@ class PackstreamValueReaderTest {
                         } else if (val instanceof BooleanValue bo) {
                             b.writeBoolean(bo.booleanValue());
                         } else if (val instanceof DoubleValue db) {
-                            b.writeFloat(db.doubleValue());
+                            b.writeFloat64(db.doubleValue());
                         } else if (val instanceof IntValue i) {
                             b.writeInt(i.intValue());
                         } else if (val instanceof StringValue str) {
@@ -217,7 +217,7 @@ class PackstreamValueReaderTest {
             } else if (val instanceof BooleanValue bo) {
                 buf.writeBoolean(bo.booleanValue());
             } else if (val instanceof DoubleValue db) {
-                buf.writeFloat(db.doubleValue());
+                buf.writeFloat64(db.doubleValue());
             } else if (val instanceof IntValue i) {
                 buf.writeInt(i.intValue());
             } else if (val instanceof StringValue str) {

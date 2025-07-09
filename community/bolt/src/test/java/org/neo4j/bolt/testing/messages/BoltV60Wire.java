@@ -17,35 +17,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.bolt.testing.fsm;
+package org.neo4j.bolt.testing.messages;
 
 import org.neo4j.bolt.negotiation.ProtocolVersion;
-import org.neo4j.bolt.protocol.common.BoltProtocol;
-import org.neo4j.bolt.protocol.v54.BoltProtocolV54;
-import org.neo4j.bolt.testing.messages.BoltMessages;
-import org.neo4j.bolt.testing.messages.BoltV52Messages;
+import org.neo4j.bolt.protocol.v60.BoltProtocolV60;
 
-public final class StateMachineV54Provider implements StateMachineProvider {
-    private static final StateMachineProvider INSTANCE = new StateMachineV54Provider();
+public class BoltV60Wire extends BoltV58Wire {
 
-    private StateMachineV54Provider() {}
+    protected BoltV60Wire(ProtocolVersion version) {
+        super(version);
+    }
 
-    public static StateMachineProvider getInstance() {
-        return INSTANCE;
+    public BoltV60Wire() {
+        this(BoltProtocolV60.VERSION);
     }
 
     @Override
-    public ProtocolVersion version() {
-        return BoltProtocolV54.VERSION;
+    public ProtocolVersion getProtocolVersion() {
+        return super.getProtocolVersion();
     }
 
     @Override
-    public BoltMessages messages() {
-        return BoltV52Messages.getInstance();
-    }
-
-    @Override
-    public BoltProtocol protocol() {
-        return BoltProtocolV54.getInstance();
+    public String getUserAgent() {
+        return "BoltWire/6.0";
     }
 }

@@ -55,9 +55,9 @@ public final class Point3dReader<CTX> implements StructReader<CTX, PointValue> {
         }
 
         var crsCode = buffer.readInt();
-        var x = buffer.readFloat();
-        var y = buffer.readFloat();
-        var z = buffer.readFloat();
+        var x = buffer.readFloat64();
+        var y = buffer.readFloat64();
+        var z = buffer.readFloat64();
 
         if (crsCode > Integer.MAX_VALUE || crsCode < Integer.MIN_VALUE) {
             throw IllegalStructArgumentException.crsOutOfBounds();

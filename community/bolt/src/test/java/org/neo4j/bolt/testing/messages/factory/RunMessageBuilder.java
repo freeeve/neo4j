@@ -83,6 +83,6 @@ public final class RunMessageBuilder implements NotificationsMessageBuilder<RunM
         ctx.writeValue(paramsValue);
         ctx.writeValue(ValueUtils.asMapValue(meta));
 
-        return buf.getTarget();
+        return buf.raw();
     }
 }

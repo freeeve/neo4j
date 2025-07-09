@@ -99,7 +99,7 @@ public class PackstreamBufAssertions extends AbstractAssert<PackstreamBufAsserti
     }
 
     public ByteBufAssertions asBuffer() {
-        return ByteBufAssertions.assertThat(this.actual.getTarget());
+        return ByteBufAssertions.assertThat(this.actual.raw());
     }
 
     public PackstreamBufAssertions containsLengthPrefixMarker(Type type, long expected) {

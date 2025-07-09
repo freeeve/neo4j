@@ -47,8 +47,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.POINT_2D.getTag()))
                         .writeInt(5) // CRS
-                        .writeFloat(3.15) // X
-                        .writeFloat(4.012), // Y
+                        .writeFloat64(3.15) // X
+                        .writeFloat64(4.012), // Y
                 "Illegal value for field \"params\": Illegal value for field \"crs\": Illegal coordinate reference system: \"5\"");
     }
 
@@ -59,8 +59,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.POINT_2D.getTag()))
                         .writeInt(5) // CRS
-                        .writeFloat(3.15) // X
-                        .writeFloat(4.012), // Y
+                        .writeFloat64(3.15) // X
+                        .writeFloat64(4.012), // Y
                 "Illegal value for field \"params\": Illegal value for field \"crs\": Illegal coordinate reference system: \"5\"",
                 BoltConnectionAssertions.assertErrorCauseWithInnerCause(
                         "08N06: General network protocol error.",
@@ -87,9 +87,9 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(4, StructType.POINT_3D.getTag()))
                         .writeInt(1200) // CRS
-                        .writeFloat(3.15)
-                        .writeFloat(4.012)
-                        .writeFloat(5.905),
+                        .writeFloat64(3.15)
+                        .writeFloat64(4.012)
+                        .writeFloat64(5.905),
                 "Illegal value for field \"params\": Illegal value for field \"crs\": Illegal coordinate reference system: \"1200\"");
     }
 
@@ -100,9 +100,9 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(4, StructType.POINT_3D.getTag()))
                         .writeInt(1200) // CRS
-                        .writeFloat(3.15)
-                        .writeFloat(4.012)
-                        .writeFloat(5.905),
+                        .writeFloat64(3.15)
+                        .writeFloat64(4.012)
+                        .writeFloat64(5.905),
                 "Illegal value for field \"params\": Illegal value for field \"crs\": Illegal coordinate reference system: \"1200\"",
                 BoltConnectionAssertions.assertErrorCauseWithInnerCause(
                         "08N06: General network protocol error.",
@@ -129,8 +129,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.POINT_2D.getTag()))
                         .writeInt(CoordinateReferenceSystem.CARTESIAN_3D.getCode())
-                        .writeFloat(3.15)
-                        .writeFloat(4.012),
+                        .writeFloat64(3.15)
+                        .writeFloat64(4.012),
                 "Illegal value for field \"params\": Illegal value for field \"coords\": Illegal CRS/coords combination (crs=cartesian-3d, x=3.15, y=4.012)");
     }
 
@@ -141,8 +141,8 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(3, StructType.POINT_2D.getTag()))
                         .writeInt(CoordinateReferenceSystem.CARTESIAN_3D.getCode())
-                        .writeFloat(3.15)
-                        .writeFloat(4.012),
+                        .writeFloat64(3.15)
+                        .writeFloat64(4.012),
                 "Illegal value for field \"params\": Illegal value for field \"coords\": Illegal CRS/coords combination (crs=cartesian-3d, x=3.15, y=4.012)",
                 BoltConnectionAssertions.assertErrorCauseWithInnerCause(
                         "08N06: General network protocol error.",
@@ -169,9 +169,9 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(4, StructType.POINT_3D.getTag()))
                         .writeInt(CoordinateReferenceSystem.CARTESIAN.getCode())
-                        .writeFloat(3.15)
-                        .writeFloat(4.012)
-                        .writeFloat(5.905),
+                        .writeFloat64(3.15)
+                        .writeFloat64(4.012)
+                        .writeFloat64(5.905),
                 "Illegal value for field \"params\": Illegal value for field \"coords\": Illegal CRS/coords combination (crs=cartesian, x=3.15, y=4.012, z=5.905)");
     }
 
@@ -182,9 +182,9 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                 connection,
                 buf -> buf.writeStructHeader(new StructHeader(4, StructType.POINT_3D.getTag()))
                         .writeInt(CoordinateReferenceSystem.CARTESIAN.getCode())
-                        .writeFloat(3.15)
-                        .writeFloat(4.012)
-                        .writeFloat(5.905),
+                        .writeFloat64(3.15)
+                        .writeFloat64(4.012)
+                        .writeFloat64(5.905),
                 "Illegal value for field \"params\": Illegal value for field \"coords\": Illegal CRS/coords combination (crs=cartesian, x=3.15, y=4.012, z=5.905)",
                 BoltConnectionAssertions.assertErrorCauseWithInnerCause(
                         "08N06: General network protocol error.",

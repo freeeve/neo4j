@@ -79,6 +79,6 @@ public final class BeginMessageBuilder implements NotificationsMessageBuilder<Be
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, MESSAGE_TAG_BEGIN))
                 .writeMap(meta)
-                .getTarget();
+                .raw();
     }
 }

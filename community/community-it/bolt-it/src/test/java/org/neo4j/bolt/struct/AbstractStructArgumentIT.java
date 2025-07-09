@@ -53,6 +53,30 @@ public abstract class AbstractStructArgumentIT {
                         "error: connection exception - protocol error. General network protocol error.");
     }
 
+    protected void testFailureWithUnknownStructV40(
+            BoltTestConnection connection, Consumer<PackstreamBuf> packer, String expectedMessage) {
+        connection.send(createRunWith(packer));
+
+        assertThat(connection).receivesFailureV40(Status.Request.Invalid, expectedMessage);
+    }
+
+    protected void testFailureWithUnknownStruct(
+            BoltTestConnection connection,
+            Consumer<PackstreamBuf> packer,
+            String expectedMessage,
+            Consumer<Map<String, Object>> causeAssertion) {
+        connection.send(createRunWith(packer));
+
+        assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        expectedMessage,
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        causeAssertion);
+    }
+
     protected void testFailureWithUnpackableValue(
             BoltTestConnection connection,
             Consumer<PackstreamBuf> packer,
@@ -80,6 +104,6 @@ public abstract class AbstractStructArgumentIT {
         packer.accept(buf);
 
         return buf.writeMapHeader(0) // extra
-                .getTarget();
+                .raw();
     }
 }

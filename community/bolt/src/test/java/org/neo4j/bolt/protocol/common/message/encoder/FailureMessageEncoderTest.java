@@ -78,7 +78,7 @@ class FailureMessageEncoderTest {
         PackstreamBufAssertions.assertThat(buf)
                 .containsMap(meta -> assertThat(meta).isNotNull().isEqualTo(expectedMetadata));
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 
     private static List<Arguments> failureMessageAndExpectedMetadata() {

@@ -66,8 +66,8 @@ public class DefaultHelloMessageDecoder implements MessageDecoder<HelloMessage> 
         PackstreamConditions.requireLength(header, 1);
 
         var reader = ctx.valueReader(buffer);
-        var meta = AuthenticationMetadataUtils.convertExtraMap(
-                reader, buffer.getTarget().readableBytes());
+        var meta =
+                AuthenticationMetadataUtils.convertExtraMap(reader, buffer.raw().readableBytes());
 
         var userAgent = this.readUserAgent(meta);
         var features = this.readFeatures(meta);

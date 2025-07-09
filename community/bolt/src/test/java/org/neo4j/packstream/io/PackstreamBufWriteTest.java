@@ -76,7 +76,7 @@ public class PackstreamBufWriteTest {
 
         var wrapped = PackstreamBuf.alloc(alloc);
 
-        assertThat(wrapped.getTarget()).isSameAs(buffer);
+        assertThat(wrapped.raw()).isSameAs(buffer);
 
         verify(alloc).buffer();
         verifyNoMoreInteractions(alloc);
@@ -378,10 +378,10 @@ public class PackstreamBufWriteTest {
     }
 
     @TestFactory
-    Stream<DynamicTest> shouldWriteFloat() {
+    Stream<DynamicTest> shouldWriteFloat64() {
         return DoubleStream.of(-0.125, -0.25, -0.5, 0, 0.5, 0.25, 0.125)
                 .mapToObj(value -> dynamicTest(String.format("%.2f", value), () -> {
-                    var buf = prepareBuffer(b -> b.writeFloat(value));
+                    var buf = prepareBuffer(b -> b.writeFloat64(value));
 
                     var marker = buf.readUnsignedByte();
                     var actualValue = buf.readDouble();

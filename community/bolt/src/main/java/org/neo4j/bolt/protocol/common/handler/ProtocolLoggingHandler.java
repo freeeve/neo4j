@@ -53,7 +53,7 @@ public class ProtocolLoggingHandler extends ChannelDuplexHandler {
         if (msg instanceof ByteBuf buf) {
             this.logBlob(ctx.channel().remoteAddress(), true, buf);
         } else if (msg instanceof PackstreamBuf buf) {
-            this.logBlob(ctx.channel().remoteAddress(), true, buf.getTarget());
+            this.logBlob(ctx.channel().remoteAddress(), true, buf.raw());
         } else {
             this.log.info("[%s] >>> %s", ctx.channel().remoteAddress(), msg);
         }
@@ -76,7 +76,7 @@ public class ProtocolLoggingHandler extends ChannelDuplexHandler {
         if (msg instanceof ByteBuf buf) {
             this.logBlob(ctx.channel().remoteAddress(), false, buf);
         } else if (msg instanceof PackstreamBuf buf) {
-            this.logBlob(ctx.channel().remoteAddress(), false, buf.getTarget());
+            this.logBlob(ctx.channel().remoteAddress(), false, buf.raw());
         } else {
             this.log.info("[%s] <<< %s", ctx.channel().remoteAddress(), msg);
         }

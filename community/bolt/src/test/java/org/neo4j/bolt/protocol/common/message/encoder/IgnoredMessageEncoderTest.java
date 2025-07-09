@@ -34,6 +34,6 @@ class IgnoredMessageEncoderTest {
 
         encoder.write(null, buf, IgnoredMessage.INSTANCE);
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 }

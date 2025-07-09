@@ -66,4 +66,16 @@ public interface WriterContext extends PipelineContext {
     void fireUnboundRelationship(String elementId, long relId, String type, MapValue properties);
 
     void firePath(NodeValue[] nodes, RelationshipValue[] relationships);
+
+    void fireVector(byte[] values);
+
+    void fireVector(short[] values);
+
+    void fireVector(int[] values);
+
+    void fireVector(long[] values);
+
+    void fireVector(float[] values);
+
+    void fireVector(double[] values);
 }

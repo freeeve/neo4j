@@ -25,7 +25,7 @@ import org.neo4j.bolt.protocol.v57.BoltProtocolV57;
 import org.neo4j.bolt.testing.messages.BoltMessages;
 import org.neo4j.bolt.testing.messages.BoltV52Messages;
 
-public class StateMachineV57Provider implements StateMachineProvider {
+public final class StateMachineV57Provider implements StateMachineProvider {
 
     private static final StateMachineProvider INSTANCE = new StateMachineV57Provider();
 

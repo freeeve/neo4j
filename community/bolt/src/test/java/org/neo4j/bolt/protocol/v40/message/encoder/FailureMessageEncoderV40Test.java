@@ -50,7 +50,7 @@ class FailureMessageEncoderV40Test {
                 .containsEntry("code", Status.Request.InvalidFormat.code().serialize())
                 .containsEntry("message", "Something went wrong! :("));
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 
     @Test
@@ -72,6 +72,6 @@ class FailureMessageEncoderV40Test {
                 .containsEntry("code", Status.Request.InvalidFormat.code().serialize())
                 .containsEntry("message", "Something went wrong! :("));
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 }

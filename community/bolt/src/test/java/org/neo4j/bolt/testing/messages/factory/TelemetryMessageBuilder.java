@@ -77,6 +77,6 @@ public class TelemetryMessageBuilder implements WireMessageBuilder<TelemetryMess
         return PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, SIGNATURE))
                 .writeTinyInt(apiType)
-                .getTarget();
+                .raw();
     }
 }

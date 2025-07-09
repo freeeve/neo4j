@@ -32,7 +32,9 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
@@ -42,6 +44,7 @@ import org.neo4j.bolt.protocol.io.pipeline.WriterContext;
 import org.neo4j.packstream.error.reader.LimitExceededException;
 import org.neo4j.packstream.error.reader.UnexpectedTypeException;
 import org.neo4j.packstream.io.PackstreamBuf;
+import org.neo4j.packstream.io.TypeMarker;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 
 class DefaultStructWriterTest {
@@ -59,11 +62,11 @@ class DefaultStructWriterTest {
 
                     var header = buf.readStructHeader();
                     var code = buf.readInt();
-                    var x = buf.readFloat();
-                    var y = buf.readFloat();
+                    var x = buf.readFloat64();
+                    var y = buf.readFloat64();
                     double z = 0;
                     if (coords.length == 3) {
-                        z = buf.readFloat();
+                        z = buf.readFloat64();
                     }
 
                     assertThat(header.length()).isEqualTo(coords.length + 1);
@@ -78,7 +81,7 @@ class DefaultStructWriterTest {
                         assertThat(z).isEqualTo(coords[2]);
                     }
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -93,8 +96,8 @@ class DefaultStructWriterTest {
 
         var header = buf.readStructHeader();
         var code = buf.readInt();
-        var x = buf.readFloat();
-        var y = buf.readFloat();
+        var x = buf.readFloat64();
+        var y = buf.readFloat64();
 
         assertThat(header.length()).isEqualTo(3);
         assertThat(header.tag()).isEqualTo(StructType.POINT_2D.getTag());
@@ -103,7 +106,7 @@ class DefaultStructWriterTest {
         assertThat(x).isEqualTo(42.5);
         assertThat(y).isEqualTo(85);
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 
     @Test
@@ -118,9 +121,9 @@ class DefaultStructWriterTest {
 
         var header = buf.readStructHeader();
         var code = buf.readInt();
-        var x = buf.readFloat();
-        var y = buf.readFloat();
-        var z = buf.readFloat();
+        var x = buf.readFloat64();
+        var y = buf.readFloat64();
+        var z = buf.readFloat64();
 
         assertThat(header.length()).isEqualTo(4);
         assertThat(header.tag()).isEqualTo(StructType.POINT_3D.getTag());
@@ -130,7 +133,7 @@ class DefaultStructWriterTest {
         assertThat(y).isEqualTo(84.5);
         assertThat(z).isEqualTo(169);
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 
     @Test
@@ -156,7 +159,7 @@ class DefaultStructWriterTest {
         assertThat(seconds).isEqualTo(1);
         assertThat(nanos).isEqualTo(214284);
 
-        assertThat(buf.getTarget().isReadable()).isFalse();
+        assertThat(buf.raw().isReadable()).isFalse();
     }
 
     @TestFactory
@@ -184,7 +187,7 @@ class DefaultStructWriterTest {
 
                     assertThat(epochDay).isEqualTo(date.toEpochDay());
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -207,7 +210,7 @@ class DefaultStructWriterTest {
 
                     assertThat(nanoOfDay).isEqualTo(time.toNanoOfDay());
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -235,7 +238,7 @@ class DefaultStructWriterTest {
                     assertThat(nanoOfDay).isEqualTo(time.toLocalTime().toNanoOfDay());
                     assertThat(offset).isEqualTo(time.getOffset().getTotalSeconds());
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -266,7 +269,7 @@ class DefaultStructWriterTest {
                     assertThat(epochSecond).isEqualTo(dateTime.toEpochSecond(ZoneOffset.UTC));
                     assertThat(nanoOfDay).isEqualTo(dateTime.getNano());
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -299,7 +302,7 @@ class DefaultStructWriterTest {
                     assertThat(nanos).isEqualTo(dateTime.getNano());
                     assertThat(offsetSeconds).isEqualTo(dateTime.getOffset().getTotalSeconds());
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
     }
 
@@ -332,7 +335,254 @@ class DefaultStructWriterTest {
                     assertThat(nanoOfDay).isEqualTo(dateTime.getNano());
                     assertThat(zoneId).isEqualTo(dateTime.getZone().getId());
 
-                    assertThat(buf.getTarget().isReadable()).isFalse();
+                    assertThat(buf.raw().isReadable()).isFalse();
                 }));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldWriteInt8Vector() {
+        return Stream.<VectorSpecification<Byte>>of(
+                        new VectorSpecification<>(),
+                        VectorSpecification.vector8(0, 21, 42),
+                        VectorSpecification.vector8(0, 21, 42, 84, 73, 97, 62, 21, 33, 99, 128))
+                .map(vector -> dynamicTest(vector.toString(), () -> {
+                    var buf = PackstreamBuf.allocUnpooled();
+                    var ctx = Mockito.mock(WriterContext.class);
+
+                    Mockito.doReturn(buf).when(ctx).buffer();
+
+                    DefaultStructWriter.getInstance().writeVector(ctx, ArrayUtils.toPrimitive(vector.coordinates));
+
+                    var header = buf.readStructHeader();
+                    var tag = buf.readBytes();
+                    var coordinates = buf.readBytes();
+
+                    assertThat(header.length()).isEqualTo(2);
+                    assertThat(header.tag()).isEqualTo((short) 'V');
+                    assertThat(tag.readableBytes()).isEqualTo(1);
+                    assertThat(tag.readUnsignedByte()).isEqualTo(TypeMarker.INT8.getValue());
+                    assertThat(coordinates.readableBytes()).isEqualTo(vector.dimensions);
+
+                    for (var i = 0; i < vector.dimensions; i++) {
+                        var coordinate = coordinates.readByte();
+                        assertThat(coordinate).isEqualTo(vector.coordinates[i]);
+                    }
+
+                    assertThat(coordinates.isReadable()).isFalse();
+                }));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldWriteInt16Vector() {
+        return Stream.<VectorSpecification<Short>>of(
+                        new VectorSpecification<>(),
+                        VectorSpecification.vector16(0, 21, 42),
+                        VectorSpecification.vector16(0, 21, 42, 84, 73, 97, 62, 21, 33, 99, 128))
+                .map(vector -> dynamicTest(vector.toString(), () -> {
+                    var buf = PackstreamBuf.allocUnpooled();
+                    var ctx = Mockito.mock(WriterContext.class);
+
+                    Mockito.doReturn(buf).when(ctx).buffer();
+
+                    DefaultStructWriter.getInstance().writeVector(ctx, ArrayUtils.toPrimitive(vector.coordinates));
+
+                    var header = buf.readStructHeader();
+                    var tag = buf.readBytes();
+                    var coordinates = buf.readBytes();
+
+                    assertThat(header.length()).isEqualTo(2);
+                    assertThat(header.tag()).isEqualTo((short) 'V');
+                    assertThat(tag.readableBytes()).isEqualTo(1);
+                    assertThat(tag.readUnsignedByte()).isEqualTo(TypeMarker.INT16.getValue());
+                    assertThat(coordinates.readableBytes()).isEqualTo(vector.dimensions * 2);
+
+                    for (var i = 0; i < vector.dimensions; i++) {
+                        var coordinate = coordinates.readShort();
+                        assertThat(coordinate).isEqualTo(vector.coordinates[i]);
+                    }
+
+                    assertThat(coordinates.isReadable()).isFalse();
+                }));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldWriteInt32Vector() {
+        return Stream.<VectorSpecification<Integer>>of(
+                        new VectorSpecification<>(),
+                        VectorSpecification.vector32(0, 21, 42),
+                        VectorSpecification.vector32(0, 21, 42, 84, 73, 97, 62, 21, 33, 99, 128))
+                .map(vector -> dynamicTest(vector.toString(), () -> {
+                    var buf = PackstreamBuf.allocUnpooled();
+                    var ctx = Mockito.mock(WriterContext.class);
+
+                    Mockito.doReturn(buf).when(ctx).buffer();
+
+                    DefaultStructWriter.getInstance().writeVector(ctx, ArrayUtils.toPrimitive(vector.coordinates));
+
+                    var header = buf.readStructHeader();
+                    var tag = buf.readBytes();
+                    var coordinates = buf.readBytes();
+
+                    assertThat(header.length()).isEqualTo(2);
+                    assertThat(header.tag()).isEqualTo((short) 'V');
+                    assertThat(tag.readableBytes()).isEqualTo(1);
+                    assertThat(tag.readUnsignedByte()).isEqualTo(TypeMarker.INT32.getValue());
+                    assertThat(coordinates.readableBytes()).isEqualTo(vector.dimensions * 4);
+
+                    for (var i = 0; i < vector.dimensions; i++) {
+                        var coordinate = coordinates.readInt();
+                        assertThat(coordinate).isEqualTo(vector.coordinates[i]);
+                    }
+
+                    assertThat(coordinates.isReadable()).isFalse();
+                }));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldWriteInt64Vector() {
+        return Stream.<VectorSpecification<Long>>of(
+                        new VectorSpecification<>(),
+                        VectorSpecification.vector64(0, 21, 42),
+                        VectorSpecification.vector64(0, 21, 42, 84, 73, 97, 62, 21, 33, 99, 128))
+                .map(vector -> dynamicTest(vector.toString(), () -> {
+                    var buf = PackstreamBuf.allocUnpooled();
+                    var ctx = Mockito.mock(WriterContext.class);
+
+                    Mockito.doReturn(buf).when(ctx).buffer();
+
+                    DefaultStructWriter.getInstance().writeVector(ctx, ArrayUtils.toPrimitive(vector.coordinates));
+
+                    var header = buf.readStructHeader();
+                    var tag = buf.readBytes();
+                    var coordinates = buf.readBytes();
+
+                    assertThat(header.length()).isEqualTo(2);
+                    assertThat(header.tag()).isEqualTo((short) 'V');
+                    assertThat(tag.readableBytes()).isEqualTo(1);
+                    assertThat(tag.readUnsignedByte()).isEqualTo(TypeMarker.INT64.getValue());
+                    assertThat(coordinates.readableBytes()).isEqualTo(vector.dimensions * 8);
+
+                    for (var i = 0; i < vector.dimensions; i++) {
+                        var coordinate = coordinates.readLong();
+                        assertThat(coordinate).isEqualTo(vector.coordinates[i]);
+                    }
+
+                    assertThat(coordinates.isReadable()).isFalse();
+                }));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldWriteFloat32Vector() {
+        return Stream.<VectorSpecification<Float>>of(
+                        new VectorSpecification<>(),
+                        VectorSpecification.vector32(0.125f, 21.25f, 42.5f),
+                        VectorSpecification.vector32(
+                                0.125f, 21.25f, 42.5f, 84.75f, 73.125f, 97.25f, 62.5f, 21.75f, 33.125f, 99.25f, 128.5f))
+                .map(vector -> dynamicTest(vector.toString(), () -> {
+                    var buf = PackstreamBuf.allocUnpooled();
+                    var ctx = Mockito.mock(WriterContext.class);
+
+                    Mockito.doReturn(buf).when(ctx).buffer();
+
+                    DefaultStructWriter.getInstance().writeVector(ctx, ArrayUtils.toPrimitive(vector.coordinates));
+
+                    var header = buf.readStructHeader();
+                    var tag = buf.readBytes();
+                    var coordinates = buf.readBytes();
+
+                    assertThat(header.length()).isEqualTo(2);
+                    assertThat(header.tag()).isEqualTo((short) 'V');
+                    assertThat(tag.readableBytes()).isEqualTo(1);
+                    assertThat(tag.readUnsignedByte()).isEqualTo(TypeMarker.FLOAT32.getValue());
+                    assertThat(coordinates.readableBytes()).isEqualTo(vector.dimensions * 4);
+
+                    for (var i = 0; i < vector.dimensions; i++) {
+                        var coordinate = coordinates.readFloat();
+                        assertThat(coordinate).isEqualTo(vector.coordinates[i]);
+                    }
+
+                    assertThat(coordinates.isReadable()).isFalse();
+                }));
+    }
+
+    @TestFactory
+    Stream<DynamicTest> shouldWriteFloat64Vector() {
+        return Stream.<VectorSpecification<Double>>of(
+                        new VectorSpecification<>(),
+                        VectorSpecification.vector64(0.125, 21.25, 42.5),
+                        VectorSpecification.vector64(
+                                0.125, 21.25, 42.5, 84.75, 73.125, 97.25, 62.5, 21.75, 33.125, 99.25, 128.5))
+                .map(vector -> dynamicTest(vector.toString(), () -> {
+                    var buf = PackstreamBuf.allocUnpooled();
+                    var ctx = Mockito.mock(WriterContext.class);
+
+                    Mockito.doReturn(buf).when(ctx).buffer();
+
+                    DefaultStructWriter.getInstance().writeVector(ctx, ArrayUtils.toPrimitive(vector.coordinates));
+
+                    var header = buf.readStructHeader();
+                    var tag = buf.readBytes();
+                    var coordinates = buf.readBytes();
+
+                    assertThat(header.length()).isEqualTo(2);
+                    assertThat(header.tag()).isEqualTo((short) 'V');
+                    assertThat(tag.readableBytes()).isEqualTo(1);
+                    assertThat(tag.readUnsignedByte()).isEqualTo(TypeMarker.FLOAT64.getValue());
+                    assertThat(coordinates.readableBytes()).isEqualTo(vector.dimensions * 8);
+
+                    for (var i = 0; i < vector.dimensions; i++) {
+                        var coordinate = coordinates.readDouble();
+                        assertThat(coordinate).isEqualTo(vector.coordinates[i]);
+                    }
+
+                    assertThat(coordinates.isReadable()).isFalse();
+                }));
+    }
+
+    private record VectorSpecification<N>(int dimensions, N[] coordinates) {
+
+        public VectorSpecification(N... coordinates) {
+            this(coordinates.length, coordinates);
+        }
+
+        public static VectorSpecification<Byte> vector8(int... coordinates) {
+            var copy = new Byte[coordinates.length];
+            for (int i = 0; i < coordinates.length; i++) {
+                copy[i] = (byte) coordinates[i];
+            }
+
+            return new VectorSpecification<>(copy);
+        }
+
+        public static VectorSpecification<Short> vector16(int... coordinates) {
+            var copy = new Short[coordinates.length];
+            for (int i = 0; i < coordinates.length; i++) {
+                copy[i] = (short) coordinates[i];
+            }
+
+            return new VectorSpecification<>(copy);
+        }
+
+        public static VectorSpecification<Integer> vector32(int... coordinates) {
+            return new VectorSpecification<>(ArrayUtils.toObject(coordinates));
+        }
+
+        public static VectorSpecification<Long> vector64(long... coordinates) {
+            return new VectorSpecification<>(ArrayUtils.toObject(coordinates));
+        }
+
+        public static VectorSpecification<Float> vector32(float... coordinates) {
+            return new VectorSpecification<>(ArrayUtils.toObject(coordinates));
+        }
+
+        public static VectorSpecification<Double> vector64(double... coordinates) {
+            return new VectorSpecification<>(ArrayUtils.toObject(coordinates));
+        }
+
+        @Override
+        public String toString() {
+            return "Vector(" + this.dimensions + ", ["
+                    + Stream.of(this.coordinates).map(Object::toString).collect(Collectors.joining(",")) + "])";
+        }
     }
 }

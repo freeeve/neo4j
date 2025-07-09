@@ -52,6 +52,7 @@ public enum TypeMarker {
     INT32(0xCA, Type.INT, NONE),
     INT64(0xCB, Type.INT, NONE),
 
+    FLOAT32(0xC6, Type.FLOAT, NONE),
     FLOAT64(0xC1, Type.FLOAT, NONE),
 
     // Prefixed Types

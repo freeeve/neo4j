@@ -21,31 +21,32 @@ package org.neo4j.bolt.testing.fsm;
 
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
-import org.neo4j.bolt.protocol.v54.BoltProtocolV54;
+import org.neo4j.bolt.protocol.v60.BoltProtocolV60;
 import org.neo4j.bolt.testing.messages.BoltMessages;
-import org.neo4j.bolt.testing.messages.BoltV52Messages;
+import org.neo4j.bolt.testing.messages.BoltV58Messages;
 
-public final class StateMachineV54Provider implements StateMachineProvider {
-    private static final StateMachineProvider INSTANCE = new StateMachineV54Provider();
+public final class StateMachineV60Provider implements StateMachineProvider {
 
-    private StateMachineV54Provider() {}
+    private static final StateMachineV60Provider INSTANCE = new StateMachineV60Provider();
 
-    public static StateMachineProvider getInstance() {
+    private StateMachineV60Provider() {}
+
+    public static StateMachineV60Provider getInstance() {
         return INSTANCE;
     }
 
     @Override
     public ProtocolVersion version() {
-        return BoltProtocolV54.VERSION;
+        return BoltProtocolV60.VERSION;
     }
 
     @Override
     public BoltMessages messages() {
-        return BoltV52Messages.getInstance();
+        return BoltV58Messages.getInstance();
     }
 
     @Override
     public BoltProtocol protocol() {
-        return BoltProtocolV54.getInstance();
+        return BoltProtocolV60.getInstance();
     }
 }

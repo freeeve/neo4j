@@ -41,6 +41,7 @@ import org.neo4j.bolt.protocol.io.reader.LocalTimeReader;
 import org.neo4j.bolt.protocol.io.reader.Point2dReader;
 import org.neo4j.bolt.protocol.io.reader.Point3dReader;
 import org.neo4j.bolt.protocol.io.reader.TimeReader;
+import org.neo4j.bolt.protocol.io.reader.VectorReader;
 import org.neo4j.bolt.protocol.io.writer.DefaultStructWriter;
 import org.neo4j.bolt.protocol.v40.BoltProtocolV40;
 import org.neo4j.bolt.protocol.v41.BoltProtocolV41;
@@ -55,6 +56,7 @@ import org.neo4j.bolt.protocol.v54.BoltProtocolV54;
 import org.neo4j.bolt.protocol.v56.BoltProtocolV56;
 import org.neo4j.bolt.protocol.v57.BoltProtocolV57;
 import org.neo4j.bolt.protocol.v58.BoltProtocolV58;
+import org.neo4j.bolt.protocol.v60.BoltProtocolV60;
 import org.neo4j.packstream.signal.FrameSignal;
 import org.neo4j.packstream.struct.StructRegistry;
 import org.neo4j.values.storable.Value;
@@ -75,7 +77,8 @@ public interface BoltProtocol {
                 BoltProtocolV54.getInstance(),
                 BoltProtocolV56.getInstance(),
                 BoltProtocolV57.getInstance(),
-                BoltProtocolV58.getInstance());
+                BoltProtocolV58.getInstance(),
+                BoltProtocolV60.getInstance());
     }
 
     /**
@@ -139,7 +142,8 @@ public interface BoltProtocol {
                 .register(Point3dReader.getInstance())
                 .register(TimeReader.getInstance())
                 .register(DateTimeReader.getInstance())
-                .register(DateTimeZoneIdReader.getInstance());
+                .register(DateTimeZoneIdReader.getInstance())
+                .register(VectorReader.getInstance());
     }
 
     /**

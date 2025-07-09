@@ -61,7 +61,7 @@ public abstract class AbstractPointReaderTest {
 
         buf.writeInt(crs.getCode());
         for (var coord : coords) {
-            buf.writeFloat(coord);
+            buf.writeFloat64(coord);
         }
 
         var value = this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42));
@@ -134,7 +134,7 @@ public abstract class AbstractPointReaderTest {
         var buf = PackstreamBuf.allocUnpooled().writeInt(Integer.MAX_VALUE + 1L);
 
         for (var coord : coords) {
-            buf.writeFloat(coord);
+            buf.writeFloat64(coord);
         }
         assertFailsWithCrsOutOfBounds(buf);
     }
@@ -145,7 +145,7 @@ public abstract class AbstractPointReaderTest {
         var buf = PackstreamBuf.allocUnpooled().writeInt(Integer.MIN_VALUE - 1L);
 
         for (var coord : coords) {
-            buf.writeFloat(coord);
+            buf.writeFloat64(coord);
         }
         assertFailsWithCrsOutOfBounds(buf);
     }
@@ -156,7 +156,7 @@ public abstract class AbstractPointReaderTest {
         var buf = PackstreamBuf.allocUnpooled().writeInt(Integer.MAX_VALUE + 1L);
 
         for (var coord : coords) {
-            buf.writeFloat(coord);
+            buf.writeFloat64(coord);
         }
         assertFailsWithCrsOutOfBounds(buf);
     }
@@ -167,7 +167,7 @@ public abstract class AbstractPointReaderTest {
         var buf = PackstreamBuf.allocUnpooled().writeInt(42);
 
         for (var coord : coords) {
-            buf.writeFloat(coord);
+            buf.writeFloat64(coord);
         }
 
         var assertion = ErrorGqlStatusObjectAssertions.assertThatThrownBy(
@@ -202,7 +202,7 @@ public abstract class AbstractPointReaderTest {
         var buf = PackstreamBuf.allocUnpooled().writeInt(crs.getCode());
 
         for (var coord : coords) {
-            buf.writeFloat(coord);
+            buf.writeFloat64(coord);
         }
 
         var coordMsg = "x=21.0, y=42.0";

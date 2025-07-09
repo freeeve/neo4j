@@ -72,7 +72,7 @@ class ChunkFrameDecoderTest {
                     channel.writeInbound(encoded);
                     channel.checkException();
 
-                    var actual = ctx.output(channel.<PackstreamBuf>readInbound().getTarget());
+                    var actual = ctx.output(channel.<PackstreamBuf>readInbound().raw());
 
                     ByteBufAssertions.assertThat(actual).contains(expected).hasNoRemainingReadableBytes();
                 }))
@@ -109,7 +109,7 @@ class ChunkFrameDecoderTest {
                     channel.writeInbound(encoded);
                     channel.checkException();
 
-                    var actual = ctx.output(channel.<PackstreamBuf>readInbound().getTarget());
+                    var actual = ctx.output(channel.<PackstreamBuf>readInbound().raw());
 
                     ByteBufAssertions.assertThat(actual).contains(expected).hasNoRemainingReadableBytes();
 
@@ -165,7 +165,7 @@ class ChunkFrameDecoderTest {
                     channel.writeInbound(encoded3);
                     channel.checkException();
 
-                    actual = ctx.output(channel.<PackstreamBuf>readInbound().getTarget());
+                    actual = ctx.output(channel.<PackstreamBuf>readInbound().raw());
 
                     ByteBufAssertions.assertThat(actual).contains(expected).hasNoRemainingReadableBytes();
 
@@ -216,8 +216,8 @@ class ChunkFrameDecoderTest {
         channel.writeInbound(payload);
         channel.checkException();
 
-        var firstMessage = ctx.output(channel.<PackstreamBuf>readInbound().getTarget());
-        var secondMessage = ctx.output(channel.<PackstreamBuf>readInbound().getTarget());
+        var firstMessage = ctx.output(channel.<PackstreamBuf>readInbound().raw());
+        var secondMessage = ctx.output(channel.<PackstreamBuf>readInbound().raw());
         var nullMessage = ctx.output(channel.<PackstreamBuf>readInbound());
 
         ByteBufAssertions.assertThat(firstMessage).hasReadableBytes(8);

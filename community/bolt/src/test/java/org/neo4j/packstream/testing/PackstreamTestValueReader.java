@@ -28,6 +28,7 @@ import org.neo4j.bolt.protocol.io.reader.LocalTimeReader;
 import org.neo4j.bolt.protocol.io.reader.Point2dReader;
 import org.neo4j.bolt.protocol.io.reader.Point3dReader;
 import org.neo4j.bolt.protocol.io.reader.TimeReader;
+import org.neo4j.bolt.protocol.io.reader.VectorReader;
 import org.neo4j.bolt.protocol.io.reader.legacy.LegacyDateTimeReader;
 import org.neo4j.bolt.protocol.io.reader.legacy.LegacyDateTimeZoneIdReader;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
@@ -63,6 +64,7 @@ public final class PackstreamTestValueReader {
             .register(TimeReader.getInstance())
             .register(LegacyDateTimeReader.getInstance()) // Legacy types use different types
             .register(LegacyDateTimeZoneIdReader.getInstance())
+            .register(VectorReader.getInstance())
             .build();
 
     private PackstreamTestValueReader() {}
@@ -76,7 +78,7 @@ public final class PackstreamTestValueReader {
             case NONE -> null;
             case BYTES -> buf.readBytes();
             case BOOLEAN -> buf.readBoolean();
-            case FLOAT -> buf.readFloat();
+            case FLOAT -> buf.readFloat64();
             case INT -> buf.readInt();
             case LIST -> buf.readList(ignore -> readValue(buf, structRegistry));
             case MAP -> buf.readMap(ignore -> readValue(buf, structRegistry));
@@ -104,7 +106,7 @@ public final class PackstreamTestValueReader {
                 yield Values.byteArray(heap);
             }
             case BOOLEAN -> Values.booleanValue(buf.readBoolean());
-            case FLOAT -> Values.doubleValue(buf.readFloat());
+            case FLOAT -> Values.doubleValue(buf.readFloat64());
             case INT -> Values.longValue(buf.readInt());
             case LIST -> readListValue(buf, structRegistry);
             case MAP -> readMapValue(buf, structRegistry);
