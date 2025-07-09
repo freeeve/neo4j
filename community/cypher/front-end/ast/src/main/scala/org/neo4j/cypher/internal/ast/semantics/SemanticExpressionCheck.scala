@@ -22,11 +22,12 @@ import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.CypherTypeName
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.IsNormalized
 import org.neo4j.cypher.internal.ast.IsNotNormalized
 import org.neo4j.cypher.internal.ast.IsNotTyped
 import org.neo4j.cypher.internal.ast.IsTyped
-import org.neo4j.cypher.internal.ast.SubqueryCall
+import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.ast.Where
@@ -894,7 +895,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
             when(x.query.endsWithFinish) {
               SemanticError.invalidEndOfQuery("An Exists Expression", x.position)
             } chain
-            checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
+            checkForShadowedVariables(
+              x.query.folder.findAllByClass[ImportingWithSubqueryCall],
+              x.query.folder.findAllByClass[ScopeClauseSubqueryCall]
+            ) chain
             SemanticState.recordCurrentScope(x.query)
         } chain
           SemanticState.recordCurrentScope(x) chain
@@ -917,7 +921,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
             when(x.query.endsWithFinish) {
               SemanticError.invalidEndOfQuery("A Count Expression", x.position)
             } chain
-            checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
+            checkForShadowedVariables(
+              x.query.folder.findAllByClass[ImportingWithSubqueryCall],
+              x.query.folder.findAllByClass[ScopeClauseSubqueryCall]
+            ) chain
             SemanticState.recordCurrentScope(x.query)
         } chain
           SemanticState.recordCurrentScope(x) chain
@@ -935,7 +942,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
               SemanticError.singleReturnColumnRequired(x.position)
               // by implication this also ensures that "A Collect Expression cannot contain a query ending with FINISH"
             } chain
-            checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
+            checkForShadowedVariables(
+              x.query.folder.findAllByClass[ImportingWithSubqueryCall],
+              x.query.folder.findAllByClass[ScopeClauseSubqueryCall]
+            ) chain
             SemanticState.recordCurrentScope(x.query)
         } chain
           SemanticState.recordCurrentScope(x) chain
@@ -1251,7 +1261,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
         }
     }
 
-  private def checkForShadowedVariables(subqueryCallsToFilter: Seq[Clause]): SemanticCheck = (inner: SemanticState) => {
+  private def checkForShadowedVariables(
+    importingWithSubqueryCallsToFilter: Seq[Clause],
+    scopeClauseSubqueryCallsToFilter: Seq[Clause]
+  ): SemanticCheck = (inner: SemanticState) => {
     // Only check the first time to avoid unnecessary checks after extensive rewriting.
     if (inner.semanticCheckHasRunOnce) SemanticCheckResult(inner, Seq.empty)
     else {
@@ -1261,15 +1274,24 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       }
       val innerScopeSymbols: Map[String, Set[Symbol]] = inner.currentScope.scope.allSymbols
 
-      // Variables inside of CALL {} are allowed to shadow outside variables and should not be considered errors.
-      val subqueryCallScopes =
-        inner.recordedScopes.filter(recordedScope => subqueryCallsToFilter.contains(recordedScope._1.node))
-      val subqueryCallSymbols = subqueryCallScopes.map { case (_, scope) =>
+      // Variables inside CALL {} are allowed to shadow outside variables and should not be considered errors.
+      val importingWithSubqueryCallScopes =
+        inner.recordedScopes.filter(recordedScope => importingWithSubqueryCallsToFilter.contains(recordedScope._1.node))
+      val importingWithSubqueryCallSymbols = importingWithSubqueryCallScopes.map { case (_, scope) =>
+        scope.parent.map(_.scope.allSymbols).getOrElse(Map.empty)
+      }.flatten.groupMapReduce(_._1)(_._2)(_ ++ _)
+
+      // Variables inside CALL {} are allowed to shadow outside variables and should not be considered errors.
+      val scopedClauseSubqueryCallScopes =
+        inner.recordedScopes.filter(recordedScope => scopeClauseSubqueryCallsToFilter.contains(recordedScope._1.node))
+      val scopeClauseSubqueryCallSymbols = scopedClauseSubqueryCallScopes.map { case (_, scope) =>
         scope.parent.map(_.scope.allSymbols).getOrElse(Map.empty)
       }.flatten.groupMapReduce(_._1)(_._2)(_ ++ _)
 
       val innerScopeSymbolsWithoutSubquerySymbols: Map[String, Set[Symbol]] =
-        innerScopeSymbols.filterNot { case (x, y) => subqueryCallSymbols.get(x).contains(y) }
+        innerScopeSymbols
+          .filterNot { case (x, _) => scopeClauseSubqueryCallSymbols.exists(_._1 == x) }
+          .filterNot { case (x, y) => importingWithSubqueryCallSymbols.get(x).contains(y) }
 
       // Union symbols are excluded as those always have the position of the UNION keyword regardless of shadowing
       val innerDefinitions = innerScopeSymbolsWithoutSubquerySymbols.map {
