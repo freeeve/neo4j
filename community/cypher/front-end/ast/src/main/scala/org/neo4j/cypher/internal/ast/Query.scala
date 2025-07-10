@@ -1365,34 +1365,50 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   private case object NoIssue extends ProblematicAggregation
   private case class InProblematicContext(msg: String) extends ProblematicAggregation
 
-  private case class ProblematicAggregationFound(isDistinct: Boolean, msg: String, position: InputPosition)
+  private case class ProblematicAggregationFound(operation: String, msg: String, position: InputPosition)
       extends ProblematicAggregation
 
   private def errorOnAggregation: SemanticCheck = {
     val directlyContainsAggregation = queries.tail.collectFirst {
       case q: Query =>
         q.folder.treeFold[ProblematicAggregation](NoIssue) {
-          case _: Union =>
-            _ => TraverseChildren(InProblematicContext("when used in a `UNION`"))
-          case _: TopLevelBraces =>
-            _ => TraverseChildren(InProblematicContext("when wrapped in braces. Try without braces"))
+          case u: Union => {
+            case _ if u.containsUpdates =>
+              SkipChildren(ProblematicAggregationFound(operation = "Updates are", "when used in a `UNION`", u.position))
+            case _ =>
+              TraverseChildren(InProblematicContext("when used in a `UNION`"))
+          }
+          case tlb: TopLevelBraces => {
+            case _ if tlb.containsUpdates =>
+              SkipChildren(ProblematicAggregationFound(
+                operation = "Updates are",
+                "when wrapped in braces. Try without braces",
+                tlb.position
+              ))
+            case _ => TraverseChildren(InProblematicContext("when wrapped in braces. Try without braces"))
+          }
           case _: UseGraph =>
             _ => TraverseChildren(InProblematicContext("when used after a `USE` clause"))
           case _: SubqueryCall         => _ => SkipChildren(NoIssue)
           case _: ConditionalQueryWhen => _ => SkipChildren(NoIssue)
           case r: Return => {
             case acc: InProblematicContext if r.distinct =>
-              SkipChildren(ProblematicAggregationFound(isDistinct = true, acc.msg, r.position))
+              SkipChildren(ProblematicAggregationFound(operation = "`DISTINCT` is", acc.msg, r.position))
             case acc => TraverseChildren(acc)
           }
           case w: With => {
             case acc: InProblematicContext if w.distinct =>
-              SkipChildren(ProblematicAggregationFound(isDistinct = true, acc.msg, w.position))
+              SkipChildren(ProblematicAggregationFound(operation = "`DISTINCT` is", acc.msg, w.position))
+            case acc => TraverseChildren(acc)
+          }
+          case up: UpdateClause => {
+            case acc: InProblematicContext =>
+              SkipChildren(ProblematicAggregationFound("Updates are", acc.msg, up.position))
             case acc => TraverseChildren(acc)
           }
           case exp: Expression => {
             case acc: InProblematicContext if containsAggregate(exp) =>
-              SkipChildren(ProblematicAggregationFound(isDistinct = false, acc.msg, exp.position))
+              SkipChildren(ProblematicAggregationFound(operation = "Aggregations are", acc.msg, exp.position))
             case acc => TraverseChildren(acc)
           }
         }
@@ -1400,12 +1416,8 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
     }
 
     directlyContainsAggregation match {
-      case _ @Some(ProblematicAggregationFound(isDistinct, msg, pos)) =>
-        SemanticCheck.error(SemanticError.unsupportedAggregationInNEXT(
-          if (isDistinct) "`DISTINCT` is" else "Aggregations are",
-          msg,
-          pos
-        ))
+      case _ @Some(ProblematicAggregationFound(operation, msg, pos)) =>
+        SemanticCheck.error(SemanticError.unsupportedAggregationInNEXT(operation, msg, pos))
       case _ =>
         SemanticCheck.success
     }
