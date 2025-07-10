@@ -27,6 +27,7 @@ import org.neo4j.storageengine.api.StorageEngineTransaction;
  * to append to the end and then at regular intervals batch through the whole queue.
  */
 public class TransactionQueue {
+
     @FunctionalInterface
     public interface Applier {
         void apply(StorageEngineTransaction tx) throws Exception;
@@ -41,6 +42,13 @@ public class TransactionQueue {
     public TransactionQueue(int maxSize, Applier applier) {
         this.maxSize = maxSize;
         this.applier = applier;
+    }
+
+    public boolean willQueueWithCurrentBatch(StorageEngineTransaction transaction) {
+        // will we add this transaction to the current batch in the queue (if any)
+        return isEmpty()
+                || (transaction.commandBatch().kernelVersion()
+                        == tail.commandBatch().kernelVersion());
     }
 
     public void queue(StorageEngineTransaction transaction) throws Exception {
@@ -71,7 +79,11 @@ public class TransactionQueue {
         }
     }
 
+    private boolean isEmpty() {
+        return size == 0;
+    }
+
     private boolean isNotEmpty() {
-        return size != 0;
+        return !isEmpty();
     }
 }
