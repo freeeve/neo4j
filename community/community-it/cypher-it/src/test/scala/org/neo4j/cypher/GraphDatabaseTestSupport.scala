@@ -29,7 +29,9 @@ import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.dbms.api.DatabaseExistsException
 import org.neo4j.dbms.api.DatabaseManagementService
+import org.neo4j.dbms.api.DatabaseNotFoundException
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.Label
 import org.neo4j.graphdb.Node
@@ -162,11 +164,7 @@ trait GraphDatabaseTestSupport
 
     if (expectedShardCount > 0) {
       // need to start a db here, but this is community so might need to check if this should be moved to enterprise
-      if (
-        !managementService.listDatabases().contains(
-          dbName
-        ) && !managementService.listDatabases().contains(GraphShard.graphShardName(dbName))
-      ) {
+      try {
         managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
           // 1 primary, 0 secondaries
           "CYPHER 25 CREATE DATABASE `%s` GRAPH SHARD { TOPOLOGY 1 PRIMARY 0 SECONDARIES } PROPERTY SHARDS { COUNT %s TOPOLOGY 1 REPLICA}".formatted(
@@ -174,6 +172,9 @@ trait GraphDatabaseTestSupport
             expectedShardCount
           )
         )
+      } catch {
+        case _: DatabaseExistsException =>
+          println(s"Database $dbName already exists, skipping creation.")
       }
 
       assertEventually(
@@ -264,12 +265,16 @@ trait GraphDatabaseTestSupport
       await("database created").atMost(1, MINUTES)
         .pollInterval(50, MILLISECONDS)
         .pollInSameThread
-        .until(() => managementService.database(name.replace("`", "")).isAvailable == true)
+        .until(() =>
+          try { managementService.database(name.replace("`", "")).isAvailable == true }
+          catch {
+            case _: DatabaseNotFoundException => false
+          }
+        )
     }
   }
 
   def selectDatabase(name: String): Unit = {
-    waitForDatabase(name)
     graphOps = managementService.database(name)
     graph = new GraphDatabaseCypherService(graphOps)
     onSelectDatabase()
