@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extractRuntimeConstants
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
+import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -171,6 +172,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
 
     forEvery(nodePredicates) { (predicate: String) =>
       val expected = if (predicate.contains("IS NULL")) List(Array(Values.NO_VALUE)) else List.empty
+
       withClue(s"predicate: $predicate") {
         val query = new LogicalQueryBuilder(this)
           .produceResults("prop1")
@@ -339,7 +341,9 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     ("x.prop IN $listParam", Seq(10, 30)),
     ("x.prop IN [10, 30]", Seq(10, 30)),
     ("x.prop IS NOT NULL", Seq(10, 20, 30)),
-    ("x.prop IS NULL", Seq.empty)
+    ("x.prop IS NULL", Seq.empty),
+    ("TRUE", Seq(10, 20, 30)),
+    ("FALSE", Seq.empty)
   )
 
   test("should return one node property column - on tiny graph - numeric values") {
@@ -363,6 +367,24 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
         result should beColumns("prop").withRows(singleColumn(expected))
       }
     }
+  }
+
+  test("should return two node property columns when under Apply with constant predicate") {
+    givenGraph {
+      nodePropertyGraph(sizeHint, { case i => Map("prop1" -> i, "prop2" -> i * 2) })
+    }
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("prop1", "prop2")
+      .apply()
+      .|.projection("cache[x.prop1] as prop1", "cache[x.prop2] as prop2")
+      .|.remoteBatchPropertiesWithFilter("cache[x.prop1]", "cache[x.prop2]")("TRUE")
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+
+    val result = execute(query, runtime)
+    val expected = (0 until sizeHint).map(i => Array(i, i * 2))
+    result should beColumns("prop1", "prop2").withRows(expected)
   }
 
   test("should work with projections and multiple predicates") {
@@ -1718,4 +1740,552 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     result should beColumns("name", "prop1", "prop2").withSingleRow("node1", "one", 1)
   }
 
+  test("should push down argument from projection - node property") {
+    givenGraph {
+      nodePropertyGraph(
+        10,
+        {
+          case i => Map("p" -> s"prop$i")
+        }
+      )
+    }
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("p")
+      .projection("cacheN[n.p] AS p")
+      .remoteBatchPropertiesWithFilter("cache[n.p]")(
+        "cache[n.p] = prop"
+      )
+      .projection("'prop4' as prop")
+      .allNodeScan("n")
+      .build()
+
+    val result = execute(query, runtime)
+
+    result should beColumns("p").withSingleRow("prop4")
+  }
+
+  test("should push down argument from projection - relationship property") {
+    givenGraph {
+      val (_, relationships) = lineGraph(10, "REL")
+      for (i <- relationships.indices) {
+        relationships(i).setProperty("p", s"prop$i")
+
+      }
+    }
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("p")
+      .projection("cacheR[r.p] AS p")
+      .remoteBatchPropertiesWithFilter("cacheR[r.p]")(
+        "cacheR[r.p] = prop"
+      )
+      .projection("'prop4' as prop")
+      .relationshipTypeScan("()-[r:REL]->()")
+      .build()
+
+    val result = execute(query, runtime)
+
+    result should beColumns("p").withSingleRow("prop4")
+  }
+
+  test("should push down argument from cached node property") {
+    val nodeCount = 10
+    givenGraph {
+      Seq("A", "B").foreach(label => {
+        nodePropertyGraph(
+          nodeCount,
+          {
+            case i => Map("p" -> i)
+          },
+          label
+        )
+      })
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("p1", "p2")
+      .projection("cache[a.p] as p1", "cache[b.p] as p2")
+      .remoteBatchPropertiesWithFilter("cache[b.p]")("cache[b.p] = cache[a.p]")
+      .cartesianProduct()
+      .|.nodeByLabelScan("b", "B")
+      .remoteBatchProperties("cache[a.p]")
+      .nodeByLabelScan("a", "A")
+      .build()
+
+    val result = execute(query, runtime)
+
+    val expected = (0 until nodeCount).map(i => Array(i, i))
+    result should beColumns("p1", "p2").withRows(expected)
+  }
+
+  test("should push down argument from unwind") {
+    givenGraph {
+      nodePropertyGraph(
+        10,
+        {
+          case i => Map("p" -> i)
+        }
+      )
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("p")
+      .projection("cache[n.p] as p")
+      .remoteBatchPropertiesWithFilter("cache[n.p]")("cache[n.p] = x")
+      .unwind("[1,2,3] as x")
+      .allNodeScan("n")
+      .build()
+
+    val result = execute(query, runtime)
+    result should beColumns("p").withRows(singleColumn(Seq(1, 2, 3)))
+  }
+
+  test("should push down result of count aggregation ") {
+    givenGraph {
+      val aPersons = nodePropertyGraph(
+        10,
+        {
+          case i => Map("i" -> i, "name" -> s"Ada$i")
+        },
+        "Person"
+      )
+
+      val bPersons = nodePropertyGraph(
+        10,
+        {
+          case i => Map("i" -> i, "name" -> "Bob")
+        },
+        "Person"
+      )
+
+      for (i <- aPersons.indices) {
+        val a = aPersons(i)
+        val b = bPersons(i)
+        var follows = 0
+        while (follows < i) {
+          a.createRelationshipTo(b, RelationshipType.withName("FOLLOWS"))
+          follows += 1
+        }
+      }
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("name", "`a.i`")
+      .projection("cache[a.name] as name", "cache[a.i] as `a.i`")
+      .remoteBatchPropertiesWithFilter("cache[a.name]", "cache[a.i]")("follows_count = $expectedCount")
+      .apply()
+      .|.aggregation(Seq.empty, Seq("count(*) AS follows_count"))
+      .|.expandInto("(a)-[:FOLLOWS]->(b)")
+      .|.argument("a", "b")
+      .cartesianProduct()
+      .|.nodeByLabelScan("a", "Person")
+      .remoteBatchPropertiesWithFilter("cache[b.name]")("b.name = $personB")
+      .nodeByLabelScan("b", "Person")
+      .build()
+
+    val result =
+      execute(query, runtime, parameters = Map("personB" -> "Bob", "expectedCount" -> 2))
+
+    result should beColumns("name", "a.i").withSingleRow("Ada2", 2)
+  }
+
+  test("should push down two arguments") {
+    givenGraph {
+      nodePropertyGraph(
+        10,
+        {
+          case i => Map("p" -> i)
+        }
+      )
+    }
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("`n.p`")
+      .projection("cache[n.p] as `n.p`")
+      .remoteBatchPropertiesWithFilter("cache[n.p]")("cache[n.p] = arg1 OR cache[n.p] = arg2")
+      .projection("5 as arg2")
+      .unwind("[1,2,3] as arg1")
+      .allNodeScan("n")
+      .build()
+
+    val result = execute(query, runtime)
+    result should beColumns("n.p").withRows(singleColumn(Seq(1, 2, 3, 5, 5, 5)))
+  }
+
+  test("should push down three arguments") {
+    val nodes = givenGraph {
+      nodePropertyGraph(
+        10,
+        {
+          case i => Map("p" -> i % 10)
+        }
+      )
+    }
+
+    val expected = nodes.map(_.getProperty("p").asInstanceOf[Int]).filter(i => i == 1 || i == 5 || i == 9)
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("`n.p`")
+      .projection("cache[n.p] as `n.p`")
+      .remoteBatchPropertiesWithFilter("cache[n.p]")("cache[n.p] = arg1 OR cache[n.p] = arg2 OR cache[n.p] = arg3")
+      .projection("1 as arg1", "5 as arg2", "9 as arg3")
+      .allNodeScan("n")
+      .build()
+
+    val result = execute(query, runtime)
+    result should beColumns("n.p").withRows(singleColumn(expected))
+  }
+
+  test("should push down argument on node property - on large graph") {
+    val nodes = givenGraph {
+      nodePropertyGraph(
+        sizeHint,
+        {
+          case i => Map("p" -> i % 10)
+        }
+      )
+    }
+    val expected = nodes.map(n => (n.getProperty("p").asInstanceOf[Integer], n.getElementId))
+      .filter {
+        case (p, _) => p == 1 || p == 2 || p == 3
+      }.map {
+        case (p, elementId) => Array(p, elementId)
+      }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("`n.p`", "id")
+      .projection("cache[n.p] as `n.p`", "elementId(n) as id")
+      .remoteBatchPropertiesWithFilter("cache[n.p]")("cache[n.p] = arg1")
+      .unwind("[1,2,3] as arg1")
+      .allNodeScan("n")
+      .build()
+
+    val result = execute(query, runtime)
+
+    result should beColumns("n.p", "id").withRows(expected)
+  }
+
+  test("should push down argument from exist") {
+    givenGraph {
+      val persons = nodePropertyGraph(
+        5,
+        {
+          case i => Map("firstName" -> s"person$i")
+        },
+        "Person"
+      )
+
+      for (i <- persons.indices) {
+        val person = persons(i)
+        val dog = tx.createNode(Label.label("Dog"))
+
+        if (i == 3) dog.setProperty("name", s"person$i")
+        else dog.setProperty("name", s"dog$i")
+
+        person.createRelationshipTo(dog, RelationshipType.withName("HAS_DOG"))
+      }
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("name")
+      .projection("cacheN[person.firstName] AS name")
+      .semiApply()
+      .|.remoteBatchPropertiesWithFilter("cacheN[dog.name]")(
+        "cacheN[person.firstName] = dog.name"
+      )
+      .|.filter("dog:Dog")
+      .|.expandAll("(person)-[:HAS_DOG]->(dog)")
+      .|.argument("person")
+      .remoteBatchProperties("cacheN[person.firstName]")
+      .nodeByLabelScan("person", "Person", IndexOrderAscending)
+      .build()
+
+    val result = execute(query, runtime)
+    result should beColumns("name").withSingleRow("person3")
+  }
+
+  test("should push down argument with trail(repeat) single hop - projection") {
+    givenGraph {
+      val (nodes, _) = circleGraph(nNodes = sizeHint, relType = "R", outDegree = 1)
+      var i = 0
+      for (node <- nodes) {
+        node.setProperty("foo", 42 + i % 4)
+        i += 1
+      }
+    }
+
+    val `(start) [(a)-[r]->(b)]{1,1} (end)` = TrailParameters(
+      min = 1,
+      max = Limited(1),
+      start = "start",
+      end = "end",
+      innerStart = "a_inner",
+      innerEnd = "b_inner",
+      groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
+      groupRelationships = Set(("r_inner", "r")),
+      innerRelationships = Set("r_inner"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      ExpandAll,
+      accumulators = Set.empty
+    )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .projection("end.foo as c")
+      .repeatTrail(`(start) [(a)-[r]->(b)]{1,1} (end)`)
+      .|.remoteBatchPropertiesWithFilter("cache[b_inner.foo]")("cache[b_inner.foo] = arg1")
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("start", "a_inner")
+      .projection("43 as arg1")
+      .allNodeScan("start")
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    val expected = Array.fill(sizeHint / 4)(43)
+    // then
+    runtimeResult should beColumns("c").withRows(singleColumn(expected))
+  }
+
+  test("should push down argument with trail(repeat) single hop - unwind") {
+    givenGraph {
+      val (nodes, _) = circleGraph(nNodes = sizeHint, relType = "R", outDegree = 1)
+      var i = 0
+      for (node <- nodes) {
+        node.setProperty("foo", 42 + i % 4)
+        i += 1
+      }
+    }
+
+    val `(start) [(a)-[r]->(b)]{1,1} (end)` = TrailParameters(
+      min = 1,
+      max = Limited(1),
+      start = "start",
+      end = "end",
+      innerStart = "a_inner",
+      innerEnd = "b_inner",
+      groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
+      groupRelationships = Set(("r_inner", "r")),
+      innerRelationships = Set("r_inner"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      ExpandAll,
+      accumulators = Set.empty
+    )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .projection("end.foo as c")
+      .repeatTrail(`(start) [(a)-[r]->(b)]{1,1} (end)`)
+      .|.remoteBatchPropertiesWithFilter("cache[b_inner.foo]")("cache[b_inner.foo] = arg1")
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("start", "a_inner")
+      .unwind("[0, 42, 43, 100] as arg1")
+      .allNodeScan("start")
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    val expected = Array.fill(sizeHint / 4)(42) ++ Array.fill(sizeHint / 4)(43)
+    // then
+    runtimeResult should beColumns("c").withRows(singleColumn(expected))
+  }
+
+  test("should push down arguments with trail(repeat) including zero repetition") {
+    givenGraph {
+      val (nodes, _) = circleGraph(nNodes = sizeHint, relType = "R", outDegree = 1)
+      var i = 0
+      for (node <- nodes) {
+        node.setProperty("foo", 42 + (i % 4))
+        i += 1
+      }
+    }
+
+    val `(start) [(a)-[r]->(b)]{0,1} (end)` = TrailParameters(
+      min = 0,
+      max = Limited(1),
+      start = "start",
+      end = "end",
+      innerStart = "a_inner",
+      innerEnd = "b_inner",
+      groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
+      groupRelationships = Set(("r_inner", "r")),
+      innerRelationships = Set("r_inner"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      ExpandAll,
+      accumulators = Set.empty
+    )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .aggregation(Seq.empty, Seq("count(*) AS c"))
+      .repeatTrail(`(start) [(a)-[r]->(b)]{0,1} (end)`)
+      .|.remoteBatchPropertiesWithFilter("cache[b_inner.foo]")("cache[b_inner.foo] = arg1")
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.argument("start", "a_inner")
+      .unwind("[42, 100] AS arg1")
+      .allNodeScan("start")
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("c").withSingleRow(sizeHint * 2 + sizeHint / 4)
+  }
+
+  test("should push down arguments on trail(repeat) under apply") {
+    givenGraph {
+      val (nodes, _) = circleGraph(nNodes = sizeHint, relType = "R", outDegree = 1)
+      var i = 0
+      for (node <- nodes) {
+        node.setProperty("foo", 42 + i % 4)
+        i += 1
+      }
+    }
+
+    val `(start) [(a)-[r]->(b)]{1,1} (end)` = TrailParameters(
+      min = 1,
+      max = Limited(1),
+      start = "start",
+      end = "end",
+      innerStart = "a_inner",
+      innerEnd = "b_inner",
+      groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
+      groupRelationships = Set(("r_inner", "r")),
+      innerRelationships = Set("r_inner"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      ExpandAll,
+      accumulators = Set.empty
+    )
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("`end.foo`")
+      .apply()
+      .|.projection("cache[end.foo] as `end.foo`")
+      .|.remoteBatchPropertiesWithFilter("cache[end.foo]")("cache[end.foo] = arg1")
+      .|.repeatTrail(`(start) [(a)-[r]->(b)]{1,1} (end)`)
+      .|.|.remoteBatchPropertiesWithFilter("cache[b_inner.foo]")("cache[b_inner.foo] = arg1")
+      .|.|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.|.argument("start", "a_inner")
+      .|.allNodeScan("start")
+      .unwind("[1,2,42,43,10,45] as arg1")
+      .argument()
+      .build()
+
+    // when
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expectedRow = Array.fill(sizeHint / 4)(42) ++ Array.fill(sizeHint / 4)(43) ++ Array.fill(sizeHint / 4)(45)
+    runtimeResult should beColumns("end.foo").withRows(singleColumn(expectedRow))
+  }
+
+  test("should push down combination of argument and query parameter") {
+    givenGraph {
+      nodePropertyGraph(
+        10,
+        {
+          case i => Map("p" -> i)
+        }
+      )
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("p")
+      .projection("cache[n.p] as p")
+      .remoteBatchPropertiesWithFilter("cache[n.p]")("cache[n.p] = x + $param")
+      .unwind("[1,2,3] as x")
+      .allNodeScan("n")
+      .build()
+
+    val result = execute(query, runtime, Map("param" -> 2))
+    result should beColumns("p").withRows(singleColumn(Seq(3, 4, 5)))
+  }
+
+  test("should push down argument under Apply") {
+    givenGraph {
+      nodePropertyGraph(sizeHint, { case i => Map("prop1" -> i % 2, "prop2" -> i * 2) })
+    }
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("prop1", "prop2")
+      .apply()
+      .|.projection("cache[x.prop1] as prop1", "cache[x.prop2] as prop2")
+      .|.remoteBatchPropertiesWithFilter("cache[x.prop1]", "cache[x.prop2]")("cache[x.prop1] = arg1")
+      .|.argument("x")
+      .projection("0 as arg1")
+      .allNodeScan("x")
+      .build()
+
+    val result = execute(query, runtime)
+    val expected = (0 until sizeHint).filter(_ % 2 == 0).map(i => Array(0, i * 2))
+    result should beColumns("prop1", "prop2").withRows(expected)
+  }
+
+  test("should push down arguments with duplicated cached properties on rhs of nested cartesian product") {
+    givenGraph {
+      val n1 = tx.createNode(Label.label("A"))
+      n1.setProperty("p", 10)
+      n1.setProperty("p2", 11)
+      val n2 = tx.createNode(Label.label("A"))
+      n2.setProperty("p", 20)
+      val n3 = tx.createNode(Label.label("C"))
+      n3.setProperty("p3", 30)
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("p3")
+      .projection("cache[n3.p3] as p3")
+      .remoteBatchProperties("cache[n3.p3]")
+      .apply()
+      .|.cartesianProduct()
+      .|.|.cartesianProduct()
+      .|.|.|.remoteBatchPropertiesWithFilter("cache[n1.p2]")("cache[n1.p2] = arg2")
+      .|.|.|.nodeByLabelScan("n3", "C", "n1")
+      .|.|.remoteBatchProperties("cache[n1.p2]")
+      .|.|.argument("n1")
+      .|.remoteBatchPropertiesWithFilter("cache[n2.p]")("cache[n2.p] = arg1")
+      .|.allNodeScan("n2")
+      .projection("20 as arg1", "11 as arg2")
+      .allNodeScan("n1")
+      .build()
+
+    val result = execute(query, runtime)
+
+    result should beColumns("p3").withSingleRow(30)
+  }
+
+  test("should push down predicate on node from collection") {
+
+    givenGraph {
+      val (nodes, _) = lineGraph(2, "R", "A")
+      nodes.foreach(n => n.setProperty("property", "value"))
+      nodeGraph(10)
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("total")
+      .aggregation(Seq.empty, Seq("count(node) as total"))
+      .remoteBatchPropertiesWithFilter("cache[node.property]")("node.property IS NOT NULL", "node.property = $param")
+      .filter("node:A")
+      .unwind("nodes as node")
+      .aggregation(Seq.empty, Seq("collect(a) as nodes"))
+      .nodeByLabelScan("a", "A")
+      .build()
+
+    val result = execute(query, runtime, parameters = Map("param" -> "value"))
+
+    result should beColumns("total").withSingleRow(2)
+  }
 }

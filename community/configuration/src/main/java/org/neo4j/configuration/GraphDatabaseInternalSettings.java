@@ -271,7 +271,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description(
             "Feature flag to push down predicates containing arguments and already cached properties to RemoteBatchPropertiesWithFilter")
     public static final Setting<Boolean> push_down_arguments_rbpwf_enabled = newBuilder(
-                    "internal.cypher.push_down_arguments_rbpwf_enabled", BOOL, false)
+                    "internal.cypher.push_down_arguments_rbpwf_enabled", BOOL, true)
             .build();
 
     @Internal

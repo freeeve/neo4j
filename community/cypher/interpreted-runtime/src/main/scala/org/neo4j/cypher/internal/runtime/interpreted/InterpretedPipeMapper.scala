@@ -1265,8 +1265,9 @@ case class InterpretedPipeMapper(
         val runtimeProperties = properties.toArray.map(buildExpression(_))
         CachePropertiesPipe(source, runtimeProperties)(id = id)
 
-      case RemoteBatchProperties(_, _) =>
-        source // TODO: implement
+      case RemoteBatchProperties(_, properties) =>
+        val runtimeProperties = properties.toArray.map(buildExpression(_))
+        CachePropertiesPipe(source, runtimeProperties)(id = id)
 
       case RemoteBatchPropertiesWithFilter(_, predicates, _) => // TODO: implement
         val ands = Ands(predicates)(InputPosition.NONE)
