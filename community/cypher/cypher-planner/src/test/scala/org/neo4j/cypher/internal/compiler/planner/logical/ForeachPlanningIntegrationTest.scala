@@ -19,9 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.hasAnyDynamicLabel
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.hasDynamicLabels
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.varFor
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.EagernessReason
@@ -137,49 +134,6 @@ class ForeachPlanningIntegrationTest extends CypherFunSuite with LogicalPlanning
       .cartesianProduct()
       .|.nodeByLabelScan(node = "n", label = "100")
       .allNodeScan("anon_0")
-      .build()
-  }
-
-  test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH") {
-    val planner = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setLabelCardinality("100", 50)
-      .build()
-
-    val query =
-      """
-        |WITH [i IN range(1, 5) | toString(i)] AS numericLabels
-        |MATCH (n:$any(numericLabels))
-        |FOREACH (l IN numericLabels | REMOVE n:$(l))
-        |WITH *
-        |MATCH ()
-        |MATCH (m:$all(numericLabels))
-        |RETURN count(m) AS shouldBeZero
-        |""".stripMargin
-
-    val plan = planner.plan(query).stripProduceResults
-
-    plan shouldEqual planner
-      .subPlanBuilder()
-      .aggregation(groupingExpressions = Seq(), aggregationExpression = Seq("count(m) AS shouldBeZero"))
-      .apply()
-      .|.cartesianProduct()
-      .|.|.filterExpression(hasDynamicLabels(varFor("m"), varFor("numericLabels")))
-      .|.|.allNodeScan(node = "m", "n", "numericLabels")
-      .|.allNodeScan(node = "anon_0", "n", "numericLabels")
-      .eager(
-        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(8), Id(4))))
-      )
-      .foreach(
-        variable = "l",
-        expression = "numericLabels",
-        mutations = Seq(removeLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("l")))
-      )
-      .filterExpression(hasAnyDynamicLabel(varFor("n"), varFor("numericLabels")))
-      .apply()
-      .|.allNodeScan(node = "n", "numericLabels")
-      .projection("[i IN range(1, 5) | toString(i)] AS numericLabels")
-      .argument()
       .build()
   }
 }

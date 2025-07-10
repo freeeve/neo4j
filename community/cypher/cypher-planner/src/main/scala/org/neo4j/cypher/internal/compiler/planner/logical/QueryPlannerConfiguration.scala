@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CandidateSelectorFactory
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelScanLeafPlanner
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeScanLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OptionalSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OrLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectPatternPredicates
@@ -91,11 +93,17 @@ object QueryPlannerConfiguration {
     // MATCH (n:Person|Bird) RETURN n
     unionLabelScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
 
+    // MATCH (n:$(['Person', 'Artist'])) RETURN n
+    DynamicLabelScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+
     // MATCH ()-[r:R]->()
     relationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
 
     // MATCH ()-[r:R|S]->()
-    unionRelationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners)
+    unionRelationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+
+    // MATCH ()-[r:$any(['R', 'S'])]->()
+    DynamicRelationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners)
   )
 
   private def allLeafPlanners(restrictions: LeafPlanRestrictions): IndexedSeq[LeafPlanner] = {

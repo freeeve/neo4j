@@ -132,6 +132,7 @@ import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.graphdb.config.Setting
 import org.neo4j.internal.schema.constraints.SchemaValueType
 
 import scala.util.Success
@@ -347,7 +348,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     strategy: QueryGraphSolver = newMockQueryGraphSolver,
     notificationLogger: InternalNotificationLogger = devNullLogger,
     useErrorsOverWarnings: Boolean = false,
-    costComparisonListener: CostComparisonListener = devNullListener
+    costComparisonListener: CostComparisonListener = devNullListener,
+    configSettings: Map[Setting[_], AnyRef] = Map.empty
   ): LogicalPlanningContext = {
     val planningAttributes = PlanningAttributes.newAttributes
     newLogicalPlanningContextWithGivenAttributes(
@@ -358,7 +360,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       notificationLogger,
       useErrorsOverWarnings,
       planningAttributes,
-      costComparisonListener
+      costComparisonListener,
+      configSettings
     )
   }
 
@@ -369,7 +372,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     strategy: QueryGraphSolver = newMockQueryGraphSolver,
     notificationLogger: InternalNotificationLogger = devNullLogger,
     useErrorsOverWarnings: Boolean = false,
-    costComparisonListener: CostComparisonListener = devNullListener
+    costComparisonListener: CostComparisonListener = devNullListener,
+    configSettings: Map[Setting[_], AnyRef] = Map.empty
   ): LogicalPlanningContext = {
     val planningAttributes = newStubbedPlanningAttributes
     newLogicalPlanningContextWithGivenAttributes(
@@ -380,7 +384,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       notificationLogger,
       useErrorsOverWarnings,
       planningAttributes,
-      costComparisonListener
+      costComparisonListener,
+      configSettings
     )
   }
 
@@ -392,7 +397,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     notificationLogger: InternalNotificationLogger,
     useErrorsOverWarnings: Boolean,
     planningAttributes: PlanningAttributes,
-    costComparisonListener: CostComparisonListener
+    costComparisonListener: CostComparisonListener,
+    configSettings: Map[Setting[_], AnyRef]
   ): LogicalPlanningContext = {
     val staticComponents = StaticComponents(
       planContext = planContext,
@@ -410,16 +416,19 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       labelInferenceStrategy = NoInference
     )
 
-    val settings = Settings(
+    val config = CypherPlannerConfiguration.withSettings(configSettings)
+
+    val planningSettings = Settings(
       executionModel = ExecutionModel.default,
       debugOptions = CypherDebugOptions.default,
       predicatesAsUnionMaxSize = config.predicatesAsUnionMaxSize(),
       useErrorsOverWarnings = useErrorsOverWarnings,
       legacyCsvQuoteEscaping = config.legacyCsvQuoteEscaping(),
-      multiRelationshipExpansion = config.multiRelationshipExpansionEnabled()
+      multiRelationshipExpansion = config.multiRelationshipExpansionEnabled(),
+      dynamicLabelScansEnabled = config.dynamicLabelScansEnabled()
     )
 
-    LogicalPlanningContext(staticComponents, settings)
+    LogicalPlanningContext(staticComponents, planningSettings)
   }
 
   def newMockedStatistics: InstrumentedGraphStatistics = mock[InstrumentedGraphStatistics]
@@ -428,9 +437,10 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   def newMockedPlanContext(statistics: InstrumentedGraphStatistics = newMockedStatistics): PlanContext = {
     val context = mock[PlanContext]
     doReturn(statistics, Nil: _*).when(context).statistics
-    doReturn(Some(TokenIndexDescriptor(common.EntityType.NODE, IndexOrderCapability.BOTH)), Nil: _*).when(
-      context
-    ).nodeTokenIndex
+    val nodeTokenIndex = TokenIndexDescriptor(common.EntityType.NODE, IndexOrderCapability.BOTH)
+    doReturn(Some(nodeTokenIndex), Nil: _*).when(context).nodeTokenIndex
+    val relationshipTokenIndex = TokenIndexDescriptor(common.EntityType.RELATIONSHIP, IndexOrderCapability.BOTH)
+    doReturn(Some(relationshipTokenIndex), Nil: _*).when(context).relationshipTokenIndex
     context
   }
 
@@ -508,7 +518,6 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     )
   }
 
-  val config: CypherPlannerConfiguration = CypherPlannerConfiguration.defaults()
   def semanticFeatures: List[SemanticFeature] = Nil
 
   def buildSinglePlannerQuery(

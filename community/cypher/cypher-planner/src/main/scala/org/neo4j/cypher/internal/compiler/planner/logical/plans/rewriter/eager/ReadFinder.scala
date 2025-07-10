@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.expressions.GetDegree
 import org.neo4j.cypher.internal.expressions.HasALabel
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabelsOrTypes
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
 import org.neo4j.cypher.internal.expressions.HasDegree
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThanOrEqual
@@ -38,6 +39,7 @@ import org.neo4j.cypher.internal.expressions.HasDegreeLessThan
 import org.neo4j.cypher.internal.expressions.HasDegreeLessThanOrEqual
 import org.neo4j.cypher.internal.expressions.HasDynamicLabels
 import org.neo4j.cypher.internal.expressions.HasDynamicLabelsOrTypes
+import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
@@ -95,6 +97,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSe
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
@@ -352,17 +355,10 @@ object ReadFinder {
           .withIntroducedNodeVariable(variable)
           .withAddedNodeFilterExpression(variable, hasLabels)
 
-      case _: DynamicNodeByLabelsScan =>
-        // TODO
-        ???
-
-      case _: DynamicDirectedRelationshipTypeScan =>
-        // TODO
-        ???
-
-      case _: DynamicUndirectedRelationshipTypeScan =>
-        // TODO
-        ???
+      case DynamicNodeByLabelsScan(variable, _, _, _) =>
+        PlanReads()
+          .withIntroducedNodeVariable(variable)
+          .withUnknownLabelsRead(Some(variable))
 
       case UnionNodeByLabelsScan(variable, labelNames, _, _) =>
         val predicates = labelNames.map { labelName =>
@@ -510,6 +506,34 @@ object ReadFinder {
 
       case DirectedRelationshipTypeScan(relationship, leftNode, relType, rightNode, _, _) =>
         processRelTypeRead(relationshipVariable(relationship), leftNode, relType, rightNode)
+
+      case DynamicDirectedRelationshipTypeScan(relationship, startNode, relType, endNode, _, _) =>
+        val r = relationshipVariable(relationship)
+        val predicate = relType match {
+          case DynamicElement.Simple(expr, operator) => operator match {
+              case DynamicElement.All => HasDynamicType(r, Seq(expr))(InputPosition.NONE)
+              case DynamicElement.Any => HasAnyDynamicType(r, Seq(expr))(InputPosition.NONE)
+            }
+        }
+        PlanReads()
+          .withIntroducedNodeVariable(startNode)
+          .withIntroducedNodeVariable(endNode)
+          .withIntroducedRelationshipVariable(relationship)
+          .withAddedRelationshipFilterExpression(r, predicate)
+
+      case DynamicUndirectedRelationshipTypeScan(relationship, leftNode, relType, rightNode, _, _) =>
+        val r = relationshipVariable(relationship)
+        val predicate = relType match {
+          case DynamicElement.Simple(expr, operator) => operator match {
+              case DynamicElement.All => HasDynamicType(r, Seq(expr))(InputPosition.NONE)
+              case DynamicElement.Any => HasAnyDynamicType(r, Seq(expr))(InputPosition.NONE)
+            }
+        }
+        PlanReads()
+          .withIntroducedNodeVariable(leftNode)
+          .withIntroducedNodeVariable(rightNode)
+          .withIntroducedRelationshipVariable(relationship)
+          .withAddedRelationshipFilterExpression(r, predicate)
 
       case DirectedRelationshipIndexScan(
           relationship,

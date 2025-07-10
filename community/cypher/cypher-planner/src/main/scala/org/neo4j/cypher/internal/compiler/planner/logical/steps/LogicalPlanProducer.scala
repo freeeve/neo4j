@@ -64,6 +64,10 @@ import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
+import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
+import org.neo4j.cypher.internal.expressions.HasDynamicLabels
+import org.neo4j.cypher.internal.expressions.HasDynamicType
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -164,6 +168,10 @@ import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesSca
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DistinctColumns
 import org.neo4j.cypher.internal.logical.plans.Distinctness
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
+import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -603,6 +611,78 @@ case class LogicalPlanProducer(
     }
 
     planHiddenSelectionIfNeeded(planLeaf, hiddenSelections, context, originalPattern)
+  }
+
+  def planDynamicRelationshipByTypeScan(
+    variable: LogicalVariable,
+    relationshipTypes: Expression,
+    operator: DynamicElement.SetOperator,
+    patternForLeafPlan: PatternRelationship,
+    originalPattern: PatternRelationship,
+    hiddenSelections: Seq[Expression],
+    argumentIds: Set[LogicalVariable],
+    providedOrder: ProvidedOrder,
+    context: LogicalPlanningContext
+  ): LogicalPlan = {
+    val predicate =
+      operator match {
+        case DynamicElement.All => HasDynamicType(variable, Seq(relationshipTypes))(InputPosition.NONE)
+        case DynamicElement.Any => HasAnyDynamicType(variable, Seq(relationshipTypes))(InputPosition.NONE)
+      }
+
+    val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
+    val rewrittenRelationshipTypes = solver.solve(relationshipTypes)
+    val newArguments = solver.newArguments
+
+    val element = DynamicElement.Simple(rewrittenRelationshipTypes, operator)
+    val allArgumentIds = argumentIds.union(newArguments)
+    val indexOrder = toIndexOrder(providedOrder)
+
+    val leafPlan = patternForLeafPlan.dir match {
+      case SemanticDirection.OUTGOING =>
+        DynamicDirectedRelationshipTypeScan(
+          idName = Some(variable),
+          startNode = Some(patternForLeafPlan.left),
+          relType = element,
+          endNode = Some(patternForLeafPlan.right),
+          argumentIds = allArgumentIds,
+          indexOrder = indexOrder
+        )
+      case SemanticDirection.INCOMING =>
+        DynamicDirectedRelationshipTypeScan(
+          idName = Some(variable),
+          startNode = Some(patternForLeafPlan.right),
+          relType = element,
+          endNode = Some(patternForLeafPlan.left),
+          argumentIds = allArgumentIds,
+          indexOrder = indexOrder
+        )
+      case SemanticDirection.BOTH =>
+        DynamicUndirectedRelationshipTypeScan(
+          idName = Some(variable),
+          leftNode = Some(patternForLeafPlan.left),
+          relType = element,
+          rightNode = Some(patternForLeafPlan.right),
+          argumentIds = allArgumentIds,
+          indexOrder = indexOrder
+        )
+    }
+
+    val annotatedLeafPlan =
+      annotateRelationshipLeafPlan(
+        leafPlan = leafPlan,
+        patternForLeafPlan = patternForLeafPlan,
+        solvedPredicates = List(predicate),
+        solvedHint = Nil,
+        argumentIds = argumentIds,
+        providedOrder = providedOrder,
+        context = context,
+        cachedProperties = context.plannerState.previouslyCachedProperties
+      )
+
+    val rewrittenPlan = solver.rewriteLeafPlan(annotatedLeafPlan)
+
+    planHiddenSelectionIfNeeded(rewrittenPlan, hiddenSelections, context, originalPattern)
   }
 
   def planRelationshipIndexScan(
@@ -1573,6 +1653,47 @@ case class LogicalPlanProducer(
       context.plannerState.previouslyCachedProperties,
       context
     )
+  }
+
+  def planDynamicNodeByLabelsScan(
+    variable: LogicalVariable,
+    labels: Expression,
+    operator: DynamicElement.SetOperator,
+    argumentIds: Set[LogicalVariable],
+    providedOrder: ProvidedOrder,
+    context: LogicalPlanningContext
+  ): LogicalPlan = {
+    val predicate =
+      operator match {
+        case DynamicElement.All => HasDynamicLabels(variable, Seq(labels))(InputPosition.NONE)
+        case DynamicElement.Any => HasAnyDynamicLabel(variable, Seq(labels))(InputPosition.NONE)
+      }
+
+    val solved = RegularSinglePlannerQuery(
+      queryGraph =
+        QueryGraph.empty
+          .addPatternNodes(variable)
+          .addPredicates(predicate)
+          .addArgumentIds(argumentIds.toIndexedSeq),
+      horizon = RegularQueryProjection(
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+      )
+    )
+
+    val solver = SubqueryExpressionSolver.solverForLeafPlan(argumentIds, context)
+    val rewrittenLabels = solver.solve(labels)
+    val newArguments = solver.newArguments
+
+    val plan = DynamicNodeByLabelsScan(
+      idName = variable,
+      labelExpr = DynamicElement.Simple(rewrittenLabels, operator),
+      argumentIds = argumentIds.union(newArguments),
+      indexOrder = toIndexOrder(providedOrder)
+    )
+
+    val annotatedPlan = annotate(plan, solved, providedOrder, context.plannerState.previouslyCachedProperties, context)
+
+    solver.rewriteLeafPlan(annotatedPlan)
   }
 
   def planNodeIndexSeek(

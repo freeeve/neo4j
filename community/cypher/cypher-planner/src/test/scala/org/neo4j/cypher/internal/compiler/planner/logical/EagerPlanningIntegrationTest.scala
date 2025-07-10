@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTest
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
 import org.neo4j.cypher.internal.expressions.ListLiteral
+import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.EagernessReason
@@ -49,6 +50,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.crea
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.removeLabel
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setLabel
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanAstConstructionTestSupport
@@ -1788,6 +1790,33 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     )
   }
 
+  test("eagerness should handle matching on dynamic labels - Create overlap – using dynamic label scan") {
+    val planner = plannerBuilder()
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("C", 10)
+      .build()
+
+    val query = """WITH ["A", "B"] as labels
+                  |MATCH (n:$any(labels))
+                  |CREATE (:Z)
+                  |RETURN n""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("n")
+        .create(createNode("anon_0", "Z"))
+        .eager(ListSet(LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(1), Id(4)))))
+        .apply()
+        .|.dynamicNodeByLabelsScan("n", varFor("labels"), DynamicElement.Any, IndexOrderNone, "labels")
+        .projection("['A', 'B'] AS labels")
+        .argument()
+        .build()
+    )
+  }
+
   test("eagerness should handle matching on dynamic labels - Set overlap") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -1856,6 +1885,44 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .|.cartesianProduct()
         .|.|.filterExpression(dynExpr)
         .|.|.allNodeScan("n", "types")
+        .|.filter("NOT m:%")
+        .|.allNodeScan("m", "types")
+        .projection("['A', 'B'] AS types")
+        .argument()
+        .build()
+    )
+  }
+
+  test("eagerness should handle matching on Dynamic Labels - Delete overlap – using dynamic label scan") {
+    val planner = plannerBuilder()
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Z", 10)
+      .setRelationshipCardinality("()-[]->()", 10)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("C", 10)
+      .build()
+
+    val query = """WITH ["A", "B"] as types
+                  |MATCH (n:$([])), (m:!%)
+                  |DELETE m
+                  |RETURN n""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("n")
+        .eager(ListSet(ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(0)))))
+        .deleteNode("m")
+        .eager(ListSet(
+          ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(6))),
+          ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(7))),
+          ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(8)))
+        ))
+        .apply()
+        .|.cartesianProduct()
+        .|.|.dynamicNodeByLabelsScan("n", listOf(), DynamicElement.All, IndexOrderNone, "types")
         .|.filter("NOT m:%")
         .|.allNodeScan("m", "types")
         .projection("['A', 'B'] AS types")
@@ -2021,6 +2088,36 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
+  test("insert an eager between reading nodes and merging a node with a dynamic label – using dynamic label scan") {
+    val planner =
+      plannerBuilder()
+        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
+        .setAllNodesCardinality(10)
+        .setLabelCardinality("Account", 10)
+        .build()
+
+    val query =
+      """UNWIND [1] AS one
+        |MATCH (n:Account)
+        |MERGE (:$($label))""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner
+      .planBuilder()
+      .produceResults()
+      .emptyResult()
+      .apply()
+      .|.merge(Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
+      .|.dynamicNodeByLabelsScan("anon_0", parameter("label", CTAny), DynamicElement.All, IndexOrderNone)
+      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7)))))
+      .apply()
+      .|.nodeByLabelScan("n", "Account", IndexOrderNone, "one")
+      .unwind("[1] AS one")
+      .argument()
+      .build()
+  }
+
   test("insert an eager between reading relationships and merging a relationship with a dynamic type") {
     val planner =
       plannerBuilder()
@@ -2136,6 +2233,51 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .filterExpression(hasAnyDynamicLabel(varFor("n"), varFor("numericLabels")))
       .apply()
       .|.allNodeScan(node = "n", "numericLabels")
+      .projection("[i IN range(1, 5) | toString(i)] AS numericLabels")
+      .argument()
+      .build()
+  }
+
+  test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH – using dynamic label scan") {
+    val planner = plannerBuilder()
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("100", 50)
+      .build()
+
+    val query =
+      """
+        |WITH [i IN range(1, 5) | toString(i)] AS numericLabels
+        |MATCH (n:$any(numericLabels))
+        |FOREACH (l IN numericLabels | REMOVE n:$(l))
+        |WITH *
+        |MATCH ()
+        |MATCH (m:$all(numericLabels))
+        |RETURN count(m) AS shouldBeZero
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+
+    plan shouldEqual planner
+      .subPlanBuilder()
+      .aggregation(groupingExpressions = Seq(), aggregationExpression = Seq("count(m) AS shouldBeZero"))
+      .apply()
+      .|.cartesianProduct()
+      .|.|.dynamicNodeByLabelsScan("m", "numericLabels", DynamicElement.All, IndexOrderNone, "n", "numericLabels")
+      .|.allNodeScan("anon_0", "n", "numericLabels")
+      .eager(
+        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(7), Id(4))))
+      )
+      .foreach(
+        variable = "l",
+        expression = "numericLabels",
+        mutations = Seq(removeLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("l")))
+      )
+      .eager(
+        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(7), Id(10))))
+      )
+      .apply()
+      .|.dynamicNodeByLabelsScan("n", "numericLabels", DynamicElement.Any, IndexOrderNone, "numericLabels")
       .projection("[i IN range(1, 5) | toString(i)] AS numericLabels")
       .argument()
       .build()
@@ -2313,6 +2455,219 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .|.nodeByLabelScan(node = "n", label = "A")
       .allNodeScan("anon_0")
       .build()
+  }
+
+  test("insert eager between MATCH with dynamic relationship type and CREATE") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(10)
+      .build()
+
+    val query = """WITH ['A', 'B'] AS types
+                  |MATCH (a)-[r:$any(types)]->(b)
+                  |CREATE (a)-[s:A]->(b)
+                  |RETURN r""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("r")
+        .create(createRelationship("s", "a", "A", "b", OUTGOING))
+        .eager(ListSet(
+          EagernessReason.TypeReadSetConflict(RelTypeName("A")(InputPosition.NONE))
+            .withConflict(EagernessReason.Conflict(Id(1), Id(5)))
+        ))
+        .filterExpression(hasAnyDynamicType(varFor("r"), varFor("types")))
+        .apply()
+        .|.allRelationshipsScan("(a)-[r]->(b)", "types")
+        .projection("['A', 'B'] AS types")
+        .argument()
+        .build()
+  }
+
+  test("insert eager between MATCH with dynamic relationship type and CREATE – using dynamic label scan") {
+    val planner = plannerBuilder()
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(10)
+      .build()
+
+    val query = """WITH ['A', 'B'] AS types
+                  |MATCH (a)-[r:$any(types)]->(b)
+                  |CREATE (a)-[s:A]->(b)
+                  |RETURN r""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("r")
+        .create(createRelationship("s", "a", "A", "b", OUTGOING))
+        .eager(ListSet(
+          EagernessReason.TypeReadSetConflict(RelTypeName("A")(InputPosition.NONE))
+            .withConflict(EagernessReason.Conflict(Id(1), Id(4)))
+        ))
+        .apply()
+        .|.dynamicRelationshipTypeScan("(a)-[r]->(b)", "$any(types)", IndexOrderNone, "types")
+        .projection("['A', 'B'] AS types")
+        .argument()
+        .build()
+  }
+
+  test("insert eager between MATCH and MERGE with dynamic relationship type") {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setAllRelationshipsCardinality(10)
+        .build()
+
+    val query =
+      """
+        |UNWIND [1,2,3] AS i
+        |MATCH (a)-[r {prop: i}]->(b)
+        |MERGE (b)-[s:$(type(r))]->(a);
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults()
+        .emptyResult()
+        .apply()
+        .|.merge(
+          nodes = Seq(),
+          relationships = Seq(createRelationshipWithDynamicType("s", "b", "type(r)", "a", OUTGOING)),
+          onMatch = Seq(),
+          onCreate = Seq(),
+          lockNodes = Set("b", "a")
+        )
+        .|.filterExpression(hasDynamicType(varFor("s"), function("type", varFor("r"))))
+        .|.expandInto("(b)-[s]->(a)")
+        .|.argument("a", "b", "r")
+        .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(10)))))
+        .filter("r.prop = i")
+        .apply()
+        .|.allRelationshipsScan("(a)-[r]->(b)", "i")
+        .unwind("[1, 2, 3] AS i")
+        .argument()
+        .build()
+  }
+
+  test("insert eager between MATCH and MERGE with dynamic undirected relationship type") {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setAllRelationshipsCardinality(10)
+        .build()
+
+    val query =
+      """
+        |UNWIND [1,2,3] AS i
+        |MATCH (a)-[r {prop: i}]->(b)
+        |MERGE (b)-[s:$(type(r))]-(a);
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults()
+        .emptyResult()
+        .apply()
+        .|.merge(
+          nodes = Seq(),
+          relationships = Seq(createRelationshipWithDynamicType("s", "b", "type(r)", "a", BOTH)),
+          onMatch = Seq(),
+          onCreate = Seq(),
+          lockNodes = Set("b", "a")
+        )
+        .|.filterExpression(hasDynamicType(varFor("s"), function("type", varFor("r"))))
+        .|.expandInto("(b)-[s]-(a)")
+        .|.argument("a", "b", "r")
+        .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(10)))))
+        .filter("r.prop = i")
+        .apply()
+        .|.allRelationshipsScan("(a)-[r]->(b)", "i")
+        .unwind("[1, 2, 3] AS i")
+        .argument()
+        .build()
+  }
+
+  test("insert eager between MATCH with dynamic relationship type and DELETE") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(10)
+      .build()
+
+    val query = """WITH ['A', 'B'] AS types
+                  |MATCH (a)-[r:$any(types)]-(b), (c)-[s:!A]->(d)
+                  |DELETE s
+                  |RETURN r""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .eager(ListSet(EagernessReason.ReadDeleteConflict("r").withConflict(EagernessReason.Conflict(Id(2), Id(0)))))
+        .deleteRelationship("s")
+        .eager(ListSet(
+          EagernessReason.ReadDeleteConflict("r").withConflict(EagernessReason.Conflict(Id(2), Id(7))),
+          EagernessReason.ReadDeleteConflict("r").withConflict(EagernessReason.Conflict(Id(2), Id(8))),
+          EagernessReason.ReadDeleteConflict("s").withConflict(EagernessReason.Conflict(Id(2), Id(4))),
+          EagernessReason.ReadDeleteConflict("s").withConflict(EagernessReason.Conflict(Id(2), Id(10))),
+          EagernessReason.ReadDeleteConflict("r").withConflict(EagernessReason.Conflict(Id(2), Id(4))),
+          EagernessReason.ReadDeleteConflict("s").withConflict(EagernessReason.Conflict(Id(2), Id(9)))
+        ))
+        .filter("NOT r = s")
+        .apply()
+        .|.cartesianProduct()
+        .|.|.filterExpression(hasAnyDynamicType(varFor("r"), varFor("types")))
+        .|.|.allRelationshipsScan("()-[r]-()", "types")
+        .|.filter("NOT s:A")
+        .|.allRelationshipsScan("()-[s]->()", "types")
+        .projection("['A', 'B'] AS types")
+        .argument()
+        .build()
+    )
+  }
+
+  test("insert eager between MATCH with dynamic relationship type and DELETE – using dynamic label scan") {
+    val planner = plannerBuilder()
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
+      .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(10)
+      .build()
+
+    val query = """WITH ['A', 'B'] AS types
+                  |MATCH (a)-[r:$any(types)]-(b), (c)-[s:!A]->(d)
+                  |DELETE s
+                  |RETURN r""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .eager(ListSet(EagernessReason.ReadDeleteConflict("r").withConflict(EagernessReason.Conflict(Id(2), Id(0)))))
+        .deleteRelationship("s")
+        .eager(ListSet(
+          EagernessReason.ReadDeleteConflict("r").withConflict(EagernessReason.Conflict(Id(2), Id(7))),
+          EagernessReason.ReadDeleteConflict("s").withConflict(EagernessReason.Conflict(Id(2), Id(4))),
+          EagernessReason.ReadDeleteConflict("s").withConflict(EagernessReason.Conflict(Id(2), Id(9))),
+          EagernessReason.ReadDeleteConflict("r").withConflict(EagernessReason.Conflict(Id(2), Id(4))),
+          EagernessReason.ReadDeleteConflict("s").withConflict(EagernessReason.Conflict(Id(2), Id(8)))
+        ))
+        .filter("NOT r = s")
+        .apply()
+        .|.cartesianProduct()
+        .|.|.dynamicRelationshipTypeScan("()-[r]-()", "$any(types)", IndexOrderNone, "types")
+        .|.filter("NOT s:A")
+        .|.allRelationshipsScan("()-[s]->()", "types")
+        .projection("['A', 'B'] AS types")
+        .argument()
+        .build()
+    )
   }
 
   test(

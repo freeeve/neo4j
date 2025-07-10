@@ -2118,7 +2118,7 @@ case class DynamicDirectedRelationshipTypeScan(
 )(implicit idGen: IdGen)
     extends RelationshipLogicalLeafPlan(idGen) with RelationshipTypeScan with StableLeafPlan {
 
-  override def usedVariables: Set[LogicalVariable] = Set.empty
+  override def usedVariables: Set[LogicalVariable] = relType.dependencies
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicDirectedRelationshipTypeScan =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
@@ -3292,7 +3292,13 @@ case class NodeByLabelScan(
  * Represents either a dynamic node label expression, or a dynamic relationship type expression,
  * along with a boolean logic operator that defines how the expression should be evaluated.
  */
-sealed trait DynamicElement
+sealed trait DynamicElement {
+
+  /**
+   * All variables referenced from the dynamic label expression (or any of its children).
+   */
+  def dependencies: Set[LogicalVariable]
+}
 
 object DynamicElement {
   sealed trait SetOperator { val name: String }
@@ -3300,7 +3306,9 @@ object DynamicElement {
   case object Any extends SetOperator { override val name: String = "DynamicElement.Any" }
 
   /** expr must evaluate at runtime to a string or list of strings, representing label names to which the operator is applied */
-  case class Simple(expr: Expression, operator: SetOperator) extends DynamicElement
+  case class Simple(expr: Expression, operator: SetOperator) extends DynamicElement {
+    override def dependencies: Set[LogicalVariable] = expr.dependencies
+  }
   // TODO: Complex case
 }
 
@@ -3317,7 +3325,7 @@ case class DynamicNodeByLabelsScan(
 
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName
 
-  override def usedVariables: Set[LogicalVariable] = Set.empty
+  override def usedVariables: Set[LogicalVariable] = labelExpr.dependencies
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicNodeByLabelsScan =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
@@ -5598,7 +5606,7 @@ case class DynamicUndirectedRelationshipTypeScan(
 )(implicit idGen: IdGen)
     extends RelationshipLogicalLeafPlan(idGen) with RelationshipTypeScan with StableLeafPlan {
 
-  override def usedVariables: Set[LogicalVariable] = Set.empty
+  override def usedVariables: Set[LogicalVariable] = relType.dependencies
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicUndirectedRelationshipTypeScan =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
