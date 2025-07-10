@@ -65,53 +65,60 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
   // Impersonate and execute privileges have their own files and are not in this list
 
+  private val dbmsActionPrivileges: Seq[(String, AdministrationAction)] =
+    Seq(
+      ("CREATE ROLE", CreateRoleAction),
+      ("RENAME ROLE", RenameRoleAction),
+      ("DROP ROLE", DropRoleAction),
+      ("SHOW ROLE", ShowRoleAction),
+      ("ASSIGN ROLE", AssignRoleAction),
+      ("REMOVE ROLE", RemoveRoleAction),
+      ("ROLE MANAGEMENT", AllRoleActions),
+      ("CREATE USER", CreateUserAction),
+      ("RENAME USER", RenameUserAction),
+      ("DROP USER", DropUserAction),
+      ("SHOW USER", ShowUserAction),
+      ("SET PASSWORD", SetPasswordsAction),
+      ("SET PASSWORDS", SetPasswordsAction),
+      ("SET AUTH", SetAuthAction),
+      ("SET USER STATUS", SetUserStatusAction),
+      ("SET USER HOME DATABASE", SetUserHomeDatabaseAction),
+      ("ALTER USER", AlterUserAction),
+      ("USER MANAGEMENT", AllUserActions),
+      ("CREATE DATABASE", CreateDatabaseAction),
+      ("DROP DATABASE", DropDatabaseAction),
+      ("DATABASE MANAGEMENT", AllDatabaseManagementActions),
+      ("SHOW PRIVILEGE", ShowPrivilegeAction),
+      ("ASSIGN PRIVILEGE", AssignPrivilegeAction),
+      ("REMOVE PRIVILEGE", RemovePrivilegeAction),
+      ("PRIVILEGE MANAGEMENT", AllPrivilegeActions),
+      ("SHOW SERVER", ShowServerAction),
+      ("SHOW SERVERS", ShowServerAction),
+      ("SERVER MANAGEMENT", ServerManagementAction),
+      ("COMPOSITE DATABASE MANAGEMENT", CompositeDatabaseManagementActions),
+      ("CREATE COMPOSITE DATABASE", CreateCompositeDatabaseAction),
+      ("DROP COMPOSITE DATABASE", DropCompositeDatabaseAction),
+      ("ALTER COMPOSITE DATABASE", AlterCompositeDatabaseAction),
+      ("ALIAS MANAGEMENT", AllAliasManagementActions),
+      ("CREATE ALIAS", CreateAliasAction),
+      ("DROP ALIAS", DropAliasAction),
+      ("ALTER ALIAS", AlterAliasAction),
+      ("SHOW ALIAS", ShowAliasAction)
+    )
+
+  private val databaseActionPrivileges: Seq[(String, AdministrationAction)] =
+    Seq(
+      ("ALTER DATABASE", AlterDatabaseAction),
+      ("SET DATABASE ACCESS", SetDatabaseAccessAction),
+      ("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction)
+    )
+
   def privilegeTests(command: String, preposition: String, privilegeFunc: adminPrivilegeFunc): Unit = {
     Seq[Immutable](true, false).foreach {
       immutable =>
         val immutableString = maybeImmutable(immutable)
         val offset = command.length + immutableString.length + 1
-        Seq(
-          ("CREATE ROLE", CreateRoleAction),
-          ("RENAME ROLE", RenameRoleAction),
-          ("DROP ROLE", DropRoleAction),
-          ("SHOW ROLE", ShowRoleAction),
-          ("ASSIGN ROLE", AssignRoleAction),
-          ("REMOVE ROLE", RemoveRoleAction),
-          ("ROLE MANAGEMENT", AllRoleActions),
-          ("CREATE USER", CreateUserAction),
-          ("RENAME USER", RenameUserAction),
-          ("DROP USER", DropUserAction),
-          ("SHOW USER", ShowUserAction),
-          ("SET PASSWORD", SetPasswordsAction),
-          ("SET PASSWORDS", SetPasswordsAction),
-          ("SET AUTH", SetAuthAction),
-          ("SET USER STATUS", SetUserStatusAction),
-          ("SET USER HOME DATABASE", SetUserHomeDatabaseAction),
-          ("ALTER USER", AlterUserAction),
-          ("USER MANAGEMENT", AllUserActions),
-          ("CREATE DATABASE", CreateDatabaseAction),
-          ("DROP DATABASE", DropDatabaseAction),
-          ("ALTER DATABASE", AlterDatabaseAction),
-          ("SET DATABASE ACCESS", SetDatabaseAccessAction),
-          ("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction),
-          ("DATABASE MANAGEMENT", AllDatabaseManagementActions),
-          ("SHOW PRIVILEGE", ShowPrivilegeAction),
-          ("ASSIGN PRIVILEGE", AssignPrivilegeAction),
-          ("REMOVE PRIVILEGE", RemovePrivilegeAction),
-          ("PRIVILEGE MANAGEMENT", AllPrivilegeActions),
-          ("SHOW SERVER", ShowServerAction),
-          ("SHOW SERVERS", ShowServerAction),
-          ("SERVER MANAGEMENT", ServerManagementAction),
-          ("COMPOSITE DATABASE MANAGEMENT", CompositeDatabaseManagementActions),
-          ("CREATE COMPOSITE DATABASE", CreateCompositeDatabaseAction),
-          ("DROP COMPOSITE DATABASE", DropCompositeDatabaseAction),
-          ("ALTER COMPOSITE DATABASE", AlterCompositeDatabaseAction),
-          ("ALIAS MANAGEMENT", AllAliasManagementActions),
-          ("CREATE ALIAS", CreateAliasAction),
-          ("DROP ALIAS", DropAliasAction),
-          ("ALTER ALIAS", AlterAliasAction),
-          ("SHOW ALIAS", ShowAliasAction)
-        ).foreach {
+        (dbmsActionPrivileges ++ databaseActionPrivileges).foreach {
           case (privilege: String, action: AdministrationAction) =>
             test(s"$command$immutableString $privilege ON DBMS $preposition role") {
               parsesTo[Statements](privilegeFunc(action, Seq(literalRole), immutable)(pos))
@@ -125,6 +132,31 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
               parsesTo[Statements](privilegeFunc(action, Seq(literalRColonOle), immutable)(pos))
             }
 
+            test(s"$command$immutableString $privilege ON DBMS $preposition r:ole") {
+              val offset = command.length + immutableString.length + 12 + privilege.length + preposition.length
+              failsParsing[Statements].withSyntaxErrorContaining(
+                s"""Invalid input ':': expected ',' or <EOF> (line 1, column ${offset + 1} (offset: $offset))"""
+              )
+            }
+
+            test(s"$command$immutableString $privilege ON DBMS $preposition") {
+              val offset = command.length + immutableString.length + 10 + privilege.length + preposition.length
+              failsParsing[Statements].withSyntaxErrorContaining(
+                s"""Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))"""
+              )
+            }
+
+            test(s"$command$immutableString $privilege ON DBMS") {
+              val offset = command.length + immutableString.length + 9 + privilege.length
+              failsParsing[Statements].withSyntaxErrorContaining(
+                s"""Invalid input '': expected '$preposition' (line 1, column ${offset + 1} (offset: $offset))"""
+              )
+            }
+        }
+
+        // These tests are only reasonable for dbms privileges which do not have an ON DATABASE variant
+        dbmsActionPrivileges.foreach {
+          case (privilege: String, _) =>
             test(s"$command$immutableString $privilege ON DATABASE $preposition role") {
               failsParsing[Statements].withSyntaxErrorContaining("""Invalid input 'DATABASE': expected 'DBMS'""")
             }
@@ -149,26 +181,22 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
                 s"""Invalid input '$preposition': expected 'DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
               )
             }
+        }
 
-            test(s"$command$immutableString $privilege ON DBMS $preposition r:ole") {
-              val offset = command.length + immutableString.length + 12 + privilege.length + preposition.length
-              failsParsing[Statements].withSyntaxErrorContaining(
-                s"""Invalid input ':': expected ',' or <EOF> (line 1, column ${offset + 1} (offset: $offset))"""
-              )
-            }
+        // These tests are only reasonable for dbms privileges which do have an ON DATABASE variant
+        databaseActionPrivileges.foreach {
+          case (privilege: String, _) =>
 
-            test(s"$command$immutableString $privilege ON DBMS $preposition") {
-              val offset = command.length + immutableString.length + 10 + privilege.length + preposition.length
-              failsParsing[Statements].withSyntaxErrorContaining(
-                s"""Invalid input '': expected a parameter or an identifier (line 1, column ${offset + 1} (offset: $offset))"""
-              )
-            }
-
-            test(s"$command$immutableString $privilege ON DBMS") {
-              val offset = command.length + immutableString.length + 9 + privilege.length
-              failsParsing[Statements].withSyntaxErrorContaining(
-                s"""Invalid input '': expected '$preposition' (line 1, column ${offset + 1} (offset: $offset))"""
-              )
+            test(s"$command$immutableString $privilege ON $preposition role") {
+              val offset = command.length + immutableString.length + 5 + privilege.length
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining(
+                    s"""Invalid input '$preposition': expected 'DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
+                  )
+                case _ => _.withSyntaxErrorContaining(
+                    s"""Invalid input '$preposition': expected 'DATABASE', 'HOME DATABASE', 'DATABASES' or 'DBMS' (line 1, column ${offset + 1} (offset: $offset))"""
+                  )
+              }
             }
         }
 
@@ -274,9 +302,14 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
         }
 
         test(s"$command$immutableString ALTER DATABASE ALIAS ON DBMS $preposition role") {
-          failsParsing[Statements].withSyntaxErrorContaining(
-            s"""Invalid input 'ALIAS': expected 'ON DBMS' (line 1, column ${offset + 16} (offset: ${offset + 15}))"""
-          )
+          failsParsing[Statements].in {
+            case Cypher5 => _.withSyntaxErrorContaining(
+                s"""Invalid input 'ALIAS': expected 'ON DBMS' (line 1, column ${offset + 16} (offset: ${offset + 15}))"""
+              )
+            case _ => _.withSyntaxErrorContaining(
+                s"""Invalid input 'ALIAS': expected 'ON' (line 1, column ${offset + 16} (offset: ${offset + 15}))"""
+              )
+          }
         }
 
         test(s"$command$immutableString SHOW DATABASE ALIAS ON DBMS $preposition role") {
@@ -286,6 +319,29 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
         }
 
         // Other invalid tests
+
+        test(s"$command$immutableString ALTER DATABASE DBMS $preposition role") {
+          failsParsing[Statements].in {
+            case Cypher5 => _.withSyntaxErrorContaining(
+                s"Invalid input 'DBMS': expected 'ON DBMS' (line 1, column ${offset + 16} (offset: ${offset + 15}))"
+              )
+            case _ => _.withSyntaxErrorContaining(
+                s"Invalid input 'DBMS': expected 'ON' (line 1, column ${offset + 16} (offset: ${offset + 15}))"
+              )
+          }
+        }
+
+        test(s"$command$immutableString SET DATABASE ACCESS DBMS $preposition role") {
+          failsParsing[Statements].withSyntaxErrorContaining(
+            s"Invalid input 'DBMS': expected 'ON DBMS' (line 1, column ${offset + 21} (offset: ${offset + 20}))"
+          )
+        }
+
+        test(s"$command$immutableString SET DATABASE DEFAULT LANGUAGE DBMS $preposition role") {
+          failsParsing[Statements].withSyntaxErrorContaining(
+            s"Invalid input 'DBMS': expected 'ON DBMS' (line 1, column ${offset + 31} (offset: ${offset + 30}))"
+          )
+        }
 
         test(s"$command$immutableString SET AUTHS ON DBMS $preposition role") {
           testName should notParse[Statements].withSyntaxErrorContaining(

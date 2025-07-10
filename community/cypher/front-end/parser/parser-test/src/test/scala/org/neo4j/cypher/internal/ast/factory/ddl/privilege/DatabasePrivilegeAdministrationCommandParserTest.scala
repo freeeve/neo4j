@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.AllIndexActions
 import org.neo4j.cypher.internal.ast.AllTokenActions
 import org.neo4j.cypher.internal.ast.AllTransactionActions
+import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateConstraintAction
 import org.neo4j.cypher.internal.ast.CreateIndexAction
 import org.neo4j.cypher.internal.ast.CreateNodeLabelAction
@@ -33,6 +34,8 @@ import org.neo4j.cypher.internal.ast.DropConstraintAction
 import org.neo4j.cypher.internal.ast.DropIndexAction
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
 import org.neo4j.cypher.internal.ast.NamedDatabasesScope
+import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
+import org.neo4j.cypher.internal.ast.SetDatabaseDefaultLanguageAction
 import org.neo4j.cypher.internal.ast.ShowConstraintAction
 import org.neo4j.cypher.internal.ast.ShowIndexAction
 import org.neo4j.cypher.internal.ast.ShowTransactionAction
@@ -44,7 +47,9 @@ import org.neo4j.cypher.internal.ast.UserAllQualifier
 import org.neo4j.cypher.internal.ast.UserQualifier
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParserInTest
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -55,6 +60,12 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
   private val databaseScopeFooParamBar = NamedDatabasesScope(Seq(literalFoo, stringParamName("bar")))(_)
 
   override protected def ignorePrettifier: Boolean = true
+
+  case class PrivilegeAction(
+    privilege: String,
+    action: DatabaseAction,
+    minCypherVersion: ParserInTest = Cypher5
+  )
 
   Seq(
     ("GRANT", "TO", grantDatabasePrivilege: databasePrivilegeFunc),
@@ -67,134 +78,172 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
       Seq[Immutable](true, false).foreach {
         immutable =>
           val immutableString = maybeImmutable(immutable)
-          Seq(
-            ("ACCESS", AccessDatabaseAction),
-            ("START", StartDatabaseAction),
-            ("STOP", StopDatabaseAction),
-            ("CREATE INDEX", CreateIndexAction),
-            ("CREATE INDEXES", CreateIndexAction),
-            ("DROP INDEX", DropIndexAction),
-            ("DROP INDEXES", DropIndexAction),
-            ("SHOW INDEX", ShowIndexAction),
-            ("SHOW INDEXES", ShowIndexAction),
-            ("INDEX", AllIndexActions),
-            ("INDEXES", AllIndexActions),
-            ("INDEX MANAGEMENT", AllIndexActions),
-            ("INDEXES MANAGEMENT", AllIndexActions),
-            ("CREATE CONSTRAINT", CreateConstraintAction),
-            ("CREATE CONSTRAINTS", CreateConstraintAction),
-            ("DROP CONSTRAINT", DropConstraintAction),
-            ("DROP CONSTRAINTS", DropConstraintAction),
-            ("SHOW CONSTRAINT", ShowConstraintAction),
-            ("SHOW CONSTRAINTS", ShowConstraintAction),
-            ("CONSTRAINT", AllConstraintActions),
-            ("CONSTRAINTS", AllConstraintActions),
-            ("CONSTRAINT MANAGEMENT", AllConstraintActions),
-            ("CONSTRAINTS MANAGEMENT", AllConstraintActions),
-            ("CREATE NEW LABEL", CreateNodeLabelAction),
-            ("CREATE NEW LABELS", CreateNodeLabelAction),
-            ("CREATE NEW NODE LABEL", CreateNodeLabelAction),
-            ("CREATE NEW NODE LABELS", CreateNodeLabelAction),
-            ("CREATE NEW TYPE", CreateRelationshipTypeAction),
-            ("CREATE NEW TYPES", CreateRelationshipTypeAction),
-            ("CREATE NEW RELATIONSHIP TYPE", CreateRelationshipTypeAction),
-            ("CREATE NEW RELATIONSHIP TYPES", CreateRelationshipTypeAction),
-            ("CREATE NEW NAME", CreatePropertyKeyAction),
-            ("CREATE NEW NAMES", CreatePropertyKeyAction),
-            ("CREATE NEW PROPERTY NAME", CreatePropertyKeyAction),
-            ("CREATE NEW PROPERTY NAMES", CreatePropertyKeyAction),
-            ("NAME", AllTokenActions),
-            ("NAME MANAGEMENT", AllTokenActions),
-            ("ALL", AllDatabaseAction),
-            ("ALL PRIVILEGES", AllDatabaseAction),
-            ("ALL DATABASE PRIVILEGES", AllDatabaseAction)
-          ).foreach {
-            case (privilege: String, action: DatabaseAction) =>
+          val privilegesInAllVersions = Seq(
+            PrivilegeAction("ACCESS", AccessDatabaseAction),
+            PrivilegeAction("START", StartDatabaseAction),
+            PrivilegeAction("STOP", StopDatabaseAction),
+            PrivilegeAction("CREATE INDEX", CreateIndexAction),
+            PrivilegeAction("CREATE INDEXES", CreateIndexAction),
+            PrivilegeAction("DROP INDEX", DropIndexAction),
+            PrivilegeAction("DROP INDEXES", DropIndexAction),
+            PrivilegeAction("SHOW INDEX", ShowIndexAction),
+            PrivilegeAction("SHOW INDEXES", ShowIndexAction),
+            PrivilegeAction("INDEX", AllIndexActions),
+            PrivilegeAction("INDEXES", AllIndexActions),
+            PrivilegeAction("INDEX MANAGEMENT", AllIndexActions),
+            PrivilegeAction("INDEXES MANAGEMENT", AllIndexActions),
+            PrivilegeAction("CREATE CONSTRAINT", CreateConstraintAction),
+            PrivilegeAction("CREATE CONSTRAINTS", CreateConstraintAction),
+            PrivilegeAction("DROP CONSTRAINT", DropConstraintAction),
+            PrivilegeAction("DROP CONSTRAINTS", DropConstraintAction),
+            PrivilegeAction("SHOW CONSTRAINT", ShowConstraintAction),
+            PrivilegeAction("SHOW CONSTRAINTS", ShowConstraintAction),
+            PrivilegeAction("CONSTRAINT", AllConstraintActions),
+            PrivilegeAction("CONSTRAINTS", AllConstraintActions),
+            PrivilegeAction("CONSTRAINT MANAGEMENT", AllConstraintActions),
+            PrivilegeAction("CONSTRAINTS MANAGEMENT", AllConstraintActions),
+            PrivilegeAction("CREATE NEW LABEL", CreateNodeLabelAction),
+            PrivilegeAction("CREATE NEW LABELS", CreateNodeLabelAction),
+            PrivilegeAction("CREATE NEW NODE LABEL", CreateNodeLabelAction),
+            PrivilegeAction("CREATE NEW NODE LABELS", CreateNodeLabelAction),
+            PrivilegeAction("CREATE NEW TYPE", CreateRelationshipTypeAction),
+            PrivilegeAction("CREATE NEW TYPES", CreateRelationshipTypeAction),
+            PrivilegeAction("CREATE NEW RELATIONSHIP TYPE", CreateRelationshipTypeAction),
+            PrivilegeAction("CREATE NEW RELATIONSHIP TYPES", CreateRelationshipTypeAction),
+            PrivilegeAction("CREATE NEW NAME", CreatePropertyKeyAction),
+            PrivilegeAction("CREATE NEW NAMES", CreatePropertyKeyAction),
+            PrivilegeAction("CREATE NEW PROPERTY NAME", CreatePropertyKeyAction),
+            PrivilegeAction("CREATE NEW PROPERTY NAMES", CreatePropertyKeyAction),
+            PrivilegeAction("NAME", AllTokenActions),
+            PrivilegeAction("NAME MANAGEMENT", AllTokenActions),
+            PrivilegeAction("ALL", AllDatabaseAction),
+            PrivilegeAction("ALL PRIVILEGES", AllDatabaseAction),
+            PrivilegeAction("ALL DATABASE PRIVILEGES", AllDatabaseAction)
+          )
+          val alterDatabasePrivilegesInCypher25 = Seq(
+            PrivilegeAction("ALTER DATABASE", AlterDatabaseAction, Cypher25),
+            PrivilegeAction("SET DATABASE ACCESS", SetDatabaseAccessAction, Cypher25),
+            PrivilegeAction("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction, Cypher25)
+          )
+
+          (privilegesInAllVersions ++ alterDatabasePrivilegesInCypher25).foreach {
+            case PrivilegeAction(privilege: String, action: DatabaseAction, minVersion: ParserInTest) =>
+              val supportedInCypher5: Boolean = minVersion == Cypher5
+
               test(s"$verb$immutableString $privilege ON DATABASE * $preposition $$role") {
-                parsesTo[Statements](privilegeFunc(action, AllDatabasesScope() _, Seq(paramRole), immutable)(pos))
+                assertAst(
+                  privilegeFunc(action, AllDatabasesScope() _, Seq(paramRole), immutable)(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASES * $preposition role") {
-                parsesTo[Statements](privilegeFunc(action, AllDatabasesScope() _, Seq(literalRole), immutable)(pos))
+                assertAst(
+                  privilegeFunc(action, AllDatabasesScope() _, Seq(literalRole), immutable)(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE * $preposition role1, role2") {
-                parsesTo[Statements](privilegeFunc(
-                  action,
-                  AllDatabasesScope() _,
-                  Seq(literalRole1, literalRole2),
-                  immutable
-                )(pos))
+                assertAst(
+                  privilegeFunc(
+                    action,
+                    AllDatabasesScope() _,
+                    Seq(literalRole1, literalRole2),
+                    immutable
+                  )(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE foo $preposition role") {
-                parsesTo[Statements](privilegeFunc(action, databaseScopeFoo, Seq(literalRole), immutable)(pos))
+                assertAst(
+                  privilegeFunc(action, databaseScopeFoo, Seq(literalRole), immutable)(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE `fo:o` $preposition role") {
-                parsesTo[Statements](privilegeFunc(
-                  action,
-                  NamedDatabasesScope(Seq(literal("fo:o"))) _,
-                  Seq(literalRole),
-                  immutable
-                )(pos))
+                assertAst(
+                  privilegeFunc(
+                    action,
+                    NamedDatabasesScope(Seq(literal("fo:o"))) _,
+                    Seq(literalRole),
+                    immutable
+                  )(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE more.Dots.more.Dots $preposition role") {
-                parsesTo[Statements](privilegeFunc(
-                  action,
-                  NamedDatabasesScope(Seq(namespacedName("more", "Dots", "more", "Dots"))) _,
-                  Seq(literalRole),
-                  immutable
-                )(pos))
+                assertAst(
+                  privilegeFunc(
+                    action,
+                    NamedDatabasesScope(Seq(namespacedName("more", "Dots", "more", "Dots"))) _,
+                    Seq(literalRole),
+                    immutable
+                  )(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE foo $preposition `r:ole`") {
-                parsesTo[Statements](privilegeFunc(action, databaseScopeFoo, Seq(literalRColonOle), immutable)(pos))
+                assertAst(
+                  privilegeFunc(action, databaseScopeFoo, Seq(literalRColonOle), immutable)(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE foo $preposition role1, $$role2") {
-                parsesTo[Statements](
-                  privilegeFunc(action, databaseScopeFoo, Seq(literalRole1, paramRole2), immutable)(pos)
+                assertAst(
+                  privilegeFunc(action, databaseScopeFoo, Seq(literalRole1, paramRole2), immutable)(pos),
+                  supportedInCypher5 = supportedInCypher5
                 )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE $$foo $preposition role") {
-                parsesTo[Statements](privilegeFunc(action, databaseScopeParamFoo, Seq(literalRole), immutable)(pos))
+                assertAst(
+                  privilegeFunc(action, databaseScopeParamFoo, Seq(literalRole), immutable)(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE foo, bar $preposition role") {
-                parsesTo[Statements](privilegeFunc(action, databaseScopeFooBar, Seq(literalRole), immutable)(pos))
+                assertAst(
+                  privilegeFunc(action, databaseScopeFooBar, Seq(literalRole), immutable)(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON DATABASES foo, $$bar $preposition role") {
-                parsesTo[Statements](privilegeFunc(
-                  action,
-                  databaseScopeFooParamBar,
-                  Seq(literalRole),
-                  immutable
-                )(pos))
+                assertAst(
+                  privilegeFunc(
+                    action,
+                    databaseScopeFooParamBar,
+                    Seq(literalRole),
+                    immutable
+                  )(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON HOME DATABASE $preposition role") {
-                parsesTo[Statements](privilegeFunc(action, HomeDatabaseScope() _, Seq(literalRole), immutable)(pos))
+                assertAst(
+                  privilegeFunc(action, HomeDatabaseScope() _, Seq(literalRole), immutable)(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON HOME DATABASE $preposition $$role1, role2") {
-                parsesTo[Statements](privilegeFunc(
-                  action,
-                  HomeDatabaseScope() _,
-                  Seq(paramRole1, literalRole2),
-                  immutable
-                )(pos))
-              }
-
-              test(s"$verb$immutableString $privilege ON DEFAULT DATABASE $preposition role") {
-                failsParsing[Statements].in {
-                  case Cypher5 =>
-                    _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
-                  case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
-                }
+                assertAst(
+                  privilegeFunc(
+                    action,
+                    HomeDatabaseScope() _,
+                    Seq(paramRole1, literalRole2),
+                    immutable
+                  )(pos),
+                  supportedInCypher5 = supportedInCypher5
+                )
               }
 
               test(s"$verb$immutableString $privilege ON GRAPH * $preposition role") {
@@ -217,34 +266,6 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
               test(s"$verb$immutableString $privilege ON DATABASE *, foo $preposition role") {
                 // * followed by specific database
                 failsParsing[Statements]
-              }
-
-              test(s"$verb$immutableString $privilege ON DATABASE `a`.`b`.`c` $preposition role") {
-                // more than two components
-                failsParsing[Statements].in {
-                  case Cypher5 => _.withMessageStart(
-                      "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`."
-                    )
-                      .withSyntaxErrorGqlStatus(
-                        gqlStatus(
-                          GqlStatusInfoCodes.STATUS_22N05,
-                          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
-                        )
-                          .withCause(
-                            GqlStatusInfoCodes.STATUS_22N83,
-                            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
-                          )
-                      )
-                  case _ => _.withMessageStart(
-                      "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
-                    )
-                      .withSyntaxErrorGqlStatus(
-                        gqlStatus(
-                          GqlStatusInfoCodes.STATUS_42NAA,
-                          "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
-                        )
-                      )
-                }
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE foo $preposition r:ole") {
@@ -276,56 +297,167 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                 // Missing ON keyword
                 failsParsing[Statements]
               }
+          }
 
-              test(s"$verb$immutableString $privilege ON HOME DATABASES $preposition role") {
-                // 'databases' instead of 'database'
-                failsParsing[Statements].withSyntaxErrorContaining(
-                  """Invalid input 'DATABASES': expected 'DATABASE'"""
-                )
-
+          privilegesInAllVersions.foreach { case PrivilegeAction(privilege, _, _) =>
+            test(s"$verb$immutableString $privilege ON DEFAULT DATABASE $preposition role") {
+              failsParsing[Statements].in {
+                case Cypher5 =>
+                  _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
               }
+            }
 
-              test(s"$verb$immutableString $privilege ON HOME DATABASE foo $preposition role") {
-                // both home and database name
-                failsParsing[Statements].withSyntaxErrorContaining(
-                  s"""Invalid input 'foo': expected '$preposition'"""
-                )
-              }
-
-              test(s"$verb$immutableString $privilege ON HOME DATABASE * $preposition role") {
-                // both home and *
-                failsParsing[Statements].withSyntaxErrorContaining(
-                  s"""Invalid input '*': expected '$preposition'"""
-                )
-              }
-
-              test(s"$verb$immutableString $privilege ON DEFAULT DATABASES $preposition role") {
-                // 'databases' instead of 'database'
-                failsParsing[Statements].in {
-                  case Cypher5 => _.withSyntaxErrorContaining(
-                      """Invalid input 'DATABASES': expected 'DATABASE'""".stripMargin
+            test(s"$verb$immutableString $privilege ON DATABASE `a`.`b`.`c` $preposition role") {
+              // more than two components
+              failsParsing[Statements].in {
+                case Cypher5 => _.withMessageStart(
+                    "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`."
+                  )
+                    .withSyntaxErrorGqlStatus(
+                      gqlStatus(
+                        GqlStatusInfoCodes.STATUS_22N05,
+                        "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+                      )
+                        .withCause(
+                          GqlStatusInfoCodes.STATUS_22N83,
+                          "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+                        )
                     )
-                  case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
-                }
+                case _ => _.withMessageStart(
+                    "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+                  )
+                    .withSyntaxErrorGqlStatus(
+                      gqlStatus(
+                        GqlStatusInfoCodes.STATUS_42NAA,
+                        "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+                      )
+                    )
               }
+            }
 
-              test(s"$verb$immutableString $privilege ON DEFAULT DATABASE foo $preposition role") {
-                // both default and database name
-                failsParsing[Statements].in {
-                  case Cypher5 =>
-                    _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
-                  case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
-                }
-              }
+            test(s"$verb$immutableString $privilege ON HOME DATABASES $preposition role") {
+              // 'databases' instead of 'database'
+              failsParsing[Statements].withSyntaxErrorContaining(
+                """Invalid input 'DATABASES': expected 'DATABASE'"""
+              )
 
-              test(s"$verb$immutableString $privilege ON DEFAULT DATABASE * $preposition role") {
-                // both default and *
-                failsParsing[Statements].in {
-                  case Cypher5 =>
-                    _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
-                  case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
-                }
+            }
+
+            test(s"$verb$immutableString $privilege ON HOME DATABASE foo $preposition role") {
+              // both home and database name
+              failsParsing[Statements].withSyntaxErrorContaining(
+                s"""Invalid input 'foo': expected '$preposition'"""
+              )
+            }
+
+            test(s"$verb$immutableString $privilege ON HOME DATABASE * $preposition role") {
+              // both home and *
+              failsParsing[Statements].withSyntaxErrorContaining(
+                s"""Invalid input '*': expected '$preposition'"""
+              )
+            }
+
+            test(s"$verb$immutableString $privilege ON DEFAULT DATABASES $preposition role") {
+              // 'databases' instead of 'database'
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining(
+                    """Invalid input 'DATABASES': expected 'DATABASE'""".stripMargin
+                  )
+                case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
               }
+            }
+
+            test(s"$verb$immutableString $privilege ON DEFAULT DATABASE foo $preposition role") {
+              // both default and database name
+              failsParsing[Statements].in {
+                case Cypher5 =>
+                  _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
+              }
+            }
+
+            test(s"$verb$immutableString $privilege ON DEFAULT DATABASE * $preposition role") {
+              // both default and *
+              failsParsing[Statements].in {
+                case Cypher5 =>
+                  _.withOldSyntax("`ON DEFAULT DATABASE` is not supported. Use `ON HOME DATABASE` instead.")
+                case _ => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
+              }
+            }
+          }
+
+          alterDatabasePrivilegesInCypher25.foreach { case PrivilegeAction(privilege, _, _) =>
+            test(s"$verb$immutableString $privilege ON DEFAULT DATABASE $preposition role") {
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DBMS'")
+                case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
+              }
+            }
+
+            test(s"$verb$immutableString $privilege ON DATABASE `a`.`b`.`c` $preposition role") {
+              // more than two components
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'DATABASE': expected 'DBMS'")
+                case _ => _.withMessageStart(
+                    "Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+                  )
+                    .withSyntaxErrorGqlStatus(
+                      gqlStatus(
+                        GqlStatusInfoCodes.STATUS_42NAA,
+                        "error: syntax error or access rule violation - incorrectly formatted graph reference. Incorrectly formatted graph reference '`a`.`b`.`c`'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+                      )
+                    )
+              }
+            }
+
+            test(s"$verb$immutableString $privilege ON HOME DATABASES $preposition role") {
+              // 'databases' instead of 'database'
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'HOME': expected 'DBMS'")
+                case _       => _.withSyntaxErrorContaining("""Invalid input 'DATABASES': expected 'DATABASE'""")
+              }
+            }
+
+            test(s"$verb$immutableString $privilege ON HOME DATABASE foo $preposition role") {
+              // both home and database name
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'HOME': expected 'DBMS'")
+                case _       => _.withSyntaxErrorContaining(s"""Invalid input 'foo': expected '$preposition'""")
+              }
+            }
+
+            test(s"$verb$immutableString $privilege ON HOME DATABASE * $preposition role") {
+              // both home and *
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining("Invalid input 'HOME': expected 'DBMS'")
+                case _       => _.withSyntaxErrorContaining(s"""Invalid input '*': expected '$preposition'""")
+              }
+            }
+
+            test(s"$verb$immutableString $privilege ON DEFAULT DATABASES $preposition role") {
+              // 'databases' instead of 'database'
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining("""Invalid input 'DEFAULT': expected 'DBMS'""")
+                case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
+              }
+            }
+
+            test(s"$verb$immutableString $privilege ON DEFAULT DATABASE foo $preposition role") {
+              // both default and database name
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining("""Invalid input 'DEFAULT': expected 'DBMS'""")
+                case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
+              }
+            }
+
+            test(s"$verb$immutableString $privilege ON DEFAULT DATABASE * $preposition role") {
+              // both default and *
+              failsParsing[Statements].in {
+                case Cypher5 => _.withSyntaxErrorContaining("""Invalid input 'DEFAULT': expected 'DBMS'""")
+                case _       => _.withSyntaxErrorContaining("Invalid input 'DEFAULT': expected 'DATABASE',")
+              }
+            }
           }
 
           // Dropping instead of creating name management privileges
@@ -370,7 +502,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
         immutable =>
           val immutableString = maybeImmutable(immutable)
           test(s"$verb$immutableString SHOW TRANSACTION (*) ON DATABASE * $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               AllDatabasesScope() _,
               List(UserAllQualifier() _),
@@ -380,7 +512,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString SHOW TRANSACTIONS (*) ON DATABASES foo $preposition role1, role2") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               databaseScopeFoo,
               List(UserAllQualifier() _),
@@ -390,7 +522,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString SHOW TRANSACTIONS (*) ON DATABASES $$foo $preposition $$role1, $$role2") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               databaseScopeParamFoo,
               List(UserAllQualifier() _),
@@ -400,7 +532,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString SHOW TRANSACTION (user) ON HOME DATABASE $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               HomeDatabaseScope() _,
               List(UserQualifier(literalUser) _),
@@ -410,7 +542,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString SHOW TRANSACTION ($$user) ON HOME DATABASE $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               HomeDatabaseScope() _,
               List(UserQualifier(paramUser) _),
@@ -430,7 +562,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString SHOW TRANSACTIONS (user1,user2) ON DATABASES * $preposition role1, role2") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               AllDatabasesScope() _,
               List(UserQualifier(literalUser1) _, UserQualifier(literal("user2")) _),
@@ -440,7 +572,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString SHOW TRANSACTIONS ON DATABASES * $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               AllDatabasesScope() _,
               List(UserAllQualifier() _),
@@ -450,7 +582,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString SHOW TRANSACTION ON DATABASE foo, bar $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               databaseScopeFooBar,
               List(UserAllQualifier() _),
@@ -460,7 +592,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString SHOW TRANSACTION (user) ON DATABASES foo, $$bar $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               ShowTransactionAction,
               databaseScopeFooParamBar,
               List(UserQualifier(literalUser) _),
@@ -470,7 +602,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TERMINATE TRANSACTION (*) ON DATABASE * $preposition $$role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               AllDatabasesScope() _,
               List(UserAllQualifier() _),
@@ -480,7 +612,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TERMINATE TRANSACTIONS (*) ON DATABASES foo $preposition role1, role2") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               databaseScopeFoo,
               List(UserAllQualifier() _),
@@ -490,7 +622,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TERMINATE TRANSACTIONS (*) ON DATABASES $$foo $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               databaseScopeParamFoo,
               List(UserAllQualifier() _),
@@ -500,7 +632,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TERMINATE TRANSACTION (user) ON HOME DATABASE $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               HomeDatabaseScope() _,
               List(UserQualifier(literalUser) _),
@@ -518,7 +650,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TERMINATE TRANSACTIONS (user1,user2) ON DATABASES * $preposition role1, role2") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               AllDatabasesScope() _,
               List(UserQualifier(literalUser1) _, UserQualifier(literal("user2")) _),
@@ -530,7 +662,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           test(
             s"$verb$immutableString TERMINATE TRANSACTIONS ($$user1,$$user2) ON DATABASES * $preposition role1, role2"
           ) {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               AllDatabasesScope() _,
               List(UserQualifier(stringParam("user1")) _, UserQualifier(stringParam("user2")) _),
@@ -540,7 +672,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TERMINATE TRANSACTIONS ON DATABASES * $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               AllDatabasesScope() _,
               List(UserAllQualifier() _),
@@ -550,7 +682,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TERMINATE TRANSACTION ON DATABASE foo, bar $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               databaseScopeFooBar,
               List(UserAllQualifier() _),
@@ -560,7 +692,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TERMINATE TRANSACTION (user) ON DATABASES foo, $$bar $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               TerminateTransactionAction,
               databaseScopeFooParamBar,
               List(UserQualifier(literalUser) _),
@@ -570,7 +702,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION ON DATABASES * $preposition role1, role2") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               AllDatabasesScope() _,
               List(UserAllQualifier() _),
@@ -580,7 +712,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION (*) ON DATABASES foo $preposition role1, $$role2") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               databaseScopeFoo,
               List(UserAllQualifier() _),
@@ -590,7 +722,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION (*) ON DATABASES $$foo $preposition role1, role2") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               databaseScopeParamFoo,
               List(UserAllQualifier() _),
@@ -600,7 +732,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION (user) ON DATABASES * $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               AllDatabasesScope() _,
               List(UserQualifier(literalUser) _),
@@ -610,7 +742,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION ON DATABASE foo, bar $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               databaseScopeFooBar,
               List(UserAllQualifier() _),
@@ -620,7 +752,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION (user) ON DATABASES foo, $$bar $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               databaseScopeFooParamBar,
               List(UserQualifier(literalUser) _),
@@ -630,7 +762,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION MANAGEMENT ON HOME DATABASE $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               HomeDatabaseScope() _,
               List(UserAllQualifier() _),
@@ -650,7 +782,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION MANAGEMENT (user) ON DATABASES * $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               AllDatabasesScope() _,
               List(UserQualifier(literalUser) _),
@@ -660,7 +792,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION MANAGEMENT (user1, $$user2) ON DATABASES * $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               AllDatabasesScope() _,
               List(UserQualifier(literalUser1) _, UserQualifier(stringParam("user2")) _),
@@ -670,7 +802,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION MANAGEMENT ON DATABASE foo, bar $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               databaseScopeFooBar,
               List(UserAllQualifier() _),
@@ -680,7 +812,7 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           }
 
           test(s"$verb$immutableString TRANSACTION MANAGEMENT (user) ON DATABASES foo, $$bar $preposition role") {
-            parsesTo[Statements](privilegeFunc(
+            assertAst(privilegeFunc(
               AllTransactionActions,
               databaseScopeFooParamBar,
               List(UserQualifier(literalUser) _),

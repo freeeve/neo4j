@@ -325,9 +325,13 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
         case c: TerminalNode =>
           c.getSymbol.getType match {
             case Cypher25Parser.ACCESS => withQualifier(AccessDatabaseAction)
-            case Cypher25Parser.NAME   => withQualifier(AllTokenActions)
-            case Cypher25Parser.START  => withQualifier(StartDatabaseAction)
-            case Cypher25Parser.STOP   => withQualifier(StopDatabaseAction)
+            case Cypher25Parser.ALTER => nodeChild(ctx, 1).getSymbol.getType match {
+                case Cypher25Parser.DATABASE => withQualifier(AlterDatabaseAction)
+                case _                       => throw new IllegalStateException()
+              }
+            case Cypher25Parser.NAME  => withQualifier(AllTokenActions)
+            case Cypher25Parser.START => withQualifier(StartDatabaseAction)
+            case Cypher25Parser.STOP  => withQualifier(StopDatabaseAction)
             case Cypher25Parser.TERMINATE =>
               (
                 TerminateTransactionAction,
@@ -523,12 +527,28 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
       else if (ctx.AUTH() != null) SetAuthAction
       else if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) SetDatabaseDefaultLanguageAction
       else SetDatabaseAccessAction
-
       action match {
         case a: DbmsAction     => allQualifier(DbmsPrivilege(a)(p), None)
         case a: DatabaseAction => allDbQualifier(DatabasePrivilege(a, AllDatabasesScope()(p))(p), None)
         case _                 => throw new IllegalStateException()
       }
+    } else if (ctx.databaseScope() != null) {
+      if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) {
+        (
+          DatabasePrivilege(
+            SetDatabaseDefaultLanguageAction,
+            ctx.databaseScope().ast[DatabaseScope]
+          )(pos(ctx.databaseScope())),
+          None,
+          withQualifier(SetDatabaseDefaultLanguageAction)._2
+        )
+      } else if (ctx.DATABASE() != null) {
+        (
+          DatabasePrivilege(SetDatabaseAccessAction, ctx.databaseScope().ast[DatabaseScope])(pos(ctx.databaseScope())),
+          None,
+          withQualifier(SetDatabaseAccessAction)._2
+        )
+      } else throw new IllegalStateException()
     } else {
       val scope = ctx.graphScope().ast[GraphScope]()
       if (ctx.LABEL() != null) {

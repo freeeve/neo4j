@@ -3405,10 +3405,9 @@ class AstGenerator(
   def _databasePrivilege: Gen[PrivilegeCommand] = for {
     databaseAction <- _databaseAction
     dbNames <- oneOrMore(_databaseName)
-    //  Temporary until we add syntax for alter database privileges on specific dbs
     databaseScope <-
       if (
-        databaseAction == AlterDatabaseAction || databaseAction == SetDatabaseDefaultLanguageAction || databaseAction == SetDatabaseAccessAction
+        (databaseAction == AlterDatabaseAction || databaseAction == SetDatabaseDefaultLanguageAction || databaseAction == SetDatabaseAccessAction) && usesCypher5
       ) {
         const(AllDatabasesScope()(pos))
       } else {
