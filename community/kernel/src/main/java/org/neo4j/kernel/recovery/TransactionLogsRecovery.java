@@ -20,7 +20,6 @@
 package org.neo4j.kernel.recovery;
 
 import static java.lang.String.format;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.neo4j.kernel.recovery.Recovery.throwUnableToCleanRecover;
 import static org.neo4j.kernel.recovery.RecoveryMode.FULL;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
@@ -58,7 +57,6 @@ import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.storageengine.AppendIndexProvider;
-import org.neo4j.time.Stopwatch;
 
 /**
  * This is the process of doing a recovery on the transaction log and store, and is executed
@@ -131,7 +129,6 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             return;
         }
 
-        var recoveryStartTime = Stopwatch.start();
         monitor.recoveryRequired(recoveryStartInformation);
         if (recoveryStartInformation.missingLogs()) {
             recoveryService.missingLogs();
@@ -139,7 +136,6 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         } else {
             performRecovery(recoveryStartInformation);
         }
-        monitor.transactionLogRecoveryCompleted(recoveryStartTime.elapsed(MILLISECONDS), mode);
     }
 
     private void performRecovery(RecoveryStartInformation recoveryStartInformation)

@@ -578,6 +578,7 @@ public final class Recovery {
                         tracers)) {
             return false;
         }
+        var recoveryStartTime = Stopwatch.start();
         checkAllFilesPresence(databaseLayout, fs, pageCache, storageEngineFactory, logTailMetadata);
         LifeSupport recoveryLife = new LifeSupport();
         var namedDatabaseId = createRecoveryDatabaseId(fs, pageCache, databaseLayout, storageEngineFactory);
@@ -846,6 +847,7 @@ public final class Recovery {
                 String recoveryMessage =
                         logTailMetadata.logsMissing() ? "Recovery with missing logs completed." : "Recovery completed.";
                 checkPointer.forceCheckPoint(new SimpleTriggerInfo(recoveryMessage));
+                recoveryMonitor.transactionLogRecoveryCompleted(recoveryStartTime.elapsed(MILLISECONDS), mode);
             }
         } finally {
             recoveryLife.shutdown();
