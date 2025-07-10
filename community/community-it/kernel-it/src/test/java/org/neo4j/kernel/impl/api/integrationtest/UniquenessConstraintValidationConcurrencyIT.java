@@ -42,6 +42,7 @@ import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.OtherThread;
 import org.neo4j.test.extension.OtherThreadExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension
 @ExtendWith(OtherThreadExtension.class)
@@ -108,7 +109,8 @@ public class UniquenessConstraintValidationConcurrencyIT {
 
     @ParameterizedTest
     @EnumSource(EntityControl.class)
-    void shouldFailPolitelyOnTooLargeKeyLength(EntityControl entityControl) throws Exception {
+    @SkipOnSpd(reason = "Spd fails but root cause is Exception instead of IllegalArgumentException")
+    void shouldFailPolitelyOnTooLargeKeyLength(EntityControl entityControl) {
         // given
         int numChars = 40_000;
         try (var tx = database.beginTx()) {

@@ -32,6 +32,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension(configurationCallback = "configure")
 public final class NodeLabelExistenceConstraintCommunityIT {
@@ -45,6 +46,7 @@ public final class NodeLabelExistenceConstraintCommunityIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Spd runs on enterprise, will not throw", notes = SkipOnSpd.Note.incompatible)
     void shouldNotAllowNodeLabelExistenceConstraintsInCE() {
 
         try (Transaction tx =
