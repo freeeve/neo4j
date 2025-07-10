@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -37,12 +38,23 @@ class VertexAITest {
 
     @Nested
     class Configuration extends ConfigurationTestBase<VertexAI.Parameters> {
+        // note: may need to updated these as models are deprecated
+        private static final Set<String> CURRENT_STABLE_MODELS =
+                Set.of("gemini-embedding-001", "text-embedding-005", "text-multilingual-embedding-002");
+
         protected Configuration() {
             super(
                     PROVIDER,
                     List.of(
                             new RequiredSetting("token", String.class, "STRING", "FAke-t0k3n", 123),
                             new RequiredSetting("projectId", String.class, "STRING", "fake-project", 123)),
+                    List.of(new RetiredDefaultSetting(
+                            "model",
+                            String.class,
+                            "STRING",
+                            CURRENT_STABLE_MODELS.iterator().next(),
+                            123,
+                            VertexAI.DEFAULT_BUT_RETIRED_MODEL)),
                     List.of(
                             new OptionalSetting(
                                     "region",
@@ -52,17 +64,13 @@ class VertexAITest {
                                     123,
                                     Optional.of(VertexAI.DEFAULT_REGION)),
                             new OptionalSetting(
-                                    "model",
-                                    String.class,
-                                    "STRING",
-                                    VertexAI.DEFAULT_MODEL,
-                                    123,
-                                    Optional.of(VertexAI.DEFAULT_MODEL)),
-                            new OptionalSetting(
                                     "taskType", String.class, "STRING", "RETRIEVAL_DOCUMENT", 123, Optional.empty()),
+                            new OptionalSetting("title", String.class, "STRING", "A Short Tale", 123, Optional.empty()),
                             new OptionalSetting(
-                                    "title", String.class, "STRING", "A Short Tale", 123, Optional.empty())),
-                    new Models("model", String.class, VertexAI.SUPPORTED_MODELS, List.of("fake-model")));
+                                    "autoTruncate", Boolean.class, "BOOLEAN", true, "true", Optional.empty()),
+                            new OptionalSetting("dimensions", Long.class, "INTEGER", 1024, "1024", Optional.empty())),
+                    new Models(
+                            "model", String.class, CURRENT_STABLE_MODELS, List.of(VertexAI.DEFAULT_BUT_RETIRED_MODEL)));
         }
 
         @ParameterizedTest(name = "{0}")

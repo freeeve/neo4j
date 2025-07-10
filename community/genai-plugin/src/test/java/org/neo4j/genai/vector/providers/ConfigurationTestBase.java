@@ -50,6 +50,7 @@ abstract class ConfigurationTestBase<PARAMETERS> {
     protected final Provider<PARAMETERS> provider;
 
     protected final Collection<RequiredSetting> requiredSettings;
+    private final Collection<RetiredDefaultSetting> retiredDefaultSettings;
     protected final Collection<OptionalSetting> optionalSettings;
     protected final Collection<Setting> settings;
     protected final Models models;
@@ -63,16 +64,19 @@ abstract class ConfigurationTestBase<PARAMETERS> {
     protected ConfigurationTestBase(
             Provider<PARAMETERS> provider,
             Collection<RequiredSetting> requiredSettings,
+            Collection<RetiredDefaultSetting> retiredDefaultSettings,
             Collection<OptionalSetting> optionalSettings,
             Models models) {
         this.provider = provider;
         this.requiredSettings = requiredSettings;
+        this.retiredDefaultSettings = retiredDefaultSettings;
         this.optionalSettings = optionalSettings;
         this.settings = new ArrayList<>();
         this.settings.addAll(this.requiredSettings);
+        this.settings.addAll(this.retiredDefaultSettings);
         this.settings.addAll(this.optionalSettings);
-        this.minimalConfig =
-                requiredSettings.stream().collect(Collectors.toUnmodifiableMap(Setting::name, Setting::valid));
+        this.minimalConfig = Stream.concat(requiredSettings.stream(), retiredDefaultSettings.stream())
+                .collect(Collectors.toUnmodifiableMap(Setting::name, Setting::valid));
         this.fullConfig = this.settings.stream().collect(Collectors.toUnmodifiableMap(Setting::name, Setting::valid));
         this.models = new Models(
                 models.setting(),
@@ -87,6 +91,10 @@ abstract class ConfigurationTestBase<PARAMETERS> {
 
     protected boolean noRequiredSettings() {
         return requiredSettings.isEmpty();
+    }
+
+    protected boolean noRetiredDefaultSettings() {
+        return retiredDefaultSettings.isEmpty();
     }
 
     protected boolean noOptionalSettings() {
@@ -109,6 +117,10 @@ abstract class ConfigurationTestBase<PARAMETERS> {
         return requiredSettings;
     }
 
+    private Collection<RetiredDefaultSetting> retiredDefaultSettings() {
+        return retiredDefaultSettings;
+    }
+
     private Collection<OptionalSetting> optionalSettings() {
         return optionalSettings;
     }
@@ -124,6 +136,7 @@ abstract class ConfigurationTestBase<PARAMETERS> {
 
     @Test
     void defaultConfiguration() {
+        // note specifically does not use retired defaults
         assertThatCode(() -> configure(minimalConfig)).as("rely on defaults").doesNotThrowAnyException();
     }
 
@@ -132,6 +145,20 @@ abstract class ConfigurationTestBase<PARAMETERS> {
     @MethodSource("requiredSettings")
     void requiredSettingShouldBeIncludedInRequiredConfigTypeString(Setting setting) {
         assertThat(requiredConfigType(provider)).contains("%s :: %s".formatted(setting.name(), setting.cypherType()));
+    }
+
+    @DisabledIf(value = "noRetiredDefaultSettings", disabledReason = "there are no retired default settings")
+    @ParameterizedTest
+    @MethodSource("retiredDefaultSettings")
+    void retiredDefaultSettingsShouldBeOptionalInConfigType(Setting setting) {
+        assertThat(optionalConfigType(provider)).contains("%s :: %s".formatted(setting.name(), setting.cypherType()));
+    }
+
+    @DisabledIf(value = "noRetiredDefaultSettings", disabledReason = "there are no disabled default settings")
+    @ParameterizedTest
+    @MethodSource("retiredDefaultSettings")
+    void retiredDefaultSettingsWithDefaultsShouldBeIncludedInDefaultMap(RetiredDefaultSetting setting) {
+        assertThat(defaultConfig(provider)).containsEntry(setting.name(), setting.defaultValue);
     }
 
     @DisabledIf(value = "noOptionalSettings", disabledReason = "there are no optional settings")
@@ -146,12 +173,8 @@ abstract class ConfigurationTestBase<PARAMETERS> {
     @MethodSource("optionalSettings")
     void optionalSettingsWithDefaultsShouldBeIncludedInDefaultMap(OptionalSetting setting) {
         setting.defaultValue.ifPresentOrElse(
-                defaultValue -> {
-                    assertThat(defaultConfig(provider)).containsEntry(setting.name(), defaultValue);
-                },
-                () -> {
-                    assertThat(defaultConfig(provider)).doesNotContainKey(setting.name());
-                });
+                defaultValue -> assertThat(defaultConfig(provider)).containsEntry(setting.name(), defaultValue),
+                () -> assertThat(defaultConfig(provider)).doesNotContainKey(setting.name()));
     }
 
     @DisabledIf(value = "noRequiredSettings", disabledReason = "there are no required settings")
@@ -163,6 +186,15 @@ abstract class ConfigurationTestBase<PARAMETERS> {
         assertThatThrownBy(() -> configure(config), "missing %s", name)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContainingAll(name, "is expected to have been set");
+    }
+
+    @DisabledIf(value = "noRetiredDefaultSettings", disabledReason = "there are no disabled default settings")
+    @ParameterizedTest
+    @MethodSource("retiredDefaultSettings")
+    void retiredDefaultSettings(RetiredDefaultSetting setting) {
+        config.put(setting.name(), setting.defaultValue);
+        assertThatThrownBy(() -> configure(config), "retired default setting")
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @DisabledIf(value = "noSettings", disabledReason = "there are no settings")
@@ -216,6 +248,16 @@ abstract class ConfigurationTestBase<PARAMETERS> {
     }
 
     protected record RequiredSetting(String name, Class<?> type, String cypherType, Object valid, Object invalid)
+            implements Setting {
+        @Override
+        public String toString() {
+            return name + ": " + type;
+        }
+    }
+
+    // this is due to retired defaults we cannot change until a breaking change release
+    protected record RetiredDefaultSetting(
+            String name, Class<?> type, String cypherType, Object valid, Object invalid, Object defaultValue)
             implements Setting {
         @Override
         public String toString() {

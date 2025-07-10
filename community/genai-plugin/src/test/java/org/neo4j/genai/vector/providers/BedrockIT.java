@@ -20,16 +20,15 @@
 package org.neo4j.genai.vector.providers;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.condition.EnabledIf;
 
 @EnabledIf(value = "authIsSet", disabledReason = "accessKeyId and secretAccessKey needs to be set in the config map")
-public class BedrockIT extends BaseIT {
+public class BedrockIT {
     private static final String AWS_ACCESS_KEY_ID_ENV = "AWS_ACCESS_KEY";
     private static final String AWS_SECRET_ACCESS_KEY_ENV = "AWS_SECRET";
-    private static final Map<String, ?> CONFIG;
-    private static final List<float[]> EXPECTED_EMBEDDINGS = loadExpectedEmbeddings("bedrock/bedrock.txt");
+    private static final Map<String, ?> BASE_CONFIG;
 
     static {
         HashMap<String, String> config = new HashMap<>();
@@ -43,14 +42,43 @@ public class BedrockIT extends BaseIT {
             config.put("secretAccessKey", secret);
         }
 
-        CONFIG = config;
+        BASE_CONFIG = config;
     }
 
-    protected BedrockIT() {
-        super(Bedrock.NAME, CONFIG, EXPECTED_EMBEDDINGS, false);
+    @Nested
+    class TitanEmbedTextG1 extends BaseIT {
+        TitanEmbedTextG1() {
+            super(
+                    Bedrock.NAME,
+                    "bedrock/amazon.titan-embed-text-v1.txt",
+                    BASE_CONFIG,
+                    Map.of("model", "amazon.titan-embed-text-v1"));
+        }
+    }
+
+    @Nested
+    class TitanEmbedImageG1 extends BaseIT {
+        TitanEmbedImageG1() {
+            super(
+                    Bedrock.NAME,
+                    "bedrock/amazon.titan-embed-image-v1.txt",
+                    BASE_CONFIG,
+                    Map.of("model", "amazon.titan-embed-image-v1"));
+        }
+    }
+
+    @Nested
+    class TitanEmbedTextV2 extends BaseIT {
+        TitanEmbedTextV2() {
+            super(
+                    Bedrock.NAME,
+                    "bedrock/amazon.titan-embed-text-v2:0.txt",
+                    BASE_CONFIG,
+                    Map.of("model", "amazon.titan-embed-text-v2:0"));
+        }
     }
 
     private static boolean authIsSet() {
-        return CONFIG.containsKey("accessKeyId") && CONFIG.containsKey("secretAccessKey");
+        return BASE_CONFIG.containsKey("accessKeyId") && BASE_CONFIG.containsKey("secretAccessKey");
     }
 }

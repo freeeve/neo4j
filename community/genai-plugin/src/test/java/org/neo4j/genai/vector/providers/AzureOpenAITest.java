@@ -44,6 +44,7 @@ class AzureOpenAITest {
                             new RequiredSetting("token", String.class, "STRING", "FAke-t0k3n", 123),
                             new RequiredSetting("resource", String.class, "STRING", "a-valid-resource", 123),
                             new RequiredSetting("deployment", String.class, "STRING", "some-valid-deployment", 123)),
+                    List.of(),
                     List.of(new OptionalSetting("dimensions", Long.class, "INTEGER", 1024, "1024", Optional.empty())),
                     // TODO: for Azure OpenAI, the model is configured when setting up the deployment.
                     //   The test model here was built with the assumption that we will always specify a model.

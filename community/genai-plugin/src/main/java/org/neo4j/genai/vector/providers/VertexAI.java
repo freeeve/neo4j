@@ -30,11 +30,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.text.StringSubstitutor;
 import org.eclipse.collections.api.factory.Maps;
+import org.eclipse.collections.impl.list.mutable.ListAdapter;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.genai.util.HttpService;
 import org.neo4j.genai.util.JsonUtils;
@@ -50,57 +52,61 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
     static final String DEFAULT_REGION = "us-central1";
     static final Set<String> SUPPORTED_REGIONS = Set.of(
             // https://cloud.google.com/vertex-ai/docs/general/locations
-            "us-west1",
-            "us-west2",
-            "us-west3",
-            "us-west4",
-            "us-central1",
-            "us-east1",
-            "us-east4",
-            "us-south1",
+            "africa-south1",
+            "asia-east1",
+            "asia-east2",
+            "asia-northeast1",
+            "asia-northeast2",
+            "asia-northeast3",
+            "asia-south1",
+            "asia-southeast1",
+            "asia-southeast2",
+            "australia-southeast1",
+            "australia-southeast2",
+            "europe-central2",
+            "europe-north1",
+            "europe-southwest1",
+            "europe-west1",
+            "europe-west2",
+            "europe-west3",
+            "europe-west4",
+            "europe-west6",
+            "europe-west8",
+            "europe-west9",
+            "europe-west12",
+            "me-central1",
+            "me-central2",
+            "me-west1",
             "northamerica-northeast1",
             "northamerica-northeast2",
             "southamerica-east1",
             "southamerica-west1",
-            "europe-west2",
-            "europe-west1",
-            "europe-west4",
-            "europe-west6",
-            "europe-west3",
-            "europe-north1",
-            "europe-central2",
-            "europe-west8",
-            "europe-west9",
-            "europe-southwest1",
-            "asia-south1",
-            "asia-southeast1",
-            "asia-southeast2",
-            "asia-east2",
-            "asia-east1",
-            "asia-northeast1",
-            "asia-northeast2",
-            "australia-southeast1",
-            "australia-southeast2",
-            "asia-northeast3",
-            "me-west1");
+            "us-central1",
+            "us-east1",
+            "us-east4",
+            "us-south1",
+            "us-west1",
+            "us-west2",
+            "us-west3",
+            "us-west4",
+            "us-east5");
     private static final String STRINGIFIED_SUPPORTED_REGIONS =
             SUPPORTED_REGIONS.stream().map(s -> "'" + s + "'").collect(Collectors.joining(", ", "[", "]"));
-    static final String DEFAULT_MODEL = "textembedding-gecko@001";
-    static final Set<String> SUPPORTED_MODELS = Set.of(
-            DEFAULT_MODEL,
-            "textembedding-gecko@002",
-            "textembedding-gecko@003",
-            "textembedding-gecko-multilingual@001");
-    private static final String STRINGIFIED_SUPPORTED_MODELS =
-            SUPPORTED_MODELS.stream().map(s -> "'" + s + "'").collect(Collectors.joining(", ", "[", "]"));
+
+    // safer to assume the single encoder has to be used, and specifically add to the batch set as an optimisation
+    static final Set<String> KNOWN_BATCH_SUPPORTED_MODELS =
+            Set.of("text-embedding-005", "text-multilingual-embedding-002");
+    static final String DEFAULT_BUT_RETIRED_MODEL = "textembedding-gecko@001";
 
     public static class Parameters {
         public String token;
         public String projectId;
-        public String model = DEFAULT_MODEL;
+        public String model = DEFAULT_BUT_RETIRED_MODEL;
         public String region = DEFAULT_REGION;
         public Optional<String> taskType;
         public Optional<String> title;
+        public Optional<Boolean> autoTruncate;
+        public OptionalLong dimensions;
     }
 
     @Override
@@ -115,9 +121,9 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
 
     @Override
     public Provider.Encoder configure(Parameters configuration) {
-        if (!SUPPORTED_MODELS.contains(configuration.model)) {
-            throw new IllegalArgumentException("Provided model '%s' is not supported. Supported models: %s"
-                    .formatted(configuration.model, STRINGIFIED_SUPPORTED_MODELS));
+        if (configuration.model.equals(DEFAULT_BUT_RETIRED_MODEL)) {
+            throw new IllegalArgumentException("Provided (default) model '%s' has been deprecated by VertexAI."
+                    .formatted(DEFAULT_BUT_RETIRED_MODEL));
         }
         if (!SUPPORTED_REGIONS.contains(configuration.region)) {
             throw new IllegalArgumentException("Provided region '%s' is not supported. Supported regions: %s"
@@ -133,21 +139,50 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
                         configuration.projectId,
                         "model",
                         configuration.model)));
-        return new Encoder(endpoint, configuration);
+
+        if (KNOWN_BATCH_SUPPORTED_MODELS.contains(configuration.model)) {
+            return new BatchEncoder(endpoint, configuration);
+        }
+        return new SingleEncoder(endpoint, configuration);
     }
 
-    record Encoder(URI endpoint, Parameters configuration) implements Provider.Encoder {
+    private static class SingleEncoder extends Encoder {
+        private SingleEncoder(URI endpoint, Parameters configuration) {
+            super(endpoint, configuration);
+        }
 
         @Override
-        public float[] encode(HttpService httpService, String data) {
-            return encode(httpService, List.of(data), EMPTY_INT_ARRAY)
+        public float[] encode(HttpService httpService, String resource) {
+            return encodeInternal(httpService, List.of(resource), EMPTY_INT_ARRAY)
                     .findFirst()
                     .orElseThrow()
                     .vector();
         }
+    }
+
+    private static class BatchEncoder extends SingleEncoder {
+        private BatchEncoder(URI endpoint, Parameters configuration) {
+            super(endpoint, configuration);
+        }
 
         @Override
         public Stream<BatchRow> encode(HttpService httpService, List<String> resources, int[] nullIndexes) {
+            return encodeInternal(httpService, resources, nullIndexes);
+        }
+    }
+
+    abstract static class Encoder implements Provider.Encoder {
+        private final URI endpoint;
+        private final Parameters configuration;
+        private final Map<String, ?> parameters;
+
+        protected Encoder(URI endpoint, Parameters configuration) {
+            this.endpoint = endpoint;
+            this.configuration = configuration;
+            this.parameters = parameters();
+        }
+
+        protected Stream<BatchRow> encodeInternal(HttpService httpService, List<String> resources, int[] nullIndexes) {
             return httpService.request(
                     endpoint,
                     builder -> builder.headers(
@@ -159,17 +194,11 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
                                     "application/json")
                             .POST(HttpService.pipe(outputStream -> writeRequestPayload(outputStream, resources)))
                             .build(),
-                    inputStream -> JsonUtils.parseResponse(
-                            NAME,
-                            "predictions",
-                            new String[] {"embeddings", "values"},
-                            resources,
-                            inputStream,
-                            nullIndexes));
+                    inputStream -> parseResponse(resources, inputStream, nullIndexes));
         }
 
         /*
-        relevant part of response:
+         relevant part of response:
             {
                 "predictions": [
                     { "embeddings": { "values": (vector:List<Double>) } },
@@ -184,6 +213,7 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
             final String[] properties = {"embeddings", "values"};
             return JsonUtils.parseResponse(NAME, "predictions", properties, resources, inputStream, nullIndexes);
         }
+
         /*
          payload:
             {
@@ -192,24 +222,35 @@ public final class VertexAI implements Provider<VertexAI.Parameters> {
                    { "content": (resource:String) },
                    ...,
                    { "content": (resource:String) },
-               ]
+               ],
+               "parameters": {
+                   "autoTruncate": (autoTruncate:boolean),
+                   "outputDimensionality": (dimensions:int)
+               }
            }
         */
+        private Object buildPayload(List<String> resources) {
+            final List<Object> instances = ListAdapter.adapt(resources).collect(this::instance);
+            return Maps.mutable.of("instances", instances, "parameters", parameters);
+        }
+
+        private Map<String, ?> instance(String resource) {
+            final Map<String, Object> instance = Maps.mutable.of("content", resource);
+            configuration.title.ifPresent(title -> instance.put("title", title));
+            configuration.taskType.ifPresent(taskType -> instance.put("task_type", taskType));
+            return instance;
+        }
+
+        private Map<String, ?> parameters() {
+            final Map<String, Object> parameters = Maps.mutable.empty();
+            configuration.autoTruncate.ifPresent(autoTruncate -> parameters.put("autoTruncate", autoTruncate));
+            configuration.dimensions.ifPresent(dimensions -> parameters.put("outputDimensionality", dimensions));
+            return parameters;
+        }
+
         private void writeRequestPayload(OutputStream out, List<String> resources) {
             try {
-                JsonUtils.getObjectMapper()
-                        .writeValue(
-                                out,
-                                Map.of(
-                                        "instances",
-                                        resources.stream()
-                                                .map(resource -> {
-                                                    var instance = Maps.mutable.of("content", resource);
-                                                    configuration.taskType.ifPresent(x -> instance.put("task_type", x));
-                                                    configuration.title.ifPresent(x -> instance.put("title", x));
-                                                    return instance;
-                                                })
-                                                .toList()));
+                JsonUtils.getObjectMapper().writeValue(out, buildPayload(resources));
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

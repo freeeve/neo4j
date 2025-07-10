@@ -28,7 +28,7 @@ import org.neo4j.genai.vector.providers.OpenAI.Encoder;
 
 class OpenAITest {
     private static final OpenAI PROVIDER = new OpenAI();
-    private static final List<String> KNOWN_MODELS =
+    private static final List<String> CURRENT_STABLE_MODELS =
             List.of("text-embedding-ada-002", "text-embedding-3-small", "text-embedding-3-large");
 
     @Nested
@@ -37,6 +37,7 @@ class OpenAITest {
             super(
                     PROVIDER,
                     List.of(new RequiredSetting("token", String.class, "STRING", "FAke-t0k3n", 123)),
+                    List.of(),
                     List.of(
                             new OptionalSetting(
                                     "model",
@@ -46,7 +47,7 @@ class OpenAITest {
                                     123,
                                     Optional.of(OpenAI.DEFAULT_MODEL)),
                             new OptionalSetting("dimensions", Long.class, "INTEGER", 1024, "1024", Optional.empty())),
-                    new Models("model", String.class, KNOWN_MODELS, List.of()));
+                    new Models("model", String.class, CURRENT_STABLE_MODELS, List.of()));
         }
     }
 

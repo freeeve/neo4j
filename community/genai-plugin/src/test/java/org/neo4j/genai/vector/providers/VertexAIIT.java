@@ -49,81 +49,43 @@ public class VertexAIIT {
     }
 
     @Nested
-    class Gecko001 extends BaseIT {
-        Gecko001() {
+    class GeminiEmbedding001 extends BaseIT {
+        GeminiEmbedding001() {
             super(
                     VertexAI.NAME,
-                    "vertexai/textembedding-gecko@001.txt",
+                    "vertexai/gemini-embedding-001.txt",
                     BASE_CONFIG,
-                    Map.of("model", "textembedding-gecko@001"));
+                    Map.of("model", "gemini-embedding-001"));
         }
     }
 
     @Nested
-    class Gecko002 extends BaseIT {
-        Gecko002() {
-            super(
-                    VertexAI.NAME,
-                    "vertexai/textembedding-gecko@002.txt",
-                    BASE_CONFIG,
-                    Map.of("model", "textembedding-gecko@002"));
+    class TextEmbedding005 extends BaseIT {
+        TextEmbedding005() {
+            super(VertexAI.NAME, "vertexai/text-embedding-005.txt", BASE_CONFIG, Map.of("model", "text-embedding-005"));
         }
     }
 
     @Nested
-    class Gecko003 extends BaseIT {
-        Gecko003() {
+    class TextMultiLingualEmbedding002 extends BaseIT {
+        TextMultiLingualEmbedding002() {
             super(
                     VertexAI.NAME,
-                    "vertexai/textembedding-gecko@003.txt",
+                    "vertexai/text-multilingual-embedding-002.txt",
                     BASE_CONFIG,
-                    Map.of("model", "textembedding-gecko@003"));
-        }
-    }
-
-    @Nested
-    class GeckoMultilingual001 extends BaseIT {
-        GeckoMultilingual001() {
-            super(
-                    VertexAI.NAME,
-                    "vertexai/textembedding-gecko-multilingual@001.txt",
-                    BASE_CONFIG,
-                    Map.of("model", "textembedding-gecko-multilingual@001"));
-        }
-    }
-
-    @Nested
-    class Gecko003TaskType extends BaseIT {
-        Gecko003TaskType() {
-            super(
-                    VertexAI.NAME,
-                    "vertexai/textembedding-gecko@003-classification.txt",
-                    BASE_CONFIG,
-                    Map.of("model", "textembedding-gecko@003", "taskType", "CLASSIFICATION"));
-        }
-    }
-
-    @Nested
-    class Gecko003Title extends BaseIT {
-        Gecko003Title() {
-            super(
-                    VertexAI.NAME,
-                    "vertexai/textembedding-gecko@003-title.txt",
-                    BASE_CONFIG,
-                    Map.of(
-                            "model",
-                            "textembedding-gecko@003",
-                            "taskType",
-                            "RETRIEVAL_DOCUMENT",
-                            "title",
-                            "A Document About Titles"));
+                    Map.of("model", "text-multilingual-embedding-002"));
         }
     }
 
     @Nested
     class LargeBatchedInput extends BaseIT {
         LargeBatchedInput() {
-            super(VertexAI.NAME, BASE_CONFIG, Map.of("model", "textembedding-gecko@003"), true);
+            super(
+                    VertexAI.NAME,
+                    BASE_CONFIG,
+                    Map.of(
+                            "model",
+                            VertexAI.KNOWN_BATCH_SUPPORTED_MODELS.iterator().next()));
         }
     }
 }

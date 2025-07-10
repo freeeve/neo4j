@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -38,12 +39,17 @@ class BedrockTest {
 
     @Nested
     class Configuration extends ConfigurationTestBase<Bedrock.Parameters> {
+        // note: may need to updated these as models are deprecated
+        private static final Set<String> CURRENT_STABLE_MODELS =
+                Set.of("amazon.titan-embed-text-v1", "amazon.titan-embed-text-v2:0");
+
         protected Configuration() {
             super(
                     PROVIDER,
                     List.of(
                             new RequiredSetting("accessKeyId", String.class, "STRING", "FAKEACCESSKEYID", 123),
                             new RequiredSetting("secretAccessKey", String.class, "STRING", "FaKe/ACc3ss/kEy", 123)),
+                    List.of(),
                     List.of(
                             new OptionalSetting(
                                     "region",
@@ -59,7 +65,7 @@ class BedrockTest {
                                     Bedrock.DEFAULT_MODEL,
                                     123,
                                     Optional.of(Bedrock.DEFAULT_MODEL))),
-                    new Models("model", String.class, Bedrock.SUPPORTED_MODELS, List.of("fake-model")));
+                    new Models("model", String.class, CURRENT_STABLE_MODELS, List.of()));
         }
 
         @ParameterizedTest(name = "{0}")
@@ -91,7 +97,7 @@ class BedrockTest {
     class Parsing extends ParsingTestBase {
         protected Parsing() {
             super((resources, stream, nullIndexes) ->
-                    Stream.of(new BatchRow(0, resources.get(0), Encoder.parseResponse(stream))));
+                    Stream.of(new BatchRow(0, resources.getFirst(), Encoder.parseResponse(stream))));
         }
 
         @Override
