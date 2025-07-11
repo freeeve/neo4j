@@ -414,8 +414,8 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     private static Optional<DatabaseReferenceImpl.PropertyShard> createSPDPropertyShardReference(Node alias, Node db) {
         return CommunityTopologyGraphDbmsModelUtil.createInternalReference(
                         alias, CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db))
-                .flatMap(internal -> CommunityTopologyGraphDbmsModelUtil.readPropertyShardOwningDatabase(db)
-                        .map(internal::asShard));
+                .flatMap(internal -> CommunityTopologyGraphDbmsModelUtil.readPropertyShardOwningDatabaseAndIndex(db)
+                        .map(p -> internal.asShard(p.first(), p.other())));
     }
 
     private static Optional<DatabaseReferenceImpl.Mirror> createMirrorReference(Node alias, Node db) {

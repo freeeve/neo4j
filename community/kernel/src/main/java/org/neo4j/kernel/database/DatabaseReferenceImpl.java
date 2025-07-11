@@ -289,8 +289,8 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                     + primary + '}';
         }
 
-        public PropertyShard asShard(String ownerDatabase) {
-            return new PropertyShard(alias, namedDatabaseId, primary, ownerDatabase);
+        public PropertyShard asShard(String ownerDatabase, int index) {
+            return new PropertyShard(alias, namedDatabaseId, primary, ownerDatabase, index);
         }
 
         public DatabaseReferenceImpl.Mirror asMirror(String upstreamDatabase) {
@@ -519,19 +519,23 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
 
         public static int MAX_NUMBER_OF_SHARDS = 1000;
         private final String spdName;
+        private final int index;
 
-        public PropertyShard(NormalizedDatabaseName alias, NamedDatabaseId namedDatabaseId, String spdName) {
+        public PropertyShard(NormalizedDatabaseName alias, NamedDatabaseId namedDatabaseId, String spdName, int index) {
             super(alias, namedDatabaseId, true);
             this.spdName = spdName;
+            this.index = index;
         }
 
         public PropertyShard(
                 NormalizedDatabaseName alias,
                 NamedDatabaseId namedDatabaseId,
                 boolean primary,
-                String owningDatabaseName) {
+                String owningDatabaseName,
+                int index) {
             super(alias, namedDatabaseId, primary);
             this.spdName = owningDatabaseName;
+            this.index = index;
         }
 
         private static final Pattern propertyShardPattern = Pattern.compile("(.)+(-p)([0-9]{3})");
@@ -564,6 +568,10 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
             return spdName;
         }
 
+        public int index() {
+            return index;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (o instanceof PropertyShard other) {
@@ -583,7 +591,8 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                     + namespace + ", namedDatabaseId="
                     + namedDatabaseId + ", primary="
                     + primary + ", owningDatabaseName="
-                    + spdName + '}';
+                    + spdName + ", index="
+                    + index + '}';
         }
     }
 

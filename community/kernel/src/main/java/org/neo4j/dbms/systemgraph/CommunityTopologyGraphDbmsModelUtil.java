@@ -139,8 +139,11 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                                     .getRelationships(Direction.OUTGOING, HAS_PROPERTY_SHARD_RELATIONSHIP)
                                     .spliterator(),
                             false)
-                    .flatMap(rel -> createSPDPropertyShardReference(aliasName.name(), rel.getEndNode()).stream()
-                            .map(ref -> Pair.of((int) rel.getProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY), ref)))
+                    .flatMap(rel -> {
+                        int index = (int) rel.getProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY);
+                        return createSPDPropertyShardReference(aliasName.name(), rel.getEndNode(), index).stream()
+                                .map(ref -> Pair.of(index, ref));
+                    })
                     .collect(Collectors.toMap(Pair::first, Pair::other));
             var graphShard = createGraphShardReference(graphShardNode, propertyShards).stream()
                     .toList()
@@ -152,11 +155,11 @@ public final class CommunityTopologyGraphDbmsModelUtil {
     }
 
     public static Optional<DatabaseReferenceImpl.PropertyShard> createSPDPropertyShardReference(
-            String owningDatabaseName, Node db) {
+            String owningDatabaseName, Node db, int index) {
         return ignoreConcurrentDeletes(() -> {
             var normalizedName = new NormalizedDatabaseName((String) db.getProperty(DATABASE_NAME_PROPERTY));
             var id = CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db);
-            return Optional.of(new DatabaseReferenceImpl.PropertyShard(normalizedName, id, owningDatabaseName));
+            return Optional.of(new DatabaseReferenceImpl.PropertyShard(normalizedName, id, owningDatabaseName, index));
         });
     }
 
@@ -478,16 +481,17 @@ public final class CommunityTopologyGraphDbmsModelUtil {
         });
     }
 
-    public static Optional<String> readPropertyShardOwningDatabase(Node propertyShardDb) {
+    public static Optional<Pair<String, Integer>> readPropertyShardOwningDatabaseAndIndex(Node propertyShardDb) {
         return ignoreConcurrentDeletes(() -> {
-            var graphShard =
+            var hasPropertyShardRel =
                     propertyShardDb.getRelationships(Direction.INCOMING, HAS_PROPERTY_SHARD_RELATIONSHIP).stream()
-                            .map(Relationship::getStartNode)
                             .toList(); // exhaust cursor
-            if (graphShard.isEmpty()) {
+            if (hasPropertyShardRel.isEmpty()) {
                 return Optional.empty();
             }
-            return readGraphShardOwningDatabase(graphShard.getFirst());
+            int index = (int) hasPropertyShardRel.getFirst().getProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY);
+            return readGraphShardOwningDatabase(hasPropertyShardRel.getFirst().getStartNode())
+                    .map(owner -> Pair.of(owner, index));
         });
     }
 

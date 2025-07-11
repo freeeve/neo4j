@@ -140,8 +140,8 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
                 tx, bar, barG, List.of(Pair.of(0, barP0), Pair.of(1, barP1), Pair.of(2, barP2), Pair.of(3, barP3)));
 
         // then
-        var fooP0Ref = new DatabaseReferenceImpl.PropertyShard(fooP0.normalizedName(), fooP0, foo);
-        var fooP1Ref = new DatabaseReferenceImpl.PropertyShard(fooP1.normalizedName(), fooP1, foo);
+        var fooP0Ref = new DatabaseReferenceImpl.PropertyShard(fooP0.normalizedName(), fooP0, foo, 0);
+        var fooP1Ref = new DatabaseReferenceImpl.PropertyShard(fooP1.normalizedName(), fooP1, foo, 1);
         var fooShards = Map.of(
                 0, fooP0Ref,
                 1, fooP1Ref);
@@ -149,10 +149,10 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         var fooSpdRef =
                 new DatabaseReferenceImpl.VirtualSPD(new NormalizedDatabaseName(foo), fooNamedDatabase, fooGRef, true);
 
-        var barP0Ref = new DatabaseReferenceImpl.PropertyShard(barP0.normalizedName(), barP0, bar);
-        var barP1Ref = new DatabaseReferenceImpl.PropertyShard(barP1.normalizedName(), barP1, bar);
-        var barP2Ref = new DatabaseReferenceImpl.PropertyShard(barP2.normalizedName(), barP2, bar);
-        var barP3Ref = new DatabaseReferenceImpl.PropertyShard(barP3.normalizedName(), barP3, bar);
+        var barP0Ref = new DatabaseReferenceImpl.PropertyShard(barP0.normalizedName(), barP0, bar, 0);
+        var barP1Ref = new DatabaseReferenceImpl.PropertyShard(barP1.normalizedName(), barP1, bar, 1);
+        var barP2Ref = new DatabaseReferenceImpl.PropertyShard(barP2.normalizedName(), barP2, bar, 2);
+        var barP3Ref = new DatabaseReferenceImpl.PropertyShard(barP3.normalizedName(), barP3, bar, 3);
         var barShards = Map.of(
                 0, barP0Ref,
                 1, barP1Ref,
