@@ -260,7 +260,7 @@ object ShowProcFuncCommandHelper {
 
     private def getMatching(name: String, privilege: Map[String, AnyRef]): List[String] = {
       val segment = privilege("segment").asInstanceOf[String]
-      val glob = segment.substring(segment.indexOf("(") + 1, segment.indexOf(")"))
+      val glob = segment.substring(segment.indexOf('(') + 1, segment.indexOf(')'))
       val matchPredicate = Globbing.globPredicate(glob)
       val matching: Boolean = matchPredicate.test(name)
 

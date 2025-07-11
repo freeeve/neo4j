@@ -56,7 +56,7 @@ public final class Versions {
             return new Version(0, 0, 0, Optional.empty());
         }
         // remove -alpha, and -beta etc
-        int offset = version.indexOf("-");
+        int offset = version.indexOf('-');
         Optional<Integer> preRelease = Optional.empty();
         if (offset > 0) {
             try {

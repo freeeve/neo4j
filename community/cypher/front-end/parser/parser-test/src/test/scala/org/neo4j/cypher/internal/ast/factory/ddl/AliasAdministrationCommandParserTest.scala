@@ -1735,7 +1735,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     test(s"""ALTER ALIAS name SET DATABASE $clause $clause""") {
       // 'Default language' contains space so cannot split on space to find the clause name
       val clauseName = if (clause.contains("DEFAULT LANGUAGE")) "DEFAULT LANGUAGE"
-      else clause.substring(0, clause.indexOf(" "))
+      else clause.substring(0, clause.indexOf(' '))
       failsParsing[Statements].withSyntaxErrorContaining(s"Duplicate $clauseName clause")
     }
   })

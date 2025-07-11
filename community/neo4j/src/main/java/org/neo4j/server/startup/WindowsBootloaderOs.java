@@ -183,7 +183,7 @@ class WindowsBootloaderOs extends BootloaderOsAbstraction {
         // A limitation/bug in prunsrv not parsing ' characters correctly. It is better to throw exception than fail
         // silently like before
         if (s.contains("'")) {
-            var firstIndex = s.indexOf("'");
+            var firstIndex = s.indexOf('\'');
             var context = s.substring(Math.max(firstIndex - 25, 0), Math.min(s.length(), firstIndex + 25));
             throw new CommandFailedException(format(
                     "We are unable to support values that contain single quote marks ('). Single quotes found in value: %s",

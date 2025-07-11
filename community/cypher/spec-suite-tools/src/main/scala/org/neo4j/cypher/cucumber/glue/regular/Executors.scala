@@ -204,7 +204,7 @@ trait ExecutorPool extends Executors {
       tags.asScala.view
         .collect {
           case tag if tag.startsWith(ConfPrefix) =>
-            val equalsIndex = tag.indexOf("=")
+            val equalsIndex = tag.indexOf('=')
             tag.substring(ConfPrefix.length, equalsIndex) -> tag.substring(equalsIndex + 1)
         }
         .toMap

@@ -3315,7 +3315,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       methods should not be empty
       val m = methods.map { m =>
         val name = m.getName
-        val index = name.indexOf("$") // filter out the $bar method
+        val index = name.indexOf('$') // filter out the $bar method
         val end = if (index == -1) name.length else index
         name.substring(0, end)
       }
