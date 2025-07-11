@@ -51,6 +51,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -113,11 +114,11 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.LifeExtension;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.pagecache.PageCacheSupportExtension;
-import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
+import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.test.utils.PageCacheConfig;
 import org.neo4j.test.utils.TestDirectory;
 
-@TestDirectoryExtension
+@EphemeralTestDirectoryExtension
 @ExtendWith({RandomExtension.class, LifeExtension.class})
 class GBPTreeTest {
     private static final Layout<MutableLong, MutableLong> layout = longLayout().build();
@@ -127,7 +128,7 @@ class GBPTreeTest {
             new PageCacheSupportExtension(config().withAccessChecks(true));
 
     @Inject
-    private FileSystemAbstraction fileSystem;
+    private EphemeralFileSystemAbstraction fileSystem;
 
     @Inject
     private TestDirectory testDirectory;
@@ -2197,6 +2198,99 @@ class GBPTreeTest {
 
         // then
         verify(structureWriteLog).close();
+    }
+
+    @Test
+    void shouldBumpUnstableGenerationOnOpenInReadOnlyMode() throws Exception {
+        FileSystemAbstraction snapshot;
+        AtomicBoolean end = new AtomicBoolean();
+        AtomicBoolean checkpointed = new AtomicBoolean();
+        try (var pageCache = createPageCache(defaultPageSize);
+                var executor = Executors.newFixedThreadPool(2);
+                var tree = index(pageCache).build()) {
+            // given
+            // First Checkpoint to have a stable generation.
+            tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+
+            // Thread that continuously writes to the tree, until stopped.
+            var writes = executor.submit(() -> {
+                while (!end.get()) {
+                    try (var writer = tree.writer(NULL_CONTEXT)) {
+                        var value = random.nextInt(100);
+                        if (checkpointed.get()) {
+                            // After the checkpoint we write other values, to assert that
+                            // no post-checkpoint values are observable.
+                            value += 100;
+                        }
+                        writer.put(new MutableLong(random.nextInt(100)), new MutableLong(value));
+                    }
+                }
+                return null;
+            });
+
+            // Let it run for a while
+            Thread.sleep(500);
+            // Second checkpoint
+            tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            checkpointed.set(true);
+
+            // Now to the problem that this test is here to assert we don't run into:
+            // The root tree node A got a successor B where A was put on the freelist.
+            // Then after the second checkpoint B wants to create a new successor and grabs A from the freelist
+            // When A is reused it's zapped (cleared w/ all-zeros). However, if we can make it so that
+            // B is flushed to disk, but not A - then when starting up we'd have A -> B -> A, creating
+            // a successor loop of sorts.
+            // And the final piece of the puzzle was that the unstable generation wasn't bumped when opening
+            // the tree in read-only mode so the Seeker couldn't recognize that it was reading a crash-generation
+            // and would therefor get stuck in the A -> B -> A successor loop.
+            //
+            // The "otherWrites" below will (quite deterministically) make it so that B gets evicted, but not A
+            var otherWrites = executor.submit(() -> {
+                try (var pagedFile = pageCache.map(
+                        testDirectory.file("other"),
+                        defaultPageSize,
+                        "test",
+                        Sets.immutable.of(StandardOpenOption.CREATE, StandardOpenOption.WRITE))) {
+                    try (var cursor = pagedFile.io(0, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
+                        for (long i = 0; !end.get(); i++) {
+                            cursor.next(i % pageCache.maxCachedPages());
+                            cursor.putLong(0);
+                        }
+                    }
+                }
+                return null;
+            });
+            // Let both the `writes` and `otherStuff` run for a while.
+            // `writes` will keep writing to A, so it keeps being most-recently-used.
+            // `otherStuff` will write to many pages in the page cache and evict everything but A.
+            Thread.sleep(500);
+
+            // Simulate a crash
+            snapshot = fileSystem.snapshot();
+            end.set(true);
+            writes.get();
+            otherWrites.get();
+        }
+
+        // when open the crashed tree in read-only mode
+        try (var pageCache =
+                PageCacheSupportExtension.getPageCache(snapshot, config().withPageSize(defaultPageSize)); ) {
+            try (var tree = new GBPTreeBuilder<SingleRoot, MutableLong, MutableLong>(
+                            pageCache, snapshot, indexFile, layout)
+                    .with(getOpenOptions())
+                    .readOnly()
+                    .build()) {
+                try (var seek = tree.seek(new MutableLong(0), new MutableLong(Long.MAX_VALUE), NULL_CONTEXT)) {
+                    // then we should only see the values written pre-checkpoint.
+                    int counter = 0;
+                    while (seek.next()) {
+                        counter++;
+                        assertThat(seek.value().longValue()).isLessThan(100);
+                    }
+                    assertThat(counter).isGreaterThan(0);
+                }
+            }
+        }
     }
 
     private Pair<TreeState, TreeState> captureTreeState(PageCache pageCache) throws IOException {

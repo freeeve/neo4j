@@ -644,9 +644,9 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             } else {
                 initialize(pagedFile, headerReader, cursorContext);
                 dirtyOnStartup = !clean;
+                bumpUnstableGeneration();
                 if (!readOnly) {
                     clean = false;
-                    bumpUnstableGeneration();
                     try (var flushEvent = pageCacheTracer.beginFileFlush()) {
                         forceState(flushEvent, cursorContext);
                     }

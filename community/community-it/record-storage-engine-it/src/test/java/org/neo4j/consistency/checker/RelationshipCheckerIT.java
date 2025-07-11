@@ -53,6 +53,8 @@ import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.format.RecordFormatSelector;
+import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
+import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.NullLog;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -136,12 +138,15 @@ class RelationshipCheckerIT {
 
         relationshipChecker.check(LongRange.range(0, relationshipId + 1), true, false, EmptyMemoryTracker.INSTANCE);
 
-        assertThat(pageCacheTracer.pins() - initialPins).isEqualTo(6);
-        assertThat(pageCacheTracer.unpins() - initialUnpins).isEqualTo(6);
-        assertThat(pageCacheTracer.hits() - initialHits).isEqualTo(6);
+        assertThat(pageCacheTracer.pins() - initialPins).isEqualTo(4);
+        assertThat(pageCacheTracer.unpins() - initialUnpins).isEqualTo(4);
+        assertThat(pageCacheTracer.hits() - initialHits).isEqualTo(4);
     }
 
     private void prepareContext() throws Exception {
+        database.getDependencyResolver()
+                .resolveDependency(CheckPointer.class)
+                .forceCheckPoint(new SimpleTriggerInfo("test"));
         var neoStores = storageEngine.testAccessNeoStores();
         var contextFactory = new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER);
         try (var storeCursors = new CachedStoreCursors(neoStores, CursorContext.NULL_CONTEXT)) {
