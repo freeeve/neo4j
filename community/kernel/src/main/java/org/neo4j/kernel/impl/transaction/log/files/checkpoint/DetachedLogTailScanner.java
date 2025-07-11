@@ -337,31 +337,31 @@ public class DetachedLogTailScanner {
                             : NO_MORE_CHANNELS;
                     try (var reader = logFile.getReader(lookupPosition, readerBridge);
                             var cursor = new LogEntryCursor(logEntryReader, reader)) {
-                        AbstractVersionAwareLogEntry entry;
                         LogPosition position;
                         if (cursor.next()) {
-                            entry = (AbstractVersionAwareLogEntry) cursor.get();
-                            if (entry instanceof LogEntryStart startEntry) {
-                                return new PostCheckpointInfo(
-                                        startEntry.getAppendIndex(),
-                                        startEntry.kernelVersion().version(),
-                                        false);
-                            } else if (entry instanceof LogEntryChunkStart chunkStart) {
-                                return new PostCheckpointInfo(
-                                        chunkStart.getAppendIndex(),
-                                        chunkStart.kernelVersion().version(),
-                                        false);
-                            } else if (entry instanceof LogEntryRollback rollback) {
-                                return new PostCheckpointInfo(
-                                        rollback.getAppendIndex(),
-                                        rollback.kernelVersion().version(),
-                                        false);
-                            } else {
-                                return new PostCheckpointInfo(
-                                        UNKNOWN_APPEND_INDEX,
-                                        entry.kernelVersion().version(),
-                                        true);
-                            }
+                            var logEntry = (AbstractVersionAwareLogEntry) cursor.get();
+                            return switch (logEntry) {
+                                case LogEntryStart startEntry ->
+                                    new PostCheckpointInfo(
+                                            startEntry.getAppendIndex(),
+                                            startEntry.kernelVersion().version(),
+                                            false);
+                                case LogEntryChunkStart chunkStart ->
+                                    new PostCheckpointInfo(
+                                            chunkStart.getAppendIndex(),
+                                            chunkStart.kernelVersion().version(),
+                                            false);
+                                case LogEntryRollback rollback ->
+                                    new PostCheckpointInfo(
+                                            rollback.getAppendIndex(),
+                                            rollback.kernelVersion().version(),
+                                            false);
+                                default ->
+                                    new PostCheckpointInfo(
+                                            UNKNOWN_APPEND_INDEX,
+                                            logEntry.kernelVersion().version(),
+                                            true);
+                            };
                         }
                         position = reader.getCurrentLogPosition();
                         corruptedTransactionLogs = logEntryReader.hasBrokenLastEntry();

@@ -337,12 +337,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         KernelVersion kernelVersion = versionProvider.kernelVersion();
         LogFile logFile = logFiles.getLogFile();
         try (ChannelWithPartialLogRotationAbility channelAllocator = new ChannelWithPartialLogRotationAbility(
-                logFile,
-                appendIndexProvider,
-                versionProvider,
-                logFormatVersionProvider,
-                logFile.rotationSize(),
-                writePosition)) {
+                logFile, versionProvider, logFormatVersionProvider, logFile.rotationSize(), writePosition)) {
             PhysicalFlushableLogPositionAwareChannel writerChannel = channelAllocator.getWriterChannel();
             var entryWriter = new LogEntryWriter<>(writerChannel, binarySupportedKernelVersions);
             long time = clock.millis();
@@ -372,21 +367,18 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         private final PhysicalFlushableLogPositionAwareChannel writer;
         private PhysicalLogVersionedStoreChannel channel;
         private final LogFile logFile;
-        private final AppendIndexProvider appendIndexProvider;
         private final KernelVersionProvider versionProvider;
         private final LogFormatVersionProvider logFormatVersionProvider;
         private final long rotateAtSize;
 
         public ChannelWithPartialLogRotationAbility(
                 LogFile logFile,
-                AppendIndexProvider appendIndexProvider,
                 KernelVersionProvider versionProvider,
                 LogFormatVersionProvider logFormatVersionProvider,
                 long rotateAtSize,
                 LogPosition writePosition)
                 throws IOException {
             this.logFile = logFile;
-            this.appendIndexProvider = appendIndexProvider;
             this.versionProvider = versionProvider;
             this.logFormatVersionProvider = logFormatVersionProvider;
             this.rotateAtSize = rotateAtSize;
@@ -497,6 +489,9 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
     }
 
     private void reverseIncompleteBatches(long[] incompleteAppendIndexes) throws Exception {
+        if (incompleteAppendIndexes == null || incompleteAppendIndexes.length == 0) {
+            return;
+        }
         // Incomplete batches especially one before the last checkpoint position must also undo indexes and id
         // generators, therefore using MVCC_INCOMPLETE_REVERSE_RECOVERY applier
         try (var recoveryVisitor = recoveryService.getRecoveryApplier(

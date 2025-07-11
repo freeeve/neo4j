@@ -2259,7 +2259,7 @@ class RecoveryIT {
 
         assertThatThrownBy(() -> recoverDatabase(RecoveryCriteria.until(1)))
                 .hasCauseInstanceOf(RecoveryPredicateException.class)
-                .getCause()
+                .cause()
                 .hasMessageContaining("Partial recovery criteria can't be satisfied. Transaction after and before "
                         + "checkpoint does not satisfy provided recovery criteria. Observed transaction id: " + lastTxId
                         + ", recovery criteria: transaction id should be < 1.");

@@ -270,7 +270,7 @@ public final class Recovery {
             IOController ioController,
             InternalLogProvider logProvider,
             KernelVersionProvider emptyLogsFallbackKernelVersion) {
-        return new Context(
+        Context context = new Context(
                 fs,
                 pageCache,
                 databaseLayout,
@@ -279,8 +279,8 @@ public final class Recovery {
                 tracers,
                 ioController,
                 logProvider,
-                emptyLogsFallbackKernelVersion,
                 VectorStoreCreator.FAILING);
+        return context.kernelVersionProvider(emptyLogsFallbackKernelVersion);
     }
 
     public static Context context(
@@ -293,13 +293,13 @@ public final class Recovery {
             IOController ioController,
             InternalLogProvider logProvider,
             LogTailMetadata logTail) {
-        return new Context(
+        return context(
                 fs,
                 pageCache,
-                databaseLayout,
-                config,
-                memoryTracker,
                 tracers,
+                config,
+                databaseLayout,
+                memoryTracker,
                 ioController,
                 logProvider,
                 logTail,
@@ -317,7 +317,7 @@ public final class Recovery {
             InternalLogProvider logProvider,
             LogTailMetadata logTail,
             VectorStoreCreator vectorStoreCreator) {
-        return new Context(
+        Context context = new Context(
                 fs,
                 pageCache,
                 databaseLayout,
@@ -326,8 +326,8 @@ public final class Recovery {
                 tracers,
                 ioController,
                 logProvider,
-                logTail,
                 vectorStoreCreator);
+        return context.withLogTailInfo(logTail);
     }
 
     /**
@@ -353,8 +353,8 @@ public final class Recovery {
         private RecoveryPredicate recoveryPredicate = RecoveryPredicate.ALL;
         private RecoveryMode mode = RecoveryMode.FULL;
         private long awaitIndexesOnlineMillis;
-        private final KernelVersionProvider emptyLogsFallbackKernelVersion;
-        private VectorStoreCreator vectorStoreCreator;
+        private KernelVersionProvider emptyLogsFallbackKernelVersion;
+        private final VectorStoreCreator vectorStoreCreator;
 
         private Context(
                 FileSystemAbstraction fileSystemAbstraction,
@@ -365,7 +365,6 @@ public final class Recovery {
                 DatabaseTracers tracers,
                 IOController ioController,
                 InternalLogProvider logProvider,
-                KernelVersionProvider emptyLogsFallbackKernelVersion,
                 VectorStoreCreator vectorStoreCreator) {
             requireNonNull(pageCache);
             requireNonNull(fileSystemAbstraction);
@@ -379,37 +378,14 @@ public final class Recovery {
             this.tracers = tracers;
             this.ioController = ioController;
             this.logProvider = requireNonNull(logProvider);
-            this.emptyLogsFallbackKernelVersion = emptyLogsFallbackKernelVersion;
             this.vectorStoreCreator = vectorStoreCreator;
         }
 
-        private Context(
-                FileSystemAbstraction fileSystemAbstraction,
-                PageCache pageCache,
-                DatabaseLayout databaseLayout,
-                Config config,
-                MemoryTracker memoryTracker,
-                DatabaseTracers tracers,
-                IOController ioController,
-                InternalLogProvider logProvider,
-                LogTailMetadata logTail,
-                VectorStoreCreator vectorStoreCreator) {
-            requireNonNull(pageCache);
-            requireNonNull(fileSystemAbstraction);
-            requireNonNull(databaseLayout);
-            requireNonNull(config);
-            this.pageCache = pageCache;
-            this.fs = fileSystemAbstraction;
-            this.databaseLayout = databaseLayout;
-            this.config = config;
-            this.memoryTracker = memoryTracker;
-            this.tracers = tracers;
-            this.ioController = ioController;
-            this.logProvider = requireNonNull(logProvider);
+        public Context withLogTailInfo(LogTailMetadata logTail) {
             // No need for the kernelVersionProvider if we are guaranteed a log tail.
             this.emptyLogsFallbackKernelVersion = KernelVersionProvider.THROWING_PROVIDER;
             this.providedLogTail = Optional.of(logTail);
-            this.vectorStoreCreator = vectorStoreCreator;
+            return this;
         }
 
         /**
@@ -475,6 +451,11 @@ public final class Recovery {
 
         public Context rollbackIncompleteTransactions(boolean rollbackIncompleteTransactions) {
             this.rollbackIncompleteTransactions = rollbackIncompleteTransactions;
+            return this;
+        }
+
+        public Context kernelVersionProvider(KernelVersionProvider kernelVersionProvider) {
+            this.emptyLogsFallbackKernelVersion = kernelVersionProvider;
             return this;
         }
     }
