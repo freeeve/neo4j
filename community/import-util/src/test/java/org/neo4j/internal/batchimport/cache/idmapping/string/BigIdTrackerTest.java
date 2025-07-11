@@ -39,7 +39,7 @@ class BigIdTrackerTest {
         // given
         int length = 10_000;
         try (BigIdTracker tracker = new BigIdTracker(
-                NumberArrayFactories.HEAP.newByteArray(length, BigIdTracker.DEFAULT_VALUE, INSTANCE))) {
+                NumberArrayFactories.OFF_HEAP.newByteArray(length, BigIdTracker.DEFAULT_VALUE, INSTANCE))) {
             // when
             long[] values = new long[length];
             boolean[] marks = new boolean[length];

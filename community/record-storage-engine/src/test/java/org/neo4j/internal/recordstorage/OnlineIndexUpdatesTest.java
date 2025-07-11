@@ -153,7 +153,7 @@ class OnlineIndexUpdatesTest {
                 databaseLayout.countStore(),
                 fileSystem,
                 immediate(),
-                new CountsComputer(neoStores, contextFactory, INSTANCE, NumberArrayFactories.HEAP),
+                new CountsComputer(neoStores, contextFactory, INSTANCE, NumberArrayFactories.OFF_HEAP),
                 false,
                 GBPTreeGenericCountsStore.NO_MONITOR,
                 databaseLayout.getDatabaseName(),

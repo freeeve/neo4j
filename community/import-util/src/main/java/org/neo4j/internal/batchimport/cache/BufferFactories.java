@@ -26,35 +26,12 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.Arrays;
 import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.NativeScopedBuffer;
-import org.neo4j.memory.HeapEstimator;
 import org.neo4j.memory.MemoryTracker;
 
 public final class BufferFactories {
-    public static final BufferFactory HEAP = new BufferFactory() {
-        @Override
-        public AllocatedBuffer allocate(int size, MemoryTracker memoryTracker) {
-            memoryTracker.allocateHeap(HeapEstimator.sizeOfByteArray(size));
-            return new AllocatedBuffer(ByteBuffer.wrap(new byte[size]), null);
-        }
-
-        @Override
-        public void clear(ByteBuffer buffer, byte defaultValue) {
-            Arrays.fill(buffer.array(), defaultValue);
-        }
-
-        @Override
-        public void close() {}
-
-        @Override
-        public String toString() {
-            return "HeapBufferFactory";
-        }
-    };
-
     public static final BufferFactory OFF_HEAP = new BufferFactory() {
         @Override
         public AllocatedBuffer allocate(int size, MemoryTracker memoryTracker) {

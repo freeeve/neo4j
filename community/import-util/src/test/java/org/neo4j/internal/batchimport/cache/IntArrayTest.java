@@ -112,20 +112,6 @@ class IntArrayTest {
     }
 
     @Test
-    void trackHeapMemoryOnArrayAllocations() {
-        var memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
-        var longArray = NumberArrayFactories.HEAP.newDynamicLongArray(10, 0, memoryTracker);
-
-        assertEquals(0, memoryTracker.estimatedHeapMemory());
-        assertEquals(0, memoryTracker.usedNativeMemory());
-
-        longArray.set(0, 5);
-
-        assertEquals(80, memoryTracker.estimatedHeapMemory());
-        assertEquals(0, memoryTracker.usedNativeMemory());
-    }
-
-    @Test
     void trackNativeMemoryOnArrayAllocations() {
         var memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
         try (var longArray = NumberArrayFactories.OFF_HEAP.newDynamicLongArray(10, 0, memoryTracker)) {

@@ -23,7 +23,7 @@ import org.neo4j.memory.MemoryTracker;
 
 /**
  * Factory of {@link LongArray}, {@link IntArray} and {@link ByteArray} instances. Users can select in which type of memory the arrays will be placed, either in
- * {@link NumberArrayFactories#HEAP}, {@link NumberArrayFactories#OFF_HEAP}, or use an auto allocator which will have each instance placed where it fits best,
+ * {@link NumberArrayFactories#OFF_HEAP}, or use an auto allocator which will have each instance placed where it fits best,
  * favoring the primary candidates.
  */
 public interface NumberArrayFactory extends AutoCloseable {

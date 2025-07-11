@@ -33,42 +33,45 @@ class GroupCacheTest {
     void shouldHandleSingleByteCount() {
         // given
         int max = 256;
-        GroupCache cache = GroupCache.select(NumberArrayFactories.HEAP, 100, max, INSTANCE);
+        try (GroupCache cache = GroupCache.select(NumberArrayFactories.OFF_HEAP, 100, max, INSTANCE)) {
 
-        // when
-        assertSetAndGet(cache, 10, 45);
-        assertSetAndGet(cache, 100, 145);
-        assertSetAndGet(cache, 1000, 245);
+            // when
+            assertSetAndGet(cache, 10, 45);
+            assertSetAndGet(cache, 100, 145);
+            assertSetAndGet(cache, 1000, 245);
 
-        // then
-        assertThrows(ArithmeticException.class, () -> cache.set(10000, 345));
+            // then
+            assertThrows(ArithmeticException.class, () -> cache.set(10000, 345));
+        }
     }
 
     @Test
     void shouldSwitchToTwoByteVersionBeyondSingleByteGroupIds() {
         // given
         int max = 257;
-        GroupCache cache = GroupCache.select(NumberArrayFactories.HEAP, 100, max, INSTANCE);
+        try (GroupCache cache = GroupCache.select(NumberArrayFactories.OFF_HEAP, 100, max, INSTANCE)) {
 
-        // when
-        assertSetAndGet(cache, 10, 123);
-        assertSetAndGet(cache, 100, 1234);
-        assertSetAndGet(cache, 1000, 12345);
-        assertSetAndGet(cache, 10000, 0xFFFF);
+            // when
+            assertSetAndGet(cache, 10, 123);
+            assertSetAndGet(cache, 100, 1234);
+            assertSetAndGet(cache, 1000, 12345);
+            assertSetAndGet(cache, 10000, 0xFFFF);
 
-        // then
-        assertThrows(ArithmeticException.class, () -> cache.set(100000, 123456));
+            // then
+            assertThrows(ArithmeticException.class, () -> cache.set(100000, 123456));
+        }
     }
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1})
     void shouldSelectZeroMemoryVersion(int numGroups) {
         // when
-        GroupCache cache = GroupCache.select(NumberArrayFactories.HEAP, 100, numGroups, INSTANCE);
+        try (GroupCache cache = GroupCache.select(NumberArrayFactories.OFF_HEAP, 100, numGroups, INSTANCE)) {
 
-        // then
-        assertThat(cache).isSameAs(GroupCache.SINGLE);
-        assertSetAndGet(cache, 123, 0);
+            // then
+            assertThat(cache).isSameAs(GroupCache.SINGLE);
+            assertSetAndGet(cache, 123, 0);
+        }
     }
 
     private static void assertSetAndGet(GroupCache cache, long nodeId, int groupId) {

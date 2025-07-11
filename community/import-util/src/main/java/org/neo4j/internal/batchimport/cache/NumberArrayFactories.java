@@ -47,11 +47,6 @@ public final class NumberArrayFactories {
     private NumberArrayFactories() {}
 
     /**
-     * Puts arrays inside the heap.
-     */
-    public static final NumberArrayFactory HEAP = new NumberArrayFactoryImpl(BufferFactories.HEAP);
-
-    /**
      * Puts arrays off-heap, using unsafe calls.
      */
     public static final NumberArrayFactory OFF_HEAP = new NumberArrayFactoryImpl(BufferFactories.OFF_HEAP);
@@ -60,38 +55,30 @@ public final class NumberArrayFactories {
      * {@link Auto} factory.
      */
     public static final NumberArrayFactory AUTO_WITHOUT_SWAP =
-            new NumberArrayFactoryImpl(new Auto(NullLog.getInstance(), BufferFactories.OFF_HEAP, BufferFactories.HEAP));
+            new NumberArrayFactoryImpl(new Auto(NullLog.getInstance(), BufferFactories.OFF_HEAP));
 
     /**
      * {@link Auto} factory which has a page cache backed number array as final fallback, in order to prevent OOM errors.
      *
      * @param dir                 directory where cached files are placed.
-     * @param allowHeapAllocation whether or not to allow allocation on heap. Otherwise allocation is restricted to off-heap and the page cache fallback. This
-     *                            to be more in control of available space in the heap at all times.
      * @return a {@link NumberArrayFactory} which tries to allocation off-heap, then potentially on heap and lastly falls back to allocating inside the given
      * {@code pageCache}.
      */
-    public static NumberArrayFactory auto(
-            FileSystemAbstraction fs, Path dir, boolean allowHeapAllocation, InternalLog log) {
+    public static NumberArrayFactory auto(FileSystemAbstraction fs, Path dir, InternalLog log) {
         try {
             SwappingBufferFactory swappingBufferFactory = new SwappingBufferFactory(fs, dir);
-            return new NumberArrayFactoryImpl(
-                    new Auto(log, allocationAlternatives(allowHeapAllocation, swappingBufferFactory)));
+            return new NumberArrayFactoryImpl(new Auto(log, allocationAlternatives(swappingBufferFactory)));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     /**
-     * @param allowHeapAllocation whether or not to include heap allocation as an alternative.
      * @param additional          other means of allocation to try after the standard off/on heap alternatives.
      * @return an array of {@link NumberArrayFactory} with the desired alternatives.
      */
-    private static BufferFactory[] allocationAlternatives(boolean allowHeapAllocation, BufferFactory... additional) {
+    private static BufferFactory[] allocationAlternatives(BufferFactory... additional) {
         List<BufferFactory> result = new ArrayList<>(Collections.singletonList(BufferFactories.OFF_HEAP));
-        if (allowHeapAllocation) {
-            result.add(BufferFactories.HEAP);
-        }
         result.addAll(asList(additional));
         return result.toArray(new BufferFactory[0]);
     }
@@ -211,7 +198,7 @@ public final class NumberArrayFactories {
             if (currentFactory == failedCandidate) {
                 error = chain(e, error);
                 int nextIndex = ArrayUtils.indexOf(candidates, failedCandidate) + 1;
-                if (nextIndex > candidates.length) {
+                if (nextIndex >= candidates.length) {
                     throw chain(
                             new OutOfMemoryError(format(
                                     "Not enough memory available for allocating %s, tried %s",

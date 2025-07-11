@@ -221,7 +221,7 @@ public class ByteArrayTest {
 
     @Test
     void capChunkSize() {
-        try (NumberArrayFactory factory = NumberArrayFactories.HEAP) {
+        try (NumberArrayFactory factory = NumberArrayFactories.OFF_HEAP) {
             assertThatCode(() -> factory.newDynamicByteArray(Integer.MAX_VALUE, new byte[2], INSTANCE))
                     .doesNotThrowAnyException();
         }

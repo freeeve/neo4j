@@ -29,7 +29,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.internal.batchimport.cache.BufferFactories.fileBacked;
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.HEAP;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.OFF_HEAP;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.fromBufferFactory;
 import static org.neo4j.logging.LogAssertions.assertThat;
@@ -54,24 +53,6 @@ class NumberArrayFactoryTest {
 
     @Inject
     private TestDirectory testDirectory;
-
-    @Test
-    void trackHeapMemoryAllocations() {
-        var memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
-        HEAP.newByteArray(10, new byte[] {0}, memoryTracker).setByte(0, 0, (byte) 1);
-        assertEquals(32, memoryTracker.estimatedHeapMemory());
-        assertEquals(0, memoryTracker.usedNativeMemory());
-
-        memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
-        HEAP.newLongArray(10, 0, memoryTracker).set(0, 1);
-        assertEquals(96, memoryTracker.estimatedHeapMemory());
-        assertEquals(0, memoryTracker.usedNativeMemory());
-
-        memoryTracker = new LocalMemoryTracker(MemoryPools.NO_TRACKING, 300, 0, null);
-        HEAP.newIntArray(10, 0, memoryTracker).set(0, 1);
-        assertEquals(56, memoryTracker.estimatedHeapMemory());
-        assertEquals(0, memoryTracker.usedNativeMemory());
-    }
 
     @Test
     void trackNativeMemoryAllocations() {
@@ -104,7 +85,7 @@ class NumberArrayFactoryTest {
     @Test
     void shouldPickFirstAvailableCandidateLongArray() {
         // WHEN
-        try (LongArray array = NumberArrayFactories.HEAP.newLongArray(KILO, -1, INSTANCE)) {
+        try (LongArray array = OFF_HEAP.newLongArray(KILO, -1, INSTANCE)) {
             array.set(KILO - 10, 12345);
 
             // THEN
@@ -118,7 +99,7 @@ class NumberArrayFactoryTest {
         BufferFactory lowMemoryFactory = mock(BufferFactory.class);
         doThrow(OutOfMemoryError.class).when(lowMemoryFactory).allocate(anyInt(), any());
         try (NumberArrayFactory factory = new NumberArrayFactories.NumberArrayFactoryImpl(
-                new NumberArrayFactories.Auto(NullLog.getInstance(), lowMemoryFactory, BufferFactories.HEAP))) {
+                new NumberArrayFactories.Auto(NullLog.getInstance(), lowMemoryFactory, BufferFactories.OFF_HEAP))) {
 
             // WHEN
             try (LongArray array = factory.newLongArray(KILO, -1, INSTANCE)) {
@@ -139,8 +120,8 @@ class NumberArrayFactoryTest {
         when(lowMemoryFactory.allocate(anyInt(), any())).thenThrow(exception);
 
         // WHEN
-        try (NumberArrayFactory factory = NumberArrayFactories.fromBufferFactory(
-                        new NumberArrayFactories.Auto(NullLog.getInstance(), lowMemoryFactory, BufferFactories.HEAP));
+        try (NumberArrayFactory factory = NumberArrayFactories.fromBufferFactory(new NumberArrayFactories.Auto(
+                        NullLog.getInstance(), lowMemoryFactory, BufferFactories.OFF_HEAP));
                 IntArray array = factory.newIntArray(KILO, -1, INSTANCE)) {
             array.set(KILO - 10, 12345);
 

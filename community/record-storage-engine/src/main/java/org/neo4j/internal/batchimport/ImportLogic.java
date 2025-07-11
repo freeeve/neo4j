@@ -176,7 +176,7 @@ public class ImportLogic implements Closeable {
         log.info("Import starting");
         startTime = currentTimeMillis();
         this.input = input;
-        numberArrayFactory = auto(neoStore.fileSystem(), databaseDirectory, false, log);
+        numberArrayFactory = auto(neoStore.fileSystem(), databaseDirectory, log);
         // Some temporary caches and indexes in the import
         Input.Estimates inputEstimates =
                 input.validateAndEstimate(neoStore.getPropertyStore().newValueEncodedSizeCalculator());

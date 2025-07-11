@@ -37,6 +37,7 @@ import org.neo4j.memory.MemoryTracker;
 
 public class NumberArraysArgumentProvider implements ArgumentsProvider {
 
+    @FunctionalInterface
     public interface Factory {
         NumberArrayFactory create(FileSystemAbstraction fs, Path workingDirectory);
     }
@@ -44,7 +45,6 @@ public class NumberArraysArgumentProvider implements ArgumentsProvider {
     @Override
     public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
         return Stream.of(
-                        named("HEAP", (Factory) (fs, p) -> NumberArrayFactories.HEAP),
                         named("OFF_HEAP", (Factory) (fs, p) -> NumberArrayFactories.OFF_HEAP),
                         named("SWAP", (Factory) NumberArraysArgumentProvider::swap),
                         named("RANDOM", (Factory) NumberArraysArgumentProvider::random))
@@ -56,8 +56,8 @@ public class NumberArraysArgumentProvider implements ArgumentsProvider {
     }
 
     private static NumberArrayFactory random(FileSystemAbstraction fs, Path workingDirectory) {
-        RandomBufferFactory randomBufferFactory = new RandomBufferFactory(
-                BufferFactories.HEAP, BufferFactories.OFF_HEAP, BufferFactories.fileBacked(fs, workingDirectory));
+        RandomBufferFactory randomBufferFactory =
+                new RandomBufferFactory(BufferFactories.OFF_HEAP, BufferFactories.fileBacked(fs, workingDirectory));
         return NumberArrayFactories.fromBufferFactory(randomBufferFactory);
     }
 

@@ -98,7 +98,7 @@ public class DegreesRebuildFromStore implements DegreesRebuilder {
         var totalCount = neoStores.getRelationshipGroupStore().getIdGenerator().getHighId()
                 + neoStores.getRelationshipStore().getIdGenerator().getHighId();
         try (NumberArrayFactory numberArrayFactory = NumberArrayFactories.auto(
-                        neoStores.getFileSystem(), databaseLayout.databaseDirectory(), true, NullLog.getInstance());
+                        neoStores.getFileSystem(), databaseLayout.databaseDirectory(), NullLog.getInstance());
                 GroupDegreesCache cache = new GroupDegreesCache(
                         numberArrayFactory,
                         neoStores.getNodeStore().getIdGenerator().getHighId(),

@@ -885,7 +885,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         public void initialize(CountsUpdater updater, CursorContext cursorContext, MemoryTracker memoryTracker) {
             log.warn("Missing counts store, rebuilding it.");
             try (NumberArrayFactory numberArrayFactory =
-                    NumberArrayFactories.auto(fs, layout.databaseDirectory(), true, log)) {
+                    NumberArrayFactories.auto(fs, layout.databaseDirectory(), log)) {
                 new CountsComputer(neoStores, contextFactory, memoryTracker, numberArrayFactory)
                         .initialize(updater, cursorContext, memoryTracker);
             }

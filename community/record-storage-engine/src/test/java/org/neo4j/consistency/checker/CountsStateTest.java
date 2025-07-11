@@ -28,7 +28,6 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.consistency.checker.RecordStorageConsistencyChecker.DEFAULT_SLOT_SIZES;
 import static org.neo4j.consistency.checking.ByteArrayBitsManipulator.MAX_SLOT_BITS;
 import static org.neo4j.consistency.checking.cache.CacheSlots.NodeLink.SLOT_LABELS;
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.HEAP;
 import static org.neo4j.kernel.impl.store.record.Record.NULL_REFERENCE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.token.api.TokenConstants.ANY_LABEL;
@@ -42,6 +41,8 @@ import org.neo4j.consistency.checking.cache.CacheAccess;
 import org.neo4j.consistency.checking.cache.DefaultCacheAccess;
 import org.neo4j.consistency.report.ConsistencyReport;
 import org.neo4j.consistency.report.ConsistencyReporter;
+import org.neo4j.internal.batchimport.cache.ByteArray;
+import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.internal.recordstorage.RelationshipCounter;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
@@ -59,10 +60,12 @@ class CountsStateTest {
     private ConsistencyReporter noConsistencyReporter;
     private ConsistencyReporter inconsistencyReporter;
     private CacheAccess cacheAccess;
+    private ByteArray byteArray;
 
     @BeforeEach
     void setUp() {
-        cacheAccess = new DefaultCacheAccess(HEAP.newByteArray(HIGH_NODE_ID, new byte[MAX_SLOT_BITS], INSTANCE));
+        byteArray = NumberArrayFactories.OFF_HEAP.newByteArray(HIGH_NODE_ID, new byte[MAX_SLOT_BITS], INSTANCE);
+        cacheAccess = new DefaultCacheAccess(byteArray);
         cacheAccess.setCacheSlotSizes(DEFAULT_SLOT_SIZES);
         countsState = new CountsState(HIGH_TOKEN_ID, HIGH_TOKEN_ID, HIGH_NODE_ID, cacheAccess, INSTANCE);
         noConsistencyReporter = mock(ConsistencyReporter.class);
@@ -76,6 +79,7 @@ class CountsStateTest {
     void tearDown() {
         verifyNoInteractions(noConsistencyReporter);
         countsState.close();
+        byteArray.close();
     }
 
     @Test

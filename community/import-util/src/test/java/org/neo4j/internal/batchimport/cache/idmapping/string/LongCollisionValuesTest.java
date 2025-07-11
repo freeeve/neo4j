@@ -21,7 +21,6 @@ package org.neo4j.internal.batchimport.cache.idmapping.string;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.AUTO_WITHOUT_SWAP;
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.HEAP;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.OFF_HEAP;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
@@ -41,7 +40,7 @@ class LongCollisionValuesTest {
     private RandomSupport random;
 
     static Collection<NumberArrayFactory> data() {
-        return Arrays.asList(HEAP, OFF_HEAP, AUTO_WITHOUT_SWAP);
+        return Arrays.asList(OFF_HEAP, OFF_HEAP, AUTO_WITHOUT_SWAP);
     }
 
     @ParameterizedTest

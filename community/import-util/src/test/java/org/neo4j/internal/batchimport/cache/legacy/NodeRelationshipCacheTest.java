@@ -175,7 +175,7 @@ public class NodeRelationshipCacheTest {
     @Test
     public void shouldGetAndPutRelationshipAroundChunkEdge() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 10, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 10, INSTANCE);
 
         // WHEN
         long nodeId = 1_000_000 - 1;
@@ -194,7 +194,7 @@ public class NodeRelationshipCacheTest {
         int typeId = 10;
         int nodes = 10_000;
         MutableLongObjectMap<long[]> key = new LongObjectHashMap<>(nodes);
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 1000, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 1, 1000, INSTANCE);
 
         // mark random nodes as dense (dense node threshold is 1 so enough with one increment
         cache.setNodeCount(nodes);
@@ -224,7 +224,7 @@ public class NodeRelationshipCacheTest {
     @Test
     public void shouldPut6ByteRelationshipIds() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 1, 100, INSTANCE);
         long sparseNode = 0;
         long denseNode = 1;
         long relationshipId = (1L << 48) - 2;
@@ -245,7 +245,7 @@ public class NodeRelationshipCacheTest {
     public void shouldFailFastIfTooBigRelationshipId() {
         // GIVEN
         int typeId = 10;
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 1, 100, INSTANCE);
         cache.setNodeCount(1);
 
         // WHEN
@@ -262,7 +262,7 @@ public class NodeRelationshipCacheTest {
         int typeId = 10;
         int chunkSize = 10;
         List<Long> changedNodes = new ArrayList<>();
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 2, chunkSize, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 2, chunkSize, INSTANCE);
         cache.setNodeCount(nodes);
         for (long nodeId = 0; nodeId < nodes; nodeId++) {
             if (nodeId >= chunkSize && nodeId < 2 * chunkSize) {
@@ -320,7 +320,7 @@ public class NodeRelationshipCacheTest {
         int denseNodeThreshold = 5;
 
         List<Long> expectedDenseNodes = new ArrayList<>();
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, denseNodeThreshold, chunkSize, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, denseNodeThreshold, chunkSize, INSTANCE);
         cache.setNodeCount(nodes);
 
         // we need to make every second node in every second chunk dense
@@ -351,7 +351,7 @@ public class NodeRelationshipCacheTest {
     @Test
     public void shouldFailFastOnTooHighCountOnNode() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 10, 100, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 10, 100, INSTANCE);
         long nodeId = 5;
         long count = NodeRelationshipCache.MAX_COUNT - 1;
         int typeId = 10;
@@ -366,7 +366,7 @@ public class NodeRelationshipCacheTest {
     @Test
     public void shouldKeepNextGroupIdForNextRound() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 1, 100, INSTANCE);
         long nodeId = 0;
         int typeId = 10;
         cache.setNodeCount(nodeId + 1);
@@ -426,7 +426,7 @@ public class NodeRelationshipCacheTest {
         // kept. So this test will first set a total count, then set count for a specific chain
 
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 1, 100, INSTANCE);
         long nodeId = 1;
         int typeId = 10;
         cache.setNodeCount(nodeId + 1);
@@ -450,7 +450,7 @@ public class NodeRelationshipCacheTest {
     @Test
     public void shouldCacheMultipleDenseNodeRelationshipHeads() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 1, INSTANCE);
         cache.setNodeCount(10);
         long nodeId = 3;
         cache.setCount(nodeId, 10, /*these do not matter ==>*/ 0, OUTGOING);
@@ -482,7 +482,7 @@ public class NodeRelationshipCacheTest {
     @Test
     public void shouldHaveSparseNodesWithBigCounts() {
         // GIVEN
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, 100, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 1, 100, INSTANCE);
         long nodeId = 1;
         int typeId = 10;
         cache.setNodeCount(nodeId + 1);
@@ -499,7 +499,7 @@ public class NodeRelationshipCacheTest {
     @Test
     public void shouldFailFastOnTooHighNodeCount() {
         // given
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, 1, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 1, INSTANCE);
 
         assertThatThrownBy(() -> cache.setNodeCount(2L << (5 * Byte.SIZE)))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -510,7 +510,7 @@ public class NodeRelationshipCacheTest {
         // given
         int denseNodeThreshold = 1;
         long nodeId = 99;
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, denseNodeThreshold, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, denseNodeThreshold, INSTANCE);
         cache.setNodeCount(nodeId + 1);
         for (int i = 0; i < denseNodeThreshold * 2; i++) {
             cache.incrementCount(nodeId);
@@ -546,7 +546,7 @@ public class NodeRelationshipCacheTest {
         // given
         int denseNodeThreshold = 10;
         long nodeId = 5;
-        cache = new NodeRelationshipCache(NumberArrayFactories.HEAP, denseNodeThreshold, INSTANCE);
+        cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, denseNodeThreshold, INSTANCE);
         cache.setNodeCount(10);
 
         // when

@@ -23,14 +23,14 @@ import java.nio.file.Path;
 import org.neo4j.io.fs.FileSystemAbstraction;
 
 public final class ArrayPermutationTesting {
-    public static final NumberArrayFactoryCreator ON_HEAP = (fs, workDirectory) -> NumberArrayFactories.HEAP;
+    public static final NumberArrayFactoryCreator ON_HEAP = (fs, workDirectory) -> NumberArrayFactories.OFF_HEAP;
     public static final NumberArrayFactoryCreator OFF_HEAP = (fs, workDirectory) -> NumberArrayFactories.OFF_HEAP;
     public static final NumberArrayFactoryCreator AUTO_NO_SWAP =
             (fs, workDirectory) -> NumberArrayFactories.AUTO_WITHOUT_SWAP;
 
     public static final NumberArrayFactoryCreator FILE_BACKED = (fs, workDirectory) ->
             NumberArrayFactories.fromBufferFactory(new NumberArraysArgumentProvider.RandomBufferFactory(
-                    BufferFactories.HEAP, BufferFactories.OFF_HEAP, BufferFactories.fileBacked(fs, workDirectory)));
+                    BufferFactories.OFF_HEAP, BufferFactories.fileBacked(fs, workDirectory)));
 
     public interface ByteArrayCreator {
         ByteArray createByteArray(NumberArrayFactory factory);

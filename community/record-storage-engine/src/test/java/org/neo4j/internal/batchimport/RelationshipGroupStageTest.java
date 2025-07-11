@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.batchimport.api.Configuration.DEFAULT;
 import static org.neo4j.batchimport.api.Configuration.withBatchSize;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
-import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.HEAP;
 import static org.neo4j.internal.batchimport.staging.ExecutionMonitor.INVISIBLE;
 import static org.neo4j.internal.batchimport.staging.ExecutionSupervisors.superviseDynamicExecution;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
@@ -37,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.legacy.NodeRelationshipCache;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -102,53 +102,54 @@ class RelationshipGroupStageTest {
     @Test
     void shouldWriteGroupsFromCache() {
         // given
-        var cache = new NodeRelationshipCache(HEAP, 10, INSTANCE);
-        var highNodeId = 100_000;
-        cache.setNodeCount(highNodeId);
-        var numRelationships = highNodeId * 10;
-        var numRelationshipTypes = 3;
-        for (var r = 0; r < 2; r++) {
-            // Do two rounds with the exact same data (hence the random reset) where:
-            // - first round increment the counts
-            // - second round add the data to the cache
-            random.reset();
-            for (var i = 0; i < numRelationships; i++) {
-                var nodeId = random.nextLong(highNodeId);
-                var typeId = random.nextInt(numRelationshipTypes);
-                var direction = random.nextBoolean() ? Direction.OUTGOING : Direction.INCOMING;
-                if (r == 0) {
-                    cache.incrementCount(nodeId);
-                } else {
-                    cache.getAndPutRelationship(nodeId, typeId, direction, i, false);
+        try (var cache = new NodeRelationshipCache(NumberArrayFactories.OFF_HEAP, 10, INSTANCE)) {
+            var highNodeId = 100_000;
+            cache.setNodeCount(highNodeId);
+            var numRelationships = highNodeId * 10;
+            var numRelationshipTypes = 3;
+            for (var r = 0; r < 2; r++) {
+                // Do two rounds with the exact same data (hence the random reset) where:
+                // - first round increment the counts
+                // - second round add the data to the cache
+                random.reset();
+                for (var i = 0; i < numRelationships; i++) {
+                    var nodeId = random.nextLong(highNodeId);
+                    var typeId = random.nextInt(numRelationshipTypes);
+                    var direction = random.nextBoolean() ? Direction.OUTGOING : Direction.INCOMING;
+                    if (r == 0) {
+                        cache.incrementCount(nodeId);
+                    } else {
+                        cache.getAndPutRelationship(nodeId, typeId, direction, i, false);
+                    }
                 }
             }
-        }
 
-        // when
-        var stage = new RelationshipGroupStage(
-                "groups",
-                withBatchSize(DEFAULT, 100),
-                store,
-                cache,
-                NULL_CONTEXT_FACTORY,
-                context -> new CachedStoreCursors(stores, context));
-        var config = new Configuration.Overridden(DEFAULT) {
-            @Override
-            public int maxNumberOfWorkerThreads() {
-                return 4;
-            }
-        };
-        superviseDynamicExecution(INVISIBLE, config, stage);
+            // when
+            var stage = new RelationshipGroupStage(
+                    "groups",
+                    withBatchSize(DEFAULT, 100),
+                    store,
+                    cache,
+                    NULL_CONTEXT_FACTORY,
+                    context -> new CachedStoreCursors(stores, context));
+            var config = new Configuration.Overridden(DEFAULT) {
+                @Override
+                public int maxNumberOfWorkerThreads() {
+                    return 4;
+                }
+            };
+            superviseDynamicExecution(INVISIBLE, config, stage);
 
-        // then
-        var groupHighId = store.getIdGenerator().getHighId();
-        var group = store.newRecord();
-        try (var cursor = store.openPageCursorForReading(0, NULL_CONTEXT)) {
-            for (var id = store.getNumberOfReservedLowIds(); id < groupHighId; id++) {
-                store.getRecordByCursor(id, group, RecordLoad.NORMAL, cursor, EmptyMemoryTracker.INSTANCE);
-                assertThat(cache.isDense(group.getOwningNode())).isTrue();
-                try (var verifier = new GroupDataVerifier(group)) {
-                    cache.getFirstRel(group.getOwningNode(), verifier);
+            // then
+            var groupHighId = store.getIdGenerator().getHighId();
+            var group = store.newRecord();
+            try (var cursor = store.openPageCursorForReading(0, NULL_CONTEXT)) {
+                for (var id = store.getNumberOfReservedLowIds(); id < groupHighId; id++) {
+                    store.getRecordByCursor(id, group, RecordLoad.NORMAL, cursor, EmptyMemoryTracker.INSTANCE);
+                    assertThat(cache.isDense(group.getOwningNode())).isTrue();
+                    try (var verifier = new GroupDataVerifier(group)) {
+                        cache.getFirstRel(group.getOwningNode(), verifier);
+                    }
                 }
             }
         }

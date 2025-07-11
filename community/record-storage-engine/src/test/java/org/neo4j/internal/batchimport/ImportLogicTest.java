@@ -124,48 +124,49 @@ class ImportLogicTest {
         int denseNodeThreshold = 5;
         int numberOfNodes = 100;
         int numberOfTypes = 10;
-        NodeRelationshipCache cache =
-                new NodeRelationshipCache(NumberArrayFactories.HEAP, denseNodeThreshold, EmptyMemoryTracker.INSTANCE);
-        cache.setNodeCount(numberOfNodes + 1);
-        Direction[] directions = Direction.values();
-        for (int i = 0; i < numberOfNodes; i++) {
-            int count = random.nextInt(1, denseNodeThreshold * 2);
-            cache.setCount(i, count, random.nextInt(numberOfTypes), random.among(directions));
-        }
-        cache.countingCompleted();
-        List<DataStatistics.RelationshipTypeCount> types = new ArrayList<>();
-        int numberOfRelationships = 0;
-        for (int i = 0; i < numberOfTypes; i++) {
-            int count = random.nextInt(1, 100);
-            types.add(new DataStatistics.RelationshipTypeCount(i, count));
-            numberOfRelationships += count;
-        }
-        types.sort((t1, t2) -> Long.compare(t2.getCount(), t1.getCount()));
-        DataStatistics typeDistribution =
-                new DataStatistics(0, 0, types.toArray(new DataStatistics.RelationshipTypeCount[0]));
-
-        // WHEN enough memory for all types
-        {
-            long memory = cache.calculateMaxMemoryUsage(numberOfRelationships) * numberOfTypes;
-            int upToType = ImportLogic.nextSetOfTypesThatFitInMemory(
-                    typeDistribution, 0, memory, cache.getNumberOfDenseNodes());
-
-            // THEN
-            assertEquals(types.size(), upToType);
-        }
-
-        // and WHEN less than enough memory for all types
-        {
-            long memory = cache.calculateMaxMemoryUsage(numberOfRelationships) * numberOfTypes / 3;
-            int startingFromType = 0;
-            int rounds = 0;
-            while (startingFromType < types.size()) {
-                rounds++;
-                startingFromType = ImportLogic.nextSetOfTypesThatFitInMemory(
-                        typeDistribution, startingFromType, memory, cache.getNumberOfDenseNodes());
+        try (NodeRelationshipCache cache = new NodeRelationshipCache(
+                NumberArrayFactories.OFF_HEAP, denseNodeThreshold, EmptyMemoryTracker.INSTANCE)) {
+            cache.setNodeCount(numberOfNodes + 1);
+            Direction[] directions = Direction.values();
+            for (int i = 0; i < numberOfNodes; i++) {
+                int count = random.nextInt(1, denseNodeThreshold * 2);
+                cache.setCount(i, count, random.nextInt(numberOfTypes), random.among(directions));
             }
-            assertEquals(types.size(), startingFromType);
-            assertThat(rounds).isGreaterThan(1);
+            cache.countingCompleted();
+            List<DataStatistics.RelationshipTypeCount> types = new ArrayList<>();
+            int numberOfRelationships = 0;
+            for (int i = 0; i < numberOfTypes; i++) {
+                int count = random.nextInt(1, 100);
+                types.add(new DataStatistics.RelationshipTypeCount(i, count));
+                numberOfRelationships += count;
+            }
+            types.sort((t1, t2) -> Long.compare(t2.getCount(), t1.getCount()));
+            DataStatistics typeDistribution =
+                    new DataStatistics(0, 0, types.toArray(new DataStatistics.RelationshipTypeCount[0]));
+
+            // WHEN enough memory for all types
+            {
+                long memory = cache.calculateMaxMemoryUsage(numberOfRelationships) * numberOfTypes;
+                int upToType = ImportLogic.nextSetOfTypesThatFitInMemory(
+                        typeDistribution, 0, memory, cache.getNumberOfDenseNodes());
+
+                // THEN
+                assertEquals(types.size(), upToType);
+            }
+
+            // and WHEN less than enough memory for all types
+            {
+                long memory = cache.calculateMaxMemoryUsage(numberOfRelationships) * numberOfTypes / 3;
+                int startingFromType = 0;
+                int rounds = 0;
+                while (startingFromType < types.size()) {
+                    rounds++;
+                    startingFromType = ImportLogic.nextSetOfTypesThatFitInMemory(
+                            typeDistribution, startingFromType, memory, cache.getNumberOfDenseNodes());
+                }
+                assertEquals(types.size(), startingFromType);
+                assertThat(rounds).isGreaterThan(1);
+            }
         }
     }
 

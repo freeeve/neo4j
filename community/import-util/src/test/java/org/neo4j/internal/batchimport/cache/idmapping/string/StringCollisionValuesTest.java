@@ -61,7 +61,7 @@ class StringCollisionValuesTest {
 
     private static Stream<BiFunction<FileSystemAbstraction, Path, NumberArrayFactory>> data() {
         return Stream.of(
-                (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.HEAP,
+                (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.OFF_HEAP,
                 (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.OFF_HEAP,
                 (FileSystemAbstraction fs, Path homePath) -> NumberArrayFactories.AUTO_WITHOUT_SWAP,
                 (FileSystemAbstraction fs, Path homePath) ->

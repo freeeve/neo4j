@@ -39,7 +39,7 @@ class IntTrackerTest {
         // given
         int length = 10_000;
         try (IntTracker tracker =
-                new IntTracker(NumberArrayFactories.HEAP.newIntArray(length, IntTracker.DEFAULT_VALUE, INSTANCE))) {
+                new IntTracker(NumberArrayFactories.OFF_HEAP.newIntArray(length, IntTracker.DEFAULT_VALUE, INSTANCE))) {
             // when
             long[] values = new long[length];
             boolean[] marks = new boolean[length];
