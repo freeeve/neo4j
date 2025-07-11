@@ -23,7 +23,9 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -134,6 +136,17 @@ public interface TopologyGraphDbmsModel {
                 throw new IllegalStateException("Can't identify database access");
             }
             return readOnly ? DatabaseAccess.READ_ONLY : DatabaseAccess.READ_WRITE;
+        }
+
+        public static DatabaseAccess create(Object value) {
+            Objects.requireNonNull(value);
+
+            var access = value.toString().toUpperCase(Locale.ROOT);
+            try {
+                return DatabaseAccess.valueOf(access);
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Unsupported database access: " + access, ex);
+            }
         }
     }
 
