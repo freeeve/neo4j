@@ -367,6 +367,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.cypher.enable_dynamic_label_scan", BOOL, false).build();
 
     @Internal
+    @Description("Set this to enable using non-fused pipelined MERGE.")
+    public static final Setting<Boolean> cypher_enable_non_fused_merge =
+            newBuilder("internal.cypher.enable_non_fused_merge", BOOL, false).build();
+
+    @Internal
     @Description("Set this to enable the use of the new Vector Type.")
     public static final Setting<Boolean> cypher_enable_vector_type =
             newBuilder("internal.cypher.enable_vector_type", BOOL, false).build();

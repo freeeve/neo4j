@@ -1277,12 +1277,8 @@ abstract class OrderedUnionTestBase[CONTEXT <: RuntimeContext](
       .argument()
       .build()
 
-    if (edition.configs.contains(cypher_operator_engine -> INTERPRETED)) {
-      intercept[CantCompileQueryException](execute(logicalQuery, runtime))
-    } else {
-      val result = execute(logicalQuery, runtime)
-      result should beColumns("n0").withSingleRow(null)
-    }
+    val result = execute(logicalQuery, runtime)
+    result should beColumns("n0").withSingleRow(null)
   }
 
   test("github issue #13169 variant") {
@@ -1311,11 +1307,7 @@ abstract class OrderedUnionTestBase[CONTEXT <: RuntimeContext](
       .argument()
       .build()
 
-    if (edition.configs.contains(cypher_operator_engine -> INTERPRETED)) {
-      intercept[CantCompileQueryException](execute(logicalQuery, runtime))
-    } else {
-      val result = execute(logicalQuery, runtime)
-      result should beColumns("n0").withRows(inOrder(Seq(Array(null), Array(null))))
-    }
+    val result = execute(logicalQuery, runtime)
+    result should beColumns("n0").withRows(inOrder(Seq(Array(null), Array(null))))
   }
 }

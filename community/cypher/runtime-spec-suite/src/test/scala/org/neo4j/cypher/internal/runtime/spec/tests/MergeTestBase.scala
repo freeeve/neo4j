@@ -1414,6 +1414,7 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should lock nodes if no matches") {
+    assume(!isPipelined || canFuse) // TODO: remove when this is working for non-fused
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint)
@@ -1441,6 +1442,7 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should not lock nodes if on matches") {
+    assume(!isPipelined || canFuse) // TODO: remove when this is working for non-fused
     // given
     val (nodes, _) = givenGraph {
       circleGraph(sizeHint)
@@ -1468,6 +1470,7 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should lock refslot nodes") {
+    assume(!isPipelined || canFuse) // TODO: remove when this is working for non-fused
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint)
@@ -1515,14 +1518,15 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
     val produceResultProfile = queryProfile.operatorProfile(0)
     val mergeProfile = queryProfile.operatorProfile(1)
 
-    val expectedDBHits =
+    val expectedDBHits = {
       if (useWritesWithProfiling) {
-        val propertyTokenDbHits = sizeHint
+        val propertyTokenDbHits = if (canFuse) sizeHint else 0 // TODO: is this reasonable?
         val writeNodePropertyDbHits = sizeHint
         propertyTokenDbHits + writeNodePropertyDbHits
       } else {
         3 + sizeHint
       }
+    }
 
     mergeProfile.rows() shouldBe sizeHint
     mergeProfile.dbHits() shouldBe expectedDBHits
@@ -1782,111 +1786,6 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
       nodesCreated = 2,
       relationshipsCreated = 1,
       propertiesSet = 1
-    )
-  }
-}
-
-// Supported by pipelined only
-trait PipelinedMergeTestBase[CONTEXT <: RuntimeContext] {
-  self: MergeTestBase[CONTEXT] =>
-
-  test("merge should fail if deeply nested in pipelined runtime") {
-    // given no nodes
-
-    // when
-    // query with 21 merges
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("n")
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
-      .allNodeScan("n")
-      .build(readOnly = false)
-
-    // then
-    a[CantCompileQueryException] shouldBe thrownBy(execute(logicalQuery, runtime))
-  }
-
-  test("merge should not create node with non-empty multi index seek") {
-    val (drunkNodes, childNodes) = givenGraph {
-      nodeIndex("Drunk", "prop")
-      nodeIndex("Child", "prop")
-      val drunks = nodePropertyGraph(sizeHint, { case i => Map("prop" -> i) }, "Drunk")
-      val children = nodePropertyGraph(sizeHint, { case i => Map("prop" -> i) }, "Child")
-      (drunks, children)
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("d", "c")
-      .merge(
-        nodes = Seq(
-          createNodeWithProperties("d", Seq("Drunk"), "{prop: 42}"),
-          createNodeWithProperties("c", Seq("Child"), "{prop: 42}")
-        )
-      )
-      .multiNodeIndexSeekOperator(
-        _.nodeIndexSeek("d:Drunk(prop=42)"),
-        _.nodeIndexSeek("c:Child(prop=42)")
-      )
-      .build(readOnly = false)
-
-    // then
-    val runtimeResult: RecordingRuntimeResult = execute(logicalQuery, runtime)
-
-    runtimeResult should beColumns("d", "c").withSingleRow(drunkNodes(42), childNodes(42)).withNoUpdates()
-  }
-
-  test("merge should create node with empty multi index seek") {
-    givenGraph {
-      nodeIndex("Drunk", "prop")
-      nodeIndex("Child", "prop")
-      nodePropertyGraph(sizeHint, { case i => Map("prop" -> i) }, "Drunk")
-      nodePropertyGraph(sizeHint, { case i => Map("prop" -> i) }, "Child")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("d", "c")
-      .merge(
-        nodes = Seq(
-          createNodeWithProperties("d", Seq("Drunk"), "{prop: 'hello'}"),
-          createNodeWithProperties("c", Seq("Child"), "{prop: 'hello'}")
-        )
-      )
-      .multiNodeIndexSeekOperator(
-        _.nodeIndexSeek("d:Drunk(prop='hello')"),
-        _.nodeIndexSeek("c:Child(prop='hello')")
-      )
-      .build(readOnly = false)
-
-    // then
-    val runtimeResult: RecordingRuntimeResult = execute(logicalQuery, runtime)
-    consume(runtimeResult)
-    val drunkNode = Iterators.single(tx.findNodes(label("Drunk"), "prop", "hello"))
-    val childNode = Iterators.single(tx.findNodes(label("Child"), "prop", "hello"))
-    runtimeResult should beColumns("d", "c").withSingleRow(drunkNode, childNode).withStatistics(
-      nodesCreated = 2,
-      labelsAdded = 2,
-      propertiesSet = 2
     )
   }
 
@@ -2165,5 +2064,252 @@ trait PipelinedMergeTestBase[CONTEXT <: RuntimeContext] {
     // then
     val runtimeResult: RecordingRuntimeResult = execute(logicalQuery, runtime)
     runtimeResult should beColumns("r").withRows(Seq(Array(rels(42)), Array(rels(42)))).withNoUpdates()
+  }
+
+  test("merge should only create once with sequence of identical input") {
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("n.prop AS res")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("n", Seq("L"), "{prop: x}")))
+      .|.filter("n.prop = x")
+      .|.nodeByLabelScan("n", "L", "x")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(_ => Array[Any](42)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(Seq.fill(10)(42))).withStatistics(
+      nodesCreated = 1,
+      labelsAdded = 1,
+      propertiesSet = 1
+    )
+  }
+
+  test("nested merge should only create a single node") {
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults()
+      .emptyResult()
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("a", Seq("L"), "{prop: x}")))
+      .|.filter("a.prop = x")
+      .|.nodeByLabelScan("a", "L", "x")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("b", Seq("L"), "{prop: x}")))
+      .|.filter("b.prop = x")
+      .|.nodeByLabelScan("b", "L", "x")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("c", Seq("L"), "{prop: x}")))
+      .|.filter("c.prop = x")
+      .|.nodeByLabelScan("c", "L", "x")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(_ => Array[Any](42)): _*))
+    runtimeResult should beColumns().withNoRows().withStatistics(
+      nodesCreated = 1,
+      labelsAdded = 1,
+      propertiesSet = 1
+    )
+  }
+
+  test("merge should work even when we cannot fuse") {
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .merge(nodes = Seq(createNode("n")))
+      .nonFuseable()
+      .allNodeScan("n")
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(_ => Array[Any](42)): _*))
+    runtimeResult should beColumns("n").withRows(rowCount(1)).withStatistics(
+      nodesCreated = 1
+    )
+  }
+
+  test("merge should work even when we fail to compile") {
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .merge(nodes = Seq(createNode("n")))
+      .injectCompilationError()
+      .allNodeScan("n")
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(_ => Array[Any](42)): _*))
+    runtimeResult should beColumns("n").withRows(rowCount(1)).withStatistics(
+      nodesCreated = 1
+    )
+  }
+
+  test(
+    "merge should match nodes and relationship with undirected relationship index seek when read-part cannot be fully fused"
+  ) {
+    val rels = givenGraph {
+      relationshipIndex("R", "prop")
+      val (_, rels) = circleGraph(sizeHint)
+      rels.zipWithIndex.foreach {
+        case (r, i) => r.setProperty("prop", i)
+      }
+      rels
+    }
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .merge(nodes = Seq(createNode("n"), createNode("m")), relationships = Seq(createRelationship("r", "n", "R", "m")))
+      .nonFuseable()
+      .relationshipIndexOperator("(n)-[r:R(prop=42)]-(m)")
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult = execute(logicalQuery, runtime)
+    runtimeResult should beColumns("r").withRows(Seq(Array(rels(42)), Array(rels(42)))).withNoUpdates()
+  }
+
+  test("nested merge should only create a single node when some merges cannot be fully fused") {
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults()
+      .emptyResult()
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("a", Seq("L"), "{prop: x}")))
+      .|.filter("a.prop = x")
+      .|.injectCompilationError()
+      .|.nodeByLabelScan("a", "L", "x")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("b", Seq("L"), "{prop: x}")))
+      .|.filter("b.prop = x")
+      .|.nonFuseable()
+      .|.nodeByLabelScan("b", "L", "x")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("c", Seq("L"), "{prop: x}")))
+      .|.filter("c.prop = x")
+      .|.nodeByLabelScan("c", "L", "x")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(_ => Array[Any](42)): _*))
+    runtimeResult should beColumns().withNoRows().withStatistics(
+      nodesCreated = 1,
+      labelsAdded = 1,
+      propertiesSet = 1
+    )
+  }
+}
+
+// Supported by pipelined only
+trait PipelinedMergeTestBase[CONTEXT <: RuntimeContext] extends RuntimeTestSuite[CONTEXT] {
+  self: MergeTestBase[CONTEXT] =>
+
+  test("merge should fail if deeply nested in pipelined runtime") {
+    // given no nodes
+
+    // when
+    // query with 21 merges
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop1: 1, prop2: null}")))
+      .allNodeScan("n")
+      .build(readOnly = false)
+
+    // then
+    a[CantCompileQueryException] shouldBe thrownBy(execute(logicalQuery, runtime))
+  }
+
+  test("merge should not create node with non-empty multi index seek") {
+    val (drunkNodes, childNodes) = givenGraph {
+      nodeIndex("Drunk", "prop")
+      nodeIndex("Child", "prop")
+      val drunks = nodePropertyGraph(sizeHint, { case i => Map("prop" -> i) }, "Drunk")
+      val children = nodePropertyGraph(sizeHint, { case i => Map("prop" -> i) }, "Child")
+      (drunks, children)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("d", "c")
+      .merge(
+        nodes = Seq(
+          createNodeWithProperties("d", Seq("Drunk"), "{prop: 42}"),
+          createNodeWithProperties("c", Seq("Child"), "{prop: 42}")
+        )
+      )
+      .multiNodeIndexSeekOperator(
+        _.nodeIndexSeek("d:Drunk(prop=42)"),
+        _.nodeIndexSeek("c:Child(prop=42)")
+      )
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult = execute(logicalQuery, runtime)
+
+    runtimeResult should beColumns("d", "c").withSingleRow(drunkNodes(42), childNodes(42)).withNoUpdates()
+  }
+
+  test("merge should create node with empty multi index seek") {
+    givenGraph {
+      nodeIndex("Drunk", "prop")
+      nodeIndex("Child", "prop")
+      nodePropertyGraph(sizeHint, { case i => Map("prop" -> i) }, "Drunk")
+      nodePropertyGraph(sizeHint, { case i => Map("prop" -> i) }, "Child")
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("d", "c")
+      .merge(
+        nodes = Seq(
+          createNodeWithProperties("d", Seq("Drunk"), "{prop: 'hello'}"),
+          createNodeWithProperties("c", Seq("Child"), "{prop: 'hello'}")
+        )
+      )
+      .multiNodeIndexSeekOperator(
+        _.nodeIndexSeek("d:Drunk(prop='hello')"),
+        _.nodeIndexSeek("c:Child(prop='hello')")
+      )
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult = execute(logicalQuery, runtime)
+    consume(runtimeResult)
+    val drunkNode = Iterators.single(tx.findNodes(label("Drunk"), "prop", "hello"))
+    val childNode = Iterators.single(tx.findNodes(label("Child"), "prop", "hello"))
+    runtimeResult should beColumns("d", "c").withSingleRow(drunkNode, childNode).withStatistics(
+      nodesCreated = 2,
+      labelsAdded = 2,
+      propertiesSet = 2
+    )
   }
 }

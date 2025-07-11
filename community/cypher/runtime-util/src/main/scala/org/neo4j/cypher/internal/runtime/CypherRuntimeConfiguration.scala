@@ -49,7 +49,8 @@ object CypherRuntimeConfiguration {
       spdBatchSize = config.shardedPropertyBatchSize,
       warnOnAggregationSkipNull = config.warnOnAggregationSkipNull,
       errorIfShortestPathHasCommonNodesAtRuntime = config.errorIfShortestPathHasCommonNodesAtRuntime,
-      pipelinedSubqueryTransactionRetryEnabled = config.pipelinedSubqueryTransactionRetryEnabled
+      pipelinedSubqueryTransactionRetryEnabled = config.pipelinedSubqueryTransactionRetryEnabled,
+      enableNonFusedMerge = config.enableNonFusedMerge
     )(config)
   }
 
@@ -76,7 +77,8 @@ case class CypherRuntimeConfiguration(
   spdBatchSize: Int,
   warnOnAggregationSkipNull: Boolean,
   errorIfShortestPathHasCommonNodesAtRuntime: Boolean,
-  pipelinedSubqueryTransactionRetryEnabled: Boolean
+  pipelinedSubqueryTransactionRetryEnabled: Boolean,
+  enableNonFusedMerge: Boolean
 )(val cypherConfiguration: CypherConfiguration = null) {
 
   Preconditions.checkArgument(

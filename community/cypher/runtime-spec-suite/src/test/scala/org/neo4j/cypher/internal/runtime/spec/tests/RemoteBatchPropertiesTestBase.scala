@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
@@ -961,5 +962,46 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
         )
       )
     )
+  }
+}
+
+trait UpdatingRemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext] extends RuntimeTestSuite[CONTEXT] {
+  self: RemoteBatchPropertiesTestBase[CONTEXT] =>
+
+  test("should be able to merge after RemoteBatchProperties (READ)") {
+    givenGraph {
+      tx.createNode(Label.label("L")).setProperty("prop", 10)
+      tx.createNode(Label.label("L")).setProperty("prop", 20)
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("prop")
+      .projection("cache[x.prop] as prop")
+      .merge(nodes = Seq(createNodeWithProperties("x", Seq.empty, "{prop: 20}")))
+      .filter("cache[x.prop] = 20")
+      .remoteBatchProperties("cache[x.prop]")
+      .nodeByLabelScan("x", "L")
+      .build(readOnly = false)
+
+    val result = execute(query, runtime)
+    result should beColumns("prop").withSingleRow(20).withNoUpdates()
+  }
+
+  test("should be able to merge after RemoteBatchProperties (WRITE)") {
+    givenGraph {
+      tx.createNode(Label.label("L")).setProperty("prop", 10)
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("prop")
+      .projection("cache[x.prop] as prop")
+      .merge(nodes = Seq(createNodeWithProperties("x", Seq.empty, "{prop: 20}")))
+      .filter("cache[x.prop] = 20")
+      .remoteBatchProperties("cache[x.prop]")
+      .nodeByLabelScan("x", "L")
+      .build(readOnly = false)
+
+    val result = execute(query, runtime)
+    result should beColumns("prop").withSingleRow(20).withStatistics(nodesCreated = 1, propertiesSet = 1)
   }
 }

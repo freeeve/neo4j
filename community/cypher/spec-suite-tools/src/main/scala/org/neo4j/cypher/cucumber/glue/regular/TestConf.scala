@@ -73,6 +73,7 @@ object TestConf {
   ): TestConf = {
     val fullNeo4jConf = Seq(
       Some("server.memory.query_cache.per_db_cache_num_entries" -> "64"),
+      Some("internal.cypher.enable_non_fused_merge" -> "true"),
       Option.when(useEnterprise)("server.metrics.enabled" -> "false"),
       Option.when(useBolt)("server.bolt.enabled" -> "true"),
       serverLogsConfResource.map(resource => "server.logs.config" -> s"PLACEHOLDER:$resource")
