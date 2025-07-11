@@ -21,7 +21,7 @@ package org.neo4j.kernel.api.impl.schema.populator;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.neo4j.kernel.api.impl.LuceneTestUtil.documentRepresentingProperties;
+import static org.mockito.Mockito.when;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.add;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.change;
@@ -31,9 +31,11 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexProvider;
 import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
+import org.neo4j.values.storable.Values;
 
 @TestDirectoryExtension
 class TextIndexPopulatingTest {
@@ -43,29 +45,39 @@ class TextIndexPopulatingTest {
 
     @Test
     void additionsDeliveredToIndexWriter() throws Exception {
+        var documentsFactory = LuceneDocumentsFactory.CURRENT;
         LucenePartitionIndexWriter writer = mock(LucenePartitionIndexWriter.class);
+        when(writer.documentsFactory()).thenReturn(documentsFactory);
+
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(add(1, INDEX_DESCRIPTOR, "foo"));
-        verify(writer).updateDocument(ENTITY_ID_KEY, 1, documentRepresentingProperties(1, "foo"));
+        verify(writer).updateDocument(ENTITY_ID_KEY, 1, documentsFactory.reusableTextDocument(1, Values.values("foo")));
 
         updater.process(add(2, INDEX_DESCRIPTOR, "bar"));
-        verify(writer).updateDocument(ENTITY_ID_KEY, 2, documentRepresentingProperties(2, "bar"));
+        verify(writer).updateDocument(ENTITY_ID_KEY, 2, documentsFactory.reusableTextDocument(2, Values.values("bar")));
 
         updater.process(add(3, INDEX_DESCRIPTOR, "qux"));
-        verify(writer).updateDocument(ENTITY_ID_KEY, 3, documentRepresentingProperties(3, "qux"));
+        verify(writer).updateDocument(ENTITY_ID_KEY, 3, documentsFactory.reusableTextDocument(3, Values.values("qux")));
     }
 
     @Test
     void changesDeliveredToIndexWriter() throws Exception {
+        var documentsFactory = LuceneDocumentsFactory.CURRENT;
         LucenePartitionIndexWriter writer = mock(LucenePartitionIndexWriter.class);
+        when(writer.documentsFactory()).thenReturn(documentsFactory);
+
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(change(1, INDEX_DESCRIPTOR, "before1", "after1"));
-        verify(writer).updateOrDeleteDocument(ENTITY_ID_KEY, 1, documentRepresentingProperties(1, "after1"));
+        verify(writer)
+                .updateOrDeleteDocument(
+                        ENTITY_ID_KEY, 1, documentsFactory.reusableTextDocument(1, Values.values("after1")));
 
         updater.process(change(2, INDEX_DESCRIPTOR, "before2", "after2"));
-        verify(writer).updateOrDeleteDocument(ENTITY_ID_KEY, 2, documentRepresentingProperties(2, "after2"));
+        verify(writer)
+                .updateOrDeleteDocument(
+                        ENTITY_ID_KEY, 2, documentsFactory.reusableTextDocument(2, Values.values("after2")));
     }
 
     @Test

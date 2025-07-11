@@ -35,6 +35,7 @@ import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
@@ -43,6 +44,7 @@ import org.neo4j.kernel.api.impl.schema.TextIndexCapability;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexPopulator;
+import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.LuceneIndexValueValidator;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.logging.LogProvider;
@@ -93,8 +95,10 @@ public class TrigramIndexProvider extends AbstractTextIndexProvider {
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour) {
-        final var writerConfigBuilder = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT_POPULATION, config);
-        final var luceneIndex = TrigramIndexBuilder.create(descriptor, readOnlyChecker, config, logProvider)
+        IndexWriterConfigBuilder writerConfigBuilder =
+                new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT_POPULATION, config);
+        DatabaseIndex<ValueIndexReader> luceneIndex = TrigramIndexBuilder.create(
+                        descriptor, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)
                 .withIndexStorage(getIndexStorage(descriptor.getId()))
                 .withWriterConfig(writerConfigBuilder::build)
@@ -103,7 +107,7 @@ public class TrigramIndexProvider extends AbstractTextIndexProvider {
         if (luceneIndex.isReadOnly()) {
             throw new UnsupportedOperationException("Can't create populator for read only index");
         }
-        final var validator = valueValidator(descriptor, tokenNameLookup, elementIdMapper);
+        LuceneIndexValueValidator validator = valueValidator(descriptor, tokenNameLookup, elementIdMapper);
         return new TrigramIndexPopulator(luceneIndex, UPDATE_IGNORE_STRATEGY, validator);
     }
 

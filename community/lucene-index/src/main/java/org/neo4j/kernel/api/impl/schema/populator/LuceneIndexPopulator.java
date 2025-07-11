@@ -34,6 +34,7 @@ import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexSample;
@@ -48,6 +49,7 @@ public abstract class LuceneIndexPopulator<INDEX extends DatabaseIndex<?>> imple
     protected final IndexUpdateIgnoreStrategy ignoreStrategy;
     protected INDEX luceneIndex;
     protected LucenePartitionIndexWriter writer;
+    protected LuceneDocumentsFactory documentsFactory;
 
     protected LuceneIndexPopulator(INDEX luceneIndex, IndexUpdateIgnoreStrategy ignoreStrategy) {
         this.luceneIndex = luceneIndex;
@@ -60,6 +62,7 @@ public abstract class LuceneIndexPopulator<INDEX extends DatabaseIndex<?>> imple
             luceneIndex.create();
             luceneIndex.open();
             writer = luceneIndex.getIndexWriter();
+            documentsFactory = writer.documentsFactory();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

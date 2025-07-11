@@ -38,10 +38,12 @@ public class TextIndexPopulatingUpdater implements IndexUpdater {
 
     private final LucenePartitionIndexWriter writer;
     private final IndexUpdateIgnoreStrategy ignoreStrategy;
+    private final LuceneDocumentsFactory documentsFactory;
 
     public TextIndexPopulatingUpdater(LucenePartitionIndexWriter writer, IndexUpdateIgnoreStrategy ignoreStrategy) {
         this.writer = writer;
         this.ignoreStrategy = ignoreStrategy;
+        documentsFactory = writer.documentsFactory();
     }
 
     @Override
@@ -63,14 +65,10 @@ public class TextIndexPopulatingUpdater implements IndexUpdater {
             switch (updateMode) {
                 case ADDED ->
                     writer.updateDocument(
-                            ENTITY_ID_KEY,
-                            entityId,
-                            LuceneDocumentsFactory.CURRENT.reusableTextDocument(entityId, values));
+                            ENTITY_ID_KEY, entityId, documentsFactory.reusableTextDocument(entityId, values));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
-                            ENTITY_ID_KEY,
-                            entityId,
-                            LuceneDocumentsFactory.CURRENT.reusableTextDocument(entityId, values));
+                            ENTITY_ID_KEY, entityId, documentsFactory.reusableTextDocument(entityId, values));
                 case REMOVED -> writer.deleteDocuments(ENTITY_ID_KEY, entityId);
                 default ->
                     throw new IllegalStateException(

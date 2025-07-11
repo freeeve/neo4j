@@ -22,7 +22,6 @@ package org.neo4j.kernel.api.impl.schema.trigram;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.populator.LuceneIndexPopulator;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.IndexValueValidator;
@@ -46,7 +45,7 @@ class TrigramIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<ValueInde
         var entityId = update.getEntityId();
         var value = update.values()[0];
         validator.validate(entityId, value);
-        return LuceneDocumentsFactory.CURRENT.createTrigramDocument(entityId, value);
+        return documentsFactory.createTrigramDocument(entityId, value);
     }
 
     @Override

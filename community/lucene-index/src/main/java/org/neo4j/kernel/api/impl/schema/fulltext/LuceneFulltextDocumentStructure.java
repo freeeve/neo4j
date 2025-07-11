@@ -20,7 +20,6 @@
 package org.neo4j.kernel.api.impl.schema.fulltext;
 
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.values.storable.Value;
@@ -30,14 +29,6 @@ public class LuceneFulltextDocumentStructure {
     public static final String FIELD_ENTITY_ID = "__neo4j__lucene__fulltext__index__internal__id__";
 
     private LuceneFulltextDocumentStructure() {}
-
-    /**
-     * @return A document with the properties set, or null if no properties were
-     * relevant (= none of the properties were of type TEXT - which is the only type we support in the fulltext indexes).
-     */
-    public static LuceneDocument documentRepresentingProperties(long id, String[] propertyNames, Value[] values) {
-        return LuceneDocumentsFactory.CURRENT.reusableFulltextDocument(id, propertyNames, values);
-    }
 
     static long getEntityId(LuceneDocument from) {
         return Long.parseLong(from.get(FIELD_ENTITY_ID));

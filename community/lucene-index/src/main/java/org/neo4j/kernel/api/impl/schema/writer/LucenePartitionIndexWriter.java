@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.impl.schema.writer;
 import java.io.IOException;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
 /**
@@ -29,6 +30,7 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
  * functionality that it really needed and hides a fact that index is partitioned.
  */
 public interface LucenePartitionIndexWriter {
+    LuceneDocumentsFactory documentsFactory();
 
     void addDocument(LuceneDocument document) throws IOException;
 

@@ -63,4 +63,6 @@ public interface LuceneIndexWriter extends Closeable {
     void addIndexes(LuceneDirectory directory) throws IOException;
 
     ResourceIterator<Path> snapshot(Path indexFolder) throws IOException;
+
+    LuceneDocumentsFactory documentFactory();
 }

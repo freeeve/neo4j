@@ -21,7 +21,6 @@ package org.neo4j.kernel.api.impl.schema.fulltext;
 
 import static org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexSettings.isEventuallyConsistent;
 import static org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure.FIELD_ENTITY_ID;
-import static org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure.documentRepresentingProperties;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -137,7 +136,7 @@ public class FulltextIndexAccessor
         @Override
         protected void addIdempotent(long entityId, Value[] values) {
             try {
-                LuceneDocument document = documentRepresentingProperties(entityId, propertyNames, values);
+                LuceneDocument document = documentsFactory.reusableFulltextDocument(entityId, propertyNames, values);
                 writer.updateOrDeleteDocument(FIELD_ENTITY_ID, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -147,7 +146,7 @@ public class FulltextIndexAccessor
         @Override
         public void add(long entityId, Value[] values) {
             try {
-                LuceneDocument document = documentRepresentingProperties(entityId, propertyNames, values);
+                LuceneDocument document = documentsFactory.reusableFulltextDocument(entityId, propertyNames, values);
                 writer.nullableAddDocument(document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -157,7 +156,7 @@ public class FulltextIndexAccessor
         @Override
         protected void change(long entityId, Value[] values) {
             try {
-                LuceneDocument document = documentRepresentingProperties(entityId, propertyNames, values);
+                LuceneDocument document = documentsFactory.reusableFulltextDocument(entityId, propertyNames, values);
                 // If the property types have changed away from TEXT we may no longer
                 // have any properties that should be indexed and the old document should be removed.
                 writer.updateOrDeleteDocument(FIELD_ENTITY_ID, entityId, document);

@@ -31,6 +31,7 @@ import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
@@ -47,6 +48,11 @@ class TransactionStateLuceneIndexWriter implements LucenePartitionIndexWriter, C
         this.analyzer = analyzer;
         this.indexConfig = indexConfig;
         this.directory = DirectoryFactory.CURRENT.inMemoryDirectory();
+    }
+
+    @Override
+    public LuceneDocumentsFactory documentsFactory() {
+        return LuceneDocumentsFactory.CURRENT;
     }
 
     @Override

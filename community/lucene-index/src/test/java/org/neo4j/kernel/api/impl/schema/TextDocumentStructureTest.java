@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.neo4j.kernel.api.impl.LuceneTestUtil.documentRepresentingProperties;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.useFieldForUniquenessVerification;
 
@@ -32,19 +31,21 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.values.storable.Values;
 
 class TextDocumentStructureTest {
     @Test
     void stringWithMaximumLengthShouldBeAllowed() {
         String longestString = RandomStringUtils.randomAscii(LuceneIndexWriter.MAX_TERM_LENGTH);
-        LuceneDocument document = documentRepresentingProperties(123, longestString);
+        LuceneDocument document =
+                LuceneDocumentsFactory.CURRENT.reusableTextDocument(123, Values.values(longestString));
         assertEquals(longestString, document.get(LuceneDocumentsFactory.textValueKey(0)));
     }
 
     @Test
     void shouldBuildDocumentRepresentingStringProperty() {
         // given
-        LuceneDocument document = documentRepresentingProperties(123, "hello");
+        LuceneDocument document = LuceneDocumentsFactory.CURRENT.reusableTextDocument(123, Values.values("hello"));
 
         // then
         assertEquals("123", document.get(ENTITY_ID_KEY));
@@ -55,7 +56,8 @@ class TextDocumentStructureTest {
     void shouldBuildDocumentRepresentingMultipleStringProperties() {
         // given
         String[] values = new String[] {"hello", "world"};
-        LuceneDocument document = documentRepresentingProperties(123, (Object[]) values);
+        LuceneDocument document =
+                LuceneDocumentsFactory.CURRENT.reusableTextDocument(123, Values.values((Object[]) values));
 
         // then
         assertEquals("123", document.get(ENTITY_ID_KEY));

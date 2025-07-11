@@ -85,8 +85,8 @@ public class FulltextIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<F
 
     @Override
     protected LuceneDocument updateAsDocument(ValueIndexEntryUpdate update) {
-        return LuceneFulltextDocumentStructure.documentRepresentingProperties(
-                update.getEntityId(), propertyNames, update.values());
+        Value[] values = update.values();
+        return documentsFactory.reusableFulltextDocument(update.getEntityId(), propertyNames, values);
     }
 
     private class PopulatingFulltextIndexUpdater implements IndexUpdater {
@@ -99,14 +99,15 @@ public class FulltextIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<F
             try {
                 long nodeId = valueUpdate.getEntityId();
                 switch (valueUpdate.updateMode()) {
-                    case ADDED, CHANGED ->
+                    case ADDED, CHANGED -> {
+                        Value[] values = valueUpdate.values();
                         luceneIndex
                                 .getIndexWriter()
                                 .updateOrDeleteDocument(
                                         FIELD_ENTITY_ID,
                                         nodeId,
-                                        LuceneFulltextDocumentStructure.documentRepresentingProperties(
-                                                nodeId, propertyNames, valueUpdate.values()));
+                                        documentsFactory.reusableFulltextDocument(nodeId, propertyNames, values));
+                    }
                     case REMOVED -> luceneIndex.getIndexWriter().deleteDocuments(FIELD_ENTITY_ID, nodeId);
                     default -> throw new UnsupportedOperationException();
                 }

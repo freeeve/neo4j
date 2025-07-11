@@ -42,6 +42,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.LuceneIndexReaderAcquisitionException;
 import org.neo4j.kernel.api.impl.schema.reader.LuceneAllEntriesIndexAccessorReader;
 import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
@@ -68,6 +69,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
     protected final LucenePartitionIndexWriter writer;
     protected final INDEX luceneIndex;
     protected final IndexDescriptor descriptor;
+    protected final LuceneDocumentsFactory documentsFactory;
     private final IndexUpdateIgnoreStrategy ignoreStrategy;
 
     protected AbstractLuceneIndexAccessor(
@@ -76,6 +78,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
         this.luceneIndex = luceneIndex;
         this.descriptor = descriptor;
         this.ignoreStrategy = ignoreStrategy;
+        this.documentsFactory = LuceneDocumentsFactory.CURRENT;
     }
 
     @Override

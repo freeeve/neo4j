@@ -29,7 +29,6 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.AbstractLuceneIndexAccessor;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
@@ -78,7 +77,7 @@ class VectorIndexAccessor extends AbstractLuceneIndexAccessor<VectorIndexReader,
         protected void addIdempotent(long entityId, Value[] values) {
             try {
                 VectorCandidate candidate = VectorCandidate.maybeFrom(values[0]);
-                final var document = LuceneDocumentsFactory.CURRENT.createVectorDocument(
+                final var document = documentsFactory.createVectorDocument(
                         documentStructure, entityId, candidate, similarityFunction);
                 writer.updateOrDeleteDocument(ENTITY_ID_KEY, entityId, document);
             } catch (IOException e) {
@@ -90,7 +89,7 @@ class VectorIndexAccessor extends AbstractLuceneIndexAccessor<VectorIndexReader,
         protected void add(long entityId, Value[] values) {
             try {
                 VectorCandidate candidate = VectorCandidate.maybeFrom(values[0]);
-                final var document = LuceneDocumentsFactory.CURRENT.createVectorDocument(
+                final var document = documentsFactory.createVectorDocument(
                         documentStructure, entityId, candidate, similarityFunction);
                 writer.nullableAddDocument(document);
             } catch (IOException e) {
@@ -102,7 +101,7 @@ class VectorIndexAccessor extends AbstractLuceneIndexAccessor<VectorIndexReader,
         protected void change(long entityId, Value[] values) {
             try {
                 VectorCandidate candidate = VectorCandidate.maybeFrom(values[0]);
-                final var document = LuceneDocumentsFactory.CURRENT.createVectorDocument(
+                final var document = documentsFactory.createVectorDocument(
                         documentStructure, entityId, candidate, similarityFunction);
                 writer.updateOrDeleteDocument(ENTITY_ID_KEY, entityId, document);
             } catch (IOException e) {

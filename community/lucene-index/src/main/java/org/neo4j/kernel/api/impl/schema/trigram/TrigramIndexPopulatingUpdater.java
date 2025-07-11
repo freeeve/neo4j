@@ -34,6 +34,7 @@ class TrigramIndexPopulatingUpdater implements IndexUpdater {
     private final LucenePartitionIndexWriter writer;
     private final IndexUpdateIgnoreStrategy ignoreStrategy;
     private final IndexValueValidator validator;
+    private final LuceneDocumentsFactory documentsFactory;
 
     TrigramIndexPopulatingUpdater(
             LucenePartitionIndexWriter writer,
@@ -42,6 +43,7 @@ class TrigramIndexPopulatingUpdater implements IndexUpdater {
         this.writer = writer;
         this.ignoreStrategy = ignoreStrategy;
         this.validator = validator;
+        documentsFactory = writer.documentsFactory();
     }
 
     @Override
@@ -62,12 +64,12 @@ class TrigramIndexPopulatingUpdater implements IndexUpdater {
                     writer.updateDocument(
                             LuceneDocumentsFactory.ENTITY_ID_KEY,
                             entityId,
-                            LuceneDocumentsFactory.CURRENT.createTrigramDocument(entityId, value));
+                            documentsFactory.createTrigramDocument(entityId, value));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
                             LuceneDocumentsFactory.ENTITY_ID_KEY,
                             entityId,
-                            LuceneDocumentsFactory.CURRENT.createTrigramDocument(entityId, value));
+                            documentsFactory.createTrigramDocument(entityId, value));
                 case REMOVED -> writer.deleteDocuments(LuceneDocumentsFactory.ENTITY_ID_KEY, entityId);
             }
         } catch (IOException e) {

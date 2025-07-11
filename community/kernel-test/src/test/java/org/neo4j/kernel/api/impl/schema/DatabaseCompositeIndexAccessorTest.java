@@ -78,7 +78,6 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
-import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
@@ -132,7 +131,6 @@ public class DatabaseCompositeIndexAccessorTest {
     private final long nodeId2 = 2;
     private final Object[] values = {"value1", "values2"};
     private final Object[] values2 = {40, 42};
-    private DirectoryFactory dirFactory;
     private static final IndexPrototype SCHEMA_INDEX_DESCRIPTOR =
             IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, PROP_ID1, PROP_ID2));
     private static final IndexPrototype UNIQUE_SCHEMA_INDEX_DESCRIPTOR =
@@ -144,14 +142,13 @@ public class DatabaseCompositeIndexAccessorTest {
     private Iterable<IndexProvider> providers;
 
     @BeforeAll
-    public void prepareProviders() throws IOException {
-        dirFactory = DirectoryFactory.inMemory();
+    public void prepareProviders() {
         providers = getIndexProviders(pageCache, jobScheduler, fileSystem, testDirectory);
     }
 
     @AfterAll
     public void after() throws IOException {
-        closeAll(dirFactory, jobScheduler);
+        closeAll(jobScheduler);
     }
 
     @Nested

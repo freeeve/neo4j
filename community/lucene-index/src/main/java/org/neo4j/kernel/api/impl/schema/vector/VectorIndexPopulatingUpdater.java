@@ -35,6 +35,7 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
     private final IndexUpdateIgnoreStrategy ignoreStrategy;
     private final VectorDocumentStructure documentStructure;
     private final Neo4jVectorSimilarityFunction similarityFunction;
+    private final LuceneDocumentsFactory documentsFactory;
 
     VectorIndexPopulatingUpdater(
             LucenePartitionIndexWriter writer,
@@ -45,6 +46,7 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
         this.documentStructure = documentStructure;
         this.ignoreStrategy = ignoreStrategy;
         this.similarityFunction = similarityFunction;
+        this.documentsFactory = writer.documentsFactory();
     }
 
     @Override
@@ -64,13 +66,13 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
                     writer.updateDocument(
                             VectorDocumentStructure.ENTITY_ID_KEY,
                             entityId,
-                            LuceneDocumentsFactory.CURRENT.createVectorDocument(
+                            documentsFactory.createVectorDocument(
                                     documentStructure, entityId, candidate, similarityFunction));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
                             VectorDocumentStructure.ENTITY_ID_KEY,
                             entityId,
-                            LuceneDocumentsFactory.CURRENT.createVectorDocument(
+                            documentsFactory.createVectorDocument(
                                     documentStructure, entityId, candidate, similarityFunction));
                 case REMOVED -> writer.deleteDocuments(VectorDocumentStructure.ENTITY_ID_KEY, entityId);
             }

@@ -19,8 +19,6 @@
  */
 package org.neo4j.kernel.api.impl.schema.fulltext;
 
-import static org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure.documentRepresentingProperties;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
@@ -37,6 +35,7 @@ import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.txstate.RelationshipModifications;
@@ -56,6 +55,7 @@ class FulltextIndexTransactionStateVisitor extends TxStateVisitor.Adapter {
     private final IntIntHashMap propKeyToIndex;
     private final MutableLongSet modifiedEntityIdsInThisTransaction;
     private final TransactionStateLuceneIndexWriter writer;
+    private final LuceneDocumentsFactory documentsFactory;
     private final PropertySelection indexedPropertySelection;
     private Read read;
     private NodeCursor nodeCursor;
@@ -71,6 +71,7 @@ class FulltextIndexTransactionStateVisitor extends TxStateVisitor.Adapter {
         this.schema = descriptor.schema();
         this.modifiedEntityIdsInThisTransaction = modifiedEntityIdsInThisTransaction;
         this.writer = writer;
+        this.documentsFactory = writer.documentsFactory();
         this.visitingNodes = schema.entityType() == EntityType.NODE;
         entityTokenIds = schema.getEntityTokenIds();
         int[] propertyIds = schema.getPropertyIds();
@@ -171,7 +172,8 @@ class FulltextIndexTransactionStateVisitor extends TxStateVisitor.Adapter {
         }
         if (modifiedEntityIdsInThisTransaction.add(id)) {
             try {
-                writer.nullableAddDocument(documentRepresentingProperties(id, propertyNames, propertyValues));
+                writer.nullableAddDocument(
+                        documentsFactory.reusableFulltextDocument(id, propertyNames, propertyValues));
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

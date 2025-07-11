@@ -37,7 +37,6 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
@@ -98,7 +97,7 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
     }
 
     private static void insertRandomDocuments(LuceneIndexWriter writer) throws IOException {
-        LuceneDocument doc = LuceneDocumentsFactory.CURRENT.newDocument();
+        LuceneDocument doc = writer.newDocument();
         doc.addStringField("a", "b", true);
         doc.addStringField("c", "d", false);
         writer.addDocument(doc);

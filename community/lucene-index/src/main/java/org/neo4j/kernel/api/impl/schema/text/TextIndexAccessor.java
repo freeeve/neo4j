@@ -75,7 +75,7 @@ public class TextIndexAccessor extends AbstractLuceneIndexAccessor<ValueIndexRea
         @Override
         protected void addIdempotent(long entityId, Value[] values) {
             try {
-                LuceneDocument document = LuceneDocumentsFactory.CURRENT.reusableTextDocument(entityId, values);
+                LuceneDocument document = documentsFactory.reusableTextDocument(entityId, values);
                 writer.updateOrDeleteDocument(LuceneDocumentsFactory.ENTITY_ID_KEY, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -85,7 +85,7 @@ public class TextIndexAccessor extends AbstractLuceneIndexAccessor<ValueIndexRea
         @Override
         protected void add(long entityId, Value[] values) {
             try {
-                LuceneDocument document = LuceneDocumentsFactory.CURRENT.reusableTextDocument(entityId, values);
+                LuceneDocument document = documentsFactory.reusableTextDocument(entityId, values);
                 writer.nullableAddDocument(document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -95,7 +95,7 @@ public class TextIndexAccessor extends AbstractLuceneIndexAccessor<ValueIndexRea
         @Override
         protected void change(long entityId, Value[] values) {
             try {
-                LuceneDocument document = LuceneDocumentsFactory.CURRENT.reusableTextDocument(entityId, values);
+                LuceneDocument document = documentsFactory.reusableTextDocument(entityId, values);
                 writer.updateOrDeleteDocument(LuceneDocumentsFactory.ENTITY_ID_KEY, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);

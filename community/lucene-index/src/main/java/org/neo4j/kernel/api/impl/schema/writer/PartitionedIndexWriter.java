@@ -26,6 +26,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
@@ -52,6 +53,16 @@ public class PartitionedIndexWriter implements LucenePartitionIndexWriter {
         this.index = index;
         var configuredMaxPartitionSize = config.get(LuceneSettings.lucene_max_partition_size);
         maximumPartitionSize = Objects.requireNonNullElse(configuredMaxPartitionSize, DEFAULT_MAXIMUM_PARTITION_SIZE);
+    }
+
+    @Override
+    public LuceneDocumentsFactory documentsFactory() {
+        List<AbstractIndexPartition> partitions = index.getPartitions();
+        if (partitions.isEmpty()) {
+            throw new IllegalStateException("No partitions found");
+        }
+
+        return partitions.getFirst().getIndexWriter().documentFactory();
     }
 
     @Override
