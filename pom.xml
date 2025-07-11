@@ -173,43 +173,44 @@
     <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
     <scala.test.version>3.2.13</scala.test.version>
     <asm.version>9.8</asm.version>
-    <metrics.version>4.2.32</metrics.version>
+    <metrics.version>4.2.33</metrics.version>
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <jersey.version>2.43</jersey.version>
-    <junit.version>5.13.1</junit.version>
-    <junit.platform.version>1.13.1</junit.platform.version>
+    <junit.version>5.13.3</junit.version>
+    <junit.platform.version>1.13.3</junit.platform.version>
     <mockito.version>5.18.0</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
-    <cucumber.version>7.23.0</cucumber.version>
+    <cucumber.version>7.25.0</cucumber.version>
     <cucumber.scala.version>8.26.1</cucumber.scala.version>
     <caffeine.version>3.2.1</caffeine.version>
     <required.maven.version>3.8.2</required.maven.version>
-    <jackson.version>2.19.0</jackson.version>
-    <jackson-databind.version>2.19.0</jackson-databind.version>
+    <jackson.version>2.19.1</jackson.version>
+    <jackson-databind.version>2.19.1</jackson-databind.version>
     <amazon-sdk.version>1.12.772</amazon-sdk.version>
-    <awssdk.version>2.31.62</awssdk.version>
+    <awssdk.version>2.31.78</awssdk.version>
     <awssdk-crt.version>0.38.5</awssdk-crt.version>
     <guava.version>33.4.8-jre</guava.version>
     <awaitility.version>4.3.0</awaitility.version>
     <log4j.version>2.20.0</log4j.version>
-    <slf4j.version>2.0.9</slf4j.version>
+    <slf4j.version>2.0.17</slf4j.version>
     <neo4j-java-driver.version>5.28.7</neo4j-java-driver.version>
+    <!-- there is a non-standard behaviour of map merge in the 13.0 version can't upgrade for now-->
     <eclipse-collections.version>11.1.0</eclipse-collections.version>
-    <parquet-floor.version>1.51</parquet-floor.version>
+    <parquet-floor.version>1.57</parquet-floor.version>
     <picocli.version>4.7.7</picocli.version>
     <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
     <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
     <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
-    <error_prone.version>2.38.0</error_prone.version>
-    <protobuf.version>3.25.7</protobuf.version>
-    <teavm.version>0.12.1</teavm.version>
+    <error_prone.version>2.40.0</error_prone.version>
+    <protobuf.version>4.31.1</protobuf.version>
+    <teavm.version>0.12.2</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
-    <grpc.version>1.72.0</grpc.version>
-    <testcontainers.version>1.21.1</testcontainers.version>
+    <grpc.version>1.73.0</grpc.version>
+    <testcontainers.version>1.21.3</testcontainers.version>
     <build-resources.version>2024-12.1</build-resources.version>
     <s3mock.version>4.4.0</s3mock.version>
-    <shiro.version>2.0.4</shiro.version>
-    <cypherdsl.version>2024.6.0</cypherdsl.version>
+    <shiro.version>2.0.5</shiro.version>
+    <cypherdsl.version>2024.7.1</cypherdsl.version>
   </properties>
 
   <modules>
@@ -1342,7 +1343,7 @@
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-bom</artifactId>
-        <version>2024.0.6</version>
+        <version>2024.0.7</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -1690,7 +1691,7 @@
       <dependency>
         <groupId>com.github.luben</groupId>
         <artifactId>zstd-jni</artifactId>
-        <version>1.5.7-3</version>
+        <version>1.5.7-4</version>
       </dependency>
 
       <!--
@@ -1979,7 +1980,7 @@
       <dependency>
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy</artifactId>
-        <version>1.17.5</version>
+        <version>1.17.6</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>

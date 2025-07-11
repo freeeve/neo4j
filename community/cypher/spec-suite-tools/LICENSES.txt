@@ -1645,6 +1645,7 @@ MIT License
   jersey-core-client
   jersey-inject-hk2
   JUnit XML Formatter
+  Pretty Formatter
   SLF4J API Module
   sourcecode_2.13
   TestNG XML Formatter
