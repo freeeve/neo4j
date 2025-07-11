@@ -25,6 +25,8 @@ public class BlockDatabaseExistMarker implements DatabaseFile {
     public static final BlockDatabaseExistMarker INSTANCE = new BlockDatabaseExistMarker();
     public static final String NAME = "block.metadata.db";
 
+    private BlockDatabaseExistMarker() {}
+
     @Override
     public String getName() {
         return NAME;

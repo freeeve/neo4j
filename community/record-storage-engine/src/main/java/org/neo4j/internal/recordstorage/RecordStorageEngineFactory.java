@@ -303,7 +303,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
     @Override
     public List<Path> listStorageFiles(FileSystemAbstraction fileSystem, DatabaseLayout databaseLayout)
             throws IOException {
-        if (!fileSystem.fileExists(formatSpecificDatabaseLayout(databaseLayout).metadataStore())) {
+        if (!fileSystem.fileExists(formatSpecificDatabaseLayout(databaseLayout).pathForExistsMarker())) {
             throw new IOException("No storage present at " + databaseLayout + " on " + fileSystem);
         }
 
