@@ -29,6 +29,7 @@ import static org.neo4j.graphdb.StringSearchMode.CONTAINS;
 import static org.neo4j.graphdb.StringSearchMode.PREFIX;
 import static org.neo4j.graphdb.StringSearchMode.SUFFIX;
 import static org.neo4j.graphdb.schema.IndexType.RANGE;
+import static org.neo4j.graphdb.schema.IndexType.TEXT;
 import static org.neo4j.test.assertion.Assert.assertEventually;
 import static org.neo4j.test.conditions.Conditions.condition;
 
@@ -38,7 +39,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.graphdb.schema.IndexType;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -53,6 +53,7 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @Neo4jLayoutExtension
 public class TextIndexIT {
@@ -81,12 +82,12 @@ public class TextIndexIT {
             assertThrows(IllegalArgumentException.class, () -> tx.schema()
                     .indexFor(labels)
                     .on("name")
-                    .withIndexType(IndexType.TEXT)
+                    .withIndexType(TEXT)
                     .create());
             assertThrows(IllegalArgumentException.class, () -> tx.schema()
                     .indexFor(relations)
                     .on("name")
-                    .withIndexType(IndexType.TEXT)
+                    .withIndexType(TEXT)
                     .create());
         }
     }
@@ -103,13 +104,13 @@ public class TextIndexIT {
                     .indexFor(label)
                     .on("key1")
                     .on("key2")
-                    .withIndexType(IndexType.TEXT)
+                    .withIndexType(TEXT)
                     .create());
             assertUnsupported(() -> tx.schema()
                     .indexFor(rel)
                     .on("key1")
                     .on("key2")
-                    .withIndexType(IndexType.TEXT)
+                    .withIndexType(TEXT)
                     .create());
         }
     }
@@ -174,13 +175,13 @@ public class TextIndexIT {
                     .indexFor(person)
                     .on("name")
                     .withName(nodeIndex)
-                    .withIndexType(IndexType.TEXT)
+                    .withIndexType(TEXT)
                     .create();
             tx.schema()
                     .indexFor(relation)
                     .on("name")
                     .withName(relationshipIndex)
-                    .withIndexType(IndexType.TEXT)
+                    .withIndexType(TEXT)
                     .create();
             tx.commit();
         }
@@ -207,6 +208,7 @@ public class TextIndexIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Number of index accesses is different in spd")
     void shouldFindNodesUsingTextIndex() {
         // Given a database with different index types
         var person = label("PERSON");
@@ -216,11 +218,7 @@ public class TextIndexIT {
                 .build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
         try (var tx = db.beginTx()) {
-            tx.schema()
-                    .indexFor(person)
-                    .on("name")
-                    .withIndexType(IndexType.TEXT)
-                    .create();
+            tx.schema().indexFor(person).on("name").withIndexType(TEXT).create();
             tx.schema().indexFor(person).on("name").withIndexType(RANGE).create();
             tx.commit();
         }
@@ -253,6 +251,7 @@ public class TextIndexIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Number of index accesses is different in spd")
     void shouldFindRelationshipsUsingTextIndex() {
         // Given a database with different index types
         var person = label("PERSON");
@@ -263,11 +262,7 @@ public class TextIndexIT {
                 .build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
         try (var tx = db.beginTx()) {
-            tx.schema()
-                    .indexFor(relation)
-                    .on("since")
-                    .withIndexType(IndexType.TEXT)
-                    .create();
+            tx.schema().indexFor(relation).on("since").withIndexType(TEXT).create();
             tx.schema().indexFor(relation).on("since").withIndexType(RANGE).create();
             tx.commit();
         }
@@ -305,6 +300,7 @@ public class TextIndexIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Number of index accesses is different in spd")
     void shouldRecoverIndexUpdatesAfterCrash() {
         // Given a database with some index updates
         var person = label("PERSON");
@@ -312,11 +308,7 @@ public class TextIndexIT {
         dbms = startDbms(fs, new Monitors());
         var db = dbms.database(DEFAULT_DATABASE_NAME);
         try (var tx = db.beginTx()) {
-            tx.schema()
-                    .indexFor(person)
-                    .on("name")
-                    .withIndexType(IndexType.TEXT)
-                    .create();
+            tx.schema().indexFor(person).on("name").withIndexType(TEXT).create();
             tx.commit();
         }
         try (var tx = db.beginTx()) {
@@ -344,6 +336,7 @@ public class TextIndexIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Index sample taken from the entity graph IndexStatisticsStore, will have wrong counts")
     void shouldSampleIndex() {
         // Given a database with different index types
         var person = label("PERSON");
@@ -412,7 +405,7 @@ public class TextIndexIT {
             tx.schema()
                     .indexFor(person)
                     .on("name")
-                    .withIndexType(IndexType.TEXT)
+                    .withIndexType(TEXT)
                     .withName(indexName)
                     .create();
             tx.commit();
