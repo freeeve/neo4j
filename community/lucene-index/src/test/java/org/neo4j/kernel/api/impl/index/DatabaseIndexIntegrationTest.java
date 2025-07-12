@@ -43,13 +43,13 @@ import org.apache.lucene.store.FilterDirectory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
@@ -77,7 +77,7 @@ class DatabaseIndexIntegrationTest {
     private DefaultFileSystemAbstraction fileSystem;
 
     private final CountDownLatch raceSignal = new CountDownLatch(1);
-    private SyncNotifierDirectoryFactory directoryFactory;
+    private DirectoryFactory directoryFactory;
     private WritableTestDatabaseIndex luceneIndex;
 
     @BeforeAll
@@ -90,19 +90,23 @@ class DatabaseIndexIntegrationTest {
         workers.shutdownNow();
     }
 
-    @BeforeEach
-    void setUp() throws IOException {
-        directoryFactory = new SyncNotifierDirectoryFactory(raceSignal);
+    void setUp(LuceneContext luceneContext) throws IOException {
+        directoryFactory = switch (luceneContext) {
+            case LUCENE_9 -> new Lucene9SyncNotifierDirectoryFactory(raceSignal);
+        };
         luceneIndex = createTestLuceneIndex(directoryFactory, testDirectory.homePath());
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws Exception {
         directoryFactory.close();
     }
 
-    @RepeatedTest(2)
-    void testSaveCallCommitAndCloseFromMultipleThreads() {
+    @ParameterizedTest
+    @EnumSource
+    void testSaveCallCommitAndCloseFromMultipleThreads(LuceneContext luceneContext) throws IOException {
+        setUp(luceneContext);
+
         assertTimeoutPreemptively(ofSeconds(60), () -> {
             generateInitialData();
             List<Future<?>> closeFutures = submitTasks(() -> createConcurrentCloseTask(raceSignal));
@@ -112,8 +116,11 @@ class DatabaseIndexIntegrationTest {
         });
     }
 
-    @RepeatedTest(2)
-    void saveCallCloseAndDropFromMultipleThreads() {
+    @ParameterizedTest
+    @EnumSource
+    void saveCallCloseAndDropFromMultipleThreads(LuceneContext luceneContext) throws IOException {
+        setUp(luceneContext);
+
         assertTimeoutPreemptively(ofSeconds(60), () -> {
             generateInitialData();
             List<Future<?>> futures = submitTasks(() -> createConcurrentDropTask(raceSignal));
@@ -125,7 +132,8 @@ class DatabaseIndexIntegrationTest {
 
     private WritableTestDatabaseIndex createTestLuceneIndex(DirectoryFactory dirFactory, Path folder)
             throws IOException {
-        PartitionedIndexStorage indexStorage = new PartitionedIndexStorage(dirFactory, fileSystem, folder);
+        PartitionedIndexStorage indexStorage =
+                new PartitionedIndexStorage(dirFactory.getContext(), dirFactory, fileSystem, folder);
         WritableTestDatabaseIndex index = new WritableTestDatabaseIndex(indexStorage);
         index.create();
         index.open();
@@ -144,7 +152,7 @@ class DatabaseIndexIntegrationTest {
     private void generateInitialData() throws IOException {
         LuceneIndexWriter indexWriter = firstPartitionWriter();
         for (int i = 0; i < 10; i++) {
-            indexWriter.addDocument(createTestDocument());
+            indexWriter.addDocument(createTestDocument(indexWriter));
         }
     }
 
@@ -182,8 +190,8 @@ class DatabaseIndexIntegrationTest {
         };
     }
 
-    private static LuceneDocument createTestDocument() {
-        LuceneDocument document = LuceneDocumentsFactory.CURRENT.newDocument();
+    private static LuceneDocument createTestDocument(LuceneIndexWriter indexWriter) {
+        LuceneDocument document = indexWriter.newDocument();
         document.addTextField("text", "textValue", true);
         document.addNumericField("long", 1);
         return document;
@@ -228,26 +236,31 @@ class DatabaseIndexIntegrationTest {
         }
     }
 
-    private static class SyncNotifierDirectoryFactory implements DirectoryFactory {
+    private static class Lucene9SyncNotifierDirectoryFactory implements DirectoryFactory {
         final CountDownLatch signal;
 
-        SyncNotifierDirectoryFactory(CountDownLatch signal) {
+        Lucene9SyncNotifierDirectoryFactory(CountDownLatch signal) {
             this.signal = signal;
         }
 
         @Override
         public LuceneDirectory open(Path dir) throws IOException {
             Files.createDirectories(dir);
-            return new Lucene9Directory(new SyncNotifierLuceneDirectory(FSDirectory.open(dir), signal));
+            return new Lucene9Directory(new Lucene9SyncNotifierLuceneDirectory(FSDirectory.open(dir), signal));
+        }
+
+        @Override
+        public LuceneContext getContext() {
+            return LuceneContext.LUCENE_9;
         }
 
         @Override
         public void close() {}
 
-        private static class SyncNotifierLuceneDirectory extends FilterDirectory {
+        private static class Lucene9SyncNotifierLuceneDirectory extends FilterDirectory {
             private final CountDownLatch signal;
 
-            SyncNotifierLuceneDirectory(Directory delegate, CountDownLatch signal) {
+            Lucene9SyncNotifierLuceneDirectory(Directory delegate, CountDownLatch signal) {
                 super(delegate);
                 this.signal = signal;
             }

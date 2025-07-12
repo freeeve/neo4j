@@ -30,7 +30,6 @@ import static org.neo4j.internal.schema.SchemaUserDescription.TOKEN_ID_NAME_LOOK
 import static org.neo4j.internal.schema.StorageEngineIndexingBehaviour.EMPTY;
 import static org.neo4j.io.ByteUnit.mebiBytes;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
-import static org.neo4j.kernel.api.impl.index.storage.DirectoryFactory.PERSISTENT;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 import static org.neo4j.kernel.impl.api.index.IndexUpdateMode.ONLINE;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
@@ -41,8 +40,8 @@ import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
@@ -51,6 +50,8 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
+import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -78,14 +79,13 @@ class TextIndexAccessorTest {
     private IndexSamplingConfig samplingConfig;
     private TextIndexProvider provider;
 
-    @BeforeEach
-    void start() {
+    void start(LuceneContext luceneContext) {
         scheduler = new ThreadPoolJobScheduler();
         var config = Config.defaults();
         samplingConfig = new IndexSamplingConfig(config);
         provider = new TextIndexProvider(
                 fs,
-                PERSISTENT,
+                DirectoryFactory.PERSISTENT,
                 directoriesByProvider(directory.homePath()),
                 new Monitors(),
                 config,
@@ -98,8 +98,10 @@ class TextIndexAccessorTest {
         scheduler.close();
     }
 
-    @Test
-    void shouldInsertFrom() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldInsertFrom(LuceneContext luceneContext) throws Exception {
+        start(luceneContext);
         // given
         var mainDescriptor = provider.completeConfiguration(
                 forSchema(forLabel(1, 1)).withIndexType(TEXT).withName("index1").materialise(1L), EMPTY);
@@ -118,8 +120,10 @@ class TextIndexAccessorTest {
         }
     }
 
-    @Test
-    void shouldInsertFromWithFiltering() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldInsertFromWithFiltering(LuceneContext luceneContext) throws Exception {
+        start(luceneContext);
         // given
         var mainDescriptor = provider.completeConfiguration(
                 forSchema(forLabel(1, 1)).withIndexType(TEXT).withName("index1").materialise(1L), EMPTY);

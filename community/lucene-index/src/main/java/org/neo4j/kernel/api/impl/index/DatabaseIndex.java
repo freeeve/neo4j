@@ -27,6 +27,7 @@ import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.IndexFileSnapshotter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
@@ -49,6 +50,8 @@ public interface DatabaseIndex<READER extends ValueIndexReader> extends IndexFil
      * @throws IOException
      */
     void create() throws IOException;
+
+    LuceneContext luceneContext();
 
     /**
      * Open index with all allocated partitions.

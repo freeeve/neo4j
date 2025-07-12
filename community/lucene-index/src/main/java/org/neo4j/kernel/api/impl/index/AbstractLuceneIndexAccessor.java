@@ -78,7 +78,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
         this.luceneIndex = luceneIndex;
         this.descriptor = descriptor;
         this.ignoreStrategy = ignoreStrategy;
-        this.documentsFactory = LuceneDocumentsFactory.CURRENT;
+        this.documentsFactory = luceneIndex.luceneContext().documentsFactory();
     }
 
     @Override

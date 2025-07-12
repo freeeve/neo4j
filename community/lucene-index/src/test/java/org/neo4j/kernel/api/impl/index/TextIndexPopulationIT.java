@@ -30,8 +30,10 @@ import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRA
 
 import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.collection.PrimitiveLongCollections;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -45,6 +47,7 @@ import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexAccessor;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexBuilder;
@@ -80,12 +83,23 @@ class TextIndexPopulationIT {
     @Inject
     private DefaultFileSystemAbstraction fileSystem;
 
+    private static Stream<Arguments> provideParameters() {
+        return Stream.of(
+                Arguments.of(LuceneContext.LUCENE_9, 7),
+                Arguments.of(LuceneContext.LUCENE_9, 11),
+                Arguments.of(LuceneContext.LUCENE_9, 14),
+                Arguments.of(LuceneContext.LUCENE_9, 20),
+                Arguments.of(LuceneContext.LUCENE_9, 35),
+                Arguments.of(LuceneContext.LUCENE_9, 58));
+    }
+
     @ParameterizedTest
-    @ValueSource(ints = {7, 11, 14, 20, 35, 58})
-    void partitionedIndexPopulation(int affectedNodes) throws Exception {
+    @MethodSource("provideParameters")
+    void partitionedIndexPopulation(LuceneContext luceneContext, int affectedNodes) throws Exception {
         Path rootFolder = testDir.directory("partitionIndex" + affectedNodes).resolve("uniqueIndex" + affectedNodes);
         try (var index = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
+                .withLuceneContext(luceneContext)
                 .withIndexRootFolder(rootFolder)
                 .build()) {
             index.open();

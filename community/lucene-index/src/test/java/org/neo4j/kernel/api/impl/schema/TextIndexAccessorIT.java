@@ -27,7 +27,6 @@ import static org.mockito.Mockito.mock;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
-import static org.neo4j.kernel.api.impl.index.storage.DirectoryFactory.PERSISTENT;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 import static org.neo4j.kernel.impl.api.index.PhaseTracker.nullInstance;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -37,9 +36,9 @@ import static org.neo4j.values.storable.Values.stringValue;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
@@ -52,10 +51,10 @@ import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.neo4j.common.TokenNameLookup;
@@ -73,6 +72,8 @@ import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
+import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexEntriesReader;
@@ -120,8 +121,7 @@ public class TextIndexAccessorIT {
     private IndexSamplingConfig samplingConfig;
     private Config config;
 
-    @BeforeEach
-    void setUp() {
+    void setUp(LuceneContext luceneContext) {
         Path path = directory.directory("db");
         var defaultDatabaseId = DatabaseIdFactory.from(
                 DEFAULT_DATABASE_NAME, UUID.randomUUID()); // UUID required, but ignored by config lookup
@@ -135,7 +135,7 @@ public class TextIndexAccessorIT {
         var readOnlyChecker = globalChecker.forDatabase(defaultDatabaseId);
         indexProvider = new TextIndexProvider(
                 directory.getFileSystem(),
-                PERSISTENT,
+                DirectoryFactory.PERSISTENT,
                 directoriesByProvider(path),
                 new Monitors(),
                 config,
@@ -152,8 +152,10 @@ public class TextIndexAccessorIT {
         life.shutdown();
     }
 
-    @Test
-    void shouldIterateAllDocumentsEvenWhenContainingDeletions() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldIterateAllDocumentsEvenWhenContainingDeletions(LuceneContext luceneContext) throws Exception {
+        setUp(luceneContext);
         // given
         int nodes = 100;
         MutableLongSet expectedNodes = LongSets.mutable.withInitialCapacity(nodes);
@@ -180,8 +182,10 @@ public class TextIndexAccessorIT {
         }
     }
 
-    @Test
-    void failToAcquireIndexWriterWhileReadOnly() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void failToAcquireIndexWriterWhileReadOnly(LuceneContext luceneContext) throws Exception {
+        setUp(luceneContext);
         int nodes = 100;
         MutableLongSet expectedNodes = LongSets.mutable.withInitialCapacity(nodes);
         IndexDescriptor indexDescriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(1, 2))
@@ -202,8 +206,11 @@ public class TextIndexAccessorIT {
         }
     }
 
-    @Test
-    void shouldIterateAllDocumentsEvenWhenContainingDeletionsInOnlySomeLeaves() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldIterateAllDocumentsEvenWhenContainingDeletionsInOnlySomeLeaves(LuceneContext luceneContext)
+            throws Exception {
+        setUp(luceneContext);
         // given
         int nodes = 300_000;
         MutableLongSet expectedNodes = LongSets.mutable.empty();
@@ -230,8 +237,11 @@ public class TextIndexAccessorIT {
         }
     }
 
-    @Test
-    void shouldReadAllDocumentsInSchemaIndexAfterRandomAdditionsAndDeletions() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldReadAllDocumentsInSchemaIndexAfterRandomAdditionsAndDeletions(LuceneContext luceneContext)
+            throws Exception {
+        setUp(luceneContext);
         // given
         IndexDescriptor descriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, 1))
                 .withName("test")
@@ -261,8 +271,10 @@ public class TextIndexAccessorIT {
         }
     }
 
-    @Test
-    void shouldPartitionAndReadAllDocuments() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldPartitionAndReadAllDocuments(LuceneContext luceneContext) throws Exception {
+        setUp(luceneContext);
         // given
         IndexDescriptor descriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, 1))
                 .withName("test")
@@ -294,7 +306,8 @@ public class TextIndexAccessorIT {
 
     @ParameterizedTest
     @MethodSource("unsupportedTypes")
-    void updaterShouldIgnoreUnsupportedTypes(ValueType unsupportedType) throws Exception {
+    void updaterShouldIgnoreUnsupportedTypes(LuceneContext luceneContext, ValueType unsupportedType) throws Exception {
+        setUp(luceneContext);
         final var descriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, 1))
                 .withName("test")
                 .materialise(1);
@@ -321,7 +334,9 @@ public class TextIndexAccessorIT {
 
     @ParameterizedTest
     @MethodSource("unsupportedTypes")
-    void updaterShouldChangeUnsupportedToSupportedByAdd(ValueType unsupportedType) throws Exception {
+    void updaterShouldChangeUnsupportedToSupportedByAdd(LuceneContext luceneContext, ValueType unsupportedType)
+            throws Exception {
+        setUp(luceneContext);
         final var descriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, 1))
                 .withName("test")
                 .materialise(1);
@@ -359,7 +374,9 @@ public class TextIndexAccessorIT {
 
     @ParameterizedTest
     @MethodSource("unsupportedTypes")
-    void updaterShouldChangeSupportedToUnsupportedByRemove(ValueType unsupportedType) throws Exception {
+    void updaterShouldChangeSupportedToUnsupportedByRemove(LuceneContext luceneContext, ValueType unsupportedType)
+            throws Exception {
+        setUp(luceneContext);
         final var descriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, 1))
                 .withName("test")
                 .materialise(1);
@@ -496,7 +513,13 @@ public class TextIndexAccessorIT {
         return new AtomicLong(0)::incrementAndGet;
     }
 
-    private static Stream<ValueType> unsupportedTypes() {
-        return Arrays.stream(UNSUPPORTED_TYPES);
+    private static List<Arguments> unsupportedTypes() {
+        List<Arguments> arguments = new ArrayList<>();
+        for (LuceneContext luceneContext : LuceneContext.values()) {
+            for (ValueType unsupportedType : UNSUPPORTED_TYPES) {
+                arguments.add(Arguments.of(luceneContext, unsupportedType));
+            }
+        }
+        return arguments;
     }
 }

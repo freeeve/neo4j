@@ -34,6 +34,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexProvider;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
@@ -70,7 +71,7 @@ public class FulltextIndexProviderFactory extends AbstractIndexProviderFactory<F
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             DependencyResolver dependencyResolver) {
-        DirectoryFactory directoryFactory = directoryFactory(fs);
+        DirectoryFactory directoryFactory = directoryFactory(LuceneContext.getDefault(), fs);
         IndexDirectoryStructure.Factory directoryStructureFactory =
                 subProviderDirectoryStructure(databaseLayout.databaseDirectory());
         return new FulltextIndexProvider(

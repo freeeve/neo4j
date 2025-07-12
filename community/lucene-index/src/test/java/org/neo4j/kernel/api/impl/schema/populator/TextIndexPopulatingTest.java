@@ -27,10 +27,12 @@ import static org.neo4j.kernel.api.index.IndexQueryHelper.add;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.change;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.remove;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexProvider;
 import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
@@ -43,9 +45,10 @@ class TextIndexPopulatingTest {
             .withName("12")
             .materialise(13);
 
-    @Test
-    void additionsDeliveredToIndexWriter() throws Exception {
-        var documentsFactory = LuceneDocumentsFactory.CURRENT;
+    @ParameterizedTest
+    @EnumSource
+    void additionsDeliveredToIndexWriter(LuceneContext luceneContext) throws Exception {
+        var documentsFactory = luceneContext.documentsFactory();
         LucenePartitionIndexWriter writer = mock(LucenePartitionIndexWriter.class);
         when(writer.documentsFactory()).thenReturn(documentsFactory);
 
@@ -61,9 +64,10 @@ class TextIndexPopulatingTest {
         verify(writer).updateDocument(ENTITY_ID_KEY, 3, documentsFactory.reusableTextDocument(3, Values.values("qux")));
     }
 
-    @Test
-    void changesDeliveredToIndexWriter() throws Exception {
-        var documentsFactory = LuceneDocumentsFactory.CURRENT;
+    @ParameterizedTest
+    @EnumSource
+    void changesDeliveredToIndexWriter(LuceneContext luceneContext) throws Exception {
+        var documentsFactory = luceneContext.documentsFactory();
         LucenePartitionIndexWriter writer = mock(LucenePartitionIndexWriter.class);
         when(writer.documentsFactory()).thenReturn(documentsFactory);
 
@@ -80,9 +84,12 @@ class TextIndexPopulatingTest {
                         ENTITY_ID_KEY, 2, documentsFactory.reusableTextDocument(2, Values.values("after2")));
     }
 
-    @Test
-    void removalsDeliveredToIndexWriter() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void removalsDeliveredToIndexWriter(LuceneContext luceneContext) throws Exception {
+        LuceneDocumentsFactory documentsFactory = luceneContext.documentsFactory();
         LucenePartitionIndexWriter writer = mock(LucenePartitionIndexWriter.class);
+        when(writer.documentsFactory()).thenReturn(documentsFactory);
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(remove(1, INDEX_DESCRIPTOR, "foo"));

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DirectoryFactory;
@@ -32,7 +33,9 @@ public interface DirectoryFactory extends AutoCloseable {
 
     LuceneDirectory open(Path dir) throws IOException;
 
-    static DirectoryFactory directoryFactory(FileSystemAbstraction fs) {
+    LuceneContext getContext();
+
+    static DirectoryFactory directoryFactory(LuceneContext context, FileSystemAbstraction fs) {
         return fs.isPersistent() ? DirectoryFactory.PERSISTENT : CURRENT.newInMemoryDirectoryFactory(fs);
     }
 
@@ -72,6 +75,11 @@ public interface DirectoryFactory extends AutoCloseable {
         @Override
         protected LuceneDirectory actualOpen(LuceneDirectoryFactory directoryFactory, Path dir) throws IOException {
             return directoryFactory.openPersistent(dir);
+        }
+
+        @Override
+        public LuceneContext getContext() {
+            return LuceneContext.LUCENE_9;
         }
     }
 

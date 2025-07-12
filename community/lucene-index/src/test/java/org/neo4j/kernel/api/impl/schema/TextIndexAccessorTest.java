@@ -30,12 +30,13 @@ import static org.neo4j.kernel.api.impl.schema.LuceneTestTokenNameLookup.SIMPLE_
 
 import java.lang.reflect.InvocationHandler;
 import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.annotations.documented.ReporterFactories;
 import org.neo4j.annotations.documented.ReporterFactory;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexAccessor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.values.ElementIdMapper;
@@ -47,8 +48,8 @@ class TextIndexAccessorTest {
 
     private TextIndexAccessor accessor;
 
-    @BeforeEach
-    void setUp() {
+    void setUp(LuceneContext luceneContext) {
+        when(schemaIndex.luceneContext()).thenReturn(luceneContext);
         accessor = new TextIndexAccessor(
                 schemaIndex,
                 IndexPrototype.forSchema(forLabel(1, 2)).withName("a").materialise(1),
@@ -57,20 +58,26 @@ class TextIndexAccessorTest {
                 UPDATE_IGNORE_STRATEGY);
     }
 
-    @Test
-    void indexIsNotConsistentWhenIndexIsNotValid() {
+    @ParameterizedTest
+    @EnumSource
+    void indexIsNotConsistentWhenIndexIsNotValid(LuceneContext luceneContext) {
+        setUp(luceneContext);
         when(schemaIndex.isValid()).thenReturn(false);
         assertFalse(accessor.consistencyCheck(ReporterFactories.noopReporterFactory(), NULL_CONTEXT_FACTORY, 1));
     }
 
-    @Test
-    void indexIsConsistentWhenIndexIsValid() {
+    @ParameterizedTest
+    @EnumSource
+    void indexIsConsistentWhenIndexIsValid(LuceneContext luceneContext) {
+        setUp(luceneContext);
         when(schemaIndex.isValid()).thenReturn(true);
         assertTrue(accessor.consistencyCheck(ReporterFactories.noopReporterFactory(), NULL_CONTEXT_FACTORY, 1));
     }
 
-    @Test
-    void indexReportInconsistencyToVisitor() {
+    @ParameterizedTest
+    @EnumSource
+    void indexReportInconsistencyToVisitor(LuceneContext luceneContext) {
+        setUp(luceneContext);
         when(schemaIndex.isValid()).thenReturn(false);
         MutableBoolean called = new MutableBoolean();
         final InvocationHandler handler = (proxy, method, args) -> {

@@ -41,8 +41,8 @@ import java.util.Set;
 import java.util.stream.LongStream;
 import org.eclipse.collections.impl.factory.Sets;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -50,6 +50,7 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
@@ -85,10 +86,9 @@ class TextIndexPopulatorTest {
     private static final int propertyKeyId = 666;
     private IndexDescriptor index;
 
-    @BeforeEach
-    void before() throws IOException {
-        directory = DirectoryFactory.CURRENT.inMemoryDirectory();
-        DirectoryFactory directoryFactory = new SingleUnclosingDirectoryFactory(directory);
+    void before(LuceneContext luceneContext) throws IOException {
+        directory = luceneContext.directoryFactory().inMemoryDirectory();
+        DirectoryFactory directoryFactory = new SingleUnclosingDirectoryFactory(luceneContext, directory);
         provider = new TextIndexProvider(
                 fs,
                 directoryFactory,
@@ -122,8 +122,10 @@ class TextIndexPopulatorTest {
         directory.close();
     }
 
-    @Test
-    void addingValuesShouldPersistThem() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void addingValuesShouldPersistThem(LuceneContext luceneContext) throws Exception {
+        before(luceneContext);
         // WHEN
         addUpdate(indexPopulator, 1, "First");
         addUpdate(indexPopulator, 2, "Second");
@@ -146,8 +148,10 @@ class TextIndexPopulatorTest {
                 hit("6D", 8));
     }
 
-    @Test
-    void shouldIgnoreAddingUnsupportedValueTypes() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldIgnoreAddingUnsupportedValueTypes(LuceneContext luceneContext) throws Exception {
+        before(luceneContext);
         // given  populating an empty index
         final var ids = LongStream.range(0L, 10L).toArray();
 
@@ -160,8 +164,10 @@ class TextIndexPopulatorTest {
         assertIndexedValues(hits);
     }
 
-    @Test
-    void multipleEqualValues() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void multipleEqualValues(LuceneContext luceneContext) throws Exception {
+        before(luceneContext);
         // WHEN
         addUpdate(indexPopulator, 1, "value");
         addUpdate(indexPopulator, 2, "value");
@@ -171,8 +177,10 @@ class TextIndexPopulatorTest {
         assertIndexedValues(hit("value", 1L, 2L, 3L));
     }
 
-    @Test
-    void multipleEqualValuesWithUpdateThatRemovesOne() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void multipleEqualValuesWithUpdateThatRemovesOne(LuceneContext luceneContext) throws Exception {
+        before(luceneContext);
         // WHEN
         addUpdate(indexPopulator, 1, "value");
         addUpdate(indexPopulator, 2, "value");
@@ -183,8 +191,10 @@ class TextIndexPopulatorTest {
         assertIndexedValues(hit("value", 1L, 3L));
     }
 
-    @Test
-    void changeUpdatesInterleavedWithAdds() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void changeUpdatesInterleavedWithAdds(LuceneContext luceneContext) throws Exception {
+        before(luceneContext);
         // WHEN
         addUpdate(indexPopulator, 1, "1");
         addUpdate(indexPopulator, 2, "2");
@@ -195,8 +205,10 @@ class TextIndexPopulatorTest {
         assertIndexedValues(no("1"), hit("1a", 1), hit("2", 2), hit("3", 3));
     }
 
-    @Test
-    void addUpdatesInterleavedWithAdds() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void addUpdatesInterleavedWithAdds(LuceneContext luceneContext) throws Exception {
+        before(luceneContext);
         // WHEN
         addUpdate(indexPopulator, 1, "1");
         addUpdate(indexPopulator, 2, "2");
@@ -207,8 +219,10 @@ class TextIndexPopulatorTest {
         assertIndexedValues(hit("1a", 1), hit("2", 2), hit("3", 3), no("1"));
     }
 
-    @Test
-    void removeUpdatesInterleavedWithAdds() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void removeUpdatesInterleavedWithAdds(LuceneContext luceneContext) throws Exception {
+        before(luceneContext);
         // WHEN
         addUpdate(indexPopulator, 1, "1");
         addUpdate(indexPopulator, 2, "2");
@@ -219,8 +233,10 @@ class TextIndexPopulatorTest {
         assertIndexedValues(hit("1", 1), no("2"), hit("3", 3));
     }
 
-    @Test
-    void multipleInterleaves() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void multipleInterleaves(LuceneContext luceneContext) throws Exception {
+        before(luceneContext);
         // WHEN
         addUpdate(indexPopulator, 1, "1");
         addUpdate(indexPopulator, 2, "2");
@@ -305,19 +321,26 @@ class TextIndexPopulatorTest {
         }
     }
 
-    private record SingleUnclosingDirectoryFactory(LuceneDirectory directory) implements DirectoryFactory {
-        SingleUnclosingDirectoryFactory(LuceneDirectory directory) {
+    private record SingleUnclosingDirectoryFactory(LuceneContext luceneContext, LuceneDirectory directory)
+            implements DirectoryFactory {
+        SingleUnclosingDirectoryFactory(LuceneContext luceneContext, LuceneDirectory directory) {
             this.directory = new LuceneDirectory.DelegatingLuceneDirectory(directory) {
                 @Override
                 public void close() {
                     // Don't close
                 }
             };
+            this.luceneContext = luceneContext;
         }
 
         @Override
         public LuceneDirectory open(Path dir) {
             return directory;
+        }
+
+        @Override
+        public LuceneContext getContext() {
+            return luceneContext;
         }
 
         @Override

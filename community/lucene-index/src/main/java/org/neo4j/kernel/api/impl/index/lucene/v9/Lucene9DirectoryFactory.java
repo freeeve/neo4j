@@ -32,6 +32,7 @@ import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.store.NRTCachingDirectory;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryFactory;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
@@ -88,6 +89,11 @@ public class Lucene9DirectoryFactory implements LuceneDirectoryFactory {
                     // Don't close to allow sharing, the factory will close it later.
                 }
             };
+        }
+
+        @Override
+        public LuceneContext getContext() {
+            return LuceneContext.LUCENE_9;
         }
 
         private Lucene9Directory openFromFs(Path dir) {

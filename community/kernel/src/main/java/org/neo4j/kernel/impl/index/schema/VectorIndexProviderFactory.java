@@ -32,6 +32,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexProvider;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.logging.InternalLogProvider;
@@ -75,7 +76,7 @@ public class VectorIndexProviderFactory extends AbstractIndexProviderFactory<Vec
         return new VectorIndexProvider(
                 version,
                 fs,
-                directoryFactory(fs),
+                directoryFactory(LuceneContext.getDefault(), fs),
                 directoriesByProvider(databaseLayout.databaseDirectory()),
                 monitors,
                 config,

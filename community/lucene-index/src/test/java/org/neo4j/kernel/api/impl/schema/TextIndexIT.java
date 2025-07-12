@@ -37,7 +37,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.internal.helpers.collection.Iterables;
@@ -52,6 +53,7 @@ import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.LucenePartitionsAllDocumentsReader;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexAccessor;
@@ -86,10 +88,11 @@ class TextIndexIT {
             .set(LuceneSettings.lucene_max_partition_size, 10)
             .build();
 
-    @Test
-    void snapshotForPartitionedIndex() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void snapshotForPartitionedIndex(LuceneContext luceneContext) throws Exception {
         // Given
-        try (TextIndexAccessor indexAccessor = createDefaultIndexAccessor()) {
+        try (TextIndexAccessor indexAccessor = createDefaultIndexAccessor(luceneContext)) {
             generateUpdates(indexAccessor, 32);
             indexAccessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
 
@@ -109,31 +112,34 @@ class TextIndexIT {
         }
     }
 
-    @Test
-    void snapshotForIndexWithNoCommits() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void snapshotForIndexWithNoCommits(LuceneContext luceneContext) throws Exception {
         // Given
         // A completely un-used index
-        try (TextIndexAccessor indexAccessor = createDefaultIndexAccessor();
+        try (TextIndexAccessor indexAccessor = createDefaultIndexAccessor(luceneContext);
                 ResourceIterator<Path> snapshotIterator = indexAccessor.snapshotFiles()) {
             assertThat(asUniqueSetOfNames(snapshotIterator)).isEqualTo(emptySet());
         }
     }
 
-    @Test
-    void updateMultiplePartitionedIndex() throws IOException {
+    @ParameterizedTest
+    @EnumSource
+    void updateMultiplePartitionedIndex(LuceneContext luceneContext) throws IOException {
         try (var index = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
+                .withLuceneContext(luceneContext)
                 .withIndexRootFolder(testDir.directory("partitionedIndexForUpdates"))
                 .build()) {
             index.create();
             index.open();
-            addDocumentToIndex(index, 45);
+            addDocumentToIndex(luceneContext, index, 45);
 
             index.getIndexWriter()
                     .updateDocument(
                             LuceneDocumentsFactory.ENTITY_ID_KEY,
                             100,
-                            LuceneDocumentsFactory.CURRENT.reusableTextDocument(100, Values.stringValue("100")));
+                            luceneContext.documentsFactory().reusableTextDocument(100, Values.stringValue("100")));
             index.maybeRefreshBlocking();
 
             long documentsInIndex = Iterators.count(index.allDocumentsReader().iterator());
@@ -141,19 +147,21 @@ class TextIndexIT {
         }
     }
 
-    @Test
-    void createPopulateDropIndex() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void createPopulateDropIndex(LuceneContext luceneContext) throws Exception {
         Path crudOperation = testDir.directory("indexCRUDOperation");
         try (var crudIndex = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
+                .withLuceneContext(luceneContext)
                 .withIndexRootFolder(crudOperation.resolve("crudIndex"))
                 .build()) {
             crudIndex.open();
 
-            addDocumentToIndex(crudIndex, 1);
+            addDocumentToIndex(luceneContext, crudIndex, 1);
             assertEquals(1, crudIndex.getPartitions().size());
 
-            addDocumentToIndex(crudIndex, 21);
+            addDocumentToIndex(luceneContext, crudIndex, 21);
             assertEquals(3, crudIndex.getPartitions().size());
 
             crudIndex.drop();
@@ -163,15 +171,17 @@ class TextIndexIT {
         }
     }
 
-    @Test
-    void createFailPartitionedIndex() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void createFailPartitionedIndex(LuceneContext luceneContext) throws Exception {
         try (var failedIndex = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
+                .withLuceneContext(luceneContext)
                 .withIndexRootFolder(testDir.directory("failedIndexFolder").resolve("failedIndex"))
                 .build()) {
             failedIndex.open();
 
-            addDocumentToIndex(failedIndex, 35);
+            addDocumentToIndex(luceneContext, failedIndex, 35);
             assertEquals(4, failedIndex.getPartitions().size());
 
             failedIndex.markAsFailed("Some failure");
@@ -182,17 +192,19 @@ class TextIndexIT {
         }
     }
 
-    @Test
-    void openClosePartitionedIndex() throws IOException {
+    @ParameterizedTest
+    @EnumSource
+    void openClosePartitionedIndex(LuceneContext luceneContext) throws IOException {
         Path indexRootFolder = testDir.directory("reopenIndexFolder").resolve("reopenIndex");
         TextIndexBuilder textIndexBuilder = TextIndexBuilder.create(
                         descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
+                .withLuceneContext(luceneContext)
                 .withIndexRootFolder(indexRootFolder);
         try (var reopenIndex = textIndexBuilder.build()) {
             reopenIndex.open();
 
-            addDocumentToIndex(reopenIndex, 1);
+            addDocumentToIndex(luceneContext, reopenIndex, 1);
 
             reopenIndex.close();
             assertFalse(reopenIndex.isOpen());
@@ -200,7 +212,7 @@ class TextIndexIT {
             reopenIndex.open();
             assertTrue(reopenIndex.isOpen());
 
-            addDocumentToIndex(reopenIndex, 10);
+            addDocumentToIndex(luceneContext, reopenIndex, 10);
 
             reopenIndex.close();
             assertFalse(reopenIndex.isOpen());
@@ -210,7 +222,7 @@ class TextIndexIT {
 
             reopenIndex.close();
             reopenIndex.open();
-            addDocumentToIndex(reopenIndex, 100);
+            addDocumentToIndex(luceneContext, reopenIndex, 100);
 
             reopenIndex.maybeRefreshBlocking();
 
@@ -220,16 +232,18 @@ class TextIndexIT {
         }
     }
 
-    private static void addDocumentToIndex(DatabaseIndex<ValueIndexReader> index, int documents) throws IOException {
+    private static void addDocumentToIndex(
+            LuceneContext luceneContext, DatabaseIndex<ValueIndexReader> index, int documents) throws IOException {
         for (int i = 0; i < documents; i++) {
             index.getIndexWriter()
-                    .addDocument(LuceneDocumentsFactory.CURRENT.reusableTextDocument(i, Values.stringValue("" + i)));
+                    .addDocument(luceneContext.documentsFactory().reusableTextDocument(i, Values.stringValue("" + i)));
         }
     }
 
-    private TextIndexAccessor createDefaultIndexAccessor() throws IOException {
+    private TextIndexAccessor createDefaultIndexAccessor(LuceneContext luceneContext) throws IOException {
         var index = TextIndexBuilder.create(descriptor, writable(), config, NullLogProvider.getInstance())
                 .withFileSystem(fileSystem)
+                .withLuceneContext(luceneContext)
                 .withIndexRootFolder(testDir.directory("testIndex"))
                 .build();
         index.create();

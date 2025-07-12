@@ -28,13 +28,14 @@ import java.nio.file.Path;
 import java.util.Set;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
@@ -52,19 +53,16 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
     Path indexDir;
     protected LuceneDirectory dir;
 
-    @BeforeEach
-    void setUp() throws IOException {
-        indexDir = testDir.homePath();
-        dir = DirectoryFactory.PERSISTENT.open(indexDir);
-    }
-
     @AfterEach
     public void tearDown() throws IOException {
         IOUtils.closeAll(dir);
     }
 
-    @Test
-    void shouldReturnRealSnapshotIfIndexAllowsIt() throws IOException {
+    @ParameterizedTest
+    @EnumSource
+    void shouldReturnRealSnapshotIfIndexAllowsIt(LuceneContext luceneContext) throws IOException {
+        indexDir = testDir.homePath();
+        dir = DirectoryFactory.PERSISTENT.open(indexDir);
         prepareIndex();
 
         Set<String> files = listDir(dir);
@@ -77,8 +75,11 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
         }
     }
 
-    @Test
-    void shouldReturnEmptyIteratorWhenNoCommitsHaveBeenMade() throws IOException {
+    @ParameterizedTest
+    @EnumSource
+    void shouldReturnEmptyIteratorWhenNoCommitsHaveBeenMade(LuceneContext luceneContext) throws IOException {
+        indexDir = testDir.homePath();
+        dir = DirectoryFactory.PERSISTENT.open(indexDir);
         try (ResourceIterator<Path> snapshot = makeSnapshot()) {
             assertFalse(snapshot.hasNext());
         }

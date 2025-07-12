@@ -44,7 +44,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.eclipse.collections.api.factory.Sets;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
@@ -53,6 +54,7 @@ import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexAccessor;
@@ -87,8 +89,9 @@ class LuceneIndexProviderTest {
         graphDbDir = testDir.homePath();
     }
 
-    @Test
-    void shouldFailToInvokePopulatorInReadOnlyMode() {
+    @ParameterizedTest
+    @EnumSource
+    void shouldFailToInvokePopulatorInReadOnlyMode(LuceneContext luceneContext) {
         var config = Config.defaults();
         TextIndexProvider readOnlyIndexProvider =
                 getLuceneIndexProvider(config, DirectoryFactory.inMemory(), fileSystem, graphDbDir);
@@ -105,8 +108,9 @@ class LuceneIndexProviderTest {
                         StorageEngineIndexingBehaviour.EMPTY));
     }
 
-    @Test
-    void shouldCreateReadOnlyAccessorInReadOnlyMode() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldCreateReadOnlyAccessorInReadOnlyMode(LuceneContext luceneContext) throws Exception {
         DirectoryFactory directoryFactory = DirectoryFactory.PERSISTENT;
         createEmptySchemaIndex(directoryFactory);
 
@@ -118,8 +122,9 @@ class LuceneIndexProviderTest {
         assertThrows(UnsupportedOperationException.class, onlineAccessor::drop);
     }
 
-    @Test
-    void indexUpdateNotAllowedInReadOnlyMode() {
+    @ParameterizedTest
+    @EnumSource
+    void indexUpdateNotAllowedInReadOnlyMode(LuceneContext luceneContext) {
         Config readOnlyConfig = Config.defaults(read_only_database_default, true);
         TextIndexProvider readOnlyIndexProvider =
                 getLuceneIndexProvider(readOnlyConfig, DirectoryFactory.inMemory(), fileSystem, graphDbDir);
@@ -128,8 +133,9 @@ class LuceneIndexProviderTest {
                 .newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false));
     }
 
-    @Test
-    void indexForceMustBeAllowedInReadOnlyMode() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void indexForceMustBeAllowedInReadOnlyMode(LuceneContext luceneContext) throws Exception {
         // IndexAccessor.force is used in check-pointing, and must be allowed in read-only mode as it would otherwise
         // prevent backups from working.
         Config readOnlyConfig = Config.defaults(read_only_database_default, true);
@@ -140,11 +146,12 @@ class LuceneIndexProviderTest {
         getIndexAccessor(readOnlyConfig, readOnlyIndexProvider).force(FileFlushEvent.NULL, NULL_CONTEXT);
     }
 
-    @Test
-    void shouldHandleConcurrentUpdates() throws Throwable {
+    @ParameterizedTest
+    @EnumSource
+    void shouldHandleConcurrentUpdates(LuceneContext luceneContext) throws Throwable {
         // Given an active lucene index populator
         var config = Config.defaults();
-        var provider = createIndexProvider(config);
+        var provider = createIndexProvider(luceneContext, config);
         var samplingConfig = new IndexSamplingConfig(config);
         var bufferFactory = heapBufferFactory((int) kibiBytes(100));
         var populator = provider.getPopulator(
@@ -191,7 +198,7 @@ class LuceneIndexProviderTest {
         populator.close(true, NULL_CONTEXT);
     }
 
-    private TextIndexProvider createIndexProvider(Config config) {
+    private TextIndexProvider createIndexProvider(LuceneContext luceneContext, Config config) {
         var directoryFactory = DirectoryFactory.inMemory();
         var directoryStructureFactory = directoriesByProvider(testDir.homePath());
         return new TextIndexProvider(

@@ -43,7 +43,7 @@ class TrigramIndexPopulatingUpdater implements IndexUpdater {
         this.writer = writer;
         this.ignoreStrategy = ignoreStrategy;
         this.validator = validator;
-        documentsFactory = writer.documentsFactory();
+        this.documentsFactory = writer.documentsFactory();
     }
 
     @Override

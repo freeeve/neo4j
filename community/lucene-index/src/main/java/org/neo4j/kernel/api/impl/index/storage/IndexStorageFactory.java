@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.index.storage;
 
+import java.nio.file.Path;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 
@@ -35,7 +36,8 @@ public class IndexStorageFactory implements AutoCloseable {
     }
 
     public PartitionedIndexStorage indexStorageOf(long indexId) {
-        return new PartitionedIndexStorage(dirFactory, fileSystem, structure.directoryForIndex(indexId));
+        Path rootFolder = structure.directoryForIndex(indexId);
+        return new PartitionedIndexStorage(dirFactory.getContext(), dirFactory, fileSystem, rootFolder);
     }
 
     @Override

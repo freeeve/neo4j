@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.List;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -34,9 +35,16 @@ import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
 abstract class AbstractDatabaseIndex<INDEX extends AbstractLuceneIndex<READER>, READER extends ValueIndexReader>
         implements DatabaseIndex<READER> {
     protected final INDEX luceneIndex;
+    protected final LuceneContext luceneContext;
 
     AbstractDatabaseIndex(INDEX luceneIndex) {
         this.luceneIndex = luceneIndex;
+        this.luceneContext = luceneIndex.luceneContext();
+    }
+
+    @Override
+    public LuceneContext luceneContext() {
+        return luceneContext;
     }
 
     /**

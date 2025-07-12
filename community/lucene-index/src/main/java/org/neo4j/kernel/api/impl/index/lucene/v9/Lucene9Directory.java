@@ -39,6 +39,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.Version;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
@@ -99,6 +100,11 @@ public class Lucene9Directory implements LuceneDirectory {
     public LuceneIndexWriter newWriter(LuceneIndexWriterConfig writerConfig) throws IOException {
         IndexWriter indexWriter = new IndexWriter(directory, convertConfig(writerConfig));
         return new Lucene9IndexWriter(indexWriter);
+    }
+
+    @Override
+    public LuceneContext getLuceneContext() {
+        return LuceneContext.LUCENE_9;
     }
 
     @Override

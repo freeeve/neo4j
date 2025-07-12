@@ -24,7 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.readOnly;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -32,6 +33,7 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexBuilder;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.extension.Inject;
@@ -52,23 +54,27 @@ class TextIndexBuilderTest {
             .withIndexProvider(AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR)
             .materialise(0);
 
-    @Test
-    void readOnlyIndexCreation() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void readOnlyIndexCreation(LuceneContext luceneContext) throws Exception {
         try (var index = TextIndexBuilder.create(
                         descriptor, readOnly(), getDefaultConfig(), NullLogProvider.getInstance())
                 .withFileSystem(fileSystemRule)
                 .withIndexRootFolder(testDir.directory("a"))
+                .withLuceneContext(luceneContext)
                 .build()) {
             assertTrue(index.isReadOnly(), "Builder should construct read only index.");
         }
     }
 
-    @Test
-    void writableIndexCreation() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void writableIndexCreation(LuceneContext luceneContext) throws Exception {
         try (var index = TextIndexBuilder.create(
                         descriptor, writable(), getDefaultConfig(), NullLogProvider.getInstance())
                 .withFileSystem(fileSystemRule)
                 .withIndexRootFolder(testDir.directory("b"))
+                .withLuceneContext(luceneContext)
                 .build()) {
             assertFalse(index.isReadOnly(), "Builder should construct writable index.");
         }

@@ -71,6 +71,8 @@ public interface LuceneDirectory extends Closeable {
 
     LuceneIndexWriter newWriter(LuceneIndexWriterConfig writerConfig) throws IOException;
 
+    LuceneContext getLuceneContext();
+
     class DelegatingLuceneDirectory implements LuceneDirectory {
         private final LuceneDirectory delegate;
 
@@ -126,6 +128,11 @@ public interface LuceneDirectory extends Closeable {
         @Override
         public LuceneIndexWriter newWriter(LuceneIndexWriterConfig writerConfig) throws IOException {
             return delegate.newWriter(writerConfig);
+        }
+
+        @Override
+        public LuceneContext getLuceneContext() {
+            return delegate.getLuceneContext();
         }
     }
 }

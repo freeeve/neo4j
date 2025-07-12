@@ -37,7 +37,8 @@ import java.util.List;
 import java.util.function.LongFunction;
 import java.util.stream.LongStream;
 import org.eclipse.collections.impl.factory.Sets;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
@@ -48,6 +49,7 @@ import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -76,10 +78,11 @@ class TextIndexPopulatingUpdaterIT {
             .withName("index_1")
             .materialise(1);
 
-    @Test
-    void shouldSampleAdditions() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldSampleAdditions(LuceneContext luceneContext) throws Exception {
         // Given
-        var provider = createIndexProvider();
+        var provider = createIndexProvider(luceneContext);
         var populator = getPopulator(provider, INDEX_DESCRIPTOR);
 
         // When
@@ -94,10 +97,11 @@ class TextIndexPopulatingUpdaterIT {
         assertThat(populator.sample(NULL_CONTEXT)).isEqualTo(new IndexSample(4, 3, 4));
     }
 
-    @Test
-    void shouldSampleUpdates() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldSampleUpdates(LuceneContext luceneContext) throws Exception {
         // Given
-        var provider = createIndexProvider();
+        var provider = createIndexProvider(luceneContext);
         var populator = getPopulator(provider, INDEX_DESCRIPTOR);
 
         // When
@@ -113,10 +117,11 @@ class TextIndexPopulatingUpdaterIT {
         assertThat(populator.sample(NULL_CONTEXT)).isEqualTo(new IndexSample(3, 4, 5));
     }
 
-    @Test
-    void shouldSampleRemovals() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    void shouldSampleRemovals(LuceneContext luceneContext) throws Exception {
         // Given
-        var provider = createIndexProvider();
+        var provider = createIndexProvider(luceneContext);
         var populator = getPopulator(provider, INDEX_DESCRIPTOR);
 
         // When
@@ -134,28 +139,31 @@ class TextIndexPopulatingUpdaterIT {
         assertThat(populator.sample(NULL_CONTEXT)).isEqualTo(new IndexSample(1, 4, 4));
     }
 
-    @Test
-    final void shouldIgnoreAddedUnsupportedValueTypes() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    final void shouldIgnoreAddedUnsupportedValueTypes(LuceneContext luceneContext) throws Exception {
         // given  the population of an empty index
         final var externalUpdates =
                 generateUpdates(10, id -> ValueIndexEntryUpdate.add(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
         // when   processing the addition of unsupported value types
         // then   updates should not have been indexed
-        test(List.of(), externalUpdates, 0);
+        test(luceneContext, List.of(), externalUpdates, 0);
     }
 
-    @Test
-    final void shouldIgnoreRemovedUnsupportedValueTypes() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    final void shouldIgnoreRemovedUnsupportedValueTypes(LuceneContext luceneContext) throws Exception {
         // given  the population of an empty index
         final var externalUpdates =
                 generateUpdates(10, id -> ValueIndexEntryUpdate.remove(id, INDEX_DESCRIPTOR, unsupportedValue(id)));
         // when   processing the removal of unsupported value types
         // then   updates should not have been indexed
-        test(List.of(), externalUpdates, 0);
+        test(luceneContext, List.of(), externalUpdates, 0);
     }
 
-    @Test
-    final void shouldIgnoreChangesBetweenUnsupportedValueTypes() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    final void shouldIgnoreChangesBetweenUnsupportedValueTypes(LuceneContext luceneContext) throws Exception {
         // given  the population of an empty index
         final var externalUpdates = generateUpdates(
                 10,
@@ -163,21 +171,25 @@ class TextIndexPopulatingUpdaterIT {
                         id, INDEX_DESCRIPTOR, unsupportedValue(id), unsupportedValue(id + 1)));
         // when   processing the change between unsupported value types
         // then   updates should not have been indexed
-        test(List.of(), externalUpdates, 0);
+        test(luceneContext, List.of(), externalUpdates, 0);
     }
 
-    @Test
-    final void shouldNotIgnoreChangesUnsupportedValueTypesToSupportedValueTypes() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    final void shouldNotIgnoreChangesUnsupportedValueTypesToSupportedValueTypes(LuceneContext luceneContext)
+            throws Exception {
         // given  the population of an empty index
         final var externalUpdates = generateUpdates(
                 10, id -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, unsupportedValue(id), supportedValue(id)));
         // when   processing the change from an unsupported to a supported value type
         // then   updates should have been indexed as additions
-        test(List.of(), externalUpdates, externalUpdates.size());
+        test(luceneContext, List.of(), externalUpdates, externalUpdates.size());
     }
 
-    @Test
-    final void shouldNotIgnoreChangesSupportedValueTypesToUnsupportedValueTypes() throws Exception {
+    @ParameterizedTest
+    @EnumSource
+    final void shouldNotIgnoreChangesSupportedValueTypesToUnsupportedValueTypes(LuceneContext luceneContext)
+            throws Exception {
         // given  the population of an empty index
         final var internalUpdates =
                 generateUpdates(10, id1 -> ValueIndexEntryUpdate.add(id1, INDEX_DESCRIPTOR, supportedValue(id1)));
@@ -185,16 +197,17 @@ class TextIndexPopulatingUpdaterIT {
                 10, id -> ValueIndexEntryUpdate.change(id, INDEX_DESCRIPTOR, supportedValue(id), unsupportedValue(id)));
         // when   processing the change from a supported to an unsupported value type
         // then   updates should have been indexed as removals
-        test(internalUpdates, externalUpdates, 0);
+        test(luceneContext, internalUpdates, externalUpdates, 0);
     }
 
     private void test(
+            LuceneContext luceneContext,
             Collection<IndexEntryUpdate> internalUpdates,
             Collection<IndexEntryUpdate> externalUpdates,
             long expectedIndexSize)
             throws Exception {
 
-        final var provider = createIndexProvider();
+        final var provider = createIndexProvider(luceneContext);
         final var populator = getPopulator(provider, INDEX_DESCRIPTOR);
         populator.add(internalUpdates, NULL_CONTEXT);
 
@@ -244,7 +257,7 @@ class TextIndexPopulatingUpdaterIT {
         return AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR;
     }
 
-    private TextIndexProvider createIndexProvider() {
+    private TextIndexProvider createIndexProvider(LuceneContext luceneContext) {
         var directoryFactory = DirectoryFactory.inMemory();
         var directoryStructureFactory = directoriesByProvider(testDir.homePath());
         return new TextIndexProvider(

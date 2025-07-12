@@ -130,7 +130,7 @@ class Lucene9IndexWriter implements LuceneIndexWriter {
 
     @Override
     public LuceneDocumentsFactory documentFactory() {
-        return LuceneDocumentsFactory.CURRENT;
+        return Lucene9DocumentsFactory.INSTANCE;
     }
 
     @Override

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.lucene.v9;
+package org.neo4j.kernel.api.impl.index.lucene;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
@@ -57,7 +57,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.collection.PrimitiveLongCollections;
 import org.neo4j.configuration.Config;
 import org.neo4j.function.IOFunction;
@@ -72,6 +72,7 @@ import org.neo4j.internal.schema.IndexType;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexAccessor;
@@ -99,7 +100,6 @@ public class TextIndexAccessorTest {
 
     private static EphemeralFileSystemAbstraction fileSystem;
 
-    private IndexDescriptor index;
     private TextIndexAccessor accessor;
     private final long nodeId = 1;
     private final long nodeId2 = 2;
@@ -140,11 +140,21 @@ public class TextIndexAccessorTest {
         fileSystem.close();
     }
 
-    void init(IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory)
-            throws IOException {
-        this.index = index;
+    void init(LuceneContext luceneContext) throws IOException {
         dirFactory = DirectoryFactory.inMemory();
-        accessor = accessorFactory.apply(dirFactory);
+        Path dir = Path.of("dir");
+        DatabaseIndex<ValueIndexReader> databaseIndex = TextIndexBuilder.create(
+                        GENERAL_INDEX, writable(), CONFIG, NullLogProvider.getInstance())
+                .withFileSystem(fileSystem)
+                .withDirectoryFactory(dirFactory)
+                .withLuceneContext(luceneContext)
+                .withIndexRootFolder(dir.resolve("1"))
+                .build();
+
+        databaseIndex.create();
+        databaseIndex.open();
+        accessor = new TextIndexAccessor(
+                databaseIndex, GENERAL_INDEX, SIMPLE_TOKEN_LOOKUP, ElementIdMapper.PLACEHOLDER, UPDATE_IGNORE_STRATEGY);
     }
 
     @AfterEach
@@ -152,11 +162,10 @@ public class TextIndexAccessorTest {
         closeAll(accessor, dirFactory);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void indexReaderShouldSupportScan(
-            IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory) throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void indexReaderShouldSupportScan(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
         // GIVEN
         updateAndCommit(asList(add(nodeId, value), add(nodeId2, value2)));
         var reader = accessor.newValueReader(NO_USAGE_TRACKING);
@@ -169,11 +178,10 @@ public class TextIndexAccessorTest {
         reader.close();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void indexReaderExistsQuery(IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory)
-            throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void indexReaderExistsQuery(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
         // GIVEN
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
             // WHEN
@@ -185,11 +193,10 @@ public class TextIndexAccessorTest {
         }
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void indexReaderExactQuery(IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory)
-            throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void indexReaderExactQuery(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
         // GIVEN
         updateAndCommit(asList(add(nodeId, value), add(nodeId2, value2)));
         var reader = accessor.newValueReader(NO_USAGE_TRACKING);
@@ -202,11 +209,10 @@ public class TextIndexAccessorTest {
         reader.close();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void indexStringRangeQuery(IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory)
-            throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void indexStringRangeQuery(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
 
         // GIVEN
         try (var reader = accessor.newValueReader(NO_USAGE_TRACKING)) {
@@ -219,11 +225,10 @@ public class TextIndexAccessorTest {
         }
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void indexNumberRangeQueryMustThrow(
-            IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory) throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void indexNumberRangeQueryMustThrow(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
 
         updateAndCommit(asList(add(1, "1"), add(2, "2"), add(3, "3"), add(4, "4"), add(5, "Double.NaN")));
 
@@ -235,11 +240,10 @@ public class TextIndexAccessorTest {
                         "Index query not supported for", IndexType.TEXT.name(), "index", "Query", query.toString());
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void indexReaderShouldHonorRepeatableReads(
-            IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory) throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void indexReaderShouldHonorRepeatableReads(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
 
         // GIVEN
         updateAndCommit(singletonList(add(nodeId, value)));
@@ -253,11 +257,11 @@ public class TextIndexAccessorTest {
         reader.close();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void multipleIndexReadersFromDifferentPointsInTimeCanSeeDifferentResults(
-            IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory) throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void multipleIndexReadersFromDifferentPointsInTimeCanSeeDifferentResults(LuceneContext luceneContext)
+            throws Exception {
+        init(luceneContext);
 
         // WHEN
         updateAndCommit(singletonList(add(nodeId, value)));
@@ -274,11 +278,10 @@ public class TextIndexAccessorTest {
         secondReader.close();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void canAddNewData(IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory)
-            throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void canAddNewData(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
 
         // WHEN
         updateAndCommit(asList(add(nodeId, value), add(nodeId2, value2)));
@@ -289,11 +292,10 @@ public class TextIndexAccessorTest {
         reader.close();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void canChangeExistingData(IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory)
-            throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void canChangeExistingData(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
 
         // GIVEN
         updateAndCommit(singletonList(add(nodeId, value)));
@@ -308,11 +310,10 @@ public class TextIndexAccessorTest {
         reader.close();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void canRemoveExistingData(IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory)
-            throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void canRemoveExistingData(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
 
         // GIVEN
         updateAndCommit(asList(add(nodeId, value), add(nodeId2, value2)));
@@ -327,11 +328,10 @@ public class TextIndexAccessorTest {
         reader.close();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("implementations")
-    void shouldStopSamplingWhenIndexIsDropped(
-            IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory) throws Exception {
-        init(index, accessorFactory);
+    @ParameterizedTest
+    @EnumSource
+    void shouldStopSamplingWhenIndexIsDropped(LuceneContext luceneContext) throws Exception {
+        init(luceneContext);
 
         // given
         updateAndCommit(asList(add(nodeId, value), add(nodeId2, value2)));
@@ -341,7 +341,7 @@ public class TextIndexAccessorTest {
         BinaryLatch dropLatch = new BinaryLatch();
         BinaryLatch sampleLatch = new BinaryLatch();
 
-        Lucene9IndexSampler indexSampler = spy((Lucene9IndexSampler) indexReader.createSampler());
+        LuceneIndexSampler indexSampler = spy((LuceneIndexSampler) indexReader.createSampler());
         doAnswer(inv -> {
                     var obj = inv.callRealMethod();
                     dropLatch.release(); // We have now started the sampling, let the index try to drop
@@ -407,15 +407,15 @@ public class TextIndexAccessorTest {
     }
 
     private IndexEntryUpdate add(long nodeId, Object value) {
-        return IndexQueryHelper.add(nodeId, index, value);
+        return IndexQueryHelper.add(nodeId, GENERAL_INDEX, value);
     }
 
     private IndexEntryUpdate remove(long nodeId, Object value) {
-        return IndexQueryHelper.remove(nodeId, index, value);
+        return IndexQueryHelper.remove(nodeId, GENERAL_INDEX, value);
     }
 
     private IndexEntryUpdate change(long nodeId, Object valueBefore, Object valueAfter) {
-        return IndexQueryHelper.change(nodeId, index, valueBefore, valueAfter);
+        return IndexQueryHelper.change(nodeId, GENERAL_INDEX, valueBefore, valueAfter);
     }
 
     private void updateAndCommit(List<IndexEntryUpdate> nodePropertyUpdates) throws IndexEntryConflictException {

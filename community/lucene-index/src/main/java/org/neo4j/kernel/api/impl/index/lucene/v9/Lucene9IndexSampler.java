@@ -33,10 +33,10 @@ import org.neo4j.internal.helpers.CancellationRequest;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSampler;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.impl.schema.populator.DefaultNonUniqueIndexSampler;
 import org.neo4j.kernel.api.index.IndexSample;
-import org.neo4j.kernel.api.index.IndexSampler;
 import org.neo4j.kernel.api.index.NonUniqueIndexSampler;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 
@@ -44,7 +44,7 @@ import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
  * Sampler for non-unique Lucene schema index.
  * Internally uses terms and their document frequencies for sampling.
  */
-class Lucene9IndexSampler implements IndexSampler {
+class Lucene9IndexSampler implements LuceneIndexSampler {
     private final Lucene9IndexSearcher indexSearcher;
     private final IndexSamplingConfig indexSamplingConfig;
     private final TaskCoordinator taskCoordinator;
@@ -119,7 +119,8 @@ class Lucene9IndexSampler implements IndexSampler {
         return fieldNames;
     }
 
-    TaskCoordinator.Task newTask() throws IndexNotFoundKernelException {
+    @Override
+    public TaskCoordinator.Task newTask() throws IndexNotFoundKernelException {
         checkCancellation(taskCoordinator);
         return taskCoordinator.newTask();
     }

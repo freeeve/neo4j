@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.impl.index.builder;
 import java.nio.file.Path;
 import java.util.Objects;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 
@@ -31,10 +32,11 @@ import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
  * builder methods.
  */
 public class LuceneIndexStorageBuilder {
-    private DirectoryFactory directoryFactory = DirectoryFactory.PERSISTENT;
+    private DirectoryFactory directoryFactory;
     private FileSystemAbstraction fileSystem;
     private Path indexRootFolder;
     private PartitionedIndexStorage indexStorage;
+    private LuceneContext luceneContext;
 
     private LuceneIndexStorageBuilder() {}
 
@@ -54,10 +56,13 @@ public class LuceneIndexStorageBuilder {
      */
     public PartitionedIndexStorage build() {
         if (indexStorage == null) {
-            Objects.requireNonNull(directoryFactory);
+            Objects.requireNonNull(luceneContext);
+            if (directoryFactory == null) {
+                directoryFactory = DirectoryFactory.PERSISTENT;
+            }
             Objects.requireNonNull(fileSystem);
             Objects.requireNonNull(indexRootFolder);
-            indexStorage = new PartitionedIndexStorage(directoryFactory, fileSystem, indexRootFolder);
+            indexStorage = new PartitionedIndexStorage(luceneContext, directoryFactory, fileSystem, indexRootFolder);
         }
         return indexStorage;
     }
@@ -70,6 +75,11 @@ public class LuceneIndexStorageBuilder {
      */
     public LuceneIndexStorageBuilder withDirectoryFactory(DirectoryFactory directoryFactory) {
         this.directoryFactory = directoryFactory;
+        return this;
+    }
+
+    public LuceneIndexStorageBuilder withLuceneContext(LuceneContext luceneContext) {
+        this.luceneContext = luceneContext;
         return this;
     }
 

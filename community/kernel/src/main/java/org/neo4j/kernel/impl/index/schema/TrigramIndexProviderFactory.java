@@ -33,6 +33,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.schema.trigram.TrigramIndexProvider;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.logging.InternalLogProvider;
@@ -70,6 +71,12 @@ public class TrigramIndexProviderFactory extends AbstractIndexProviderFactory<Tr
             DependencyResolver dependencyResolver) {
         IndexDirectoryStructure.Factory directoryStructure = directoriesByProvider(databaseLayout.databaseDirectory());
         return new TrigramIndexProvider(
-                fs, directoryFactory(fs), directoryStructure, monitors, config, readOnlyDatabaseChecker, logProvider);
+                fs,
+                directoryFactory(LuceneContext.getDefault(), fs),
+                directoryStructure,
+                monitors,
+                config,
+                readOnlyDatabaseChecker,
+                logProvider);
     }
 }

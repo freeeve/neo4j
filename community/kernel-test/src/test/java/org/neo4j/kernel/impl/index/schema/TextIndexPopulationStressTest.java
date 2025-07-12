@@ -29,38 +29,49 @@ import static org.neo4j.values.storable.ValueType.STRING_ALPHANUMERIC;
 import static org.neo4j.values.storable.ValueType.STRING_ASCII;
 import static org.neo4j.values.storable.ValueType.STRING_BMP;
 
+import org.junit.jupiter.api.Nested;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 
-class TextIndexPopulationStressTest extends IndexPopulationStressTest {
-    TextIndexPopulationStressTest() {
-        super(
-                true,
-                randomValues ->
-                        randomValues.nextValueOfTypes(CHAR, STRING, STRING_ALPHANUMERIC, STRING_ASCII, STRING_BMP),
-                test -> {
-                    DatabaseIndexContext context = DatabaseIndexContext.builder(
-                                    test.pageCache,
-                                    test.fs,
-                                    test.contextFactory,
-                                    test.pageCacheTracer,
-                                    DEFAULT_DATABASE_NAME)
-                            .build();
-                    return new TextIndexProvider(
-                            context.fileSystem,
-                            directoryFactory(context.fileSystem),
-                            test.directory(),
-                            new Monitors(),
-                            defaults(),
-                            writable(),
-                            NullLogProvider.getInstance());
-                });
+class TextIndexPopulationStressTest {
+    @Nested
+    class Lucene9 extends TextIndexPopulationStressTestBase {
+        Lucene9() {
+            super(LuceneContext.LUCENE_9);
+        }
     }
 
-    @Override
-    IndexType indexType() {
-        return IndexType.TEXT;
+    abstract static class TextIndexPopulationStressTestBase extends IndexPopulationStressTest {
+        TextIndexPopulationStressTestBase(LuceneContext luceneContext) {
+            super(
+                    true,
+                    randomValues ->
+                            randomValues.nextValueOfTypes(CHAR, STRING, STRING_ALPHANUMERIC, STRING_ASCII, STRING_BMP),
+                    test -> {
+                        DatabaseIndexContext context = DatabaseIndexContext.builder(
+                                        test.pageCache,
+                                        test.fs,
+                                        test.contextFactory,
+                                        test.pageCacheTracer,
+                                        DEFAULT_DATABASE_NAME)
+                                .build();
+                        return new TextIndexProvider(
+                                context.fileSystem,
+                                directoryFactory(luceneContext, context.fileSystem),
+                                test.directory(),
+                                new Monitors(),
+                                defaults(),
+                                writable(),
+                                NullLogProvider.getInstance());
+                    });
+        }
+
+        @Override
+        IndexType indexType() {
+            return IndexType.TEXT;
+        }
     }
 }

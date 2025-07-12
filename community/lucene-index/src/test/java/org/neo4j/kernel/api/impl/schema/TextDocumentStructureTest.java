@@ -28,36 +28,42 @@ import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.useFieldFor
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.values.storable.Values;
 
 class TextDocumentStructureTest {
-    @Test
-    void stringWithMaximumLengthShouldBeAllowed() {
+    @ParameterizedTest
+    @EnumSource
+    void stringWithMaximumLengthShouldBeAllowed(LuceneContext luceneContext) {
         String longestString = RandomStringUtils.randomAscii(LuceneIndexWriter.MAX_TERM_LENGTH);
         LuceneDocument document =
-                LuceneDocumentsFactory.CURRENT.reusableTextDocument(123, Values.values(longestString));
+                luceneContext.documentsFactory().reusableTextDocument(123, Values.values(longestString));
         assertEquals(longestString, document.get(LuceneDocumentsFactory.textValueKey(0)));
     }
 
-    @Test
-    void shouldBuildDocumentRepresentingStringProperty() {
+    @ParameterizedTest
+    @EnumSource
+    void shouldBuildDocumentRepresentingStringProperty(LuceneContext luceneContext) {
         // given
-        LuceneDocument document = LuceneDocumentsFactory.CURRENT.reusableTextDocument(123, Values.values("hello"));
+        LuceneDocument document = luceneContext.documentsFactory().reusableTextDocument(123, Values.values("hello"));
 
         // then
         assertEquals("123", document.get(ENTITY_ID_KEY));
         assertEquals("hello", document.get(LuceneDocumentsFactory.textValueKey(0)));
     }
 
-    @Test
-    void shouldBuildDocumentRepresentingMultipleStringProperties() {
+    @ParameterizedTest
+    @EnumSource
+    void shouldBuildDocumentRepresentingMultipleStringProperties(LuceneContext luceneContext) {
         // given
         String[] values = new String[] {"hello", "world"};
         LuceneDocument document =
-                LuceneDocumentsFactory.CURRENT.reusableTextDocument(123, Values.values((Object[]) values));
+                luceneContext.documentsFactory().reusableTextDocument(123, Values.values((Object[]) values));
 
         // then
         assertEquals("123", document.get(ENTITY_ID_KEY));

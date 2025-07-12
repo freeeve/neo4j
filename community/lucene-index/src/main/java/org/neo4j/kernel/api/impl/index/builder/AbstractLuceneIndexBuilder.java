@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.logging.LogProvider;
@@ -62,6 +63,17 @@ public abstract class AbstractLuceneIndexBuilder<T extends AbstractLuceneIndexBu
      */
     public T withDirectoryFactory(DirectoryFactory directoryFactory) {
         storageBuilder.withDirectoryFactory(directoryFactory);
+        return (T) this;
+    }
+
+    /**
+     * Specify lucene context to use.
+     *
+     * @param luceneContext the lucene context.
+     * @return index builder.
+     */
+    public T withLuceneContext(LuceneContext luceneContext) {
+        storageBuilder.withLuceneContext(luceneContext);
         return (T) this;
     }
 

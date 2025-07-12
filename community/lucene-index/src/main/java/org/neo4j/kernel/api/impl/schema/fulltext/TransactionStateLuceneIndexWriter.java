@@ -52,7 +52,7 @@ class TransactionStateLuceneIndexWriter implements LucenePartitionIndexWriter, C
 
     @Override
     public LuceneDocumentsFactory documentsFactory() {
-        return LuceneDocumentsFactory.CURRENT;
+        return directory.getLuceneContext().documentsFactory();
     }
 
     @Override

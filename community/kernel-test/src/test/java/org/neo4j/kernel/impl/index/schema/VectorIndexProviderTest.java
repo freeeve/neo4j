@@ -38,6 +38,7 @@ import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexProvider;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.schema.vector.VectorTestUtils.VectorIndexSettings;
@@ -46,9 +47,22 @@ import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 
 class VectorIndexProviderTest {
     @Nested
-    class V1 extends VectorIndexProviderTestBase {
-        V1() {
-            super(VectorIndexVersion.V1_0);
+    class V1Lucene9 extends V1 {
+        V1Lucene9() {
+            super(LuceneContext.LUCENE_9);
+        }
+    }
+
+    @Nested
+    class V2Lucene9 extends V2 {
+        V2Lucene9() {
+            super(LuceneContext.LUCENE_9);
+        }
+    }
+
+    abstract static class V1 extends VectorIndexProviderTestBase {
+        V1(LuceneContext luceneContext) {
+            super(luceneContext, VectorIndexVersion.V1_0);
         }
 
         private VectorIndexSettings validSettings() {
@@ -114,10 +128,9 @@ class VectorIndexProviderTest {
         }
     }
 
-    @Nested
-    class V2 extends VectorIndexProviderTestBase {
-        V2() {
-            super(VectorIndexVersion.V2_0);
+    abstract static class V2 extends VectorIndexProviderTestBase {
+        V2(LuceneContext luceneContext) {
+            super(luceneContext, VectorIndexVersion.V2_0);
         }
 
         @Override
@@ -161,8 +174,8 @@ class VectorIndexProviderTest {
     abstract static class VectorIndexProviderTestBase extends IndexProviderTests {
         protected final VectorIndexVersion version;
 
-        VectorIndexProviderTestBase(VectorIndexVersion version) {
-            super(factory(version));
+        VectorIndexProviderTestBase(LuceneContext luceneContext, VectorIndexVersion version) {
+            super(factory(luceneContext, version));
             this.version = version;
         }
 
@@ -198,7 +211,7 @@ class VectorIndexProviderTest {
 
         private static final AtomicInteger THREAD_POOL_JOB_SCHEDULER_ID = new AtomicInteger();
 
-        private static ProviderFactory factory(VectorIndexVersion version) {
+        private static ProviderFactory factory(LuceneContext luceneContext, VectorIndexVersion version) {
             return (pageCache,
                     fs,
                     dir,
@@ -210,7 +223,7 @@ class VectorIndexProviderTest {
                     pageCacheTracer) -> new VectorIndexProvider(
                     version,
                     fs,
-                    directoryFactory(fs),
+                    directoryFactory(luceneContext, fs),
                     dir,
                     monitors,
                     Config.defaults(),

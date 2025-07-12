@@ -39,6 +39,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.IndexFileSnapshotter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
@@ -86,6 +87,10 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
         this.descriptor = descriptor;
         this.config = config;
         this.logProvider = logProvider;
+    }
+
+    public LuceneContext luceneContext() {
+        return indexStorage.luceneContext();
     }
 
     /**

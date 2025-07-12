@@ -33,6 +33,7 @@ import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.fs.FileUtils;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.storage.layout.FolderLayout;
 import org.neo4j.kernel.api.impl.index.storage.layout.IndexFolderLayout;
@@ -50,13 +51,22 @@ public class PartitionedIndexStorage {
     private final FileSystemAbstraction fileSystem;
     private final FolderLayout folderLayout;
     private final FailureStorage failureStorage;
+    private LuceneContext luceneContext;
 
     public PartitionedIndexStorage(
-            DirectoryFactory directoryFactory, FileSystemAbstraction fileSystem, Path rootFolder) {
+            LuceneContext luceneContext,
+            DirectoryFactory directoryFactory,
+            FileSystemAbstraction fileSystem,
+            Path rootFolder) {
+        this.luceneContext = luceneContext;
         this.fileSystem = fileSystem;
         this.folderLayout = new IndexFolderLayout(rootFolder);
         this.directoryFactory = directoryFactory;
         this.failureStorage = new FailureStorage(fileSystem, folderLayout);
+    }
+
+    public LuceneContext luceneContext() {
+        return luceneContext;
     }
 
     /**
