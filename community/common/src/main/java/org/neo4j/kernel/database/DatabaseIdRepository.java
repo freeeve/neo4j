@@ -48,6 +48,14 @@ public interface DatabaseIdRepository {
     Optional<NamedDatabaseId> getById(DatabaseId databaseId);
 
     /**
+     * Given a database Id, return the corresponding {@link NamedDatabaseId} from the system database, if one exists.
+     * If the id is a graph shard, return the sharded database instead.
+     *
+     * Use this instead when traversing from a sharded database result (with graph shard element id) to the sharded database.
+     */
+    Optional<NamedDatabaseId> getOwningDatabaseId(DatabaseId databaseId);
+
+    /**
      * Given a string representation of a database name, validate it and return the corresponding
      * {@link NamedDatabaseId} from the system database, if one exists.
      */

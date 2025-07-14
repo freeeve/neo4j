@@ -67,6 +67,12 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     @Override
+    public Optional<NamedDatabaseId> getDatabaseIdByUUID(UUID uuid, boolean resolveToShardedDb) {
+        // resolveToShardedDb not needed, since we do not support sharded databases in community
+        return CommunityTopologyGraphDbmsModelUtil.getDatabaseIdBy(tx, DATABASE_UUID_PROPERTY, uuid.toString());
+    }
+
+    @Override
     public Set<DatabaseReference> getAllDatabaseReferences() {
         var primaryRefs = CommunityTopologyGraphDbmsModelUtil.getAllPrimaryStandardDatabaseReferencesInRoot(tx);
         var internalAliasRefs = getAllInternalDatabaseReferencesInRoot();

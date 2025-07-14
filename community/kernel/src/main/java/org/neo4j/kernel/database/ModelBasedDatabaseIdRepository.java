@@ -47,4 +47,12 @@ public class ModelBasedDatabaseIdRepository implements DatabaseIdRepository {
         }
         return modelProvider.withModel(model -> model.getDatabaseIdByUUID(databaseId.uuid()));
     }
+
+    @Override
+    public Optional<NamedDatabaseId> getOwningDatabaseId(DatabaseId databaseId) {
+        if (DatabaseId.SYSTEM_DATABASE_ID.equals(databaseId)) {
+            return NAMED_SYSTEM_DATABASE_ID;
+        }
+        return modelProvider.withModel(model -> model.getDatabaseIdByUUID(databaseId.uuid(), true));
+    }
 }

@@ -92,7 +92,12 @@ public class TestDatabaseIdRepository implements DatabaseIdRepository {
         return uuidIsFiltered ? Optional.empty() : id;
     }
 
-    public Set<NamedDatabaseId> getAllDatabaseIds() {
-        return Set.copyOf(cache.values());
+    @Override
+    public Optional<NamedDatabaseId> getOwningDatabaseId(DatabaseId databaseId) {
+        var id = cache.values().stream()
+                .filter(v -> v.databaseId().equals(databaseId))
+                .findFirst();
+        var uuidIsFiltered = id.map(i -> filterSet.contains(i.name())).orElse(false);
+        return uuidIsFiltered ? Optional.empty() : id;
     }
 }

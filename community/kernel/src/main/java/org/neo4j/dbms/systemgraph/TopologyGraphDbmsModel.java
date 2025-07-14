@@ -337,6 +337,8 @@ public interface TopologyGraphDbmsModel {
      */
     Optional<NamedDatabaseId> getDatabaseIdByUUID(UUID uuid);
 
+    Optional<NamedDatabaseId> getDatabaseIdByUUID(UUID uuid, boolean resolveToShardedDb);
+
     /**
      * Fetches the {@link DatabaseReference} corresponding to the provided catalog entry.
      *

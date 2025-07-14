@@ -62,7 +62,7 @@ class StaticUseEvaluation {
         *    so we would probably never hit the cache. E.g. USE graph.byElementId(`23023-asd9231-23fe9-312123`)
          */
 
-        databaseIdRepository.getById(DatabaseIdFactory.from(uuid)).toScala
+        databaseIdRepository.getOwningDatabaseId(DatabaseIdFactory.from(uuid)).toScala
           .orElse(throw DatabaseNotFoundHelper.byElementIdFunction(elementId))
           .map(name => CatalogInfo(CatalogName.of(name.name(), resolveStrictly = true), canBeCached = false))
       case _                       => None

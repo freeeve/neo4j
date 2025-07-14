@@ -115,6 +115,14 @@ class DatabaseRepositoryTest {
         }
 
         @Override
+        public Optional<NamedDatabaseId> getOwningDatabaseId(DatabaseId databaseId) {
+            // needs to resolve to spd database when given graph if tested
+            return databaseIds.values().stream()
+                    .filter(id -> id.databaseId().equals(databaseId))
+                    .findFirst();
+        }
+
+        @Override
         public Optional<NamedDatabaseId> getByName(String databaseName) {
             return getByName(new NormalizedDatabaseName(databaseName));
         }

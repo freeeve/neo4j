@@ -159,6 +159,14 @@ class DatabaseLifecyclesTest {
         }
 
         @Override
+        public Optional<NamedDatabaseId> getOwningDatabaseId(DatabaseId databaseId) {
+            // update if adding tests for sharded databases
+            return databaseIds.stream()
+                    .filter(id -> id.databaseId().equals(databaseId))
+                    .findFirst();
+        }
+
+        @Override
         public Optional<NamedDatabaseId> getByName(String databaseName) {
             return Optional.of(defaultId);
         }

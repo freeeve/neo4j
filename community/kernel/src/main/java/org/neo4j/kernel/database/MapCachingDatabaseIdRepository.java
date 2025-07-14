@@ -27,11 +27,13 @@ public class MapCachingDatabaseIdRepository implements DatabaseIdRepository.Cach
     private volatile DatabaseIdRepository delegate;
     private volatile Map<NormalizedDatabaseName, NamedDatabaseId> databaseIdsByName;
     private volatile Map<DatabaseId, NamedDatabaseId> databaseIdsByUuid;
+    private volatile Map<DatabaseId, NamedDatabaseId> owningDatabaseIdsByUuid;
 
     public MapCachingDatabaseIdRepository(DatabaseIdRepository delegate) {
         this.delegate = delegate;
         this.databaseIdsByName = new ConcurrentHashMap<>();
         this.databaseIdsByUuid = new ConcurrentHashMap<>();
+        this.owningDatabaseIdsByUuid = new ConcurrentHashMap<>();
     }
 
     public MapCachingDatabaseIdRepository() {
@@ -58,6 +60,12 @@ public class MapCachingDatabaseIdRepository implements DatabaseIdRepository.Cach
         return dbId;
     }
 
+    @Override
+    public Optional<NamedDatabaseId> getOwningDatabaseId(DatabaseId uuid) {
+        return Optional.ofNullable(owningDatabaseIdsByUuid.computeIfAbsent(
+                uuid, id -> delegate.getOwningDatabaseId(id).orElse(null)));
+    }
+
     /**
      * We recreate the maps rather than .clear() because .clear() is not atomic
      *  and a concurrent .computeIfAbsent() could preserve a stale value.
@@ -66,5 +74,6 @@ public class MapCachingDatabaseIdRepository implements DatabaseIdRepository.Cach
     public void invalidateAll() {
         this.databaseIdsByName = new ConcurrentHashMap<>();
         this.databaseIdsByUuid = new ConcurrentHashMap<>();
+        this.owningDatabaseIdsByUuid = new ConcurrentHashMap<>();
     }
 }
