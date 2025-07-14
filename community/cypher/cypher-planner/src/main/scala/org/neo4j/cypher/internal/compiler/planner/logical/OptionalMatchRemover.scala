@@ -370,17 +370,24 @@ case object OptionalMatchRemover extends PlannerQueryRewriter with StepSequencer
       )
     )
 
-    val whereString = innerPreds match {
-      case SetExtractor()           => ""
-      case SetExtractor(singlePred) => "\n  WHERE " + stringifier(singlePred)
-      case _                        => "\n  WHERE " + stringifier(Ands(innerPreds)(InputPosition.NONE))
+    val wherePredicateStringOpt = innerPreds match {
+      case SetExtractor()           => None
+      case SetExtractor(singlePred) => Some(stringifier(singlePred))
+      case _                        => Some(stringifier(Ands(innerPreds)(InputPosition.NONE)))
     }
 
     (
       ExistsIRExpression(
         query,
         varFor(anonymousVariableNameGenerator.nextName),
-        s"EXISTS { MATCH ${pattern.solvedString(withTypes = true)}$whereString }"
+        if (wherePredicateStringOpt.isEmpty) {
+          s"""EXISTS { MATCH ${pattern.solvedString(withTypes = true)} }""".stripMargin
+        } else {
+          s"""EXISTS {
+             |  MATCH ${pattern.solvedString(withTypes = true)}
+             |    WHERE ${wherePredicateStringOpt.get}
+             |}""".stripMargin
+        }
       )(
         InputPosition.NONE,
         None, // There is no reasonable way of calculating introduced variables, so IRExpressions should not be accessing it and it can be left blank

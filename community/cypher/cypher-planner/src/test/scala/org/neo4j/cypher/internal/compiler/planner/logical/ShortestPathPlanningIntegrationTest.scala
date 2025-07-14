@@ -1973,8 +1973,10 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
 
     // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (v)-[`anon_0`]->(`anon_0`)
-        |  WHERE `anon_0`:N }""".stripMargin
+      """EXISTS {
+        |  MATCH (v)-[`anon_0`]->(`anon_0`)
+        |    WHERE `anon_0`:N
+        |}""".stripMargin
     val patternExpressionPredicate = NestedPlanExistsExpression(
       plan = nestedPlan,
       solvedExpressionAsString = solvedNestedExpressionAsString
@@ -2033,8 +2035,10 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
 
     // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
-        |  WHERE `  UNNAMED0`:N }""".stripMargin
+      """EXISTS {
+        |  MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
+        |    WHERE `  UNNAMED0`:N
+        |}""".stripMargin
     val nestedPlanExpression = NestedPlanExistsExpression(
       plan = nestedPlan,
       solvedExpressionAsString =
@@ -2097,8 +2101,10 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
 
     // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
-        |  WHERE `  UNNAMED0`:N }""".stripMargin
+      """EXISTS {
+        |  MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
+        |    WHERE `  UNNAMED0`:N
+        |}""".stripMargin
     val nestedPlanExpression = NestedPlanExistsExpression(
       plan = nestedPlan,
       solvedExpressionAsString =
@@ -2177,8 +2183,10 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
 
     // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """COUNT { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
-        |  WHERE `  UNNAMED0`:N }""".stripMargin
+      """COUNT {
+        |  MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
+        |    WHERE `  UNNAMED0`:N
+        |}""".stripMargin
     val nestedPlanExpression = NestedPlanGetByNameExpression(
       plan = nestedPlan,
       v"  UNNAMED1",
@@ -2882,8 +2890,10 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
 
     // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (v)-[`anon_0`]->(`anon_0`)
-        |  WHERE `anon_0`.prop IN [(v.prop + r2.prop) + w.prop] }""".stripMargin
+      """EXISTS {
+        |  MATCH (v)-[`anon_0`]->(`anon_0`)
+        |    WHERE `anon_0`.prop IN [(v.prop + r2.prop) + w.prop]
+        |}""".stripMargin
     val nestedPlanExpression = NestedPlanExistsExpression(
       plan = expectedNestedPlan,
       solvedExpressionAsString =
@@ -5210,8 +5220,10 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       NestedPlanExistsExpression(
         plan = nestedPlan,
         solvedExpressionAsString =
-          """EXISTS { MATCH (`n`)-[`anon_0`:S]->(`anon_1`)
-            |  WHERE `anon_1`:X }""".stripMargin
+          """EXISTS {
+            |  MATCH (`n`)-[`anon_0`:S]->(`anon_1`)
+            |    WHERE `anon_1`:X
+            |}""".stripMargin
       )(pos)
     val toPredicate = VariablePredicate(v"n", not(patternExpressionPredicate))
     val nfa =

@@ -463,7 +463,10 @@ class OptionalMatchRemoverTest extends CypherFunSuite with PlannerQueryRewriterT
   ) {
     assertRewrite(
       testName,
-      """OPTIONAL MATCH (a) WHERE a:A AND EXISTS { (a)-[r]->(b) WHERE b:B }
+      """OPTIONAL MATCH (a) WHERE a:A AND EXISTS {
+        |  MATCH (a)-[r]->(b)
+        |    WHERE b:B
+        |}
         |RETURN COUNT(DISTINCT a) as count
         |""".stripMargin
     )

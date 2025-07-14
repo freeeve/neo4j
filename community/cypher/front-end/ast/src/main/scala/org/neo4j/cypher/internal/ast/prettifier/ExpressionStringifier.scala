@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.IsNormalized
 import org.neo4j.cypher.internal.ast.IsNotNormalized
 import org.neo4j.cypher.internal.ast.IsNotTyped
 import org.neo4j.cypher.internal.ast.IsTyped
+import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
@@ -201,6 +202,20 @@ private class DefaultExpressionStringifier(
     // Don't add parenthesis around expressions missing their LHS
     if ((alwaysParens || parens) && !isCaseExpression) "(" + str + ")"
     else str
+  }
+
+  private def prettifySubqueryInBraces(q: Query): String = {
+    val p = prettifier.asString(q)
+    if (p.contains(prettifier.NL)) {
+      val indented = p.split(prettifier.NL).map(l => s"${prettifier.BASE_INDENT}$l").mkString(
+        prettifier.NL,
+        prettifier.NL,
+        prettifier.NL
+      )
+      s"{$indented}"
+    } else {
+      s"{ $p }"
+    }
   }
 
   // withLHS is for stringifying simple CASE expressions where the LHS has been
@@ -541,16 +556,13 @@ private class DefaultExpressionStringifier(
         ""
 
       case ExistsExpression(q) =>
-        val p = prettifier.asString(q)
-        s"EXISTS { $p }"
+        s"EXISTS ${prettifySubqueryInBraces(q)}"
 
       case CollectExpression(q) =>
-        val p = prettifier.asString(q)
-        s"COLLECT { $p }"
+        s"COLLECT ${prettifySubqueryInBraces(q)}"
 
       case CountExpression(q) =>
-        val p = prettifier.asString(q)
-        s"COUNT { $p }"
+        s"COUNT ${prettifySubqueryInBraces(q)}"
 
       case UnaryAdd(r) =>
         val i = inner(ast)(r)

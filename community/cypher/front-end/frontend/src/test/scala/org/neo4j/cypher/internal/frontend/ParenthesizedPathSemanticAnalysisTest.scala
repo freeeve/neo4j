@@ -82,14 +82,18 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
           .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
           .withParam(
             GqlParams.StringParam.pat,
-            """((a) (()-[r]->())+ (b) WHERE 0 = COUNT { MATCH (x)-->(y)
-              |  WHERE length(p) % 2 = 0 })""".stripMargin
+            """((a) (()-[r]->())+ (b) WHERE 0 = COUNT {
+              |  MATCH (x)-->(y)
+              |    WHERE length(p) % 2 = 0
+              |})""".stripMargin
           )
           .build())
         .build(),
       """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-        |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE 0 = COUNT { MATCH (x)-->(y)
-        |  WHERE length(p) % 2 = 0 }).""".stripMargin,
+        |In this case, `p` is defined in the same `MATCH` clause as ((a) (()-[r]->())+ (b) WHERE 0 = COUNT {
+        |  MATCH (x)-->(y)
+        |    WHERE length(p) % 2 = 0
+        |}).""".stripMargin,
       InputPosition(6, 1, 7)
     )
   }

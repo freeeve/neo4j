@@ -488,7 +488,8 @@ class FindShortestPathsPlanningIntegrationTest extends CypherFunSuite with Logic
         |WHERE COUNT {
         |  WITH p
         |  UNWIND nodes(p) AS n
-        |  MATCH (n)-->({prop: 'foobar'}) RETURN n
+        |  MATCH (n)-->({prop: 'foobar'})
+        |  RETURN n
         |} > 2
         |RETURN nodes(p) as nodes
         |""".stripMargin
@@ -504,11 +505,13 @@ class FindShortestPathsPlanningIntegrationTest extends CypherFunSuite with Logic
       .build()
 
     val solvedNestedExpressionAsString =
-      """COUNT { WITH p AS p
-        |UNWIND nodes(p) AS n
-        |MATCH (n)-[`anon_0`]->(`anon_1`)
-        |  WHERE `anon_1`.prop IN ["foobar"]
-        |RETURN n AS n }""".stripMargin
+      """COUNT {
+        |  WITH p AS p
+        |  UNWIND nodes(p) AS n
+        |  MATCH (n)-[`anon_0`]->(`anon_1`)
+        |    WHERE `anon_1`.prop IN ["foobar"]
+        |  RETURN n AS n
+        |}""".stripMargin
 
     val greaterThanExpr = greaterThan(
       NestedPlanGetByNameExpression(
@@ -564,7 +567,8 @@ class FindShortestPathsPlanningIntegrationTest extends CypherFunSuite with Logic
         |MATCH p = shortestPath((src:A)-[r*]->(dest:C))
         |WHERE COUNT {
         |  UNWIND [1,2,3] AS n
-        |  MATCH (m)-->({prop: n}) RETURN m
+        |  MATCH (m)-->({prop: n})
+        |  RETURN m
         |} > length(p)
         |RETURN nodes(p) as nodes
         |""".stripMargin
@@ -640,9 +644,11 @@ class FindShortestPathsPlanningIntegrationTest extends CypherFunSuite with Logic
       .build()
 
     val solvedExpr =
-      """EXISTS { WITH p AS p
-        |UNWIND nodes(p) AS n
-        |RETURN n AS n }""".stripMargin
+      """EXISTS {
+        |  WITH p AS p
+        |  UNWIND nodes(p) AS n
+        |  RETURN n AS n
+        |}""".stripMargin
 
     val existsExpr = NestedPlanExistsExpression(
       plan = nestedPlanWithPathReference,
@@ -708,9 +714,11 @@ class FindShortestPathsPlanningIntegrationTest extends CypherFunSuite with Logic
       .build()
 
     val solvedExpr =
-      """COLLECT { WITH p AS p
-        |UNWIND nodes(p) AS n
-        |RETURN n.name AS names }""".stripMargin
+      """COLLECT {
+        |  WITH p AS p
+        |  UNWIND nodes(p) AS n
+        |  RETURN n.name AS names
+        |}""".stripMargin
 
     val collectExpr = NestedPlanCollectExpression(
       plan = nestedPlanWithPathReference,

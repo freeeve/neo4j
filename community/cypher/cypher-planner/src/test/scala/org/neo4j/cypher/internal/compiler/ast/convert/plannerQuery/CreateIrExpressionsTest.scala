@@ -196,7 +196,10 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     existsIRExpression.existsVariable shouldBe existsVariable
     existsIRExpression.solvedExpressionAsString should equal(
-      "EXISTS { MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)\n  WHERE NOT r = r3 AND NOT r = r2 AND NOT r3 = r2 }"
+      """EXISTS {
+        |  MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)
+        |    WHERE NOT r = r3 AND NOT r = r2 AND NOT r3 = r2
+        |}""".stripMargin
     )
   }
 
@@ -238,7 +241,10 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     existsIRExpression.existsVariable shouldBe existsVariable
     existsIRExpression.solvedExpressionAsString should equal(
-      "EXISTS { MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)\n  WHERE r.foo > 5 AND NOT r = r3 AND NOT r = r2 AND NOT r3 = r2 }"
+      """EXISTS {
+        |  MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)
+        |    WHERE r.foo > 5 AND NOT r = r3 AND NOT r = r2 AND NOT r3 = r2
+        |}""".stripMargin
     )
   }
 
@@ -287,7 +293,11 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     existsIRExpression.existsVariable shouldBe existsVariable
     existsIRExpression.solvedExpressionAsString should equal(
-      "EXISTS { MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)\n  WHERE NOT r = r3 AND NOT r = r2 AND NOT r3 = r2\nRETURN n AS n }"
+      """EXISTS {
+        |  MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)
+        |    WHERE NOT r = r3 AND NOT r = r2 AND NOT r3 = r2
+        |  RETURN n AS n
+        |}""".stripMargin
     )
   }
 
@@ -327,7 +337,12 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     existsIRExpression.existsVariable shouldBe existsVariable
-    existsIRExpression.solvedExpressionAsString should equal("EXISTS { MATCH (n)-[r]-(m)\nRETURN n AS n }")
+    existsIRExpression.solvedExpressionAsString should equal(
+      """EXISTS {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites ExistsExpression with ORDER BY") {
@@ -372,7 +387,11 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     existsIRExpression.existsVariable shouldBe existsVariable
     existsIRExpression.solvedExpressionAsString should equal(
-      "EXISTS { MATCH (n)-[r]-(m)\nRETURN n AS n\n  ORDER BY n ASCENDING }"
+      """EXISTS {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    ORDER BY n ASCENDING
+        |}""".stripMargin
     )
   }
 
@@ -417,7 +436,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     existsIRExpression.existsVariable shouldBe existsVariable
-    existsIRExpression.solvedExpressionAsString should equal("EXISTS { MATCH (n)-[r]-(m)\nRETURN n AS n\n  SKIP 2 }")
+    existsIRExpression.solvedExpressionAsString should equal(
+      """EXISTS {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    SKIP 2
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites ExistsExpression with LIMIT") {
@@ -461,7 +486,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     existsIRExpression.existsVariable shouldBe existsVariable
-    existsIRExpression.solvedExpressionAsString should equal("EXISTS { MATCH (n)-[r]-(m)\nRETURN n AS n\n  LIMIT 42 }")
+    existsIRExpression.solvedExpressionAsString should equal(
+      """EXISTS {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    LIMIT 42
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites ExistsExpression with ORDER BY, SKIP and LIMIT") {
@@ -509,7 +540,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     existsIRExpression.existsVariable shouldBe existsVariable
     existsIRExpression.solvedExpressionAsString should equal(
-      "EXISTS { MATCH (n)-[r]-(m)\nRETURN n AS n\n  ORDER BY n ASCENDING\n  SKIP 2\n  LIMIT 42 }"
+      """EXISTS {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    ORDER BY n ASCENDING
+        |    SKIP 2
+        |    LIMIT 42
+        |}""".stripMargin
     )
   }
 
@@ -577,7 +614,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
     existsIRExpression.existsVariable shouldBe existsVariable
     existsIRExpression.solvedExpressionAsString should equal(
-      "EXISTS { MATCH (n)-[r]-(m)\nRETURN n AS n\nUNION\nMATCH (n)-[r]-(m)\nRETURN n AS n }"
+      """EXISTS {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |  UNION
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |}""".stripMargin
     )
   }
 
@@ -619,7 +662,12 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     existsIRExpression.existsVariable shouldBe existsVariable
-    existsIRExpression.solvedExpressionAsString should equal("EXISTS { MATCH (n)-[r]-(m)\nRETURN DISTINCT n AS n }")
+    existsIRExpression.solvedExpressionAsString should equal(
+      """EXISTS {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN DISTINCT n AS n
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites CountExpression with where clause") {
@@ -668,7 +716,11 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     countIRExpression.countVariable shouldBe countVariable
     countIRExpression.solvedExpressionAsString should equal(
-      "COUNT { MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)\n  WHERE NOT r = r3 AND NOT r = r2 AND NOT r3 = r2\nRETURN n AS n }"
+      """COUNT {
+        |  MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)
+        |    WHERE NOT r = r3 AND NOT r = r2 AND NOT r3 = r2
+        |  RETURN n AS n
+        |}""".stripMargin
     )
   }
 
@@ -710,7 +762,12 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     countIRExpression.countVariable shouldBe countVariable
-    countIRExpression.solvedExpressionAsString should equal("COUNT { MATCH (n)-[r]-(m)\nRETURN n AS n }")
+    countIRExpression.solvedExpressionAsString should equal(
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites CountExpression with ORDER BY") {
@@ -753,7 +810,11 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     countIRExpression.countVariable shouldBe countVariable
     countIRExpression.solvedExpressionAsString should equal(
-      "COUNT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  ORDER BY n ASCENDING }"
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    ORDER BY n ASCENDING
+        |}""".stripMargin
     )
   }
 
@@ -804,7 +865,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     countIRExpression.countVariable shouldBe countVariable
-    countIRExpression.solvedExpressionAsString should equal("COUNT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  SKIP 2 }")
+    countIRExpression.solvedExpressionAsString should equal(
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    SKIP 2
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites CountExpression with LIMIT") {
@@ -854,7 +921,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     countIRExpression.countVariable shouldBe countVariable
-    countIRExpression.solvedExpressionAsString should equal("COUNT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  LIMIT 42 }")
+    countIRExpression.solvedExpressionAsString should equal(
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    LIMIT 42
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites CountExpression with ORDER BY, SKIP and LIMIT") {
@@ -909,7 +982,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     countIRExpression.countVariable shouldBe countVariable
     countIRExpression.solvedExpressionAsString should equal(
-      "COUNT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  ORDER BY n ASCENDING\n  SKIP 2\n  LIMIT 42 }"
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    ORDER BY n ASCENDING
+        |    SKIP 2
+        |    LIMIT 42
+        |}""".stripMargin
     )
   }
 
@@ -958,7 +1037,12 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     countIRExpression.countVariable shouldBe countVariable
-    countIRExpression.solvedExpressionAsString should equal("COUNT { MATCH (n)-[r]-(m)\nRETURN DISTINCT n AS n }")
+    countIRExpression.solvedExpressionAsString should equal(
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN DISTINCT n AS n
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites CountExpression with Union") {
@@ -1048,7 +1132,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     countIRExpression.countVariable shouldBe countVariable
     countIRExpression.solvedExpressionAsString should equal(
-      "COUNT { MATCH (n)-[r]-(m)\nRETURN n AS n\nUNION\nMATCH (n)-[r]-(m)\nRETURN n AS n }"
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |  UNION
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |}""".stripMargin
     )
   }
 
@@ -1112,7 +1202,12 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     )
 
     countIRExpression.countVariable shouldBe countVariable
-    countIRExpression.solvedExpressionAsString should equal("COUNT { MATCH (n)-[r]-(m)\n  WHERE r.foo > 5 }")
+    countIRExpression.solvedExpressionAsString should equal(
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |    WHERE r.foo > 5
+        |}""".stripMargin
+    )
   }
 
   test("should rewrite count expression with longer pattern and inlined predicates") {
@@ -1160,7 +1255,10 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     countIRExpression.countVariable shouldBe countVariable
     countIRExpression.solvedExpressionAsString should equal(
-      "COUNT { MATCH (n)-[r:R|P]->(m)<-[r2]-(o)\n  WHERE r.prop = 5 AND o.prop = 5 AND NOT o:% AND r.foo > 5 AND o.foo > 5 AND NOT r2 = r }"
+      """COUNT {
+        |  MATCH (n)-[r:R|P]->(m)<-[r2]-(o)
+        |    WHERE r.prop = 5 AND o.prop = 5 AND NOT o:% AND r.foo > 5 AND o.foo > 5 AND NOT r2 = r
+        |}""".stripMargin
     )
   }
 
@@ -1225,7 +1323,10 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     countIRExpression.countVariable shouldBe countVariable
     countIRExpression.solvedExpressionAsString should equal(
-      "COUNT { MATCH (n)-[r]-(m)\n  WHERE r.foo > 5 AND r.foo < 10 }"
+      """COUNT {
+        |  MATCH (n)-[r]-(m)
+        |    WHERE r.foo > 5 AND r.foo < 10
+        |}""".stripMargin
     )
   }
 
@@ -1266,7 +1367,10 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     countIRExpression.countVariable shouldBe countVariable
     countIRExpression.solvedExpressionAsString should equal(
-      "COUNT { MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)\n  WHERE NOT r = r3 AND NOT r = r2 AND NOT r3 = r2 }"
+      """COUNT {
+        |  MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)
+        |    WHERE NOT r = r3 AND NOT r = r2 AND NOT r3 = r2
+        |}""".stripMargin
     )
   }
 
@@ -1308,7 +1412,12 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
-    collectIRExpression.solvedExpressionAsString should equal("COLLECT { MATCH (n)-[r]-(m)\nRETURN n AS n }")
+    collectIRExpression.solvedExpressionAsString should equal(
+      """COLLECT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites CollectExpression with varlength relationship") {
@@ -1353,7 +1462,11 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
     collectIRExpression.solvedExpressionAsString should equal(
-      "COLLECT { MATCH (n)-[r*2..5]-(m)\n  WHERE unique(r) AND size(r) >= 2 AND size(r) <= 5\nRETURN n AS n }"
+      """COLLECT {
+        |  MATCH (n)-[r*2..5]-(m)
+        |    WHERE unique(r) AND size(r) >= 2 AND size(r) <= 5
+        |  RETURN n AS n
+        |}""".stripMargin
     )
   }
 
@@ -1398,7 +1511,11 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
     collectIRExpression.solvedExpressionAsString should equal(
-      "COLLECT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  ORDER BY n ASCENDING }"
+      """COLLECT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    ORDER BY n ASCENDING
+        |}""".stripMargin
     )
   }
 
@@ -1452,7 +1569,12 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
     collectIRExpression.solvedExpressionAsString should equal(
-      "COLLECT { MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)\n  WHERE r.foo > 5 AND NOT r = r3 AND NOT r = r2 AND NOT r3 = r2\nRETURN n AS n\n  ORDER BY n ASCENDING }"
+      """COLLECT {
+        |  MATCH (n)-[r]-(m), (o)-[r2]->(m)-[r3]->(q)
+        |    WHERE r.foo > 5 AND NOT r = r3 AND NOT r = r2 AND NOT r3 = r2
+        |  RETURN n AS n
+        |    ORDER BY n ASCENDING
+        |}""".stripMargin
     )
   }
 
@@ -1497,7 +1619,11 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
     collectIRExpression.solvedExpressionAsString should equal(
-      "COLLECT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  ORDER BY n ASCENDING }"
+      """COLLECT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    ORDER BY n ASCENDING
+        |}""".stripMargin
     )
   }
 
@@ -1540,7 +1666,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
 
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
-    collectIRExpression.solvedExpressionAsString should equal("COLLECT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  SKIP 2 }")
+    collectIRExpression.solvedExpressionAsString should equal(
+      """COLLECT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    SKIP 2
+        |}""".stripMargin
+    )
   }
 
   test("Rewrites CollectExpression with LIMIT") {
@@ -1583,7 +1715,11 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
     collectIRExpression.solvedExpressionAsString should equal(
-      "COLLECT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  LIMIT 42 }"
+      """COLLECT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    LIMIT 42
+        |}""".stripMargin
     )
   }
 
@@ -1631,7 +1767,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
     collectIRExpression.solvedExpressionAsString should equal(
-      "COLLECT { MATCH (n)-[r]-(m)\nRETURN n AS n\n  ORDER BY n ASCENDING\n  SKIP 2\n  LIMIT 42 }"
+      """COLLECT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |    ORDER BY n ASCENDING
+        |    SKIP 2
+        |    LIMIT 42
+        |}""".stripMargin
     )
   }
 
@@ -1673,7 +1815,10 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     collectIRExpression.collection shouldBe collectVariable
     collectIRExpression.variableToCollect shouldBe n
     collectIRExpression.solvedExpressionAsString should equal(
-      "COLLECT { MATCH (n)-[r]-(m)\nRETURN DISTINCT n AS n }"
+      """COLLECT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN DISTINCT n AS n
+        |}""".stripMargin
     )
   }
 
@@ -1743,7 +1888,13 @@ class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSup
     collectIRExpression.collection shouldBe countVariable
     collectIRExpression.variableToCollect shouldBe n
     collectIRExpression.solvedExpressionAsString should equal(
-      "COLLECT { MATCH (n)-[r]-(m)\nRETURN n AS n\nUNION\nMATCH (n)-[r]-(m)\nRETURN n AS n }"
+      """COLLECT {
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |  UNION
+        |  MATCH (n)-[r]-(m)
+        |  RETURN n AS n
+        |}""".stripMargin
     )
   }
 

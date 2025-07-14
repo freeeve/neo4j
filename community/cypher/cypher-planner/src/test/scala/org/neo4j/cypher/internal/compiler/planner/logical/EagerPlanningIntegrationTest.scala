@@ -1597,8 +1597,10 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val plan = planner.plan(query)
 
     val solvedExpr =
-      """COLLECT { UNWIND ["Person", "READ_ONLY"] AS strings
-        |RETURN strings AS strings }""".stripMargin
+      """COLLECT {
+        |  UNWIND ["Person", "READ_ONLY"] AS strings
+        |  RETURN strings AS strings
+        |}""".stripMargin
 
     val nestedPlan = planner.subPlanBuilder()
       .unwind("['Person', 'READ_ONLY'] AS strings")
@@ -1637,8 +1639,10 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val plan = planner.plan(query)
 
     val solvedExpr =
-      """COLLECT { UNWIND ["Person", "READ_ONLY"] AS strings
-        |RETURN strings AS strings }""".stripMargin
+      """COLLECT {
+        |  UNWIND ["Person", "READ_ONLY"] AS strings
+        |  RETURN strings AS strings
+        |}""".stripMargin
 
     val nestedPlan = planner.subPlanBuilder()
       .unwind("['Person', 'READ_ONLY'] AS strings")

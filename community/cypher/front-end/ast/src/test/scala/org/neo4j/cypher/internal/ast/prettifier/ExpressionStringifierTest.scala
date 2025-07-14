@@ -17,6 +17,9 @@
 package org.neo4j.cypher.internal.ast.prettifier
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.CollectExpression
+import org.neo4j.cypher.internal.ast.CountExpression
+import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.RelationshipChain
@@ -28,6 +31,123 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestSupport {
 
   private val tests: Seq[(Expression, String)] = Seq(
+    (
+      ExistsExpression(
+        singleQuery(
+          return_(aliasedReturnItem(literalInt(1), "one"))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """EXISTS { RETURN 1 AS one }""".stripMargin
+    ),
+    (
+      ExistsExpression(
+        singleQuery(
+          return_(aliasedReturnItem(
+            caseExpression(
+              (trueLiteral, literalInt(1)),
+              (falseLiteral, literalInt(0))
+            ),
+            "one"
+          ))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """EXISTS {
+        |  RETURN CASE
+        |    WHEN true THEN 1
+        |    WHEN false THEN 0
+        |  END AS one
+        |}""".stripMargin
+    ),
+    (
+      ExistsExpression(
+        singleQuery(
+          match_(nodePat()),
+          return_(aliasedReturnItem(literalInt(1), "one"))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """EXISTS {
+        |  MATCH ()
+        |  RETURN 1 AS one
+        |}""".stripMargin
+    ),
+    (
+      CollectExpression(
+        singleQuery(
+          return_(aliasedReturnItem(literalInt(1), "one"))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """COLLECT { RETURN 1 AS one }""".stripMargin
+    ),
+    (
+      CollectExpression(
+        singleQuery(
+          return_(aliasedReturnItem(
+            caseExpression(
+              (trueLiteral, literalInt(1)),
+              (falseLiteral, literalInt(0))
+            ),
+            "one"
+          ))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """COLLECT {
+        |  RETURN CASE
+        |    WHEN true THEN 1
+        |    WHEN false THEN 0
+        |  END AS one
+        |}""".stripMargin
+    ),
+    (
+      CollectExpression(
+        singleQuery(
+          match_(nodePat()),
+          return_(aliasedReturnItem(literalInt(1), "one"))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """COLLECT {
+        |  MATCH ()
+        |  RETURN 1 AS one
+        |}""".stripMargin
+    ),
+    (
+      CountExpression(
+        singleQuery(
+          return_(aliasedReturnItem(literalInt(1), "one"))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """COUNT { RETURN 1 AS one }""".stripMargin
+    ),
+    (
+      CountExpression(
+        singleQuery(
+          return_(aliasedReturnItem(
+            caseExpression(
+              (trueLiteral, literalInt(1)),
+              (falseLiteral, literalInt(0))
+            ),
+            "one"
+          ))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """COUNT {
+        |  RETURN CASE
+        |    WHEN true THEN 1
+        |    WHEN false THEN 0
+        |  END AS one
+        |}""".stripMargin
+    ),
+    (
+      CountExpression(
+        singleQuery(
+          match_(nodePat()),
+          return_(aliasedReturnItem(literalInt(1), "one"))
+        )
+      )(pos, Some(Set.empty), Some(Set.empty)),
+      """COUNT {
+        |  MATCH ()
+        |  RETURN 1 AS one
+        |}""".stripMargin
+    ),
     (
       PatternComprehension(
         namedPath = None,

@@ -102,8 +102,10 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
       .build()
 
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
-        |  WHERE `  UNNAMED0`:N }""".stripMargin
+      """EXISTS {
+        |  MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
+        |    WHERE `  UNNAMED0`:N
+        |}""".stripMargin
     val nestedPlanExpression = NestedPlanExistsExpression(
       plan = nestedPlan,
       solvedExpressionAsString =

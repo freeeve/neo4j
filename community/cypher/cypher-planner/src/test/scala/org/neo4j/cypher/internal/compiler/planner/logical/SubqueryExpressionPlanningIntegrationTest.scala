@@ -407,8 +407,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       Some(
         nestedExistsExpr(
           nestedPlan,
-          """EXISTS { MATCH (f)-[`anon_1`:WORKS_AT]->(`anon_0`)
-            |  WHERE `anon_0`:ComedyClub }""".stripMargin
+          """EXISTS {
+            |  MATCH (f)-[`anon_1`:WORKS_AT]->(`anon_0`)
+            |    WHERE `anon_0`:ComedyClub
+            |}""".stripMargin
         )
       ),
       None
@@ -1800,8 +1802,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         nestedPlan,
         "anon_0",
-        """COLLECT { MATCH (a)-[`anon_1`]->(b)
-          |RETURN b.age AS `anon_0` }""".stripMargin
+        """COLLECT {
+          |  MATCH (a)-[`anon_1`]->(b)
+          |  RETURN b.age AS `anon_0`
+          |}""".stripMargin
       )
     val reduceExprWithNestedPlan = reduce(
       varFor("sum", pos),
@@ -1857,8 +1861,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         nestedPlan,
         "anon_0",
-        """COLLECT { MATCH (a)-[`anon_1`]->(b)
-          |RETURN b.age AS `anon_0` }""".stripMargin
+        """COLLECT {
+          |  MATCH (a)-[`anon_1`]->(b)
+          |  RETURN b.age AS `anon_0`
+          |}""".stripMargin
       )
     val reduceExprWithNestedPlan = reduce(
       varFor("sum", pos),
@@ -1895,8 +1901,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         nestedPlan,
         "anon_0",
-        """COLLECT { MATCH (a)-[`anon_2`]->(b)
-          |RETURN b.age AS `anon_0` }""".stripMargin
+        """COLLECT {
+          |  MATCH (a)-[`anon_2`]->(b)
+          |  RETURN b.age AS `anon_0`
+          |}""".stripMargin
       )
     val reduceExprWithNestedPlan = reduce(
       varFor("sum", pos),
@@ -1945,8 +1953,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         nestedPlan,
         "anon_1",
-        """COLLECT { MATCH (a)-[`anon_2`]->(b)
-          |RETURN b.age AS `anon_1` }""".stripMargin
+        """COLLECT {
+          |  MATCH (a)-[`anon_2`]->(b)
+          |  RETURN b.age AS `anon_1`
+          |}""".stripMargin
       )
     val reduceExprWithNestedPlan = reduce(
       varFor("sum", pos),
@@ -1987,8 +1997,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         nestedPlan,
         "anon_1",
-        """COLLECT { MATCH (a)-[`anon_4`]->(b)
-          |RETURN b.age AS `anon_1` }""".stripMargin
+        """COLLECT {
+          |  MATCH (a)-[`anon_4`]->(b)
+          |  RETURN b.age AS `anon_1`
+          |}""".stripMargin
       )
     val reduceExprWithNestedPlan = reduce(
       varFor("sum", pos),
@@ -2029,8 +2041,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         nestedPlan,
         "anon_1",
-        """COLLECT { MATCH (a)-[`anon_4`]->(b)
-          |RETURN b.age AS `anon_1` }""".stripMargin
+        """COLLECT {
+          |  MATCH (a)-[`anon_4`]->(b)
+          |  RETURN b.age AS `anon_1`
+          |}""".stripMargin
       )
     val reduceExprWithNestedPlan = reduce(
       varFor("sum", pos),
@@ -2076,8 +2090,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         expectedNestedPlan,
         "anon_0",
-        """COLLECT { MATCH (a)-[`anon_1`]->(b)
-          |RETURN b.age AS `anon_0` }""".stripMargin
+        """COLLECT {
+          |  MATCH (a)-[`anon_1`]->(b)
+          |  RETURN b.age AS `anon_0`
+          |}""".stripMargin
       )
 
     val reduceExpression = reduce(
@@ -2110,8 +2126,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         expectedNestedPlan,
         "anon_0",
-        s"""COLLECT { MATCH (a)-[`anon_1`]->(b)
-           |RETURN b.age AS `anon_0` }""".stripMargin
+        s"""COLLECT {
+           |  MATCH (a)-[`anon_1`]->(b)
+           |  RETURN b.age AS `anon_0`
+           |}""".stripMargin
       )
 
     val reduceExpression = reduce(
@@ -2145,8 +2163,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         expectedNestedPlan,
         "anon_0",
-        s"""COLLECT { MATCH (a)-[`anon_3`]->(b)
-           |RETURN b.age AS `anon_0` }""".stripMargin
+        s"""COLLECT {
+           |  MATCH (a)-[`anon_3`]->(b)
+           |  RETURN b.age AS `anon_0`
+           |}""".stripMargin
       )
 
     val reduceExpression = reduce(
@@ -2179,8 +2199,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         expectedNestedPlan,
         "anon_0",
-        s"""COLLECT { MATCH (a)-[`anon_3`]->(b)
-           |RETURN b.age AS `anon_0` }""".stripMargin
+        s"""COLLECT {
+           |  MATCH (a)-[`anon_3`]->(b)
+           |  RETURN b.age AS `anon_0`
+           |}""".stripMargin
       )
 
     val reduceExpression = reduce(
@@ -2214,8 +2236,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       nestedCollectExpr(
         expectedNestedPlan,
         "anon_0",
-        s"""COLLECT { MATCH (a)-[`anon_1`]->(b)
-           |RETURN b.age AS `anon_0` }""".stripMargin
+        s"""COLLECT {
+           |  MATCH (a)-[`anon_1`]->(b)
+           |  RETURN b.age AS `anon_0`
+           |}""".stripMargin
       )
 
     val reduceExpression = reduce(
@@ -2331,8 +2355,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
             nestedCollectExpr(
               expectedNestedPlan,
               "anon_0",
-              """COLLECT { MATCH (n)-[`anon_1`]->(b)
-                |RETURN b.age AS `anon_0` }""".stripMargin
+              """COLLECT {
+                |  MATCH (n)-[`anon_1`]->(b)
+                |  RETURN b.age AS `anon_0`
+                |}""".stripMargin
             ),
             literalInt(1)
           ))
@@ -2370,9 +2396,11 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
                   nestedCollectExpr(
                     expectedNestedPlan,
                     "anon_0",
-                    s"""COLLECT { MATCH (n)-[r]->(b)
-                       |  WHERE n.prop > 5
-                       |RETURN b.age AS `anon_0` }""".stripMargin
+                    s"""COLLECT {
+                       |  MATCH (n)-[r]->(b)
+                       |    WHERE n.prop > 5
+                       |  RETURN b.age AS `anon_0`
+                       |}""".stripMargin
                   )
                 )(pos))
               )(pos),
@@ -2406,8 +2434,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
           Head(listOf(
             nestedExistsExpr(
               expectedNestedPlan,
-              """EXISTS { MATCH (n)-[`anon_0`]->(`anon_1`)-[`anon_2`]->(`anon_3`)
-                |  WHERE NOT `anon_2` = `anon_0` }""".stripMargin
+              """EXISTS {
+                |  MATCH (n)-[`anon_0`]->(`anon_1`)-[`anon_2`]->(`anon_3`)
+                |    WHERE NOT `anon_2` = `anon_0`
+                |}""".stripMargin
             )
           ))(pos)))
         .allNodeScan("n")
@@ -2436,8 +2466,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
           Head(listOf(
             nestedExistsExpr(
               expectedNestedPlan,
-              """EXISTS { MATCH (n)-[`anon_0`]->(`anon_0`)
-                |  WHERE `anon_0`:B }""".stripMargin
+              """EXISTS {
+                |  MATCH (n)-[`anon_0`]->(`anon_0`)
+                |    WHERE `anon_0`:B
+                |}""".stripMargin
             )
           ))(pos)))
         .allNodeScan("n")
@@ -2468,8 +2500,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
           Head(listOf(
             nestedExistsExpr(
               expectedNestedPlan,
-              """EXISTS { MATCH (n)-[`anon_0`]->(`anon_0`)
-                |  WHERE `anon_0`:B OR `anon_0`:C }""".stripMargin
+              """EXISTS {
+                |  MATCH (n)-[`anon_0`]->(`anon_0`)
+                |    WHERE `anon_0`:B OR `anon_0`:C
+                |}""".stripMargin
             )
           ))(pos)))
         .allNodeScan("n")
@@ -2497,8 +2531,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
           Head(listOf(
             nestedExistsExpr(
               expectedNestedPlan,
-              """EXISTS { MATCH (n)-[`anon_0`]->(`anon_0`)
-                |  WHERE `anon_0`.prop IN [5] AND `anon_0`:D }""".stripMargin
+              """EXISTS {
+                |  MATCH (n)-[`anon_0`]->(`anon_0`)
+                |    WHERE `anon_0`.prop IN [5] AND `anon_0`:D
+                |}""".stripMargin
             )
           ))(pos)))
         .allNodeScan("n")
@@ -2863,8 +2899,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
         nestedCollectExpr(
           expectedNestedPlan,
           "anon_0",
-          """COLLECT { MATCH (a)<-[`anon_2`]-(`b`)
-            |RETURN `b`.prop4 IN [true] AS `anon_0` }""".stripMargin
+          """COLLECT {
+            |  MATCH (a)<-[`anon_2`]-(`b`)
+            |  RETURN `b`.prop4 IN [true] AS `anon_0`
+            |}""".stripMargin
         ),
         literalInt(2)
       ),
@@ -2912,8 +2950,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
           .relationshipCountFromCountStore("anon_1", Some("Person"), Seq("KNOWS"), None)
           .build(),
         "anon_1",
-        """COUNT { MATCH (c)-[k:KNOWS]->(d)
-          |  WHERE c:Person }""".stripMargin
+        """COUNT {
+          |  MATCH (c)-[k:KNOWS]->(d)
+          |    WHERE c:Person
+          |}""".stripMargin
       )
     )
   }
@@ -3667,8 +3707,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     val npeExpression =
       nestedExistsExpr(
         expectedNestedPlan,
-        """EXISTS { MATCH (a)-[r:X]->(b)
-          |  WHERE b:Foo }""".stripMargin
+        """EXISTS {
+          |  MATCH (a)-[r:X]->(b)
+          |    WHERE b:Foo
+          |}""".stripMargin
       )
     val caseExp = caseExpression(
       Some(prop("a", "prop")),
@@ -3828,8 +3870,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     val collectExpression = nestedCollectExpr(
       nestedPlan,
       "m",
-      """COLLECT { MATCH (m)
-        |RETURN m AS m }""".stripMargin
+      """COLLECT {
+        |  MATCH (m)
+        |  RETURN m AS m
+        |}""".stripMargin
     )
     val indexExpression = containerIndex(collectExpression, 0)
 
@@ -4075,8 +4119,10 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
 
     val nestedPlanExpression = nestedExistsExpr(
       expectedNestedPlan,
-      """EXISTS { MATCH (a)-[`anon_0`:R]->(`anon_0`)
-        |  WHERE `anon_0`.prop IN [prop] }""".stripMargin
+      """EXISTS {
+        |  MATCH (a)-[`anon_0`:R]->(`anon_0`)
+        |    WHERE `anon_0`.prop IN [prop]
+        |}""".stripMargin
     )
 
     val plan = planner.plan(query)

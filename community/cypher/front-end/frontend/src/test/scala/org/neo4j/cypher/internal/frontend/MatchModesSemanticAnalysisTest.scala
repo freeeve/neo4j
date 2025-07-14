@@ -517,15 +517,19 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
           .hasError(
             GqlHelper.getGql42001_42I21(
               java.util.List.of("x"),
-              """p2 = ALL SHORTEST PATHS ((a) (()-->()){, 10} (b) (()-->()){, 10} (c) WHERE EXISTS { MATCH (b)
-                |  WHERE b.p = x.p })""".stripMargin,
+              """p2 = ALL SHORTEST PATHS ((a) (()-->()){, 10} (b) (()-->()){, 10} (c) WHERE EXISTS {
+                |  MATCH (b)
+                |    WHERE b.p = x.p
+                |})""".stripMargin,
               errorPosition.offset,
               errorPosition.line,
               errorPosition.column
             ),
             """From within a selective path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-              |In this case, `x` is defined in the same `MATCH` clause as p2 = ALL SHORTEST PATHS ((a) (()-->()){, 10} (b) (()-->()){, 10} (c) WHERE EXISTS { MATCH (b)
-              |  WHERE b.p = x.p }).""".stripMargin,
+              |In this case, `x` is defined in the same `MATCH` clause as p2 = ALL SHORTEST PATHS ((a) (()-->()){, 10} (b) (()-->()){, 10} (c) WHERE EXISTS {
+              |  MATCH (b)
+              |    WHERE b.p = x.p
+              |}).""".stripMargin,
             errorPosition
           )
       }
