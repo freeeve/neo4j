@@ -101,6 +101,7 @@ import org.neo4j.cypher.internal.ast.DbmsAction
 import org.neo4j.cypher.internal.ast.DbmsPrivilege
 import org.neo4j.cypher.internal.ast.DeallocateServers
 import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
+import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.DeleteElementAction
 import org.neo4j.cypher.internal.ast.DenyPrivilege
@@ -218,6 +219,11 @@ import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.ParameterName
+import org.neo4j.cypher.internal.ast.ParsedAsFilter
+import org.neo4j.cypher.internal.ast.ParsedAsLet
+import org.neo4j.cypher.internal.ast.ParsedAsLimit
+import org.neo4j.cypher.internal.ast.ParsedAsOrderBy
+import org.neo4j.cypher.internal.ast.ParsedAsSkip
 import org.neo4j.cypher.internal.ast.ParsedAsYield
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.Password
@@ -539,6 +545,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
+import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.CTFloat
@@ -865,6 +872,9 @@ class AstGenerator(
     r <- _expression
     typeName <- _cypherTypeName
     normalForm <- _normalForm
+    containsIs <- boolean
+    dynamicLabelsAllowed <- boolean
+    labelExpression <- _labelExpression(None, containsIs, dynamicLabelsAllowed)
     res <- oneOf(
       Not(r)(pos),
       IsNull(r)(pos),
@@ -872,7 +882,8 @@ class AstGenerator(
       IsTyped(r, typeName)(pos, IsTyped.withDoubleColonOnlyDefault),
       IsNotTyped(r, typeName)(pos),
       IsNormalized(r, normalForm)(pos),
-      IsNotNormalized(r, normalForm)(pos)
+      IsNotNormalized(r, normalForm)(pos),
+      LabelExpressionPredicate(r, labelExpression)(pos, isParenthesized = usesCypher5)
     )
   } yield res
 
@@ -1510,6 +1521,11 @@ class AstGenerator(
   // CLAUSES
   // ==========================================================================
 
+  def _aliasedReturnItem: Gen[ReturnItem] = for {
+    expr <- _expression
+    variable <- _variable
+  } yield AliasedReturnItem(expr, variable)(pos)
+
   def _returnItem: Gen[ReturnItem] = for {
     expr <- _expression
     variable <- _variable
@@ -1550,11 +1566,47 @@ class AstGenerator(
     where <- option(_where)
   } yield With(distinct, ReturnItems(projectionType, retItems)(pos), orderBy, skip, limit, where)(pos)
 
+  def _let: Gen[With] = for {
+    retItems <- oneOrMore(_aliasedReturnItem)
+  } yield With(
+    distinct = false,
+    ReturnItems(AdditiveProjection, retItems)(pos),
+    None,
+    None,
+    None,
+    None,
+    ParsedAsLet
+  )(pos)
+
+  def _filter: Gen[With] =
+    _where.map(where =>
+      With(
+        distinct = false,
+        ReturnItems(AdditiveProjection, Seq.empty)(pos),
+        None,
+        None,
+        None,
+        Some(where),
+        ParsedAsFilter
+      )(pos)
+    )
+
   def _orderByAndPageStatement: Gen[With] = for {
     orderBy <- option(_orderBy)
     skip <- option(_skip)
     limit <- option(_limit)
-  } yield With(distinct = false, ReturnItems(AdditiveProjection, Seq.empty)(pos), orderBy, skip, limit, None)(pos)
+    withType <- orderBy.map(_ => ParsedAsOrderBy).orElse(skip.map(_ => ParsedAsSkip)).orElse(limit.map(_ =>
+      ParsedAsLimit
+    )).getOrElse(DefaultWith)
+  } yield With(
+    distinct = false,
+    ReturnItems(AdditiveProjection, Seq.empty)(pos),
+    orderBy,
+    skip,
+    limit,
+    None,
+    withType
+  )(pos)
 
   def _return: Gen[Return] = for {
     distinct <- boolean
@@ -1778,44 +1830,93 @@ class AstGenerator(
       reportAs.map(v => InTransactionsReportParameters(Variable(s"`$v`")(pos, Variable.isIsolatedDefault))(pos))
     )(pos)
 
-  private def _anyClause: Gen[Clause] = oneOf(
-    lzy(_use),
-    lzy(_with),
-    lzy(_orderByAndPageStatement),
-    lzy(_return),
-    lzy(_finish),
-    lzy(_match),
-    lzy(_create),
-    lzy(_insert),
-    lzy(_unwind),
-    lzy(_set),
-    lzy(_remove),
-    lzy(_delete),
-    lzy(_merge),
-    lzy(_call),
-    lzy(_loadCsv),
-    lzy(_foreach),
-    lzy(_importingWithSubqueryCall),
-    lzy(_scopeClauseSubqueryCall)
-  )
+  private def _anyClause: Gen[Clause] =
+    if (usesCypher5) {
+      oneOf(
+        lzy(_use),
+        lzy(_with),
+        lzy(_orderByAndPageStatement),
+        lzy(_return),
+        lzy(_finish),
+        lzy(_match),
+        lzy(_create),
+        lzy(_insert),
+        lzy(_unwind),
+        lzy(_set),
+        lzy(_remove),
+        lzy(_delete),
+        lzy(_merge),
+        lzy(_call),
+        lzy(_loadCsv),
+        lzy(_foreach),
+        lzy(_importingWithSubqueryCall),
+        lzy(_scopeClauseSubqueryCall)
+      )
+    } else {
+      oneOf(
+        lzy(_use),
+        lzy(_with),
+        lzy(_let),
+        lzy(_filter),
+        lzy(_orderByAndPageStatement),
+        lzy(_return),
+        lzy(_finish),
+        lzy(_match),
+        lzy(_create),
+        lzy(_insert),
+        lzy(_unwind),
+        lzy(_set),
+        lzy(_remove),
+        lzy(_delete),
+        lzy(_merge),
+        lzy(_call),
+        lzy(_loadCsv),
+        lzy(_foreach),
+        lzy(_importingWithSubqueryCall),
+        lzy(_scopeClauseSubqueryCall)
+      )
+    }
 
-  private def _shallowClause: Gen[Clause] = oneOf(
-    lzy(_use),
-    lzy(_with),
-    lzy(_orderByAndPageStatement),
-    lzy(_return),
-    lzy(_finish),
-    lzy(_match),
-    lzy(_create),
-    lzy(_insert),
-    lzy(_unwind),
-    lzy(_set),
-    lzy(_remove),
-    lzy(_delete),
-    lzy(_merge),
-    lzy(_call),
-    lzy(_loadCsv)
-  )
+  private def _shallowClause: Gen[Clause] =
+    if (usesCypher5) {
+      oneOf(
+        lzy(_use),
+        lzy(_with),
+        lzy(_orderByAndPageStatement),
+        lzy(_return),
+        lzy(_finish),
+        lzy(_match),
+        lzy(_create),
+        lzy(_insert),
+        lzy(_unwind),
+        lzy(_set),
+        lzy(_remove),
+        lzy(_delete),
+        lzy(_merge),
+        lzy(_call),
+        lzy(_loadCsv)
+      )
+    } else {
+      oneOf(
+        lzy(_use),
+        lzy(_with),
+        lzy(_let),
+        lzy(_filter),
+        lzy(_orderByAndPageStatement),
+        lzy(_return),
+        lzy(_finish),
+        lzy(_match),
+        lzy(_create),
+        lzy(_insert),
+        lzy(_unwind),
+        lzy(_set),
+        lzy(_remove),
+        lzy(_delete),
+        lzy(_merge),
+        lzy(_call),
+        lzy(_loadCsv)
+      )
+    }
 
   def _clause: Gen[Clause] = Gen.sized { size =>
     if (size <= 0) {
