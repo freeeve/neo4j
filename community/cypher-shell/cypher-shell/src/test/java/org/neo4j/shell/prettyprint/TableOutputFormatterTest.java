@@ -734,7 +734,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
         var gqlStatusObjects = new LinkedHashSet<GqlStatusObject>();
         gqlStatusObjects.add(new InternalGqlNotification(
                 "12345",
-                "desc1",
+                "statusDesc1",
                 Map.of(),
                 mock(),
                 NotificationSeverity.INFORMATION,
@@ -746,7 +746,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
                 null));
         gqlStatusObjects.add(new InternalGqlNotification(
                 "12345",
-                "desc1",
+                "statusDesc1",
                 Map.of(),
                 mock(),
                 NotificationSeverity.INFORMATION,
@@ -758,7 +758,7 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
                 null));
         gqlStatusObjects.add(new InternalGqlNotification(
                 "03N63",
-                "desc2",
+                "statusDesc2",
                 Map.of(),
                 mock(),
                 NotificationSeverity.WARNING,
@@ -794,9 +794,9 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
                 .isEqualToNormalizingNewlines(
                         """
 
-            info: desc1 (12345)
+            info: statusDesc1 (12345)
 
-            warn: desc2 (03N63)
+            warn: statusDesc2 (03N63)
             """);
     }
 
