@@ -21,8 +21,11 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
+import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AllReduceFunctionAvailable
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
@@ -39,6 +42,7 @@ import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
@@ -51,6 +55,7 @@ import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -76,7 +81,8 @@ import java.lang.Boolean.TRUE
 import scala.collection.immutable.ArraySeq
 
 class RemoteBatchPropertiesPlanningIntegrationTest
-    extends AbstractRemoteBatchPropertiesPlanningIntegrationTest(ExecutionModel.default) {
+    extends AbstractRemoteBatchPropertiesPlanningIntegrationTest(ExecutionModel.default)
+    with CypherVersionTestSupport {
 
   override protected val orderPreserving: Boolean = true
 
@@ -2433,6 +2439,105 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .relationshipTypeScan("()-[r:KNOWS]->()", IndexOrderNone)
         .build()
     )
+  }
+
+  test("should properly handle property access in QPP") {
+    val query =
+      """
+        |MATCH (a:N)
+        |      ((left)-[rel]->(right) WHERE rel.prop = a.prop)+
+        |      (b)
+        |RETURN rel
+        |""".stripMargin
+
+    val planner = spdPlanner
+      .setAllNodesCardinality(10000)
+      .setLabelCardinality("N", 1000)
+      .setAllRelationshipsCardinality(100000)
+      .build()
+
+    val `(a) ((left) ... (right))+ (b)` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set.empty,
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
+    )
+
+    planner.plan(query).stripProduceResults shouldEqual
+      planner.subPlanBuilder()
+        .repeatTrail(`(a) ((left) ... (right))+ (b)`)
+        .|.remoteBatchPropertiesWithFilter("cacheRFromStore[rel.prop]")("rel.prop = cacheNFromStore[a.prop]")
+        .|.filterExpression(isRepeatTrailUnique("rel"))
+        .|.expandAll("(left)-[rel]->(right)")
+        // We could cache this earlier on before the Repeat, so to not fetch it on each iteration
+        .|.remoteBatchProperties("cacheNFromStore[a.prop]")
+        .|.argument("left", "a")
+        .nodeByLabelScan("a", "N", IndexOrderNone)
+        .build()
+  }
+
+  test("should properly handle property access in allReduce") {
+    val query =
+      """
+        |MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b)
+        |  WHERE allReduce(
+        |    sum = 0,
+        |    sum + rel.prop,
+        |    sum < a.prop
+        |  )
+        |RETURN rel
+        |""".stripMargin
+
+    val planner = spdPlanner
+      .addSemanticFeature(AllReduceFunctionAvailable)
+      .setAllNodesCardinality(10000)
+      .setLabelCardinality("N", 1000)
+      .setAllRelationshipsCardinality(100000)
+      .build()
+
+    val `(a) ((left) ... (right))+ (b) WITH sum = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set.empty,
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(
+        ("0", "sum", "sum")
+      )
+    )
+
+    planner.plan(CypherVersion.Cypher25, query).stripProduceResults shouldEqual
+      planner.subPlanBuilder()
+        .repeatTrail(`(a) ((left) ... (right))+ (b) WITH sum = 0`)
+        .|.filter("cacheN[a.prop] > sum")
+        .|.projection("sum + cacheR[rel.prop] AS sum")
+        .|.remoteBatchProperties("cacheRFromStore[rel.prop]")
+        .|.filterExpression(isRepeatTrailUnique("rel"))
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.remoteBatchProperties("cacheNFromStore[a.prop]")
+        .|.argument("left", "a", "sum")
+        .nodeByLabelScan("a", "N", IndexOrderNone)
+        .build()
   }
 
   test("need not fetch properties from composite index when the filter is applied on the index itself") {

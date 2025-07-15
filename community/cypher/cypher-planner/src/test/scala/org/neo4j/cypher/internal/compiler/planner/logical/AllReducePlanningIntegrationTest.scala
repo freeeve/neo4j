@@ -24,31 +24,45 @@ import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AllReduceFunctionAvailable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.UpperBound.Limited
+import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport with CypherVersionTestSupport {
 
-  test("allReduce in return clause should fallback to post-filter reduce() - node group variable") {
-    val cfg = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setAllRelationshipsCardinality(50)
-      .addSemanticFeature(SemanticFeature.AllReduceFunctionAvailable)
-      .addSemanticFeature(SemanticFeature.ExperimentalCypherVersions)
-      .build()
+  protected val baseConfig: StatisticsBackedLogicalPlanningConfigurationBuilder = plannerBuilder()
+    .setAllNodesCardinality(100)
+    .setAllRelationshipsCardinality(50)
+    .setLabelCardinality("N", 6)
+    .setLabelCardinality("NN", 5)
+    .addNodeIndex("NN", Seq("prop"), 0.1, 0.01)
+    .addSemanticFeature(AllReduceFunctionAvailable)
+    .addSemanticFeature(SemanticFeature.ExperimentalCypherVersions)
 
-    val plan = cfg.plan(
+  protected val planner: StatisticsBackedLogicalPlanningConfiguration = baseConfig.build()
+
+  protected val nonDedupeNamePlanner: StatisticsBackedLogicalPlanningConfiguration = baseConfig
+    .enableDeduplicateNames(false)
+    .build()
+
+  test("allReduce in return clause should fallback to post-filter reduce() - node group variable") {
+    val plan = planner.plan(
       CypherVersion.Cypher25,
-      "MATCH (os)((is)-[r]->(ie)){1,3}(oe) RETURN allReduce(acc = 0, acc + ie.x, acc < 12)"
+      "MATCH (os)((is)-[r]->(ie)){1,3}(oe) RETURN allReduce(acc = 0, acc + ie.x, acc < 12) AS result"
     ).stripProduceResults
 
     val trailParameters = TrailParameters(
@@ -68,12 +82,12 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       accumulators = Set.empty
     )
 
-    plan shouldEqual cfg.subPlanBuilder()
+    plan shouldEqual planner.subPlanBuilder()
       // reduce(acc = {accumulator: 0, result: true}, ie IN ie | CASE
       //   WHEN acc.result = false THEN acc
       //   ELSE [anon_0 IN [acc.accumulator + ie.x] | {accumulator: anon_0, result: acc.result AND anon_0 < 12}][0]
       // END).result AS `allReduce(acc = 0, acc + ie.x, acc < 12)`
-      .projection(Map("allReduce(acc = 0, acc + ie.x, acc < 12)" -> allReduceFallBack(
+      .projection(Map("result" -> allReduceFallBack(
         accumulator = v"acc",
         init = literalInt(0),
         groupVariable = v"ie",
@@ -90,19 +104,12 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   }
 
   test("allReduce in return clause should fallback to post-filter reduce() - relationship group variable") {
-    val cfg = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setAllRelationshipsCardinality(50)
-      .addSemanticFeature(SemanticFeature.AllReduceFunctionAvailable)
-      .addSemanticFeature(SemanticFeature.ExperimentalCypherVersions)
-      .build()
-
-    val plan = cfg.plan(
+    val plan = planner.plan(
       CypherVersion.Cypher25,
       "MATCH (os)((is)-[r]->(ie)){1,3}(oe) RETURN allReduce(acc = 1, acc * r.x, acc < 12)"
     ).stripProduceResults
 
-    plan shouldEqual cfg.subPlanBuilder()
+    plan shouldEqual planner.subPlanBuilder()
       // reduce(acc = {accumulator: 1, result: true}, r IN r | CASE
       //   WHEN acc.result = false THEN acc
       //   ELSE [anon_0 IN [acc.accumulator * r.x] | {accumulator: anon_0, result: acc.result AND anon_0 < 12}][0]
@@ -121,19 +128,12 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   }
 
   test("allReduce in WITH clause should fallback to post-filter reduce()") {
-    val cfg = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setAllRelationshipsCardinality(50)
-      .addSemanticFeature(SemanticFeature.AllReduceFunctionAvailable)
-      .addSemanticFeature(SemanticFeature.ExperimentalCypherVersions)
-      .build()
-
-    val plan = cfg.plan(
+    val plan = planner.plan(
       CypherVersion.Cypher25,
       "MATCH (os)((is)-[r]->(ie)){1,3}(oe) WITH allReduce(acc = 1, acc * r.x, acc < 12) AS x RETURN 1"
     ).stripProduceResults
 
-    plan shouldEqual cfg.subPlanBuilder()
+    plan shouldEqual planner.subPlanBuilder()
       // reduce(acc = {accumulator: 1, result: true}, r IN r | CASE
       //   WHEN acc.result = false THEN acc
       //   ELSE [anon_0 IN [acc.accumulator * r.x] | {accumulator: anon_0, result: acc.result AND anon_0 < 12}][0]
@@ -153,19 +153,12 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   }
 
   test("allReduce in SSP clause should fallback to post-filter reduce()") {
-    val cfg = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setAllRelationshipsCardinality(50)
-      .addSemanticFeature(SemanticFeature.AllReduceFunctionAvailable)
-      .addSemanticFeature(SemanticFeature.ExperimentalCypherVersions)
-      .build()
-
-    val plan = cfg.plan(
+    val plan = planner.plan(
       CypherVersion.Cypher25,
       "MATCH ANY (os)((is)-[r]->(ie)){1,3}(oe) WHERE allReduce(acc = 1, acc * r.x, acc < 12) RETURN 1"
     ).stripProduceResults
 
-    plan shouldEqual cfg.subPlanBuilder()
+    plan shouldEqual planner.subPlanBuilder()
       // reduce(acc = {accumulator: 1, result: true}, r IN r | CASE
       //   WHEN acc.result = false THEN acc
       //   ELSE [anon_0 IN [acc.accumulator * r.x] | {accumulator: anon_0, result: acc.result AND anon_0 < 12}][0]
@@ -202,7 +195,6 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
           .setFinalState(7)
           .build(),
         mode = ExpandAll,
-        reverseGroupVariableProjections = false,
         minLength = 1,
         maxLength = Some(3),
         pathMode = Trail
@@ -212,22 +204,19 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   }
 
   test("nested allReduce in RETURN clause should fallback to post-filter reduce()") {
-    val cfg = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setAllRelationshipsCardinality(50)
-      .addSemanticFeature(SemanticFeature.AllReduceFunctionAvailable)
-      .addSemanticFeature(SemanticFeature.ExperimentalCypherVersions)
-      .build()
-
-    val plan = cfg.plan(
+    val plan = planner.plan(
       CypherVersion.Cypher25,
       """
         |MATCH (a)-[r]->+(b)
-        |RETURN allReduce(acc = allReduce(acc = [], acc + r, size(acc) < 5), toInteger(acc) + r.prop, toInteger(acc) <= 5)
+        |RETURN allReduce(
+        |  acc = allReduce(acc = [], acc + r, size(acc) < 5),
+        |  toInteger(acc) + r.prop,
+        |  toInteger(acc) <= 5
+        |) AS result
         |""".stripMargin
     ).stripProduceResults
 
-    plan shouldEqual cfg.subPlanBuilder()
+    plan shouldEqual planner.subPlanBuilder()
       // reduce(
       //   acc = {
       //     accumulator:
@@ -242,7 +231,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       //     ELSE [anon_1 IN [toInteger(acc.accumulator) + r.prop] | {accumulator: anon_1, result: acc.result AND toInteger(anon_1) <= 5}][0]
       //   END).result AS `allReduce(acc = allReduce(acc = [], acc + r, size(acc) < 5), toInteger(acc) + r.prop, toInteger(acc) <= 5)`
       .projection(Map(
-        "allReduce(acc = allReduce(acc = [], acc + r, size(acc) < 5), toInteger(acc) + r.prop, toInteger(acc) <= 5)" ->
+        "result" ->
           allReduceFallBack(
             accumulator = v"acc",
             init = allReduceFallBack(
@@ -262,5 +251,860 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .expand("(a)-[r*1..]->()")
       .allNodeScan("a")
       .build()
+  }
+
+  test("Should handle, but not inline, nested allReduces - in init") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)-[r]->+(b)
+        |WHERE allReduce(acc = allReduce(acc = [], acc + r, size(acc) < 5),
+        |                toInteger(acc) + r.prop,
+        |                toInteger(acc) <= 5)
+        |RETURN a, b""".stripMargin
+    ).stripProduceResults
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"acc",
+            init = allReduceFallBack(
+              accumulator = v"acc",
+              init = ListLiteral(Seq.empty)(pos),
+              groupVariable = v"r",
+              allReduceStepExpression = add(v"acc", v"r"),
+              allReducePredicate = lessThan(size(v"acc"), literalInt(5)),
+              nextAnonymousVariable = v"anon_0"
+            ),
+            groupVariable = v"r",
+            allReduceStepExpression = add(function("toInteger", v"acc"), prop(v"r", "prop")),
+            allReducePredicate = lessThanOrEqual(function("toInteger", v"acc"), literalInt(5)),
+            nextAnonymousVariable = v"anon_1"
+          )
+        )
+        .expand("(a)-[r*1..]->(b)")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should inline allReduce with no dependencies") {
+    val plan = nonDedupeNamePlanner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b:NN)
+        |  WHERE allReduce(
+        |    sum = 0,
+        |    sum + rel.prop,
+        |    sum < 99
+        |  )
+        |RETURN rel""".stripMargin
+    )
+
+    val `((left)-[rel]->(right))+ WITH sum = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "  left@0",
+      innerEnd = "  right@2",
+      groupNodes = Set(),
+      groupRelationships = Set(("  rel@1", "  rel@3")),
+      innerRelationships = Set("  rel@1"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "sum", "  sum@4"))
+    )
+
+    plan should equal(
+      nonDedupeNamePlanner.planBuilder()
+        .produceResults("`  rel@3`")
+        .filter("b:NN")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
+        .|.filterExpressionOrString(isRepeatTrailUnique("  rel@1"), "`  sum@4` < 99")
+        .|.projection("sum + `  rel@1`.prop AS `  sum@4`")
+        .|.expandAll("(`  left@0`)-[`  rel@1`]->(`  right@2`)")
+        .|.argument("  left@0", "sum")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should force left-to-right plan of QPP with inlined allReduce") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b:NN)
+        |  WHERE
+        |    b.prop = 42 AND
+        |    allReduce(
+        |      sum = 0,
+        |      sum + rel.prop,
+        |      sum < 99
+        |    )
+        |RETURN rel""".stripMargin
+    )
+
+    val `((left)-[rel]->(right))+ WITH sum = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandInto,
+      accumulators = Set(("0", "sum", "sum"))
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
+        .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
+        .|.projection("sum + rel.prop AS sum")
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left", "sum")
+        .cartesianProduct()
+        .|.nodeIndexOperator("b:NN(prop = 42)")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should NOT inline allReduce, if it is not the top-level predicate") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b)
+        |  WHERE
+        |    allReduce(
+        |      sum = 0,
+        |      sum + rel.prop,
+        |      sum < 99
+        |    ) IS NULL
+        |RETURN rel""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .filterExpression(
+          isNull(
+            allReduceFallBack(
+              accumulator = v"sum",
+              init = literalInt(0),
+              groupVariable = v"rel",
+              allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+              allReducePredicate = lessThan(v"sum", literalInt(99)),
+              nextAnonymousVariable = v"anon_0"
+            )
+          )
+        )
+        .expand("(a)-[rel*1..]->()")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should inline allReduce as early as possible") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(middle)-[rel2]->(right))+
+        |      (b)
+        |  WHERE
+        |    allReduce(
+        |      sum = 0,
+        |      sum + rel.prop,
+        |      sum < 99
+        |    )
+        |RETURN rel""".stripMargin
+    )
+
+    val `((left)-[rel]->(right))+ WITH sum = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel", "rel2"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set((
+        "0",
+        "sum",
+        "sum"
+      ))
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
+        .|.filterExpressionOrString("NOT rel2 = rel", isRepeatTrailUnique("rel2"))
+        .|.expandAll("(middle)-[rel2]->(right)")
+        .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
+        .|.projection("sum + rel.prop AS sum")
+        .|.expandAll("(left)-[rel]->(middle)")
+        .|.argument("left", "sum")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should inline two allReduces with the same group variable from the same QPP") {
+    val plan = nonDedupeNamePlanner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b:NN)
+        |WHERE
+        |  allReduce(sum = 0, sum + rel.prop, sum < 99) AND
+        |  allReduce(
+        |    span = {},
+        |    { previous: span.current, current: rel.q },
+        |    coalesce(span.previous < span.current, true)
+        |  )
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    val `((left)-[rel]->(right))+ WITH sum = 0 AND span = {}` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "  left@0",
+      innerEnd = "  right@2",
+      groupNodes = Set(),
+      groupRelationships = Set(("  rel@1", "  rel@3")),
+      innerRelationships = Set("  rel@1"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(
+        ("0", "sum", "  sum@4"),
+        ("{}", "span", "  span@5")
+      )
+    )
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filter("b:NN")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0 AND span = {}`)
+        .|.filterExpressionOrString(
+          "`  sum@4` < 99",
+          "coalesce(`  span@5`.previous < `  span@5`.current, true)",
+          isRepeatTrailUnique("  rel@1")
+        )
+        .|.projection(
+          "sum + cacheR[`  rel@1`.prop] AS `  sum@4`",
+          "{ previous: span.current, current: cacheR[`  rel@1`.q] } AS `  span@5`"
+        )
+        .|.cacheProperties("cacheRFromStore[`  rel@1`.prop]", "cacheRFromStore[`  rel@1`.q]")
+        .|.expandAll("(`  left@0`)-[`  rel@1`]->(`  right@2`)")
+        .|.argument("  left@0", "sum", "span")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should inline two allReduces with different group variables from the same QPP") {
+    val plan = nonDedupeNamePlanner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b:NN)
+        |WHERE
+        |  allReduce(sum = 0, sum + rel.prop, sum < 99) AND
+        |  allReduce(people = [], people + CASE WHEN right:Person THEN [right] ELSE [] END, size(people) < 10)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    val `((left)-[rel]->(right))+ WITH sum = 0 AND people = []` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "  left@0",
+      innerEnd = "  right@2",
+      groupNodes = Set(),
+      groupRelationships = Set(("  rel@1", "  rel@3")),
+      innerRelationships = Set("  rel@1"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(
+        ("0", "sum", "  sum@4"),
+        ("[]", "people", "  people@5")
+      )
+    )
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filter("b:NN")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0 AND people = []`)
+        .|.filterExpressionOrString(isRepeatTrailUnique("  rel@1"), "`  sum@4` < 99", "size(`  people@5`) < 10")
+        .|.projection(
+          "sum + `  rel@1`.prop AS `  sum@4`",
+          "people + CASE WHEN `  right@2`:Person THEN [`  right@2`] ELSE [] END AS `  people@5`"
+        )
+        .|.expandAll("(`  left@0`)-[`  rel@1`]->(`  right@2`)")
+        .|.argument("  left@0", "sum", "people")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should handle two allReduce accumulators with the same name by renaming both") {
+    val plan = nonDedupeNamePlanner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b:NN)
+        |WHERE
+        |  allReduce(acc = 0, acc + rel.prop, acc < 99) AND
+        |  allReduce(acc = 1, acc * rel.prop, 0 < acc < 1)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    val `((left)-[rel]->(right))+ WITH sum = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "  left@0",
+      innerEnd = "  right@2",
+      groupNodes = Set(),
+      groupRelationships = Set(("  rel@1", "  rel@3")),
+      innerRelationships = Set("  rel@1"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(
+        ("0", "  acc@4", "  acc@6"),
+        ("1", "  acc@5", "  acc@7")
+      )
+    )
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filter("b:NN")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
+        .|.filterExpressionOrString(
+          "0 < `  acc@7` < 1",
+          "`  acc@6` < 99",
+          isRepeatTrailUnique("  rel@1")
+        )
+        .|.projection(
+          "`  acc@4` + cacheRFromStore[`  rel@1`.prop] AS `  acc@6`",
+          "`  acc@5` * cacheRFromStore[`  rel@1`.prop] AS `  acc@7`"
+        )
+        .|.expandAll("(`  left@0`)-[`  rel@1`]->(`  right@2`)")
+        .|.argument("  left@0", "  acc@4", "  acc@5")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should inline two allReduce for two different QPPs") {
+    val plan = nonDedupeNamePlanner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((l1)-[rel1]->(r1)){,10}
+        |      (x:NN)
+        |      ((l2)-[rel2]->(r2)){0,1}
+        |      (b:NN)
+        |WHERE
+        |  allReduce(sum = 0, sum + rel1.prop, sum < 99) AND
+        |  allReduce(product = 1, product * rel2.prop, 0 < product < 1)
+        |RETURN rel1, rel2""".stripMargin
+    ).stripProduceResults
+
+    val `((l1)-[rel1]->(r1)){,10} WITH sum = 0` = TrailParameters(
+      min = 0,
+      max = Limited(10),
+      start = "a",
+      end = "x",
+      innerStart = "  l1@0",
+      innerEnd = "  r1@2",
+      groupNodes = Set(),
+      groupRelationships = Set(("  rel1@1", "  rel1@3")),
+      innerRelationships = Set("  rel1@1"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "sum", "  sum@9"))
+    )
+
+    val `((l2)-[rel2]->(r2))+ WITH product = 1` = TrailParameters(
+      min = 0,
+      max = Limited(1),
+      start = "x",
+      end = "b",
+      innerStart = "  l2@4",
+      innerEnd = "  r2@6",
+      groupNodes = Set(),
+      groupRelationships = Set(("  rel2@5", "  rel2@7")),
+      innerRelationships = Set("  rel2@5"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set("  rel1@3"),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("1", "product", "  product@8"))
+    )
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filter("b:NN")
+        .repeatTrail(`((l2)-[rel2]->(r2))+ WITH product = 1`)
+        .|.filterExpressionOrString("0 < `  product@8` < 1", isRepeatTrailUnique("  rel2@5"))
+        .|.projection("product * `  rel2@5`.prop AS `  product@8`")
+        .|.expandAll("(`  l2@4`)-[`  rel2@5`]->(`  r2@6`)")
+        .|.argument("  l2@4", "product")
+        .filter("x:NN")
+        .repeatTrail(`((l1)-[rel1]->(r1)){,10} WITH sum = 0`)
+        .|.filterExpressionOrString("`  sum@9` < 99", isRepeatTrailUnique("  rel1@1"))
+        .|.projection("sum + `  rel1@1`.prop AS `  sum@9`")
+        .|.expandAll("(`  l1@0`)-[`  rel1@1`]->(`  r1@2`)")
+        .|.argument("  l1@0", "sum")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  // TODO: un-ignore when list comprehension syntax implemented (it's a syntax error for horizontal aggregation style)
+  ignore("Should NOT inline nested allReduces - in reduction step") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)-[r]->+(b)
+        |WHERE
+        |  allReduce(
+        |    acc = true,
+        |    rel IN r |
+        |      acc AND rel.prop AND
+        |        allReduce(
+        |          acc = [],
+        |          rel IN r | acc + rel,
+        |          size(acc) < 5
+        |        ),
+        |    acc
+        |  )
+        |RETURN a, b""".stripMargin
+    ).stripProduceResults
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"acc",
+            init = literalBoolean(true),
+            groupVariable = v"r",
+            allReduceStepExpression = ands(
+              v"acc",
+              prop("rel", "prop"),
+              allReduceFallBack(
+                accumulator = v"acc",
+                init = ListLiteral(Seq.empty)(pos),
+                groupVariable = v"r",
+                allReduceStepExpression = add(v"acc", v"rel"),
+                allReducePredicate = lessThan(size(v"acc"), literalInt(5)),
+                nextAnonymousVariable = v"anon_0"
+              )
+            ),
+            allReducePredicate = v"acc",
+            nextAnonymousVariable = v"anon_1"
+          )
+        )
+        .expand("(a)-[r*1..]->(b)")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should handle nested allReduces - in predicate") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)-[r]->+(b)
+        |WHERE allReduce(acc = 0,
+        |                acc + r.prop,
+        |                acc > toInteger(allReduce(acc = [], acc + r, size(acc) < 5)))
+        |RETURN a, b""".stripMargin
+    ).stripProduceResults
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"acc",
+            init = literalInt(0),
+            groupVariable = v"r",
+            allReduceStepExpression = add(v"acc", prop("r", "prop")),
+            allReducePredicate = greaterThan(
+              v"acc",
+              function(
+                "toInteger",
+                allReduceFallBack(
+                  accumulator = v"acc",
+                  init = ListLiteral(Seq.empty)(pos),
+                  groupVariable = v"r",
+                  allReduceStepExpression = add(v"acc", v"r"),
+                  allReducePredicate = lessThan(size(v"acc"), literalInt(5)),
+                  nextAnonymousVariable = v"anon_0"
+                )
+              )
+            ),
+            nextAnonymousVariable = v"anon_1"
+          )
+        )
+        .expand("(a)-[r*1..]->(b)")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should NOT inline allReduce if predicate has dependency on unavailable non-local variable") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b)
+        |  WHERE
+        |    allReduce(
+        |      sum = 0,
+        |      sum + rel.prop,
+        |      sum < b.prop
+        |    )
+        |RETURN rel""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = literalInt(0),
+            groupVariable = v"rel",
+            allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+            allReducePredicate = greaterThan(prop("b", "prop"), v"sum"),
+            nextAnonymousVariable = v"anon_0"
+          )
+        )
+        .expand("(a)-[rel*1..]->(b)")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should inline allReduce if predicate has dependency on available non-local variable") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)
+        |      ((left)-[rel]->(right))+
+        |      (b)
+        |  WHERE
+        |    allReduce(
+        |      sum = 0,
+        |      sum + rel.prop,
+        |      sum < a.prop
+        |    )
+        |RETURN rel""".stripMargin
+    )
+
+    val `((left)-[rel]->(right))+ WITH sum = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "sum", "sum"))
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
+        .|.filterExpressionOrString("a.prop > sum", isRepeatTrailUnique("rel"))
+        .|.projection("sum + rel.prop AS sum")
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left", "sum", "a")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should inline allReduce when init depends on available non-local variable") {
+    val plan = nonDedupeNamePlanner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N) ((left)-[rel]->(right))+ (b)
+        |  WHERE allReduce(sum = a.prop, sum + rel.prop, sum < 99)
+        |RETURN rel""".stripMargin
+    )
+
+    val `((left)-[rel]->(right))+ WITH sum = a.prop` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "  left@0",
+      innerEnd = "  right@2",
+      groupNodes = Set(),
+      groupRelationships = Set(("  rel@1", "  rel@3")),
+      innerRelationships = Set("  rel@1"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("a.prop", "sum", "  sum@4"))
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("`  rel@3`")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
+        .|.filterExpressionOrString("`  sum@4` < 99", isRepeatTrailUnique("  rel@1"))
+        .|.projection("sum + `  rel@1`.prop AS `  sum@4`")
+        .|.expandAll("(`  left@0`)-[`  rel@1`]->(`  right@2`)")
+        .|.argument("  left@0", "sum")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should NOT inline allReduce when init depends on unavailable non-local variable") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N) ((left)-[rel]->(right))+ (b)
+        |  WHERE allReduce(sum = b.prop, sum + rel.prop, sum < 99)
+        |RETURN rel""".stripMargin
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = prop("b", "prop"),
+            groupVariable = v"rel",
+            allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+            allReducePredicate = lessThan(v"sum", literalInt(99)),
+            nextAnonymousVariable = v"anon_0"
+          )
+        )
+        .expand("(a)-[rel*1..]->(b)")
+        .nodeByLabelScan("a", "N", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test("Should NOT inline allReduce if init has dependency on another variable from same QPP") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N) ((left)-[rel]->(right))+ (b)
+        |  WHERE allReduce(sum = size(left), sum + rel.prop, sum < 99)
+        |RETURN rel""".stripMargin
+    )
+
+    val `((left)-[rel]->(right))+ WITH sum = a.prop` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(("left", "left")),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set()
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = size(v"left"),
+            groupVariable = v"rel",
+            allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+            allReducePredicate = lessThan(v"sum", literalInt(99)),
+            nextAnonymousVariable = v"anon_0"
+          )
+        )
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
+        .|.filterExpressionOrString(isRepeatTrailUnique("rel"))
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should NOT inline allReduce if predicate has dependency on another variable from same QPP") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N) ((left)-[rel]->(right))+ (b)
+        |  WHERE allReduce(sum = 99, sum + rel.prop, sum < size(left))
+        |RETURN rel""".stripMargin
+    )
+
+    val `((left)-[rel]->(right))+ WITH sum = a.prop` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(("left", "left")),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set()
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = literalInt(99),
+            groupVariable = v"rel",
+            allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+            allReducePredicate = lessThan(v"sum", size(v"left")),
+            nextAnonymousVariable = v"anon_0"
+          )
+        )
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
+        .|.filterExpressionOrString(isRepeatTrailUnique("rel"))
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  // TODO: un-ignore when list comprehension syntax implemented (it's a syntax error for horizontal aggregation style)
+  ignore("Should NOT inline allReduce if reductionStep has dependency on another variable from same QPP") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N) ((left)-[r]->(right))+ (b)
+        |  WHERE allReduce(sum = 99, rel IN r | sum + rel.prop + size(left), sum > 0)
+        |RETURN r""".stripMargin
+    )
+
+    val `((left)-[rel]->(right))+ WITH sum = a.prop` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(("left", "left")),
+      groupRelationships = Set(("r", "r")),
+      innerRelationships = Set("r"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set()
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("r")
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = literalInt(99),
+            groupVariable = v"r",
+            allReduceStepExpression = add(v"sum", prop("r", "prop")),
+            allReducePredicate = greaterThan(v"sum", literalInt(0)),
+            nextAnonymousVariable = v"anon_0"
+          )
+        )
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
+        .|.filterExpressionOrString(isRepeatTrailUnique("r"))
+        .|.expandAll("(left)-[r]->(right)")
+        .|.argument("left")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  // TODO: un-ignore when list comprehension syntax implemented (it's a syntax error for horizontal aggregation style)
+  ignore("Should inline allReduce when reduction function depends on available non-local variable") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)-[avail]->+(x) ((left)-[rel]->(right))+ (b)
+        |  WHERE allReduce(sum = 0, r IN rel | sum + r.prop + size(avail), sum < 99)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    val `((left)-[rel]->(right))+ WITH sum = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "x",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set("avail"),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "sum", "sum"))
+    )
+
+    plan should equal(
+      planner.planBuilder()
+        .produceResults("rel")
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
+        .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
+        .|.projection("sum + rel.prop + size(avail) AS sum")
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left", "sum", "avail")
+        .expand("(a)-[avail*1..]->(x)")
+        .nodeByLabelScan("a", "N")
+        .build()
+    )
   }
 }

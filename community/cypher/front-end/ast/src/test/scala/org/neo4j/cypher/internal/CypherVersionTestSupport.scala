@@ -63,4 +63,9 @@ trait CypherVersionTestSupport {
         withClue(s"CYPHER $v\n")(f(v))
       )
     }
+
+  def versionsExcept5(f: CypherVersion => Any): Unit =
+    CypherVersion.values().filter(version => version != CypherVersion.Cypher5).foreach(v =>
+      withClue(s"CYPHER $v\n")(f(v))
+    )
 }

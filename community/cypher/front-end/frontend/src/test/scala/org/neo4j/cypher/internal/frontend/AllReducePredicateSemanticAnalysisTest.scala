@@ -414,4 +414,22 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |""".stripMargin
     ).hasNoErrors
   }
+
+  test("should allow shadowed variable name for accumulator") {
+    run25WithoutRewriter(
+      """MATCH (a)-[r]->+(b)
+        |WHERE allReduce(a = 0, a + r.prop, a <= 5)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasNoErrors
+  }
+
+  test("should allow predicate without accumulator") {
+    run25WithoutRewriter(
+      """MATCH (a)-[r]->+(b)
+        |WHERE allReduce(acc = 0, acc + r.prop, a.prop = 5)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasNoErrors
+  }
 }

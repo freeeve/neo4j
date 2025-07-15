@@ -163,6 +163,13 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
         anonymousVariableNameGenerator,
         otherAttributes.withAlso(solveds, cardinalities, effectiveCardinalities, providedOrders)
       )),
+      Some(AllReduceSingletonRewriter(
+        anonymousVariableNameGenerator,
+        solveds,
+        cardinalities,
+        providedOrders,
+        context.logicalPlanIdGen
+      )),
       Some(AllReduceFallback(anonymousVariableNameGenerator))
     ).flatten
 
@@ -202,7 +209,8 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
     LogicalPlanRewritten,
     // This belongs to simplifyPredicates
     AndedPropertyInequalitiesRemoved,
-    LogicalPlanCondition.wrap(ValidateAvailableSymbols)
+    LogicalPlanCondition.wrap(ValidateAvailableSymbols),
+    NoAllReducePredicatesLeft
   )
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set(

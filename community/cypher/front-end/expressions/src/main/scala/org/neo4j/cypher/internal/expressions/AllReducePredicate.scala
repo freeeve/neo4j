@@ -75,6 +75,12 @@ object AllReducePredicate {
       (reductionStepScope.dependencies ++ predicate.dependencies) -- introducedVariables
   }
 
+  /**
+   * Represents the second part of an allReduce predicate: How to calculate the next iteration of the accumulator.
+   * @param singletonVariable the variable used in `reductionStep` representing the singleton from the QPP.
+   *                          Note that this can have a namespaced name from the QPP's singleton variable. 
+   * @param reductionStep expression to calculate the next iteration of the accumulator
+   */
   case class ReductionStepScope(
     singletonVariable: LogicalVariable,
     reductionStep: Expression
@@ -83,4 +89,19 @@ object AllReducePredicate {
 
     override def scopeDependencies: Set[LogicalVariable] = reductionStep.dependencies -- introducedVariables
   }
+}
+
+/**
+ * This is a placeholder to be planned on the RHS of a Repeat, to be rewritten later on.
+ */
+case class AllReduceSingletonPredicate(
+  accumulator: LogicalVariable,
+  reductionStep: Expression,
+  predicate: Expression
+)(val position: InputPosition) extends BooleanExpression {
+
+  override def dependencies: Set[LogicalVariable] =
+    reductionStep.dependencies ++ predicate.dependencies + accumulator
+
+  override def isConstantForQuery: Boolean = reductionStep.isConstantForQuery && predicate.isConstantForQuery
 }

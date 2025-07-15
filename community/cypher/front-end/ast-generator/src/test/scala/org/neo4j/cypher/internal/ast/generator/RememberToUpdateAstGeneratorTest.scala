@@ -101,6 +101,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepScope",
     "org.neo4j.cypher.internal.expressions.AllReducePredicate",
     "org.neo4j.cypher.internal.expressions.AllReducePredicateUnchecked",
+    "org.neo4j.cypher.internal.expressions.AllReduceSingletonPredicate",
     "org.neo4j.cypher.internal.expressions.AndedPropertyInequalities",
     "org.neo4j.cypher.internal.expressions.AndsReorderable",
     "org.neo4j.cypher.internal.expressions.AssertIsNode",

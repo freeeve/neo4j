@@ -139,7 +139,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     .setDatabaseMode(DatabaseMode.SHARDED)
     .build()
 
-  test("should use correctly namespaced variables") {
+  test("Should use correctly namespaced variables") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(10)
       .setAllRelationshipsCardinality(10)
@@ -1239,7 +1239,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan.folder.treeFindByClass[AssertIsNode] should be(None)
   }
 
-  test("should plan OUTGOING QPP in requested direction") {
+  test("Should plan OUTGOING QPP in requested direction") {
     val query =
       s"""
          |MATCH (n)-[r]->+(m)
@@ -1254,7 +1254,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan OUTGOING QPP in reverse direction") {
+  test("Should plan OUTGOING QPP in reverse direction") {
     val query =
       s"""
          |MATCH (n:N)-[r]->+(nn:NN)
@@ -1270,7 +1270,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan INCOMING QPP in requested direction") {
+  test("Should plan INCOMING QPP in requested direction") {
     val query =
       s"""
          |MATCH (n)<-[r]-+(m)
@@ -1285,7 +1285,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan INCOMING QPP in reverse direction") {
+  test("Should plan INCOMING QPP in reverse direction") {
     val query =
       s"""
          |MATCH (n:N)<-[r]-+(nn:NN)
@@ -1301,7 +1301,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan BOTH QPP in requested direction") {
+  test("Should plan BOTH QPP in requested direction") {
     val query =
       s"""
          |MATCH (n)-[r]-+(m)
@@ -1316,7 +1316,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan BOTH QPP in reverse direction") {
+  test("Should plan BOTH QPP in reverse direction") {
     val query =
       s"""
          |MATCH (n)-[r]-+(nn:NN)
@@ -1331,7 +1331,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan quantified relationship with predicates") {
+  test("Should plan quantified relationship with predicates") {
     val query =
       s"""
          |MATCH (n)-[r:R WHERE properties(r).prop > 123]->{2,5}(m)
@@ -1345,7 +1345,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan an index seek with multiple predicates on RHS of Trail") {
+  test("Should plan an index seek with multiple predicates on RHS of Trail") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setAllRelationshipsCardinality(5000)
@@ -1387,7 +1387,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan an index seek for predicates on QPP start node") {
+  test("Should plan an index seek for predicates on QPP start node") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setAllRelationshipsCardinality(5000)
@@ -1427,7 +1427,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan an index seek for predicates on QPP end node") {
+  test("Should plan an index seek for predicates on QPP end node") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setAllRelationshipsCardinality(5000)
@@ -1513,7 +1513,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should go into trail with lower cardinality first") {
+  test("Should go into trail with lower cardinality first") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setAllRelationshipsCardinality(10000)
@@ -1611,7 +1611,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should insert eager between quantified relationship and the creation of an overlapping relationship") {
+  test("Should insert eager between quantified relationship and the creation of an overlapping relationship") {
     val query = "MATCH (a)(()-[r]->()){1,5}(b) CREATE (a)-[r2:T]->(b) RETURN *"
     val plan = planner.plan(query).stripProduceResults
 
@@ -1624,7 +1624,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should not insert eager between QPP and CREATE of single node: QPPs internal nodes are connected and can therefore not overlap."
+    "Should not insert eager between QPP and CREATE of single node: QPPs internal nodes are connected and can therefore not overlap."
   ) {
     val query = "MATCH (a:N)(()-[r]->())*(b:NNN {prop: 42}) MERGE (c:N {prop: 123})"
     val plan = planner.plan(query).stripProduceResults
@@ -1642,7 +1642,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should not, but does insert an unnecessary eager based solely on the predicates contained within the quantified path pattern"
+    "Should not, but does insert an unnecessary eager based solely on the predicates contained within the quantified path pattern"
   ) {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -1728,7 +1728,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should insert eager when a quantified path pattern and a deleted node overlap"
+    "Should insert eager when a quantified path pattern and a deleted node overlap"
   ) {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -2355,7 +2355,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan implicit join with group variable / legacy var-length relationship correctly") {
+  test("Should plan implicit join with group variable / legacy var-length relationship correctly") {
     val query = "MATCH (a) ((n)-[r]->(m))+ (b) MATCH (c)-[r*]->(d) RETURN *"
     val plan = planner.plan(query).stripProduceResults
     val `(a) ((n)-[r]->(m))+ (b)` = TrailParameters(
@@ -2391,7 +2391,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should plan implicit join with group variable / legacy var-length relationship correctly (start in scope)"
+    "Should plan implicit join with group variable / legacy var-length relationship correctly (start in scope)"
   ) {
     val query = "MATCH (a) ((n)-[r]-(m))* (b) MATCH (b)-[r*0..]-(d) RETURN *"
     val plan = planner.plan(query).stripProduceResults
@@ -2426,7 +2426,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should plan implicit join with group variable / legacy var-length relationship correctly (start and end in scope)"
+    "Should plan implicit join with group variable / legacy var-length relationship correctly (start and end in scope)"
   ) {
     val query = "MATCH (a) ((n)-[r]-(m))* (b) MATCH (a)-[r*0..]-(b) RETURN *"
     val plan = planner.plan(query).stripProduceResults
@@ -2462,7 +2462,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan pattern predicate with dependency on a variable from previous MATCH inside Trail") {
+  test("Should plan pattern predicate with dependency on a variable from previous MATCH inside Trail") {
     val query = s"MATCH (z) WITH * SKIP 0 MATCH (a) ((n)-[r]->(m) WHERE EXISTS { (m)-[mzRel]-(z) })+ (b) RETURN r"
     val plan = planner.plan(query).stripProduceResults
 
@@ -2497,7 +2497,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan QPPs in two path patterns with predicates from one to the other") {
+  test("Should plan QPPs in two path patterns with predicates from one to the other") {
     val query =
       """MATCH
         |  (a) ((b)-[r]-(c) WHERE i.prop = properties(r).prop)+ (d)-[t]-(e),
@@ -2528,7 +2528,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     )
   }
 
-  test("should not inline ForAllRepetitions predicate into the wrong QPP") {
+  test("Should not inline ForAllRepetitions predicate into the wrong QPP") {
     val query =
       """MATCH
         |  (a:N {start: "Yes"}) ((b)-[r]-(c) WHERE c in h)+ (d) ((g)-[s]-(h))+ (i)
@@ -2583,7 +2583,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     )
   }
 
-  test("should inline ForAllRepetitions predicate if possible and plan afterwards if not") {
+  test("Should inline ForAllRepetitions predicate if possible and plan afterwards if not") {
     val query =
       """MATCH
         |  (z)-[r WHERE r.prop = z.prop]-+(a)((b)--(c) WHERE c.prop = a.prop AND b.prop = d.prop)+(d)-[s WHERE elementId(s) = e.prop]-+(e)
@@ -2636,7 +2636,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     )
   }
 
-  test("should plan cartesian product for components connected only by a predicate inside QPP") {
+  test("Should plan cartesian product for components connected only by a predicate inside QPP") {
     // could be improved to plan Apply
     val query =
       """
@@ -2677,7 +2677,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should plan cartesian product for components connected only by a predicate inside QPP, subquery expression") {
+  test("Should plan cartesian product for components connected only by a predicate inside QPP, subquery expression") {
     // could be improved to plan Apply
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
@@ -2745,7 +2745,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan shouldEqual expected
   }
 
-  test("should pass label info to QPP planner to estimate cardinality correctly") {
+  test("Should pass label info to QPP planner to estimate cardinality correctly") {
 
     val placeCount = 10
     val toPlaceCount = 9500
@@ -2817,7 +2817,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     )
   }
 
-  test("should rewrite single directed relationships to varexpand") {
+  test("Should rewrite single directed relationships to varexpand") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("A", 10)
@@ -2851,7 +2851,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan shouldEqual expected
   }
 
-  test("should rewrite single directed relationships that depend on the outer node to varexpand") {
+  test("Should rewrite single directed relationships that depend on the outer node to varexpand") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("A", 10)
@@ -2885,7 +2885,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan shouldEqual expected
   }
 
-  test("should rewrite single directed relationships with predicates on both inner nodes to varExpand") {
+  test("Should rewrite single directed relationships with predicates on both inner nodes to varExpand") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("A", 10)
@@ -2923,7 +2923,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should rewrite single undirected relationships to varExpand - start expanding from left, with predicate on the right inner node"
+    "Should rewrite single undirected relationships to varExpand - start expanding from left, with predicate on the right inner node"
   ) {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -2963,7 +2963,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should rewrite single undirected relationships to varExpand - start expanding from right, with predicate on the right inner node"
+    "Should rewrite single undirected relationships to varExpand - start expanding from right, with predicate on the right inner node"
   ) {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3003,7 +3003,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should rewrite single undirected relationships to varExpand - start expanding from left, with predicate on the left inner node"
+    "Should rewrite single undirected relationships to varExpand - start expanding from left, with predicate on the left inner node"
   ) {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3043,7 +3043,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should rewrite single undirected relationships to varExpand - start expanding from right, with predicate on the left inner node"
+    "Should rewrite single undirected relationships to varExpand - start expanding from right, with predicate on the left inner node"
   ) {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3082,7 +3082,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan shouldEqual expected
   }
 
-  test("should rewrite simple queries to bidirectional queries to inlinable TraversalEndpoint predicates") {
+  test("Should rewrite simple queries to bidirectional queries to inlinable TraversalEndpoint predicates") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("A", 10)
@@ -3123,7 +3123,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
   }
 
   test(
-    "should rewrite simple queries to bidirectional queries to inlinable NODE predicates if there is at least 1 repetition and all inner nodes have the same predicate"
+    "Should rewrite simple queries to bidirectional queries to inlinable NODE predicates if there is at least 1 repetition and all inner nodes have the same predicate"
   ) {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3317,7 +3317,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     )
   }
 
-  test("should rewrite QPP to VarLengthExpand(Into)") {
+  test("Should rewrite QPP to VarLengthExpand(Into)") {
 
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3340,7 +3340,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should rewrite QPP to VarLengthExpand(All)") {
+  test("Should rewrite QPP to VarLengthExpand(All)") {
 
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3364,7 +3364,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should rewrite QPP with predicates on start/end nodes to pruning VarExpand, directed relationship, 1..") {
+  test("Should rewrite QPP with predicates on start/end nodes to pruning VarExpand, directed relationship, 1..") {
     val query = "MATCH (a:User) ((n WHERE n.prop > 123)-[r]->(m WHERE m.prop < 321))+ (b) RETURN DISTINCT b"
     val plan = planner.plan(query).stripProduceResults
 
@@ -3383,7 +3383,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should rewrite QPP with predicate on start/end nodes to pruning VarExpand, directed relationship, 0..") {
+  test("Should rewrite QPP with predicate on start/end nodes to pruning VarExpand, directed relationship, 0..") {
     val query = "MATCH (a:User) ((n WHERE n.prop > 123)-[r]->(m WHERE m.prop < 321))* (b) RETURN DISTINCT b"
     val plan = planner.plan(query).stripProduceResults
 
@@ -3400,7 +3400,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should rewrite QPP with predicate on start/end nodes to pruning VarExpand, undirected relationship, 1..") {
+  test("Should rewrite QPP with predicate on start/end nodes to pruning VarExpand, undirected relationship, 1..") {
     val query = "MATCH (a:User) ((n WHERE n.prop > 123)-[r]-(m WHERE m.prop < 321))+ (b) RETURN DISTINCT b"
     val plan = planner.plan(query).stripProduceResults
 
@@ -3421,7 +3421,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .build()
   }
 
-  test("should rewrite QPP with predicate on start/end nodes to pruning VarExpand, undirected relationship, 0..") {
+  test("Should rewrite QPP with predicate on start/end nodes to pruning VarExpand, undirected relationship, 0..") {
     val query = "MATCH (a:User) ((n WHERE n.prop > 123)-[r]-(m WHERE m.prop < 321))* (b) RETURN DISTINCT b"
     val plan = planner.plan(query).stripProduceResults
 
@@ -3537,39 +3537,41 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan.folder.findAllByClass[VarExpand].size shouldBe 1
   }
 
-  testVersionsExcept5("Should plan simple bound quantifier under REPEATABLE ELEMENTS") { version =>
-    val query =
-      """MATCH REPEATABLE ELEMENTS
-        |  (u:User)((n)-[]->(m)) {, 100}
-        |RETURN n, m""".stripMargin
-    val `(u)((n)-[]-(m)) {, 100}` = WalkParameters(
-      min = 0,
-      max = Limited(100),
-      start = "u",
-      end = "anon_0",
-      innerStart = "n",
-      innerEnd = "m",
-      groupNodes = Set(("n", "n"), ("m", "m")),
-      groupRelationships = Set.empty,
-      reverseGroupVariableProjections = false,
-      innerRelationships = Set("anon_1"),
-      expansionMode = ExpandAll,
-      accumulators = Set.empty
-    )
+  test("Should plan simple bound quantifier under REPEATABLE ELEMENTS") {
+    versionsExcept5 { version =>
+      val query =
+        """MATCH REPEATABLE ELEMENTS
+          |  (u:User)((n)-[]->(m)) {, 100}
+          |RETURN n, m""".stripMargin
+      val `(u)((n)-[]-(m)) {, 100}` = WalkParameters(
+        min = 0,
+        max = Limited(100),
+        start = "u",
+        end = "anon_0",
+        innerStart = "n",
+        innerEnd = "m",
+        groupNodes = Set(("n", "n"), ("m", "m")),
+        groupRelationships = Set.empty,
+        reverseGroupVariableProjections = false,
+        innerRelationships = Set("anon_1"),
+        expansionMode = ExpandAll,
+        accumulators = Set.empty
+      )
 
-    planner.plan(version, query) should equal(
-      planner.planBuilder()
-        .produceResults("n", "m")
-        .repeatWalk(`(u)((n)-[]-(m)) {, 100}`)
-        .|.expand("(n)-[anon_1]->(m)")
-        .|.argument("n")
-        .nodeByLabelScan("u", "User")
-        .build()
-    )
+      planner.plan(version, query) should equal(
+        planner.planBuilder()
+          .produceResults("n", "m")
+          .repeatWalk(`(u)((n)-[]-(m)) {, 100}`)
+          .|.expand("(n)-[anon_1]->(m)")
+          .|.argument("n")
+          .nodeByLabelScan("u", "User")
+          .build()
+      )
+    }
   }
 
-  testVersionsExcept5("Should plan bound quantifiers on 2 qpps with 2 relationships each under REPEATABLE ELEMENTS") {
-    version =>
+  test("Should plan bound quantifiers on 2 qpps with 2 relationships each under REPEATABLE ELEMENTS") {
+    versionsExcept5 { version =>
       val query =
         """MATCH REPEATABLE ELEMENTS
           |  (u:User)
@@ -3620,6 +3622,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
           .nodeByLabelScan("u", "User")
           .build()
       )
+    }
   }
 }
 
@@ -3733,7 +3736,7 @@ trait QuantifiedPathPatternBlockSpecificPlanningIntegrationTestBase {
 trait QuantifiedPathPatternAlignedSpecificPlanningIntegrationTestBase {
   this: QuantifiedPathPatternPlanningIntegrationTestBase =>
 
-  test("should rewrite QPP with predicate r.prop=ri.prop on directed relationship to VarLengthExpand(All)") {
+  test("Should rewrite QPP with predicate r.prop=ri.prop on directed relationship to VarLengthExpand(All)") {
 
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3759,7 +3762,7 @@ trait QuantifiedPathPatternAlignedSpecificPlanningIntegrationTestBase {
       .build()
   }
 
-  test("should rewrite QPP with predicate r.prop=ri.prop on undirected relationship to VarLengthExpand(All)") {
+  test("Should rewrite QPP with predicate r.prop=ri.prop on undirected relationship to VarLengthExpand(All)") {
 
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3792,7 +3795,7 @@ trait QuantifiedPathPatternAlignedSpecificPlanningIntegrationTestBase {
       .build()
   }
 
-  test("should rewrite QPP with predicate li.prop=ri.prop on undirected relationship to VarLengthExpand(All)") {
+  test("Should rewrite QPP with predicate li.prop=ri.prop on undirected relationship to VarLengthExpand(All)") {
 
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -3825,7 +3828,7 @@ trait QuantifiedPathPatternAlignedSpecificPlanningIntegrationTestBase {
       .build()
   }
 
-  test("should rewrite QPP with predicate li.prop=r.prop on undirected relationship to VarLengthExpand(All)") {
+  test("Should rewrite QPP with predicate li.prop=r.prop on undirected relationship to VarLengthExpand(All)") {
 
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)

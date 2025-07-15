@@ -1640,7 +1640,8 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
         ExpandAll,
-        TraversalPathMode.Trail
+        TraversalPathMode.Trail,
+        Set.empty
       ) should have message "The provided inner plan doesn't conform with the quantified path pattern being planned"
     }
   }

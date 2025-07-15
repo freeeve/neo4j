@@ -25,6 +25,8 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.NodesFunctionArguments
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractPredicates.RelationshipsFunctionArguments
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
+import org.neo4j.cypher.internal.expressions.AllReduceSingletonPredicate
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FilterScope
@@ -496,6 +498,29 @@ object extractQppPredicates {
           )
 
         ExtractedPredicate(unique, Ands.create(extractedPredicates))
+
+      case allReduce @ AllReducePredicate(scope, groupVariable, _)
+        // TODO: when list comprehension syntax is supported, change condition to no dependency of allReduce is in availableLocalSymbolsMapping
+        if availableLocalSymbolsMapping.contains(groupVariable) &&
+          availableLocalSymbolsMapping.keySet.intersect(
+            allReduce.init.dependencies ++ allReduce.predicate.dependencies
+          ).isEmpty =>
+        val singletonVariableInQpp = availableLocalSymbolsMapping(groupVariable)
+        val newReductionStep =
+          scope.reductionStepScope
+            .reductionStep
+            .replaceAllOccurrencesBy(
+              allReduce.singletonVariable,
+              singletonVariableInQpp
+            )
+        ExtractedPredicate(
+          allReduce,
+          AllReduceSingletonPredicate(
+            scope.accumulator,
+            newReductionStep,
+            scope.predicate
+          )(allReduce.position)
+        )
     }
   }
 

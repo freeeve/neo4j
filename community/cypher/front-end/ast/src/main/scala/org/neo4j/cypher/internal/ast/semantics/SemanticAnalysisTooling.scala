@@ -304,9 +304,6 @@ trait SemanticAnalysisTooling {
   def typeSwitch(expr: Expression)(choice: TypeSpec => SemanticCheck): SemanticCheck =
     SemanticCheck.fromState(state => choice(state.expressionType(expr).actual))
 
-  def typeSwitchWithState(expr: Expression)(choice: (SemanticState, TypeSpec) => SemanticCheck): SemanticCheck =
-    SemanticCheck.fromState(state => choice(state, state.expressionType(expr).actual))
-
   def validNumber(long: StringDecimalInteger): Boolean =
     try {
       long.value.isInstanceOf[Long]

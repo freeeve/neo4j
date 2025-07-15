@@ -26,7 +26,11 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.L
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.planSinglePatternSide
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.planSingleProjectEndpoints
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.preFilterCandidatesByIntoVsAllHeuristic
+import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicates.ExtractedPredicate
 import org.neo4j.cypher.internal.expressions.Add
+import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
+import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Equals
@@ -200,7 +204,7 @@ object expandSolverStep {
       case rel: PatternRelationship =>
         Some(produceExpandLogicalPlan(qg, rel, rel.variable, sourcePlan, nodeId, availableSymbols, context))
       case qpp: QuantifiedPathPattern =>
-        Some(produceRepeatLogicalPlan(
+        produceRepeatLogicalPlan(
           qpp,
           sourcePlan,
           nodeId,
@@ -209,7 +213,7 @@ object expandSolverStep {
           qppInnerPlanner,
           unsolvedPredicates(context.staticComponents.planningAttributes.solveds, qg.selections, sourcePlan),
           qg
-        ))
+        )
       case spp: SelectivePathPattern =>
         produceStatefulShortestLogicalPlan(
           spp,
@@ -322,10 +326,9 @@ object expandSolverStep {
     qppInnerPlanner: QPPInnerPlanner,
     predicates: Seq[Expression],
     queryGraph: QueryGraph
-  ): LogicalPlanWithIntoVsAllHeuristic = {
+  ): Option[LogicalPlanWithIntoVsAllHeuristic] = {
     val fromLeft = startNode == quantifiedPathPattern.left
 
-    // Get the QPP inner plan
     val extractedPredicates =
       extractQppPredicates(
         predicates,
@@ -333,6 +336,16 @@ object expandSolverStep {
         availableVars,
         insideRepeat = true
       )
+
+    // AllReduce forces planning left to right
+    if (
+      !fromLeft && extractedPredicates.predicates.exists {
+        case ExtractedPredicate(_: AllReducePredicate, _) => true
+        case _                                            => false
+      }
+    ) {
+      return None
+    }
 
     val (updatedLabelInfo, updatedContext) = context.staticComponents.labelInferenceStrategy.inferLabels(
       context,
@@ -399,6 +412,13 @@ object expandSolverStep {
 
     val pathMode = TraversalPathMode.getFromPredicates(solvedPredicates)
 
+    val allReduceAccumulators =
+      innerPlanPredicates.collect {
+        case pred @ AllReducePredicate(AllReduceScope(accumulator, _, _), _, init) =>
+          // At this point, the accumulators are still the same. They will be namespaced by `AllReduceSingletonRewriter`
+          AllReduceAccumulator(init, accumulator, accumulator)(pred.position)
+      }.toSet
+
     val plan = updatedContext.staticComponents.logicalPlanProducer.planRepeat(
       source = sourcePlan,
       pattern = quantifiedPathPattern,
@@ -411,18 +431,19 @@ object expandSolverStep {
       previouslyBoundRelationshipGroups,
       reverseGroupVariableProjections = !fromLeft,
       expansionMode,
-      pathMode
+      pathMode,
+      allReduceAccumulators
     )
 
     val bothEndpointsBoundInSourcePlan =
       availableVars.contains(quantifiedPathPattern.left) && availableVars.contains(quantifiedPathPattern.right)
 
-    heuristicForExpandIntoVsAll(
+    Some(heuristicForExpandIntoVsAll(
       plan,
       sourcePlan,
       if (bothEndpointsBoundInSourcePlan) ExpandInto else ExpandAll,
       context
-    )
+    ))
   }
 
   private def rewritePredicatesToInlinableForm(

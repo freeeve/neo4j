@@ -57,5 +57,6 @@ case class SimpleResolver(
   override def procedureSignature(name: QualifiedName): ProcedureSignature =
     procedures.find(_.name == name).getOrElse(throw new IllegalStateException(s"No procedure signature for $name"))
 
-  override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] = ???
+  override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] =
+    throw new UnsupportedOperationException(s"Unable to resolve function signature for `$name(...)`")
 }

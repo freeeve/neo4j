@@ -58,6 +58,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EndsWithSe
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.StringSearchMode
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.skipAndLimit.planLimitOnTopOf
 import org.neo4j.cypher.internal.expressions.Add
+import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.Equals
@@ -1418,7 +1419,8 @@ case class LogicalPlanProducer(
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
     expansionMode: ExpansionMode,
-    pathMode: TraversalPathMode
+    pathMode: TraversalPathMode,
+    allReduceAccumulators: Set[AllReduceAccumulator]
   ): LogicalPlan = {
     // Ensure that innerPlan does conform with the pattern contained inside the quantified path pattern before we mark it as solved
     try {
@@ -1459,7 +1461,8 @@ case class LogicalPlanProducer(
           previouslyBoundRelationships = previouslyBoundRelationships,
           previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections = reverseGroupVariableProjections,
-          expansionMode = expansionMode
+          expansionMode = expansionMode,
+          accumulatorMappings = allReduceAccumulators
         )
       case TraversalPathMode.Walk =>
         RepeatWalk(
@@ -1473,8 +1476,9 @@ case class LogicalPlanProducer(
           nodeVariableGroupings = pattern.nodeVariableGroupings,
           relationshipVariableGroupings = pattern.relationshipVariableGroupings,
           reverseGroupVariableProjections = reverseGroupVariableProjections,
+          innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
           expansionMode = expansionMode,
-          innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet
+          accumulatorMappings = allReduceAccumulators
         )
       case _ => throw new IllegalStateException(s"Unknown path mode: $pathMode")
     }
