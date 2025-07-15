@@ -132,7 +132,7 @@ class TextIndexTest {
     }
 
     private DatabaseIndex<ValueIndexReader> createIndex(LuceneContext luceneContext) throws IOException {
-        dirFactory = DirectoryFactory.inMemory();
+        dirFactory = DirectoryFactory.inMemory(luceneContext);
         var schemaIndex = newSchemaIndex(luceneContext);
         schemaIndex.create();
         schemaIndex.open();

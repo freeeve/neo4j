@@ -258,7 +258,7 @@ class TextIndexPopulatingUpdaterIT {
     }
 
     private TextIndexProvider createIndexProvider(LuceneContext luceneContext) {
-        var directoryFactory = DirectoryFactory.inMemory();
+        var directoryFactory = DirectoryFactory.inMemory(luceneContext);
         var directoryStructureFactory = directoriesByProvider(testDir.homePath());
         return new TextIndexProvider(
                 fileSystem,

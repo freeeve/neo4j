@@ -85,7 +85,7 @@ class TextIndexAccessorTest {
         samplingConfig = new IndexSamplingConfig(config);
         provider = new TextIndexProvider(
                 fs,
-                DirectoryFactory.PERSISTENT,
+                DirectoryFactory.persistent(luceneContext),
                 directoriesByProvider(directory.homePath()),
                 new Monitors(),
                 config,

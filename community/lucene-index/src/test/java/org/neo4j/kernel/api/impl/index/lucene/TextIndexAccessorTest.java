@@ -141,7 +141,7 @@ public class TextIndexAccessorTest {
     }
 
     void init(LuceneContext luceneContext) throws IOException {
-        dirFactory = DirectoryFactory.inMemory();
+        dirFactory = DirectoryFactory.inMemory(luceneContext);
         Path dir = Path.of("dir");
         DatabaseIndex<ValueIndexReader> databaseIndex = TextIndexBuilder.create(
                         GENERAL_INDEX, writable(), CONFIG, NullLogProvider.getInstance())

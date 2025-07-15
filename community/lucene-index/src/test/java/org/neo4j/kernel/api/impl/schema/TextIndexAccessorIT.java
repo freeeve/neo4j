@@ -135,7 +135,7 @@ public class TextIndexAccessorIT {
         var readOnlyChecker = globalChecker.forDatabase(defaultDatabaseId);
         indexProvider = new TextIndexProvider(
                 directory.getFileSystem(),
-                DirectoryFactory.PERSISTENT,
+                DirectoryFactory.persistent(luceneContext),
                 directoriesByProvider(path),
                 new Monitors(),
                 config,

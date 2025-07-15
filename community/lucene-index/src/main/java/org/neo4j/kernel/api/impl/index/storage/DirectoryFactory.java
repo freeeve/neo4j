@@ -21,7 +21,6 @@ package org.neo4j.kernel.api.impl.index.storage;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
@@ -35,61 +34,40 @@ public interface DirectoryFactory extends AutoCloseable {
 
     LuceneContext getContext();
 
-    static DirectoryFactory directoryFactory(LuceneContext context, FileSystemAbstraction fs) {
-        return fs.isPersistent() ? DirectoryFactory.PERSISTENT : CURRENT.newInMemoryDirectoryFactory(fs);
+    static DirectoryFactory directoryFactory(LuceneContext luceneContext, FileSystemAbstraction fs) {
+        return fs.isPersistent() ? persistent(luceneContext) : CURRENT.newInMemoryDirectoryFactory(fs);
     }
 
-    abstract class FallbackDirectoryFactory implements DirectoryFactory {
-        private final LuceneDirectoryFactory[] directoryFactories;
+    static DirectoryFactory persistent(LuceneContext luceneContext) {
+        return new PersistentDirectoryFactory(luceneContext);
+    }
 
-        FallbackDirectoryFactory(LuceneDirectoryFactory... directoryFactories) {
-            this.directoryFactories = directoryFactories;
+    static DirectoryFactory inMemory(LuceneContext luceneContext) {
+        return luceneContext.directoryFactory().newInMemoryDirectoryFactory();
+    }
+
+    static DirectoryFactory inMemory(LuceneContext luceneContext, FileSystemAbstraction fs) {
+        return luceneContext.directoryFactory().newInMemoryDirectoryFactory(fs);
+    }
+
+    class PersistentDirectoryFactory implements DirectoryFactory {
+        private final LuceneContext luceneContext;
+
+        private PersistentDirectoryFactory(LuceneContext luceneContext) {
+            this.luceneContext = luceneContext;
         }
 
         @Override
         public LuceneDirectory open(Path dir) throws IOException {
-            for (LuceneDirectoryFactory directoryFactory : directoryFactories) {
-                LuceneDirectory directory = actualOpen(directoryFactory, dir);
-                if (!directory.indexExists() || directory.validVersion()) {
-                    return directory;
-                }
-                directory.close();
-            }
-            throw new IOException("No compatible reader for index in " + dir + " found.");
-        }
-
-        protected abstract LuceneDirectory actualOpen(LuceneDirectoryFactory directoryFactory, Path dir)
-                throws IOException;
-
-        @Override
-        public void close() throws IOException {
-            IOUtils.closeAll(directoryFactories);
-        }
-    }
-
-    class PersistentDirectoryFactory extends FallbackDirectoryFactory {
-        PersistentDirectoryFactory(LuceneDirectoryFactory... directoryFactories) {
-            super(directoryFactories);
-        }
-
-        @Override
-        protected LuceneDirectory actualOpen(LuceneDirectoryFactory directoryFactory, Path dir) throws IOException {
-            return directoryFactory.openPersistent(dir);
+            return luceneContext.directoryFactory().openPersistent(dir);
         }
 
         @Override
         public LuceneContext getContext() {
-            return LuceneContext.LUCENE_9;
+            return luceneContext;
         }
-    }
 
-    DirectoryFactory PERSISTENT = new PersistentDirectoryFactory(CURRENT);
-
-    static DirectoryFactory inMemory() {
-        return CURRENT.newInMemoryDirectoryFactory();
-    }
-
-    static DirectoryFactory inMemory(FileSystemAbstraction fs) {
-        return CURRENT.newInMemoryDirectoryFactory(fs);
+        @Override
+        public void close() throws Exception {}
     }
 }

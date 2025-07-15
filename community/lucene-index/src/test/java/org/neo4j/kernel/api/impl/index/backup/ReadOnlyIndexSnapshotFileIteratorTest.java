@@ -62,7 +62,7 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
     @EnumSource
     void shouldReturnRealSnapshotIfIndexAllowsIt(LuceneContext luceneContext) throws IOException {
         indexDir = testDir.homePath();
-        dir = DirectoryFactory.PERSISTENT.open(indexDir);
+        dir = DirectoryFactory.persistent(luceneContext).open(indexDir);
         prepareIndex();
 
         Set<String> files = listDir(dir);
@@ -79,7 +79,7 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
     @EnumSource
     void shouldReturnEmptyIteratorWhenNoCommitsHaveBeenMade(LuceneContext luceneContext) throws IOException {
         indexDir = testDir.homePath();
-        dir = DirectoryFactory.PERSISTENT.open(indexDir);
+        dir = DirectoryFactory.persistent(luceneContext).open(indexDir);
         try (ResourceIterator<Path> snapshot = makeSnapshot()) {
             assertFalse(snapshot.hasNext());
         }

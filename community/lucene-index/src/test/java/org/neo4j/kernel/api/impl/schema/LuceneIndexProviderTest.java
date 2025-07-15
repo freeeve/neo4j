@@ -94,7 +94,7 @@ class LuceneIndexProviderTest {
     void shouldFailToInvokePopulatorInReadOnlyMode(LuceneContext luceneContext) {
         var config = Config.defaults();
         TextIndexProvider readOnlyIndexProvider =
-                getLuceneIndexProvider(config, DirectoryFactory.inMemory(), fileSystem, graphDbDir);
+                getLuceneIndexProvider(config, DirectoryFactory.inMemory(luceneContext), fileSystem, graphDbDir);
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> readOnlyIndexProvider.getPopulator(
@@ -111,7 +111,7 @@ class LuceneIndexProviderTest {
     @ParameterizedTest
     @EnumSource
     void shouldCreateReadOnlyAccessorInReadOnlyMode(LuceneContext luceneContext) throws Exception {
-        DirectoryFactory directoryFactory = DirectoryFactory.PERSISTENT;
+        DirectoryFactory directoryFactory = DirectoryFactory.persistent(luceneContext);
         createEmptySchemaIndex(directoryFactory);
 
         Config readOnlyConfig = Config.defaults(read_only_database_default, true);
@@ -126,8 +126,8 @@ class LuceneIndexProviderTest {
     @EnumSource
     void indexUpdateNotAllowedInReadOnlyMode(LuceneContext luceneContext) {
         Config readOnlyConfig = Config.defaults(read_only_database_default, true);
-        TextIndexProvider readOnlyIndexProvider =
-                getLuceneIndexProvider(readOnlyConfig, DirectoryFactory.inMemory(), fileSystem, graphDbDir);
+        TextIndexProvider readOnlyIndexProvider = getLuceneIndexProvider(
+                readOnlyConfig, DirectoryFactory.inMemory(luceneContext), fileSystem, graphDbDir);
 
         assertThrows(UnsupportedOperationException.class, () -> getIndexAccessor(readOnlyConfig, readOnlyIndexProvider)
                 .newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false));
@@ -139,8 +139,8 @@ class LuceneIndexProviderTest {
         // IndexAccessor.force is used in check-pointing, and must be allowed in read-only mode as it would otherwise
         // prevent backups from working.
         Config readOnlyConfig = Config.defaults(read_only_database_default, true);
-        TextIndexProvider readOnlyIndexProvider =
-                getLuceneIndexProvider(readOnlyConfig, DirectoryFactory.inMemory(), fileSystem, graphDbDir);
+        TextIndexProvider readOnlyIndexProvider = getLuceneIndexProvider(
+                readOnlyConfig, DirectoryFactory.inMemory(luceneContext), fileSystem, graphDbDir);
 
         // We assert that 'force' does not throw an exception
         getIndexAccessor(readOnlyConfig, readOnlyIndexProvider).force(FileFlushEvent.NULL, NULL_CONTEXT);
@@ -199,7 +199,7 @@ class LuceneIndexProviderTest {
     }
 
     private TextIndexProvider createIndexProvider(LuceneContext luceneContext, Config config) {
-        var directoryFactory = DirectoryFactory.inMemory();
+        var directoryFactory = DirectoryFactory.inMemory(luceneContext);
         var directoryStructureFactory = directoriesByProvider(testDir.homePath());
         return new TextIndexProvider(
                 fileSystem,

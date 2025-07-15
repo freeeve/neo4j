@@ -77,7 +77,7 @@ class TextIndexPopulatorTest {
     private final SchemaDescriptorSupplier labelSchemaDescriptor = () -> SchemaDescriptors.forLabel(0, 0);
 
     void setUp(LuceneContext luceneContext) {
-        dirFactory = DirectoryFactory.inMemory();
+        dirFactory = DirectoryFactory.inMemory(luceneContext);
         Path folder = testDir.directory("folder");
         PartitionedIndexStorage indexStorage =
                 new PartitionedIndexStorage(luceneContext, dirFactory, fileSystem, folder);

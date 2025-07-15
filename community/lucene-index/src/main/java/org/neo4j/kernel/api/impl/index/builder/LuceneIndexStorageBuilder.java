@@ -58,7 +58,7 @@ public class LuceneIndexStorageBuilder {
         if (indexStorage == null) {
             Objects.requireNonNull(luceneContext);
             if (directoryFactory == null) {
-                directoryFactory = DirectoryFactory.PERSISTENT;
+                directoryFactory = DirectoryFactory.persistent(luceneContext);
             }
             Objects.requireNonNull(fileSystem);
             Objects.requireNonNull(indexRootFolder);

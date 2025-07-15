@@ -57,7 +57,7 @@ class LuceneMinimalIndexAccessorTest {
                 .withName("failure")
                 .materialise(5);
         var storage = new PartitionedIndexStorage(
-                luceneContext, DirectoryFactory.PERSISTENT, fs, directory.directory("root"));
+                luceneContext, DirectoryFactory.persistent(luceneContext), fs, directory.directory("root"));
 
         var readOnlyChecker = DatabaseReadOnlyChecker.writable();
         try (var index = TextIndexBuilder.create(
@@ -83,7 +83,7 @@ class LuceneMinimalIndexAccessorTest {
                 .withName("failure")
                 .materialise(5);
         var storage = new PartitionedIndexStorage(
-                luceneContext, DirectoryFactory.PERSISTENT, fs, directory.directory("root"));
+                luceneContext, DirectoryFactory.persistent(luceneContext), fs, directory.directory("root"));
 
         var readOnlyChecker = DatabaseReadOnlyChecker.writable();
         try (var index = TextIndexBuilder.create(
