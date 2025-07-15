@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
+import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
 import org.neo4j.cypher.internal.ast.Statement
@@ -229,13 +230,13 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
   test("SHOW DATABASE foo.bar") {
     parsesIn[Statement] {
       case Cypher5 => _.toAst(ShowDatabase(
-          SingleNamedDatabaseScope(namespacedName("foo", "bar"))(pos),
+          SingleNamedDatabaseScope(NamespacedName(List("bar"), Some("foo"))(pos))(pos),
           None,
           cypher5ColumnsOnly = true,
           spdEnabled = false
         )(pos))
       case _ => _.toAst(ShowDatabase(
-          SingleNamedDatabaseScope(namespacedName("foo", "bar"))(pos),
+          SingleNamedDatabaseScope(NamespacedName(List("foo.bar"), None)(pos))(pos),
           None,
           cypher5ColumnsOnly = false,
           spdEnabled = false

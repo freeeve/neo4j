@@ -63,9 +63,13 @@ case class CatalogName(parts: List[String], resolveByDisplayName: Boolean) {
    * @return the catalog name guaranteed to be parsed in a Cypher statement
    */
   def asCanonicalNameString: String =
-    parts
-      .map(quote)
-      .mkString(separatorString)
+    if (resolveByDisplayName) {
+      quote(parts.mkString(separatorString))
+    } else {
+      parts
+        .map(quote)
+        .mkString(separatorString)
+    }
 
   override def equals(obj: Any): Boolean = {
     obj match {

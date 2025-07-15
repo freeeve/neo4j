@@ -272,15 +272,30 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE foo.bar") {
-    parsesTo[Statements](CreateDatabase(
-      namespacedName("foo", "bar"),
-      IfExistsThrowError,
-      NoOptions,
-      NoWait()(pos),
-      None,
-      None,
-      None
-    )(pos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          CreateDatabase(
+            NamespacedName(List("bar"), Some("foo"))(_),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait()(pos),
+            None,
+            None,
+            None
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          CreateDatabase(
+            NamespacedName(List("foo.bar"), None)(_),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait()(pos),
+            None,
+            None,
+            None
+          )(pos)
+        )
+    }
   }
 
   test("CREATE DATABASE `foo-bar42`") {

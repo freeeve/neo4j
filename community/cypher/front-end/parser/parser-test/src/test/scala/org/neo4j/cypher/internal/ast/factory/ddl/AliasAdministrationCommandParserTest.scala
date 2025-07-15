@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.IfExistsDoNothing
 import org.neo4j.cypher.internal.ast.IfExistsInvalidSyntax
 import org.neo4j.cypher.internal.ast.IfExistsReplace
 import org.neo4j.cypher.internal.ast.IfExistsThrowError
+import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
@@ -64,76 +65,80 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("CREATE OR REPLACE ALIAS alias IF NOT EXISTS FOR DATABASE target") {
-    assertAst(CreateLocalDatabaseAlias(
-      namespacedName("alias"),
-      namespacedName("target"),
-      IfExistsInvalidSyntax
-    )(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      CreateLocalDatabaseAlias(
+        namespacedName(fromCypher5, "alias"),
+        namespacedName(fromCypher5, "target"),
+        IfExistsInvalidSyntax
+      )(defaultPos)
+    )
   }
 
   test("CREATE ALIAS alias.name FOR DATABASE db.name") {
-    assertAst(CreateLocalDatabaseAlias(
-      namespacedName("alias", "name"),
-      namespacedName("db", "name"),
-      IfExistsThrowError
-    )(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      CreateLocalDatabaseAlias(
+        namespacedName(fromCypher5, "alias", "name"),
+        namespacedName(fromCypher5, "db", "name"),
+        IfExistsThrowError
+      )(defaultPos)
+    )
   }
 
   test("CREATE ALIAS alias . name FOR DATABASE db.name") {
-    assertAst(
+    assertAstVersionBased(fromCypher5 =>
       CreateLocalDatabaseAlias(
-        namespacedName("alias", "name"),
-        namespacedName("db", "name"),
+        namespacedName(fromCypher5, "alias", "name"),
+        namespacedName(fromCypher5, "db", "name"),
         IfExistsThrowError
       )(defaultPos)
     )
   }
 
   test("CREATE ALIAS IF FOR DATABASE db.name") {
-    assertAst(
+    assertAstVersionBased(fromCypher5 =>
       CreateLocalDatabaseAlias(
-        namespacedName("IF"),
-        namespacedName("db", "name"),
+        namespacedName(fromCypher5, "IF"),
+        namespacedName(fromCypher5, "db", "name"),
         IfExistsThrowError
       )(defaultPos)
     )
   }
 
   test("CREATE ALIAS composite.alias FOR DATABASE db") {
-    assertAst(
+    assertAstVersionBased(fromCypher5 =>
       CreateLocalDatabaseAlias(
-        namespacedName("composite", "alias"),
-        namespacedName("db"),
+        namespacedName(fromCypher5, "composite", "alias"),
+        namespacedName(fromCypher5, "db"),
         IfExistsThrowError
       )(defaultPos)
     )
   }
 
   test("CREATE ALIAS alias.alias FOR DATABASE db") {
-    assertAst(
+    assertAstVersionBased(fromCypher5 =>
       CreateLocalDatabaseAlias(
-        namespacedName("alias", "alias"),
-        namespacedName("db"),
+        namespacedName(fromCypher5, "alias", "alias"),
+        namespacedName(fromCypher5, "db"),
         IfExistsThrowError
       )(defaultPos)
     )
   }
 
   test("CREATE ALIAS alias.if IF NOT EXISTS FOR DATABASE db") {
-    assertAst(
+    assertAstVersionBased(fromCypher5 =>
       CreateLocalDatabaseAlias(
-        namespacedName("alias", "if"),
-        namespacedName("db"),
+        namespacedName(fromCypher5, "alias", "if"),
+        namespacedName(fromCypher5, "db"),
         IfExistsDoNothing
       )(defaultPos)
     )
   }
 
   test("CREATE ALIAS very.long.alias IF NOT EXISTS FOR DATABASE db") {
-    assertAst(
+    assertAstVersionBased(fromCypher5 =>
       CreateLocalDatabaseAlias(
-        namespacedName("very", "long", "alias"),
-        namespacedName("db"),
+        namespacedName(fromCypher5, "very", "long", "alias"),
+        namespacedName(fromCypher5, "db"),
         IfExistsDoNothing
       )(defaultPos)
     )
@@ -143,8 +148,8 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     parsesIn[Statements] {
       case Cypher5 => _.toAstPositioned(Statements(Seq(
           CreateLocalDatabaseAlias(
-            namespacedName("a", "b", "c", "d"),
-            namespacedName("db"),
+            NamespacedName(List("b", "c", "d"), Some("a"))(_),
+            NamespacedName(List("db"), None)(_),
             IfExistsDoNothing
           )(defaultPos)
         )))
@@ -174,10 +179,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("CREATE ALIAS alias.for FOR DATABASE db") {
-    assertAst(
+    assertAstVersionBased(fromCypher5 =>
       CreateLocalDatabaseAlias(
-        namespacedName("alias", "for"),
-        namespacedName("db"),
+        namespacedName(fromCypher5, "alias", "for"),
+        namespacedName(fromCypher5, "db"),
         IfExistsThrowError
       )(defaultPos)
     )
@@ -633,16 +638,18 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     """CREATE ALIAS composite.name IF NOT EXISTS FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'
       |PROPERTIES { key:'value', anotherkey:'anotherValue' }""".stripMargin
   ) {
-    assertAst(CreateRemoteDatabaseAlias(
-      namespacedName("composite", "name"),
-      namespacedName("target"),
-      IfExistsDoNothing,
-      Left("neo4j://serverA:7687"),
-      literalString("user"),
-      sensitiveLiteral("password"),
-      None,
-      Some(Left(Map("key" -> literalString("value"), "anotherkey" -> literalString("anotherValue"))))
-    )(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      CreateRemoteDatabaseAlias(
+        namespacedName(fromCypher5, "composite", "name"),
+        namespacedName(fromCypher5, "target"),
+        IfExistsDoNothing,
+        Left("neo4j://serverA:7687"),
+        literalString("user"),
+        sensitiveLiteral("password"),
+        None,
+        Some(Left(Map("key" -> literalString("value"), "anotherkey" -> literalString("anotherValue"))))
+      )(defaultPos)
+    )
   }
 
   test(
@@ -940,8 +947,8 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
           )
       case _ => _.toAstPositioned(Statements(Seq(
           CreateRemoteDatabaseAlias(
-            namespacedName("namespace", "name", "illegal"),
-            namespacedName("target"),
+            NamespacedName(List("namespace.name.illegal"), None)(_),
+            NamespacedName(List("target"), None)(_),
             ifExistsDo = IfExistsThrowError,
             url = Left("neo4j://serverA:7687"),
             username = literalString("user"),
@@ -1134,7 +1141,9 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("DROP ALIAS composite.name FOR DATABASE") {
-    assertAst(DropDatabaseAlias(namespacedName("composite", "name"), ifExists = false)(defaultPos))
+    assertAstVersionBased(fromCypher5 =>
+      DropDatabaseAlias(namespacedName(fromCypher5, "composite", "name"), ifExists = false)(defaultPos)
+    )
   }
 
   test("DROP ALIAS composite.`dotted.name` FOR DATABASE") {
@@ -1333,21 +1342,45 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("ALTER ALIAS name.hej SET DATABASE TARGET db") {
-    parsesTo[Statements](Statements(Seq(AlterLocalDatabaseAlias(
-      namespacedName("name", "hej"),
-      Some(namespacedName("db")),
-      ifExists = false,
-      None
-    )(pos))))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          Statements(Seq(AlterLocalDatabaseAlias(
+            NamespacedName(List("hej"), Some("name"))(_),
+            Some(NamespacedName(List("db"), None)(_)),
+            ifExists = false,
+            None
+          )(pos)))
+        )
+      case _ => _.toAstPositioned(
+          Statements(Seq(AlterLocalDatabaseAlias(
+            NamespacedName(List("name.hej"), None)(_),
+            Some(NamespacedName(List("db"), None)(_)),
+            ifExists = false,
+            None
+          )(pos)))
+        )
+    }
   }
 
   test("ALTER ALIAS name.hej.a SET DATABASE TARGET db") {
-    parsesTo[Statements](Statements(Seq(AlterLocalDatabaseAlias(
-      namespacedName("name", "hej", "a"),
-      Some(namespacedName("db")),
-      ifExists = false,
-      None
-    )(pos))))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          Statements(Seq(AlterLocalDatabaseAlias(
+            NamespacedName(List("hej", "a"), Some("name"))(_),
+            Some(NamespacedName(List("db"), None)(_)),
+            ifExists = false,
+            None
+          )(pos)))
+        )
+      case _ => _.toAstPositioned(
+          Statements(Seq(AlterLocalDatabaseAlias(
+            NamespacedName(List("name.hej.a"), None)(_),
+            Some(NamespacedName(List("db"), None)(_)),
+            ifExists = false,
+            None
+          )(pos)))
+        )
+    }
   }
 
   test("ALTER ALIAS $name if exists SET DATABASE TARGET $db") {
@@ -1646,12 +1679,24 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("ALTER ALIAS name.hej SET DATABASE TARGET db AT 'heja'") {
-    parsesTo[Statements](Statements(Seq(AlterRemoteDatabaseAlias(
-      namespacedName("name", "hej"),
-      Some(namespacedName("db")),
-      ifExists = false,
-      Some(Left("heja"))
-    )(pos))))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          Statements(Seq(AlterRemoteDatabaseAlias(
+            NamespacedName(List("hej"), Some("name"))(_),
+            Some(NamespacedName(List("db"), None)(_)),
+            ifExists = false,
+            Some(Left("heja"))
+          )(pos)))
+        )
+      case _ => _.toAstPositioned(
+          Statements(Seq(AlterRemoteDatabaseAlias(
+            NamespacedName(List("name.hej"), None)(_),
+            Some(NamespacedName(List("db"), None)(_)),
+            ifExists = false,
+            Some(Left("heja"))
+          )(pos)))
+        )
+    }
   }
 
   test("""ALTER ALIAS name SET DATABASE USER foo PROPERTIES { key:'value', anotherkey:'anothervalue' }""") {
@@ -1759,8 +1804,8 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
           )
       case _ => _.toAstPositioned(Statements(Seq(
           AlterRemoteDatabaseAlias(
-            namespacedName("namespace", "name", "illegal"),
-            Some(namespacedName("target")),
+            NamespacedName(List("namespace.name.illegal"), None)(_),
+            Some(NamespacedName(List("target"), None)(_)),
             ifExists = false,
             Some(Left("neo4j://serverA:7687")),
             Some("user"),
@@ -1827,8 +1872,8 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
           )
       case _ => _.toAstPositioned(Statements(Seq(
           AlterRemoteDatabaseAlias(
-            namespacedName("name", "hej", "a"),
-            Some(namespacedName("db")),
+            NamespacedName(List("name.hej.a"), None)(_),
+            Some(NamespacedName(List("db"), None)(_)),
             ifExists = false,
             Some(Left("heja"))
           )(defaultPos)
@@ -2077,7 +2122,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("SHOW ALIAS ns.db FOR DATABASES") {
-    assertAst(ShowAliases(Some(namespacedName("ns", "db")), None)(defaultPos))
+    assertAstVersionBased(fromCypher5 => ShowAliases(Some(namespacedName(fromCypher5, "ns", "db")), None)(defaultPos))
   }
 
   test("SHOW ALIAS `ns.db` FOR DATABASE") {

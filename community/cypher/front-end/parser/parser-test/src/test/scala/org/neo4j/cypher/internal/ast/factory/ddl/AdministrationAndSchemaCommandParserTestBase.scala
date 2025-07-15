@@ -115,6 +115,14 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
   def stringParamName(name: String): ast.ParameterName = ast.ParameterName(parameter(name, CTString))(pos)
   def intParam(name: String): Parameter = parameter(name, CTInteger)
 
+  def namespacedName(fromCypher5: Boolean, nameParts: String*): ast.NamespacedName = if (fromCypher5) {
+    namespacedName(nameParts: _*)
+  } else {
+    // Cypher 25 never sets an explicit namespace in the AST,
+    // namespace is inferred from what is available in the DBMS
+    ast.NamespacedName(List(nameParts.mkString(".")), None)(_)
+  }
+
   def namespacedName(nameParts: String*): ast.NamespacedName =
     if (nameParts.size == 1) ast.NamespacedName(nameParts.head)(_)
     else ast.NamespacedName(nameParts.tail.toList, Some(nameParts.head))(_)

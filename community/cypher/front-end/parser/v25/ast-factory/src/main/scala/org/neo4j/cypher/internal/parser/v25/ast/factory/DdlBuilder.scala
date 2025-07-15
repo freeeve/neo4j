@@ -670,8 +670,8 @@ trait DdlBuilder extends Cypher25ParserListener {
     val symbAliasName = ctx.symbolicAliasName()
     ctx.ast =
       if (symbAliasName != null) {
-        val s = symbAliasName.ast[ArraySeq[String]]().toList
-        NamespacedName(s)(pos(ctx))
+        val s = symbAliasName.ast[ArraySeq[String]]().toList.mkString(".")
+        NamespacedName(List(s), None)(pos(ctx))
       } else
         ParameterName(ctx.parameter().ast())(pos(ctx))
   }

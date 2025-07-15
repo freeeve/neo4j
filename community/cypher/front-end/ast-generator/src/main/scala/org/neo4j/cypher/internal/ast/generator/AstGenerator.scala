@@ -2925,7 +2925,12 @@ class AstGenerator(
   def _databaseNameNoNamespace: Gen[DatabaseName] = for {
     name <- listOfN(1, _identifier)
     param <- _stringParameter
-    finalName <- oneOf(NamespacedName(name)(pos), ParameterName(param)(pos))
+    finalName <- whenAstDifferUseCypherVersion match {
+      case CypherVersion.Cypher5 =>
+        oneOf(NamespacedName.apply(name)(pos), ParameterName(param)(pos))
+      case _ =>
+        oneOf(NamespacedName(name, None)(pos), ParameterName(param)(pos))
+    }
   } yield finalName
 
   def _optionsMapAsEitherOrNone: Gen[Options] = for {
@@ -2977,9 +2982,17 @@ class AstGenerator(
     oneOf(IfExistsReplace, IfExistsDoNothing, IfExistsThrowError, IfExistsInvalidSyntax)
 
   def _namespacedName: Gen[NamespacedName] = for {
-    name <- listOfN(1, _identifier)
+    name <- if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) {
+      listOfN(1, _identifier)
+    } else {
+      listOfN(2, _identifier)
+    }
     namespace <- _identifier
-    maybeNamespace <- option(namespace)
+    maybeNamespace <- if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) {
+      option(namespace)
+    } else {
+      const(None)
+    }
   } yield NamespacedName(name, maybeNamespace)(pos)
 
   def _topology: Gen[Topology] = for {

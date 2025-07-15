@@ -162,16 +162,28 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
   }
 
   test("DROP DATABASE foo.bar") {
-    parsesTo[Statements](
-      DropDatabase(
-        NamespacedName(List("bar"), Some("foo"))((1, 14, 13)),
-        ifExists = false,
-        composite = false,
-        Restrict,
-        DestroyData,
-        NoWait()(defaultPos)
-      )(pos)
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          DropDatabase(
+            NamespacedName(List("bar"), Some("foo"))((1, 15, 14)),
+            ifExists = false,
+            composite = false,
+            Restrict,
+            DestroyData,
+            NoWait()(pos)
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          DropDatabase(
+            NamespacedName(List("foo.bar"), None)((1, 15, 14)),
+            ifExists = false,
+            composite = false,
+            Restrict,
+            DestroyData,
+            NoWait()(pos)
+          )(pos)
+        )
+    }
   }
 
   test("DROP DATABASE foo IF EXISTS") {

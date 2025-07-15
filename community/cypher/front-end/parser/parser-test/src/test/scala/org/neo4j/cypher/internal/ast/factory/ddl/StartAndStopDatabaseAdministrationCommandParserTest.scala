@@ -68,10 +68,20 @@ class StartAndStopDatabaseAdministrationCommandParserTest extends Administration
   }
 
   test("START DATABASE foo.bar") {
-    parsesTo[Statements](StartDatabase(
-      NamespacedName(List("bar"), Some("foo"))((1, 16, 15)),
-      NoWait()(defaultPos)
-    )(pos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          StartDatabase(
+            NamespacedName(List("bar"), Some("foo"))((1, 16, 15)),
+            NoWait()(pos)
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          StartDatabase(
+            NamespacedName(List("foo.bar"), None)((1, 16, 15)),
+            NoWait()(pos)
+          )(pos)
+        )
+    }
   }
 
   test("START DATABASE") {
@@ -148,7 +158,14 @@ class StartAndStopDatabaseAdministrationCommandParserTest extends Administration
   }
 
   test("STOP DATABASE foo.bar") {
-    parsesTo[Statements](StopDatabase(NamespacedName(List("bar"), Some("foo"))((1, 16, 15)), NoWait()(defaultPos))(pos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          StopDatabase(NamespacedName(List("bar"), Some("foo"))((1, 15, 14)), NoWait()(pos))(pos)
+        )
+      case _ => _.toAstPositioned(
+          StopDatabase(NamespacedName(List("foo.bar"), None)((1, 15, 14)), NoWait()(pos))(pos)
+        )
+    }
   }
 
   test("STOP DATABASE `foo`.bar.`baz`") {

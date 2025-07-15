@@ -176,13 +176,14 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
               }
 
               test(s"$verb$immutableString $privilege ON DATABASE more.Dots.more.Dots $preposition role") {
-                assertAst(
-                  privilegeFunc(
-                    action,
-                    NamedDatabasesScope(Seq(namespacedName("more", "Dots", "more", "Dots"))) _,
-                    Seq(literalRole),
-                    immutable
-                  )(pos),
+                assertAstVersionBased(
+                  fromCypher5 =>
+                    privilegeFunc(
+                      action,
+                      NamedDatabasesScope(Seq(namespacedName(fromCypher5, "more", "Dots", "more", "Dots"))) _,
+                      Seq(literalRole),
+                      immutable
+                    )(pos),
                   supportedInCypher5 = supportedInCypher5
                 )
               }

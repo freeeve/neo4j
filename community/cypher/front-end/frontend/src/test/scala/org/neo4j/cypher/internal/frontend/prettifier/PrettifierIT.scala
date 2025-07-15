@@ -423,6 +423,19 @@ class PrettifierIT extends CypherFunSuite {
         |  MATCH (n)
         |}""".stripMargin
     ),
+    ChangedBetween5And25(
+      "use db.products return 1",
+      """USE `db`.`products`
+        |RETURN 1""".stripMargin,
+      """USE `db.products`
+        |RETURN 1""".stripMargin
+    ),
+    "use `db.products` return 1" ->
+      """USE `db.products`
+        |RETURN 1""".stripMargin,
+    "use `db-products` return 1" ->
+      """USE `db-products`
+        |RETURN 1""".stripMargin,
     FailsInCypher5(
       "{ match (n) UNION match (n) } UNION ALL USE graph { RETURN $node AS n }",
       """{
@@ -1904,8 +1917,11 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE USER abc SET PASSWORD $password CHANGE REQUIRED",
     "create user abc set password $password set home database neo4j" ->
       "CREATE USER abc SET PASSWORD $password CHANGE REQUIRED SET HOME DATABASE neo4j",
-    "create user abc set password $password set home database a.b" ->
+    ChangedBetween5And25(
+      "create user abc set password $password set home database a.b",
       "CREATE USER abc SET PASSWORD $password CHANGE REQUIRED SET HOME DATABASE a.b",
+      "CREATE USER abc SET PASSWORD $password CHANGE REQUIRED SET HOME DATABASE `a.b`"
+    ),
     "create user abc set password $password set home database `a.b`" ->
       "CREATE USER abc SET PASSWORD $password CHANGE REQUIRED SET HOME DATABASE `a.b`",
     "create user abc set auth 'native' { set password $password }" ->
@@ -2028,8 +2044,11 @@ class PrettifierIT extends CypherFunSuite {
       "ALTER USER abc SET PASSWORD $password",
     "alter user abc set status active set home database db1 set password change not required" ->
       "ALTER USER abc SET PASSWORD CHANGE NOT REQUIRED SET STATUS ACTIVE SET HOME DATABASE db1",
-    "alter user abc set status active set home database db1.db2 set password change not required" ->
+    ChangedBetween5And25(
+      "alter user abc set status active set home database db1.db2 set password change not required",
       "ALTER USER abc SET PASSWORD CHANGE NOT REQUIRED SET STATUS ACTIVE SET HOME DATABASE db1.db2",
+      "ALTER USER abc SET PASSWORD CHANGE NOT REQUIRED SET STATUS ACTIVE SET HOME DATABASE `db1.db2`"
+    ),
     "alter user abc set status active set home database `db1.db2` set password change not required" ->
       "ALTER USER abc SET PASSWORD CHANGE NOT REQUIRED SET STATUS ACTIVE SET HOME DATABASE `db1.db2`",
     "alter user abc set status active set password change not required" ->
@@ -2673,8 +2692,11 @@ class PrettifierIT extends CypherFunSuite {
       "START DATABASE $foo",
     "start database foO_Bar_42" ->
       "START DATABASE foO_Bar_42",
-    "start database graph.db" ->
+    ChangedBetween5And25(
+      "start database graph.db",
       "START DATABASE graph.db",
+      "START DATABASE `graph.db`"
+    ),
     "stop database $foo" ->
       "STOP DATABASE $foo",
     "stop database foO_Bar_42" ->
@@ -2688,8 +2710,20 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE ALIAS alias IF NOT EXISTS FOR DATABASE database",
     "create or replace alias alias FOR database database" ->
       "CREATE OR REPLACE ALIAS alias FOR DATABASE database",
-    "create alias composite.alias FOR database database" ->
+    ChangedBetween5And25(
+      "create alias composite.alias FOR database database",
       "CREATE ALIAS composite.alias FOR DATABASE database",
+      "CREATE ALIAS `composite.alias` FOR DATABASE database"
+    ),
+    ChangedBetween5And25(
+      "create alias very.long.alias FOR database database",
+      // Cypher 5 enforces split on first '.', then quotes individual parts
+      "CREATE ALIAS very.`long.alias` FOR DATABASE database",
+      // Cypher 25 does not enforce a split, but instead quotes the whole name
+      "CREATE ALIAS `very.long.alias` FOR DATABASE database"
+    ),
+    "create alias `name-with-dashes` FOR database database" ->
+      "CREATE ALIAS `name-with-dashes` FOR DATABASE database",
     FailsInCypher25AndLater(
       "create alias composite.`alias.mine` FOR database database",
       "CREATE ALIAS composite.`alias.mine` FOR DATABASE database"
@@ -2704,8 +2738,11 @@ class PrettifierIT extends CypherFunSuite {
       """CREATE ALIAS alias FOR DATABASE database AT "url" USER user PASSWORD '******'""",
     "create alias alias IF NOT EXISTS FOR database database at 'url' user user password 'password'" ->
       """CREATE ALIAS alias IF NOT EXISTS FOR DATABASE database AT "url" USER user PASSWORD '******'""",
-    "create alias composite.alias FOR database database at 'url' user user password 'password'" ->
+    ChangedBetween5And25(
+      "create alias composite.alias FOR database database at 'url' user user password 'password'",
       """CREATE ALIAS composite.alias FOR DATABASE database AT "url" USER user PASSWORD '******'""",
+      """CREATE ALIAS `composite.alias` FOR DATABASE database AT "url" USER user PASSWORD '******'"""
+    ),
     "create or replace alias alias FOR database database at 'url' user user password 'password' driver { ssl_enforced: $val }" ->
       """CREATE OR REPLACE ALIAS alias FOR DATABASE database AT "url" USER user PASSWORD '******' DRIVER {ssl_enforced: $val}""",
     "create alias $alias if not exists FOR database $database at $url user $user password $password driver { }" ->
@@ -2730,8 +2767,11 @@ class PrettifierIT extends CypherFunSuite {
       "ALTER ALIAS alias SET DATABASE USER user",
     "alter alias alias set database password 'password'" ->
       "ALTER ALIAS alias SET DATABASE PASSWORD '******'",
-    "alter alias composite.alias set database driver { ssl_enforced: true }" ->
+    ChangedBetween5And25(
+      "alter alias composite.alias set database driver { ssl_enforced: true }",
       "ALTER ALIAS composite.alias SET DATABASE DRIVER {ssl_enforced: true}",
+      "ALTER ALIAS `composite.alias` SET DATABASE DRIVER {ssl_enforced: true}"
+    ),
     "alter alias alias SET database  default language cypher 5" ->
       """ALTER ALIAS alias SET DATABASE DEFAULT LANGUAGE CYPHER 5""",
     "alter alias $alias if exists SET database TARGET $database at $url user $user password $password driver { } default LANGUAGE cypher 25 properties { }" ->
@@ -2740,14 +2780,20 @@ class PrettifierIT extends CypherFunSuite {
       "DROP ALIAS alias FOR DATABASE",
     "drop alias alias if exists for database" ->
       "DROP ALIAS alias IF EXISTS FOR DATABASE",
-    "drop alias composite.alias for database" ->
+    ChangedBetween5And25(
+      "drop alias composite.alias for database",
       "DROP ALIAS composite.alias FOR DATABASE",
+      "DROP ALIAS `composite.alias` FOR DATABASE"
+    ),
     "show alias for database" ->
       "SHOW ALIASES FOR DATABASE",
     "show aliases for database" ->
       "SHOW ALIASES FOR DATABASE",
-    "show alias a.BLAh for database" ->
+    ChangedBetween5And25(
+      "show alias a.BLAh for database",
       "SHOW ALIAS a.BLAh FOR DATABASE",
+      "SHOW ALIAS `a.BLAh` FOR DATABASE"
+    ),
     "show alias $foo for database" ->
       "SHOW ALIAS $foo FOR DATABASE",
     "show aliases for database YIELD * where name = 'neo4j' Return *" ->
@@ -3435,8 +3481,11 @@ class PrettifierIT extends CypherFunSuite {
                 s"$action $prettifiedDatabaseAction ON DATABASE FoO $preposition role",
               s"$action $databaseAction on databases `F.o.O` $preposition role" ->
                 s"$action $prettifiedDatabaseAction ON DATABASE `F.o.O` $preposition role",
-              s"$action $databaseAction on databases F.o.O $preposition role" ->
+              ChangedBetween5And25(
+                s"$action $databaseAction on databases F.o.O $preposition role",
                 s"$action $prettifiedDatabaseAction ON DATABASE F.`o.O` $preposition role",
+                s"$action $prettifiedDatabaseAction ON DATABASE `F.o.O` $preposition role"
+              ),
               s"$action $databaseAction on home database $preposition role" ->
                 s"$action $prettifiedDatabaseAction ON HOME DATABASE $preposition role"
             )
@@ -3630,10 +3679,12 @@ class PrettifierIT extends CypherFunSuite {
     case ChangedBetween5And25(inputString, expectedCypher5, expectedCypher25AndLater) =>
       test(inputString) {
         CypherVersion.values().foreach { version =>
-          if (version >= CypherVersion.Cypher25) {
+          if (version >= CypherVersion.Cypher25) withClue("in Cypher >= 25") {
             val statement = parseAntlr(version, inputString)
-            prettifier.asString(statement) should equal(expectedCypher25AndLater)
-          } else {
+            val pretRes = prettifier.asString(statement)
+            pretRes should equal(expectedCypher25AndLater)
+          }
+          else withClue("in Cypher 5") {
             val statement = parseAntlr(CypherVersion.Cypher5, inputString)
             prettifier.asString(statement) should equal(expectedCypher5)
           }

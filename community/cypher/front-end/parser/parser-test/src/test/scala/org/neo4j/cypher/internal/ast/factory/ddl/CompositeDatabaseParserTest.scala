@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.IfExistsDoNothing
 import org.neo4j.cypher.internal.ast.IfExistsReplace
 import org.neo4j.cypher.internal.ast.IfExistsThrowError
 import org.neo4j.cypher.internal.ast.IndefiniteWait
+import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.OptionsMap
@@ -59,27 +60,49 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   test("CREATE COMPOSITE DATABASE db.name") {
-    parsesTo[Statements](
-      CreateCompositeDatabase(
-        namespacedName("db", "name"),
-        IfExistsThrowError,
-        NoOptions,
-        NoWait()(pos),
-        None
-      )(pos)
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          CreateCompositeDatabase(
+            NamespacedName(List("name"), Some("db"))(_),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          CreateCompositeDatabase(
+            NamespacedName(List("db.name"), None)(_),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+    }
   }
 
   test("CREATE COMPOSITE DATABASE foo.bar") {
-    parsesTo[Statements](
-      CreateCompositeDatabase(
-        namespacedName("foo", "bar"),
-        IfExistsThrowError,
-        NoOptions,
-        NoWait()(pos),
-        None
-      )(pos)
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          CreateCompositeDatabase(
+            NamespacedName(List("bar"), Some("foo"))(_),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          CreateCompositeDatabase(
+            NamespacedName(List("foo.bar"), None)(_),
+            IfExistsThrowError,
+            NoOptions,
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+    }
   }
 
   test("CREATE COMPOSITE DATABASE `graph.db`.`db.db`") {
@@ -383,14 +406,28 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   test("DROP COMPOSITE DATABASE db.name") {
-    parsesTo[Statements](DropDatabase(
-      namespacedName("db", "name"),
-      ifExists = false,
-      composite = true,
-      Restrict,
-      DestroyData,
-      NoWait()(pos)
-    )(pos))
+    parsesIn[Statements] {
+      case Cypher5 => _.toAstPositioned(
+          DropDatabase(
+            NamespacedName(List("name"), Some("db"))(_),
+            ifExists = false,
+            composite = true,
+            Restrict,
+            DestroyData,
+            NoWait()(pos)
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          DropDatabase(
+            NamespacedName(List("db.name"), None)(_),
+            ifExists = false,
+            composite = true,
+            Restrict,
+            DestroyData,
+            NoWait()(pos)
+          )(pos)
+        )
+    }
   }
 
   test("DROP COMPOSITE DATABASE $name") {
