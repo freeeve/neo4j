@@ -21,6 +21,7 @@ package org.neo4j.internal.recordstorage;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.impl.store.record.Record.NULL_REFERENCE;
 
@@ -63,7 +64,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.PropertyKeyTokenCommand);
+        assertInstanceOf(Command.PropertyKeyTokenCommand.class, command);
 
         Command.PropertyKeyTokenCommand propertyKeyTokenCommand = (Command.PropertyKeyTokenCommand) command;
 
@@ -88,7 +89,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.PropertyKeyTokenCommand);
+        assertInstanceOf(Command.PropertyKeyTokenCommand.class, command);
 
         Command.PropertyKeyTokenCommand propertyKeyTokenCommand = (Command.PropertyKeyTokenCommand) command;
 
@@ -110,7 +111,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.LabelTokenCommand);
+        assertInstanceOf(Command.LabelTokenCommand.class, command);
 
         Command.LabelTokenCommand labelTokenCommand = (Command.LabelTokenCommand) command;
 
@@ -133,7 +134,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.LabelTokenCommand);
+        assertInstanceOf(Command.LabelTokenCommand.class, command);
 
         Command.LabelTokenCommand labelTokenCommand = (Command.LabelTokenCommand) command;
 
@@ -155,7 +156,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipTypeTokenCommand);
+        assertInstanceOf(Command.RelationshipTypeTokenCommand.class, command);
 
         Command.RelationshipTypeTokenCommand relationshipTypeTokenCommand =
                 (Command.RelationshipTypeTokenCommand) command;
@@ -179,7 +180,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipTypeTokenCommand);
+        assertInstanceOf(Command.RelationshipTypeTokenCommand.class, command);
 
         Command.RelationshipTypeTokenCommand relationshipTypeTokenCommand =
                 (Command.RelationshipTypeTokenCommand) command;
@@ -207,7 +208,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipCommand);
+        assertInstanceOf(Command.RelationshipCommand.class, command);
 
         Command.RelationshipCommand relationshipCommand = (Command.RelationshipCommand) command;
 
@@ -236,7 +237,7 @@ class LogCommandSerializationV4_2Test {
 
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipCommand);
+        assertInstanceOf(Command.RelationshipCommand.class, command);
 
         Command.RelationshipCommand relationshipCommand = (Command.RelationshipCommand) command;
         assertBeforeAndAfterEquals(relationshipCommand, before, after);
@@ -263,7 +264,7 @@ class LogCommandSerializationV4_2Test {
 
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipCommand);
+        assertInstanceOf(Command.RelationshipCommand.class, command);
 
         Command.RelationshipCommand relationshipCommand = (Command.RelationshipCommand) command;
         assertBeforeAndAfterEquals(relationshipCommand, before, after);
@@ -291,7 +292,7 @@ class LogCommandSerializationV4_2Test {
 
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipCommand);
+        assertInstanceOf(Command.RelationshipCommand.class, command);
 
         Command.RelationshipCommand relationshipCommand = (Command.RelationshipCommand) command;
         assertBeforeAndAfterEquals(relationshipCommand, before, after);
@@ -317,7 +318,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipGroupCommand);
+        assertInstanceOf(Command.RelationshipGroupCommand.class, command);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
 
@@ -345,7 +346,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipGroupCommand);
+        assertInstanceOf(Command.RelationshipGroupCommand.class, command);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
 
@@ -373,7 +374,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipGroupCommand);
+        assertInstanceOf(Command.RelationshipGroupCommand.class, command);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
 
@@ -402,7 +403,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipGroupCommand);
+        assertInstanceOf(Command.RelationshipGroupCommand.class, command);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
 
@@ -432,7 +433,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipGroupCommand);
+        assertInstanceOf(Command.RelationshipGroupCommand.class, command);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
 
@@ -457,7 +458,7 @@ class LogCommandSerializationV4_2Test {
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.NodeCommand);
+        assertInstanceOf(Command.NodeCommand.class, command);
 
         Command.NodeCommand nodeCommand = (Command.NodeCommand) command;
 
@@ -484,7 +485,7 @@ class LogCommandSerializationV4_2Test {
 
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.PropertyCommand);
+        assertInstanceOf(Command.PropertyCommand.class, command);
 
         Command.PropertyCommand propertyCommand = (Command.PropertyCommand) command;
 
@@ -509,7 +510,7 @@ class LogCommandSerializationV4_2Test {
 
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.PropertyCommand);
+        assertInstanceOf(Command.PropertyCommand.class, command);
 
         Command.PropertyCommand propertyCommand = (Command.PropertyCommand) command;
 
@@ -533,7 +534,7 @@ class LogCommandSerializationV4_2Test {
 
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.PropertyCommand);
+        assertInstanceOf(Command.PropertyCommand.class, command);
 
         Command.PropertyCommand propertyCommand = (Command.PropertyCommand) command;
 
@@ -565,12 +566,12 @@ class LogCommandSerializationV4_2Test {
         InMemoryClosableChannel channel = createChannel(bytes);
 
         // THEN
-        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.NodeCommand);
-        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.NodeCommand);
-        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.RelationshipTypeTokenCommand);
-        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.RelationshipCommand);
-        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.PropertyKeyTokenCommand);
-        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.PropertyCommand);
+        assertInstanceOf(Command.NodeCommand.class, reader.read(channel, EmptyMemoryTracker.INSTANCE));
+        assertInstanceOf(Command.NodeCommand.class, reader.read(channel, EmptyMemoryTracker.INSTANCE));
+        assertInstanceOf(Command.RelationshipTypeTokenCommand.class, reader.read(channel, EmptyMemoryTracker.INSTANCE));
+        assertInstanceOf(Command.RelationshipCommand.class, reader.read(channel, EmptyMemoryTracker.INSTANCE));
+        assertInstanceOf(Command.PropertyKeyTokenCommand.class, reader.read(channel, EmptyMemoryTracker.INSTANCE));
+        assertInstanceOf(Command.PropertyCommand.class, reader.read(channel, EmptyMemoryTracker.INSTANCE));
     }
 
     @ParameterizedTest

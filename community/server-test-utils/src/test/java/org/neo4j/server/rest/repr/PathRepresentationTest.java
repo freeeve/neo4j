@@ -20,8 +20,8 @@
 package org.neo4j.server.rest.repr;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.server.rest.repr.RepresentationTestAccess.serialize;
 import static org.neo4j.server.rest.repr.RepresentationTestBase.NODE_URI_PATTERN;
 import static org.neo4j.server.rest.repr.RepresentationTestBase.RELATIONSHIP_URI_PATTERN;
@@ -125,7 +125,7 @@ class PathRepresentationTest {
         assertUriMatches(NODE_URI_PATTERN, pathrep.get("end").toString());
 
         Object nodes = pathrep.get("nodes");
-        assertTrue(nodes instanceof List);
+        assertInstanceOf(List.class, nodes);
         List nodeList = (List) nodes;
         assertEquals(length + 1, nodeList.size());
         for (Object node : nodeList) {
@@ -133,7 +133,7 @@ class PathRepresentationTest {
         }
 
         Object rels = pathrep.get("relationships");
-        assertTrue(rels instanceof List);
+        assertInstanceOf(List.class, rels);
         List relList = (List) rels;
         assertEquals(length, relList.size());
         for (Object rel : relList) {
@@ -141,7 +141,7 @@ class PathRepresentationTest {
         }
 
         Object directions = pathrep.get("directions");
-        assertTrue(directions instanceof List);
+        assertInstanceOf(List.class, directions);
         List directionList = (List) directions;
         assertEquals(length, directionList.size());
         assertEquals("->", directionList.get(0).toString());

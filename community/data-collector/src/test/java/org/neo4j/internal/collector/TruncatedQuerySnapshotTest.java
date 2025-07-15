@@ -20,7 +20,7 @@
 package org.neo4j.internal.collector;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.neo4j.values.virtual.VirtualValues.nodeValue;
 import static org.neo4j.values.virtual.VirtualValues.relationshipValue;
 
@@ -48,7 +48,7 @@ class TruncatedQuerySnapshotTest {
 
         // then
         AnyValue truncatedNode = x.queryParameters.get("n");
-        assertTrue(truncatedNode instanceof NodeIdReference);
+        assertInstanceOf(NodeIdReference.class, truncatedNode);
         assertEquals(NODE.id(), ((NodeIdReference) truncatedNode).id());
     }
 
@@ -60,7 +60,7 @@ class TruncatedQuerySnapshotTest {
 
         // then
         AnyValue truncatedRelationship = x.queryParameters.get("r");
-        assertTrue(truncatedRelationship instanceof RelationshipReference);
+        assertInstanceOf(RelationshipReference.class, truncatedRelationship);
         assertEquals(RELATIONSHIP.id(), ((RelationshipReference) truncatedRelationship).id());
     }
 

@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.recordstorage;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import java.io.IOException;
 import java.nio.ByteOrder;
@@ -50,7 +50,7 @@ class LogCommandSerializationV4_3D_3Test extends LogCommandSerializationV4_2Test
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.MetaDataCommand);
+        assertInstanceOf(Command.MetaDataCommand.class, command);
 
         Command.MetaDataCommand readCommand = (Command.MetaDataCommand) command;
 
@@ -80,7 +80,7 @@ class LogCommandSerializationV4_3D_3Test extends LogCommandSerializationV4_2Test
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipGroupCommand);
+        assertInstanceOf(Command.RelationshipGroupCommand.class, command);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
 
@@ -111,7 +111,7 @@ class LogCommandSerializationV4_3D_3Test extends LogCommandSerializationV4_2Test
         // When
         CommandReader reader = createReader();
         StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
-        assertTrue(command instanceof Command.RelationshipGroupCommand);
+        assertInstanceOf(Command.RelationshipGroupCommand.class, command);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
 

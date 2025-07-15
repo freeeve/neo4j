@@ -19,7 +19,7 @@
  */
 package org.neo4j.shell;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +38,6 @@ class ShellRunnerTest {
         when(terminal.isInteractive()).thenReturn(true);
         ShellRunner runner =
                 new ShellRunner.Factory().create(args, mock(CypherShell.class), mock(Printer.class), terminal);
-        assertTrue(runner instanceof NonInteractiveShellRunner, "Should be non-interactive shell runner when forced");
+        assertInstanceOf(NonInteractiveShellRunner.class, runner, "Should be non-interactive shell runner when forced");
     }
 }

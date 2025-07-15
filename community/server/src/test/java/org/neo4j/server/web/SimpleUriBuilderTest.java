@@ -20,9 +20,9 @@
 package org.neo4j.server.web;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URISyntaxException;
 import org.junit.jupiter.api.Test;
@@ -61,6 +61,6 @@ class SimpleUriBuilderTest {
 
         var cause = ex.getCause();
         assertNotNull(cause);
-        assertTrue(cause instanceof URISyntaxException);
+        assertInstanceOf(URISyntaxException.class, cause);
     }
 }

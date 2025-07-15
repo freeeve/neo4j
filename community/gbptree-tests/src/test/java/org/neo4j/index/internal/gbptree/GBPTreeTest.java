@@ -29,6 +29,7 @@ import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -993,8 +994,9 @@ class GBPTreeTest {
             // THEN
             write.get();
             close.get();
-            assertTrue(
-                    writerError.get() instanceof FileIsNotMappedException,
+            assertInstanceOf(
+                    FileIsNotMappedException.class,
+                    writerError.get(),
                     "Writer should not be able to acquired after close");
         }
     }

@@ -20,9 +20,9 @@
 package org.neo4j.test.extension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -69,7 +69,7 @@ class DbmsExtensionInjectionTest {
         assertNotNull(databaseLayout);
 
         assertEquals(testDirectory.getFileSystem(), fs);
-        assertTrue(fs instanceof DefaultFileSystemAbstraction);
+        assertInstanceOf(DefaultFileSystemAbstraction.class, fs);
 
         assertSame(db, dbApi);
         assertEquals(testDirectory.homePath(), neo4jLayout.homeDirectory());

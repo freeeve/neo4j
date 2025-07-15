@@ -21,8 +21,8 @@ package org.neo4j.graphdb.schema;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
@@ -171,19 +171,19 @@ class IndexSettingUtilTest {
 
     private static void assertBoolean(IndexSetting setting, Object object, boolean expectedResult) {
         Value result = IndexSettingUtil.asIndexSettingValue(setting, object);
-        assertTrue(result instanceof BooleanValue);
+        assertInstanceOf(BooleanValue.class, result);
         assertEquals(expectedResult, ((BooleanValue) result).booleanValue());
     }
 
     private static void assertString(IndexSetting setting, Object object, String expectedResult) {
         Value result = IndexSettingUtil.asIndexSettingValue(setting, object);
-        assertTrue(result instanceof StringValue);
+        assertInstanceOf(StringValue.class, result);
         assertEquals(expectedResult, ((StringValue) result).stringValue());
     }
 
     private static void assertDoubleArray(IndexSetting setting, Object object, double[] expectedResult) {
         Value result = IndexSettingUtil.asIndexSettingValue(setting, object);
-        assertTrue(result instanceof DoubleArray);
+        assertInstanceOf(DoubleArray.class, result);
         assertArrayEquals(expectedResult, ((DoubleArray) result).asObjectCopy());
     }
 }
