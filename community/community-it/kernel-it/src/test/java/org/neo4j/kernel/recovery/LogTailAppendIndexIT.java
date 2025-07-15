@@ -21,6 +21,7 @@ package org.neo4j.kernel.recovery;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.cloud.storage.StorageUtils.WRITE_OPTIONS;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.fail_on_corrupted_log_files;
 import static org.neo4j.configuration.GraphDatabaseSettings.fail_on_missing_files;
 import static org.neo4j.kernel.recovery.RecoveryHelpers.removeLastCheckpointRecordFromLogFile;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
@@ -256,7 +257,14 @@ public class LogTailAppendIndexIT {
                     .writeAll(ByteBuffer.wrap(new byte[1024]));
         }
 
-        LogFiles logFiles = buildDefaultLogFiles(layout);
+        // start db and truncate any broken tail if any
+        dbms = new TestDatabaseManagementServiceBuilder(neo4jLayout)
+                .setConfig(fail_on_missing_files, false)
+                .setConfig(fail_on_corrupted_log_files, false)
+                .build();
+
+        var restartedDb = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
+        LogFiles logFiles = restartedDb.getDependencyResolver().resolveDependency(LogFiles.class);
         assertEquals(lastBatchBeforeRestart, logFiles.getTailMetadata().lastBatch());
     }
 
