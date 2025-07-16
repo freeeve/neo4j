@@ -137,7 +137,8 @@ public final class DefaultResponseModule extends SimpleModule {
             jsonGenerator.writeStartObject();
             jsonGenerator.writeStringField("code", notification.code());
             jsonGenerator.writeStringField("description", notification.description());
-            jsonGenerator.writeStringField("severity", notification.severity());
+            jsonGenerator.writeStringField(
+                    "severity", notification.rawSeverityLevel().orElse("N/A"));
             jsonGenerator.writeStringField("title", notification.title());
             jsonGenerator.writeObjectField("position", notification.position());
             if (notification.category().isPresent()) {

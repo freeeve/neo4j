@@ -29,7 +29,6 @@ import org.neo4j.driver.Session;
 import org.neo4j.driver.Transaction;
 import org.neo4j.driver.TransactionCallback;
 import org.neo4j.driver.TransactionConfig;
-import org.neo4j.driver.TransactionWork;
 import org.neo4j.driver.Value;
 import org.neo4j.shell.test.Util;
 
@@ -50,26 +49,6 @@ public class FakeSession implements Session {
     }
 
     @Override
-    public <T> T readTransaction(TransactionWork<T> work) {
-        return null;
-    }
-
-    @Override
-    public <T> T readTransaction(TransactionWork<T> work, TransactionConfig config) {
-        return null;
-    }
-
-    @Override
-    public <T> T writeTransaction(TransactionWork<T> work) {
-        return null;
-    }
-
-    @Override
-    public <T> T writeTransaction(TransactionWork<T> work, TransactionConfig config) {
-        return null;
-    }
-
-    @Override
     public Result run(String statement, TransactionConfig config) {
         return FakeResult.parseStatement(statement);
     }
@@ -82,11 +61,6 @@ public class FakeSession implements Session {
     @Override
     public Result run(Query statement, TransactionConfig config) {
         return FakeResult.parseStatement(statement.text());
-    }
-
-    @Override
-    public Bookmark lastBookmark() {
-        return null;
     }
 
     @Override

@@ -23,7 +23,6 @@ import static org.neo4j.shell.util.Versions.isPasswordChangeRequiredException;
 
 import java.net.URI;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -31,7 +30,6 @@ import java.util.logging.LogManager;
 import org.neo4j.driver.AccessMode;
 import org.neo4j.driver.AuthToken;
 import org.neo4j.driver.AuthTokens;
-import org.neo4j.driver.Bookmark;
 import org.neo4j.driver.Config;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
@@ -76,7 +74,6 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
     private static final TransactionConfig SYSTEM_TX_CONF = txConfig(TransactionType.SYSTEM);
     private final TriFunction<URI, AuthToken, Config, Driver> driverProvider;
     private final boolean isInteractive;
-    private final Map<String, Bookmark> bookmarks = new HashMap<>();
     protected Driver driver;
     Session userSession;
     Session serviceSession;
@@ -317,10 +314,7 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
             builder.withDatabase(databaseToConnectTo);
         }
         closeSession(previousDatabase);
-        final Bookmark bookmarkForDBToConnectTo = bookmarks.get(databaseToConnectTo);
-        if (bookmarkForDBToConnectTo != null) {
-            builder.withBookmarks(bookmarkForDBToConnectTo);
-        }
+        builder.withBookmarkManager(driver.executableQueryBookmarkManager());
 
         impersonatedUser().ifPresent(builder::withImpersonatedUser);
 
@@ -338,10 +332,7 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
      */
     private void closeSession(String databaseName) {
         if (userSession != null) {
-            // Save the last bookmark and close the session
-            final Bookmark bookmarkForPreviousDB = userSession.lastBookmark();
             userSession.close();
-            bookmarks.put(databaseName, bookmarkForPreviousDB);
         }
         if (serviceSession != null) {
             serviceSession.close();

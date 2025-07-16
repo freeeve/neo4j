@@ -32,6 +32,7 @@ import org.junit.jupiter.api.TestInstance;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.TransactionContext;
+import org.neo4j.driver.reactive.ReactiveSession;
 import org.neo4j.driver.reactive.ReactiveTransaction;
 import org.neo4j.test.extension.BoltDbmsExtension;
 import org.neo4j.test.extension.Inject;
@@ -101,7 +102,7 @@ class BoltLocalResultStreamTest {
     }
 
     private static <T> T inRxTx(Function<ReactiveTransaction, T> workload) {
-        var session = driver.reactiveSession();
+        var session = driver.session(ReactiveSession.class);
         try {
             ReactiveTransaction tx =
                     Mono.from(flowPublisherToFlux(session.beginTransaction())).block();

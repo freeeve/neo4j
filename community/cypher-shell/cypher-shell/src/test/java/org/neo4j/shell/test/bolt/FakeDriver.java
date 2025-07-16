@@ -20,6 +20,7 @@
 package org.neo4j.shell.test.bolt;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.mockito.Mockito.mock;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -32,11 +33,7 @@ import org.neo4j.driver.ExecutableQuery;
 import org.neo4j.driver.Metrics;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
-import org.neo4j.driver.async.AsyncSession;
 import org.neo4j.driver.exceptions.Neo4jException;
-import org.neo4j.driver.reactive.ReactiveSession;
-import org.neo4j.driver.reactive.RxSession;
-import org.neo4j.driver.types.TypeSystem;
 
 public class FakeDriver implements Driver {
     public List<SessionConfig> sessionConfigs = new LinkedList<>();
@@ -48,7 +45,7 @@ public class FakeDriver implements Driver {
 
     @Override
     public BookmarkManager executableQueryBookmarkManager() {
-        throw new UnsupportedOperationException();
+        return mock(BookmarkManager.class);
     }
 
     @Override
@@ -94,36 +91,6 @@ public class FakeDriver implements Driver {
     @Override
     public boolean isMetricsEnabled() {
         return false;
-    }
-
-    @Override
-    public RxSession rxSession() {
-        return null;
-    }
-
-    @Override
-    public RxSession rxSession(SessionConfig sessionConfig) {
-        return null;
-    }
-
-    @Override
-    public ReactiveSession reactiveSession(SessionConfig sessionConfig) {
-        return null;
-    }
-
-    @Override
-    public AsyncSession asyncSession() {
-        return null;
-    }
-
-    @Override
-    public AsyncSession asyncSession(SessionConfig sessionConfig) {
-        return null;
-    }
-
-    @Override
-    public TypeSystem defaultTypeSystem() {
-        return null;
     }
 
     @Override

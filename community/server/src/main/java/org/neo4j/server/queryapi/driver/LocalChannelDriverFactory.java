@@ -23,20 +23,7 @@ import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.local.LocalAddress;
 import io.netty.channel.local.LocalIoHandler;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.time.Clock;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.neo4j.bolt.connection.AuthToken;
-import org.neo4j.bolt.connection.BoltAgent;
-import org.neo4j.bolt.connection.BoltConnection;
-import org.neo4j.bolt.connection.BoltConnectionProvider;
-import org.neo4j.bolt.connection.BoltProtocolVersion;
-import org.neo4j.bolt.connection.LoggingProvider;
-import org.neo4j.bolt.connection.NotificationConfig;
-import org.neo4j.bolt.connection.SecurityPlan;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.driver.AuthTokens;
@@ -52,7 +39,8 @@ import org.neo4j.logging.InternalLogProvider;
  */
 public final class LocalChannelDriverFactory extends DriverFactory implements AutoCloseable {
 
-    public static final URI IGNORED_HTTP_DRIVER_URI = URI.create("bolt://http-driver.com:0");
+    public static final URI IGNORED_HTTP_DRIVER_URI =
+            URI.create(QueryApiBoltConnectionProviderFactory.SCHEME + "://http-driver.com:0");
     private final LocalAddress localAddress;
     private final InternalLogProvider internalLogProvider;
     private final org.neo4j.configuration.Config config;
@@ -69,16 +57,6 @@ public final class LocalChannelDriverFactory extends DriverFactory implements Au
     @Override
     protected LocalAddress localAddress() {
         return localAddress;
-    }
-
-    @Override
-    protected BoltConnectionProvider createBoltConnectionProvider(
-            ScheduledExecutorService eventLoopGroup,
-            Clock clock,
-            LoggingProvider loggingProvider,
-            int eventLoopThreads) {
-        return new BoltConnectionProviderWithRoutingContext(
-                super.createBoltConnectionProvider(eventLoopGroup, clock, loggingProvider, eventLoopThreads));
     }
 
     public Driver createLocalDriver() {
@@ -116,54 +94,6 @@ public final class LocalChannelDriverFactory extends DriverFactory implements Au
             log.warn(
                     "Termination of local driver factory worker event loop group has failed",
                     workerTerminationFuture.cause());
-        }
-    }
-
-    /**
-     * A delegating {@link BoltConnectionProvider} responsible for ensuring that 'neo4j' scheme is used, this makes sure
-     * that routing context is used.
-     * @param delegate the {@link BoltConnectionProvider} that it delegates to
-     */
-    private record BoltConnectionProviderWithRoutingContext(BoltConnectionProvider delegate)
-            implements BoltConnectionProvider {
-        @Override
-        public CompletionStage<BoltConnection> connect(
-                URI uri,
-                String routingContextAddress,
-                BoltAgent boltAgent,
-                String userAgent,
-                int connectTimeoutMillis,
-                SecurityPlan securityPlan,
-                AuthToken authToken,
-                BoltProtocolVersion minVersion,
-                NotificationConfig notificationConfig) {
-            try {
-                uri = new URI(
-                        "neo4j",
-                        uri.getUserInfo(),
-                        uri.getHost(),
-                        uri.getPort(),
-                        uri.getPath(),
-                        uri.getQuery(),
-                        uri.getFragment());
-            } catch (URISyntaxException e) {
-                return CompletableFuture.failedStage(e);
-            }
-            return delegate.connect(
-                    uri,
-                    routingContextAddress,
-                    boltAgent,
-                    userAgent,
-                    connectTimeoutMillis,
-                    securityPlan,
-                    authToken,
-                    minVersion,
-                    notificationConfig);
-        }
-
-        @Override
-        public CompletionStage<Void> close() {
-            return delegate.close();
         }
     }
 }
