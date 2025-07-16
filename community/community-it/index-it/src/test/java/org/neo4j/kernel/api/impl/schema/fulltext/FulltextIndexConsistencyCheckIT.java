@@ -77,6 +77,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
@@ -664,6 +665,7 @@ class FulltextIndexConsistencyCheckIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Spd consistency check for graph shard does not check indexes since it has no properties")
     void mustDiscoverNodeInStoreMissingFromIndex() throws Exception {
         GraphDatabaseService db = createDatabase();
         try (Transaction tx = db.beginTx()) {
@@ -694,6 +696,7 @@ class FulltextIndexConsistencyCheckIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Spd consistency check for graph shard does not check indexes since it has no properties")
     void mustDiscoverNodeWithTextArrayInStoreMissingFromIndex() throws Exception {
         GraphDatabaseService db = createDatabase();
         try (Transaction tx = db.beginTx()) {
@@ -771,6 +774,7 @@ class FulltextIndexConsistencyCheckIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Spd consistency check for graph shard does not check indexes since it has no properties")
     void mustDiscoverRelationshipInStoreMissingFromIndex() throws Exception {
         GraphDatabaseService db = createDatabase();
         try (Transaction tx = db.beginTx()) {
@@ -802,6 +806,7 @@ class FulltextIndexConsistencyCheckIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Spd consistency check for graph shard does not check indexes since it has no properties")
     void mustDiscoverRelationshipWithTextArrayInStoreMissingFromIndex() throws Exception {
         GraphDatabaseService db = createDatabase();
         try (Transaction tx = db.beginTx()) {
@@ -834,6 +839,7 @@ class FulltextIndexConsistencyCheckIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Spd consistency check for graph shard does not check indexes since it has no properties")
     void mustDiscoverNodeInIndexWithMissingPropertyInStore() throws Exception {
         GraphDatabaseAPI db = createDatabase();
         try (Transaction tx = db.beginTx()) {
@@ -871,6 +877,7 @@ class FulltextIndexConsistencyCheckIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Spd consistency check for graph shard does not check indexes since it has no properties")
     void mustDiscoverRelationshipInIndexWithMissingPropertyInStore() throws Exception {
         var db = createDatabase();
         try (var tx = db.beginTx()) {
@@ -909,6 +916,7 @@ class FulltextIndexConsistencyCheckIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Spd consistency check for graph shard does not check indexes since it has no properties")
     void mustDiscoverRelationshipInIndexWithMissingRelationshipInStore() throws Exception {
         var db = createDatabase();
         try (var tx = db.beginTx()) {
