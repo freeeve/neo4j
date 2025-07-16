@@ -19,8 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
-import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
-
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
@@ -101,42 +99,19 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     }
 
     @Override
-    public EnvelopeReadChannel openReadChannel(long fileWithIndex) throws IOException {
-        var logFileVersions = logsRepository.logVersions(false);
-        int low = 0;
-        int high = logFileVersions.length - 1;
+    public EnvelopeReadChannel openReadChannel(long entryIndex) throws IOException {
+        var longRange = logsRepository.logVersionsRange();
 
-        while (low <= high) {
-            int mid = (low + high) >>> 1;
+        if (!longRange.isEmpty()) {
+            var logFileBinarySearch = new LogFileBinarySearch(
+                    logsRepository, longRange.from(), longRange.to() - longRange.from() + 1, memoryTracker);
+            var fileVersion = LogBinarySearch.binarySearch(logFileBinarySearch, entryIndex);
 
-            long midVersion = logFileVersions[mid];
-            LogHeader midLogHeader;
-            try (var channel = logsRepository.openReadChannel(midVersion)) {
-                midLogHeader = readLogHeader(channel.channel(), true, null, memoryTracker);
-            }
-            // null header means empty pre-allocated file
-            long midVal = midLogHeader == null ? Long.MAX_VALUE : midLogHeader.getLastAppendIndex();
-            if (midVal < fileWithIndex) {
-                low = mid + 1;
-            } else if (midVal > fileWithIndex) {
-                high = mid - 1;
-            } else {
-                low = mid;
-                break;
+            if (fileVersion != -1) {
+                return envelopedReadChannel(logsRepository.openReadChannel(fileVersion), fileVersion);
             }
         }
-        if (low == 0) {
-            // 0 means that the prev index has been pruned.
-            return null;
-        } else {
-            // low will point to the version that either has the closest index higher than or equal to what we are
-            // looking for. In either case, since logHeaders append index points to prev files last index, we want
-            // the index before low
-            // note! if the index has been truncated or is higher than what exists in the log, then we still get the
-            // last file, but that should never have been attempted and should be caught higher up the stack.
-            var fileVersion = logFileVersions[low - 1];
-            return envelopedReadChannel(logsRepository.openReadChannel(fileVersion), fileVersion);
-        }
+        return null;
     }
 
     public long initialise() throws IOException {
