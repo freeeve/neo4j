@@ -65,7 +65,7 @@ public class ServerConsoleCommandIT extends ServerProcessTestBase {
 
                 // Interrupt and check that we exit in a graceful fashion
                 Optional<ProcessHandle> process = getProcess();
-                assertThat(process.isPresent()).isTrue();
+                assertThat(process).isPresent();
                 process.get().destroy();
                 int exitCode = console.get();
                 assertThat(exitCode).isEqualTo(EXIT_CODE_OK);

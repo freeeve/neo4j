@@ -403,15 +403,15 @@ class StoragePathTest {
         final var path7 = path("./baz");
         final var path8 = path("../baz");
 
-        assertThat(root.toUri().toString()).isEqualTo("testing://bucket1/");
-        assertThat(path1.toUri().toString()).isEqualTo("testing://bucket1/foo/baz");
-        assertThat(path2.toUri().toString()).isEqualTo("testing://bucket1/baz");
-        assertThat(path3.toUri().toString()).isEqualTo("testing://bucket1/baz/");
-        assertThat(path4.toUri().toString()).isEqualTo("testing://bucket1/foo/bar/baz/");
-        assertThat(path5.toUri().toString()).isEqualTo("testing://bucket1/foo/bar/");
-        assertThat(path6.toUri().toString()).isEqualTo("testing://bucket1/foo/baz");
-        assertThat(path7.toUri().toString()).isEqualTo("testing://bucket1/baz");
-        assertThat(path8.toUri().toString()).isEqualTo("testing://bucket1/baz");
+        assertThat(root.toUri()).hasToString("testing://bucket1/");
+        assertThat(path1.toUri()).hasToString("testing://bucket1/foo/baz");
+        assertThat(path2.toUri()).hasToString("testing://bucket1/baz");
+        assertThat(path3.toUri()).hasToString("testing://bucket1/baz/");
+        assertThat(path4.toUri()).hasToString("testing://bucket1/foo/bar/baz/");
+        assertThat(path5.toUri()).hasToString("testing://bucket1/foo/bar/");
+        assertThat(path6.toUri()).hasToString("testing://bucket1/foo/baz");
+        assertThat(path7.toUri()).hasToString("testing://bucket1/baz");
+        assertThat(path8.toUri()).hasToString("testing://bucket1/baz");
     }
 
     @Test

@@ -89,9 +89,8 @@ public class LegacyNotificationsConfigIT {
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
         // Then
-        assertThat(connection)
-                .receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("notifications")).size())
-                        .isEqualTo(1));
+        assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("notifications")))
+                .hasSize(1));
     }
 
     @ProtocolTest
@@ -108,9 +107,8 @@ public class LegacyNotificationsConfigIT {
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
         // Then
-        assertThat(connection)
-                .receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("notifications")).size())
-                        .isEqualTo(1));
+        assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("notifications")))
+                .hasSize(1));
     }
 
     @ProtocolTest
@@ -122,9 +120,8 @@ public class LegacyNotificationsConfigIT {
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
         // Then
-        assertThat(connection)
-                .receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("notifications")).size())
-                        .isEqualTo(1));
+        assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("notifications")))
+                .hasSize(1));
     }
 
     @ProtocolTest

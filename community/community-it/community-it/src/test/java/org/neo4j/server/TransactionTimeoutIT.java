@@ -61,8 +61,8 @@ class TransactionTimeoutIT extends ExclusiveWebContainerTestBase {
         // Then
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
-        assertThat(errors.get(0).get("code"))
-                .isEqualTo(TransactionNotFound.code().serialize());
+        assertThat(errors.get(0))
+                .containsEntry("code", TransactionNotFound.code().serialize());
     }
 
     @Test
@@ -87,8 +87,8 @@ class TransactionTimeoutIT extends ExclusiveWebContainerTestBase {
         // Then
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
-        assertThat(errors.get(0).get("code"))
-                .isEqualTo(TransactionNotFound.code().serialize());
+        assertThat(errors.get(0))
+                .containsEntry("code", TransactionNotFound.code().serialize());
     }
 
     @Test
@@ -110,8 +110,9 @@ class TransactionTimeoutIT extends ExclusiveWebContainerTestBase {
         // Then
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> errors = (List<Map<String, Object>>) response.get("errors");
-        assertThat(errors.get(0).get("code"))
-                .isEqualTo(TransactionTimedOutClientConfiguration.code().serialize());
+        assertThat(errors.get(0))
+                .containsEntry(
+                        "code", TransactionTimedOutClientConfiguration.code().serialize());
 
         // And then transaction is cleaned from the registry
         Map<String, Object> respB = HTTP.POST(tx + "/commit").content();
@@ -119,8 +120,8 @@ class TransactionTimeoutIT extends ExclusiveWebContainerTestBase {
         // Then
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> errors2 = (List<Map<String, Object>>) respB.get("errors");
-        assertThat(errors2.get(0).get("code"))
-                .isEqualTo(TransactionNotFound.code().serialize());
+        assertThat(errors2.get(0))
+                .containsEntry("code", TransactionNotFound.code().serialize());
     }
 
     private String txURI() {

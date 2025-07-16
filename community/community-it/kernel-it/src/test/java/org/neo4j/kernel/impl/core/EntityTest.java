@@ -125,7 +125,7 @@ public abstract class EntityTest {
         // Then
         assertEquals(properties.size(), listedProperties.size());
         for (String key : properties.keySet()) {
-            assertThat(properties.get(key)).isEqualTo(listedProperties.get(key));
+            assertThat(properties).containsEntry(key, listedProperties.get(key));
         }
     }
 

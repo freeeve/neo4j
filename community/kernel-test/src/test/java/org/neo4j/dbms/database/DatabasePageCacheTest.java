@@ -387,7 +387,7 @@ class DatabasePageCacheTest {
         var mapFile = testDirectory.createFile("mapFile");
         databasePageCache.map(mapFile, PAGE_SIZE, DATABASE_NAME);
         databasePageCache.map(mapFile, PAGE_SIZE, DATABASE_NAME);
-        assertThat(pagedFileMapper.pagedFiles.size()).isEqualTo(1);
+        assertThat(pagedFileMapper.pagedFiles).hasSize(1);
 
         // When
         databasePageCache.close();

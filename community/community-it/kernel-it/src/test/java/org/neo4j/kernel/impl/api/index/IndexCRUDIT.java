@@ -133,7 +133,7 @@ class IndexCRUDIT {
         Node node = createNode(map(indexProperty, value, otherProperty, otherValue));
 
         // THEN
-        assertThat(writer.updatesCommitted.size()).isEqualTo(0);
+        assertThat(writer.updatesCommitted).hasSize(0);
 
         // AND WHEN
         try (Transaction tx = db.beginTx()) {

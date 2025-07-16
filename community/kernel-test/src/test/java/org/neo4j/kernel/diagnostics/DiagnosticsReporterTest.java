@@ -84,8 +84,8 @@ class DiagnosticsReporterTest {
 
             reporter.dump(classifiers, destination, progress, true);
 
-            assertThat(baos.toString())
-                    .isEqualTo(String.format("1/2 fail.txt%n" + "%n"
+            assertThat(baos)
+                    .hasToString(String.format("1/2 fail.txt%n" + "%n"
                             + "Error: Failed to write fail.txt%n"
                             + "2/2 logs/a.txt%n"
                             + "....................  20%%%n"

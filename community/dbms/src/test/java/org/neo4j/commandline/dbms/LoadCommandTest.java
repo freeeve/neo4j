@@ -239,7 +239,7 @@ class LoadCommandTest {
         createDummyDump(SYSTEM_DATABASE_NAME, archive);
         execute(SYSTEM_DATABASE_NAME, archive);
 
-        assertThat(output.toString()).isEqualTo(String.format(LoadCommand.SYSTEM_ERR_MESSAGE));
+        assertThat(output).hasToString(String.format(LoadCommand.SYSTEM_ERR_MESSAGE));
     }
 
     private void execute(String database, Path archive) {

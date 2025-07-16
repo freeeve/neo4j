@@ -184,9 +184,9 @@ class TtyPromptTest {
         assertThat(prompt.readPassword("Read me: ")).as(reason).isEqualTo(expected);
 
         if (input.contains("\n") || input.contains("\r")) {
-            assertThat(out.toString()).isEqualTo("Read me: " + lineSeparator());
+            assertThat(out).hasToString("Read me: " + lineSeparator());
         } else {
-            assertThat(out.toString()).isEqualTo("Read me: ");
+            assertThat(out).hasToString("Read me: ");
         }
     }
 

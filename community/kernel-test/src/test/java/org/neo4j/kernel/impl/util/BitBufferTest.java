@@ -108,6 +108,6 @@ class BitBufferTest {
     void numberToStringSeparatesAfter8Bits() {
         StringBuilder builder = new StringBuilder();
         BitUtils.numberToString(builder, 0b11111111, 2);
-        assertThat(builder.toString()).isEqualTo("[00000000,11111111]");
+        assertThat(builder).hasToString("[00000000,11111111]");
     }
 }

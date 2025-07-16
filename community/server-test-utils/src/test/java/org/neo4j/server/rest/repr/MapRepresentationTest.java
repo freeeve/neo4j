@@ -46,9 +46,9 @@ class MapRepresentationTest {
 
         Map<String, Object> map = JsonHelper.jsonToMap(serializedMap);
         assertThat(map.get("nulls")).isNull();
-        assertThat(map.get("strings")).isEqualTo("a string");
-        assertThat(map.get("numbers")).isEqualTo(42);
-        assertThat(map.get("booleans")).isEqualTo(true);
+        assertThat(map).containsEntry("strings", "a string");
+        assertThat(map).containsEntry("numbers", 42);
+        assertThat(map).containsEntry("booleans", true);
     }
 
     @Test
@@ -64,10 +64,10 @@ class MapRepresentationTest {
                 RepresentationBasedMessageBodyWriter.serialize(rep, new JsonFormat(), new URI("http://localhost/"));
 
         Map<String, Object> map = JsonHelper.jsonToMap(serializedMap);
-        assertThat(map.get("strings")).isEqualTo(asList("a string", "another string"));
-        assertThat(map.get("numbers")).isEqualTo(asList(42, 87));
-        assertThat(map.get("booleans")).isEqualTo(asList(true, false));
-        assertThat(map.get("Booleans")).isEqualTo(asList(true, false));
+        assertThat(map).containsEntry("strings", asList("a string", "another string"));
+        assertThat(map).containsEntry("numbers", asList(42, 87));
+        assertThat(map).containsEntry("booleans", asList(true, false));
+        assertThat(map).containsEntry("Booleans", asList(true, false));
     }
 
     @Test
@@ -87,10 +87,10 @@ class MapRepresentationTest {
                 RepresentationBasedMessageBodyWriter.serialize(rep, new JsonFormat(), new URI("http://localhost/"));
 
         Map<String, Object> map = JsonHelper.jsonToMap(serializedMap);
-        assertThat(map.get("lists of nulls")).isEqualTo(asList(null, null));
-        assertThat(map.get("lists of strings")).isEqualTo(asList("a string", "another string"));
-        assertThat(map.get("lists of numbers")).isEqualTo(asList(23, 87, 42));
-        assertThat(map.get("lists of booleans")).isEqualTo(asList(true, false, true));
+        assertThat(map).containsEntry("lists of nulls", asList(null, null));
+        assertThat(map).containsEntry("lists of strings", asList("a string", "another string"));
+        assertThat(map).containsEntry("lists of numbers", asList(23, 87, 42));
+        assertThat(map).containsEntry("lists of booleans", asList(true, false, true));
     }
 
     @Test
@@ -110,9 +110,9 @@ class MapRepresentationTest {
 
         Map<String, Object> map = JsonHelper.jsonToMap(serializedMap);
         assertThat(((Map) map.get("maps with nulls")).get("nulls")).isNull();
-        assertThat(((Map) map.get("maps with strings")).get("strings")).isEqualTo("a string");
-        assertThat(((Map) map.get("maps with numbers")).get("numbers")).isEqualTo(42);
-        assertThat(((Map) map.get("maps with booleans")).get("booleans")).isEqualTo(true);
+        assertThat(((Map) map.get("maps with strings"))).containsEntry("strings", "a string");
+        assertThat(((Map) map.get("maps with numbers"))).containsEntry("numbers", 42);
+        assertThat(((Map) map.get("maps with booleans"))).containsEntry("booleans", true);
     }
 
     @Test
@@ -126,11 +126,9 @@ class MapRepresentationTest {
                 RepresentationBasedMessageBodyWriter.serialize(rep, new JsonFormat(), new URI("http://localhost/"));
 
         Map<String, Object> map = JsonHelper.jsonToMap(serializedMap);
-        assertThat(((Map) map.get("a map with a list in it")).get("a list")).isEqualTo(List.of(42, 87));
-        assertThat(((Map) ((List) map.get("a list with a map in it")).get(0)).get("foo"))
-                .isEqualTo("bar");
-        assertThat(((Map) ((List) map.get("a list with a map in it")).get(0)).get("baz"))
-                .isEqualTo(false);
+        assertThat(((Map) map.get("a map with a list in it"))).containsEntry("a list", List.of(42, 87));
+        assertThat(((Map) ((List) map.get("a list with a map in it")).get(0))).containsEntry("foo", "bar");
+        assertThat(((Map) ((List) map.get("a list with a map in it")).get(0))).containsEntry("baz", false);
     }
 
     @Test

@@ -120,7 +120,7 @@ public class HeapTrackingOrderedAppendSetTest {
     }
 
     private <T> void assertSetContains(OrderedAppendSet<T> set, List<T> objects) {
-        assertThat(set.size()).isEqualTo(objects.size());
+        assertThat(set).hasSize(objects.size());
         assertThat(set.isEmpty()).isEqualTo(objects.isEmpty());
         assertThat(set.getFirst()).isEqualTo(objects.getFirst());
         assertThat(set.getLast()).isEqualTo(objects.getLast());
@@ -130,7 +130,7 @@ public class HeapTrackingOrderedAppendSetTest {
             assertThat(iterator).hasNext();
             assertThat(iterator.next()).isEqualTo(expected);
             assertThat(set.get(i)).isEqualTo(expected);
-            assertThat(set.contains(expected)).isTrue();
+            assertThat(set).contains(expected);
         }
     }
 

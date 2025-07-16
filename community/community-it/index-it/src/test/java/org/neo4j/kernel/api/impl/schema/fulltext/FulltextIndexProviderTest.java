@@ -481,7 +481,7 @@ class FulltextIndexProviderTest {
                 counter++;
             }
             assertThat(counter).isEqualTo(1);
-            assertThat(acceptedEntities.size()).isEqualTo(1);
+            assertThat(acceptedEntities).hasSize(1);
             acceptedEntities.clear();
         }
     }

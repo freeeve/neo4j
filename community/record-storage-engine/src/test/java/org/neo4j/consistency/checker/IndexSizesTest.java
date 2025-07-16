@@ -212,8 +212,8 @@ class IndexSizesTest {
         sizes.initialize();
 
         // when/then
-        assertThat(sizes.largeIndexes(entityType).size()).isEqualTo(1);
-        assertThat(sizes.smallIndexes(entityType).size()).isEqualTo(0);
+        assertThat(sizes.largeIndexes(entityType)).hasSize(1);
+        assertThat(sizes.smallIndexes(entityType)).hasSize(0);
     }
 
     private void createIndexes(int numSmall, int numLarge, EntityType entityType) {

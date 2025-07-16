@@ -308,9 +308,9 @@ class FreeIdScannerTest {
             // now it's stuck in trying to offer to the cache
 
             // then a scan call from another thread should complete but not do anything
-            assertThat(recordingMonitor.cached.isEmpty()).isTrue();
+            assertThat(recordingMonitor.cached).isEmpty();
             tryLoadFreeIdsIntoCache(scanner, false);
-            assertThat(recordingMonitor.cached.isEmpty()).isTrue();
+            assertThat(recordingMonitor.cached).isEmpty();
 
             // clean up
             barrier.release();
@@ -377,14 +377,14 @@ class FreeIdScannerTest {
             // now it's stuck in trying to offer to the cache
 
             // then a scan call from another thread should complete but not do anything
-            assertThat(recordingMonitor.cached.isEmpty()).isTrue();
+            assertThat(recordingMonitor.cached).isEmpty();
             try (OtherThreadExecutor t2 = new OtherThreadExecutor("T2")) {
                 Future<Void> t2Completion = t2.executeDontWait(() -> {
                     tryLoadFreeIdsIntoCache(scanner, true);
                     return null;
                 });
                 t2.waitUntilWaiting(details -> details.isAt(FreeIdScanner.class, "tryLoadFreeIdsIntoCache"));
-                assertThat(recordingMonitor.cached.isEmpty()).isTrue();
+                assertThat(recordingMonitor.cached).isEmpty();
                 barrier.release();
                 t2Completion.get();
             }

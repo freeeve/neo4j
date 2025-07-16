@@ -883,7 +883,7 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
         try (SimpleEntityValueClient client = new SimpleEntityValueClient();
                 AutoCloseable ignored = query(client, order, range)) {
             List<Long> seenIds = assertClientReturnValuesInOrder(client, order);
-            assertThat(seenIds.size()).isEqualTo(expectedSize);
+            assertThat(seenIds).hasSize(expectedSize);
         }
     }
 

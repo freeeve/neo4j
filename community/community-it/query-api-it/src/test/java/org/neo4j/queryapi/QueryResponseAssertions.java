@@ -143,7 +143,7 @@ public final class QueryResponseAssertions
     }
 
     public QueryResponseAssertions hasBookmark() {
-        Assertions.assertThat(queryResponse.body().bookmarks().size()).isEqualTo(1);
+        Assertions.assertThat(queryResponse.body().bookmarks()).hasSize(1);
         return this;
     }
 

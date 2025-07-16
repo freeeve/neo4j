@@ -127,8 +127,8 @@ class StoreScanStageTest {
             assertThat(propertyConsumer.seenThreads.size()).isGreaterThan(1);
             assertThat(tokenConsumer.seenThreads.size()).isGreaterThan(1);
         } else {
-            assertThat(propertyConsumer.seenThreads.size()).isEqualTo(1);
-            assertThat(tokenConsumer.seenThreads.size()).isEqualTo(1);
+            assertThat(propertyConsumer.seenThreads).hasSize(1);
+            assertThat(tokenConsumer.seenThreads).hasSize(1);
         }
     }
 

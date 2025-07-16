@@ -96,10 +96,10 @@ class GenerateIndexUpdatesStepTest {
         // then
         if (alsoWrite) {
             assertThat(sender.batches).isEmpty();
-            assertThat(scanConsumer.batches.size()).isEqualTo(1);
-            assertThat(scanConsumer.batches.get(0).size()).isEqualTo(10);
+            assertThat(scanConsumer.batches).hasSize(1);
+            assertThat(scanConsumer.batches.get(0)).hasSize(10);
         } else {
-            assertThat(sender.batches.size()).isEqualTo(1);
+            assertThat(sender.batches).hasSize(1);
             assertThat(scanConsumer.batches).isEmpty();
         }
     }
@@ -379,17 +379,17 @@ class GenerateIndexUpdatesStepTest {
 
         // then
         if (alsoWrite) {
-            assertThat(propertyScanConsumer.batches.size()).isEqualTo(1);
-            assertThat(propertyScanConsumer.batches.get(0).size()).isEqualTo(numNodes);
-            assertThat(tokenScanConsumer.batches.size()).isEqualTo(1);
-            assertThat(tokenScanConsumer.batches.get(0).size()).isEqualTo(numNodes);
+            assertThat(propertyScanConsumer.batches).hasSize(1);
+            assertThat(propertyScanConsumer.batches.get(0)).hasSize(numNodes);
+            assertThat(tokenScanConsumer.batches).hasSize(1);
+            assertThat(tokenScanConsumer.batches.get(0)).hasSize(numNodes);
         } else {
             GeneratedIndexUpdates updates = sender.batches.get(0);
             updates.completeBatch();
-            assertThat(propertyScanConsumer.batches.size()).isEqualTo(1);
-            assertThat(propertyScanConsumer.batches.get(0).size()).isEqualTo(numNodes);
-            assertThat(tokenScanConsumer.batches.size()).isEqualTo(1);
-            assertThat(tokenScanConsumer.batches.get(0).size()).isEqualTo(numNodes);
+            assertThat(propertyScanConsumer.batches).hasSize(1);
+            assertThat(propertyScanConsumer.batches.get(0)).hasSize(numNodes);
+            assertThat(tokenScanConsumer.batches).hasSize(1);
+            assertThat(tokenScanConsumer.batches.get(0)).hasSize(numNodes);
         }
     }
 

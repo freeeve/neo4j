@@ -1332,7 +1332,7 @@ class TransactionRecordStateTest {
         List<StorageCommand> commands = new ArrayList<>();
         state.extractCommands(commands, INSTANCE);
 
-        assertThat(commands.size()).isEqualTo(1);
+        assertThat(commands).hasSize(1);
         SchemaRuleCommand command = (SchemaRuleCommand) commands.get(0);
         assertThat(command.getMode()).isEqualTo(Command.Mode.CREATE);
         assertThat(command.getSchemaRule()).isEqualTo(rule);
@@ -1356,7 +1356,7 @@ class TransactionRecordStateTest {
         List<StorageCommand> commands = new ArrayList<>();
         state.extractCommands(commands, INSTANCE);
 
-        assertThat(commands.size()).isEqualTo(1);
+        assertThat(commands).hasSize(1);
         SchemaRuleCommand command = (SchemaRuleCommand) commands.get(0);
         assertThat(command.getMode()).isEqualTo(Command.Mode.CREATE);
         assertThat(command.getSchemaRule()).isEqualTo(rule);
@@ -1385,7 +1385,7 @@ class TransactionRecordStateTest {
         List<StorageCommand> commands = new ArrayList<>();
         state.extractCommands(commands, INSTANCE);
 
-        assertThat(commands.size()).isEqualTo(2);
+        assertThat(commands).hasSize(2);
 
         PropertyCommand propCmd = (PropertyCommand) commands.get(0); // Order matters. Props added before schema.
         assertThat(propCmd.getSchemaRuleId()).isEqualTo(ruleId);
@@ -1409,7 +1409,7 @@ class TransactionRecordStateTest {
         commands.clear();
         state.extractCommands(commands, INSTANCE);
 
-        assertThat(commands.size()).isEqualTo(1);
+        assertThat(commands).hasSize(1);
 
         propCmd = (PropertyCommand) commands.get(0);
         assertThat(propCmd.getSchemaRuleId()).isEqualTo(ruleId);
@@ -1437,7 +1437,7 @@ class TransactionRecordStateTest {
         List<StorageCommand> commands = new ArrayList<>();
         state.extractCommands(commands, INSTANCE);
 
-        assertThat(commands.size()).isEqualTo(2);
+        assertThat(commands).hasSize(2);
         SchemaRuleCommand schemaCmd =
                 (SchemaRuleCommand) commands.get(0); // Order matters. Rule deletes before property deletes.
         assertThat(schemaCmd.getKey()).isEqualTo(ruleId);
@@ -1467,7 +1467,7 @@ class TransactionRecordStateTest {
         List<StorageCommand> commands = new ArrayList<>();
         state.extractCommands(commands, INSTANCE);
 
-        assertThat(commands.size()).isEqualTo(2);
+        assertThat(commands).hasSize(2);
 
         PropertyCommand propCmd = (PropertyCommand) commands.get(0); // Order matters. Props added before schema.
         assertThat(propCmd.getSchemaRuleId()).isEqualTo(ruleId);
@@ -1509,7 +1509,7 @@ class TransactionRecordStateTest {
         List<StorageCommand> commands = new ArrayList<>();
         state.extractCommands(commands, INSTANCE);
 
-        assertThat(commands.size()).isEqualTo(2);
+        assertThat(commands).hasSize(2);
 
         PropertyCommand propCmd = (PropertyCommand) commands.get(0); // Order matters. Props added before schema.
         assertThat(propCmd.getSchemaRuleId()).isEqualTo(ruleId);

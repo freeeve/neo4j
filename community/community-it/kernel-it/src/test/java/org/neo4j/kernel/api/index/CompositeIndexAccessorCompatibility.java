@@ -1036,7 +1036,7 @@ abstract class CompositeIndexAccessorCompatibility extends IndexAccessorCompatib
         try (SimpleEntityValueClient client = new SimpleEntityValueClient();
                 AutoCloseable ignored = query(client, order, exact, range)) {
             List<Long> seenIds = assertClientReturnValuesInOrder(client, order);
-            assertThat(seenIds.size()).isEqualTo(6);
+            assertThat(seenIds).hasSize(6);
         }
     }
 

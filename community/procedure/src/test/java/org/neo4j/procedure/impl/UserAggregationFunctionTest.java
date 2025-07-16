@@ -362,7 +362,7 @@ public class UserAggregationFunctionTest {
         verify(log)
                 .warn(
                         "The function 'org.neo4j.procedure.impl.collectCool' is not on the allowlist and won't be loaded.");
-        assertThat(method.size()).isEqualTo(0);
+        assertThat(method).hasSize(0);
     }
 
     @Test
@@ -380,7 +380,7 @@ public class UserAggregationFunctionTest {
         verify(log)
                 .warn(
                         "The function 'org.neo4j.procedure.impl.collectCool' is not on the allowlist and won't be loaded.");
-        assertThat(method.size()).isEqualTo(0);
+        assertThat(method).hasSize(0);
     }
 
     @Test
@@ -406,7 +406,7 @@ public class UserAggregationFunctionTest {
                 case "newFunc" -> assertFalse(func.signature().deprecated().isPresent(), "Should not be deprecated");
                 case "oldFunc", "badFunc" -> {
                     assertTrue(func.signature().deprecated().isPresent(), "Should be deprecated");
-                    assertThat(func.signature().deprecated().get()).isEqualTo("newFunc");
+                    assertThat(func.signature().deprecated()).contains("newFunc");
                 }
                 default -> fail("Unexpected function: " + name);
             }

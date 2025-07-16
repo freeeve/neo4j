@@ -579,9 +579,9 @@ public abstract class RelationshipWriteTestBase<G extends KernelAPIWriteTestSupp
         try (Transaction tx = graphDb.beginTx()) {
             try (ResourceIterator<Relationship> relationships =
                     tx.findRelationships(type, map(key1Name, "D", key2Name, "C"))) {
-                assertThat(relationships.hasNext()).isTrue();
+                assertThat(relationships).hasNext();
                 assertThat(relationships.next().getId()).isEqualTo(rel);
-                assertThat(relationships.hasNext()).isFalse();
+                assertThat(relationships).isExhausted();
             }
         }
     }

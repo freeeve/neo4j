@@ -117,8 +117,7 @@ class FileImporterTest {
             err.flush();
 
             // Then
-            assertThat(rawErr.toString().contains("Database already exist. Re-run with `--overwrite-destination`"))
-                    .isTrue();
+            assertThat(rawErr.toString()).contains("Database already exist. Re-run with `--overwrite-destination`");
             assertThatCode(() -> csvImporterBuilder.withForce(true).build().doImport(fullImport()))
                     .doesNotThrowAnyException();
         }

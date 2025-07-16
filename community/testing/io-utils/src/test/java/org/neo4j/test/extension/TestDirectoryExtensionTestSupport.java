@@ -201,7 +201,7 @@ abstract class TestDirectoryExtensionTestSupport {
         executeClass(testClass);
         List<Pair<Path, Boolean>> pairs = ExecutionSharedContext.getValue(CREATED_TEST_FILE_PAIRS_KEY);
         assertNotNull(pairs);
-        assertThat(pairs.size()).isEqualTo(count);
+        assertThat(pairs).hasSize(count);
         return pairs;
     }
 

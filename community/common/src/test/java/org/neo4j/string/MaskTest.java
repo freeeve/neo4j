@@ -35,11 +35,11 @@ class MaskTest {
     void testBuild() {
         var builder = new StringBuilder();
         Mask.NO.build(builder, b -> b.append("hello"));
-        assertThat(builder.toString()).isEqualTo("hello");
+        assertThat(builder).hasToString("hello");
 
         builder = new StringBuilder();
         Mask.YES.build(builder, b -> b.append("hello"));
-        assertThat(builder.toString()).isEqualTo("<MASKED>");
+        assertThat(builder).hasToString("<MASKED>");
     }
 
     @Test
@@ -55,11 +55,11 @@ class MaskTest {
 
         var builder = new StringBuilder();
         Mask.NO.append(builder, list);
-        assertThat(builder.toString()).isEqualTo("[data:hello, data:goodbye]");
+        assertThat(builder).hasToString("[data:hello, data:goodbye]");
 
         builder = new StringBuilder();
         Mask.YES.append(builder, list);
-        assertThat(builder.toString()).isEqualTo("[data:<MASKED>, data:<MASKED>]");
+        assertThat(builder).hasToString("[data:<MASKED>, data:<MASKED>]");
     }
 
     private record MaskableThing(String secret) implements Mask.Maskable {

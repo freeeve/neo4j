@@ -942,7 +942,7 @@ public class PlainOperationsTest extends OperationsTest {
                     IndexPrototype prototype = i.getArgument(2);
                     Optional<String> name = prototype.getName();
                     assertTrue(name.isPresent());
-                    assertThat(name.get()).isEqualTo(constraintName);
+                    assertThat(name).contains(constraintName);
                     return prototype.materialise(2);
                 });
         IndexPrototype prototype = IndexPrototype.uniqueForSchema(schema).withName(constraintName);

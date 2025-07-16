@@ -39,7 +39,7 @@ class PortRepositoryIT {
         int port2 = portRepository1.reserveNextPort("foo");
         int port3 = portRepository1.reserveNextPort("foo");
 
-        assertThat(new HashSet<>(asList(port1, port2, port3)).size()).isEqualTo(3);
+        assertThat(new HashSet<>(asList(port1, port2, port3))).hasSize(3);
     }
 
     @Test
@@ -55,8 +55,8 @@ class PortRepositoryIT {
         int port5 = portRepository2.reserveNextPort("foo");
         int port6 = portRepository1.reserveNextPort("foo");
 
-        assertThat(new HashSet<>(asList(port1, port2, port3, port4, port5, port6)).size())
-                .isEqualTo(6);
+        assertThat(new HashSet<>(asList(port1, port2, port3, port4, port5, port6)))
+                .hasSize(6);
     }
 
     @Test

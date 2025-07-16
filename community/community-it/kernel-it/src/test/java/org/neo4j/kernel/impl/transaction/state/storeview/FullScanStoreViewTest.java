@@ -318,7 +318,7 @@ class FullScanStoreViewTest {
                 false);
         scan.run(NO_EXTERNAL_UPDATES);
 
-        assertThat(propertyScanConsumer.batches.get(0).size()).isEqualTo(2);
+        assertThat(propertyScanConsumer.batches.get(0)).hasSize(2);
 
         assertThatTracing(graphDb)
                 .record(pins(4).noFaults())
@@ -352,7 +352,7 @@ class FullScanStoreViewTest {
                 false);
         scan.run(NO_EXTERNAL_UPDATES);
 
-        assertThat(propertyScanConsumer.batches.get(0).size()).isEqualTo(2);
+        assertThat(propertyScanConsumer.batches.get(0)).hasSize(2);
 
         assertThatTracing(graphDb)
                 .record(pins(3).noFaults())
@@ -373,7 +373,7 @@ class FullScanStoreViewTest {
 
         // Then
         var updates = tokenScanConsumer.batches.get(0);
-        assertThat(updates.size()).isEqualTo(2);
+        assertThat(updates).hasSize(2);
         for (var update : updates) {
             int[] tokensAfter = update.tokens();
             assertThat(tokensAfter.length).isEqualTo(1);

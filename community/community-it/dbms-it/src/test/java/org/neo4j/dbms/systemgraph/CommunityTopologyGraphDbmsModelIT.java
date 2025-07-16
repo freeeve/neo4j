@@ -316,26 +316,16 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         var aliases = dbmsModel().getAllDatabaseReferences();
         assertThat(aliases).isEqualTo(expected);
 
-        assertThat(dbmsModel()
-                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("fooAlias"))
-                        .get())
-                .isEqualTo(dbAlias);
-        assertThat(dbmsModel()
-                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("bar"))
-                        .get())
-                .isEqualTo(remoteAlias);
-        assertThat(dbmsModel()
-                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1"))
-                        .get())
-                .isEqualTo(composite);
-        assertThat(dbmsModel()
-                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1.locAlias"))
-                        .get())
-                .isEqualTo(localConstituent);
-        assertThat(dbmsModel()
-                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1.remAlias"))
-                        .get())
-                .isEqualTo(remoteConstituent);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName("fooAlias")))
+                .contains(dbAlias);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName("bar")))
+                .contains(remoteAlias);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1")))
+                .contains(composite);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1.locAlias")))
+                .contains(localConstituent);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1.remAlias")))
+                .contains(remoteConstituent);
     }
 
     @Test
@@ -370,7 +360,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
 
         // then
         assertThat(result).isPresent();
-        assertThat(result.get()).isEqualTo(driverSettings);
+        assertThat(result).contains(driverSettings);
     }
 
     @Test
@@ -412,7 +402,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
 
         // then
         assertThat(result).isPresent();
-        assertThat(result.get()).isEqualTo(properties);
+        assertThat(result).contains(properties);
     }
 
     @ParameterizedTest
@@ -431,7 +421,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
 
         // then
         assertThat(result).isPresent();
-        assertThat(result.get()).isEqualTo(properties);
+        assertThat(result).contains(properties);
     }
 
     @Test

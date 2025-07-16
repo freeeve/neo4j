@@ -371,7 +371,7 @@ class IndexIT extends KernelIntegrationTest {
         try (org.neo4j.graphdb.Transaction tx = db.beginTx()) {
             // then
             Set<IndexDefinition> indexes = Iterables.asSet(tx.schema().getIndexes());
-            assertThat(indexes.size()).isEqualTo(initialIndexCount + 1);
+            assertThat(indexes).hasSize((int) (initialIndexCount + 1));
 
             IndexDefinition index = tx.schema().getIndexByName("constraint name");
             assertThat(index.getLabels()).map(Label::name).containsOnly("Label1");
@@ -401,7 +401,7 @@ class IndexIT extends KernelIntegrationTest {
         try (org.neo4j.graphdb.Transaction tx = db.beginTx()) {
             // then
             Set<IndexDefinition> indexes = Iterables.asSet(tx.schema().getIndexes());
-            assertThat(indexes.size()).isEqualTo(initialIndexCount + 1);
+            assertThat(indexes).hasSize((int) (initialIndexCount + 1));
 
             IndexDefinition index = tx.schema().getIndexByName("multi token index");
             assertThrows(IllegalStateException.class, index::getRelationshipTypes);
@@ -426,7 +426,7 @@ class IndexIT extends KernelIntegrationTest {
         try (org.neo4j.graphdb.Transaction tx = db.beginTx()) {
             // then
             Set<IndexDefinition> indexes = Iterables.asSet(tx.schema().getIndexes());
-            assertThat(indexes.size()).isEqualTo(initialIndexCount + 1);
+            assertThat(indexes).hasSize((int) (initialIndexCount + 1));
 
             IndexDefinition index = tx.schema().getIndexByName("my index");
             assertThrows(IllegalStateException.class, index::getRelationshipTypes);
@@ -451,7 +451,7 @@ class IndexIT extends KernelIntegrationTest {
         try (org.neo4j.graphdb.Transaction tx = db.beginTx()) {
             // then
             Set<IndexDefinition> indexes = Iterables.asSet(tx.schema().getIndexes());
-            assertThat(indexes.size()).isEqualTo(initialIndexCount + 1);
+            assertThat(indexes).hasSize((int) (initialIndexCount + 1));
 
             IndexDefinition index = tx.schema().getIndexByName("my index");
             assertThrows(IllegalStateException.class, index::getLabels);
@@ -480,7 +480,7 @@ class IndexIT extends KernelIntegrationTest {
         try (org.neo4j.graphdb.Transaction tx = db.beginTx()) {
             // then
             Set<IndexDefinition> indexes = Iterables.asSet(tx.schema().getIndexes());
-            assertThat(indexes.size()).isEqualTo(initialIndexCount + 1);
+            assertThat(indexes).hasSize((int) (initialIndexCount + 1));
 
             IndexDefinition index = tx.schema().getIndexByName("index name");
             assertThrows(IllegalStateException.class, index::getLabels);

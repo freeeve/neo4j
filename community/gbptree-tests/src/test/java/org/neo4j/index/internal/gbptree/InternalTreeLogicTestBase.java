@@ -1009,7 +1009,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         // newRight contain all
         goToSuccessor(readCursor, oldRight);
         List<KEY> allKeysInNewRight = allLeafKeys(readCursor);
-        assertThat(allKeysInNewRight.size()).isEqualTo(allKeysInOldLeftAndOldRight.size());
+        assertThat(allKeysInNewRight).hasSize(allKeysInOldLeftAndOldRight.size());
         for (int index = 0; index < allKeysInOldLeftAndOldRight.size(); index++) {
             assertEqualsKey(allKeysInOldLeftAndOldRight.get(index), allKeysInNewRight.get(index));
         }
@@ -1254,7 +1254,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
                 assertThat(expectedKeys.remove(key)).isTrue();
             }
         }
-        assertThat(expectedKeys.isEmpty()).isTrue();
+        assertThat(expectedKeys).isEmpty();
     }
 
     /* CREATE NEW VERSION ON UPDATE */

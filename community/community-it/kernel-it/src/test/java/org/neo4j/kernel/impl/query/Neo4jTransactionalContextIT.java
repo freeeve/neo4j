@@ -875,7 +875,7 @@ class Neo4jTransactionalContextIT {
                 innerTx.execute("SHOW TRANSACTIONS WHERE NOT currentQuery STARTS WITH 'SHOW TRANSACTIONS'").stream()
                         .toList();
 
-        assertThat(transactions.size()).isEqualTo(1);
+        assertThat(transactions).hasSize(1);
 
         // When
         var transactionId = transactions.get(0).get("transactionId");

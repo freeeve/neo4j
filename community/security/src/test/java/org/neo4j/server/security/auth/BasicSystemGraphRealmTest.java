@@ -128,7 +128,7 @@ public class BasicSystemGraphRealmTest {
 
         // Then
         assertThat(password).isEqualTo(clearedPasswordWithSameLengthAs("abc123"));
-        assertThat(authToken.get(AuthToken.CREDENTIALS)).isEqualTo(clearedPasswordWithSameLengthAs("abc123"));
+        assertThat(authToken).containsEntry(AuthToken.CREDENTIALS, clearedPasswordWithSameLengthAs("abc123"));
     }
 
     @Test
@@ -146,7 +146,7 @@ public class BasicSystemGraphRealmTest {
             // expected
         }
         assertThat(password).isEqualTo(clearedPasswordWithSameLengthAs("abc123"));
-        assertThat(authToken.get(AuthToken.CREDENTIALS)).isEqualTo(clearedPasswordWithSameLengthAs("abc123"));
+        assertThat(authToken).containsEntry(AuthToken.CREDENTIALS, clearedPasswordWithSameLengthAs("abc123"));
     }
 
     @Test

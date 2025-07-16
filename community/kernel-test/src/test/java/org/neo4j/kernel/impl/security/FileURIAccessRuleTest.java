@@ -687,7 +687,7 @@ class FileURIAccessRuleTest {
     private void testValidation(ValidationStatus status, String root, String uri, String expected) throws Exception {
         if (status.equals(OK)) {
             URI accessURI = validate(root, uri);
-            assertThat(accessURI.toString()).isEqualTo(expected);
+            assertThat(accessURI).hasToString(expected);
         } else if (status.equals(ERR_AUTH)) {
             assertThatThrownBy(() -> validate(root, uri))
                     .isInstanceOf(URLAccessValidationError.class)

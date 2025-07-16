@@ -418,7 +418,7 @@ class KernelTransactionsTest {
         var txOne = kernelTransactions.newInstance(EXPLICIT, AUTH_DISABLED, EMBEDDED_CONNECTION, NO_TIMEOUT);
         var txTwo = kernelTransactions.newInstance(EXPLICIT, AUTH_DISABLED, EMBEDDED_CONNECTION, NO_TIMEOUT);
         var txThree = kernelTransactions.newInstance(EXPLICIT, AUTH_DISABLED, EMBEDDED_CONNECTION, NO_TIMEOUT);
-        assertThat(kernelTransactions.activeTransactions().size()).isEqualTo(3);
+        assertThat(kernelTransactions.activeTransactions()).hasSize(3);
 
         // When
         txOne.close();
@@ -690,13 +690,13 @@ class KernelTransactionsTest {
         transactions.init();
 
         // then
-        assertThat(memoryPools.getDatabasePools().size()).isEqualTo(1);
+        assertThat(memoryPools.getDatabasePools()).hasSize(1);
 
         // and when
         transactions.shutdown();
 
         // then
-        assertThat(memoryPools.getDatabasePools().size()).isEqualTo(0);
+        assertThat(memoryPools.getDatabasePools()).hasSize(0);
     }
 
     @Test

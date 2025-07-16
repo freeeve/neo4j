@@ -59,7 +59,7 @@ public class TransactionTestIT extends AbstractRestFunctionalTestBase {
         Map<String, Object> result = jsonToMap(response.entity());
         assertNoErrors(result);
         Map<String, Object> node = resultCell(result, 0, 0);
-        assertThat(node.get("name")).isEqualTo("My Node");
+        assertThat(node).containsEntry("name", "My Node");
     }
 
     @Test
@@ -320,10 +320,10 @@ public class TransactionTestIT extends AbstractRestFunctionalTestBase {
 
         assertThat(firstResult).containsKey("stats");
         Map<String, Object> stats = (Map<String, Object>) firstResult.get("stats");
-        assertThat(stats.get("nodes_created")).isEqualTo(1);
-        assertThat(stats.get("contains_updates")).isEqualTo(true);
-        assertThat(stats.get("contains_system_updates")).isEqualTo(false);
-        assertThat(stats.get("system_updates")).isEqualTo(0);
+        assertThat(stats).containsEntry("nodes_created", 1);
+        assertThat(stats).containsEntry("contains_updates", true);
+        assertThat(stats).containsEntry("contains_system_updates", false);
+        assertThat(stats).containsEntry("system_updates", 0);
     }
 
     private static void assertNoErrors(Map<String, Object> response) {
@@ -337,8 +337,8 @@ public class TransactionTestIT extends AbstractRestFunctionalTestBase {
 
         while (expected.hasNext()) {
             assertTrue(errors.hasNext());
-            assertThat(errors.next().get("code"))
-                    .isEqualTo(expected.next().code().serialize());
+            assertThat(errors.next())
+                    .containsEntry("code", expected.next().code().serialize());
         }
         if (errors.hasNext()) {
             Map<String, Object> error = errors.next();

@@ -1589,15 +1589,14 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                             true))
                     .create();
             Map<IndexSetting, Object> config = index.getIndexConfiguration();
-            assertThat(config.get(IndexSettingImpl.FULLTEXT_ANALYZER)).isEqualTo("swedish");
-            assertThat(config.get(IndexSettingImpl.FULLTEXT_EVENTUALLY_CONSISTENT))
-                    .isEqualTo(true);
+            assertThat(config).containsEntry(IndexSettingImpl.FULLTEXT_ANALYZER, "swedish");
+            assertThat(config).containsEntry(IndexSettingImpl.FULLTEXT_EVENTUALLY_CONSISTENT, true);
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
             IndexDefinition index = getIndex(tx, "my_index");
             Map<IndexSetting, Object> config = index.getIndexConfiguration();
-            assertThat(config.get(IndexSettingImpl.FULLTEXT_ANALYZER)).isEqualTo("swedish");
+            assertThat(config).containsEntry(IndexSettingImpl.FULLTEXT_ANALYZER, "swedish");
             tx.commit();
         }
     }
@@ -1655,8 +1654,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         try (Transaction tx = db.beginTx()) {
             IndexDefinition index = getIndex(tx, "email-addresses");
             assertThat(index.getPropertyKeys()).contains("from", "to", "cc", "bcc");
-            assertThat(index.getIndexConfiguration().get(IndexSetting.fulltext_Analyzer()))
-                    .isEqualTo("email");
+            assertThat(index.getIndexConfiguration()).containsEntry(IndexSetting.fulltext_Analyzer(), "email");
             tx.commit();
         }
     }

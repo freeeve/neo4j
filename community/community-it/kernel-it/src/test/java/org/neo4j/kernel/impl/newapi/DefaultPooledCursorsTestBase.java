@@ -315,7 +315,7 @@ public abstract class DefaultPooledCursorsTestBase<G extends KernelAPIReadTestSu
             throws IndexNotFoundKernelException {
         Iterator<IndexDescriptor> indexes = tx.schemaRead().index(SchemaDescriptors.forAnyEntityTokens(entityType));
         IndexDescriptor index = indexes.next();
-        assertThat(indexes.hasNext()).isFalse();
+        assertThat(indexes).isExhausted();
         return tx.dataRead().tokenReadSession(index);
     }
 }

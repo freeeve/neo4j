@@ -2351,8 +2351,8 @@ class ImportCommandTest {
             try (Stream<Node> stream = tx.getAllNodes().stream()) {
                 Set<String> nodes =
                         stream.map(n -> (String) n.getProperty("prop1")).collect(Collectors.toSet());
-                assertThat(nodes.size()).isEqualTo(2);
-                assertThat(nodes.contains("def")).isTrue();
+                assertThat(nodes).hasSize(2);
+                assertThat(nodes).contains("def");
                 assertThat(nodes.contains("abc") || nodes.contains("ghi")).isTrue();
             }
             assertThat(count(tx.getAllRelationships())).isEqualTo(1);
@@ -2562,11 +2562,11 @@ class ImportCommandTest {
 
         try (var tx = getDatabaseApi().beginTx()) {
             try (var nodes = tx.findNodes(label("a(b"))) {
-                assertThat(nodes.hasNext()).isTrue();
+                assertThat(nodes).hasNext();
                 var node = nodes.next();
                 assertThat(node.getProperty("node_id")).isEqualTo("3");
                 assertThat(node.getProperty("counter")).isEqualTo(4);
-                assertThat(nodes.hasNext()).isFalse();
+                assertThat(nodes).isExhausted();
             }
         }
     }
@@ -2756,7 +2756,7 @@ class ImportCommandTest {
                 try (var iterator = tx.getAllNodes().iterator()) {
                     var node = iterator.next();
                     assertThat(node.getProperty("p1")).isEqualTo(10L);
-                    assertThat(node.getLabels().iterator().hasNext()).isFalse();
+                    assertThat(node.getLabels().iterator()).isExhausted();
                 }
             }
         } finally {

@@ -531,7 +531,7 @@ public class SpaceFillingCurveTest {
         Envelope envelope = new Envelope(-8, 8, -8, 8);
         HilbertSpaceFillingCurve2D curve = new HilbertSpaceFillingCurve2D(envelope);
         List<SpaceFillingCurve.LongRange> ranges = curve.getTilesIntersectingEnvelope(envelope);
-        assertThat(ranges.size()).isEqualTo(1);
+        assertThat(ranges).hasSize(1);
         assertThat(ranges.get(0).max).isLessThan(Long.MAX_VALUE);
         assertThat(ranges.get(0).min).isGreaterThan(Long.MIN_VALUE);
     }

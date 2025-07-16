@@ -123,8 +123,8 @@ class DynamicIndexStoreViewTest {
             storeScan.run(StoreScan.NO_EXTERNAL_UPDATES);
         }
 
-        assertThat(consumer.batches.size()).isEqualTo(1);
-        assertThat(consumer.batches.get(0).size()).isEqualTo(nodeIds.length);
+        assertThat(consumer.batches).hasSize(1);
+        assertThat(consumer.batches.get(0)).hasSize(nodeIds.length);
     }
 
     @Test
@@ -182,11 +182,11 @@ class DynamicIndexStoreViewTest {
         storeScan.run(StoreScan.NO_EXTERNAL_UPDATES);
 
         // Then make sure all the fitting relationships where included
-        assertThat(propertyScanConsumer.batches.size()).isEqualTo(1);
-        assertThat(propertyScanConsumer.batches.get(0).size()).isEqualTo(wantedPropertyUpdates);
+        assertThat(propertyScanConsumer.batches).hasSize(1);
+        assertThat(propertyScanConsumer.batches.get(0)).hasSize(wantedPropertyUpdates);
         // and that we didn't visit any more relationships than what we would get from scan store
-        assertThat(tokenConsumer.batches.size()).isEqualTo(1);
-        assertThat(tokenConsumer.batches.get(0).size()).isEqualTo(relationshipsWithTargetType.size());
+        assertThat(tokenConsumer.batches).hasSize(1);
+        assertThat(tokenConsumer.batches.get(0)).hasSize(relationshipsWithTargetType.size());
     }
 
     @Test
@@ -219,8 +219,8 @@ class DynamicIndexStoreViewTest {
             storeScan.run(StoreScan.NO_EXTERNAL_UPDATES);
         }
 
-        assertThat(consumer.batches.size()).isEqualTo(1);
-        assertThat(consumer.batches.get(0).size()).isEqualTo(nodeIds.length + 2);
+        assertThat(consumer.batches).hasSize(1);
+        assertThat(consumer.batches.get(0)).hasSize(nodeIds.length + 2);
     }
 
     @Test
@@ -263,8 +263,8 @@ class DynamicIndexStoreViewTest {
                 INSTANCE);
         storeScan.run(StoreScan.NO_EXTERNAL_UPDATES);
 
-        assertThat(tokenConsumer.batches.size()).isEqualTo(1);
-        assertThat(tokenConsumer.batches.get(0).size()).isEqualTo(relationshipsWithTargetType.size());
+        assertThat(tokenConsumer.batches).hasSize(1);
+        assertThat(tokenConsumer.batches.get(0)).hasSize(relationshipsWithTargetType.size());
     }
 
     @Test
@@ -339,7 +339,7 @@ class DynamicIndexStoreViewTest {
         storeScan.run(StoreScan.NO_EXTERNAL_UPDATES);
 
         // Then make sure all the fitting relationships where included
-        assertThat(propertyScanConsumer.batches.size()).isEqualTo(1);
+        assertThat(propertyScanConsumer.batches).hasSize(1);
         assertThat(new HashSet<>(propertyScanConsumer.batches.get(0))).isEqualTo(wantedPropertyUpdates);
     }
 

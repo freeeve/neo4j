@@ -163,7 +163,7 @@ class DetachedCheckpointLogFileTest {
                         "detached");
 
         List<CheckpointInfo> reachableCheckpoints = checkpointFile.reachableCheckpoints();
-        assertThat(reachableCheckpoints.size()).isEqualTo(2);
+        assertThat(reachableCheckpoints).hasSize(2);
         assertThat(reachableCheckpoints.get(0).transactionLogPosition()).isEqualTo(logPosition);
         assertThat(reachableCheckpoints.get(1).transactionLogPosition()).isEqualTo(logPosition1);
     }

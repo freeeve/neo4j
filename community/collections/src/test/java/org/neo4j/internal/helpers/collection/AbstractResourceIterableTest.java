@@ -201,7 +201,7 @@ public class AbstractResourceIterableTest {
                 iterableClosed.setTrue();
             }
         };
-        assertThat(iterable.iterator().hasNext()).isTrue();
+        assertThat(iterable.iterator()).hasNext();
         iterable.close();
 
         // Then

@@ -43,6 +43,6 @@ public class DefaultResponseFormatIT extends AbstractRestFunctionalTestBase {
         assertThat(response.header(HttpHeaders.CONTENT_TYPE)).isEqualTo(MediaType.APPLICATION_JSON);
 
         Map<String, Object> result = jsonToMap(response.rawContent());
-        assertThat(result.containsKey("results")).isTrue();
+        assertThat(result).containsKey("results");
     }
 }

@@ -280,7 +280,7 @@ public class UserFunctionTest {
         verify(log)
                 .warn(
                         "The function 'org.neo4j.procedure.impl.listCoolPeople' is not on the allowlist and won't be loaded.");
-        assertThat(method.size()).isEqualTo(0);
+        assertThat(method).hasSize(0);
     }
 
     @Test
@@ -298,7 +298,7 @@ public class UserFunctionTest {
         verify(log)
                 .warn(
                         "The function 'org.neo4j.procedure.impl.listCoolPeople' is not on the allowlist and won't be loaded.");
-        assertThat(method.size()).isEqualTo(0);
+        assertThat(method).hasSize(0);
     }
 
     @Test
@@ -324,7 +324,7 @@ public class UserFunctionTest {
                 case "oldFunc":
                 case "badFunc":
                     assertTrue(func.signature().deprecated().isPresent(), "Should be deprecated");
-                    assertThat(func.signature().deprecated().get()).isEqualTo("newFunc");
+                    assertThat(func.signature().deprecated()).contains("newFunc");
                     break;
                 default:
                     fail("Unexpected function: " + name);

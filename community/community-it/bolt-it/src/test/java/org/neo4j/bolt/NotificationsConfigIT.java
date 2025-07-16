@@ -146,10 +146,8 @@ public class NotificationsConfigIT {
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
         // Then
-        assertThat(connection)
-                .receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")).size())
-                        // cartesian + NO_DATA
-                        .isEqualTo(2));
+        assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")))
+                .hasSize(2));
     }
 
     @ProtocolTest
@@ -166,10 +164,8 @@ public class NotificationsConfigIT {
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
         // Then
-        assertThat(connection)
-                .receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")).size())
-                        // performance + no data
-                        .isEqualTo(2));
+        assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")))
+                .hasSize(2));
     }
 
     @ProtocolTest
@@ -181,10 +177,8 @@ public class NotificationsConfigIT {
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
         // Then
-        assertThat(connection)
-                .receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")).size())
-                        // warning + no data_unknown
-                        .isEqualTo(2));
+        assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")))
+                .hasSize(2));
     }
 
     @ProtocolTest
@@ -213,10 +207,8 @@ public class NotificationsConfigIT {
                 .send(wire.pull());
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
-        assertThat(connection)
-                .receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")).size())
-                        // success - omitted result
-                        .isEqualTo(1));
+        assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")))
+                .hasSize(1));
     }
 
     @ProtocolTest
@@ -242,9 +234,8 @@ public class NotificationsConfigIT {
                 .send(wire.run("EXPLAIN MATCH (a:THIS_IS_NOT_A_LABEL) RETURN count(*)"))
                 .send(wire.pull());
         assertThat(connection).receivesSuccess().receivesSuccess(meta -> Assertions.assertThat(
-                        ((ArrayList<?>) meta.get("statuses")).size())
-                // success - omitted result
-                .isEqualTo(1));
+                        ((ArrayList<?>) meta.get("statuses")))
+                .hasSize(1));
         connection
                 .send(wire.run(
                         "EXPLAIN MATCH (a:THIS_IS_NOT_A_LABEL) RETURN count(*)",
@@ -307,9 +298,8 @@ public class NotificationsConfigIT {
                 .send(wire.run("EXPLAIN MATCH (a:THIS_IS_NOT_A_LABEL) RETURN count(*)"))
                 .send(wire.pull());
         assertThat(connection).receivesSuccess().receivesSuccess(meta -> Assertions.assertThat(
-                        ((ArrayList<?>) meta.get("statuses")).size())
-                // success - omitted result
-                .isEqualTo(1));
+                        ((ArrayList<?>) meta.get("statuses")))
+                .hasSize(1));
         ;
 
         connection
@@ -347,9 +337,8 @@ public class NotificationsConfigIT {
                 .send(wire.run("EXPLAIN MATCH (a:THIS_IS_NOT_A_LABEL) RETURN count(*)"))
                 .send(wire.pull());
         assertThat(connection).receivesSuccess().receivesSuccess(meta -> Assertions.assertThat(
-                        ((ArrayList<?>) meta.get("statuses")).size())
-                // success - omitted result
-                .isEqualTo(1));
+                        ((ArrayList<?>) meta.get("statuses")))
+                .hasSize(1));
 
         connection.send(wire.begin(x -> x.withSeverity(NotificationConfiguration.Severity.WARNING)));
         assertThat(connection).receivesSuccess();
@@ -389,9 +378,8 @@ public class NotificationsConfigIT {
                 .send(wire.run("EXPLAIN MATCH (a:THIS_IS_NOT_A_LABEL) RETURN count(*)"))
                 .send(wire.pull());
         assertThat(connection).receivesSuccess().receivesSuccess(meta -> Assertions.assertThat(
-                        ((ArrayList<?>) meta.get("statuses")).size())
-                // success - omitted result
-                .isEqualTo(1));
+                        ((ArrayList<?>) meta.get("statuses")))
+                .hasSize(1));
 
         connection.send(wire.begin(x -> x.withDisabledCategories(Collections.emptyList())));
         assertThat(connection).receivesSuccess();
@@ -431,10 +419,8 @@ public class NotificationsConfigIT {
 
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
 
-        assertThat(connection)
-                .receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")).size())
-                        // NO DATA
-                        .isEqualTo(1));
+        assertThat(connection).receivesSuccess(meta -> Assertions.assertThat(((ArrayList<?>) meta.get("statuses")))
+                .hasSize(1));
     }
 
     @ProtocolTest

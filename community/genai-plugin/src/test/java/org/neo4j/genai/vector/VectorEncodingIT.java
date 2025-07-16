@@ -68,10 +68,10 @@ public class VectorEncodingIT {
                         assertThat(row.get(DEFAULT_CONFIG_COLUMN)).isInstanceOf(Map.class);
                     })
                     .satisfiesOnlyOnce(row -> {
-                        assertThat(row.get(NAME_COLUMN)).isEqualTo(TestProvider.NAME);
-                        assertThat(row.get(REQUIRED_CONFIG_COLUMN)).isEqualTo(TestProvider.REQUIRED_CONFIG_TYPE);
-                        assertThat(row.get(OPTIONAL_CONFIG_COLUMN)).isEqualTo(TestProvider.OPTIONAL_CONFIG_TYPE);
-                        assertThat(row.get(DEFAULT_CONFIG_COLUMN)).isEqualTo(TestProvider.DEFAULT_CONFIG);
+                        assertThat(row).containsEntry(NAME_COLUMN, TestProvider.NAME);
+                        assertThat(row).containsEntry(REQUIRED_CONFIG_COLUMN, TestProvider.REQUIRED_CONFIG_TYPE);
+                        assertThat(row).containsEntry(OPTIONAL_CONFIG_COLUMN, TestProvider.OPTIONAL_CONFIG_TYPE);
+                        assertThat(row).containsEntry(DEFAULT_CONFIG_COLUMN, TestProvider.DEFAULT_CONFIG);
                     });
         }
     }

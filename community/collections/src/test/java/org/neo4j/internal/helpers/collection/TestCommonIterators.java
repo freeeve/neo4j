@@ -386,7 +386,7 @@ class TestCommonIterators {
         Iterators.skip(iterator, 3);
         assertThat(iterator.next()).isEqualTo("d");
         assertThat(iterator.next()).isEqualTo("e");
-        assertThat(iterator.hasNext()).isFalse();
+        assertThat(iterator).isExhausted();
     }
 
     @Test

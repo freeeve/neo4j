@@ -55,7 +55,7 @@ class UserSerializationTest {
 
         // Then
         List<User> actual = serialization.deserializeRecords(serialized);
-        assertThat(actual.size()).isEqualTo(users.size());
+        assertThat(actual).hasSize(users.size());
         for (int i = 0; i < actual.size(); i++) {
             // they should be in the same order so this is okay
             User actualUser = actual.get(i);

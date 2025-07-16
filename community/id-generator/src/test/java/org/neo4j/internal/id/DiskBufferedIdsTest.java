@@ -104,7 +104,7 @@ class DiskBufferedIdsTest {
         var source = List.of(Pair.of(snapshot1, buffers1), Pair.of(snapshot2, buffers2))
                 .iterator();
         buffer.read(new VerifyingReader(() -> source.hasNext() ? source.next() : null));
-        assertThat(source.hasNext()).isFalse();
+        assertThat(source).isExhausted();
     }
 
     @Test
@@ -314,7 +314,7 @@ class DiskBufferedIdsTest {
         // then
         var source = List.of(Pair.of(snapshotAfterClear, bufferAfterClear)).iterator();
         buffer.read(new VerifyingReader(() -> source.hasNext() ? source.next() : null));
-        assertThat(source.hasNext()).isFalse();
+        assertThat(source).isExhausted();
     }
 
     private int numberOfSegments() {

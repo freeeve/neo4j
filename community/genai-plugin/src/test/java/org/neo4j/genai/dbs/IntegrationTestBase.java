@@ -223,7 +223,7 @@ abstract class IntegrationTestBase {
                 Map.of("host", baseUrl, "collectionName", getCollectionName(provider, true), "conf", conf),
                 r -> {
                     Map<String, Object> row = r.next();
-                    assertThat(row.get("status")).isEqualTo("ok");
+                    assertThat(row).containsEntry("status", "ok");
                     assertThat(row.get("vendor"))
                             .isInstanceOf(Map.class)
                             .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
@@ -794,7 +794,7 @@ abstract class IntegrationTestBase {
                         enrichCreateCollection(provider, conf)),
                 r -> {
                     Map<String, Object> row = r.next();
-                    assertThat(row.get("status")).isEqualTo("ok");
+                    assertThat(row).containsEntry("status", "ok");
                 });
 
         assertThatCollectionHasBeenCreated(provider, useToken + "");
@@ -822,7 +822,7 @@ abstract class IntegrationTestBase {
                     Map<String, Object> row = r.next();
                     var status = row.get("status");
                     assertThat(status).isEqualTo("ok");
-                    assertThat(row.get("vendor")).isEqualTo(Map.of());
+                    assertThat(row).containsEntry("vendor", Map.of());
                 });
 
         assertThatCollectionHasBeenDeleted(provider);
@@ -849,18 +849,18 @@ abstract class IntegrationTestBase {
                         conf),
                 r -> {
                     Map<String, Object> row = r.next();
-                    assertThat(row.get("metadata")).isEqualTo(Map.of("city", "Berlin", "foo", "one"));
+                    assertThat(row).containsEntry("metadata", Map.of("city", "Berlin", "foo", "one"));
                     assertThat(row.get("score")).isNotNull();
                     assertThat(row)
                             .hasEntrySatisfying("vector", v -> assertThat(v).isNotNull());
-                    assertThat(row.get("id")).isEqualTo(getIdValue(ID_1, provider));
+                    assertThat(row).containsEntry("id", getIdValue(ID_1, provider));
 
                     row = r.next();
-                    assertThat(row.get("metadata")).isEqualTo(Map.of("city", "London", "foo", "two"));
+                    assertThat(row).containsEntry("metadata", Map.of("city", "London", "foo", "two"));
                     assertThat(row.get("score")).isNotNull();
                     assertThat(row)
                             .hasEntrySatisfying("vector", v -> assertThat(v).isNotNull());
-                    assertThat(row.get("id")).isEqualTo(getIdValue(ID_2, provider));
+                    assertThat(row).containsEntry("id", getIdValue(ID_2, provider));
                 });
     }
 
@@ -943,7 +943,7 @@ abstract class IntegrationTestBase {
                         conf),
                 r -> {
                     Map<String, Object> row = r.next();
-                    assertThat(row.get("status")).isEqualTo("ok");
+                    assertThat(row).containsEntry("status", "ok");
                 });
 
         assertThatVectorHasBeenCreated(provider);
@@ -976,7 +976,7 @@ abstract class IntegrationTestBase {
                         conf),
                 r -> {
                     Map<String, Object> row = r.next();
-                    assertThat(row.get("status")).isEqualTo("ok");
+                    assertThat(row).containsEntry("status", "ok");
                 });
 
         // update entry
@@ -1000,7 +1000,7 @@ abstract class IntegrationTestBase {
                         conf),
                 r -> {
                     Map<String, Object> row = r.next();
-                    assertThat(row.get("status")).isEqualTo("ok");
+                    assertThat(row).containsEntry("status", "ok");
                 });
 
         assertThatVectorHasBeenUpserted(provider);

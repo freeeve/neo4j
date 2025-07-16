@@ -2034,10 +2034,12 @@ class CsvInputTest {
 
             // then
             var referencedNodeSchema = input.referencedNodeSchema(tokenHolders);
-            assertThat(referencedNodeSchema.get("MyGroup"))
-                    .isEqualTo(SchemaDescriptors.forLabel(
-                            tokenHolders.labelTokens().getIdByName("Person"),
-                            tokenHolders.propertyKeyTokens().getIdByName("myId")));
+            assertThat(referencedNodeSchema)
+                    .containsEntry(
+                            "MyGroup",
+                            SchemaDescriptors.forLabel(
+                                    tokenHolders.labelTokens().getIdByName("Person"),
+                                    tokenHolders.propertyKeyTokens().getIdByName("myId")));
         }
     }
 

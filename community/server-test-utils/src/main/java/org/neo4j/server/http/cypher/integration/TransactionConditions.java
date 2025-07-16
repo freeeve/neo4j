@@ -70,7 +70,7 @@ public final class TransactionConditions {
                 Iterator<Status> expected = iterator(expectedErrors);
 
                 while (expected.hasNext()) {
-                    assertThat(errors.hasNext()).isTrue();
+                    assertThat(errors).hasNext();
                     assertThat(errors.next().get("code").asText())
                             .isEqualTo(expected.next().code().serialize());
                 }
@@ -124,7 +124,7 @@ public final class TransactionConditions {
                 int nodeCounter = 0;
                 int relCounter = 0;
                 for (int i = 0; i < nodes + rels; ++i) {
-                    assertThat(meta.hasNext()).isTrue();
+                    assertThat(meta).hasNext();
                     JsonNode node = meta.next();
                     assertThat(node.get("deleted").asBoolean()).isEqualTo(Boolean.TRUE);
                     String type = node.get("type").asText();
@@ -252,7 +252,7 @@ public final class TransactionConditions {
                         getJsonNodeWithName(response, "rest").iterator();
 
                 for (int i = 0; i < amount; ++i) {
-                    assertThat(entities.hasNext()).isTrue();
+                    assertThat(entities).hasNext();
                     JsonNode node = entities.next();
                     assertThat(node.get("metadata").get("deleted").asBoolean()).isEqualTo(Boolean.TRUE);
                 }
@@ -335,7 +335,7 @@ public final class TransactionConditions {
                         .iterator();
 
                 for (int i = 0; i < amount; ++i) {
-                    assertThat(relationships.hasNext()).isTrue();
+                    assertThat(relationships).hasNext();
                     JsonNode node = relationships.next();
                     assertThat(node.get("deleted").asBoolean()).isEqualTo(Boolean.TRUE);
                 }

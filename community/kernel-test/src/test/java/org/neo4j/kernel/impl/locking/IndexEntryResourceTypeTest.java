@@ -61,7 +61,7 @@ public class IndexEntryResourceTypeTest {
                 ResourceIds.indexEntryResourceId(2, array(pred1, pred2, pred3, pred4)));
 
         Set<Long> uniqueIds = Iterables.asSet(ids);
-        assertThat(ids.size()).isEqualTo(uniqueIds.size());
+        assertThat(ids).hasSize(uniqueIds.size());
     }
 
     @Test

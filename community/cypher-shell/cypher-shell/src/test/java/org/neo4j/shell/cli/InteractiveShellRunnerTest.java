@@ -139,8 +139,7 @@ class InteractiveShellRunnerTest {
         verify(cmdExecuter, times(3)).lastNeo4jErrorCode();
         verifyNoMoreInteractions(cmdExecuter);
 
-        assertThat(out.toString())
-                .isEqualTo("myusername@mydb> good1;\r\nmyusername@mydb> good2;\r\nmyusername@mydb> \r\n");
+        assertThat(out).hasToString("myusername@mydb> good1;\r\nmyusername@mydb> good2;\r\nmyusername@mydb> \r\n");
     }
 
     @Test
@@ -267,8 +266,8 @@ class InteractiveShellRunnerTest {
         runner.runUntilEnd();
 
         // when
-        assertThat(out.toString())
-                .isEqualTo(
+        assertThat(out)
+                .hasToString(
                         "myusername@mydb>     \r\nmyusername@mydb>    \r\nmyusername@mydb> bla bla;\r\nmyusername@mydb> \r\n");
     }
 
@@ -281,7 +280,7 @@ class InteractiveShellRunnerTest {
         runner.runUntilEnd();
 
         // when
-        assertThat(out.toString()).isEqualTo("Disconnected> bla bla;\r\nDisconnected> \r\n");
+        assertThat(out).hasToString("Disconnected> bla bla;\r\nDisconnected> \r\n");
     }
 
     @Test
@@ -297,7 +296,7 @@ class InteractiveShellRunnerTest {
 
         // then
         String wantedPrompt = "myusername@foo> return 1;\r\n";
-        assertThat(out.toString()).isEqualTo(wantedPrompt);
+        assertThat(out).hasToString(wantedPrompt);
     }
 
     @Test
@@ -312,7 +311,7 @@ class InteractiveShellRunnerTest {
         runner.runUntilEnd();
 
         // then
-        assertThat(out.toString()).isEqualTo("myusername@foo> return 1;\r\n");
+        assertThat(out).hasToString("myusername@foo> return 1;\r\n");
     }
 
     @Test
@@ -327,7 +326,7 @@ class InteractiveShellRunnerTest {
         runner.runUntilEnd();
 
         // then
-        assertThat(out.toString()).isEqualTo("myusername@<default_database>> return 1;\r\n");
+        assertThat(out).hasToString("myusername@<default_database>> return 1;\r\n");
     }
 
     @Test
@@ -342,7 +341,7 @@ class InteractiveShellRunnerTest {
         runner.runUntilEnd();
 
         // then
-        assertThat(out.toString()).isEqualTo("myusername@<default_database>> return 1;\r\n");
+        assertThat(out).hasToString("myusername@<default_database>> return 1;\r\n");
     }
 
     @Test
@@ -382,7 +381,7 @@ class InteractiveShellRunnerTest {
         var expected = "myusername@mydb#    \r\n" + "myusername@mydb#    \r\n"
                 + "myusername@mydb# bla bla;\r\n"
                 + "myusername@mydb# \r\n";
-        assertThat(out.toString()).isEqualTo(expected);
+        assertThat(out).hasToString(expected);
     }
 
     @Test
@@ -394,7 +393,7 @@ class InteractiveShellRunnerTest {
         runner.runUntilEnd();
 
         // when
-        assertThat(out.toString()).isEqualTo("myusername(emil)@mydb> return 40;\r\nmyusername(emil)@mydb> \r\n");
+        assertThat(out).hasToString("myusername(emil)@mydb> return 40;\r\nmyusername(emil)@mydb> \r\n");
     }
 
     @Test

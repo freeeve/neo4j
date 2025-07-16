@@ -1421,7 +1421,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 PagedFile pf2 = map(f2, filePageSize)) {
             map(f3, filePageSize).close();
             List<PagedFile> existingMappings = pageCache.listExistingMappings();
-            assertThat(existingMappings.size()).isEqualTo(2);
+            assertThat(existingMappings).hasSize(2);
             assertThat(existingMappings).contains(pf1, pf2);
         }
     }

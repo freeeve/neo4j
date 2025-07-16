@@ -125,7 +125,7 @@ public class DiscoveryServiceIT extends AbstractRestFunctionalTestBase {
 
         var serverEditionKey = "neo4j_edition";
         assertTrue(responseBodyMap.containsKey(serverEditionKey));
-        assertThat(responseBodyMap.get(serverEditionKey)).isEqualTo("community");
+        assertThat(responseBodyMap).containsEntry(serverEditionKey, "community");
     }
 
     @Test

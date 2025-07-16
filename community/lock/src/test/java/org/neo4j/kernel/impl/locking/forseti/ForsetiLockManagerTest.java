@@ -306,7 +306,7 @@ class ForsetiLockManagerTest {
             var activeLocks = client.activeLocks();
 
             assertThat(client.activeLockCount()).isEqualTo(totalLocks);
-            assertThat(activeLocks.size()).isEqualTo(client.activeLockCount());
+            assertThat(activeLocks).hasSize((int) client.activeLockCount());
             activeLocks.forEach(
                     lock -> assertThat(lock.lockType().equals(LockType.EXCLUSIVE) ? exclusiveLocks : sharedLocks)
                             .containsKey(lock.resourceId()));

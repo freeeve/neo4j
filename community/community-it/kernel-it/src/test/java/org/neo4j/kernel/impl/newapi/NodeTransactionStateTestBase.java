@@ -1108,7 +1108,7 @@ public abstract class NodeTransactionStateTestBase<G extends KernelAPIWriteTestS
             throws IndexNotFoundKernelException {
         Iterator<IndexDescriptor> indexes = tx.schemaRead().index(SchemaDescriptors.forAnyEntityTokens(entityType));
         IndexDescriptor index = indexes.next();
-        assertThat(indexes.hasNext()).isFalse();
+        assertThat(indexes).isExhausted();
         return tx.dataRead().tokenReadSession(index);
     }
 

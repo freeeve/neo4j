@@ -303,7 +303,7 @@ public class ProcedureTest {
                 case "oldProc":
                 case "badProc":
                     assertTrue(proc.signature().deprecated().isPresent(), "Should be deprecated");
-                    assertThat(proc.signature().deprecated().get()).isEqualTo("newProc");
+                    assertThat(proc.signature().deprecated()).contains("newProc");
                     break;
                 default:
                     fail("Unexpected procedure: " + name);
@@ -349,7 +349,7 @@ public class ProcedureTest {
         verify(log)
                 .warn(
                         "The procedure 'org.neo4j.procedure.impl.listCoolPeople' is not on the allowlist and won't be loaded.");
-        assertThat(proc.isEmpty()).isTrue();
+        assertThat(proc).isEmpty();
     }
 
     @Test
@@ -384,7 +384,7 @@ public class ProcedureTest {
         verify(log)
                 .warn(
                         "The procedure 'org.neo4j.procedure.impl.listCoolPeople' is not on the allowlist and won't be loaded.");
-        assertThat(proc.isEmpty()).isTrue();
+        assertThat(proc).isEmpty();
     }
 
     @Test

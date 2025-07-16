@@ -382,7 +382,7 @@ class LogConfigTest {
             assertThat(i.next()).contains("Removing console appender 'ConsoleAppender' with target 'SYSTEM_OUT'.");
         }
         assertThat(i.next()).matches(DATE_PATTERN + format(" %-5s test", Level.WARN));
-        assertThat(i.hasNext()).isFalse();
+        assertThat(i).isExhausted();
 
         assertThat(suppressOutput.getOutputVoice().containsMessage(format(" %-5s test%n", Level.WARN)))
                 .isEqualTo(!daemonMode);

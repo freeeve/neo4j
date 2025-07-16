@@ -52,7 +52,7 @@ public class AuthProceduresTest {
     @Test
     void shouldReturnSecurityContext() {
         List<UserResult> infoList = procedures.showCurrentUser().toList();
-        assertThat(infoList.size()).isEqualTo(1);
+        assertThat(infoList).hasSize(1);
 
         UserResult row = infoList.get(0);
         assertThat(row.username).isEqualTo("pearl");

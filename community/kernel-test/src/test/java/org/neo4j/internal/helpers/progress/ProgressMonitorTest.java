@@ -364,7 +364,7 @@ class ProgressMonitorTest {
 
         // then
         out.flush();
-        assertThat(outBuffer.toString()).isEqualTo(format(".....  50%%%n..... 100%%%n"));
+        assertThat(outBuffer).hasToString(format(".....  50%%%n..... 100%%%n"));
     }
 
     private static Indicator indicatorMock() {

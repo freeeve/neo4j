@@ -107,7 +107,7 @@ class IndexUpdatesWorkSyncTest {
 
         // then
         assertThat(appliedUpdates).isEqualTo(sentUpdates);
-        assertThat(applyingThreads.size()).isEqualTo(threads);
+        assertThat(applyingThreads).hasSize(threads);
     }
 
     private Set<UpdateAndContext> queueUpdatesInParallel(

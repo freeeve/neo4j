@@ -40,7 +40,7 @@ class BlockEntryMergerTestUtils {
             assertThat(actual.key()).isEqualTo(expectedEntry.key());
             assertThat(actual.value()).isEqualTo(expectedEntry.value());
         }
-        assertThat(expected.hasNext()).isFalse();
+        assertThat(expected).isExhausted();
     }
 
     static List<BlockEntryCursor<RawBytes, RawBytes>> buildParts(

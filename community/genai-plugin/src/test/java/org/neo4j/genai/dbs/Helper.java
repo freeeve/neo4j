@@ -94,7 +94,7 @@ final class Helper {
         assertThat(row.get("metadata"))
                 .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
                 .containsExactlyInAnyOrderEntriesOf(Map.of("city", "Berlin", "foo", "one"));
-        assertThat(row.get("id")).isEqualTo(id);
+        assertThat(row).containsEntry("id", id);
         if (!entityType.equals(EntityType.UNDEFINED)) {
             String entity = entityType.equals(EntityType.NODE) ? "node" : "rel";
             Map<String, Object> props = ((Entity) row.get(entity)).getAllProperties();
@@ -110,7 +110,7 @@ final class Helper {
         assertThat(row.get("metadata"))
                 .asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
                 .containsExactlyInAnyOrderEntriesOf(Map.of("city", "London", "foo", "two"));
-        assertThat(row.get("id")).isEqualTo(id);
+        assertThat(row).containsEntry("id", id);
         if (!entityType.equals(EntityType.UNDEFINED)) {
             String entity = entityType.equals(EntityType.NODE) ? "node" : "rel";
             Map<String, Object> props = ((Entity) row.get(entity)).getAllProperties();
@@ -146,7 +146,7 @@ final class Helper {
         assertBerlinProperties(propsIterator.next());
         assertLondonProperties(propsIterator.next());
 
-        assertThat(propsIterator.hasNext()).isFalse();
+        assertThat(propsIterator).isExhausted();
     }
 
     public static void assertReadOnlyProcWithMappingResults(Result r, String node, boolean scoreExpected) {

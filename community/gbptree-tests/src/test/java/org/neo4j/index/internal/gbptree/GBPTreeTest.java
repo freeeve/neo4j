@@ -891,7 +891,7 @@ class GBPTreeTest {
 
             // then
             var flushEvent = checkpoint.get();
-            assertThat(flushEvent.flushEvents.size()).isEqualTo(3);
+            assertThat(flushEvent.flushEvents).hasSize(3);
             var firstFlush = flushEvent.flushEvents.get(0);
             var secondFlush = flushEvent.flushEvents.get(1);
             var thirdFlush = flushEvent.flushEvents.get(2);

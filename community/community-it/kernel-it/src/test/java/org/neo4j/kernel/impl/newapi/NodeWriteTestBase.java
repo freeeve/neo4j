@@ -907,9 +907,9 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
         // Then
         try (Transaction tx = graphDb.beginTx()) {
             try (ResourceIterator<Node> nodes = tx.findNodes(label, map(key1Name, "D", key2Name, "C"))) {
-                assertThat(nodes.hasNext()).isTrue();
+                assertThat(nodes).hasNext();
                 assertThat(nodes.next().getId()).isEqualTo(node);
-                assertThat(nodes.hasNext()).isFalse();
+                assertThat(nodes).isExhausted();
             }
         }
     }
