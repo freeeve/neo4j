@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -51,6 +52,29 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
         |RETURN a, r, b""".stripMargin
 
     val plan = planner.plan(query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("a", "r", "b")
+        .dynamicRelationshipTypeScan(
+          leftNode = Some("a"),
+          relName = Some("r"),
+          relTypeExpr = literalString("R"),
+          rightNode = Some("b"),
+          direction = SemanticDirection.OUTGOING,
+          operator = DynamicElement.All,
+          indexOrder = IndexOrderNone
+        )
+        .build()
+  }
+
+  test("should plan dynamic relationship type scan with single type in a WHERE clause") {
+    val query =
+      """MATCH (a)-[r]->(b)
+        |WHERE r:$('R')
+        |RETURN a, r, b""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
 
     plan shouldEqual
       planner.planBuilder()

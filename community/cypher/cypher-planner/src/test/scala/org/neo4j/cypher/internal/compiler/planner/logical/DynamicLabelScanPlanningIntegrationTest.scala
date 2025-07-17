@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
@@ -51,6 +52,37 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
+        .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .build()
+  }
+
+  test("should plan dynamic label scan with single label in a WHERE clause") {
+    val query =
+      """MATCH (a)
+        |WHERE a:$('A')
+        |RETURN a""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("a")
+        .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .build()
+  }
+
+  test("probably could but currently does not combine dynamic labels in node pattern and in a WHERE clause") {
+    val query =
+      """MATCH (a:$('A'))
+        |WHERE a:$('B')
+        |RETURN a""".stripMargin
+
+    val plan = planner.plan(CypherVersion.Cypher25, query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("a")
+        .filterExpression(hasDynamicLabels(varFor("a"), literalString("B")))
         .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderNone)
         .build()
   }
