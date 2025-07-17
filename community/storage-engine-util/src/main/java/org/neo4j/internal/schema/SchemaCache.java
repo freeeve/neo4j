@@ -28,7 +28,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
@@ -42,6 +41,7 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.factory.Maps;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
+import org.eclipse.collections.api.set.MutableSetIterable;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.factory.Sets;
@@ -229,7 +229,7 @@ public class SchemaCache {
         private final IndexConfigCompleter indexConfigCompleter;
         private final MutableLongObjectMap<IndexDescriptor> indexesById;
         private final MutableLongObjectMap<ConstraintDescriptor> constraintsById;
-        private final Set<ConstraintDescriptor> constraints;
+        private final MutableSetIterable<ConstraintDescriptor> constraints;
         private final StorageEngineIndexingBehaviour indexingBehaviour;
 
         private final Map<SchemaDescriptor, Set<IndexDescriptor>> indexesBySchema;
@@ -259,7 +259,7 @@ public class SchemaCache {
             this.indexingBehaviour = storageEngineIndexingBehaviour;
             this.indexesById = new LongObjectHashMap<>();
             this.constraintsById = new LongObjectHashMap<>();
-            this.constraints = new HashSet<>();
+            this.constraints = new UnifiedSet<>();
 
             this.indexesBySchema = new HashMap<>();
             this.indexesBySchemaAndType = new HashMap<>();
@@ -282,7 +282,7 @@ public class SchemaCache {
             this.indexesById = LongObjectHashMap.newMap(schemaCacheState.indexesById);
             this.indexingBehaviour = schemaCacheState.indexingBehaviour;
             this.constraintsById = LongObjectHashMap.newMap(schemaCacheState.constraintsById);
-            this.constraints = new HashSet<>(schemaCacheState.constraints);
+            this.constraints = new UnifiedSet<>(schemaCacheState.constraints);
 
             this.indexesBySchema = new HashMap<>(schemaCacheState.indexesBySchema);
             this.indexesBySchemaAndType = new HashMap<>(schemaCacheState.indexesBySchemaAndType);
@@ -333,7 +333,7 @@ public class SchemaCache {
         }
 
         boolean hasConstraintRule(ConstraintDescriptor descriptor) {
-            return constraints.contains(descriptor);
+            return constraints.detect(descriptor::equalsIgnoreName) != null;
         }
 
         boolean hasIndex(IndexDescriptor index) {

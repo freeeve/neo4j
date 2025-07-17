@@ -115,6 +115,7 @@ public class ConstraintIndexCreator {
             throw CreateConstraintFailureException.constraintCreationFailed(constraint, transaction.tokenRead(), e);
         }
 
+        // At this point we should have a populating index created from an internal transaction
         boolean success = false;
         boolean reacquiredLock = false;
         Client locks = transaction.lockClient();

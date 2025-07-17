@@ -295,7 +295,10 @@ public class ConstraintDescriptorImplementation
         if (!(o instanceof ConstraintDescriptor that)) {
             return false;
         }
+        return equalsIgnoreName(that) && Objects.equals(this.name, that.getName());
+    }
 
+    public final boolean equalsIgnoreName(ConstraintDescriptor that) {
         if (this.type != that.type()) {
             return false;
         }
@@ -317,7 +320,6 @@ public class ConstraintDescriptorImplementation
                 && !this.propertyType.equals(that.asPropertyTypeConstraint().propertyType())) {
             return false;
         }
-
         return true;
     }
 
@@ -340,7 +342,7 @@ public class ConstraintDescriptorImplementation
 
     @Override
     public final int hashCode() {
-        return Objects.hash(type, graphTypeDependence, schema);
+        return Objects.hash(type, graphTypeDependence, schema, name);
     }
 
     @Override

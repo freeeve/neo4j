@@ -231,7 +231,16 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation
         if (!(o instanceof RelationshipEndpointLabelConstraintDescriptor that)) {
             return false;
         }
+        return equalsIgnoreName(that) && Objects.equals(this.name, that.getName());
+    }
 
+    @Override
+    public boolean equalsIgnoreName(ConstraintDescriptor other) {
+        // ugly, needed since equalsIgnoreName might be called from something else than equals
+        if (!other.isRelationshipEndpointLabelConstraint()) {
+            return false;
+        }
+        var that = other.asRelationshipEndpointLabelConstraint();
         if (this.endpointType != that.endpointType()) {
             return false;
         }
@@ -263,7 +272,7 @@ final class RelationshipEndpointLabelConstraintDescriptorImplementation
 
     @Override
     public int hashCode() {
-        return Objects.hash(schema);
+        return Objects.hash(schema, endpointType, endpointLabelId, name);
     }
 
     @Override

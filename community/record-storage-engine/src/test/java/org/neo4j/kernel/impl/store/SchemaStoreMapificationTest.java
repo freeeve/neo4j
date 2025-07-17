@@ -120,7 +120,7 @@ class SchemaStoreMapificationTest {
             .withId(1);
     private final ConstraintDescriptor nodeTypeConstraintSingleScalarType = ConstraintDescriptorFactory.typeForSchema(
                     labelSchema, PropertyTypeSet.of(SchemaValueType.BOOLEAN), false)
-            .withName("nodeTypeConstrainSingleScalarType")
+            .withName("nodeTypeConstraintSingleScalarType")
             .withId(1);
     private final ConstraintDescriptor relTypeConstraintSeveralTypes = ConstraintDescriptorFactory.typeForSchema(
                     relTypeSchema,
@@ -536,7 +536,7 @@ class SchemaStoreMapificationTest {
         Map<String, Value> mapified = new HashMap<>();
 
         mapified.put("__org.neo4j.SchemaRule.schemaEntityType", Values.stringValue("RELATIONSHIP"));
-        mapified.put("__org.neo4j.SchemaRule.name", Values.stringValue("relTypeConstrainSeveralTypes"));
+        mapified.put("__org.neo4j.SchemaRule.name", Values.stringValue("relTypeConstrainWithVector"));
         mapified.put("__org.neo4j.SchemaRule.schemaPropertySchemaType", Values.stringValue("COMPLETE_ALL_TOKENS"));
         mapified.put("__org.neo4j.SchemaRule.schemaPropertyIds", Values.intArray(new int[] {2, 3}));
         mapified.put("__org.neo4j.SchemaRule.schemaRuleType", Values.stringValue("CONSTRAINT"));

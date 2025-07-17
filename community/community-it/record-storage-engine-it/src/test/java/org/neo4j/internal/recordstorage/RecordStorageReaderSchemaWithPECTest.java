@@ -20,7 +20,6 @@
 package org.neo4j.internal.recordstorage;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.existsForLabel;
 import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.existsForRelType;
@@ -73,18 +72,20 @@ class RecordStorageReaderSchemaWithPECTest extends RecordStorageReaderTestBase {
         int propKeyId = propertyKeyId(propertyKey);
         int propKeyId2 = propertyKeyId(otherPropertyKey);
 
+        assertThat(constraints).anyMatch(uniqueForLabel(labelId1, propKeyId)::equalsIgnoreName);
+        assertThat(constraints).anyMatch(uniqueForLabel(labelId2, propKeyId)::equalsIgnoreName);
         assertThat(constraints)
-                .contains(
-                        uniqueForLabel(labelId1, propKeyId),
-                        uniqueForLabel(labelId2, propKeyId),
-                        uniqueForSchema(SchemaDescriptors.forRelType(relTypeId, propKeyId)),
-                        uniqueForSchema(SchemaDescriptors.forRelType(relTypeId2, propKeyId)),
-                        nodeKeyForLabel(labelId1, propKeyId2),
-                        nodeKeyForLabel(labelId2, propKeyId2),
-                        keyForSchema(SchemaDescriptors.forRelType(relTypeId, propKeyId)),
-                        keyForSchema(SchemaDescriptors.forRelType(relTypeId2, propKeyId2)),
-                        existsForLabel(false, labelId2, propKeyId),
-                        existsForRelType(false, relTypeId, propKeyId));
+                .anyMatch(uniqueForSchema(SchemaDescriptors.forRelType(relTypeId, propKeyId))::equalsIgnoreName);
+        assertThat(constraints)
+                .anyMatch(uniqueForSchema(SchemaDescriptors.forRelType(relTypeId2, propKeyId))::equalsIgnoreName);
+        assertThat(constraints).anyMatch(nodeKeyForLabel(labelId1, propKeyId2)::equalsIgnoreName);
+        assertThat(constraints).anyMatch(nodeKeyForLabel(labelId2, propKeyId2)::equalsIgnoreName);
+        assertThat(constraints)
+                .anyMatch(keyForSchema(SchemaDescriptors.forRelType(relTypeId, propKeyId))::equalsIgnoreName);
+        assertThat(constraints)
+                .anyMatch(keyForSchema(SchemaDescriptors.forRelType(relTypeId2, propKeyId2))::equalsIgnoreName);
+        assertThat(constraints).anyMatch(existsForLabel(false, labelId2, propKeyId)::equalsIgnoreName);
+        assertThat(constraints).anyMatch(existsForRelType(false, relTypeId, propKeyId)::equalsIgnoreName);
     }
 
     @Test
@@ -106,7 +107,10 @@ class RecordStorageReaderSchemaWithPECTest extends RecordStorageReaderTestBase {
                 nodeKeyConstraintDescriptor(label1, otherPropertyKey),
                 nodePropertyExistenceDescriptor(label1, propertyKey, false));
 
-        assertEquals(expectedConstraints, constraints);
+        for (ConstraintDescriptor expectedConstraint : expectedConstraints) {
+            assertThat(constraints.stream().anyMatch(expectedConstraint::equalsIgnoreName))
+                    .isTrue();
+        }
     }
 
     @Test
@@ -129,7 +133,10 @@ class RecordStorageReaderSchemaWithPECTest extends RecordStorageReaderTestBase {
                 nodeKeyConstraintDescriptor(label1, propertyKey),
                 nodePropertyExistenceDescriptor(label1, propertyKey, false));
 
-        assertEquals(expected, constraints);
+        for (ConstraintDescriptor expectedConstraint : expected) {
+            assertThat(constraints.stream().anyMatch(expectedConstraint::equalsIgnoreName))
+                    .isTrue();
+        }
     }
 
     @Test
@@ -156,7 +163,10 @@ class RecordStorageReaderSchemaWithPECTest extends RecordStorageReaderTestBase {
                 relKeyConstraintDescriptor(relType2, otherPropertyKey),
                 relUniqueConstraintDescriptor(relType2, otherPropertyKey));
 
-        assertEquals(expectedConstraints, constraints);
+        for (ConstraintDescriptor expectedConstraint : expectedConstraints) {
+            assertThat(constraints.stream().anyMatch(expectedConstraint::equalsIgnoreName))
+                    .isTrue();
+        }
     }
 
     @Test
@@ -186,7 +196,10 @@ class RecordStorageReaderSchemaWithPECTest extends RecordStorageReaderTestBase {
                 relKeyConstraintDescriptor(relType1, propertyKey),
                 relUniqueConstraintDescriptor(relType1, propertyKey));
 
-        assertEquals(expectedConstraints, constraints);
+        for (ConstraintDescriptor expectedConstraint : expectedConstraints) {
+            assertThat(constraints.stream().anyMatch(expectedConstraint::equalsIgnoreName))
+                    .isTrue();
+        }
     }
 
     private ConstraintDescriptor uniqueConstraintDescriptor(Label label, String propertyKey) {

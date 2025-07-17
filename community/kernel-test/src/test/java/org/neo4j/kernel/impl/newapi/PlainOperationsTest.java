@@ -596,7 +596,10 @@ public class PlainOperationsTest extends OperationsTest {
 
         // then
         order.verify(locks).acquireExclusive(LockTracer.NONE, ResourceType.LABEL, schema.getLabelId());
-        order.verify(txState).constraintDoAdd(ConstraintDescriptorFactory.uniqueForSchema(schema), constraintIndex);
+        order.verify(txState)
+                .constraintDoAdd(
+                        ConstraintDescriptorFactory.uniqueForSchema(schema).withName("constraint name"),
+                        constraintIndex);
     }
 
     @Test

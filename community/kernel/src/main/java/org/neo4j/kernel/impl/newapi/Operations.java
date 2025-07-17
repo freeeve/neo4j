@@ -1941,8 +1941,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             throws EquivalentSchemaRuleAlreadyExistsException {
 
         for (ConstraintDescriptor constraintWithSameSchema : constraintsWithSameSchema) {
-            if (constraint.equals(constraintWithSameSchema)
-                    && constraint.getName().equals(constraintWithSameSchema.getName())) {
+            if (constraint.equals(constraintWithSameSchema)) {
                 throw EquivalentSchemaRuleAlreadyExistsException.cannotCreateConstraint(
                         constraintWithSameSchema, token);
             }
@@ -1983,7 +1982,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
         for (ConstraintDescriptor maybeConflictingConstraints : potentialConflicts) {
             // Do equal check first because ConflictingConstraint is a relaxation of equals
-            if (constraint.equals(maybeConflictingConstraints)) {
+            if (constraint.equalsIgnoreName(maybeConflictingConstraints)) {
                 throw AlreadyConstrainedException.cannotCreateConstraint(maybeConflictingConstraints, token);
             }
 

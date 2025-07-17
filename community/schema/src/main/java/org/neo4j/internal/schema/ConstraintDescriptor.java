@@ -197,4 +197,6 @@ public interface ConstraintDescriptor extends SchemaDescriptorSupplier, SchemaRu
      * @param other constraint we are comparing this with
      */
     boolean conflictsWith(ConstraintDescriptor other);
+
+    boolean equalsIgnoreName(ConstraintDescriptor other);
 }

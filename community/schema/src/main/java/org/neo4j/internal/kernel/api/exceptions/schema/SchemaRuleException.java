@@ -79,6 +79,7 @@ public class SchemaRuleException extends SchemaKernelException {
                 case UNIQUE -> tagType + " uniqueness constraint";
                 case EXISTS -> tagType + " property existence constraint";
                 case UNIQUE_EXISTS -> schema.entityType().name().toLowerCase(Locale.ROOT) + " key constraint";
+                case RELATIONSHIP_ENDPOINT_LABEL -> "relationship endpoint label";
                 default -> throw new AssertionError("Unknown constraint type: " + constraint.type());
             };
         } else if (schemaThing instanceof IndexDescriptor index) {

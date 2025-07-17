@@ -222,8 +222,17 @@ final class NodeLabelExistenceConstraintDescriptorImplementation implements Node
         if (!(o instanceof NodeLabelExistenceConstraintDescriptor that)) {
             return false;
         }
+        return equalsIgnoreName(that) && Objects.equals(this.name, that.getName());
+    }
 
-        if (this.requiredLabelId != that.requiredLabelId()) {
+    @Override
+    public boolean equalsIgnoreName(ConstraintDescriptor that) {
+        // ugly, needed since equalsIgnoreName might be called from something else than equals
+        if (!that.isNodeLabelExistenceConstraint()) {
+            return false;
+        }
+
+        if (this.requiredLabelId != that.asNodeLabelExistenceConstraint().requiredLabelId()) {
             return false;
         }
 
@@ -236,7 +245,7 @@ final class NodeLabelExistenceConstraintDescriptorImplementation implements Node
 
     @Override
     public int hashCode() {
-        return Objects.hash(schema);
+        return Objects.hash(schema, requiredLabelId, name);
     }
 
     // It is not allowed to have a label be the constrained label for one constraint and required label for another
