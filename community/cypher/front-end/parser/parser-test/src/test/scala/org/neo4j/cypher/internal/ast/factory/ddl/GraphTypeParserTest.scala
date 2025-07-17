@@ -35,8 +35,12 @@ import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.graphtype.GraphTypeTestCase
 import org.neo4j.cypher.internal.util.symbols.DateType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
+import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import scala.collection.immutable.ArraySeq
@@ -137,6 +141,84 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
                 "name",
                 StringType(isNullable = true),
                 PropertyInlineUniquenessConstraint()(defaultPos)
+              )
+            )
+          )
+        ))
+    }
+  }
+
+  test("ALTER CURRENT GRAPH TYPE SET {(:Product => {feature :: VECTOR<FLOAT32>(4)})}") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            nodeType(
+              "Product",
+              propertyType(
+                "feature",
+                VectorType(Some(Float32Type(isNullable = false)(defaultPos)), Some(4), isNullable = true)
+              )
+            )
+          )
+        ))
+    }
+  }
+
+  test(
+    "ALTER CURRENT GRAPH TYPE SET {CONSTRAINT independentConstraint FOR (n:Label) REQUIRE n.score IS :: VECTOR(3, INT32)}"
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            Seq(),
+            Seq(
+              propertyTypeConstraint(
+                "independentConstraint",
+                nodeTypeRefByLabel("Label", "n"),
+                ArraySeq(prop("n", "score")),
+                VectorType(Some(Integer32Type(isNullable = false)(defaultPos)), Some(3), isNullable = true)(defaultPos)
+              )
+            )
+          )
+        ))
+    }
+  }
+
+  test("ALTER CURRENT GRAPH TYPE SET {(:User)-[:INTERACTS => {score :: VECTOR(1024, FLOAT NOT NULL)}]->()}") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            edgeType(
+              nodeTypeRefByLabel("User"),
+              "INTERACTS",
+              EmptyNodeTypeReference()(defaultPos),
+              propertyType(
+                "score",
+                VectorType(Some(FloatType(isNullable = false)(defaultPos)), Some(1024), isNullable = true)
+              )
+            )
+          )
+        ))
+    }
+  }
+
+  test(
+    "ALTER CURRENT GRAPH TYPE SET {CONSTRAINT c FOR ()-[r:REL]->() REQUIRE r.feat IS :: VECTOR<INT>(42)}"
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeSet(
+          graphType(
+            Seq(),
+            Seq(
+              propertyTypeConstraint(
+                "c",
+                edgeTypeRefByLabel("REL", "r"),
+                ArraySeq(prop("r", "feat")),
+                VectorType(Some(IntegerType(isNullable = false)(defaultPos)), Some(42), isNullable = true)(defaultPos)
               )
             )
           )

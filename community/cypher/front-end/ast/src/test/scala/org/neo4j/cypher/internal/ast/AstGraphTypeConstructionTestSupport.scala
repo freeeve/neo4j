@@ -304,6 +304,10 @@ trait AstGraphTypeConstructionTestSupport extends AstConstructionTestSupport {
     PropertyType(PropertyKeyName(name)(defaultPos), valueType(defaultPos), None)(defaultPos)
   }
 
+  def propertyTypeWithPos(name: String, valueType: CypherType, position: InputPosition): PropertyType = {
+    PropertyType(PropertyKeyName(name)(position), valueType, None)(position)
+  }
+
   def propertyType(
     name: String,
     typ: InputPosition => CypherType,

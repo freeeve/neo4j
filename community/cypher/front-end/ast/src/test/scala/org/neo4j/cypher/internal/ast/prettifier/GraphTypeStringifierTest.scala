@@ -21,8 +21,11 @@ import org.neo4j.cypher.internal.ast.GraphType
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.graphtype.GraphTypeTestCase
 import org.neo4j.cypher.internal.util.symbols.DateType
+import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 import org.scalatest.Assertion
@@ -132,6 +135,30 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
         | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`) IS UNIQUE,
         | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`, `n`.`p3`) IS KEY,
         | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p2`, `n`.`p1`) IS KEY
+        |}""".stripMargin
+  }
+
+  test("graph types with inner vector type should be normalized") {
+    graphType(
+      Seq(
+        nodeType(
+          "Product",
+          "p",
+          propertyType("feature", VectorType(Some(FloatType(isNullable = false)(pos)), Some(4), isNullable = true))
+        )
+      ),
+      Seq(
+        propertyTypeConstraint(
+          "myVectorConstr",
+          edgeTypeRefByLabel("CONNECTION", "r"),
+          ArraySeq(prop("r", "score")),
+          VectorType(Some(Integer32Type(isNullable = false)(defaultPos)), Some(3), isNullable = true)(defaultPos)
+        )
+      )
+    ) shouldStringifyTo
+      """{
+        | (`p`:`Product` => {`feature` :: VECTOR<FLOAT NOT NULL>(4)}),
+        | CONSTRAINT `myVectorConstr` FOR ()-[`r`:`CONNECTION`]->() REQUIRE (`r`.`score`) IS :: VECTOR<INTEGER32 NOT NULL>(3)
         |}""".stripMargin
   }
 

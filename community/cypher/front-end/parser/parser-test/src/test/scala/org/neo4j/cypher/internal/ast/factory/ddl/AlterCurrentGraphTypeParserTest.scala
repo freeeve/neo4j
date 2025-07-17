@@ -27,9 +27,13 @@ import org.neo4j.cypher.internal.ast.factory.ddl.GraphTypeParserTest.cypher5Erro
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.symbols.DateType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
 import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
+import org.neo4j.cypher.internal.util.symbols.Integer8Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import scala.collection.immutable.ArraySeq
@@ -108,6 +112,20 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
             nodeTypeRefByLabel("Thingy", "t"),
             ArraySeq(prop("t", "uri")),
             StringType(isNullable = true)(pos)
+          ))
+        )))
+    }
+  }
+
+  test("ALTER CURRENT GRAPH TYPE ADD { CONSTRAINT FOR (t:Thingy) REQUIRE t.feature :: VECTOR(3, INT64) }".stripMargin) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeAdd(graphType(
+          Seq.empty,
+          Seq(propertyTypeConstraint(
+            nodeTypeRefByLabel("Thingy", "t"),
+            ArraySeq(prop("t", "feature")),
+            VectorType(Some(IntegerType(isNullable = false)(defaultPos)), Some(3), isNullable = true)(pos)
           ))
         )))
     }
@@ -307,7 +325,8 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
   test(
     """ALTER CURRENT GRAPH TYPE ADD {
       | (c:City => {name :: STRING}),
-      | (:Person =>)-[:LIVES_IN => {since :: DATE}]->(c)
+      | (:Person =>)-[:LIVES_IN => {since :: DATE}]->(c),
+      | (:Person =>)-[:LIKES => {score :: VECTOR<INT32>(1234)}]->(c)
   }""".stripMargin
   ) {
     parsesIn[Statements] {
@@ -319,6 +338,15 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
             "LIVES_IN",
             nodeTypeRefByVar("c"),
             propertyType("since", DateType(isNullable = true))
+          ),
+          edgeType(
+            identifyingNodeTypeRef("Person"),
+            "LIKES",
+            nodeTypeRefByVar("c"),
+            propertyType(
+              "score",
+              VectorType(Some(Integer32Type(isNullable = false)(defaultPos)), Some(1234), isNullable = true)
+            )
           )
         )))
     }
@@ -801,6 +829,22 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
     }
   }
 
+  test("ALTER CURRENT GRAPH TYPE DROP {(p:Product => {feature :: VECTOR<FLOAT32>(4)})}") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(alterCurrentGraphTypeDrop(graphType(
+          nodeType(
+            "Product",
+            "p",
+            propertyType(
+              "feature",
+              VectorType(Some(Float32Type(isNullable = false)(defaultPos)), Some(4), isNullable = true)
+            )
+          )
+        )))
+    }
+  }
+
   test("""ALTER CURRENT GRAPH TYPE DROP { CONSTRAINT myConstraint }""".stripMargin) {
     parsesIn[Statements] {
       case Cypher5 => cypher5Error
@@ -1195,7 +1239,7 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
   }
 
   test(
-    """ALTER CURRENT GRAPH TYPE ALTER { (:Person =>)-[:LIVES_IN => {since :: DATE NOT NULL, taxClass :: INT}]->(:City) }"""
+    """ALTER CURRENT GRAPH TYPE ALTER { (:Person =>)-[:LIVES_IN => {since :: DATE NOT NULL, taxClass :: INT, compatibility :: VECTOR<INT8>(42)}]->(:City) }"""
   ) {
     parsesIn[Statements] {
       case Cypher5 => cypher5Error
@@ -1205,7 +1249,11 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
             "LIVES_IN",
             nodeTypeRefByLabel("City"),
             propertyType("since", DateType(isNullable = false)),
-            propertyType("taxClass", IntegerType(isNullable = true))
+            propertyType("taxClass", IntegerType(isNullable = true)),
+            propertyType(
+              "compatibility",
+              VectorType(Some(Integer8Type(isNullable = false)(defaultPos)), Some(42), isNullable = true)
+            )
           )
         )))
     }
@@ -1245,7 +1293,7 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
   }
 
   test(
-    """ALTER CURRENT GRAPH TYPE ALTER { (:Person => :Employee {firstname :: STRING, lastname :: STRING, age :: FLOAT, salary :: INT}) }""".stripMargin
+    """ALTER CURRENT GRAPH TYPE ALTER { (:Person => :Employee {firstname :: STRING, lastname :: STRING, age :: FLOAT, salary :: INT, similarity :: VECTOR<FLOAT>(4095)}) }""".stripMargin
   ) {
     parsesIn[Statements] {
       case Cypher5 => cypher5Error
@@ -1256,7 +1304,11 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
             propertyType("firstname", StringType(isNullable = true)),
             propertyType("lastname", StringType(isNullable = true)),
             propertyType("age", FloatType(isNullable = true)),
-            propertyType("salary", IntegerType(isNullable = true))
+            propertyType("salary", IntegerType(isNullable = true)),
+            propertyType(
+              "similarity",
+              VectorType(Some(FloatType(isNullable = false)(defaultPos)), Some(4095), isNullable = true)
+            )
           )
         )))
     }

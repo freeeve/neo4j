@@ -110,6 +110,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.DurationType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
 import org.neo4j.cypher.internal.util.symbols.FloatType
 import org.neo4j.cypher.internal.util.symbols.Integer32Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
@@ -2454,6 +2455,34 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
           GraphTypeForSet(
             Set(
               NodeElementType(
+                label("L"),
+                Set.empty,
+                Set(PropertyType(
+                  propName("p"),
+                  VectorType(Some(IntegerType(isNullable = false)(pos)), Some(1234), isNullable = true)(pos)
+                ))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeSet",
+        Seq.empty,
+        Seq(details("{ (:L => {p :: VECTOR<INTEGER NOT NULL>(1234)}) }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForSet(
+            Set(
+              NodeElementType(
                 label("L1"),
                 Set(label("L2")),
                 Set.empty
@@ -3943,6 +3972,35 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
         "AlterCurrentGraphTypeDrop",
         Seq.empty,
         Seq(details("{ ()-[:R => {p :: INTEGER}]->() }")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
+        AlterCurrentGraphType(
+          GraphTypeForDrop(
+            Set(
+              RelationshipElementType(
+                relType("R"),
+                EmptyNodeElementTypeReference,
+                EmptyNodeElementTypeReference,
+                Set(PropertyType(
+                  propName("p"),
+                  VectorType(Some(Float32Type(isNullable = false)(pos)), Some(75), isNullable = true)(pos)
+                ))
+              )
+            ),
+            Set.empty
+          )
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "AlterCurrentGraphTypeDrop",
+        Seq.empty,
+        Seq(details("{ ()-[:R => {p :: VECTOR<FLOAT32 NOT NULL>(75)}]->() }")),
         Set.empty
       )
     )
