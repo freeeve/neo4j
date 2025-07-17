@@ -2602,8 +2602,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .filter("cacheN[x.prop] > 123")
-      .remoteBatchProperties("cacheNFromStore[x.prop]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[x.prop]")("x.prop > 123")
       .projection("a AS x")
       .allRelationshipsScan("(a)-[]->()")
       .build()
@@ -2620,10 +2619,26 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .filter("cacheN[x.prop] > 123")
-      .remoteBatchProperties("cacheNFromStore[x.prop]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[x.prop]")("x.prop > 123")
       .projection("startNode(r) AS x")
       .allRelationshipsScan("()-[r]->()")
+      .build()
+  }
+
+  test("should plan limit before remoteBatchPropertiesWithFilter when within the same projection") {
+    val query =
+      """
+        |MATCH (n), (m) WITH n, m LIMIT 20000 WHERE n.prop > 5 RETURN n, m LIMIT 25
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .limit(25)
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n.prop]")("n.prop > 5")
+      .limit(20000)
+      .cartesianProduct()
+      .|.allNodeScan("m")
+      .allNodeScan("n")
       .build()
   }
 

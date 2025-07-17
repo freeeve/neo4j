@@ -186,22 +186,13 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       if (selections.isEmpty) {
         p
       } else {
-        val predicatesToSolve = if (context.settings.shardOperatorPushdownStrategy.isPushdownEnabled) {
-          val alreadySolvedHorizonSelections = context.staticComponents.planningAttributes.solveds.get(
-            p.id
-          ).asSinglePlannerQuery.horizon match {
-            case queryProjection: QueryProjection => queryProjection.selections.flatPredicatesSet
-            case _                                => Set.empty[Expression]
-          }
-          selections.flatPredicatesSet.diff(alreadySolvedHorizonSelections)
-        } else selections.flatPredicatesSet
-
         val remoteBatchingResult =
-          context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionsWithLookahead(
+          context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForHorizonSelections(
             query.queryGraph,
             p,
             context,
-            predicatesToSolve
+            selections.flatPredicatesSet,
+            interestingOrderConfig
           )
         context.staticComponents.logicalPlanProducer.planHorizonSelection(
           source = remoteBatchingResult.plan,
@@ -224,13 +215,14 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       }
 
     def planShardOperators(queryProjection: QueryProjection): LogicalPlan => LogicalPlan =
-      context.settings.shardOperatorPushdownStrategy.projectRemoteProperties(
+      context.settings.shardOperatorPushdownStrategy.skipAndLimit(
         _,
         query.queryGraph,
         queryProjection,
         interestingOrderConfig,
         context
       )
+
     def solveSubqueryexpressions(
       groupingExpressions: Map[LogicalVariable, Expression],
       aggregationExpressions: Map[LogicalVariable, Expression],

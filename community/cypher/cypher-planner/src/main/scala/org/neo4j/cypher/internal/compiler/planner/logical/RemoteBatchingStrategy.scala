@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.Contextua
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.ExtraRequirement
+import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectionCandidate
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicateWithValueBehavior
@@ -48,6 +49,7 @@ import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates.RewrittenSubQueryPredicatesMap
+import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates.withNoRewrittenExprs
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -98,6 +100,14 @@ sealed trait RemoteBatchingStrategy {
     plans: Iterable[LogicalPlan],
     context: LogicalPlanningContext
   ): Iterable[LogicalPlan]
+
+  def planBatchPropertiesForHorizonSelections(
+    queryGraph: QueryGraph,
+    input: LogicalPlan,
+    context: LogicalPlanningContext,
+    predicatesToSolve: Set[Expression],
+    interestingOrderConfig: InterestingOrderConfig
+  ): RemoteBatchingSubQueryResult
 }
 
 case class RemoteBatchingResult(
@@ -539,12 +549,46 @@ object RemoteBatchingStrategy {
 
       PropertyAccessInPredicates(propertyAccessToPredicatesMap)
     }
-  }
 
-  private case class PropertyAccessInPredicates(backingMap: Map[PropertyAccess, Set[Expression]]) extends AnyVal {
+    override def planBatchPropertiesForHorizonSelections(
+      queryGraph: QueryGraph,
+      input: LogicalPlan,
+      context: LogicalPlanningContext,
+      predicatesToSolve: Set[Expression],
+      interestingOrderConfig: InterestingOrderConfig
+    ): RemoteBatchingSubQueryResult = {
+      val predicatesToSolveMap = withNoRewrittenExprs(predicatesToSolve)
+      context.settings.shardOperatorPushdownStrategy.horizonSelections(
+        input,
+        queryGraph,
+        context,
+        interestingOrderConfig,
+        predicatesToSolveMap
+      ) match {
+        case Some(SelectionCandidate(plan, solvedPredicates)) =>
+          val unsolvedPredicates = predicatesToSolveMap.backingStore.filterNot(rewrittenPredTuple =>
+            solvedPredicates.contains(rewrittenPredTuple._2)
+          )
+          val RemoteBatchingSubQueryResult(rewrittenExprs, planWithProps) = planRemoteBatchPropertiesForSelections(
+            queryGraph,
+            plan,
+            context,
+            RewrittenSubQueryPredicates.forMap(unsolvedPredicates)
+          )
+          RemoteBatchingSubQueryResult(
+            rewrittenExprs,
+            planWithProps
+          )
 
-    def propertyAccessInPredicatesOtherThat(propertyAccess: PropertyAccess, inputPredicate: Expression): Boolean =
-      backingMap.get(propertyAccess).exists(_.exists(expr => expr != inputPredicate))
+        case _ => planRemoteBatchPropertiesForSelections(queryGraph, input, context, predicatesToSolveMap)
+      }
+    }
+
+    private case class PropertyAccessInPredicates(backingMap: Map[PropertyAccess, Set[Expression]]) extends AnyVal {
+
+      def propertyAccessInPredicatesOtherThat(propertyAccess: PropertyAccess, inputPredicate: Expression): Boolean =
+        backingMap.get(propertyAccess).exists(_.exists(expr => expr != inputPredicate))
+    }
   }
 
   private case object SkipRemoteBatching extends RemoteBatchingStrategy {
@@ -593,5 +637,14 @@ object RemoteBatchingStrategy {
       plans: Iterable[LogicalPlan],
       context: LogicalPlanningContext
     ): Iterable[LogicalPlan] = Iterable.empty
+
+    override def planBatchPropertiesForHorizonSelections(
+      queryGraph: QueryGraph,
+      input: LogicalPlan,
+      context: LogicalPlanningContext,
+      predicatesToSolve: Set[Expression],
+      interestingOrderConfig: InterestingOrderConfig
+    ): RemoteBatchingSubQueryResult =
+      RemoteBatchingSubQueryResult(withNoRewrittenExprs(predicatesToSolve), input)
   }
 }

@@ -234,7 +234,6 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdown
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
-import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates.RewrittenSubQueryPredicatesMap
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
@@ -2166,7 +2165,7 @@ case class LogicalPlanProducer(
 
   def planHorizonSelection(
     source: LogicalPlan,
-    previouslyRewrittenPredicates: RewrittenExpressions,
+    previouslyRewrittenPredicates: RewrittenSubQueryPredicatesMap,
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
   ): LogicalPlan = {
@@ -2188,12 +2187,9 @@ case class LogicalPlanProducer(
             context
           )
         val unsolvedPredicates =
-          previouslyRewrittenPredicates.originalExpressions.collect {
-            case expr
-              if !solvedPredicates.contains(expr) && !solvedPredicates.contains(
-                previouslyRewrittenPredicates.rewrittenExpressionOrSelf(expr)
-              ) => previouslyRewrittenPredicates.rewrittenExpressionOrSelf(expr)
-          }.toSeq
+          previouslyRewrittenPredicates.backingStore.filterNot {
+            case (rewritten, original) => solvedPredicates.contains(rewritten) || solvedPredicates.contains(original)
+          }.keys.toSeq
         // solve remaining predicates
         val (solvedExpressions, solvedPlan) =
           SubqueryExpressionSolver.ForMulti.solve(existsPlan, unsolvedPredicates, context)

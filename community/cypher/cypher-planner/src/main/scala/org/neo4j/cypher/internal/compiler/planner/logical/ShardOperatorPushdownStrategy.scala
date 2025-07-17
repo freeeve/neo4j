@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyA
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectionCandidate
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.skipAndLimit
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
@@ -35,21 +34,18 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.ir.QueryPagination
 import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.logical.plans.Apply
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithPushdownOperators
-import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
 import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates.RewrittenSubQueryPredicatesMap
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
-import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 
@@ -57,7 +53,7 @@ sealed trait ShardOperatorPushdownStrategy {
 
   def isPushdownEnabled: Boolean
 
-  def projectRemoteProperties(
+  def skipAndLimit(
     input: LogicalPlan,
     queryGraph: QueryGraph,
     queryProjection: QueryProjection,
@@ -69,6 +65,14 @@ sealed trait ShardOperatorPushdownStrategy {
     input: LogicalPlan,
     queryGraph: QueryGraph,
     context: LogicalPlanningContext,
+    predicatesToSolve: RewrittenSubQueryPredicatesMap
+  ): Option[SelectionCandidate]
+
+  def horizonSelections(
+    input: LogicalPlan,
+    queryGraph: QueryGraph,
+    context: LogicalPlanningContext,
+    interestingOrderConfig: InterestingOrderConfig,
     predicatesToSolve: RewrittenSubQueryPredicatesMap
   ): Option[SelectionCandidate]
 }
@@ -84,7 +88,7 @@ object ShardOperatorPushdownStrategy {
       predicatesToSolve: RewrittenSubQueryPredicatesMap
     ): Option[SelectionCandidate] = None
 
-    override def projectRemoteProperties(
+    override def skipAndLimit(
       input: LogicalPlan,
       queryGraph: QueryGraph,
       queryProjection: QueryProjection,
@@ -93,6 +97,14 @@ object ShardOperatorPushdownStrategy {
     ): LogicalPlan = input
 
     override val isPushdownEnabled: Boolean = false
+
+    override def horizonSelections(
+      input: LogicalPlan,
+      queryGraph: QueryGraph,
+      context: LogicalPlanningContext,
+      interestingOrderConfig: InterestingOrderConfig,
+      predicatesToSolve: RewrittenSubQueryPredicatesMap
+    ): Option[SelectionCandidate] = None
   }
 
   private case object PushdownSelections extends ShardOperatorPushdownStrategy {
@@ -169,101 +181,80 @@ object ShardOperatorPushdownStrategy {
       planWithPushedDownPredicates.orElse(planWithPrefetchedSelection)
     }
 
-    override def projectRemoteProperties(
+    override def skipAndLimit(
       input: LogicalPlan,
       queryGraph: QueryGraph,
       queryProjection: QueryProjection,
       interestingOrderConfig: InterestingOrderConfig,
       context: LogicalPlanningContext
-    ): LogicalPlan = {
-      val predicatesToSolve =
-        RewrittenSubQueryPredicates.withNoRewrittenExprs(queryProjection.selections.flatPredicatesSet)
+    ): LogicalPlan =
+      input
+
+    override val isPushdownEnabled: Boolean = true
+
+    override def horizonSelections(
+      input: LogicalPlan,
+      queryGraph: QueryGraph,
+      context: LogicalPlanningContext,
+      interestingOrderConfig: InterestingOrderConfig,
+      predicatesToSolve: RewrittenSubQueryPredicatesMap
+    ): Option[SelectionCandidate] = {
       val operatorSequence = operatorSequenceForSelections(queryGraph, input, context, predicatesToSolve)
       val alreadyCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
       val planWithPrefetchedSelection = operatorSequence.preBatchSelection match {
-        case Some(preFilter) => context.staticComponents.logicalPlanProducer.planHorizonSelection(
-            input,
-            RewrittenExpressions.forMap(preFilter.predicates.backingStore.map(_.swap)),
-            interestingOrderConfig,
-            context
-          )
-        case None => input
+        case Some(preFilter) => Some(SelectionCandidate(
+            context.staticComponents.logicalPlanProducer.planHorizonSelection(
+              input,
+              preFilter.predicates,
+              interestingOrderConfig,
+              context
+            ),
+            preFilter.predicates.originalExpressions.toSet
+          ))
+        case None => None
       }
 
       operatorSequence.pushedDownPredicates match {
         case Some(pushedDownPredicates) =>
           val propertiesToFetch =
             pushedDownPredicates.propertiesToFetch.map(cachedProperty(context, alreadyCachedProperties, _))
-          context.staticComponents.logicalPlanProducer.planRemoteBatchPropertiesForHorizonFilters(
-            planWithPrefetchedSelection,
+          val plan = context.staticComponents.logicalPlanProducer.planRemoteBatchPropertiesForHorizonFilters(
+            planWithPrefetchedSelection.map(_.plan).getOrElse(input),
             propertiesToFetch,
             context,
             pushedDownPredicates.predicatesToExecute
           )
+          Some(SelectionCandidate(
+            plan,
+            planWithPrefetchedSelection.map(_.solvedPredicates).getOrElse(
+              Set.empty
+            ) ++ pushedDownPredicates.predicatesToExecute.originalExpressions
+          ))
         case None => planWithPrefetchedSelection
       }
     }
 
-    override val isPushdownEnabled: Boolean = true
   }
 
   case object PushdownOperators extends ShardOperatorPushdownStrategy {
 
-    override def projectRemoteProperties(
+    override def skipAndLimit(
       input: LogicalPlan,
       queryGraph: QueryGraph,
       queryProjection: QueryProjection,
       interestingOrderConfig: InterestingOrderConfig,
       context: LogicalPlanningContext
     ): LogicalPlan = {
-      val predicatesToSolve =
-        RewrittenSubQueryPredicates.withNoRewrittenExprs(queryProjection.selections.flatPredicatesSet)
-      val operatorSequence = operatorSequenceForSelections(queryGraph, input, context, predicatesToSolve)
-      val planWithPrefetchedSelection = operatorSequence.preBatchSelection match {
-        case Some(preFilter) => context.staticComponents.logicalPlanProducer.planHorizonSelection(
-            input,
-            RewrittenExpressions.forMap(preFilter.predicates.backingStore.map(_.swap)),
-            interestingOrderConfig,
-            context
-          )
-        case None => input
-      }
-
-      val pushdownOperatorOpt = operatorSequence.pushedDownPredicates.map(pushedDownPredicates => {
-        val (previouslyCachedProperties, arguments) =
-          findPreviousCachedPropsAndArgs(pushedDownPredicates.logicalVariable, pushedDownPredicates.predicatesToExecute)
-        RemoteBatchPropertiesWithPushdownOperators(
-          source = planWithPrefetchedSelection,
-          variable = pushedDownPredicates.logicalVariable,
-          entityType = pushedDownPredicates.entityType,
-          properties = pushedDownPredicates.propertiesToFetch.map(propertyAccess =>
-            PropertyKeyName(propertyAccess.propertyName)(InputPosition.NONE)
-          ),
-          predicates =
-            pushedDownPredicates.predicatesToExecute.allRewrittenExpressions.toSeq,
-          arguments = arguments,
-          previouslyCachedProperties = previouslyCachedProperties
-        )(context.staticComponents.idGen)
-      })
-
-      val solvedPredicates = operatorSequence.preBatchSelection.map(_.predicates.originalExpressions.toSet).getOrElse(
-        Set.empty[Expression]
-      ) ++ operatorSequence.pushedDownPredicates.map(_.predicatesToExecute.originalExpressions).getOrElse(
-        Set.empty[Expression]
-      )
-
       val pushdownLimitOpt =
         pushdownSkipAndLimit(
-          planWithPrefetchedSelection,
+          input,
           queryProjection,
-          pushdownOperatorOpt,
-          solvedPredicates,
           context
         )
 
       pushdownLimitOpt.map(context.staticComponents.logicalPlanProducer.planProjectionsOnShards(
         _,
-        operatorSequence.pushedDownPredicates.map(_.predicatesToExecute).getOrElse(RewrittenSubQueryPredicates.empty),
+        RewrittenSubQueryPredicates.empty,
         context
       )).getOrElse(input)
     }
@@ -280,38 +271,26 @@ object ShardOperatorPushdownStrategy {
     private def pushdownSkipAndLimit(
       inputPlan: LogicalPlan,
       queryProjection: QueryProjection,
-      pushdownOperatorOpt: Option[RemoteBatchPropertiesWithPushdownOperators],
-      solvedSelections: Set[Expression],
       context: LogicalPlanningContext
-    ): Option[RemoteBatchPropertiesWithPushdownOperators] = pushdownOperatorOpt match {
-      case Some(pushdownOperator) if queryProjection.selections.flatPredicatesSet.subsetOf(solvedSelections) =>
-        queryProjection.queryPagination match {
-          case QueryPagination(_, Some(limitExpr))
-            if skipAndLimit.shouldPlanExhaustiveLimit(
-              inputPlan,
-              simpleExpressionEvaluator.evaluateLongIfStable(limitExpr)
-            ) =>
-            pushdownOperatorOpt // I don't think an exhaustive limit can be planned here, since pushdown operators are not enabled for updating plans.
-          case QueryPagination(skip, limit) =>
-            Some(pushdownOperator.copy(limit = limit, skip = skip)(SameId(pushdownOperator.id)))
-        }
-      case None if queryProjection.queryPagination.nonEmpty =>
-        val matchedPreviousPushdownOperator = previousPushdownOperator(inputPlan)
-        if (matchedPreviousPushdownOperator.exists(op => op.skip.isEmpty && op.limit.isEmpty))
-          Some(RemoteBatchPropertiesWithPushdownOperators(
-            source =
-              inputPlan, // if it is an empty apply we should still point to it. The logical plan producer will merge the two operators correctly.
-            properties = matchedPreviousPushdownOperator.get.properties,
-            variable = matchedPreviousPushdownOperator.get.variable,
-            entityType = matchedPreviousPushdownOperator.get.entityType,
-            skip = queryProjection.queryPagination.skip,
-            limit = queryProjection.queryPagination.limit
-          )(
-            context.staticComponents.idGen
-          )) // if the previous pushdown operator has no skip and limit, we can use it as is.
-        else
-          None // we cannot push down skip and limit, so we return None to indicate that we cannot use a pushdown operator here.
-      case _ => None
+    ): Option[RemoteBatchPropertiesWithPushdownOperators] = {
+      if (queryProjection.queryPagination.nonEmpty) {
+        previousPushdownOperator(inputPlan)
+          .filter(op => op.skip.isEmpty && op.limit.isEmpty)
+          .map { op =>
+            RemoteBatchPropertiesWithPushdownOperators(
+              source =
+                inputPlan, // if it is an empty apply we should still point to it. The logical plan producer will merge the two operators correctly.
+              properties = op.properties,
+              variable = op.variable,
+              entityType = op.entityType,
+              skip = queryProjection.queryPagination.skip,
+              limit = queryProjection.queryPagination.limit
+            )(
+              context.staticComponents.idGen
+            ) // if the previous pushdown operator has no skip and limit, we can use it as is.
+          }
+      } else
+        None
     }
 
     override def selections(
@@ -379,6 +358,55 @@ object ShardOperatorPushdownStrategy {
     }
 
     override def isPushdownEnabled: Boolean = true
+
+    override def horizonSelections(
+      input: LogicalPlan,
+      queryGraph: QueryGraph,
+      context: LogicalPlanningContext,
+      interestingOrderConfig: InterestingOrderConfig,
+      predicatesToSolve: RewrittenSubQueryPredicatesMap
+    ): Option[SelectionCandidate] = {
+      val operatorSequence = operatorSequenceForSelections(queryGraph, input, context, predicatesToSolve)
+      val planWithPrefetchedSelection = operatorSequence.preBatchSelection.map(selectionOnMain => {
+        val prefilteredSelection = context.staticComponents.logicalPlanProducer.planHorizonSelection(
+          input,
+          selectionOnMain.predicates,
+          interestingOrderConfig,
+          context
+        )
+        SelectionCandidate(prefilteredSelection, selectionOnMain.predicates.originalExpressions.toSet)
+      })
+
+      val planWithPushedDownPredicates = operatorSequence.pushedDownPredicates.map(pushedDownPredicates => {
+        val (previouslyCachedProperties, arguments) =
+          findPreviousCachedPropsAndArgs(pushedDownPredicates.logicalVariable, pushedDownPredicates.predicatesToExecute)
+        val remoteBatchPropertiesWithPushdownOperators = RemoteBatchPropertiesWithPushdownOperators(
+          source = planWithPrefetchedSelection.map(_.plan).getOrElse(input),
+          variable = pushedDownPredicates.logicalVariable,
+          entityType = pushedDownPredicates.entityType,
+          properties = pushedDownPredicates.propertiesToFetch.map(propertyAccess =>
+            PropertyKeyName(propertyAccess.propertyName)(InputPosition.NONE)
+          ),
+          predicates =
+            pushedDownPredicates.predicatesToExecute.allRewrittenExpressions.toSeq,
+          arguments = arguments,
+          previouslyCachedProperties = previouslyCachedProperties
+        )(context.staticComponents.idGen)
+
+        val plan = context.staticComponents.logicalPlanProducer.planProjectionsOnShards(
+          remoteBatchPropertiesWithPushdownOperators,
+          operatorSequence.pushedDownPredicates.map(_.predicatesToExecute).getOrElse(RewrittenSubQueryPredicates.empty),
+          context
+        )
+        SelectionCandidate(
+          plan,
+          planWithPrefetchedSelection.map(_.solvedPredicates).getOrElse(
+            Set.empty
+          ) ++ pushedDownPredicates.predicatesToExecute.originalExpressions
+        )
+      })
+      planWithPushedDownPredicates.orElse(planWithPrefetchedSelection)
+    }
   }
 
   def fromConfig(query: PlannerQuery, context: PlannerContext): ShardOperatorPushdownStrategy = {
