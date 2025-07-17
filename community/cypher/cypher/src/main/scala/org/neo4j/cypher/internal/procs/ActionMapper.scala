@@ -164,18 +164,18 @@ object ActionMapper {
     case AssignRoleAction => security.PrivilegeAction.ASSIGN_ROLE
     case RemoveRoleAction => security.PrivilegeAction.REMOVE_ROLE
 
-    case AllDatabaseManagementActions       => security.PrivilegeAction.DATABASE_MANAGEMENT
-    case CreateDatabaseAction               => security.PrivilegeAction.CREATE_DATABASE
-    case DropDatabaseAction                 => security.PrivilegeAction.DROP_DATABASE
-    case AlterDatabaseAction                => security.PrivilegeAction.ALTER_DATABASE
-    case SetDatabaseAccessAction            => security.PrivilegeAction.SET_DATABASE_ACCESS
-    case SetDatabaseDefaultLanguageAction   => security.PrivilegeAction.SET_DEFAULT_LANGUAGE
-    case AlterDatabaseTopologyAction        => security.PrivilegeAction.ALTER_DATABASE_TOPOLOGY
-    case AlterDatabaseOptionsAction         => security.PrivilegeAction.ALTER_DATABASE_OPTIONS
-    case CreateCompositeDatabaseAction      => security.PrivilegeAction.CREATE_COMPOSITE_DATABASE
-    case DropCompositeDatabaseAction        => security.PrivilegeAction.DROP_COMPOSITE_DATABASE
-    case AlterCompositeDatabaseAction       => security.PrivilegeAction.ALTER_COMPOSITE_DATABASE
-    case CompositeDatabaseManagementActions => security.PrivilegeAction.COMPOSITE_DATABASE_MANAGEMENT
+    case AllDatabaseManagementActions        => security.PrivilegeAction.DATABASE_MANAGEMENT
+    case CreateDatabaseAction                => security.PrivilegeAction.CREATE_DATABASE
+    case DropDatabaseAction                  => security.PrivilegeAction.DROP_DATABASE
+    case _: AlterDatabaseAction              => security.PrivilegeAction.ALTER_DATABASE
+    case _: SetDatabaseAccessAction          => security.PrivilegeAction.SET_DATABASE_ACCESS
+    case _: SetDatabaseDefaultLanguageAction => security.PrivilegeAction.SET_DEFAULT_LANGUAGE
+    case _: AlterDatabaseTopologyAction      => security.PrivilegeAction.ALTER_DATABASE_TOPOLOGY
+    case _: AlterDatabaseOptionsAction       => security.PrivilegeAction.ALTER_DATABASE_OPTIONS
+    case CreateCompositeDatabaseAction       => security.PrivilegeAction.CREATE_COMPOSITE_DATABASE
+    case DropCompositeDatabaseAction         => security.PrivilegeAction.DROP_COMPOSITE_DATABASE
+    case AlterCompositeDatabaseAction        => security.PrivilegeAction.ALTER_COMPOSITE_DATABASE
+    case CompositeDatabaseManagementActions  => security.PrivilegeAction.COMPOSITE_DATABASE_MANAGEMENT
 
     case AllAliasManagementActions => security.PrivilegeAction.ALIAS_MANAGEMENT
     case CreateAliasAction         => security.PrivilegeAction.CREATE_ALIAS

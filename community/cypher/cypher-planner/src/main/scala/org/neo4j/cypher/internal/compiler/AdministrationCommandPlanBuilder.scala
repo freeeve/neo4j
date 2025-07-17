@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AddedInRewriteProcCall
 import org.neo4j.cypher.internal.ast.AddedInRewriteShowCommands
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
@@ -1222,6 +1223,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           shardDefinition,
           replicas
         ) =>
+        val cypherVersionForPrivileges = context.cypherVersion == CypherVersion.Cypher5
         // Composite databases currently don't have any sub-privileges, just ALTER privilege
         val requiredPrivilegeActionsForCompositeDatabases = Seq(AlterCompositeDatabaseAction)
         // For a set of (predicate -> privilege); If the predicate is true, add the privilege to the set of required privileges
@@ -1239,9 +1241,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           // ALTER DATABASE foo SET DEFAULT LANGUAGE ... requires 'SET DATABASE DEFAULT LANGUAGE' privileges:
           cypherVersion.nonEmpty -> SetDatabaseDefaultLanguageAction
         ).filter(_._1)
-          .map(_._2)
+          .map(_._2(cypherVersionForPrivileges))
           .distinct
-        val alterIsValidOnSystem = requiredPrivilegedActionsForDatabases == Seq(SetDatabaseDefaultLanguageAction)
+        val alterIsValidOnSystem =
+          requiredPrivilegedActionsForDatabases == Seq(SetDatabaseDefaultLanguageAction(cypherVersionForPrivileges))
 
         Some(plans.AssertManagementActionNotBlocked(requiredPrivilegedActionsForDatabases))
           .map(s =>

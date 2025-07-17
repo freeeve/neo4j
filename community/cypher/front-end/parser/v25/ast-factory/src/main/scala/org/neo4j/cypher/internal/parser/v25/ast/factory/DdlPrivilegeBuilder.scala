@@ -60,6 +60,7 @@ import org.neo4j.cypher.internal.ast.CreateRelationshipTypeAction
 import org.neo4j.cypher.internal.ast.CreateRoleAction
 import org.neo4j.cypher.internal.ast.CreateUserAction
 import org.neo4j.cypher.internal.ast.DatabaseAction
+import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DatabasePrivilege
 import org.neo4j.cypher.internal.ast.DatabasePrivilegeQualifier
 import org.neo4j.cypher.internal.ast.DatabaseScope
@@ -326,7 +327,7 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
           c.getSymbol.getType match {
             case Cypher25Parser.ACCESS => withQualifier(AccessDatabaseAction)
             case Cypher25Parser.ALTER => nodeChild(ctx, 1).getSymbol.getType match {
-                case Cypher25Parser.DATABASE => withQualifier(AlterDatabaseAction)
+                case Cypher25Parser.DATABASE => withQualifier(AlterDatabaseAction(false))
                 case _                       => throw new IllegalStateException()
               }
             case Cypher25Parser.NAME  => withQualifier(AllTokenActions)
@@ -372,7 +373,7 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
             case Cypher25Parser.ALTER => nodeChild(ctx, 1).getSymbol.getType match {
                 case Cypher25Parser.ALIAS     => withQualifier(AlterAliasAction)
                 case Cypher25Parser.COMPOSITE => withQualifier(AlterCompositeDatabaseAction)
-                case Cypher25Parser.DATABASE  => withQualifier(AlterDatabaseAction)
+                case Cypher25Parser.DATABASE  => withQualifier(AlterDatabaseAction(false))
                 case Cypher25Parser.USER      => withQualifier(AlterUserAction)
                 case _                        => throw new IllegalStateException()
               }
@@ -405,9 +406,9 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
         case _ => throw new IllegalStateException()
       }
     ctx.ast = action match {
-      case a: DbmsAction     => (DbmsPrivilege(a)(pos(ctx)), None, qualifier)
-      case a: DatabaseAction => (DatabasePrivilege(a, AllDatabasesScope()(pos(ctx)))(pos(ctx)), None, qualifier)
-      case _                 => throw new IllegalStateException()
+      case a: DbmsAction            => (DbmsPrivilege(a)(pos(ctx)), None, qualifier)
+      case a: DatabaseAndDbmsAction => (DatabasePrivilege(a, AllDatabasesScope()(pos(ctx)))(pos(ctx)), None, qualifier)
+      case _                        => throw new IllegalStateException()
     }
   }
 
@@ -525,28 +526,31 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
       else if (ctx.STATUS() != null) SetUserStatusAction
       else if (ctx.HOME() != null) SetUserHomeDatabaseAction
       else if (ctx.AUTH() != null) SetAuthAction
-      else if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) SetDatabaseDefaultLanguageAction
-      else SetDatabaseAccessAction
+      else if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) SetDatabaseDefaultLanguageAction(false)
+      else SetDatabaseAccessAction(false)
       action match {
-        case a: DbmsAction     => allQualifier(DbmsPrivilege(a)(p), None)
-        case a: DatabaseAction => allDbQualifier(DatabasePrivilege(a, AllDatabasesScope()(p))(p), None)
-        case _                 => throw new IllegalStateException()
+        case a: DbmsAction            => allQualifier(DbmsPrivilege(a)(p), None)
+        case a: DatabaseAndDbmsAction => allDbQualifier(DatabasePrivilege(a, AllDatabasesScope()(p))(p), None)
+        case _                        => throw new IllegalStateException()
       }
     } else if (ctx.databaseScope() != null) {
       if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) {
         (
           DatabasePrivilege(
-            SetDatabaseDefaultLanguageAction,
+            SetDatabaseDefaultLanguageAction(false),
             ctx.databaseScope().ast[DatabaseScope]
           )(pos(ctx.databaseScope())),
           None,
-          withQualifier(SetDatabaseDefaultLanguageAction)._2
+          withQualifier(SetDatabaseDefaultLanguageAction(false))._2
         )
       } else if (ctx.DATABASE() != null) {
         (
-          DatabasePrivilege(SetDatabaseAccessAction, ctx.databaseScope().ast[DatabaseScope])(pos(ctx.databaseScope())),
+          DatabasePrivilege(
+            SetDatabaseAccessAction(false),
+            ctx.databaseScope().ast[DatabaseScope]
+          )(pos(ctx.databaseScope())),
           None,
-          withQualifier(SetDatabaseAccessAction)._2
+          withQualifier(SetDatabaseAccessAction(false))._2
         )
       } else throw new IllegalStateException()
     } else {

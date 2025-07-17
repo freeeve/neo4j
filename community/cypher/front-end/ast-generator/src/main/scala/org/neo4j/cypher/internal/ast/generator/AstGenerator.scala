@@ -94,6 +94,7 @@ import org.neo4j.cypher.internal.ast.CreateUser
 import org.neo4j.cypher.internal.ast.CreateUserAction
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.DatabaseAction
+import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.DatabasePrivilege
 import org.neo4j.cypher.internal.ast.DatabasePrivilegeQualifier
@@ -3250,9 +3251,9 @@ class AstGenerator(
     StartDatabaseAction,
     StopDatabaseAction,
     AllDatabaseAction,
-    AlterDatabaseAction,
-    SetDatabaseAccessAction,
-    SetDatabaseDefaultLanguageAction,
+    AlterDatabaseAction(usesCypher5),
+    SetDatabaseAccessAction(usesCypher5),
+    SetDatabaseDefaultLanguageAction(usesCypher5),
     AccessDatabaseAction,
     AllIndexActions,
     CreateIndexAction,
@@ -3520,9 +3521,7 @@ class AstGenerator(
     databaseAction <- _databaseAction
     dbNames <- oneOrMore(_databaseName)
     databaseScope <-
-      if (
-        (databaseAction == AlterDatabaseAction || databaseAction == SetDatabaseDefaultLanguageAction || databaseAction == SetDatabaseAccessAction) && usesCypher5
-      ) {
+      if (databaseAction.isInstanceOf[DatabaseAndDbmsAction] && usesCypher5) {
         const(AllDatabasesScope()(pos))
       } else {
         oneOf(

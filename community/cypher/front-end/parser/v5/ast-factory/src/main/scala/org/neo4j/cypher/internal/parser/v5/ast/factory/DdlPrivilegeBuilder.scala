@@ -60,6 +60,7 @@ import org.neo4j.cypher.internal.ast.CreateRelationshipTypeAction
 import org.neo4j.cypher.internal.ast.CreateRoleAction
 import org.neo4j.cypher.internal.ast.CreateUserAction
 import org.neo4j.cypher.internal.ast.DatabaseAction
+import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DatabasePrivilege
 import org.neo4j.cypher.internal.ast.DatabasePrivilegeQualifier
 import org.neo4j.cypher.internal.ast.DatabaseScope
@@ -366,7 +367,7 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
             case Cypher5Parser.ALTER => nodeChild(ctx, 1).getSymbol.getType match {
                 case Cypher5Parser.ALIAS     => withQualifier(AlterAliasAction)
                 case Cypher5Parser.COMPOSITE => withQualifier(AlterCompositeDatabaseAction)
-                case Cypher5Parser.DATABASE  => withQualifier(AlterDatabaseAction)
+                case Cypher5Parser.DATABASE  => withQualifier(AlterDatabaseAction(true))
                 case Cypher5Parser.USER      => withQualifier(AlterUserAction)
                 case _                       => throw new IllegalStateException()
               }
@@ -399,9 +400,9 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
         case _ => throw new IllegalStateException()
       }
     ctx.ast = action match {
-      case a: DbmsAction     => (DbmsPrivilege(a)(pos(ctx)), None, qualifier)
-      case a: DatabaseAction => (DatabasePrivilege(a, AllDatabasesScope()(pos(ctx)))(pos(ctx)), None, qualifier)
-      case _                 => throw new IllegalStateException()
+      case a: DbmsAction            => (DbmsPrivilege(a)(pos(ctx)), None, qualifier)
+      case a: DatabaseAndDbmsAction => (DatabasePrivilege(a, AllDatabasesScope()(pos(ctx)))(pos(ctx)), None, qualifier)
+      case _                        => throw new IllegalStateException()
     }
   }
 
@@ -534,13 +535,13 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
       else if (ctx.STATUS() != null) SetUserStatusAction
       else if (ctx.HOME() != null) SetUserHomeDatabaseAction
       else if (ctx.AUTH() != null) SetAuthAction
-      else if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) SetDatabaseDefaultLanguageAction
-      else SetDatabaseAccessAction
+      else if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) SetDatabaseDefaultLanguageAction(true)
+      else SetDatabaseAccessAction(true)
 
       action match {
-        case a: DbmsAction     => allQualifier(DbmsPrivilege(a)(p), None)
-        case a: DatabaseAction => allDbQualifier(DatabasePrivilege(a, AllDatabasesScope()(p))(p), None)
-        case _                 => throw new IllegalStateException()
+        case a: DbmsAction            => allQualifier(DbmsPrivilege(a)(p), None)
+        case a: DatabaseAndDbmsAction => allDbQualifier(DatabasePrivilege(a, AllDatabasesScope()(p))(p), None)
+        case _                        => throw new IllegalStateException()
       }
     } else {
       val scope = ctx.graphScope().ast[GraphScope]()

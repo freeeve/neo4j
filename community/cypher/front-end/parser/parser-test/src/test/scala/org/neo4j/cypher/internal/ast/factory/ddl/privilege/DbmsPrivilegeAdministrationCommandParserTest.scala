@@ -65,7 +65,7 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
   // Impersonate and execute privileges have their own files and are not in this list
 
-  private val dbmsActionPrivileges: Seq[(String, AdministrationAction)] =
+  private val dbmsActionPrivileges: Seq[(String, Boolean => AdministrationAction)] =
     Seq(
       ("CREATE ROLE", CreateRoleAction),
       ("RENAME ROLE", RenameRoleAction),
@@ -104,9 +104,9 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
       ("DROP ALIAS", DropAliasAction),
       ("ALTER ALIAS", AlterAliasAction),
       ("SHOW ALIAS", ShowAliasAction)
-    )
+    ).map { case (privilege: String, action: AdministrationAction) => (privilege, (_: Boolean) => action) }
 
-  private val databaseActionPrivileges: Seq[(String, AdministrationAction)] =
+  private val databaseActionPrivileges: Seq[(String, Boolean => AdministrationAction)] =
     Seq(
       ("ALTER DATABASE", AlterDatabaseAction),
       ("SET DATABASE ACCESS", SetDatabaseAccessAction),
@@ -118,18 +118,35 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
       immutable =>
         val immutableString = maybeImmutable(immutable)
         val offset = command.length + immutableString.length + 1
+        // not unnecessary as `action: (Boolean => AdministrationAction)` fails to compile without the ()
+        // noinspection ScalaUnnecessaryParentheses
         (dbmsActionPrivileges ++ databaseActionPrivileges).foreach {
-          case (privilege: String, action: AdministrationAction) =>
+          case (privilege: String, action: (Boolean => AdministrationAction)) =>
             test(s"$command$immutableString $privilege ON DBMS $preposition role") {
-              parsesTo[Statements](privilegeFunc(action, Seq(literalRole), immutable)(pos))
+              parsesIn[Statements] {
+                case Cypher5 =>
+                  _.toAst(Statements(Seq(privilegeFunc(action(true), Seq(literalRole), immutable)(pos))))
+                case _ =>
+                  _.toAst(Statements(Seq(privilegeFunc(action(false), Seq(literalRole), immutable)(pos))))
+              }
             }
 
             test(s"$command$immutableString $privilege ON DBMS $preposition role1, $$role2") {
-              parsesTo[Statements](privilegeFunc(action, Seq(literalRole1, paramRole2), immutable)(pos))
+              parsesIn[Statements] {
+                case Cypher5 =>
+                  _.toAst(Statements(Seq(privilegeFunc(action(true), Seq(literalRole1, paramRole2), immutable)(pos))))
+                case _ =>
+                  _.toAst(Statements(Seq(privilegeFunc(action(false), Seq(literalRole1, paramRole2), immutable)(pos))))
+              }
             }
 
             test(s"$command$immutableString $privilege ON DBMS $preposition `r:ole`") {
-              parsesTo[Statements](privilegeFunc(action, Seq(literalRColonOle), immutable)(pos))
+              parsesIn[Statements] {
+                case Cypher5 =>
+                  _.toAst(Statements(Seq(privilegeFunc(action(true), Seq(literalRColonOle), immutable)(pos))))
+                case _ =>
+                  _.toAst(Statements(Seq(privilegeFunc(action(false), Seq(literalRColonOle), immutable)(pos))))
+              }
             }
 
             test(s"$command$immutableString $privilege ON DBMS $preposition r:ole") {

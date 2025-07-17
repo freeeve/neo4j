@@ -58,23 +58,28 @@ case object StopDatabaseAction extends DatabaseAction("STOP")
 
 case object AccessDatabaseAction extends DatabaseAction("ACCESS")
 
-case object AlterDatabaseAction extends DatabaseAction("ALTER DATABASE")
+sealed abstract class DatabaseAndDbmsAction(override val name: String) extends DatabaseAction(name) {
+  def useCypher5: Boolean
+}
 
-case object SetDatabaseAccessAction extends DatabaseAction("SET DATABASE ACCESS")
+case class AlterDatabaseAction(useCypher5: Boolean) extends DatabaseAndDbmsAction("ALTER DATABASE")
 
-case object SetDatabaseDefaultLanguageAction extends DatabaseAction("SET DATABASE DEFAULT LANGUAGE")
+case class SetDatabaseAccessAction(useCypher5: Boolean) extends DatabaseAndDbmsAction("SET DATABASE ACCESS")
+
+case class SetDatabaseDefaultLanguageAction(useCypher5: Boolean)
+    extends DatabaseAndDbmsAction("SET DATABASE DEFAULT LANGUAGE")
 
 /*
  * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since
  * that is what they need to grant. ALTER DATABASE SET TOPOLOGY will check this.
  */
-case object AlterDatabaseTopologyAction extends DatabaseAction("ALTER DATABASE")
+case class AlterDatabaseTopologyAction(useCypher5: Boolean) extends DatabaseAndDbmsAction("ALTER DATABASE")
 
 /*
  * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since
  * that is what they need to grant. ALTER DATABASE SET / REMOVE OPTION will check this.
  */
-case object AlterDatabaseOptionsAction extends DatabaseAction("ALTER DATABASE")
+case class AlterDatabaseOptionsAction(useCypher5: Boolean) extends DatabaseAndDbmsAction("ALTER DATABASE")
 
 abstract class IndexManagementAction(override val name: String) extends DatabaseAction(name)
 

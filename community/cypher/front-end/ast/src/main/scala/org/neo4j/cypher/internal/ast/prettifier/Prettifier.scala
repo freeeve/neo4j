@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.ast.AllPropertyResource
 import org.neo4j.cypher.internal.ast.AllQualifier
 import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
 import org.neo4j.cypher.internal.ast.AlterDatabase
-import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterRemoteDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterServer
@@ -51,6 +50,7 @@ import org.neo4j.cypher.internal.ast.CreateRole
 import org.neo4j.cypher.internal.ast.CreateSingleLabelPropertyIndex
 import org.neo4j.cypher.internal.ast.CreateUser
 import org.neo4j.cypher.internal.ast.CurrentUser
+import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.DatabasePrivilege
 import org.neo4j.cypher.internal.ast.DatabaseScope
@@ -161,8 +161,6 @@ import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.SchemaCommand
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SetClause
-import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
-import org.neo4j.cypher.internal.ast.SetDatabaseDefaultLanguageAction
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetHomeDatabaseAction
@@ -634,18 +632,38 @@ case class Prettifier(
       case x @ RevokePrivilege(DbmsPrivilege(_), _, _, qualifiers, roleNames, _) =>
         s"${x.name}${Prettifier.extractQualifierString(qualifiers)} ON DBMS FROM ${Prettifier.escapeNames(roleNames)}"
 
-      // alter database privileges on * (these have AST like ON DATABASE * but should be prettified to ON DBMS)
+      // cypher 5 alter database privileges on *
+      // these have AST like ON DATABASE * but should be prettified to ON DBMS (in Cypher 5)
 
-      case x @ GrantPrivilege(DatabasePrivilege(privilege, AllDatabasesScope()), _, _, _, roleNames)
-        if privilege == AlterDatabaseAction || privilege == SetDatabaseAccessAction || privilege == SetDatabaseDefaultLanguageAction =>
+      case x @ GrantPrivilege(
+          DatabasePrivilege(privilege: DatabaseAndDbmsAction, AllDatabasesScope()),
+          _,
+          _,
+          _,
+          roleNames
+        )
+        if privilege.useCypher5 =>
         s"${x.name} ON DBMS TO ${Prettifier.escapeNames(roleNames)}"
 
-      case x @ DenyPrivilege(DatabasePrivilege(privilege, AllDatabasesScope()), _, _, _, roleNames)
-        if privilege == AlterDatabaseAction || privilege == SetDatabaseAccessAction || privilege == SetDatabaseDefaultLanguageAction =>
+      case x @ DenyPrivilege(
+          DatabasePrivilege(privilege: DatabaseAndDbmsAction, AllDatabasesScope()),
+          _,
+          _,
+          _,
+          roleNames
+        )
+        if privilege.useCypher5 =>
         s"${x.name} ON DBMS TO ${Prettifier.escapeNames(roleNames)}"
 
-      case x @ RevokePrivilege(DatabasePrivilege(privilege, AllDatabasesScope()), _, _, _, roleNames, _)
-        if privilege == AlterDatabaseAction || privilege == SetDatabaseAccessAction || privilege == SetDatabaseDefaultLanguageAction =>
+      case x @ RevokePrivilege(
+          DatabasePrivilege(privilege: DatabaseAndDbmsAction, AllDatabasesScope()),
+          _,
+          _,
+          _,
+          roleNames,
+          _
+        )
+        if privilege.useCypher5 =>
         s"${x.name} ON DBMS FROM ${Prettifier.escapeNames(roleNames)}"
 
       // database privileges

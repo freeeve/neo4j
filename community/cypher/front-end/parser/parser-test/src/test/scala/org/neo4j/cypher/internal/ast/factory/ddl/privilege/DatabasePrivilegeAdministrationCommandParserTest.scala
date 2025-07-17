@@ -121,9 +121,9 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
             PrivilegeAction("ALL DATABASE PRIVILEGES", AllDatabaseAction)
           )
           val alterDatabasePrivilegesInCypher25 = Seq(
-            PrivilegeAction("ALTER DATABASE", AlterDatabaseAction, Cypher25),
-            PrivilegeAction("SET DATABASE ACCESS", SetDatabaseAccessAction, Cypher25),
-            PrivilegeAction("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction, Cypher25)
+            PrivilegeAction("ALTER DATABASE", AlterDatabaseAction(false), Cypher25),
+            PrivilegeAction("SET DATABASE ACCESS", SetDatabaseAccessAction(false), Cypher25),
+            PrivilegeAction("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction(false), Cypher25)
           )
 
           (privilegesInAllVersions ++ alterDatabasePrivilegesInCypher25).foreach {

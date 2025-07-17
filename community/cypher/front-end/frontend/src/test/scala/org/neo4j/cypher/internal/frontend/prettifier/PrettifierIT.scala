@@ -3564,12 +3564,6 @@ class PrettifierIT extends CypherFunSuite {
             s"$action CREATE DATABASE ON DBMS $preposition role",
           s"$action drop database on dbms $preposition $$role" ->
             s"$action DROP DATABASE ON DBMS $preposition $$role",
-          s"$action alter database on dbms $preposition role" ->
-            s"$action ALTER DATABASE ON DBMS $preposition role",
-          s"$action set database access on dbms $preposition role" ->
-            s"$action SET DATABASE ACCESS ON DBMS $preposition role",
-          s"$action set database default language on dbms $preposition role" ->
-            s"$action SET DATABASE DEFAULT LANGUAGE ON DBMS $preposition role",
           s"$action composite database management on dbms $preposition role" ->
             s"$action COMPOSITE DATABASE MANAGEMENT ON DBMS $preposition role",
           s"$action create composite database on dbms $preposition role" ->
@@ -3664,6 +3658,59 @@ class PrettifierIT extends CypherFunSuite {
           s"$action load on cidr $$cidr $preposition role" -> s"""$action LOAD ON CIDR $$cidr $preposition role""",
           s"$action load on url 'ftp://www.data.com/mydata/*' $preposition role" -> s"""$action LOAD ON URL "ftp://www.data.com/mydata/*" $preposition role""",
           s"$action load on url $$url $preposition role" -> s"""$action LOAD ON URL $$url $preposition role"""
+        ) ++ Seq[Test](
+          // Privileges that are on both DBMS and DATABASE
+          ChangedBetween5And25(
+            s"$action alter database on dbms $preposition role",
+            s"$action ALTER DATABASE ON DBMS $preposition role",
+            s"$action ALTER DATABASE ON DATABASE * $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action alter database on database * $preposition role",
+            s"$action ALTER DATABASE ON DATABASE * $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action alter database on database foo $preposition role",
+            s"$action ALTER DATABASE ON DATABASE foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action alter database on home database $preposition role",
+            s"$action ALTER DATABASE ON HOME DATABASE $preposition role"
+          ),
+          ChangedBetween5And25(
+            s"$action set database access on dbms $preposition role",
+            s"$action SET DATABASE ACCESS ON DBMS $preposition role",
+            s"$action SET DATABASE ACCESS ON DATABASE * $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action set database access on database * $preposition role",
+            s"$action SET DATABASE ACCESS ON DATABASE * $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action set database access on database foo $preposition role",
+            s"$action SET DATABASE ACCESS ON DATABASE foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action set database access on home database $preposition role",
+            s"$action SET DATABASE ACCESS ON HOME DATABASE $preposition role"
+          ),
+          ChangedBetween5And25(
+            s"$action set database default language on dbms $preposition role",
+            s"$action SET DATABASE DEFAULT LANGUAGE ON DBMS $preposition role",
+            s"$action SET DATABASE DEFAULT LANGUAGE ON DATABASE * $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action set database default language on database * $preposition role",
+            s"$action SET DATABASE DEFAULT LANGUAGE ON DATABASE * $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action set database default language on database foo $preposition role",
+            s"$action SET DATABASE DEFAULT LANGUAGE ON DATABASE foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action set database default language on home database $preposition role",
+            s"$action SET DATABASE DEFAULT LANGUAGE ON HOME DATABASE $preposition role"
+          )
         )
     }
   }
