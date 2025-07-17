@@ -394,7 +394,7 @@ public class BuiltInDbmsProcedures {
                 return new ConnectionTerminationResult(id, connection.username());
             }
 
-            throw kernelTransaction
+            kernelTransaction
                     .securityAuthorizationHandler()
                     .logAndGetAuthorizationException(
                             securityContext,
