@@ -794,9 +794,9 @@ class TableOutputFormatterTest extends LocaleDependentTestBase {
                 .isEqualToNormalizingNewlines(
                         """
 
-            info: statusDesc1 (12345)
+            statusDesc1 (12345)
 
-            warn: statusDesc2 (03N63)
+            statusDesc2 (03N63)
             """);
     }
 

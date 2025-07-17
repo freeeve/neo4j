@@ -332,8 +332,8 @@ public class TableOutputFormatter implements OutputFormatter {
                                     .map(rawSeverity -> rawSeverity.toLowerCase(Locale.ROOT))
                                     .map(this::severity)
                                     .orElse(INFO_SEVERITY_LEVEL);
-                            yield formatNotification(
-                                    severity, gqlNotification.statusDescription(), gqlNotification.gqlStatus());
+                            yield String.format(
+                                    "%s (%s)", gqlNotification.statusDescription(), gqlNotification.gqlStatus());
                         }
                         case GqlStatusObject ignored -> null;
                     })
@@ -348,7 +348,7 @@ public class TableOutputFormatter implements OutputFormatter {
                                 .map(rawSeverity -> rawSeverity.toLowerCase(Locale.ROOT))
                                 .map(this::severity)
                                 .orElse(INFO_SEVERITY_LEVEL);
-                        return formatNotification(severity, notification.description(), notification.code());
+                        return String.format("%s: %s (%s)", severity, notification.description(), notification.code());
                     })
                     .collect(Collectors.toCollection(LinkedHashSet::new));
         }
@@ -363,10 +363,6 @@ public class TableOutputFormatter implements OutputFormatter {
             case "warning" -> "warn";
             default -> rawSeverity;
         };
-    }
-
-    private String formatNotification(String severity, String description, String status) {
-        return String.format("%s: %s (%s)", severity, description, status);
     }
 
     @Override
