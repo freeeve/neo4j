@@ -194,6 +194,9 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
         EagernessReason.TypeReadSetConflict(RelTypeName("KNOWS")(InputPosition.NONE)).withConflict(
           EagernessReason.Conflict(Id(8), Id(6))
         ),
+        EagernessReason.PropertyReadSetConflict(PropertyKeyName("prop")(InputPosition.NONE)).withConflict(
+          EagernessReason.Conflict(Id(8), Id(6))
+        ),
         EagernessReason.LabelReadSetConflict(LabelName("Person")(InputPosition.NONE)).withConflict(
           EagernessReason.Conflict(Id(8), Id(6))
         )
