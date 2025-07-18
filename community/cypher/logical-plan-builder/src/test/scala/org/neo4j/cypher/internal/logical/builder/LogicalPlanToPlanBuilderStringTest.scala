@@ -1029,6 +1029,26 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "fusedMerge",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .fusedMerge(
+        Seq(createNode("x"), createNode("y")),
+        Seq(createRelationship("r", "x", "R", "y")),
+        Seq(setNodeProperty("x", "prop", "42"), setNodePropertiesFromMap("x", "{prop: 42}")),
+        Seq(
+          setLabel("x", "L", "M"),
+          setDynamicLabel("x", "'N'", "$p"),
+          setRelationshipProperty("r", "prop", "42"),
+          setRelationshipPropertiesFromMap("r", "{prop: 42}")
+        )
+      )
+      .expand("(x)-[r:R]->(y)")
+      .allNodeScan("x")
+      .build()
+  )
+
+  testPlan(
     "anti",
     new TestPlanBuilder()
       .produceResults("x")

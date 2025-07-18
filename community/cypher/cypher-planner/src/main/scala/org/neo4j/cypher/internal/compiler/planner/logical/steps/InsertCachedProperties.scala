@@ -86,6 +86,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlans
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
+import org.neo4j.cypher.internal.logical.plans.PhysicalPlanningPlan
 import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.ProjectingPlan
 import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
@@ -824,6 +825,8 @@ object RestrictedCaching {
       case _: Foreach                => None
       case _: RemoveLabels           => None
       case _: SetLabels              => None
+      case _: PhysicalPlanningPlan =>
+        throw new IllegalStateException(s"Unsupported plan in insert-cached-properties: $plan")
     }
 
     protectedProps.map(plan -> _)

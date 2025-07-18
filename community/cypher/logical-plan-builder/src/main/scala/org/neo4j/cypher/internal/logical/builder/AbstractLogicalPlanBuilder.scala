@@ -155,6 +155,7 @@ import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.DisallowSameNod
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.SameNodeMode
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.FusedMerge
 import org.neo4j.cypher.internal.logical.plans.GetValueFromIndexBehavior
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -2966,6 +2967,18 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   ): IMPL = {
     appendAtCurrentIndent(UnaryOperator(source =>
       Merge(source, nodes, relationships, onMatch, onCreate, lockNodes.map(varFor))(_)
+    ))
+  }
+
+  def fusedMerge(
+    nodes: Seq[CreateNode] = Seq.empty,
+    relationships: Seq[CreateRelationship] = Seq.empty,
+    onMatch: Seq[SetMutatingPattern] = Seq.empty,
+    onCreate: Seq[SetMutatingPattern] = Seq.empty,
+    lockNodes: Set[String] = Set.empty
+  ): IMPL = {
+    appendAtCurrentIndent(UnaryOperator(source =>
+      FusedMerge(source, nodes, relationships, onMatch, onCreate, lockNodes.map(varFor))(_)
     ))
   }
 

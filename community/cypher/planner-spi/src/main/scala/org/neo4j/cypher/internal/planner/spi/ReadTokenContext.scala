@@ -33,7 +33,7 @@ trait ReadTokenContext {
 
 object ReadTokenContext {
 
-  val EMPTY = new ReadTokenContext {
+  val EMPTY: ReadTokenContext = new ReadTokenContext {
     override def getLabelName(id: Int): String = throw new IllegalArgumentException("No such label.", null)
 
     override def getOptLabelId(labelName: String): Option[Int] = None

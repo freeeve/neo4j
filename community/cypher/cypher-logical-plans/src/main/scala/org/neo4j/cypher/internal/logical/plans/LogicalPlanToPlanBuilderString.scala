@@ -391,6 +391,9 @@ object LogicalPlanToPlanBuilderString {
       case Merge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
         params(createNodes, createRelationships, onMatch, onCreate, nodesToLock)
 
+      case FusedMerge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
+        params(createNodes, createRelationships, onMatch, onCreate, nodesToLock)
+
       case Foreach(_, variable, list, mutations) =>
         params(
           variable,

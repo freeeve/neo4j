@@ -68,6 +68,7 @@ import org.neo4j.cypher.internal.logical.plans.DetachDeletePath
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
+import org.neo4j.cypher.internal.logical.plans.PhysicalPlanningPlan
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.SetDynamicProperty
 import org.neo4j.cypher.internal.logical.plans.SetLabels
@@ -367,6 +368,9 @@ object WriteFinder {
         case _: DetachDeletePath =>
           val deletes = PlanDeletes().withDeletedUnknownTypeExpression
           PlanWrites(deletes = deletes)
+
+        case _: PhysicalPlanningPlan =>
+          throw new IllegalStateException(s"Unsupported plan in eagerness analysis: $plan")
       }
     case _ => PlanWrites()
   }

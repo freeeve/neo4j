@@ -74,6 +74,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.FusedMerge
 import org.neo4j.cypher.internal.logical.plans.InjectCompilationError
 import org.neo4j.cypher.internal.logical.plans.Input
 import org.neo4j.cypher.internal.logical.plans.LeftOuterHashJoin
@@ -958,6 +959,17 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         }
 
       case m: Merge =>
+        // If we have set lenientCreateRelationship in the db, we may potentially
+        // need to update the relationship to nullable=true
+        if (config.lenientCreateRelationship) {
+          m.createRelationships.foreach(r =>
+            slots.newLong(r.variable, nullable = true, CTRelationship)
+          )
+        }
+
+        recordArgument(lp)
+
+      case m: FusedMerge =>
         // If we have set lenientCreateRelationship in the db, we may potentially
         // need to update the relationship to nullable=true
         if (config.lenientCreateRelationship) {

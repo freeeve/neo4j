@@ -3171,6 +3171,36 @@ case class Merge(
   override def localAvailableSymbols: Set[LogicalVariable] = read.localAvailableSymbols
 }
 
+case class FusedMerge(
+  read: LogicalPlan,
+  createNodes: Seq[CreateNode],
+  createRelationships: Seq[CreateRelationship],
+  onMatch: Seq[SetMutatingPattern],
+  onCreate: Seq[SetMutatingPattern],
+  nodesToLock: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) with UpdatingPlan with PhysicalPlanningPlan {
+  override def source: LogicalPlan = read
+
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan with UpdatingPlan =
+    copy(read = newLHS)(idGen)
+
+  override def localAvailableSymbols: Set[LogicalVariable] = read.localAvailableSymbols
+}
+
+object FusedMerge {
+
+  def apply(merge: Merge): FusedMerge = {
+    FusedMerge(
+      merge.read,
+      merge.createNodes,
+      merge.createRelationships,
+      merge.onMatch,
+      merge.onCreate,
+      merge.nodesToLock
+    )(SameId(merge.id))
+  }
+}
+
 /**
  * Produces one or zero rows containing the nodes per given labels and property value combination.
  *

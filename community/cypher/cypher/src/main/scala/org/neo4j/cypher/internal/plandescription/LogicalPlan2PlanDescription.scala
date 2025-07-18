@@ -79,6 +79,7 @@ import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.RemoveLabelPattern
 import org.neo4j.cypher.internal.ir.SetDynamicPropertyPattern
 import org.neo4j.cypher.internal.ir.SetLabelPattern
+import org.neo4j.cypher.internal.ir.SetMutatingPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertiesFromMapPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertiesPattern
 import org.neo4j.cypher.internal.ir.SetNodePropertyPattern
@@ -161,6 +162,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.FusedMerge
 import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeDropInfo
 import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeInfo
 import org.neo4j.cypher.internal.logical.plans.GraphTypeForAdd
@@ -2232,38 +2234,10 @@ case class LogicalPlan2PlanDescription(
         )
 
       case Merge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
-        val createNodesPretty = createNodes.map(createNodeDescription)
-        val createRelsPretty = createRelationships.map {
-          case CreateRelationship(relationship, startNode, typ, endNode, direction, properties) =>
-            expandExpressionDescription(
-              Some(startNode),
-              Some(relationship),
-              Seq(typ),
-              Some(endNode),
-              direction,
-              1,
-              Some(1),
-              properties
-            )
-        }
-        val details: Seq[PrettyString] =
-          Seq(pretty"CREATE ${(createNodesPretty ++ createRelsPretty).mkPrettyString(", ")}") ++
-            (if (onMatch.nonEmpty) Seq(pretty"ON MATCH ${onMatch.map(mutatingPatternString).mkPrettyString(", ")}")
-             else Seq.empty) ++
-            (if (onCreate.nonEmpty) Seq(pretty"ON CREATE ${onCreate.map(mutatingPatternString).mkPrettyString(", ")}")
-             else Seq.empty) ++
-            (if (nodesToLock.nonEmpty) Seq(pretty"LOCK(${keyNamesInfo(nodesToLock.toSeq)})") else Seq.empty)
+        mergePlanDescription(id, variables, children, createNodes, createRelationships, onMatch, onCreate, nodesToLock)
 
-        val name = if (nodesToLock.isEmpty) "Merge" else "LockingMerge"
-        PlanDescriptionImpl(
-          id,
-          name,
-          children,
-          Seq(Details(details)),
-          variables,
-          withRawCardinalities,
-          withDistinctness
-        )
+      case FusedMerge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
+        mergePlanDescription(id, variables, children, createNodes, createRelationships, onMatch, onCreate, nodesToLock)
 
       case Optional(_, protectedSymbols) =>
         PlanDescriptionImpl(
@@ -2862,6 +2836,50 @@ case class LogicalPlan2PlanDescription(
     }
 
     addRuntimeAttributes(addPlanningAttributes(result, plan), plan)
+  }
+
+  private def mergePlanDescription(
+    id: Id,
+    variables: Set[PrettyString],
+    children: Seq[InternalPlanDescription],
+    createNodes: Seq[CreateNode],
+    createRelationships: Seq[CreateRelationship],
+    onMatch: Seq[SetMutatingPattern],
+    onCreate: Seq[SetMutatingPattern],
+    nodesToLock: Set[LogicalVariable]
+  ) = {
+    val createNodesPretty = createNodes.map(createNodeDescription)
+    val createRelsPretty = createRelationships.map {
+      case CreateRelationship(relationship, startNode, typ, endNode, direction, properties) =>
+        expandExpressionDescription(
+          Some(startNode),
+          Some(relationship),
+          Seq(typ),
+          Some(endNode),
+          direction,
+          1,
+          Some(1),
+          properties
+        )
+    }
+    val details: Seq[PrettyString] =
+      Seq(pretty"CREATE ${(createNodesPretty ++ createRelsPretty).mkPrettyString(", ")}") ++
+        (if (onMatch.nonEmpty) Seq(pretty"ON MATCH ${onMatch.map(mutatingPatternString).mkPrettyString(", ")}")
+         else Seq.empty) ++
+        (if (onCreate.nonEmpty) Seq(pretty"ON CREATE ${onCreate.map(mutatingPatternString).mkPrettyString(", ")}")
+         else Seq.empty) ++
+        (if (nodesToLock.nonEmpty) Seq(pretty"LOCK(${keyNamesInfo(nodesToLock.toSeq)})") else Seq.empty)
+
+    val name = if (nodesToLock.isEmpty) "Merge" else "LockingMerge"
+    PlanDescriptionImpl(
+      id,
+      name,
+      children,
+      Seq(Details(details)),
+      variables,
+      withRawCardinalities,
+      withDistinctness
+    )
   }
 
   private def replaceNestedPlansWithPlaceholder(plan: LogicalPlan) = {

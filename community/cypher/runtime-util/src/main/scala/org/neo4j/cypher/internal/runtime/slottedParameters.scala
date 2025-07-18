@@ -50,7 +50,7 @@ case object slottedParameters {
   }
 
   private object ParameterFoldState {
-    def empty = ParameterFoldState(ParameterMapping.empty, Set.empty)
+    def empty: ParameterFoldState = ParameterFoldState(ParameterMapping.empty, Set.empty)
   }
 
   def apply(input: LogicalPlan): (LogicalPlan, ParameterMapping) = {

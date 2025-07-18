@@ -2207,6 +2207,177 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
       propertiesSet = 1
     )
   }
+
+  test("merge on the RHS of an apply - with 2 RHS pipelines") {
+    givenGraph(nodePropertyGraph(
+      sizeHint,
+      {
+        case i if i % 2 == 0 => Map("prop" -> i)
+      },
+      "L"
+    ))
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("res")
+      .projection("n.prop AS res")
+      .apply()
+      .|.merge(nodes = Seq(createNodeWithProperties("n", Seq("L"), "{prop: x}")))
+      .|.filter("n.prop = x")
+      .|.apply()
+      .|.|.argument("n")
+      .|.nodeByLabelScan("n", "L", "x")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    runtimeResult should beColumns("res").withRows(singleColumn(1 to 10)).withStatistics(
+      nodesCreated = 5,
+      labelsAdded = 5,
+      propertiesSet = 5
+    )
+  }
+
+  test(
+    "merge with a long pattern (create)"
+  ) {
+    // given an empty db
+
+    // when
+    val createNodes = (0 to 16).map(i => createNode(s"a$i"))
+    val createRelationships = (1 to 16).map(i => createRelationship(s"r$i", s"a${i - 1}", "R", s"a$i"))
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a0")
+      .apply()
+      .|.merge(nodes = createNodes, relationships = createRelationships)
+      .|.expand("(a15)-[r16:R]->(a16)")
+      .|.expand("(a14)-[r15:R]->(a15)")
+      .|.expand("(a13)-[r14:R]->(a14)")
+      .|.expand("(a12)-[r13:R]->(a13)")
+      .|.expand("(a11)-[r12:R]->(a12)")
+      .|.expand("(a10)-[r11:R]->(a11)")
+      .|.expand("(a9)-[r10:R]->(a10)")
+      .|.expand("(a8)-[r9:R]->(a9)")
+      .|.expand("(a7)-[r8:R]->(a8)")
+      .|.expand("(a6)-[r7:R]->(a7)")
+      .|.expand("(a5)-[r6:R]->(a6)")
+      .|.expand("(a4)-[r5:R]->(a5)")
+      .|.expand("(a3)-[r4:R]->(a4)")
+      .|.expand("(a2)-[r3:R]->(a3)")
+      .|.expand("(a1)-[r2:R]->(a2)")
+      .|.expand("(a0)-[r1:R]->(a1)")
+      .|.allNodeScan("a0")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    consume(runtimeResult)
+    runtimeResult should beColumns("a0").withRows(rowCount(10)).withStatistics(
+      nodesCreated = 17,
+      relationshipsCreated = 16
+    )
+    tx.getAllNodes.asScala.toSeq should have size 17
+    tx.getAllRelationships.asScala.toSeq should have size 16
+  }
+
+  test(
+    "merge with a long pattern (match)"
+  ) {
+    // given
+    givenGraph {
+      circleGraph(17)
+    }
+
+    // when
+    val createNodes = (0 to 16).map(i => createNode(s"a$i"))
+    val createRelationships = (1 to 16).map(i => createRelationship(s"r$i", s"a${i - 1}", "R", s"a$i"))
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a0")
+      .apply()
+      .|.merge(nodes = createNodes, relationships = createRelationships)
+      .|.expand("(a15)-[r16:R]->(a16)")
+      .|.expand("(a14)-[r15:R]->(a15)")
+      .|.expand("(a13)-[r14:R]->(a14)")
+      .|.expand("(a12)-[r13:R]->(a13)")
+      .|.expand("(a11)-[r12:R]->(a12)")
+      .|.expand("(a10)-[r11:R]->(a11)")
+      .|.expand("(a9)-[r10:R]->(a10)")
+      .|.expand("(a8)-[r9:R]->(a9)")
+      .|.expand("(a7)-[r8:R]->(a8)")
+      .|.expand("(a6)-[r7:R]->(a7)")
+      .|.expand("(a5)-[r6:R]->(a6)")
+      .|.expand("(a4)-[r5:R]->(a5)")
+      .|.expand("(a3)-[r4:R]->(a4)")
+      .|.expand("(a2)-[r3:R]->(a3)")
+      .|.expand("(a1)-[r2:R]->(a2)")
+      .|.expand("(a0)-[r1:R]->(a1)")
+      .|.allNodeScan("a0")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    consume(runtimeResult)
+    val nodes = tx.getAllNodes.asScala.toSeq
+    val rels = tx.getAllRelationships.asScala.toSeq
+    runtimeResult should beColumns("a0").withRows(rowCount(170)).withNoUpdates()
+    nodes should have size 17
+    rels should have size 17
+  }
+
+  test(
+    "merge with a long pattern (partial match)"
+  ) {
+    // given
+    givenGraph {
+      circleGraph(17)
+    }
+
+    // when
+    val createNodes = (0 to 16).map(i => createNode(s"a$i"))
+    val createRelationships = (1 to 16).map(i => createRelationship(s"r$i", s"a${i - 1}", "R", s"a$i"))
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a0")
+      .apply()
+      .|.merge(nodes = createNodes, relationships = createRelationships)
+      .|.expand("(a15)-[r16:S]->(a16)")
+      .|.expand("(a14)-[r15:R]->(a15)")
+      .|.expand("(a13)-[r14:R]->(a14)")
+      .|.expand("(a12)-[r13:R]->(a13)")
+      .|.expand("(a11)-[r12:R]->(a12)")
+      .|.expand("(a10)-[r11:R]->(a11)")
+      .|.expand("(a9)-[r10:R]->(a10)")
+      .|.expand("(a8)-[r9:R]->(a9)")
+      .|.expand("(a7)-[r8:R]->(a8)")
+      .|.expand("(a6)-[r7:R]->(a7)")
+      .|.expand("(a5)-[r6:R]->(a6)")
+      .|.expand("(a4)-[r5:R]->(a5)")
+      .|.expand("(a3)-[r4:R]->(a4)")
+      .|.expand("(a2)-[r3:R]->(a3)")
+      .|.expand("(a1)-[r2:R]->(a2)")
+      .|.expand("(a0)-[r1:R]->(a1)")
+      .|.allNodeScan("a0")
+      .input(variables = Seq("x"))
+      .build(readOnly = false)
+
+    // then
+    val runtimeResult: RecordingRuntimeResult =
+      execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
+    consume(runtimeResult)
+    val nodes = tx.getAllNodes.asScala.toSeq
+    val rels = tx.getAllRelationships.asScala.toSeq
+    runtimeResult should beColumns("a0").withRows(rowCount(10)).withStatistics(
+      nodesCreated = 17 * 10,
+      relationshipsCreated = 16 * 10
+    )
+    nodes should have size 170 + 17
+    rels should have size 160 + 17
+  }
 }
 
 // Supported by pipelined only
