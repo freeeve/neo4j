@@ -80,8 +80,20 @@ public class TransactionLogChecker {
                 .orElseThrow(() -> new IllegalStateException("Couldn't figure out storage engine from store files"))
                 .commandReaderFactory();
 
-        verifyLogFiles(fs, config, logFiles.getLogFile(), commandReaderFactory, TX_LOG);
-        verifyLogFiles(fs, config, logFiles.getCheckpointFile(), commandReaderFactory, CHECKPOINT_LOG);
+        MultipleVersionInOneLogFileAcceptanceChecker txLogFileAcceptanceChecker =
+                upgradeTxId -> logFiles.getCheckpointFile().reachableCheckpoints().stream()
+                        .map(c -> c.transactionId().id())
+                        .anyMatch(id -> id == upgradeTxId);
+        MultipleVersionInOneLogFileAcceptanceChecker checkpointFileAcceptanceChecker = ignored -> false;
+
+        verifyLogFiles(fs, config, logFiles.getLogFile(), commandReaderFactory, TX_LOG, txLogFileAcceptanceChecker);
+        verifyLogFiles(
+                fs,
+                config,
+                logFiles.getCheckpointFile(),
+                commandReaderFactory,
+                CHECKPOINT_LOG,
+                checkpointFileAcceptanceChecker);
     }
 
     private static void verifyLogFiles(
@@ -89,7 +101,8 @@ public class TransactionLogChecker {
             Config config,
             VersionedFile logFile,
             CommandReaderFactory commandReaderFactory,
-            FileType fileType)
+            FileType fileType,
+            MultipleVersionInOneLogFileAcceptanceChecker acceptanceChecker)
             throws IOException {
 
         LastFileInfo lastFileInfo = new LastFileInfo(KernelVersion.EARLIEST, BASE_APPEND_INDEX);
@@ -131,7 +144,8 @@ public class TransactionLogChecker {
                     logHeader.getLastAppendIndex(),
                     commandReaderFactory,
                     config,
-                    fileType);
+                    fileType,
+                    acceptanceChecker);
         }
     }
 
@@ -154,7 +168,8 @@ public class TransactionLogChecker {
             long previouslySeenAppendIndex,
             CommandReaderFactory commandReaderFactory,
             Config config,
-            FileType fileType)
+            FileType fileType,
+            MultipleVersionInOneLogFileAcceptanceChecker acceptanceChecker)
             throws IOException {
         LastFileInfo versionSeenInFile = logHeader.getLogFormatVersion().usesSegments()
                 ? verifyVersionInSegmentedFile(
@@ -166,7 +181,8 @@ public class TransactionLogChecker {
                         previouslySeenAppendIndex,
                         commandReaderFactory,
                         config,
-                        fileType);
+                        fileType,
+                        acceptanceChecker);
 
         // If there was no version in the header we have only checked that the file contains a single version so far.
         // Let's check that the version in the file is at least as great as the version seen in the previous file.
@@ -247,7 +263,8 @@ public class TransactionLogChecker {
             long previouslySeenAppendIndex,
             CommandReaderFactory commandReaderFactory,
             Config config,
-            FileType fileType)
+            FileType fileType,
+            MultipleVersionInOneLogFileAcceptanceChecker acceptanceChecker)
             throws IOException {
         KernelVersion seenVersion = expectedVersion;
         try (ReadableLogChannel reader =
@@ -256,6 +273,8 @@ public class TransactionLogChecker {
                     commandReaderFactory, new BinarySupportedKernelVersions(config), INSTANCE);
 
             LogEntry entry;
+            long lastSeenTxId = -1;
+
             boolean getIndexFromCommitEntry = false;
             while ((entry = entryReader.readLogEntry(reader)) != null) {
                 if (entry instanceof AbstractVersionAwareLogEntry versionedEntry) {
@@ -263,14 +282,46 @@ public class TransactionLogChecker {
                     if (seenVersion == null) {
                         seenVersion = startVersion;
                     } else if (seenVersion != startVersion) {
-                        throw new InconsistentTransactionLogException(
-                                "%s file version %d contains entry with other kernel version (%s) than version seen earlier in the file (%s)"
-                                        .formatted(
-                                                fileType.capitalized,
-                                                logHeader.getLogVersion(),
-                                                startVersion.name(),
-                                                seenVersion.name()));
+                        if (startVersion.isLessThan(seenVersion)) {
+                            throw new InconsistentTransactionLogException(
+                                    "%s file version %d contains entry with lower kernel version (%s) than version seen earlier in the file (%s)"
+                                            .formatted(
+                                                    fileType.capitalized,
+                                                    logHeader.getLogVersion(),
+                                                    startVersion.name(),
+                                                    seenVersion.name()));
+                        }
+                        // lastSeenTxId has not been updated for this entry yet,
+                        // it is the tx id of the previous entry.
+                        // Since this is the first entry with a different version,
+                        // the last entry should belong to an upgrade command.
+
+                        // There is an edge case in which tx pull pulls everything up to and
+                        // including the upgrade transaction and then starts the store and
+                        // fails to rotate the tx log. This is benign though for non-segmented
+                        // logs and won't be fixed. In order to minimize false positives,
+                        // we skip throwing here if we find that there is a checkpoint exactly
+                        // at the tx id of the upgrade transaction. The benign case described
+                        // will do recovery before starting the DB, and thus it will always
+                        // have a checkpoint with the tx id of the upgrade tx.
+
+                        final var upgradeTxId = lastSeenTxId;
+                        if (!acceptanceChecker.areMultipleVersionsAccepted(upgradeTxId)) {
+                            throw new InconsistentTransactionLogException(
+                                    "%s file version %d contains entry with other kernel version (%s) than version seen earlier in the file (%s)"
+                                            .formatted(
+                                                    fileType.capitalized,
+                                                    logHeader.getLogVersion(),
+                                                    startVersion.name(),
+                                                    seenVersion.name()));
+                        } else {
+                            seenVersion = startVersion;
+                        }
                     }
+                }
+
+                if (entry instanceof LogEntryCommit commit) {
+                    lastSeenTxId = commit.getTxId();
                 }
                 if (entry instanceof LogEntryStart startEntry) {
                     if (startEntry instanceof LogEntryStartV4_2) {
@@ -411,5 +462,10 @@ public class TransactionLogChecker {
             this.capitalized = capitalized;
             this.lowerCase = lowerCase;
         }
+    }
+
+    @FunctionalInterface
+    interface MultipleVersionInOneLogFileAcceptanceChecker {
+        boolean areMultipleVersionsAccepted(long upgradeTxId) throws IOException;
     }
 }
