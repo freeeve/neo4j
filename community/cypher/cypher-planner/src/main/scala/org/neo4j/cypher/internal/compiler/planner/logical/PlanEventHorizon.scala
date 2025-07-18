@@ -223,16 +223,20 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         context
       )
 
-    def solveSubqueryexpressions(
+    def solveSubqueryExpressions(
       groupingExpressions: Map[LogicalVariable, Expression],
       aggregationExpressions: Map[LogicalVariable, Expression],
+      otherExpressions: Seq[Expression],
       previouslyRewrittenExprs: RewrittenExpressions,
       p: LogicalPlan
     ): (RewrittenExpressions, LogicalPlan) = {
       val solver = SubqueryExpressionSolver.solverFor(p, context)
-      val solvedRewrittenExprs = (groupingExpressions ++ aggregationExpressions).map {
-        case (k, expr) => expr -> solver.solve(previouslyRewrittenExprs.rewrittenExpressionOrSelf(expr), Some(k))
-      }
+      val otherExprsMap = otherExpressions.map(expr => expr -> expr).toMap
+      val solvedRewrittenExprs = (groupingExpressions ++ aggregationExpressions ++ otherExprsMap).map {
+        case (k: LogicalVariable, expr) =>
+          expr -> solver.solve(previouslyRewrittenExprs.rewrittenExpressionOrSelf(expr), Some(k))
+        case (_, expr) => expr -> solver.solve(previouslyRewrittenExprs.rewrittenExpressionOrSelf(expr), None)
+      }.toMap
       (RewrittenExpressions.forMap(solvedRewrittenExprs), solver.rewrittenPlan())
     }
 
@@ -261,13 +265,16 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           )
 
         val (rewrittenExprsAfterRemoteBatching, remoteBatchPropertiesPlan) = planRemoteBatchProperties(
-          aggregatingProjection.groupingExpressions.values ++ aggregatingProjection.aggregationExpressions.values,
+          aggregatingProjection.groupingExpressions.values ++
+            aggregatingProjection.aggregationExpressions.values ++
+            aggregatingProjection.optionalPreprocessing.expressions,
           selectedPlan
         )
 
-        solveSubqueryexpressions(
+        solveSubqueryExpressions(
           aggregatingProjection.groupingExpressions,
           aggregatingProjection.aggregationExpressions,
+          aggregatingProjection.optionalPreprocessing.expressions,
           rewrittenExprsAfterRemoteBatching,
           remoteBatchPropertiesPlan
         ) match {
@@ -383,9 +390,10 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           planWithPushedDownOperators
         )
 
-        val (rewrittenExpressions, rewrittenPlan) = solveSubqueryexpressions(
+        val (rewrittenExpressions, rewrittenPlan) = solveSubqueryExpressions(
           distinctProjection.groupingExpressions,
           Map.empty,
+          Seq.empty,
           rewrittenExprsAfterRemoteBatching,
           remoteBatchPropertiesPlan
         )

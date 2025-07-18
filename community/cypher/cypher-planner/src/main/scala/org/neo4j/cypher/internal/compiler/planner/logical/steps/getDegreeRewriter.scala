@@ -222,8 +222,8 @@ object ExistsQuerySolvableByGetDegree {
         _,
         _
       ) => true
-    case AggregatingQueryProjection(groups, _, _, _, _, _) if groups.nonEmpty => true
-    case _                                                                    => false
+    case AggregatingQueryProjection(groups, _, _, _, _, _, _) if groups.nonEmpty => true
+    case _                                                                       => false
   }
 
   def unapply(arg: Any)

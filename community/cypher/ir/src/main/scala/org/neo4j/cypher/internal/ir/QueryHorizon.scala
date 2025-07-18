@@ -310,7 +310,10 @@ final case class AggregatingQueryProjection(
   queryPagination: QueryPagination = QueryPagination.empty,
   selections: Selections = Selections(),
   position: QueryProjection.Position = QueryProjection.Position.Intermediate,
-  importedExposedSymbols: Set[LogicalVariable] = Set.empty
+  importedExposedSymbols: Set[LogicalVariable] = Set.empty,
+  // not needed for correctness, can be planned as an optimization
+  optionalPreprocessing: AggregatingQueryProjection.OptionalPreprocessing =
+    AggregatingQueryProjection.OptionalPreprocessing.Passthrough
 ) extends QueryProjection {
 
   assert(
@@ -339,6 +342,32 @@ final case class AggregatingQueryProjection(
 
   override def withImportedExposedSymbols(symbols: Set[LogicalVariable]): QueryProjection =
     copy(importedExposedSymbols = symbols)
+}
+
+object AggregatingQueryProjection {
+
+  // not needed for correctness, can be planned as an optimization
+  sealed trait OptionalPreprocessing {
+
+    final def expressions: Seq[Expression] = this match {
+      case OptionalPreprocessing.Passthrough =>
+        Seq.empty
+      case OptionalPreprocessing.FilterAndLimit(filter, limit) =>
+        filter.toSeq :+ limit
+    }
+
+    final def mapExpressions(f: Expression => Expression): OptionalPreprocessing = this match {
+      case OptionalPreprocessing.Passthrough =>
+        this
+      case OptionalPreprocessing.FilterAndLimit(filter, limit) =>
+        OptionalPreprocessing.FilterAndLimit(filter.map(f), f(limit))
+    }
+  }
+
+  case object OptionalPreprocessing {
+    case object Passthrough extends OptionalPreprocessing
+    final case class FilterAndLimit(filter: Option[Expression], limit: Expression) extends OptionalPreprocessing
+  }
 }
 
 final case class DistinctQueryProjection(

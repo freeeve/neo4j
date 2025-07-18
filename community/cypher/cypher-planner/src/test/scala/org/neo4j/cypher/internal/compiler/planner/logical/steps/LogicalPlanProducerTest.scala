@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.frontend.phases.ProcedureReadWriteAccess
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
 import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
 import org.neo4j.cypher.internal.ir.DeleteExpression
@@ -243,7 +244,17 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val groupings = Map[LogicalVariable, Expression](v"y" -> v"y")
 
       // when
-      val result = lpp.planAggregation(plan, groupings, aggregations, groupings, aggregations, None, context)
+      val result = lpp.planAggregation(
+        plan,
+        groupings,
+        aggregations,
+        groupings,
+        aggregations,
+        None,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        context
+      )
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(ProvidedOrder.empty)
@@ -266,7 +277,17 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val groupings = Map[LogicalVariable, Expression](v"y" -> v"y")
 
       // when
-      val result = lpp.planAggregation(plan, groupings, aggregations, groupings, aggregations, None, context)
+      val result = lpp.planAggregation(
+        plan,
+        groupings,
+        aggregations,
+        groupings,
+        aggregations,
+        None,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        context
+      )
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -289,7 +310,17 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val groupings = Map[LogicalVariable, Expression](v"z" -> v"y")
 
       // when
-      val result = lpp.planAggregation(plan, groupings, aggregations, groupings, aggregations, None, context)
+      val result = lpp.planAggregation(
+        plan,
+        groupings,
+        aggregations,
+        groupings,
+        aggregations,
+        None,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        context
+      )
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -312,7 +343,17 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val groupings = Map[LogicalVariable, Expression](v"z" -> v"y")
 
       // when
-      val result = lpp.planAggregation(plan, groupings, aggregations, groupings, aggregations, None, context)
+      val result = lpp.planAggregation(
+        plan,
+        groupings,
+        aggregations,
+        groupings,
+        aggregations,
+        None,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        context
+      )
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(ProvidedOrder.empty)
@@ -333,7 +374,17 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val groupings = Map[LogicalVariable, Expression](v"z" -> prop("y", "bar"))
 
       // when
-      val result = lpp.planAggregation(plan, groupings, aggregations, groupings, aggregations, None, context)
+      val result = lpp.planAggregation(
+        plan,
+        groupings,
+        aggregations,
+        groupings,
+        aggregations,
+        None,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        context
+      )
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -356,7 +407,17 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val groupings = Map[LogicalVariable, Expression](v"z" -> cachedNodeProp("y", "bar"))
 
       // when
-      val result = lpp.planAggregation(plan, groupings, aggregations, groupings, aggregations, None, context)
+      val result = lpp.planAggregation(
+        plan,
+        groupings,
+        aggregations,
+        groupings,
+        aggregations,
+        None,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        context
+      )
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -474,7 +535,17 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val groupings = Map[LogicalVariable, Expression](v"y" -> v"y")
 
       // when
-      val result = lpp.planAggregation(plan, groupings, aggregations, groupings, aggregations, None, context)
+      val result = lpp.planAggregation(
+        plan,
+        groupings,
+        aggregations,
+        groupings,
+        aggregations,
+        None,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        context
+      )
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -502,7 +573,17 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
       val groupings = Map[LogicalVariable, Expression](v"y" -> v"y")
 
       // when
-      val result = lpp.planAggregation(plan, groupings, aggregations, groupings, aggregations, None, context)
+      val result = lpp.planAggregation(
+        plan,
+        groupings,
+        aggregations,
+        groupings,
+        aggregations,
+        None,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+        context
+      )
 
       // then
       context.staticComponents.planningAttributes.providedOrders.get(result.id) should be(
@@ -1454,7 +1535,16 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ),
         (
           "OrderedAggregation with grouping",
-          lpp.planOrderedAggregation(plan(), x_vx, foo_vx, Seq(vx), x_vx, foo_vx, context)
+          lpp.planOrderedAggregation(
+            plan(),
+            x_vx,
+            foo_vx,
+            Seq(vx),
+            x_vx,
+            foo_vx,
+            AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+            context
+          )
         ),
         ("OrderedDistinct", lpp.planOrderedDistinct(plan(), foo_vx, Seq(vx), foo_vx, context)),
         ("OrderedUnion", lpp.planOrderedUnion(plan(), plan2(), unionMappings, Seq(Ascending(v"x")), context)),
@@ -1468,13 +1558,30 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ),
         (
           "Limit for aggregation",
-          lpp.planLimitForAggregation(plan(), x_vx, foo_vx, InterestingOrder.empty, context).lhs.get
+          lpp.planLimitForAggregation(
+            plan(),
+            x_vx,
+            foo_vx,
+            InterestingOrder.empty,
+            AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+            context
+          ).lhs.get
         ), // Get the Limit under the Optional
         ("Limit", lpp.planLimit(plan(), one, one, interesting_vx, context)),
         ("Skip", lpp.planSkip(plan(), one, interesting_vx, context)),
         (
           "Collect with previous required order",
-          lpp.planAggregation(plan(), Map.empty, foo_collect, Map.empty, foo_collect, Some(interesting_vx), context)
+          lpp.planAggregation(
+            plan(),
+            Map.empty,
+            foo_collect,
+            Map.empty,
+            foo_collect,
+            Some(interesting_vx),
+            AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+            AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
+            context
+          )
         ),
         ("ProduceResult", lpp.planProduceResult(plan(), Seq(v"x"), Some(interesting_vx), context))
       )
@@ -2077,6 +2184,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         Map(v"x" -> hasLabels("x", "foo")),
         Map.empty,
         InterestingOrder.empty,
+        AggregatingQueryProjection.OptionalPreprocessing.Passthrough,
         ctx.context
       )
     )

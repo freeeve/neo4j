@@ -85,6 +85,7 @@ import org.neo4j.cypher.internal.frontend.phases.QualifiedName
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
+import org.neo4j.cypher.internal.frontend.phases.isolateAggregation
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
@@ -547,6 +548,9 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
       AstRewriting() andThen
       RewriteProcedureCalls andThen
+      SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
+      Namespacer andThen
+      isolateAggregation andThen
       SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
       Namespacer andThen
       ProjectNamedPathsRewriter andThen

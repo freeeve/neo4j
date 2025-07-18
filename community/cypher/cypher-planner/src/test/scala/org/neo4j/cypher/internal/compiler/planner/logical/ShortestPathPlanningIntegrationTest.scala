@@ -2176,6 +2176,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     // THEN
     val nestedPlan = planner.subPlanBuilder()
       .aggregation(Seq.empty, Seq("count(*) AS `  UNNAMED1`"))
+      .limit(LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(2)))
       .filter("`  UNNAMED0`:N")
       .expand("(`  m@2`)-[]->(`  UNNAMED0`)")
       .argument("  m@2")

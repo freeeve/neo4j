@@ -82,7 +82,7 @@ case object OptionalMatchRemover extends PlannerQueryRewriter with StepSequencer
           case RegularSinglePlannerQuery(
               graph,
               interestingOrder,
-              proj @ AggregatingQueryProjection(distinctExpressions, aggregations, _, _, _, _),
+              proj @ AggregatingQueryProjection(distinctExpressions, aggregations, _, _, _, _, _),
               tail,
               queryInput
             )

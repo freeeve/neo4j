@@ -61,6 +61,10 @@ case class CountIRExpression(
     )(position, computedIntroducedVariables, computedScopeDependencies)
   }
 
+  def withQuery(pq: PlannerQuery): CountIRExpression = {
+    copy(query = pq)(position, computedIntroducedVariables, computedScopeDependencies)
+  }
+
   override def dup(children: Seq[AnyRef]): this.type = {
     CountIRExpression(
       children.head.asInstanceOf[PlannerQuery],

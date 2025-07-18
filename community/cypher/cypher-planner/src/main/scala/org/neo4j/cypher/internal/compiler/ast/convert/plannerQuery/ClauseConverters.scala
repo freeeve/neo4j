@@ -295,7 +295,7 @@ object ClauseConverters extends LabelExpressionConversion {
         val requiredOrderCandidate =
           extractColumnOrderFromOrderBy(sortItems, projections)
         (requiredOrderCandidate, Seq.empty)
-      case AggregatingQueryProjection(groupingExpressions, aggregationExpressions, _, _, _, _) =>
+      case AggregatingQueryProjection(groupingExpressions, aggregationExpressions, _, _, _, _, _) =>
         val requiredOrderCandidate =
           extractColumnOrderFromOrderBy(sortItems, groupingExpressions)
         val interestingCandidates =

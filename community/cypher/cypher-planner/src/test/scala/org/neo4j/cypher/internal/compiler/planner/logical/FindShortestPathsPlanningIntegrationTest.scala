@@ -498,6 +498,7 @@ class FindShortestPathsPlanningIntegrationTest extends CypherFunSuite with Logic
 
     val countExprWithPathReference = planner.subPlanBuilder()
       .aggregation(Seq(), Seq("count(*) AS anon_2"))
+      .limit(LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(2)))
       .filter("cacheNFromStore[anon_1.prop] = 'foobar'")
       .expandAll("(n)-[anon_0]->(anon_1)")
       .unwind("nodes(p) AS n")
@@ -532,6 +533,7 @@ class FindShortestPathsPlanningIntegrationTest extends CypherFunSuite with Logic
       .|.filter("anon_2 > 2")
       .|.apply()
       .|.|.aggregation(Seq(), Seq("count(*) AS anon_2"))
+      .|.|.limit(LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(2)))
       .|.|.filter("cacheNFromStore[anon_1.prop] = 'foobar'")
       .|.|.expandAll("(n)-[anon_0]->(anon_1)")
       .|.|.unwind("nodes(p) AS n")

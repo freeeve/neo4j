@@ -2159,7 +2159,7 @@ object LogicalPlanToPlanBuilderString {
   private def integerString(count: Expression) = {
     count match {
       case SignedDecimalIntegerLiteral(i) => i
-      case _                              => "/* " + count + "*/"
+      case _                              => "/* " + expressionStringifier(count) + "*/"
     }
   }
 

@@ -365,4 +365,12 @@ class CypherPlannerConfiguration(
     )
     () => config.dynamicLabelScansEnabled
   }
+
+  val limitBeforeCountRewriterEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.planning_limit_before_count_rewriter_enabled.dynamic()
+    )
+    () => config.limitBeforeCountRewriterEnabled
+  }
+
 }

@@ -236,6 +236,9 @@ class CypherConfiguration private (val config: Config) {
 
   val enableNonFusedMerge: Boolean = config.get(GraphDatabaseInternalSettings.cypher_enable_non_fused_merge)
 
+  val limitBeforeCountRewriterEnabled: Boolean =
+    config.get(GraphDatabaseInternalSettings.planning_limit_before_count_rewriter_enabled)
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

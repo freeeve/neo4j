@@ -2489,25 +2489,30 @@ case class LogicalPlanProducer(
     reportedGrouping: Map[LogicalVariable, Expression],
     reportedAggregation: Map[LogicalVariable, Expression],
     previousInterestingOrder: Option[InterestingOrder],
+    optionalPreprocessingToPlan: AggregatingQueryProjection.OptionalPreprocessing,
+    optionalPreprocessingToReport: AggregatingQueryProjection.OptionalPreprocessing,
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved = solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.withHorizon(
       AggregatingQueryProjection(
         groupingExpressions = reportedGrouping,
         aggregationExpressions = reportedAggregation,
-        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables,
+        optionalPreprocessing = optionalPreprocessingToReport
       )
     ))
 
-    // NOTE: aggregation order is not used here as it is lost after aggregation
-    val trimmedAndRenamed = trimAndRenameProvidedOrder(providedOrders.get(left.id), grouping)
+    val sourcePlan = planOptionalPreprocessingForAggregation(left, optionalPreprocessingToPlan, context)
 
-    val agg = Aggregation(left, grouping, aggregation)
+    // NOTE: aggregation order is not used here as it is lost after aggregation
+    val trimmedAndRenamed = trimAndRenameProvidedOrder(providedOrders.get(sourcePlan.id), grouping)
+
+    val agg = Aggregation(sourcePlan, grouping, aggregation)
     val plan = annotate(
       agg,
       solved,
       context.providedOrderFactory.providedOrder(trimmedAndRenamed, ProvidedOrder.Left, Some(agg)),
-      cachedPropertiesPerPlan.get(left.id).retain(accessedPropertiesInGroupingKeys(grouping)),
+      cachedPropertiesPerPlan.get(sourcePlan.id).retain(accessedPropertiesInGroupingKeys(grouping)),
       context
     )
 
@@ -2524,6 +2529,27 @@ case class LogicalPlanProducer(
     plan
   }
 
+  private def planOptionalPreprocessingForAggregation(
+    source: LogicalPlan,
+    optionalPreprocessing: AggregatingQueryProjection.OptionalPreprocessing,
+    context: LogicalPlanningContext
+  ): LogicalPlan = {
+    optionalPreprocessing match {
+      case AggregatingQueryProjection.OptionalPreprocessing.Passthrough =>
+        source
+
+      case AggregatingQueryProjection.OptionalPreprocessing.FilterAndLimit(filterExpr, limitExpr) =>
+        val solved = solveds.get(source.id)
+
+        val filtered = filterExpr.fold(source) { filterExpr =>
+          planSelectionWithGivenSolved(source, Seq(filterExpr), solved, context)
+        }
+
+        val limit = planLimitOnTopOf(filtered, limitExpr)
+        annotate(limit, solved, ProvidedOrder.Left, cachedPropertiesPerPlan.get(filtered.id), context)
+    }
+  }
+
   def planOrderedAggregation(
     left: LogicalPlan,
     grouping: Map[LogicalVariable, Expression],
@@ -2531,13 +2557,15 @@ case class LogicalPlanProducer(
     orderToLeverage: Seq[Expression],
     reportedGrouping: Map[LogicalVariable, Expression],
     reportedAggregation: Map[LogicalVariable, Expression],
+    optionalPreprocessing: AggregatingQueryProjection.OptionalPreprocessing,
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved = solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.withHorizon(
       AggregatingQueryProjection(
         groupingExpressions = reportedGrouping,
         aggregationExpressions = reportedAggregation,
-        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables,
+        optionalPreprocessing = optionalPreprocessing
       )
     ))
 
@@ -2895,13 +2923,15 @@ case class LogicalPlanProducer(
     reportedGrouping: Map[LogicalVariable, Expression],
     reportedAggregation: Map[LogicalVariable, Expression],
     interestingOrder: InterestingOrder,
+    optionalPreprocessing: AggregatingQueryProjection.OptionalPreprocessing,
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.withHorizon(
       AggregatingQueryProjection(
         groupingExpressions = reportedGrouping,
         aggregationExpressions = reportedAggregation,
-        importedExposedSymbols = context.plannerState.importedSubqueryVariables
+        importedExposedSymbols = context.plannerState.importedSubqueryVariables,
+        optionalPreprocessing = optionalPreprocessing
       )
     ).withInterestingOrder(interestingOrder))
     val providedOrderRule = ProvidedOrder.Left

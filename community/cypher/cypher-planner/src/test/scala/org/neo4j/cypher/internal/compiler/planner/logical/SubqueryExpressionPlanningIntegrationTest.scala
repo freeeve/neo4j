@@ -2981,6 +2981,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       .projection("anon_0 = 2 AS foo")
       .apply()
       .|.aggregation(Seq.empty, Seq("count(*) AS anon_0"))
+      .|.limit(LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(2)))
       .|.filter("not r = r2")
       .|.expandInto("(a)-[r]->(b)")
       .|.expandAll("(a)<-[r2]-(b)")
@@ -3050,7 +3051,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
         .filter("anon_0 > 1")
         .apply()
         .|.aggregation(Seq(), Seq("count(*) AS anon_0"))
-        .|.sort("a ASC")
+        .|.top(Seq(Ascending(v"a")), LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(1)))
         .|.expandAll("(a)-[:KNOWS]->()")
         .|.argument("a")
         .nodeByLabelScan("a", "Person")
@@ -3081,6 +3082,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       .filter("anon_0 > 1")
       .apply()
       .|.aggregation(Seq(), Seq("count(*) AS anon_0"))
+      .|.limit(LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(1)))
       .|.skip(2L)
       .|.expandAll("(a)-[:KNOWS]->()")
       .|.argument("a")
@@ -3130,6 +3132,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       .filter("anon_0 > 1")
       .apply()
       .|.aggregation(Seq(), Seq("count(*) AS anon_0"))
+      .|.limit(LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(1)))
       .|.distinct("a AS a")
       .|.expandAll("(a)-[:KNOWS]->()")
       .|.argument("a")
@@ -3929,11 +3932,13 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
         .filter("anon_0 = 1")
         .apply()
         .|.aggregation(Seq(), Seq("count(*) AS anon_0"))
+        .|.limit(LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(1)))
         .|.filter("p:Person")
         .|.expandAll("(person)-[:FOLLOWS]->(p)")
         .|.filter("anon_1 = 1")
         .|.apply()
         .|.|.aggregation(Seq(), Seq("count(*) AS anon_1"))
+        .|.|.limit(LimitBeforeCountRewriter.limitSafeExpressionFrom(literal(1)))
         .|.|.expandAll("(person3)-[:LIKES]-()")
         .|.|.filter("person3.name = x")
         .|.|.apply()
@@ -4164,6 +4169,28 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       .projection("a.prop AS prop")
       .nodeByLabelScan("a", "A", IndexOrderNone)
       .build())
+  }
+
+  test("should get simple node COUNT {} from count store") {
+    val planner = plannerBuilder().setAllNodesCardinality(100).build()
+    val plan = planner.plan("RETURN COUNT { (n) } > 10 AS result").stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("anon_0 > 10 AS result")
+      .nodeCountFromCountStore("anon_0", Seq(None))
+      .build()
+  }
+
+  test("should get simple relationship COUNT {} from count store") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setRelationshipCardinality("()-[:REL]->()", 100)
+      .build()
+
+    val plan = planner.plan("RETURN COUNT { (n)-[r:REL]->(m) } > 10 AS result").stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("anon_0 > 10 AS result")
+      .relationshipCountFromCountStore("anon_0", None, Seq("REL"), None)
+      .build()
   }
 
   object VariableSet {

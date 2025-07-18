@@ -218,7 +218,8 @@ case object QueryPlanner
     ResolveTokens.completed,
     CopyQuantifiedPathPatternPredicatesToJuxtaposedNodes.completed,
     InlineRelationshipTypePredicates.completed,
-    StatefulShortestPlanningHintsInserter.completed
+    StatefulShortestPlanningHintsInserter.completed,
+    LimitBeforeCountRewriter.completed
   )
 
   override def postConditions: Set[StepSequencer.Condition] = Set(

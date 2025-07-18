@@ -1348,7 +1348,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           QueryPagination(limit, skip),
           where,
           _,
-          _
+          _,
+          AggregatingQueryProjection.OptionalPreprocessing.Passthrough
         ) =>
         groupingKeys should be(empty)
         limit should be(empty)
@@ -1375,7 +1376,8 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
           QueryPagination(limit, skip),
           where,
           _,
-          _
+          _,
+          AggregatingQueryProjection.OptionalPreprocessing.Passthrough
         ) =>
         groupingKeys should equal(Map(v"n.prop" -> nProp))
         limit should be(empty)

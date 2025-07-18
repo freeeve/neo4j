@@ -56,6 +56,8 @@ object aggregation {
     val aggregationsToReport = aggregation.aggregationExpressions
     val rewrittenGroupingExprs = toSolved(groupingExpressionsToReport)
     val rewrittenAggregationExprs = toSolved(aggregationsToReport)
+    val optionalPreprocessingToPlan =
+      aggregation.optionalPreprocessing.mapExpressions(rewrittenExpressions.rewrittenExpressionOrSelf)
 
     val projectionMapForLimit: Map[LogicalVariable, Expression] =
       if (AggregationHelper.isOnlyMinOrMaxAggregation(groupingExpressionsToReport, aggregationsToReport)) {
@@ -99,7 +101,8 @@ object aggregation {
         reportedGrouping = groupingExpressionsToReport,
         reportedAggregation = aggregationsToReport,
         interestingOrder = interestingOrderToReportForLimit,
-        context = context
+        context = context,
+        optionalPreprocessing = aggregation.optionalPreprocessing
       )
     } else {
       val inputProvidedOrder =
@@ -126,6 +129,8 @@ object aggregation {
           groupingExpressionsToReport,
           aggregationsToReport,
           previousInterestingOrder,
+          optionalPreprocessingToPlan,
+          aggregation.optionalPreprocessing,
           context
         )
       } else {
@@ -136,6 +141,7 @@ object aggregation {
           orderToLeverageForGrouping,
           groupingExpressionsToReport,
           aggregationsToReport,
+          aggregation.optionalPreprocessing,
           context
         )
       }
