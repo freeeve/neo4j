@@ -474,7 +474,6 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
 
         // when
         try (SeekCursor<KEY, VALUE> seek = seekCursor(expectedNext, lastSeed)) {
-            assertEquals(rightChild, cursor.getCurrentPageId());
             while (seek.next()) {
                 assertKeyAndValue(seek, expectedNext);
                 expectedNext++;
@@ -497,7 +496,6 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
 
         // when
         try (SeekCursor<KEY, VALUE> seek = seekCursor(expectedNext, -1)) {
-            assertEquals(rightChild, cursor.getCurrentPageId());
             while (seek.next()) {
                 assertKeyAndValue(seek, expectedNext);
                 expectedNext--;
@@ -1420,7 +1418,6 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         TestPageCursor seekCursor = new TestPageCursor(cursor.duplicate(rootId));
         seekCursor.next();
         try (SeekCursor<KEY, VALUE> seeker = seekCursor(fromInclusive, toExclusive, seekCursor)) {
-            assertThat(seekCursor.getCurrentPageId()).isEqualTo(leftChild);
             seekRangeWithUnderflowMidSeek(seeker, seekCursor, fromInclusive, toExclusive, rightChild);
             readCursor.next(rootId);
             assertTrue(TreeNodeUtil.isLeaf(readCursor));
@@ -1451,7 +1448,6 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         TestPageCursor seekCursor = new TestPageCursor(cursor.duplicate(rootId));
         seekCursor.next();
         try (SeekCursor<KEY, VALUE> seeker = seekCursor(fromInclusive, toExclusive, seekCursor)) {
-            assertThat(seekCursor.getCurrentPageId()).isEqualTo(rightChild);
             seekRangeWithUnderflowMidSeek(seeker, seekCursor, fromInclusive, toExclusive, leftChild);
             readCursor.next(rootId);
             assertTrue(TreeNodeUtil.isLeaf(readCursor));
@@ -1482,7 +1478,6 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         TestPageCursor seekCursor = new TestPageCursor(cursor.duplicate(rootId));
         seekCursor.next();
         try (SeekCursor<KEY, VALUE> seeker = seekCursor(fromInclusive, toExclusive, seekCursor)) {
-            assertThat(seekCursor.getCurrentPageId()).isEqualTo(rightChild);
             seekRangeWithUnderflowMidSeek(seeker, seekCursor, fromInclusive, toExclusive, leftChild);
             readCursor.next(rootId);
             assertTrue(TreeNodeUtil.isLeaf(readCursor));
@@ -1514,7 +1509,6 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         TestPageCursor seekCursor = new TestPageCursor(cursor.duplicate(rootId));
         seekCursor.next();
         try (SeekCursor<KEY, VALUE> seeker = seekCursor(fromInclusive, toExclusive, seekCursor)) {
-            assertThat(seekCursor.getCurrentPageId()).isEqualTo(leftChild);
             seekRangeWithUnderflowMidSeek(seeker, seekCursor, fromInclusive, toExclusive, rightChild);
             readCursor.next(rootId);
             assertTrue(TreeNodeUtil.isLeaf(readCursor));
@@ -1722,10 +1716,9 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         PageAwareByteArrayCursor pageCursorForSeeker = cursor.duplicate(oldRootId);
         pageCursorForSeeker.next();
         long position = i;
-        assertThrows(
-                TreeInconsistencyException.class,
-                () -> seekCursor(
-                        position, position + 1, pageCursorForSeeker, oldStableGeneration, oldUnstableGeneration));
+        assertThrows(TreeInconsistencyException.class, () -> seekCursor(
+                        position, position + 1, pageCursorForSeeker, oldStableGeneration, oldUnstableGeneration)
+                .next());
     }
 
     @Test
@@ -1791,10 +1784,9 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         PageAwareByteArrayCursor pageCursorForSeeker = cursor.duplicate(rootId);
         pageCursorForSeeker.next();
         long position = i;
-        assertThrows(
-                TreeInconsistencyException.class,
-                () -> seekCursor(
-                        position, position + 1, pageCursorForSeeker, oldStableGeneration, oldUnstableGeneration));
+        assertThrows(TreeInconsistencyException.class, () -> seekCursor(
+                        position, position + 1, pageCursorForSeeker, oldStableGeneration, oldUnstableGeneration)
+                .next());
     }
 
     @Test
@@ -1809,8 +1801,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         };
 
         // when
-        //noinspection EmptyTryBlock
-        try (SeekCursor<KEY, VALUE> ignored = new SeekCursor<>(
+        try (var seekCursor = new SeekCursor<>(
                         cursor, layout, leaf, internal, generationSupplier, EMPTY_EXCEPTION_DECORATOR, NULL_CONTEXT)
                 .initialize(
                         rootInitializer(generation - 1),
@@ -1820,7 +1811,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
                         1,
                         LEAF_LEVEL,
                         SeekCursor.NO_MONITOR)) {
-            // do nothing
+            seekCursor.next();
         }
 
         // then
@@ -1867,8 +1858,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
         // when
         KEY from = key(1L);
         KEY to = key(2L);
-        //noinspection EmptyTryBlock
-        try (SeekCursor<KEY, VALUE> ignored = new SeekCursor<>(
+        try (var seekCursor = new SeekCursor<>(
                         cursor, layout, leaf, internal, generationSupplier, EMPTY_EXCEPTION_DECORATOR, NULL_CONTEXT)
                 .initialize(
                         rootInitializer(unstableGeneration),
@@ -1878,7 +1868,7 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
                         1,
                         LEAF_LEVEL,
                         SeekCursor.NO_MONITOR)) {
-            // do nothing
+            seekCursor.next();
         }
 
         // then

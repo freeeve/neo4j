@@ -20,7 +20,6 @@
 package org.neo4j.index.internal.gbptree;
 
 import static org.neo4j.index.internal.gbptree.PointerChecking.checkOutOfBounds;
-import static org.neo4j.io.IOUtils.closeAllSilently;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -460,14 +459,6 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
         this.isInternal = false;
         this.nextSibling = PointerWithGeneration.EMPTY;
         this.prevSibling = PointerWithGeneration.EMPTY;
-
-        try {
-            traverseDownToCorrectLevel();
-        } catch (Throwable e) {
-            exceptionDecorator.accept(e);
-            closeAllSilently(this);
-            throw e;
-        }
         return this;
     }
 
@@ -570,11 +561,13 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
 
     @Override
     public boolean next() throws IOException {
-        // on the first call to next we set concurrentWriteHappened flag to true in order to trigger binary search in
-        // the leaf
-        // on subsequent calls first will be false, or ended will be true
-        boolean concurrentWriteHappened = first;
         try {
+            initialTraverseDownIfNeeded();
+
+            // on the first call to next we set concurrentWriteHappened flag to true in order to trigger binary search
+            // in the leaf
+            // on subsequent calls first will be false, or ended will be true
+            boolean concurrentWriteHappened = first;
             while (!ended) {
                 pos += stride;
 
@@ -660,6 +653,12 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
             throw e;
         }
         return false;
+    }
+
+    private void initialTraverseDownIfNeeded() throws IOException {
+        if (first && !ended) {
+            traverseDownToCorrectLevel();
+        }
     }
 
     private boolean readAndValidateNextKeyValueBatch(boolean writeHappened) throws IOException {

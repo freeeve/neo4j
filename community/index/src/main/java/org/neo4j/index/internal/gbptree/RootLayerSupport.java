@@ -202,12 +202,15 @@ class RootLayerSupport {
                     DEFAULT_MAX_READ_AHEAD,
                     searchLevel,
                     depthMonitor)) {
-                if (depthMonitor.reachedLeafLevel) {
-                    // Don't partition any further if we've reached leaf level.
-                    break;
-                }
                 while (seek.next()) {
-                    splitterKeysInRange.add(layout.copyKey(seek.key(), layout.newKey()));
+                    if (depthMonitor.reachedLeafLevel) {
+                        // Don't partition any further if we've reached leaf level.
+                        break;
+                    }
+                    splitterKeysInRange.add(layout.copyKey(seek.key()));
+                }
+                if (depthMonitor.reachedLeafLevel) {
+                    break;
                 }
             }
             searchLevel++;
