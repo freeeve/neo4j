@@ -37,7 +37,6 @@ import org.neo4j.cypher.cucumber.value.ValueRepresentation.NoIdNode
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.NoIdPath
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.NoIdRel
 import org.neo4j.values.storable.Values
-import org.neo4j.values.storable.VectorValue
 
 import java.util.Collections
 
@@ -51,9 +50,14 @@ import scala.jdk.CollectionConverters.SetHasAsJava
  */
 object CypherCucumberValueParser {
 
-  def parse(value: String): AnyRef = fastparse.parse[AnyRef](value, statement(_), verboseFailures = true) match {
-    case Parsed.Success(value, _) => value
-    case failure: Parsed.Failure  => throw new IllegalArgumentException(s"Failed to parse $value: ${failure.msg}")
+  private var driverParameters = false;
+
+  def parse(value: String, asDriverParameter: Boolean = false): AnyRef = {
+    driverParameters = asDriverParameter
+    fastparse.parse[AnyRef](value, statement(_), verboseFailures = true) match {
+      case Parsed.Success(value, _) => value
+      case failure: Parsed.Failure  => throw new IllegalArgumentException(s"Failed to parse $value: ${failure.msg}")
+    }
   }
 
   implicit private val whitespace: Whitespace = LimitedWhiteSpace
@@ -102,27 +106,63 @@ object CypherCucumberValueParser {
 
   private def vectorCoordinateType[X: P]: P[java.lang.String] = P(CharsWhileIn("A-Za-z0-9")).!
 
-  private def vector[X: P]: P[VectorValue] = P(vectorCoordinateType ~/ list).map {
+  private def vector[X: P]: P[AnyRef] = P(vectorCoordinateType ~/ list).map {
     case (vectorType: String, coordinates: java.util.List[AnyRef]) =>
       vectorType match {
-        case "Int8Vector" => Values.int8Vector(coordinates.asScala.collect { case i: Number =>
+        case "Int8Vector" =>
+          val coordinateArray: Array[Byte] = coordinates.asScala.collect { case i: Number =>
             i.byteValue()
-          }.toArray: _*)
-        case "Int16Vector" => Values.int16Vector(coordinates.asScala.collect { case i: Number =>
+          }.toArray
+          if (driverParameters) {
+            org.neo4j.driver.Values.vector(coordinateArray)
+          } else {
+            Values.int8Vector(coordinateArray: _*)
+          }
+        case "Int16Vector" =>
+          val coordinateArray: Array[Short] = coordinates.asScala.collect { case i: Number =>
             i.shortValue()
-          }.toArray: _*)
-        case "Int32Vector" => Values.int32Vector(coordinates.asScala.collect { case i: Number =>
+          }.toArray
+          if (driverParameters) {
+            org.neo4j.driver.Values.vector(coordinateArray)
+          } else {
+            Values.int16Vector(coordinateArray: _*)
+          }
+        case "Int32Vector" =>
+          val coordinateArray: Array[Int] = coordinates.asScala.collect { case i: Number =>
             i.intValue()
-          }.toArray: _*)
-        case "Int64Vector" => Values.int64Vector(coordinates.asScala.collect { case i: Number =>
+          }.toArray
+          if (driverParameters) {
+            org.neo4j.driver.Values.vector(coordinateArray)
+          } else {
+            Values.int32Vector(coordinateArray: _*)
+          }
+        case "Int64Vector" =>
+          val coordinateArray: Array[Long] = coordinates.asScala.collect { case i: Number =>
             i.longValue()
-          }.toArray: _*)
-        case "Float32Vector" => Values.float32Vector(coordinates.asScala.collect { case i: Number =>
+          }.toArray
+          if (driverParameters) {
+            org.neo4j.driver.Values.vector(coordinateArray)
+          } else {
+            Values.int64Vector(coordinateArray: _*)
+          }
+        case "Float32Vector" =>
+          val coordinateArray: Array[Float] = coordinates.asScala.collect { case i: Number =>
             i.floatValue()
-          }.toArray: _*)
-        case "Float64Vector" => Values.float64Vector(coordinates.asScala.collect { case i: Number =>
+          }.toArray
+          if (driverParameters) {
+            org.neo4j.driver.Values.vector(coordinateArray)
+          } else {
+            Values.float32Vector(coordinateArray: _*)
+          }
+        case "Float64Vector" =>
+          val coordinateArray: Array[Double] = coordinates.asScala.collect { case i: Number =>
             i.doubleValue()
-          }.toArray: _*)
+          }.toArray
+          if (driverParameters) {
+            org.neo4j.driver.Values.vector(coordinateArray)
+          } else {
+            Values.float64Vector(coordinateArray: _*)
+          }
       }
   }
 

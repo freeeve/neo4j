@@ -143,7 +143,7 @@ final class RegularCypherCucumberSteps @Inject() (
   }
 
   override def parametersAre(params: Map[String, String]): Unit = {
-    parameters = parameters ++ params.view.mapValues(CypherCucumberValueParser.parse)
+    parameters = parameters ++ params.view.mapValues(string => CypherCucumberValueParser.parse(string, conf.useBolt))
   }
 
   override def givenCsvFile(urlParam: String, content: DataTable): Unit = {
