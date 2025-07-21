@@ -18,15 +18,12 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.ProjectingUnionDistinct
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.Where
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -37,8 +34,6 @@ import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveAllReduceGroupVariable
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -389,62 +384,6 @@ class NamespacerTest extends CypherFunSuite with AstConstructionTestSupport with
 
       countExpression.introducedVariables.map(_.name) should be(Set("  p@1", "r", "i"))
       countExpression.scopeDependencies.map(_.name) should be(Set("  m@0"))
-    }
-  }
-
-  test("should rewrite allReduce() reduction step to reference the singleton variable") {
-    val query =
-      """MATCH (a) ((x)-[r]->(y))+ (b)
-        |WHERE allReduce(acc = 0, acc + r.prop, acc < 10)
-        |RETURN a, b
-        |""".stripMargin
-
-    val pipeline =
-      ResolveAllReduceGroupVariable andThen
-        SemanticAnalysis(Some(false), (semanticFeatures :+ SemanticFeature.AllReduceFunctionAvailable): _*) andThen
-        rewriterPhaseUnderTest
-
-    (CypherVersion.values().toSet - CypherVersion.Cypher5).foreach { version =>
-      val statement = prepareFrom(version, query, pipeline, SemanticFeature.AllReduceFunctionAvailable).statement()
-
-      statement shouldEqual
-        singleQuery(
-          match_(
-            pathConcatenation(
-              nodePat(Some("a")),
-              quantifiedPath(
-                relationshipChain(nodePat(Some("  x@0")), relPat(Some("  r@1")), nodePat(Some("  y@2"))),
-                plusQuantifier,
-                optionalWhereExpression = None,
-                variableGroupings = Set(
-                  variableGrouping(singleton = "  x@0", group = "  x@3"),
-                  variableGrouping(singleton = "  r@1", group = "  r@4"),
-                  variableGrouping(singleton = "  y@2", group = "  y@5")
-                )
-              ),
-              nodePat(Some("b"))
-            ),
-            MatchMode.default(pos),
-            where = Some(where(
-              and(
-                AllReducePredicate(
-                  groupVariable = v"  r@4",
-                  init = literalInt(0),
-                  scope = AllReducePredicate.AllReduceScope(
-                    accumulator = v"acc",
-                    predicate = lessThan(v"acc", literalInt(10)),
-                    reductionStepScope = AllReducePredicate.ReductionStepScope(
-                      singletonVariable = v"  r@6",
-                      reductionStep = add(v"acc", prop(v"  r@6", "prop"))
-                    )(pos)
-                  )(pos)
-                )(pos),
-                unique(v"  r@4")
-              )
-            ))
-          ),
-          return_(aliasedReturnItem(v"a"), aliasedReturnItem(v"b"))
-        )
     }
   }
 

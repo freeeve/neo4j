@@ -720,7 +720,8 @@ trait AstConstructionTestSupport {
   def allReduce(
     accumulator: LogicalVariable,
     init: Expression,
-    groupVariable: LogicalVariable,
+    reductionStepVariable: LogicalVariable,
+    list: LogicalVariable,
     allReduceStepExpression: Expression,
     allReducePredicate: Expression
   ): AllReducePredicate = {
@@ -728,19 +729,20 @@ trait AstConstructionTestSupport {
       scope = AllReduceScope(
         accumulator = accumulator,
         reductionStepScope = ReductionStepScope(
-          singletonVariable = groupVariable,
+          reductionStepVariable = reductionStepVariable,
           reductionStep = allReduceStepExpression
         )(pos),
         predicate = allReducePredicate
       )(pos),
-      groupVariable = groupVariable,
-      init = init
+      init = init,
+      list = list
     )(pos)
   }
 
   def allReduceFallBack(
     accumulator: LogicalVariable,
     init: Expression,
+    stepVariable: LogicalVariable,
     groupVariable: LogicalVariable,
     allReduceStepExpression: Expression,
     allReducePredicate: Expression,
@@ -753,7 +755,7 @@ trait AstConstructionTestSupport {
       reduce(
         accumulator = state,
         init = mapOf(stateAcc -> init, stateResult -> trueLiteral),
-        variable = groupVariable,
+        variable = stepVariable,
         collection = groupVariable,
         expression = caseExpression(
           expression = None,

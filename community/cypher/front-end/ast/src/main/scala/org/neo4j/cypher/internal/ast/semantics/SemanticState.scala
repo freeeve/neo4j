@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.semantics.Scope.DeclarationsAndDependencies
 import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeLocation
-import org.neo4j.cypher.internal.expressions.AllReducePredicateUnchecked
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -470,8 +469,7 @@ case class SemanticState(
   declareVariablesToSuppressDuplicateErrors: Boolean = true,
   semanticCheckHasRunOnce: Boolean = false,
   targetGraph: Option[GraphReference] = None,
-  workingGraph: Option[GraphReference] = None,
-  resolvedGroupVariables: ASTAnnotationMap[AllReducePredicateUnchecked, String] = ASTAnnotationMap.empty
+  workingGraph: Option[GraphReference] = None
 ) {
 
   def scopeTree: Scope = currentScope.rootScope

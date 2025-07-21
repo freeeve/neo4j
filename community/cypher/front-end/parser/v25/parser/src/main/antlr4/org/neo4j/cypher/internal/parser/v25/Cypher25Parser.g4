@@ -640,7 +640,7 @@ reduceExpression
    ;
 
 allReduceExpression
-   : ALLREDUCE LPAREN variable EQ expression COMMA expression COMMA expression RPAREN
+   : ALLREDUCE LPAREN variable EQ expression COMMA variable IN expression BAR expression COMMA expression RPAREN
    ;
 
 listItemsPredicate

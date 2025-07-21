@@ -19,90 +19,70 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.Pipeline
-import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.If
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveAllReduceGroupVariable
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysisTestSuite {
 
-  private def pipelineWithResolveGroupVariableRewriter(rewriterEnabled: Boolean): Pipeline =
-    PreparatoryRewriting andThen
-      SemanticAnalysis(warn = Some(true), SemanticFeature.AllReduceFunctionAvailable) andThen
-      If((_: BaseState) => rewriterEnabled)(ResolveAllReduceGroupVariable) andThen
-      SemanticAnalysis(warn = Some(false), SemanticFeature.AllReduceFunctionAvailable) andThen
-      SemanticTypeCheck andThen
-      AmbiguousAggregationAnalysis
-
   private def run25(query: String): AnalysisAssertions = {
     run(
       query,
-      pipeline = pipelineWithResolveGroupVariableRewriter(rewriterEnabled = true),
-      disabledVersions = Set(CypherVersion.Cypher5)
-    )
-  }
-
-  // Don't run the rewriter if we expect to fail during the first pass of semantic analysis
-  private def run25WithoutRewriter(query: String): AnalysisAssertions = {
-    run(
-      query,
-      pipeline = pipelineWithResolveGroupVariableRewriter(rewriterEnabled = false),
+      pipeline = pipelineWithSemanticFeatures(SemanticFeature.AllReduceFunctionAvailable),
       disabledVersions = Set(CypherVersion.Cypher5)
     )
   }
 
   test("allReduce() not available without semantic feature") {
-    run("RETURN allReduce(acc = 0, acc + 1, acc <= 5) AS result")
-      .hasErrorMessagesIn {
-        case CypherVersion.Cypher5 => Seq(
-            "Variable `acc` not defined"
-          )
-        case CypherVersion.Cypher25 => Seq(
-            "allReduce() function is not available in this implementation of Cypher due to lack of support for allReduce() function."
-          )
-      }
+    // TODO: test this in Cypher 5
+    run(
+      "RETURN allReduce(acc = 0, a IN b | acc + 1, acc <= 5) AS result",
+      pipeline = pipelineWithSemanticFeatures(),
+      disabledVersions = Set(CypherVersion.Cypher5)
+    ).hasErrorMessages(
+      "allReduce() function is not available in this implementation of Cypher due to lack of support for allReduce() function."
+    )
   }
 
   test("allReduce() available with semantic feature") {
-    run(
-      "MATCH (a)-[r]->+(b) RETURN allReduce(acc = [], acc + r, size(acc) <= 5) AS result",
-      pipeline = pipelineWithSemanticFeatures(SemanticFeature.AllReduceFunctionAvailable)
-    )
-      .hasErrorMessagesIn {
-        case CypherVersion.Cypher5 => Seq(
-            "Variable `acc` not defined"
-          )
-        case CypherVersion.Cypher25 => Seq.empty
-      }
+    run25(
+      "MATCH (a)-[r]->+(b) RETURN allReduce(acc = [], iter IN r | acc + iter, size(acc) <= 5) AS result"
+    ).hasNoErrors
   }
 
   test("should not allow undefined variables in init") {
-    run25WithoutRewriter(
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = zzz, acc + r.prop, acc <= 5)
+        |WHERE allReduce(acc = zzz, rel IN r | acc + rel.prop, acc <= 5)
         |RETURN a, b
         |""".stripMargin
     ).hasErrorMessages("Variable `zzz` not defined")
   }
 
-  test("should not allow accumulator variable in init") {
-    run25WithoutRewriter(
+  test("should return an error when the iteration expression is not a list") {
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = acc, acc + r.prop, acc <= 5)
+        |WHERE allReduce(acc = 45, rel IN 1 | acc + rel.prop, acc <= 5)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages(
+      "Type mismatch: expected List<T> but was Integer",
+      "Type mismatch: expected Map, Node, Relationship, Point, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was Any"
+    )
+  }
+
+  test("should not allow accumulator variable in init") {
+    run25(
+      """MATCH (a)-[r]->+(b)
+        |WHERE allReduce(acc = acc, rel IN r | acc + rel.prop, acc <= 5)
         |RETURN a, b
         |""".stripMargin
     ).hasErrorMessages("Variable `acc` not defined")
   }
 
   test("should not allow aggregation in init in WHERE") {
-    run25WithoutRewriter(
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = count(*), acc + r.prop, acc <= 5)
+        |WHERE allReduce(acc = count(*), rel IN r | acc + rel.prop, acc <= 5)
         |RETURN a, b
         |""".stripMargin
     ).hasErrorMessages("Invalid use of aggregating function count(...) in this context")
@@ -111,16 +91,19 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   test("should allow aggregation in init in RETURN") {
     run25(
       """MATCH (a)-[r]->+(b)
-        |RETURN r, allReduce(acc = count(*), acc + r.prop, acc <= 5) AS result
+        |RETURN r, allReduce(acc = count(*), rel IN r | acc + rel.prop, acc <= 5) AS result
         |""".stripMargin
     ).hasNoErrors
   }
 
   test("should find implicit grouping expression in allReduce()") {
-    run25(
+    run(
       """MATCH (a)-[r]->+(b)
-        |RETURN allReduce(acc = count(*), acc + r.prop, acc <= 5) AS result
-        |""".stripMargin
+        |RETURN allReduce(acc = count(*), rel IN r | acc + rel.prop, acc <= 5) AS result
+        |""".stripMargin,
+      pipeline =
+        pipelineWithSemanticFeatures(SemanticFeature.AllReduceFunctionAvailable) andThen AmbiguousAggregationAnalysis,
+      disabledVersions = Set(CypherVersion.Cypher5)
     ).hasErrorMessages(SemanticError.implicitGroupingExpressionInAggregationColumnErrorMessage(Seq("r")))
   }
 
@@ -128,7 +111,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
     run25(
       """WITH 1 AS acc
         |MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = acc, acc + r.prop, acc <= 5)
+        |WHERE allReduce(acc = acc, rel IN r | acc + rel.prop, acc <= 5)
         |RETURN a, b
         |""".stripMargin
     ).hasNoErrors
@@ -137,7 +120,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   test("should allow subquery expression in init") {
     run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = COUNT { (a)-->(acc) WHERE a <> acc }, acc + r.prop, acc <= 5)
+        |WHERE allReduce(acc = COUNT { (a)-->(acc) WHERE a <> acc }, rel IN r | acc + rel.prop, acc <= 5)
         |RETURN a, b
         |""".stripMargin
     ).hasNoErrors
@@ -146,8 +129,8 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   test("should allow nested allReduce() in init") {
     run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = allReduce(acc = [], acc + r, size(acc) < 5),
-        |                toInteger(acc) + r.prop,
+        |WHERE allReduce(acc = allReduce(acc = [], rel IN r | acc + rel, size(acc) < 5),
+        |                rel IN r | toInteger(acc) + rel.prop,
         |                toInteger(acc) <= 5)
         |RETURN a, b
         |""".stripMargin
@@ -155,27 +138,27 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   }
 
   test("return type of allReduce() is Boolean") {
-    run25WithoutRewriter(
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE isEmpty(allReduce(acc = 0, acc + r.prop, acc <= 5))
+        |WHERE isEmpty(allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5))
         |RETURN a, b
         |""".stripMargin
     ).hasErrorMessages("Type mismatch: expected Map, Node, Relationship, String or List<T> but was Boolean")
   }
 
   test("type of projected allReduce() is Boolean") {
-    run25WithoutRewriter(
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WITH allReduce(acc = 0, acc + r.prop, acc <= 5) AS arResult
+        |WITH allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5) AS arResult
         |RETURN isEmpty(arResult)
         |""".stripMargin
     ).hasErrorMessages("Type mismatch: expected Map, Node, Relationship, String or List<T> but was Boolean")
   }
 
   test("predicate should be a boolean expression") {
-    run25WithoutRewriter(
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = 0, acc + r.prop, 123)
+        |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop, 123)
         |RETURN a, b
         |""".stripMargin
     ).hasErrorMessages("Type mismatch: expected Boolean but was Integer")
@@ -184,7 +167,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   test("should accept possible boolean expressions as predicate") {
     run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = [], acc + r.prop, acc[2])
+        |WHERE allReduce(acc = [], rel IN r | acc + rel.prop, acc[2])
         |RETURN a, b
         |""".stripMargin
     ).hasNoErrors
@@ -193,97 +176,88 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   test("should treat group variable in reduction step as singleton") {
     run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = [], acc + r.prop, size(acc) <= 5)
+        |WHERE allReduce(acc = [], rel IN r | acc + rel.prop, size(acc) <= 5)
         |RETURN a, b
         |""".stripMargin
     ).hasNoErrors
   }
 
-  test("should not allow to use group variable in reduction step as a list") {
-    run25WithoutRewriter(
+  test("should allow using group variable in reduction step as a list") {
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = 0, acc + size(r), acc <= 10)
+        |WHERE allReduce(acc = 0, rel IN r | acc + size(r), acc <= 10)
         |RETURN a, b
         |""".stripMargin
-    ).hasErrorMessages("Type mismatch: expected String, Vector or List<T> but was Relationship")
+    ).hasNoErrors
   }
 
-  test("should not allow multiple group variables in reduction step") {
-    run25WithoutRewriter(
+  test("should not allow using implicitly imported group variables in reduction step as singletons") {
+    run25(
       """MATCH (a) ((n)-[r]->(m))+ (b)
-        |WHERE allReduce(acc = 0, acc + r.prop + m.prop, acc <= 10)
+        |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop + m.prop, acc <= 10)
         |RETURN a, b
         |""".stripMargin
-    ).hasErrorMessages("Wrong number of group variables: 2")
+    ).hasErrorMessages(
+      "Type mismatch: expected Map, Node, Relationship, Point, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was List<Node>"
+    )
   }
 
-  test("should require at least one group variable in reduction step") {
-    run25WithoutRewriter(
+  test("can support reduction with no group variables") {
+    run25(
       """MATCH (a)((n)-[r]->(m))+(b)
-        |WHERE allReduce(acc = 0, acc + 1, acc < 10)
+        |WHERE allReduce(acc = 0, rel IN [0,1] | acc + 1, acc < 10)
         |RETURN a, b
         |""".stripMargin
-    ).hasErrorMessages("Wrong number of group variables: 0")
+    ).hasNoErrors
   }
 
   test("should allow to reference additional non-group variables in reduction step") {
     run25(
       """WITH 123 AS threshold
         |MATCH (a) ((n)-[r]->(m))+ (b)
-        |WHERE allReduce(acc = 0, acc + a.prop + b.prop + r.prop, acc <= threshold)
+        |WHERE allReduce(acc = 0, rel IN r | acc + a.prop + b.prop + rel.prop, acc <= threshold)
         |RETURN a, b
         |""".stripMargin
     ).hasNoErrors
   }
 
   test("should not allow aggregation in reduction step") {
-    run25WithoutRewriter(
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = [], acc + r.prop + count(*), size(acc) <= 5)
+        |WHERE allReduce(acc = [], rel IN r | acc + rel.prop + count(*), size(acc) <= 5)
         |RETURN a, b
         |""".stripMargin
     ).hasErrorMessages("Invalid use of aggregating function count(...) in this context")
   }
 
-  test("should not allow nested allReduce() in reduction step") {
-    run25WithoutRewriter(
+  test("should allow nested allReduce() in reduction step") {
+    run25(
       """MATCH (a) ((n)-[r]->(m))+ (b)
         |WHERE allReduce(acc = [],
-        |                acc + m.prop + allReduce(nacc = 0, nacc + r.prop, nacc < 10),
+        |                node IN m | acc + node.prop + allReduce(nacc = 0, rel IN r | nacc + rel.prop, nacc < 10),
         |                size(acc) <= 123)
         |RETURN a, b
         |""".stripMargin
-    ).hasErrorMessages("Wrong number of group variables: 0")
+    ).hasNoErrors
   }
 
   test("should allow subquery expression in reduction step") {
     run25(
       """MATCH (a) ((n)-[r]->(m))+ (b)
         |WHERE allReduce(acc = 0,
-        |                acc + COUNT { (n)-[:FRIEND_OF]->() },
+        |                node IN n | acc + COUNT { (node)-[:FRIEND_OF]->() },
         |                acc <= 123)
         |RETURN a, b
         |""".stripMargin
     ).hasNoErrors
   }
 
-  test("should not allow multiple group variables in subquery expression in reduction step") {
-    run25WithoutRewriter(
-      """MATCH (a) ((n)-[r]->(m))+ (b)
-        |WHERE allReduce(acc = 0,
-        |                acc + COUNT { (n)-[:FRIEND_OF]->(m) },
-        |                acc < 5)
-        |RETURN a, b
-        |""".stripMargin
-    ).hasErrorMessages("Wrong number of group variables: 2")
-  }
-
-  test("should correctly find group variable through CALL (*) in reduction step") {
+  test("should allow using reductionStepVariable through CALL (*) in reduction step") {
     run25(
       """MATCH (a) ((n)-[r]->(m))+ (b)
         |WHERE allReduce(acc = 0,
-        |                acc + COUNT {
-        |                        CALL (*) { MATCH (n)-[:FRIEND_OF]->(x) RETURN x }
+        |                node IN n | acc + COUNT {
+        |                        CALL (*) { MATCH (node)-[:FRIEND_OF]->(x) RETURN x }
         |                      },
         |                acc < 10)
         |RETURN a, b
@@ -291,30 +265,67 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
     ).hasNoErrors
   }
 
-  test("should correctly find extra group variables through CALL (*) in reduction step") {
-    run25WithoutRewriter(
+  test("should allow shadowing extra group variables through CALL (*) in reduction step") {
+    run25(
       """MATCH (a)((n)-[r]->(m))+(b)
         |WHERE allReduce(acc = 0,
-        |                acc + COUNT {
-        |                        CALL (*) { MATCH (n)-[:FRIEND_OF]->(m) RETURN n, m }
+        |                node IN n | acc + COUNT {
+        |                        CALL (*) { MATCH (node)-[:FRIEND_OF]->(m) RETURN node, m }
         |                      },
         |                acc < 10)
         |RETURN a, b
         |""".stripMargin
-    ).hasErrorMessages("Wrong number of group variables: 2")
+    ).hasNoErrors
   }
 
-  test("should correctly identify shadowed variables in CALL in reduction step") {
-    run25WithoutRewriter(
-      """MATCH (a) ((n)-[r]->(m))+ (b)
+  test("should ensure that the accumulator and the reduction step have matching types") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
         |WHERE allReduce(acc = 0,
-        |                acc + COUNT { WITH 1 AS n RETURN n },
+        |                node IN ["Hello", "World"] | acc + node,
+        |                acc < 10)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages("Type mismatch: accumulator is Integer but reduction has type String")
+  }
+
+  test("should not throw an error when accumulator can be coerced to the reduction type") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
+        |WHERE allReduce(acc = "0",
+        |                node IN [1,2] | acc + node,
+        |                acc < 10)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasNoErrors
+  }
+
+  test("should correctly find reduction step type mismatches through CALL (*) in reduction step") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
+        |WHERE allReduce(acc = {},
+        |                node IN n | acc + COUNT {
+        |                        CALL (*) { MATCH (node)-[:FRIEND_OF]->(x) RETURN node, x}
+        |                      },
         |                acc < 10)
         |RETURN a, b
         |""".stripMargin
     ).hasErrorMessages(
-      "The variable `n` is shadowing a variable with the same name from the outer scope and needs to be renamed",
-      "Wrong number of group variables: 0"
+      "Type mismatch: expected List<T> but was Integer",
+      "Type mismatch: accumulator is Map but reduction has type Any"
+    )
+  }
+
+  test("should correctly identify shadowed variables in CALL in reduction step") {
+    run25(
+      """MATCH (a) ((n)-[r]->(m))+ (b)
+        |WHERE allReduce(acc = 0,
+        |                node IN n | acc + COUNT { WITH 1 AS n RETURN n },
+        |                acc < 10)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages(
+      "The variable `n` is shadowing a variable with the same name from the outer scope and needs to be renamed"
     )
   }
 
@@ -322,7 +333,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
     run25(
       """MATCH (a)-[r]->+(b)
         |WITH *
-        |RETURN allReduce(acc = 0, acc + r.prop, acc <= 5) AS result
+        |RETURN allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5) AS result
         |""".stripMargin
     ).hasNoErrors
   }
@@ -332,7 +343,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)-[r]->+(b)
         |RETURN r
         |NEXT
-        |RETURN allReduce(acc = 0, acc + r.prop, acc <= 5) AS result
+        |RETURN allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5) AS result
         |""".stripMargin
     ).hasNoErrors
   }
@@ -341,7 +352,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
     run25(
       """MATCH (a)-[r]->+(b)
         |WITH r
-        |RETURN allReduce(acc = 0, acc + r.prop, acc <= 5) AS result
+        |RETURN allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5) AS result
         |""".stripMargin
     ).hasNoErrors
   }
@@ -350,28 +361,25 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
     run25(
       """MATCH (a)-[r]->+(b)
         |WITH r AS alias
-        |RETURN allReduce(acc = 0, acc + alias.prop, acc <= 5) AS result
+        |RETURN allReduce(acc = 0, rel IN alias | acc + rel.prop, acc <= 5) AS result
         |""".stripMargin
     ).hasNoErrors
   }
 
-  test("should not mark output of coalesce() as group variable") {
-    run25WithoutRewriter(
+  test("should allow running an allReduce on the output of coalesce()") {
+    run25(
       """MATCH (a)-[r]->+(b)
         |WITH coalesce(r, 123) AS alias
-        |RETURN allReduce(acc = 0, acc + alias.prop, acc <= 5) AS result
+        |RETURN allReduce(acc = 0, rel IN alias | acc + rel.prop, acc <= 5) AS result
         |""".stripMargin
-    ).hasErrorMessages(
-      "Type mismatch: expected Map, Node, Relationship, Point, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was Integer or List<Relationship>",
-      "Wrong number of group variables: 0"
-    )
+    ).hasNoErrors
   }
 
   test("should carry group variables through CALL subquery import") {
     run25(
       """MATCH (a)-[r]->+(b)
         |CALL (r) {
-        |  RETURN allReduce(acc = 0, acc + r.prop, acc <= 5) AS result
+        |  RETURN allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5) AS result
         |}
         |RETURN result
         |""".stripMargin
@@ -382,7 +390,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
     run25(
       """MATCH (a)-[r]->+(b)
         |CALL (*) {
-        |  RETURN allReduce(acc = 0, acc + r.prop, acc <= 5) AS result
+        |  RETURN allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5) AS result
         |}
         |RETURN result
         |""".stripMargin
@@ -395,7 +403,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |CALL (r) {
         |  RETURN 123 AS result
         |  UNION
-        |  RETURN allReduce(acc = 0, acc + r.prop, acc <= 5) AS result
+        |  RETURN allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5) AS result
         |}
         |RETURN result
         |""".stripMargin
@@ -408,7 +416,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |CALL (*) {
         |  RETURN 123 AS result
         |  UNION
-        |  RETURN allReduce(acc = 0, acc + r.prop, acc <= 5) AS result
+        |  RETURN allReduce(acc = 0, rel IN r | acc + rel.prop, acc <= 5) AS result
         |}
         |RETURN result
         |""".stripMargin
@@ -416,20 +424,58 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   }
 
   test("should allow shadowed variable name for accumulator") {
-    run25WithoutRewriter(
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(a = 0, a + r.prop, a <= 5)
+        |WHERE allReduce(a = 0, rel IN r | a + rel.prop, a <= 5)
         |RETURN a, b
         |""".stripMargin
     ).hasNoErrors
   }
 
   test("should allow predicate without accumulator") {
-    run25WithoutRewriter(
+    run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = 0, acc + r.prop, a.prop = 5)
+        |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop, a.prop = 5)
         |RETURN a, b
         |""".stripMargin
     ).hasNoErrors
+  }
+
+  test("should not allow reduction step variable in predicate") {
+    run25(
+      """MATCH (a)-[r]->+(b)
+        |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop, rel.prop = 5)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages("Variable `rel` not defined")
+  }
+
+  test("should not allow using reduction step variable to initialize accumulator") {
+    run25(
+      """MATCH (a)-[r]->+(b)
+        |WHERE allReduce(acc = rel.prop, rel IN r | acc + rel.prop, acc = 5)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages("Variable `rel` not defined")
+  }
+
+  test("should not allow using reduction step variable outside of reduction step") {
+    run25(
+      """MATCH (a)-[r]->+(b)
+        |WHERE allReduce(acc = rel.prop, rel IN r | acc + rel.prop, acc = 5)
+        |RETURN a, rel
+        |""".stripMargin
+    ).hasErrorMessages("Variable `rel` not defined")
+  }
+
+  test("should fail gracefully when allReduce() is used inside the QPP") {
+    run25(
+      """MATCH p = (a)-[r WHERE allReduce(acc = 0, rel IN r | acc + rel.p, acc <= 5)]->+(b)
+        |RETURN p
+        |""".stripMargin
+    ).hasErrorMessages(
+      "Type mismatch: expected List<T> but was Relationship",
+      "Type mismatch: expected Map, Node, Relationship, Point, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was Any"
+    )
   }
 }

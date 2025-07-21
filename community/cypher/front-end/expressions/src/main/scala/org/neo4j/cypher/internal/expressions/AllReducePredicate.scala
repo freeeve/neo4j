@@ -20,34 +20,18 @@ import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
 import org.neo4j.cypher.internal.util.InputPosition
 
 /**
- * AST node directly from the parser, before group variable is known.
- */
-case class AllReducePredicateUnchecked(
-  accumulator: LogicalVariable,
-  init: Expression,
-  reductionStep: Expression,
-  predicate: Expression
-)(val position: InputPosition) extends BooleanExpression {
-
-  override def isConstantForQuery: Boolean =
-    init.isConstantForQuery &&
-      reductionStep.isConstantForQuery &&
-      predicate.isConstantForQuery
-}
-
-/**
  * AST node after the group variable has been resolved.
  */
 case class AllReducePredicate(
   scope: AllReduceScope,
-  groupVariable: LogicalVariable,
-  init: Expression
+  init: Expression,
+  list: Expression
 )(val position: InputPosition) extends BooleanExpression {
 
   def accumulator: LogicalVariable = scope.accumulator
   def reductionStep: Expression = scope.reductionStepScope.reductionStep
   def predicate: Expression = scope.predicate
-  def singletonVariable: LogicalVariable = scope.reductionStepScope.singletonVariable
+  def reductionStepVariable: LogicalVariable = scope.reductionStepScope.reductionStepVariable
 
   override def isConstantForQuery: Boolean =
     init.isConstantForQuery && scope.isConstantForQuery
@@ -55,14 +39,8 @@ case class AllReducePredicate(
 
 object AllReducePredicate {
 
-  def unchecked(
-    accumulator: LogicalVariable,
-    init: Expression,
-    reductionStep: Expression,
-    predicate: Expression
-  )(position: InputPosition): AllReducePredicateUnchecked = {
-    AllReducePredicateUnchecked(accumulator, init, reductionStep, predicate)(position)
-  }
+  val AccumulatorReductionTypeMismatchMessageGenerator: (String, String) => String =
+    (expected: String, existing: String) => s"accumulator is $expected but reduction has type $existing"
 
   case class AllReduceScope(
     accumulator: LogicalVariable,
@@ -77,17 +55,17 @@ object AllReducePredicate {
 
   /**
    * Represents the second part of an allReduce predicate: How to calculate the next iteration of the accumulator.
-   * @param singletonVariable the variable used in `reductionStep` representing the singleton from the QPP.
-   *                          Note that this can have a namespaced name from the QPP's singleton variable. 
+   * @param reductionStepVariable the variable used in `reductionStep` representing the singleton from  a list, likely from the QPP.
    * @param reductionStep expression to calculate the next iteration of the accumulator
    */
   case class ReductionStepScope(
-    singletonVariable: LogicalVariable,
+    reductionStepVariable: LogicalVariable,
     reductionStep: Expression
   )(val position: InputPosition) extends ScopeExpression {
-    override def introducedVariables: Set[LogicalVariable] = Set(singletonVariable)
+    override def introducedVariables: Set[LogicalVariable] = Set(reductionStepVariable)
 
-    override def scopeDependencies: Set[LogicalVariable] = reductionStep.dependencies -- introducedVariables
+    override def scopeDependencies: Set[LogicalVariable] =
+      reductionStep.dependencies -- introducedVariables
   }
 }
 

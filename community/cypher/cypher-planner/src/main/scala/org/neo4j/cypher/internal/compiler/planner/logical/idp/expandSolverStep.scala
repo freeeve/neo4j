@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicat
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
-import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Equals
@@ -414,9 +413,9 @@ object expandSolverStep {
 
     val allReduceAccumulators =
       innerPlanPredicates.collect {
-        case pred @ AllReducePredicate(AllReduceScope(accumulator, _, _), _, init) =>
+        case pred: AllReducePredicate =>
           // At this point, the accumulators are still the same. They will be namespaced by `AllReduceSingletonRewriter`
-          AllReduceAccumulator(init, accumulator, accumulator)(pred.position)
+          AllReduceAccumulator(pred.init, pred.accumulator, pred.accumulator)(pred.position)
       }.toSet
 
     val plan = updatedContext.staticComponents.logicalPlanProducer.planRepeat(

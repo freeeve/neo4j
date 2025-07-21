@@ -2494,7 +2494,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         |      (b)
         |  WHERE allReduce(
         |    sum = 0,
-        |    sum + rel.prop,
+        |    step IN rel | sum + step.prop,
         |    sum < a.prop
         |  )
         |RETURN rel

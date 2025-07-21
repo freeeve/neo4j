@@ -62,7 +62,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("allReduce in return clause should fallback to post-filter reduce() - node group variable") {
     val plan = planner.plan(
       CypherVersion.Cypher25,
-      "MATCH (os)((is)-[r]->(ie)){1,3}(oe) RETURN allReduce(acc = 0, acc + ie.x, acc < 12) AS result"
+      "MATCH (os)((is)-[r]->(ie)){1,3}(oe) RETURN allReduce(acc = 0, node IN ie | acc + node.x, acc < 12) AS result"
     ).stripProduceResults
 
     val trailParameters = TrailParameters(
@@ -90,8 +90,9 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .projection(Map("result" -> allReduceFallBack(
         accumulator = v"acc",
         init = literalInt(0),
+        stepVariable = v"node",
         groupVariable = v"ie",
-        allReduceStepExpression = add(v"acc", prop(v"ie", "x")),
+        allReduceStepExpression = add(v"acc", prop(v"node", "x")),
         allReducePredicate = lessThan(v"acc", literalInt(12)),
         nextAnonymousVariable = v"anon_0"
       )))
@@ -106,7 +107,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("allReduce in return clause should fallback to post-filter reduce() - relationship group variable") {
     val plan = planner.plan(
       CypherVersion.Cypher25,
-      "MATCH (os)((is)-[r]->(ie)){1,3}(oe) RETURN allReduce(acc = 1, acc * r.x, acc < 12)"
+      "MATCH (os)((is)-[r]->(ie)){1,3}(oe) RETURN allReduce(acc = 1, rel IN r | acc * rel.x, acc < 12)"
     ).stripProduceResults
 
     plan shouldEqual planner.subPlanBuilder()
@@ -114,11 +115,12 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       //   WHEN acc.result = false THEN acc
       //   ELSE [anon_0 IN [acc.accumulator * r.x] | {accumulator: anon_0, result: acc.result AND anon_0 < 12}][0]
       // END).result AS `allReduce(acc = 1, acc * r.x, acc < 12)`
-      .projection(Map("allReduce(acc = 1, acc * r.x, acc < 12)" -> allReduceFallBack(
+      .projection(Map("allReduce(acc = 1, rel IN r | acc * rel.x, acc < 12)" -> allReduceFallBack(
         accumulator = v"acc",
         init = literalInt(1),
+        stepVariable = v"rel",
         groupVariable = v"r",
-        allReduceStepExpression = multiply(v"acc", prop(v"r", "x")),
+        allReduceStepExpression = multiply(v"acc", prop(v"rel", "x")),
         allReducePredicate = lessThan(v"acc", literalInt(12)),
         nextAnonymousVariable = v"anon_0"
       )))
@@ -130,7 +132,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("allReduce in WITH clause should fallback to post-filter reduce()") {
     val plan = planner.plan(
       CypherVersion.Cypher25,
-      "MATCH (os)((is)-[r]->(ie)){1,3}(oe) WITH allReduce(acc = 1, acc * r.x, acc < 12) AS x RETURN 1"
+      "MATCH (os)((is)-[r]->(ie)){1,3}(oe) WITH allReduce(acc = 1, rel IN r | acc * rel.x, acc < 12) AS x RETURN 1"
     ).stripProduceResults
 
     plan shouldEqual planner.subPlanBuilder()
@@ -142,8 +144,9 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .projection(Map("x" -> allReduceFallBack(
         accumulator = v"acc",
         init = literalInt(1),
+        stepVariable = v"rel",
         groupVariable = v"r",
-        allReduceStepExpression = multiply(v"acc", prop(v"r", "x")),
+        allReduceStepExpression = multiply(v"acc", prop(v"rel", "x")),
         allReducePredicate = lessThan(v"acc", literalInt(12)),
         nextAnonymousVariable = v"anon_0"
       )))
@@ -155,7 +158,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("allReduce in SSP clause should fallback to post-filter reduce()") {
     val plan = planner.plan(
       CypherVersion.Cypher25,
-      "MATCH ANY (os)((is)-[r]->(ie)){1,3}(oe) WHERE allReduce(acc = 1, acc * r.x, acc < 12) RETURN 1"
+      "MATCH ANY (os)((is)-[r]->(ie)){1,3}(oe) WHERE allReduce(acc = 1, rel IN r | acc * rel.x, acc < 12) RETURN 1"
     ).stripProduceResults
 
     plan shouldEqual planner.subPlanBuilder()
@@ -167,8 +170,9 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .filterExpression(allReduceFallBack(
         accumulator = v"acc",
         init = literalInt(1),
+        stepVariable = v"rel",
         groupVariable = v"r",
-        allReduceStepExpression = multiply(v"acc", prop(v"r", "x")),
+        allReduceStepExpression = multiply(v"acc", prop(v"rel", "x")),
         allReducePredicate = lessThan(v"acc", literalInt(12)),
         nextAnonymousVariable = v"anon_0"
       ))
@@ -209,8 +213,8 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       """
         |MATCH (a)-[r]->+(b)
         |RETURN allReduce(
-        |  acc = allReduce(acc = [], acc + r, size(acc) < 5),
-        |  toInteger(acc) + r.prop,
+        |  acc = allReduce(acc = [], rel IN r | acc + rel, size(acc) < 5),
+        |  rel IN r | toInteger(acc) + rel.prop,
         |  toInteger(acc) <= 5
         |) AS result
         |""".stripMargin
@@ -237,13 +241,15 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
             init = allReduceFallBack(
               accumulator = v"acc",
               init = ListLiteral(Seq.empty)(pos),
+              stepVariable = v"rel",
               groupVariable = v"r",
-              allReduceStepExpression = add(v"acc", v"r"),
+              allReduceStepExpression = add(v"acc", v"rel"),
               allReducePredicate = lessThan(size(v"acc"), literalInt(5)),
               nextAnonymousVariable = v"anon_0"
             ),
+            stepVariable = v"rel",
             groupVariable = v"r",
-            allReduceStepExpression = add(function("toInteger", v"acc"), prop(v"r", "prop")),
+            allReduceStepExpression = add(function("toInteger", v"acc"), prop(v"rel", "prop")),
             allReducePredicate = lessThanOrEqual(function("toInteger", v"acc"), literalInt(5)),
             nextAnonymousVariable = v"anon_1"
           )
@@ -257,8 +263,8 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     val plan = planner.plan(
       CypherVersion.Cypher25,
       """MATCH (a:N)-[r]->+(b)
-        |WHERE allReduce(acc = allReduce(acc = [], acc + r, size(acc) < 5),
-        |                toInteger(acc) + r.prop,
+        |WHERE allReduce(acc = allReduce(acc = [], rel IN r | acc + rel, size(acc) < 5),
+        |                rel IN r | toInteger(acc) + rel.prop,
         |                toInteger(acc) <= 5)
         |RETURN a, b""".stripMargin
     ).stripProduceResults
@@ -271,13 +277,15 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
             init = allReduceFallBack(
               accumulator = v"acc",
               init = ListLiteral(Seq.empty)(pos),
+              stepVariable = v"rel",
               groupVariable = v"r",
-              allReduceStepExpression = add(v"acc", v"r"),
+              allReduceStepExpression = add(v"acc", v"rel"),
               allReducePredicate = lessThan(size(v"acc"), literalInt(5)),
               nextAnonymousVariable = v"anon_0"
             ),
+            stepVariable = v"rel",
             groupVariable = v"r",
-            allReduceStepExpression = add(function("toInteger", v"acc"), prop(v"r", "prop")),
+            allReduceStepExpression = add(function("toInteger", v"acc"), prop(v"rel", "prop")),
             allReducePredicate = lessThanOrEqual(function("toInteger", v"acc"), literalInt(5)),
             nextAnonymousVariable = v"anon_1"
           )
@@ -296,7 +304,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |      (b:NN)
         |  WHERE allReduce(
         |    sum = 0,
-        |    sum + rel.prop,
+        |    step IN rel | sum + step.prop,
         |    sum < 99
         |  )
         |RETURN rel""".stripMargin
@@ -343,7 +351,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |    b.prop = 42 AND
         |    allReduce(
         |      sum = 0,
-        |      sum + rel.prop,
+        |      step IN rel | sum + step.prop,
         |      sum < 99
         |    )
         |RETURN rel""".stripMargin
@@ -390,7 +398,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |  WHERE
         |    allReduce(
         |      sum = 0,
-        |      sum + rel.prop,
+        |      step IN rel | sum + step.prop,
         |      sum < 99
         |    ) IS NULL
         |RETURN rel""".stripMargin
@@ -404,8 +412,9 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
             allReduceFallBack(
               accumulator = v"sum",
               init = literalInt(0),
+              stepVariable = v"step",
               groupVariable = v"rel",
-              allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+              allReduceStepExpression = add(v"sum", prop("step", "prop")),
               allReducePredicate = lessThan(v"sum", literalInt(99)),
               nextAnonymousVariable = v"anon_0"
             )
@@ -426,7 +435,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |  WHERE
         |    allReduce(
         |      sum = 0,
-        |      sum + rel.prop,
+        |      step IN rel | sum + step.prop,
         |      sum < 99
         |    )
         |RETURN rel""".stripMargin
@@ -475,10 +484,10 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |      ((left)-[rel]->(right))+
         |      (b:NN)
         |WHERE
-        |  allReduce(sum = 0, sum + rel.prop, sum < 99) AND
+        |  allReduce(sum = 0, step IN rel | sum + step.prop, sum < 99) AND
         |  allReduce(
         |    span = {},
-        |    { previous: span.current, current: rel.q },
+        |    spanStep IN rel | { previous: span.current, current: spanStep.q },
         |    coalesce(span.previous < span.current, true)
         |  )
         |RETURN rel""".stripMargin
@@ -532,8 +541,8 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |      ((left)-[rel]->(right))+
         |      (b:NN)
         |WHERE
-        |  allReduce(sum = 0, sum + rel.prop, sum < 99) AND
-        |  allReduce(people = [], people + CASE WHEN right:Person THEN [right] ELSE [] END, size(people) < 10)
+        |  allReduce(sum = 0, step IN rel | sum + step.prop, sum < 99) AND
+        |  allReduce(people = [], rightStep IN right | people + CASE WHEN rightStep:Person THEN [rightStep] ELSE [] END, size(people) < 10)
         |RETURN rel""".stripMargin
     ).stripProduceResults
 
@@ -580,8 +589,8 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |      ((left)-[rel]->(right))+
         |      (b:NN)
         |WHERE
-        |  allReduce(acc = 0, acc + rel.prop, acc < 99) AND
-        |  allReduce(acc = 1, acc * rel.prop, 0 < acc < 1)
+        |  allReduce(acc = 0, step IN rel | acc + step.prop, acc < 99) AND
+        |  allReduce(acc = 1, step IN rel | acc * step.prop, 0 < acc < 1)
         |RETURN rel""".stripMargin
     ).stripProduceResults
 
@@ -634,8 +643,8 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |      ((l2)-[rel2]->(r2)){0,1}
         |      (b:NN)
         |WHERE
-        |  allReduce(sum = 0, sum + rel1.prop, sum < 99) AND
-        |  allReduce(product = 1, product * rel2.prop, 0 < product < 1)
+        |  allReduce(sum = 0, step1 IN rel1 | sum + step1.prop, sum < 99) AND
+        |  allReduce(product = 1, step2 IN rel2 | product * step2.prop, 0 < product < 1)
         |RETURN rel1, rel2""".stripMargin
     ).stripProduceResults
 
@@ -692,8 +701,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     )
   }
 
-  // TODO: un-ignore when list comprehension syntax implemented (it's a syntax error for horizontal aggregation style)
-  ignore("Should NOT inline nested allReduces - in reduction step") {
+  test("Should NOT inline nested allReduces - in reduction step") {
     val plan = planner.plan(
       CypherVersion.Cypher25,
       """MATCH (a:N)-[r]->+(b)
@@ -725,12 +733,14 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
               allReduceFallBack(
                 accumulator = v"acc",
                 init = ListLiteral(Seq.empty)(pos),
+                stepVariable = v"rel",
                 groupVariable = v"r",
                 allReduceStepExpression = add(v"acc", v"rel"),
                 allReducePredicate = lessThan(size(v"acc"), literalInt(5)),
                 nextAnonymousVariable = v"anon_0"
               )
             ),
+            stepVariable = v"rel",
             allReducePredicate = v"acc",
             nextAnonymousVariable = v"anon_1"
           )
@@ -746,8 +756,8 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       CypherVersion.Cypher25,
       """MATCH (a:N)-[r]->+(b)
         |WHERE allReduce(acc = 0,
-        |                acc + r.prop,
-        |                acc > toInteger(allReduce(acc = [], acc + r, size(acc) < 5)))
+        |                step IN r | acc + step.prop,
+        |                acc > toInteger(allReduce(acc = [], step IN r | acc + step, size(acc) < 5)))
         |RETURN a, b""".stripMargin
     ).stripProduceResults
 
@@ -757,8 +767,9 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
           allReduceFallBack(
             accumulator = v"acc",
             init = literalInt(0),
+            stepVariable = v"step",
             groupVariable = v"r",
-            allReduceStepExpression = add(v"acc", prop("r", "prop")),
+            allReduceStepExpression = add(v"acc", prop("step", "prop")),
             allReducePredicate = greaterThan(
               v"acc",
               function(
@@ -767,9 +778,10 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
                   accumulator = v"acc",
                   init = ListLiteral(Seq.empty)(pos),
                   groupVariable = v"r",
-                  allReduceStepExpression = add(v"acc", v"r"),
+                  allReduceStepExpression = add(v"acc", v"step"),
                   allReducePredicate = lessThan(size(v"acc"), literalInt(5)),
-                  nextAnonymousVariable = v"anon_0"
+                  nextAnonymousVariable = v"anon_0",
+                  stepVariable = v"step"
                 )
               )
             ),
@@ -791,7 +803,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |  WHERE
         |    allReduce(
         |      sum = 0,
-        |      sum + rel.prop,
+        |      step IN rel | sum + step.prop,
         |      sum < b.prop
         |    )
         |RETURN rel""".stripMargin
@@ -804,8 +816,9 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
           allReduceFallBack(
             accumulator = v"sum",
             init = literalInt(0),
+            stepVariable = v"step",
             groupVariable = v"rel",
-            allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+            allReduceStepExpression = add(v"sum", prop("step", "prop")),
             allReducePredicate = greaterThan(prop("b", "prop"), v"sum"),
             nextAnonymousVariable = v"anon_0"
           )
@@ -825,7 +838,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         |  WHERE
         |    allReduce(
         |      sum = 0,
-        |      sum + rel.prop,
+        |      step IN rel | sum + step.prop,
         |      sum < a.prop
         |    )
         |RETURN rel""".stripMargin
@@ -865,7 +878,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     val plan = nonDedupeNamePlanner.plan(
       CypherVersion.Cypher25,
       """MATCH (a:N) ((left)-[rel]->(right))+ (b)
-        |  WHERE allReduce(sum = a.prop, sum + rel.prop, sum < 99)
+        |  WHERE allReduce(sum = a.prop, step IN rel | sum + step.prop, sum < 99)
         |RETURN rel""".stripMargin
     )
 
@@ -903,7 +916,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     val plan = planner.plan(
       CypherVersion.Cypher25,
       """MATCH (a:N) ((left)-[rel]->(right))+ (b)
-        |  WHERE allReduce(sum = b.prop, sum + rel.prop, sum < 99)
+        |  WHERE allReduce(sum = b.prop, step IN rel | sum + step.prop, sum < 99)
         |RETURN rel""".stripMargin
     )
 
@@ -914,8 +927,9 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
           allReduceFallBack(
             accumulator = v"sum",
             init = prop("b", "prop"),
+            stepVariable = v"step",
             groupVariable = v"rel",
-            allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+            allReduceStepExpression = add(v"sum", prop("step", "prop")),
             allReducePredicate = lessThan(v"sum", literalInt(99)),
             nextAnonymousVariable = v"anon_0"
           )
@@ -930,7 +944,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     val plan = planner.plan(
       CypherVersion.Cypher25,
       """MATCH (a:N) ((left)-[rel]->(right))+ (b)
-        |  WHERE allReduce(sum = size(left), sum + rel.prop, sum < 99)
+        |  WHERE allReduce(sum = size(left), step IN rel | sum + step.prop, sum < 99)
         |RETURN rel""".stripMargin
     )
 
@@ -959,9 +973,10 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
             accumulator = v"sum",
             init = size(v"left"),
             groupVariable = v"rel",
-            allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+            allReduceStepExpression = add(v"sum", prop("step", "prop")),
             allReducePredicate = lessThan(v"sum", literalInt(99)),
-            nextAnonymousVariable = v"anon_0"
+            nextAnonymousVariable = v"anon_0",
+            stepVariable = v"step"
           )
         )
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
@@ -977,7 +992,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     val plan = planner.plan(
       CypherVersion.Cypher25,
       """MATCH (a:N) ((left)-[rel]->(right))+ (b)
-        |  WHERE allReduce(sum = 99, sum + rel.prop, sum < size(left))
+        |  WHERE allReduce(sum = 99, step IN rel | sum + step.prop, sum < size(left))
         |RETURN rel""".stripMargin
     )
 
@@ -1006,9 +1021,10 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
             accumulator = v"sum",
             init = literalInt(99),
             groupVariable = v"rel",
-            allReduceStepExpression = add(v"sum", prop("rel", "prop")),
+            allReduceStepExpression = add(v"sum", prop("step", "prop")),
             allReducePredicate = lessThan(v"sum", size(v"left")),
-            nextAnonymousVariable = v"anon_0"
+            nextAnonymousVariable = v"anon_0",
+            stepVariable = v"step"
           )
         )
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
@@ -1020,8 +1036,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     )
   }
 
-  // TODO: un-ignore when list comprehension syntax implemented (it's a syntax error for horizontal aggregation style)
-  ignore("Should NOT inline allReduce if reductionStep has dependency on another variable from same QPP") {
+  test("Should NOT inline allReduce if reductionStep has dependency on another variable from same QPP") {
     val plan = planner.plan(
       CypherVersion.Cypher25,
       """MATCH (a:N) ((left)-[r]->(right))+ (b)
@@ -1054,9 +1069,10 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
             accumulator = v"sum",
             init = literalInt(99),
             groupVariable = v"r",
-            allReduceStepExpression = add(v"sum", prop("r", "prop")),
+            allReduceStepExpression = add(add(v"sum", prop("rel", "prop")), size(v"left")),
             allReducePredicate = greaterThan(v"sum", literalInt(0)),
-            nextAnonymousVariable = v"anon_0"
+            nextAnonymousVariable = v"anon_0",
+            stepVariable = v"rel"
           )
         )
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = a.prop`)
@@ -1068,8 +1084,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     )
   }
 
-  // TODO: un-ignore when list comprehension syntax implemented (it's a syntax error for horizontal aggregation style)
-  ignore("Should inline allReduce when reduction function depends on available non-local variable") {
+  test("Should inline allReduce when reduction function depends on available non-local variable") {
     val plan = planner.plan(
       CypherVersion.Cypher25,
       """MATCH (a:N)-[avail]->+(x) ((left)-[rel]->(right))+ (b)
@@ -1095,8 +1110,7 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     )
 
     plan should equal(
-      planner.planBuilder()
-        .produceResults("rel")
+      planner.subPlanBuilder()
         .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
         .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
         .|.projection("sum + rel.prop + size(avail) AS sum")
@@ -1104,6 +1118,99 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         .|.argument("left", "sum", "avail")
         .expand("(a)-[avail*1..]->(x)")
         .nodeByLabelScan("a", "N")
+        .build()
+    )
+  }
+
+  test("Should plan allReduce before QPP if it does not depend on the QPP") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """WITH [1, 2, 3] AS list
+        |MATCH (a:N)((left)-[rel]->(right))+(b)
+        |  WHERE allReduce(sum = 0, step IN list | sum + step, sum < 99)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .expand("(a)-[rel*1..]->()")
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = literalInt(0),
+            groupVariable = v"list",
+            allReduceStepExpression = add(v"sum", v"step"),
+            allReducePredicate = lessThan(v"sum", literalInt(99)),
+            nextAnonymousVariable = v"anon_0",
+            stepVariable = v"step"
+          )
+        )
+        .apply()
+        .|.nodeByLabelScan("a", "N", IndexOrderNone, "list")
+        .projection("[1, 2, 3] AS list")
+        .argument()
+        .build()
+    )
+  }
+
+  test("Should not inline allReduce when the reduction iterates over a list from outside the QPP") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """WITH [1, 2, 3] AS list
+        |MATCH (a:N)((left)-[rel]->(right))+(b)
+        |  WHERE allReduce(sum = 0, step IN list | sum + step + size(rel), sum < 99)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = literalInt(0),
+            groupVariable = v"list",
+            allReduceStepExpression = add(add(v"sum", v"step"), size(v"rel")),
+            allReducePredicate = lessThan(v"sum", literalInt(99)),
+            nextAnonymousVariable = v"anon_0",
+            stepVariable = v"step"
+          )
+        )
+        .expand("(a)-[rel*1..]->()")
+        .apply()
+        .|.nodeByLabelScan("a", "N", IndexOrderNone, "list")
+        .projection("[1, 2, 3] AS list")
+        .argument()
+        .build()
+    )
+  }
+
+  test("Should not inline allReduce when the reduction expression uses the group variable") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """WITH [1, 2, 3] AS list
+        |MATCH (a:N)((left)-[rel]->(right))+(b)
+        |  WHERE allReduce(sum = 0, step IN rel | sum + size(rel), sum < 99)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = literalInt(0),
+            groupVariable = v"rel",
+            allReduceStepExpression = add(v"sum", size(v"rel")),
+            allReducePredicate = lessThan(v"sum", literalInt(99)),
+            nextAnonymousVariable = v"anon_0",
+            stepVariable = v"step"
+          )
+        )
+        .expand("(a)-[rel*1..]->()")
+        .apply()
+        .|.nodeByLabelScan("a", "N", IndexOrderNone, "list")
+        .projection("[1, 2, 3] AS list")
+        .argument()
         .build()
     )
   }

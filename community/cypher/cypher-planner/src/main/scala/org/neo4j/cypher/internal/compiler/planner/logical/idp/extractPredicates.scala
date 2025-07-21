@@ -499,18 +499,18 @@ object extractQppPredicates {
 
         ExtractedPredicate(unique, Ands.create(extractedPredicates))
 
-      case allReduce @ AllReducePredicate(scope, groupVariable, _)
-        // TODO: when list comprehension syntax is supported, change condition to no dependency of allReduce is in availableLocalSymbolsMapping
-        if availableLocalSymbolsMapping.contains(groupVariable) &&
-          availableLocalSymbolsMapping.keySet.intersect(
-            allReduce.init.dependencies ++ allReduce.predicate.dependencies
-          ).isEmpty =>
-        val singletonVariableInQpp = availableLocalSymbolsMapping(groupVariable)
+      case allReduce @ AllReducePredicate(scope, _, listVariable: LogicalVariable)
+        if availableLocalSymbolsMapping.contains(
+          listVariable
+        ) && !(allReduce.init.dependencies ++ allReduce.predicate.dependencies ++ allReduce.reductionStep.dependencies).exists(
+          availableLocalSymbolsMapping.contains
+        ) =>
+        val singletonVariableInQpp = availableLocalSymbolsMapping(listVariable)
         val newReductionStep =
           scope.reductionStepScope
             .reductionStep
             .replaceAllOccurrencesBy(
-              allReduce.singletonVariable,
+              allReduce.reductionStepVariable,
               singletonVariableInQpp
             )
         ExtractedPredicate(

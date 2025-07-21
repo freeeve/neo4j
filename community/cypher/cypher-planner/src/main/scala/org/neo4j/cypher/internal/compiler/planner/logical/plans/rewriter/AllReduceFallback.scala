@@ -51,16 +51,16 @@ case class AllReduceFallback(
   /**
    * Translate the `allReduce` function to a post-filter `reduce` functions that are supported in runtime
    *
-   * allReduce(acc = 0, acc + n.x, acc < 12)
+   * allReduce(acc = 0, step IN n | acc + step.x, acc < 12)
    *
    * gets translated into
    *
    * reduce(
    *  acc = {accumulator: 0, result: true},
-   *  n IN n |
+   *  step IN n |
    *    CASE
    *      WHEN acc.result = false THEN acc
-   *      ELSE [anon_0 IN [acc.accumulator + n.x] | {accumulator: anon_0, result: acc.result AND anon_0 < 12}][0]
+   *      ELSE [anon_0 IN [acc.accumulator + step.x] | {accumulator: anon_0, result: acc.result AND anon_0 < 12}][0]
    *    END
    * ).result
    *
@@ -72,7 +72,6 @@ case class AllReduceFallback(
    * be executed anymore.
    * Once all elements in the list have been processed the result from the state will be returned.
    *
-   * The first `n` in `n IN n` refers to the singleton variable and the second `n` to the group variable.
    * The ListComprehension in the ELSE clause of the CASE expression is used to avoid computing the step function of the allReduce
    * twice (once to obtain the new accumulator value and one to obtain the new result value).
    *
@@ -146,7 +145,7 @@ case class AllReduceFallback(
     val reduceExpr = ReduceExpression(
       ReduceScope(
         accumulator = state,
-        variable = allReducePredicate.scope.reductionStepScope.singletonVariable,
+        variable = allReducePredicate.scope.reductionStepScope.reductionStepVariable,
         expression = caseExpr
       )(pos),
       init = MapExpression(Seq(
@@ -154,7 +153,7 @@ case class AllReduceFallback(
         stateAcc -> allReducePredicate.init,
         stateResult -> True()(pos.zeroLength)
       ))(pos),
-      list = allReducePredicate.groupVariable
+      list = allReducePredicate.list
     )(pos)
 
     // Only retrieve the result from the state (accumulator) or the reduce()

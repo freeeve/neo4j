@@ -27,9 +27,9 @@ class AllReducePredicateTest extends CypherFunSuite {
   test("dependencies are calculated correctly") {
     val pos = InputPosition.NONE
 
-    // allReduce(acc = init, acc + x.prop + external, acc < threshold)
-
-    val groupVariable = Variable("x")(pos, isIsolated = false)
+    // allReduce(acc = init, iter IN x | acc + iter.prop + external, acc < threshold)
+    val stepVariable = Variable("iter")(pos, isIsolated = false)
+    val list = Variable("x")(pos, isIsolated = false)
     val init = Variable("init")(pos, isIsolated = false)
     val acc = Variable("acc")(pos, isIsolated = false)
     val external = Variable("external")(pos, isIsolated = false)
@@ -39,21 +39,21 @@ class AllReducePredicateTest extends CypherFunSuite {
       scope = AllReduceScope(
         accumulator = acc,
         reductionStepScope = ReductionStepScope(
-          singletonVariable = groupVariable.copyId,
+          reductionStepVariable = stepVariable.copyId,
           reductionStep = Add(
-            Add(acc.copyId, Property(groupVariable.copyId, PropertyKeyName("prop")(pos))(pos))(pos),
+            Add(acc.copyId, Property(stepVariable.copyId, PropertyKeyName("prop")(pos))(pos))(pos),
             external
           )(pos)
         )(pos),
         predicate = LessThan(acc.copyId, threshold)(pos)
       )(pos),
-      groupVariable = groupVariable,
-      init = init
+      init = init,
+      list = list
     )(pos)
 
     expr.dependencies.map(Ref.apply) shouldEqual Set(
       init,
-      groupVariable,
+      list,
       threshold,
       external
     ).map(Ref.apply)
