@@ -44,6 +44,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     public static final long BASE_INDEX = 0;
     public static final int MINIMUM_SEGMENTS = 2;
     private final int segmentBlockSize;
+    private final int totalSegments;
     private final int writerBufferedBlocks;
     private final MemoryTracker memoryTracker;
     private final LogRotation logRotation;
@@ -75,6 +76,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         this.logHeaderFactory = logHeaderFactory;
         this.logsRepository = new LogsRepository(fs, directory, baseFileName);
         this.segmentBlockSize = segmentBlockSize;
+        this.totalSegments = totalSegments;
         this.writerBufferedBlocks = writerBufferedBlocks;
         this.memoryTracker = memoryTracker;
         this.maxFileSize = totalSegments * (long) segmentBlockSize;
@@ -353,7 +355,12 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             throws IOException {
         var logVersionedChannel = logVersionedChannel(logChannelCtx, version);
         return new EnvelopeReadChannel(
-                logVersionedChannel, segmentBlockSize, new EnvelopedLogVersionBridge(this), memoryTracker, false);
+                logVersionedChannel,
+                segmentBlockSize,
+                totalSegments,
+                new EnvelopedLogVersionBridge(this),
+                memoryTracker,
+                false);
     }
 
     private PhysicalLogVersionedStoreChannel logVersionedChannel(

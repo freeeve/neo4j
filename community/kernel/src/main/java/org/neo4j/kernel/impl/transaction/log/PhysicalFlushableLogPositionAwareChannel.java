@@ -321,7 +321,12 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
             try (var buffer = new NativeScopedBuffer(
                     logHeader.getSegmentBlockSize(), LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE)) {
                 EnvelopeReadChannel envelopeReadChannel = new EnvelopeReadChannel(
-                        logChannel, logHeader.getSegmentBlockSize(), LogVersionBridge.NO_MORE_CHANNELS, true, buffer);
+                        logChannel,
+                        logHeader.getSegmentBlockSize(),
+                        -1,
+                        LogVersionBridge.NO_MORE_CHANNELS,
+                        true,
+                        buffer);
                 previousChecksum = envelopeReadChannel.temporaryFindPreviousChecksumBeforePosition(position);
                 previousAppendIndex = envelopeReadChannel.entryIndex();
                 logChannel.position(position);
