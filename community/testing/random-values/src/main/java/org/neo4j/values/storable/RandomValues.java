@@ -143,6 +143,10 @@ public class RandomValues {
         this.configuration = configuration;
     }
 
+    public Configuration configuration() {
+        return configuration;
+    }
+
     /**
      * Create a {@code RandomValues} with default configuration
      *
@@ -203,7 +207,7 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextValue() {
-        return nextValueOfTypes(configuration.allowedTypes());
+        return nextValueOfType(among(configuration.allowedTypes()));
     }
 
     /**
@@ -212,16 +216,8 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextValueOfTypes(ValueType... types) {
-        return nextValueOfType(among(types));
-    }
-
-    /**
-     * Returns the next {@link Value}, distributed uniformly among the provided value types.
-     *
-     * @see RandomValues
-     */
-    public Value nextValueOfTypes(Collection<ValueType> types) {
-        return nextValueOfType(among(types));
+        var allowedTypes = Arrays.stream(types).filter(this::allowedType).toArray(ValueType[]::new);
+        return nextValueOfType(among(allowedTypes));
     }
 
     /**
@@ -248,9 +244,11 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value[] nextValuesOfTypes(int size, Collection<ValueType> types) {
+        var allowedTypes = types.stream().filter(this::allowedType).toArray(ValueType[]::new);
+
         var values = new Value[size];
         for (int i = 0; i < size; i++) {
-            values[i] = nextValueOfType(among(types));
+            values[i] = nextValueOfType(among(allowedTypes));
         }
         return values;
     }
@@ -293,6 +291,11 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextValueOfType(ValueType type) {
+        if (!allowedType(type)) {
+            throw new IllegalStateException("%s is not configured to generate %s values."
+                    .formatted(getClass().getSimpleName(), type));
+        }
+
         return switch (type) {
             case BOOLEAN -> nextBooleanValue();
             case BYTE -> nextByteValue();
@@ -421,7 +424,9 @@ public class RandomValues {
      * @see RandomValues
      */
     public ArrayValue nextArray() {
-        return (ArrayValue) nextValueOfType(among(ValueType.ARRAY_TYPES));
+        var allowedTypes =
+                Arrays.stream(ValueType.ARRAY_TYPES).filter(this::allowedType).toArray(ValueType[]::new);
+        return (ArrayValue) nextValueOfType(among(allowedTypes));
     }
 
     /**
@@ -1667,6 +1672,10 @@ public class RandomValues {
 
     private int maxVectorNumBytes() {
         return configuration.maxVectorNumBytes();
+    }
+
+    private boolean allowedType(ValueType type) {
+        return configuration.allowedTypes().contains(type);
     }
 
     @FunctionalInterface
