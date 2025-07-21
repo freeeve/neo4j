@@ -21,16 +21,13 @@ package org.neo4j.cypher.internal.index
 
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.SchemaCommandRuntime.existingIndexInfo
-import org.neo4j.cypher.internal.SchemaCommandRuntime.fulltextIndexInfo
 import org.neo4j.cypher.internal.SchemaCommandRuntime.getEntityInfo
-import org.neo4j.cypher.internal.SchemaCommandRuntime.getMultipleEntityInfo
 import org.neo4j.cypher.internal.SchemaCommandRuntime.getName
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getPrettyEntityPattern
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getPrettyName
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getPrettyPropertyPattern
 import org.neo4j.cypher.internal.SchemaCommandRuntime.indexContext
-import org.neo4j.cypher.internal.SchemaCommandRuntime.indexInfo
-import org.neo4j.cypher.internal.SchemaCommandRuntime.lookupIndexInfo
 import org.neo4j.cypher.internal.SchemaCommandRuntime.propertyToId
-import org.neo4j.cypher.internal.SchemaCommandRuntime.vectorIndexVersion
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions.ElementTypeName
@@ -38,6 +35,8 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.functions.Labels
+import org.neo4j.cypher.internal.expressions.functions.Type
 import org.neo4j.cypher.internal.optionsmap.CreateFulltextIndexOptionsConverter
 import org.neo4j.cypher.internal.optionsmap.CreateIndexProviderOnlyOptions
 import org.neo4j.cypher.internal.optionsmap.CreateIndexWithFullOptions
@@ -49,9 +48,15 @@ import org.neo4j.cypher.internal.optionsmap.CreateVectorIndexOptionsConverter
 import org.neo4j.cypher.internal.optionsmap.Nothing
 import org.neo4j.cypher.internal.optionsmap.ParsedOptions
 import org.neo4j.cypher.internal.optionsmap.ParsedWithNotifications
+import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.prettyOptions
+import org.neo4j.cypher.internal.plandescription.PrettyString
+import org.neo4j.cypher.internal.plandescription.asPrettyString
+import org.neo4j.cypher.internal.plandescription.asPrettyString.PrettyStringInterpolator
+import org.neo4j.cypher.internal.plandescription.asPrettyString.PrettyStringMaker
 import org.neo4j.cypher.internal.procs.IgnoredResult
 import org.neo4j.cypher.internal.procs.SchemaExecutionResult
 import org.neo4j.cypher.internal.procs.SuccessResult
+import org.neo4j.cypher.internal.runtime.IndexInformation
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.util.IndexOrConstraintAlreadyExistsNotification
 import org.neo4j.cypher.internal.util.IndexOrConstraintDoesNotExistNotification
@@ -61,7 +66,10 @@ import org.neo4j.graphdb.schema.IndexType.POINT
 import org.neo4j.graphdb.schema.IndexType.RANGE
 import org.neo4j.graphdb.schema.IndexType.TEXT
 import org.neo4j.graphdb.schema.IndexType.VECTOR
+import org.neo4j.graphdb.security.AuthorizationViolationException
 import org.neo4j.internal.schema
+import org.neo4j.kernel.KernelVersion
+import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion
 import org.neo4j.values.virtual.MapValue
 
 import scala.util.Try
@@ -374,5 +382,104 @@ object IndexCommandPlanner {
       } else {
         SuccessResult(optionConverterNotifications)
       }
+    }
+
+  // Help methods
+
+  private def getMultipleEntityInfo(
+    entityName: Either[List[LabelName], List[RelTypeName]],
+    ctx: QueryContext
+  ): (List[Int], EntityType) =
+    entityName match {
+      // returns (entityIds, EntityType)
+      case Left(labels)    => (labels.map(label => ctx.getOrCreateLabelId(label.name)), EntityType.NODE)
+      case Right(relTypes) => (relTypes.map(relType => ctx.getOrCreateRelTypeId(relType.name)), EntityType.RELATIONSHIP)
+    }
+
+  private def vectorIndexVersion(ctx: QueryContext): VectorIndexVersion =
+    VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(ctx.getConfig))
+
+  private def indexInfo(
+    indexType: String,
+    nameOption: Option[String],
+    entityName: ElementTypeName,
+    properties: Seq[PropertyKeyName],
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val pattern = getPrettyEntityPattern(entityName)
+    val propertyString = getPrettyPropertyPattern(properties, "(", ")")
+    pretty"${asPrettyString.raw(indexType)} INDEX$name IF NOT EXISTS FOR $pattern ON $propertyString${prettyOptions(options)}".prettifiedString
+  }
+
+  private def fulltextIndexInfo(
+    nameOption: Option[String],
+    entityNames: Either[List[LabelName], List[RelTypeName]],
+    properties: Seq[PropertyKeyName],
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val pattern = entityNames match {
+      case Left(labels) =>
+        val innerPattern = labels.map(l => asPrettyString(l.name)).mkPrettyString("e:", "|", "")
+        pretty"($innerPattern)"
+      case Right(relTypes) =>
+        val innerPattern = relTypes.map(r => asPrettyString(r.name)).mkPrettyString("e:", "|", "")
+        pretty"()-[$innerPattern]-()"
+    }
+    val propertyString = getPrettyPropertyPattern(properties, "[", "]")
+    pretty"FULLTEXT INDEX$name IF NOT EXISTS FOR $pattern ON EACH $propertyString${prettyOptions(options)}".prettifiedString
+  }
+
+  private def lookupIndexInfo(
+    nameOption: Option[String],
+    entityType: EntityType,
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val (pattern, function) = getPrettyLookupIndexPatternAndFunction(entityType == EntityType.NODE)
+    pretty"LOOKUP INDEX$name IF NOT EXISTS FOR $pattern ON EACH $function${prettyOptions(options)}".prettifiedString
+  }
+
+  private def existingIndexInfo(
+    ctx: QueryContext,
+    getInfoParts: () => IndexInformation
+  ): String = {
+    try {
+      // Assert we are allowed to see the index description
+      ctx.assertShowIndexAllowed()
+
+      // Fetch the relevant index parts
+      val IndexInformation(isNode, indexType, name, entityNames, properties) = getInfoParts()
+
+      // Create string description
+      val nameString = getPrettyName(Some(name))
+      val (pattern, on) = indexType match {
+        case schema.IndexType.LOOKUP =>
+          val (pattern, function) = getPrettyLookupIndexPatternAndFunction(isNode)
+          (pattern, pretty"EACH $function")
+        case schema.IndexType.FULLTEXT =>
+          val innerPattern = entityNames.map(e => asPrettyString(e)).mkPrettyString("e:", "|", "")
+          val pattern = if (isNode) pretty"($innerPattern)" else pretty"()-[$innerPattern]-()"
+          val propertyString = getPrettyPropertyPattern(properties, "[", "]")
+          (pattern, pretty"EACH $propertyString")
+        case _ =>
+          // indexes have exactly one label/relType, unless FULLTEXT or LOOKUP which is handled above
+          val pattern = getPrettyEntityPattern(isNode, entityNames.head)
+          val propertyString = getPrettyPropertyPattern(properties, "(", ")")
+          (pattern, propertyString)
+      }
+      pretty"${asPrettyString.raw(indexType.name())} INDEX$nameString FOR $pattern ON $on".prettifiedString
+    } catch {
+      // Not allowed to see index description, only show `index`
+      case _: AuthorizationViolationException => "index"
+    }
+  }
+
+  private def getPrettyLookupIndexPatternAndFunction(isNode: Boolean): (PrettyString, PrettyString) =
+    if (isNode) {
+      (pretty"(e)", pretty"${asPrettyString.raw(Labels.name)}(e)")
+    } else {
+      (pretty"()-[e]-()", pretty"${asPrettyString.raw(Type.name)}(e)")
     }
 }

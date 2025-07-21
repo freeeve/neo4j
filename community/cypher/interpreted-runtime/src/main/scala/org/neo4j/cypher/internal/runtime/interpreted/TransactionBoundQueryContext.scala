@@ -108,6 +108,7 @@ import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
+import org.neo4j.internal.schema.SchemaNameUtil
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.StatementConstants
@@ -147,6 +148,7 @@ import java.net.URI
 import java.util
 import java.util.Locale
 
+import scala.collection.immutable.ArraySeq
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.IteratorHasAsScala
@@ -1690,6 +1692,19 @@ private[internal] class TransactionBoundReadQueryContext(
 
         map + (constraint -> runtime.ConstraintInfo(labelsOrTypes, properties, maybeIndex, enforcedLabel, endPointType))
     }
+  }
+
+  override def getGeneratedNameForConstraint(
+    forNode: Boolean,
+    entityId: Int,
+    propertyIds: ArraySeq[Int],
+    descriptor: SchemaDescriptor => ConstraintDescriptor
+  ): String = {
+    val schemaDescriptor =
+      if (forNode) SchemaDescriptors.forLabel(entityId, propertyIds: _*)
+      else SchemaDescriptors.forRelType(entityId, propertyIds: _*)
+
+    SchemaNameUtil.generateName(descriptor(schemaDescriptor), tokenNameLookup)
   }
 
   private val tokenNameLookup: TokenNameLookup = new TokenNameLookup {

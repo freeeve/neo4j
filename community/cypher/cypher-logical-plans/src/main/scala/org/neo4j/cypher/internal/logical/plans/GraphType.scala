@@ -266,8 +266,14 @@ case class PropertyType(name: PropertyKeyName, propertyType: CypherType)
 
 sealed trait NodeElementTypeReferenceForRelationshipElementType
 sealed trait GraphElementTypeReferenceForConstraint
-sealed trait NodeElementTypeReferenceForConstraint extends GraphElementTypeReferenceForConstraint
-sealed trait RelationshipElementTypeReferenceForConstraint extends GraphElementTypeReferenceForConstraint
+
+sealed trait NodeElementTypeReferenceForConstraint extends GraphElementTypeReferenceForConstraint {
+  def labelName: LabelName
+}
+
+sealed trait RelationshipElementTypeReferenceForConstraint extends GraphElementTypeReferenceForConstraint {
+  def relTypeName: RelTypeName
+}
 
 case object EmptyNodeElementTypeReference extends NodeElementTypeReferenceForRelationshipElementType
 

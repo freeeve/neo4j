@@ -69,6 +69,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.QueryLanguage
@@ -89,6 +90,8 @@ import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.net.URI
+
+import scala.collection.immutable.ArraySeq
 
 object StaticEvaluation {
 
@@ -484,6 +487,13 @@ object StaticEvaluation {
     ): ConstraintInformation = notAvailable()
 
     override def getAllConstraints(): Map[ConstraintDescriptor, ConstraintInfo] = notAvailable()
+
+    override def getGeneratedNameForConstraint(
+      forNode: Boolean,
+      entityId: Int,
+      propertyIds: ArraySeq[Int],
+      descriptor: SchemaDescriptor => ConstraintDescriptor
+    ): String = notAvailable()
 
     override def getImportDataConnection(uri: URI): CharReadable = notAvailable()
 

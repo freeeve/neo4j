@@ -20,15 +20,14 @@
 package org.neo4j.cypher.internal.constraint
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.SchemaCommandRuntime.constraintInfo
-import org.neo4j.cypher.internal.SchemaCommandRuntime.convertConstraintTypeToConstraintMatcher
-import org.neo4j.cypher.internal.SchemaCommandRuntime.existingConstraintInfo
+import org.neo4j.cypher.internal.SchemaCommandRuntime.checkTypes
 import org.neo4j.cypher.internal.SchemaCommandRuntime.getEntityInfo
 import org.neo4j.cypher.internal.SchemaCommandRuntime.getName
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getPrettyEntityPattern
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getPrettyName
+import org.neo4j.cypher.internal.SchemaCommandRuntime.getPrettyPropertyPattern
 import org.neo4j.cypher.internal.SchemaCommandRuntime.indexContext
-import org.neo4j.cypher.internal.SchemaCommandRuntime.labelPropWithName
 import org.neo4j.cypher.internal.SchemaCommandRuntime.propertyToId
-import org.neo4j.cypher.internal.SchemaCommandRuntime.typePropWithName
 import org.neo4j.cypher.internal.ast.CreateConstraintType
 import org.neo4j.cypher.internal.ast.NodeKey
 import org.neo4j.cypher.internal.ast.NodePropertyExistence
@@ -44,18 +43,31 @@ import org.neo4j.cypher.internal.expressions.ElementTypeName
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
+import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.optionsmap.IndexBackedConstraintsOptionsConverter
 import org.neo4j.cypher.internal.optionsmap.PropertyExistenceOrTypeConstraintOptionsConverter
+import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.prettyOptions
+import org.neo4j.cypher.internal.plandescription.asPrettyString
+import org.neo4j.cypher.internal.plandescription.asPrettyString.PrettyStringInterpolator
 import org.neo4j.cypher.internal.procs.IgnoredResult
 import org.neo4j.cypher.internal.procs.PropertyTypeMapper
 import org.neo4j.cypher.internal.procs.SchemaExecutionResult
 import org.neo4j.cypher.internal.procs.SuccessResult
+import org.neo4j.cypher.internal.runtime.ConstraintInformation
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.util.IndexOrConstraintAlreadyExistsNotification
 import org.neo4j.cypher.internal.util.IndexOrConstraintDoesNotExistNotification
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.graphdb.security.AuthorizationViolationException
+import org.neo4j.internal.schema.ConstraintDescriptor
+import org.neo4j.internal.schema.ConstraintType.EXISTS
+import org.neo4j.internal.schema.ConstraintType.NODE_LABEL_EXISTENCE
+import org.neo4j.internal.schema.ConstraintType.PROPERTY_TYPE
+import org.neo4j.internal.schema.ConstraintType.RELATIONSHIP_ENDPOINT_LABEL
+import org.neo4j.internal.schema.ConstraintType.UNIQUE
+import org.neo4j.internal.schema.ConstraintType.UNIQUE_EXISTS
 import org.neo4j.values.virtual.MapValue
 
 /**
@@ -330,4 +342,91 @@ object ConstraintCommandPlanner {
         SuccessResult(optionConverterNotifications)
       }
     }
+
+  // Help methods
+
+  private def labelPropWithName(ctx: QueryContext)(
+    label: LabelName,
+    prop: PropertyKeyName,
+    name: Option[String]
+  ): (Int, Int, Option[String]) =
+    (ctx.getOrCreateLabelId(label.name), ctx.getOrCreatePropertyKeyId(prop.name), name)
+
+  private def typePropWithName(ctx: QueryContext)(
+    relType: RelTypeName,
+    prop: PropertyKeyName,
+    name: Option[String]
+  ): (Int, Int, Option[String]) =
+    (ctx.getOrCreateRelTypeId(relType.name), ctx.getOrCreatePropertyKeyId(prop.name), name)
+
+  private def convertConstraintTypeToConstraintMatcher(
+    assertion: CreateConstraintType
+  ): ConstraintDescriptor => Boolean =
+    assertion match {
+      case NodePropertyExistence             => c => c.isNodePropertyExistenceConstraint
+      case RelationshipPropertyExistence     => c => c.isRelationshipPropertyExistenceConstraint
+      case _: NodePropertyUniqueness         => c => c.isNodeUniquenessConstraint
+      case _: RelationshipPropertyUniqueness => c => c.isRelationshipUniquenessConstraint
+      case _: NodeKey                        => c => c.isNodeKeyConstraint
+      case _: RelationshipKey                => c => c.isRelationshipKeyConstraint
+      case NodePropertyType(propType) =>
+        c => c.isNodePropertyTypeConstraint && checkTypes(propType, c.asPropertyTypeConstraint().propertyType())
+      case RelationshipPropertyType(propType) =>
+        c =>
+          c.isRelationshipPropertyTypeConstraint &&
+            checkTypes(propType, c.asPropertyTypeConstraint().propertyType())
+    }
+
+  private def constraintInfo(
+    nameOption: Option[String],
+    entityName: ElementTypeName,
+    properties: Seq[Property],
+    constraintType: CreateConstraintType,
+    options: Options
+  ): String = {
+    val name = getPrettyName(nameOption)
+    val pattern = getPrettyEntityPattern(entityName)
+    val propertyString = getPrettyPropertyPattern(properties.map(p => p.propertyKey), "(", ")")
+    val prettyAssertion = asPrettyString.raw(constraintType.predicate)
+    pretty"CONSTRAINT$name IF NOT EXISTS FOR $pattern REQUIRE $propertyString $prettyAssertion${prettyOptions(options)}".prettifiedString
+  }
+
+  private def existingConstraintInfo(
+    ctx: QueryContext,
+    getInfoParts: () => ConstraintInformation,
+    cypherVersion: CypherVersion
+  ): String = {
+    try {
+      // Assert we are allowed to see the constraint description
+      ctx.assertShowConstraintAllowed()
+
+      // Fetch the relevant constraint parts
+      val ConstraintInformation(isNode, constraintType, name, entityName, properties, propertyType) = getInfoParts()
+
+      // Create string description
+      val nameString = getPrettyName(Some(name))
+      val pattern = getPrettyEntityPattern(isNode, entityName)
+      val propertyString = getPrettyPropertyPattern(properties, "(", ")")
+      val assertion = constraintType match {
+        case EXISTS => "IS NOT NULL"
+        case UNIQUE_EXISTS =>
+          if (cypherVersion == CypherVersion.Cypher5)
+            if (isNode) "IS NODE KEY" else "IS RELATIONSHIP KEY"
+          else "IS KEY"
+        case UNIQUE                      => "IS UNIQUE"
+        case PROPERTY_TYPE               => s"IS :: ${propertyType.get}"
+        case RELATIONSHIP_ENDPOINT_LABEL => ""
+        case NODE_LABEL_EXISTENCE        => ""
+      }
+      val prettyAssertion = asPrettyString.raw(assertion)
+      // Currently don't have a constraint command for endpoint and node label existence constraints so let's return the same as if the user wasn't allowed to see the constraint for now
+      // Once we have graph type commands, lets use `(:Label1 => :Label2)`, `(:Label)-[:REL_TYPE =>]->()` and `()-[:REL_TYPE =>]->(:Label)` with correct labels and relationship types
+      // as they don't have constraint commands and that would be their representation in the graph type
+      if (constraintType == RELATIONSHIP_ENDPOINT_LABEL || constraintType == NODE_LABEL_EXISTENCE) "constraint"
+      else pretty"CONSTRAINT$nameString FOR $pattern REQUIRE $propertyString $prettyAssertion".prettifiedString
+    } catch {
+      // Not allowed to see constraint description, only show `constraint`
+      case _: AuthorizationViolationException => "constraint"
+    }
+  }
 }

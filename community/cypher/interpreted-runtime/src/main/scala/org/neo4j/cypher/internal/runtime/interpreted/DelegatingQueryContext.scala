@@ -82,6 +82,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.io.pagecache.context.CursorContext
 import org.neo4j.kernel.api.ExecutionContext
@@ -109,6 +110,8 @@ import org.neo4j.values.virtual.MapValueBuilder
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.net.URI
+
+import scala.collection.immutable.ArraySeq
 
 abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryContext {
 
@@ -529,6 +532,13 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     singleDbHit(inner.getConstraintInformation(matchFn, entityId, properties: _*))
 
   override def getAllConstraints(): Map[ConstraintDescriptor, ConstraintInfo] = singleDbHit(inner.getAllConstraints())
+
+  override def getGeneratedNameForConstraint(
+    forNode: Boolean,
+    entityId: Int,
+    propertyIds: ArraySeq[Int],
+    descriptor: SchemaDescriptor => ConstraintDescriptor
+  ): String = singleDbHit(inner.getGeneratedNameForConstraint(forNode, entityId, propertyIds, descriptor))
 
   override def nodeLockingUniqueIndexSeek(
     index: IndexDescriptor,

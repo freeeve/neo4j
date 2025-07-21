@@ -68,6 +68,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.io.pagecache.context.CursorContext
 import org.neo4j.kernel.api.ExecutionContext
@@ -98,6 +99,8 @@ import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.net.URI
 import java.util.Optional
+
+import scala.collection.immutable.ArraySeq
 
 /*
  * Developer note: This is an attempt at an internal graph database API, which defines a clean cut between
@@ -243,6 +246,13 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
   ): ConstraintInformation
 
   def getAllConstraints(): Map[ConstraintDescriptor, ConstraintInfo]
+
+  def getGeneratedNameForConstraint(
+    forNode: Boolean,
+    entityId: Int,
+    propertyIds: ArraySeq[Int],
+    descriptor: SchemaDescriptor => ConstraintDescriptor
+  ): String
 
   def getOptStatistics: Option[QueryStatistics] = None
 

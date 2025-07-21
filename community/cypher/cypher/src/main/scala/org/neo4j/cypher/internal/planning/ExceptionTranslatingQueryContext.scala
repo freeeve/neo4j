@@ -70,6 +70,7 @@ import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
+import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.exceptions.Status
@@ -87,6 +88,8 @@ import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.net.URI
+
+import scala.collection.immutable.ArraySeq
 
 class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends ReadQueryContext
     with ExceptionTranslationSupport {
@@ -312,6 +315,16 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
 
   override def getAllConstraints(): Map[ConstraintDescriptor, ConstraintInfo] =
     translateException(tokenNameLookup, inner.getAllConstraints())
+
+  override def getGeneratedNameForConstraint(
+    forNode: Boolean,
+    entityId: Int,
+    propertyIds: ArraySeq[Int],
+    descriptor: SchemaDescriptor => ConstraintDescriptor
+  ): String = translateException(
+    tokenNameLookup,
+    inner.getGeneratedNameForConstraint(forNode, entityId, propertyIds, descriptor)
+  )
 
   override def callReadOnlyProcedure(
     id: Int,

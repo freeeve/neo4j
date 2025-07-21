@@ -38,10 +38,13 @@ import org.neo4j.internal.schema.ConstraintDescriptor
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexProviderDescriptor
+import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.values.storable.Value
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
+
+import scala.collection.immutable.ArraySeq
 
 class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryContext(inner) with CountingQueryContext {
 
@@ -358,6 +361,13 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     inner.getConstraintInformation(matchFn, entityId, properties: _*)
 
   override def getAllConstraints(): Map[ConstraintDescriptor, ConstraintInfo] = inner.getAllConstraints()
+
+  override def getGeneratedNameForConstraint(
+    forNode: Boolean,
+    entityId: Int,
+    propertyIds: ArraySeq[Int],
+    descriptor: SchemaDescriptor => ConstraintDescriptor
+  ): String = inner.getGeneratedNameForConstraint(forNode, entityId, propertyIds, descriptor)
 
   override def nodeGetDegree(node: Long, dir: SemanticDirection, nodeCursor: NodeCursor): Int =
     super.nodeGetDegree(node, dir, nodeCursor)
