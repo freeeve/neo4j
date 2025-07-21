@@ -322,19 +322,19 @@ public class TableOutputFormatter implements OutputFormatter {
     @Override
     public String formatNotifications(ResultSummary summary) {
         Set<String> messages;
-        if (summary.gqlStatusObjects().size() > 1) {
+        // These GQLSTATUS codes are added by the driver when the server is too old to support GQLSTATUS
+        List<String> incompatibilityGqlstatuses = List.of("01N42", "02N42", "03N42");
+
+        var actualGqlStatusObjects = summary.gqlStatusObjects().stream()
+                .filter(gso -> !incompatibilityGqlstatuses.contains(gso.gqlStatus()))
+                .toList();
+
+        if (actualGqlStatusObjects.size() > 1) {
             // GQL Status Objects are available, use them
             messages = summary.gqlStatusObjects().stream()
                     .map(gqlStatusObject -> switch (gqlStatusObject) {
-                        case GqlNotification gqlNotification -> {
-                            var severity = gqlNotification
-                                    .rawSeverity()
-                                    .map(rawSeverity -> rawSeverity.toLowerCase(Locale.ROOT))
-                                    .map(this::severity)
-                                    .orElse(INFO_SEVERITY_LEVEL);
-                            yield String.format(
-                                    "%s (%s)", gqlNotification.statusDescription(), gqlNotification.gqlStatus());
-                        }
+                        case GqlNotification gqlNotification ->
+                            String.format("%s (%s)", gqlNotification.statusDescription(), gqlNotification.gqlStatus());
                         case GqlStatusObject ignored -> null;
                     })
                     .filter(Objects::nonNull)
