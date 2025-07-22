@@ -1012,5 +1012,7 @@ case class ConstraintInformation(
   name: String,
   labelOrRelType: String,
   properties: List[String],
-  propertyType: Option[String]
+  propertyType: Option[String],
+  impliedLabel: Option[String],
+  forSourceNode: Option[Boolean]
 )

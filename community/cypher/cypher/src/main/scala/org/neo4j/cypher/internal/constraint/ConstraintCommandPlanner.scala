@@ -401,7 +401,16 @@ object ConstraintCommandPlanner {
       ctx.assertShowConstraintAllowed()
 
       // Fetch the relevant constraint parts
-      val ConstraintInformation(isNode, constraintType, name, entityName, properties, propertyType) = getInfoParts()
+      val ConstraintInformation(
+        isNode,
+        constraintType,
+        name,
+        entityName,
+        properties,
+        propertyType,
+        impliedLabel,
+        forSourceNode
+      ) = getInfoParts()
 
       // Create string description
       val nameString = getPrettyName(Some(name))
@@ -419,10 +428,15 @@ object ConstraintCommandPlanner {
         case NODE_LABEL_EXISTENCE        => ""
       }
       val prettyAssertion = asPrettyString.raw(assertion)
-      // Currently don't have a constraint command for endpoint and node label existence constraints so let's return the same as if the user wasn't allowed to see the constraint for now
-      // Once we have graph type commands, lets use `(:Label1 => :Label2)`, `(:Label)-[:REL_TYPE =>]->()` and `()-[:REL_TYPE =>]->(:Label)` with correct labels and relationship types
-      // as they don't have constraint commands and that would be their representation in the graph type
-      if (constraintType == RELATIONSHIP_ENDPOINT_LABEL || constraintType == NODE_LABEL_EXISTENCE) "constraint"
+      // We don't have a constraint command for endpoint and node label existence constraints,
+      // lets use `(:Label1 => :Label2)`, `(:Label)-[:REL_TYPE =>]->()` and `()-[:REL_TYPE =>]->(:Label)` with correct labels and relationship types
+      // as they don't have constraint commands and that would be their representation in the graph type.
+      if (constraintType == RELATIONSHIP_ENDPOINT_LABEL)
+        if (forSourceNode.get)
+          pretty"(:${asPrettyString(impliedLabel.get)})-[:${asPrettyString(entityName)} =>]->()".prettifiedString
+        else pretty"()-[:${asPrettyString(entityName)} =>]->(:${asPrettyString(impliedLabel.get)})".prettifiedString
+      else if (constraintType == NODE_LABEL_EXISTENCE)
+        pretty"(:${asPrettyString(entityName)} => :${asPrettyString(impliedLabel.get)})".prettifiedString
       else pretty"CONSTRAINT$nameString FOR $pattern REQUIRE $propertyString $prettyAssertion".prettifiedString
     } catch {
       // Not allowed to see constraint description, only show `constraint`

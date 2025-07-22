@@ -1662,7 +1662,17 @@ private[internal] class TransactionBoundReadQueryContext(
       Some(constraint.asPropertyTypeConstraint().propertyType().userDescription())
     } else None
 
-    ConstraintInformation(isNode, constraintType, name, entity, props, propertyType)
+    val (impliedLabel, forSourceNode) =
+      if (constraint.isNodeLabelExistenceConstraint) {
+        (Some(tokenNameLookup.labelGetName(constraint.asNodeLabelExistenceConstraint.requiredLabelId)), None)
+      } else if (constraint.isRelationshipEndpointLabelConstraint) {
+        (
+          Some(tokenNameLookup.labelGetName(constraint.asRelationshipEndpointLabelConstraint.endpointLabelId)),
+          Some(constraint.asRelationshipEndpointLabelConstraint.endpointType == EndpointType.START)
+        )
+      } else (None, None)
+
+    ConstraintInformation(isNode, constraintType, name, entity, props, propertyType, impliedLabel, forSourceNode)
   }
 
   override def getAllConstraints(): Map[ConstraintDescriptor, ConstraintInfo] = {
