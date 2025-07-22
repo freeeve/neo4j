@@ -54,22 +54,30 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.SplittableRandom;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.util.function.IntFunction;
-import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.IntIterable;
+import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.RichIterable;
+import org.eclipse.collections.api.block.predicate.Predicate;
+import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.factory.SortedSets;
+import org.eclipse.collections.api.factory.primitive.IntLists;
+import org.eclipse.collections.api.list.ListIterable;
+import org.eclipse.collections.api.list.primitive.ImmutableIntList;
+import org.eclipse.collections.api.list.primitive.IntList;
 import org.eclipse.collections.api.list.primitive.LongList;
+import org.eclipse.collections.api.set.SetIterable;
+import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
+import org.eclipse.collections.impl.list.fixed.ArrayAdapter;
+import org.eclipse.collections.impl.utility.LazyIterate;
 
 /**
  * Helper class that generates generator values of all supported types.
@@ -109,9 +117,9 @@ public class RandomValues {
 
         int maxVectorDimensions();
 
-        int[] vectorDimensionChoices();
+        IntList vectorDimensionChoices();
 
-        Set<ValueType> allowedTypes();
+        SetIterable<ValueType> allowedTypes();
     }
 
     public static ConfigurationBuilder newConfigurationBuilder() {
@@ -215,7 +223,7 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextValueOfTypes(ValueType... types) {
-        var allowedTypes = Arrays.stream(types).filter(this::allowedType).toArray(ValueType[]::new);
+        final ListIterable<ValueType> allowedTypes = ArrayAdapter.adapt(types).select(this::allowedType);
         return nextValueOfType(among(allowedTypes));
     }
 
@@ -234,7 +242,7 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value[] nextValuesOfTypes(int size, ValueType... types) {
-        return nextValuesOfTypes(size, Arrays.asList(types));
+        return nextValuesOfTypes(size, Lists.mutable.wrapCopy(types));
     }
 
     /**
@@ -242,8 +250,8 @@ public class RandomValues {
      *
      * @see RandomValues
      */
-    public Value[] nextValuesOfTypes(int size, Collection<ValueType> types) {
-        var allowedTypes = types.stream().filter(this::allowedType).toArray(ValueType[]::new);
+    public Value[] nextValuesOfTypes(int size, RichIterable<ValueType> types) {
+        var allowedTypes = types.select(this::allowedType);
 
         var values = new Value[size];
         for (int i = 0; i < size; i++) {
@@ -423,8 +431,8 @@ public class RandomValues {
      * @see RandomValues
      */
     public ArrayValue nextArray() {
-        var allowedTypes =
-                Arrays.stream(ValueType.ARRAY_TYPES).filter(this::allowedType).toArray(ValueType[]::new);
+        final ListIterable<ValueType> allowedTypes =
+                ArrayAdapter.adapt(ValueType.ARRAY_TYPES).select(this::allowedType);
         return (ArrayValue) nextValueOfType(among(allowedTypes));
     }
 
@@ -1541,7 +1549,28 @@ public class RandomValues {
         return among.get(nextInt(among.size()));
     }
 
+    public long among(LongIterable among) {
+        if (among instanceof final LongList intList) {
+            return among(intList);
+        }
+
+        int offset = nextInt(among.size());
+        final var iterator = among.longIterator();
+        while (offset-- > 0) {
+            iterator.next();
+        }
+        return iterator.next();
+    }
+
+    public int among(IntList among) {
+        return among.get(nextInt(among.size()));
+    }
+
     public int among(IntIterable among) {
+        if (among instanceof final IntList intList) {
+            return among(intList);
+        }
+
         int offset = nextInt(among.size());
         final var iterator = among.intIterator();
         while (offset-- > 0) {
@@ -1550,7 +1579,15 @@ public class RandomValues {
         return iterator.next();
     }
 
+    public <T> T among(ListIterable<T> among) {
+        return among.get(generator.nextInt(among.size()));
+    }
+
     public <T> T among(RichIterable<T> among) {
+        if (among instanceof final ListIterable<T> list) {
+            return among(list);
+        }
+
         int offset = nextInt(among.size());
         final var iterator = among.iterator();
         while (offset-- > 0) {
@@ -1649,10 +1686,10 @@ public class RandomValues {
     }
 
     private int chooseDimension(int size) {
-        final int[] dimensions = configuration.vectorDimensionChoices();
+        final IntList dimensions = configuration.vectorDimensionChoices();
         final int dimension;
         if (dimensions != null) {
-            assert dimensions.length > 0;
+            assert dimensions.notEmpty();
             dimension = among(dimensions);
         } else {
             dimension = intBetween(minDimensions(), Math.min(maxVectorNumBytes() / size, maxDimensions()));
@@ -1690,28 +1727,71 @@ public class RandomValues {
     public static final Predicate<ValueType> IS_VECTOR_TYPE =
             t -> t.valueRepresentation.valueGroup().category() == ValueCategory.VECTOR;
 
+    /**
+     * An immutable and thread-safe configuration builder.
+     */
     public static class ConfigurationBuilder {
-        private int stringMinLength = 5;
-        private int stringMaxLength = 20;
-        private int arrayMinLength = 1;
-        private int arrayMaxLength = 10;
-        private int minCodePoint = Character.MIN_CODE_POINT;
-        private int maxCodePoint = Character.MAX_CODE_POINT;
-        private int minVectorDimensions = MIN_VECTOR_DIMENSIONS;
-        private int maxVectorDimensions = MAX_VECTOR_DIMENSIONS;
-        private int[] vectorDimensionChoices = null;
-        private int maxVectorNumBytes = MAX_VECTOR_DIMENSIONS * Double.BYTES;
-        private Set<ValueType> allowedTypes = EnumSet.allOf(ValueType.class);
+        private final int stringMinLength;
+        private final int stringMaxLength;
+        private final int arrayMinLength;
+        private final int arrayMaxLength;
+        private final int minCodePoint;
+        private final int maxCodePoint;
+        private final int minVectorDimensions;
+        private final int maxVectorDimensions;
+        private final ImmutableIntList vectorDimensionChoices;
+        private final int maxVectorNumBytes;
+        private final ImmutableSortedSet<ValueType> allowedTypes;
 
-        private ConfigurationBuilder() {}
+        private ConfigurationBuilder() {
+            this(
+                    5,
+                    20,
+                    1,
+                    10,
+                    Character.MIN_CODE_POINT,
+                    Character.MAX_CODE_POINT,
+                    MIN_VECTOR_DIMENSIONS,
+                    MAX_VECTOR_DIMENSIONS,
+                    null,
+                    MAX_VECTOR_DIMENSIONS * Double.BYTES,
+                    SortedSets.immutable.ofAll(Arrays.asList(ValueType.ALL_TYPES)));
+        }
+
+        private ConfigurationBuilder(
+                int stringMinLength,
+                int stringMaxLength,
+                int arrayMinLength,
+                int arrayMaxLength,
+                int minCodePoint,
+                int maxCodePoint,
+                int minVectorDimensions,
+                int maxVectorDimensions,
+                ImmutableIntList vectorDimensionChoices,
+                int maxVectorNumBytes,
+                ImmutableSortedSet<ValueType> allowedTypes) {
+            this.stringMinLength = stringMinLength;
+            this.stringMaxLength = stringMaxLength;
+            this.arrayMinLength = arrayMinLength;
+            this.arrayMaxLength = arrayMaxLength;
+            this.minCodePoint = minCodePoint;
+            this.maxCodePoint = maxCodePoint;
+            this.minVectorDimensions = minVectorDimensions;
+            this.maxVectorDimensions = maxVectorDimensions;
+            this.vectorDimensionChoices = vectorDimensionChoices;
+            this.maxVectorNumBytes = maxVectorNumBytes;
+            this.allowedTypes = allowedTypes;
+        }
 
         public Configuration build() {
             // Even if vector dimension choices explicitly set
             // Configuration interface can still query min/max vector dimensions
+            int minVectorDimensions = this.minVectorDimensions;
+            int maxVectorDimensions = this.maxVectorDimensions;
+
             if (vectorDimensionChoices != null) {
-                Arrays.sort(vectorDimensionChoices);
-                minVectorDimensions = vectorDimensionChoices[0];
-                maxVectorDimensions = vectorDimensionChoices[vectorDimensionChoices.length - 1];
+                minVectorDimensions = vectorDimensionChoices.getFirst();
+                maxVectorDimensions = vectorDimensionChoices.getLast();
             }
 
             return new ConfigurationRecord(
@@ -1725,17 +1805,37 @@ public class RandomValues {
                     maxVectorDimensions,
                     vectorDimensionChoices,
                     maxVectorNumBytes,
-                    Collections.unmodifiableSet(allowedTypes));
+                    allowedTypes);
         }
 
         public ConfigurationBuilder stringMinLength(int length) {
-            this.stringMinLength = length;
-            return this;
+            return new ConfigurationBuilder(
+                    length,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder stringMaxLength(int length) {
-            this.stringMaxLength = length;
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    length,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder stringLength(int min, int max) {
@@ -1748,13 +1848,33 @@ public class RandomValues {
         }
 
         public ConfigurationBuilder arrayMinLength(int length) {
-            this.arrayMinLength = length;
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    length,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder arrayMaxLength(int length) {
-            this.arrayMaxLength = length;
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    length,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder arrayLength(int min, int max) {
@@ -1767,13 +1887,33 @@ public class RandomValues {
         }
 
         public ConfigurationBuilder minCodePoint(int codePoint) {
-            this.minCodePoint = codePoint;
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    codePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder maxCodePoint(int codePoint) {
-            this.maxCodePoint = codePoint;
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    codePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder codePoints(int min, int max) {
@@ -1784,13 +1924,35 @@ public class RandomValues {
         public ConfigurationBuilder minVectorDimensions(int dimensions) {
             assert vectorDimensionChoices == null
                     : "cannot set minimum vector dimensions with explicit vector dimension choices";
-            this.minVectorDimensions = dimensions;
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    dimensions,
+                    this.maxVectorDimensions,
+                    null,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder maxVectorDimensions(int dimensions) {
-            this.maxVectorDimensions = dimensions;
-            return this;
+            assert vectorDimensionChoices == null
+                    : "cannot set maximum vector dimensions with explicit vector dimension choices";
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    dimensions,
+                    null,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder vectorDimensions(int min, int max) {
@@ -1799,39 +1961,77 @@ public class RandomValues {
         }
 
         public ConfigurationBuilder vectorDimensionChoices(int... dimensions) {
-            if (dimensions == null) {
-                this.vectorDimensionChoices = null;
-                return this;
+            final ImmutableIntList localDimensions;
+            if (dimensions != null) {
+                assert dimensions.length > 0 : "must provide at least one vector dimension";
+                localDimensions =
+                        IntLists.mutable.wrapCopy(dimensions).sortThis().toImmutable();
+            } else {
+                localDimensions = null;
             }
 
-            assert dimensions.length > 0 : "must provide at least one vector dimension";
-            this.vectorDimensionChoices = dimensions.clone();
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    localDimensions,
+                    this.maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder maxVectorNumBytes(int maxVectorNumBytes) {
-            this.maxVectorNumBytes = maxVectorNumBytes;
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    maxVectorNumBytes,
+                    this.allowedTypes);
         }
 
         public ConfigurationBuilder includeVectorTypes(boolean includeVectorTypes) {
-            if (includeVectorTypes) {
-                Arrays.stream(ALL_TYPES).filter(IS_VECTOR_TYPE).forEach(allowedTypes::add);
-            } else {
-                allowedTypes.removeIf(IS_VECTOR_TYPE);
-            }
-            return this;
+            final var allowedTypes = includeVectorTypes
+                    ? this.allowedTypes.newWithAll(LazyIterate.select(Arrays.asList(ALL_TYPES), IS_VECTOR_TYPE))
+                    : this.allowedTypes.reject(IS_VECTOR_TYPE);
+
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    allowedTypes);
         }
 
         public ConfigurationBuilder allowedTypes(ValueType... allowedTypes) {
             assert allowedTypes != null && allowedTypes.length > 0 : "must provide at least one type";
-            return allowedTypes(EnumSet.copyOf(Arrays.asList(allowedTypes)));
-        }
-
-        public ConfigurationBuilder allowedTypes(Set<ValueType> allowedTypes) {
-            assert allowedTypes != null && !allowedTypes.isEmpty() : "must provide at least one type";
-            this.allowedTypes = allowedTypes;
-            return this;
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    SortedSets.immutable.of(allowedTypes));
         }
     }
 
@@ -1844,9 +2044,9 @@ public class RandomValues {
             int maxCodePoint,
             int minVectorDimensions,
             int maxVectorDimensions,
-            int[] vectorDimensionChoices,
+            ImmutableIntList vectorDimensionChoices,
             int maxVectorNumBytes,
-            Set<ValueType> allowedTypes)
+            ImmutableSortedSet<ValueType> allowedTypes)
             implements Configuration {
 
         private ConfigurationRecord {
@@ -1855,20 +2055,20 @@ public class RandomValues {
             assert arrayMinLength <= arrayMaxLength;
             assert minCodePoint <= maxCodePoint;
             if (vectorDimensionChoices != null) {
-                assert vectorDimensionChoices.length > 0;
-                assert vectorDimensionChoices[0] == minVectorDimensions;
-                assert vectorDimensionChoices[vectorDimensionChoices.length - 1] == maxVectorDimensions;
+                assert vectorDimensionChoices.notEmpty();
+                assert vectorDimensionChoices.getFirst() == minVectorDimensions;
+                assert vectorDimensionChoices.getLast() == maxVectorDimensions;
             }
             assert MIN_VECTOR_DIMENSIONS <= minVectorDimensions;
             assert minVectorDimensions <= maxVectorDimensions;
             assert maxVectorDimensions <= MAX_VECTOR_DIMENSIONS;
             assert maxVectorNumBytes <= maxVectorNumBytes * Double.BYTES;
-            assert allowedTypes != null && !allowedTypes.isEmpty();
+            assert allowedTypes != null && allowedTypes.notEmpty();
         }
 
         @Override
         public boolean includeVectorTypes() {
-            return allowedTypes.stream().anyMatch(IS_VECTOR_TYPE);
+            return allowedTypes.detect(IS_VECTOR_TYPE) != null;
         }
     }
 }

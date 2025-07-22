@@ -257,16 +257,11 @@ public class RandomSupport {
     }
 
     public long among(LongSet among) {
-        return randoms.among(among.collect(i -> i));
+        return randoms.among(among);
     }
 
     public <T> T among(RichIterable<T> among) {
-        int offset = nextInt(among.size());
-        final var iterator = among.iterator();
-        while (offset-- > 0) {
-            iterator.next();
-        }
-        return iterator.next();
+        return randoms.among(among);
     }
 
     public Object nextValueAsObject() {

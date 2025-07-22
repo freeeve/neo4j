@@ -75,6 +75,7 @@ import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValues.Configuration;
 import org.neo4j.values.storable.RandomValuesUtils;
 
 @TestDirectoryExtension
@@ -118,12 +119,11 @@ class ReuseStorageSpaceIT {
 
     @Test
     void shouldPrioritizeFreelistWhenConcurrentlyAllocating() throws Exception {
-        DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(directory.homePath())
-                // This test specifically exercises the ID caches and refilling of those as it goes, so the smaller the
-                // better for this test
+        // This test specifically exercises the ID caches and refilling of those as it goes, so the smaller the
+        // better for this test
+        try (DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(directory.homePath())
                 .setConfig(GraphDatabaseInternalSettings.force_small_id_cache, true)
-                .build();
-        try {
+                .build()) {
             // given
             GraphDatabaseAPI db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             int numNodes = 40_000;
@@ -150,8 +150,6 @@ class ReuseStorageSpaceIT {
                         .as(diff(nodeIds, reallocatedNodeIds))
                         .isEqualTo(nodeIds);
             }
-        } finally {
-            dbms.shutdown();
         }
     }
 
@@ -245,21 +243,18 @@ class ReuseStorageSpaceIT {
     }
 
     private static Sizes withDb(Path storeDir, ThrowingConsumer<GraphDatabaseAPI, Exception> transaction) {
-        DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(storeDir)
-                // This test specifically exercises the ID caches and refilling of those as it goes, so the smaller the
-                // better for this test
+        // This test specifically exercises the ID caches and refilling of those as it goes, so the smaller the
+        // better for this test
+        try (DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(storeDir)
                 .setConfig(GraphDatabaseInternalSettings.force_small_id_cache, true)
                 .setConfig(GraphDatabaseInternalSettings.strictly_prioritize_id_freelist, true)
                 .setConfig(GraphDatabaseInternalSettings.id_generator_log_enabled, true)
-                .build();
-        try {
+                .build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             transaction.accept(db);
             return new Sizes(db);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            dbms.shutdown();
         }
     }
 
@@ -269,6 +264,7 @@ class ReuseStorageSpaceIT {
      * @param seed starting seed for the randomness.
      */
     private static void createStuff(GraphDatabaseService db, long seed) {
+        Configuration randomConfig = RandomValuesUtils.selectStorageEngineDependentConfiguration(db);
         Race race = new Race();
         AtomicLong createdNodes = new AtomicLong();
         AtomicLong createdRelationships = new AtomicLong();
@@ -276,10 +272,7 @@ class ReuseStorageSpaceIT {
         race.addContestants(
                 CREATION_THREADS,
                 throwing(() -> {
-                    RandomValues random = RandomValues.create(
-                            new Random(nextSeed.getAndIncrement()),
-                            /* Not all storage engines support vectors. */
-                            RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
+                    RandomValues random = RandomValues.create(new Random(nextSeed.getAndIncrement()), randomConfig);
                     int nodeCount = 0;
                     int relationshipCount = 0;
                     for (int t = 0; t < NUMBER_OF_TRANSACTIONS_PER_THREAD; t++) {
