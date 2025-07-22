@@ -288,9 +288,9 @@ class TransactionLogFilesTest {
             switch (kernelVersion) {
                 case V2025_05 -> bytes = new byte[] {105, -62, -59, 21, -21, -21, 43, -120, 58, -91};
                 case V2025_07 -> bytes = new byte[] {105, -62, -59, 21, -64, -23, 66, -121, 58, -91};
+                case V2025_08 -> bytes = new byte[] {105, -62, -59, 21, 73, -10, 21, -48, 58, -91};
                 case GLORIOUS_FUTURE -> bytes = new byte[] {105, -62, -59, 21, 111, 23, 116, -69, 58, 63};
                 // Next few in the sequence
-                // version byte 24 => bytes = new byte[] {105, -62, -59, 21, 73, -10, 21, -48, 58, -91};
                 // version byte 25 => bytes = new byte[] {105, -62, -59, 21, 73, -10, -88, 39, 121, -110};
                 // version byte 26 => bytes = new byte[] {105, -62, -59, 21, 73, -10, 111, 63, -67, -53};
                 // version byte 27 => bytes = new byte[] {105, -62, -59, 21, 73, -10, -46, -56, -2, -4};
