@@ -40,6 +40,7 @@ import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.shortValue;
 import static org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS;
 import static org.neo4j.values.storable.VectorValue.MIN_VECTOR_DIMENSIONS;
+import static org.neo4j.values.utils.TemporalUtil.NANOS_PER_SECOND;
 
 import java.lang.reflect.Array;
 import java.time.Duration;
@@ -128,8 +129,6 @@ public class RandomValues {
 
     public static final int MAX_BMP_CODE_POINT = 0xFFFF;
     static final int MAX_ASCII_CODE_POINT = 0x7F;
-
-    private static final long NANOS_PER_SECOND = 1_000_000_000L;
 
     private final Generator generator;
     private final Configuration configuration;

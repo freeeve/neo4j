@@ -158,49 +158,28 @@ public enum DurationFields {
     public abstract long asTimeStamp(long months, long days, long seconds, long nanos);
 
     public static DurationFields fromName(String fieldName) {
-        switch (fieldName.toLowerCase(Locale.ROOT)) {
-            case "years":
-                return YEARS;
-            case "months":
-                return MONTHS;
-            case "monthsofyear":
-                return MONTHS_OF_YEAR;
-            case "monthsofquarter":
-                return MONTHS_OF_QUARTER;
-            case "quarters":
-                return QUARTERS;
-            case "quartersofyear":
-                return QUARTERS_OF_YEAR;
-            case "weeks":
-                return WEEKS;
-            case "daysofweek":
-                return DAYS_OF_WEEK;
-            case "days":
-                return DAYS;
-            case "hours":
-                return HOURS;
-            case "minutesofhour":
-                return MINUTES_OF_HOUR;
-            case "minutes":
-                return MINUTES;
-            case "secondsofminute":
-                return SECONDS_OF_MINUTE;
-            case "seconds":
-                return SECONDS;
-            case "millisecondsofsecond":
-                return MILLISECONDS_OF_SECOND;
-            case "milliseconds":
-                return MILLISECONDS;
-            case "microsecondsofsecond":
-                return MICROSECONDS_OF_SECOND;
-            case "microseconds":
-                return MICROSECONDS;
-            case "nanosecondsofsecond":
-                return NANOSECONDS_OF_SECOND;
-            case "nanoseconds":
-                return NANOSECONDS;
-            default:
-                throw UnsupportedTemporalUnitException.noSuchField(fieldName, "DURATION");
-        }
+        return switch (fieldName.toLowerCase(Locale.ROOT)) {
+            case "years" -> YEARS;
+            case "months" -> MONTHS;
+            case "monthsofyear" -> MONTHS_OF_YEAR;
+            case "monthsofquarter" -> MONTHS_OF_QUARTER;
+            case "quarters" -> QUARTERS;
+            case "quartersofyear" -> QUARTERS_OF_YEAR;
+            case "weeks" -> WEEKS;
+            case "daysofweek" -> DAYS_OF_WEEK;
+            case "days" -> DAYS;
+            case "hours" -> HOURS;
+            case "minutesofhour" -> MINUTES_OF_HOUR;
+            case "minutes" -> MINUTES;
+            case "secondsofminute" -> SECONDS_OF_MINUTE;
+            case "seconds" -> SECONDS;
+            case "millisecondsofsecond" -> MILLISECONDS_OF_SECOND;
+            case "milliseconds" -> MILLISECONDS;
+            case "microsecondsofsecond" -> MICROSECONDS_OF_SECOND;
+            case "microseconds" -> MICROSECONDS;
+            case "nanosecondsofsecond" -> NANOSECONDS_OF_SECOND;
+            case "nanoseconds" -> NANOSECONDS;
+            default -> throw UnsupportedTemporalUnitException.noSuchField(fieldName, "DURATION");
+        };
     }
 }

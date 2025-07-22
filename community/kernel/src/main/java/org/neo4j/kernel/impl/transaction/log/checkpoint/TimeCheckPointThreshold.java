@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
+import static org.neo4j.values.utils.TemporalUtil.NANOS_PER_MILLISECOND;
+
 import java.time.Duration;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -28,8 +30,7 @@ import org.neo4j.time.Stopwatch;
 import org.neo4j.time.SystemNanoClock;
 
 class TimeCheckPointThreshold extends AbstractCheckPointThreshold {
-    private static final long NANOS_PER_MILLI = 1_000_000L;
-    private static final long MAX_MILLIS = Long.MAX_VALUE / NANOS_PER_MILLI;
+    private static final long MAX_MILLIS = Long.MAX_VALUE / NANOS_PER_MILLISECOND;
 
     private volatile long lastCheckPointedAppendIndex;
     private volatile Duration timeout;

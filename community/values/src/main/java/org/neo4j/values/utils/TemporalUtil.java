@@ -26,6 +26,7 @@ import java.time.OffsetTime;
 import java.time.ZoneOffset;
 
 public final class TemporalUtil {
+    public static final int NANOS_PER_MILLISECOND = 1_000_000;
     public static final long NANOS_PER_SECOND = 1_000_000_000L;
     public static final long AVG_NANOS_PER_MONTH = 2_629_746_000_000_000L;
 
