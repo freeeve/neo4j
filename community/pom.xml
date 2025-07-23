@@ -85,20 +85,7 @@
     <module>neo4j-gql-status</module>
     <module>udc</module>
     <module>genai-plugin</module>
+    <module>cypher</module>
+    <module>cypher-shell</module>
   </modules>
-
-  <profiles>
-    <profile>
-      <id>include-cypher</id>
-      <activation>
-        <property>
-          <name>!skipCypher</name>
-        </property>
-      </activation>
-      <modules>
-        <module>cypher</module>
-        <module>cypher-shell</module>
-      </modules>
-    </profile>
-  </profiles>
 </project>
