@@ -2891,4 +2891,188 @@ class IndexPlanningIntegrationTest
       .relationshipTypeScan("(a)-[r:REL]->(b)")
       .build()
   }
+
+  test("Should use an index scan independent of order of arguments in distance function") {
+    val cfg = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Station", 50)
+      .addNodeIndex("Station", Seq("name"), 0.5, 0.01, indexType = IndexType.RANGE)
+      .addNodeIndex("Station", Seq("location"), 0.5, 0.01, indexType = IndexType.POINT)
+      .build()
+
+    for (argNodes <- List(Array("a", "b", "cacheNFromStore", "cacheN"), Array("b", "a", "cacheN", "cacheNFromStore")))
+      yield {
+        val plan = cfg.plan(
+          s"""
+             |MATCH (a:Station {name:'StationA'})
+             |MATCH (b:Station) WHERE point.distance(${argNodes(0)}.location, ${argNodes(1)}.location) <= 5
+             |RETURN b""".stripMargin
+        ).stripProduceResults
+        plan shouldEqual cfg.subPlanBuilder()
+          .filter(
+            s"point.distance(${argNodes(2)}[${argNodes(0)}.location], ${argNodes(3)}[${argNodes(1)}.location]) <= 5"
+          )
+          .apply()
+          .|.cachedPropertyPointDistanceNodeIndexSeek(
+            "b",
+            "Station",
+            "location",
+            cachedNodePropFromStore("a", "location"),
+            literalInt(5),
+            inclusive = true,
+            argumentIds = Set("a"),
+            getValue = GetValue
+          )
+          .nodeIndexOperator("a:Station(name = 'StationA')")
+          .build()
+      }
+  }
+
+  test("Should use an index scan independent of order of property accesses in inequality") {
+    val cfg = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Station", 50)
+      .addNodeIndex("Station", Seq("id"), 0.5, 0.01, indexType = IndexType.RANGE)
+      .addNodeIndex("Station", Seq("prop"), 0.5, 0.01, indexType = IndexType.RANGE)
+      .build()
+
+    for (pred <- List("a.prop >= b.prop", "b.prop <= a.prop")) yield {
+      val plan = cfg.plan(
+        s"""
+           |MATCH (a:Station {id: 123})
+           |MATCH (b:Station) WHERE $pred
+           |RETURN b
+           |""".stripMargin
+      ).stripProduceResults
+
+      plan shouldEqual cfg.subPlanBuilder()
+        .apply()
+        .|.nodeIndexOperator("b:Station(prop <= a.prop)", argumentIds = Set("a"), getValue = Map("prop" -> GetValue))
+        .nodeIndexOperator("a:Station(id = 123)", paramExpr = Seq(parameter("id", CTAny)))
+        .build()
+    }
+  }
+
+  test(
+    "Should use a range index scan on property in comparison predicate with distance function when there is no other index available"
+  ) {
+    val cfg = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Station", 50)
+      .addNodeIndex("Station", Seq("prop"), 0.5, 0.01, indexType = IndexType.RANGE)
+      .build()
+
+    val plan = cfg.plan(
+      s"""
+         |MATCH (a:Station) WHERE a.prop < point.distance(a.location, point({x: 10, y: 20}))
+         |RETURN a
+         |""".stripMargin
+    ).stripProduceResults
+
+    plan shouldEqual cfg.subPlanBuilder()
+      .filter("cacheN[a.prop] < point.distance(a.location, point({x: 10, y: 20}))")
+      .nodeIndexOperator("a:Station(prop)", getValue = Map("prop" -> GetValue), indexType = IndexType.RANGE)
+      .build()
+  }
+
+  test("Should use a point index scan on property in range function when there is no other index available") {
+    val cfg = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Station", 50)
+      .addNodeIndex("Station", Seq("location"), 0.5, 0.01, indexType = IndexType.POINT)
+      .build()
+
+    val plan = cfg.plan(
+      s"""
+         |MATCH (a:Station) WHERE a.prop < point.distance(a.location, point({x: 10, y: 20}))
+         |RETURN a
+         |""".stripMargin
+    ).stripProduceResults
+
+    plan shouldEqual cfg.subPlanBuilder()
+      .filter("a.prop < point.distance(cacheN[a.location], point({x: 10, y: 20}))")
+      .nodeIndexOperator(
+        "a:Station(location)",
+        getValue = Map("location" -> GetValue),
+        indexType = IndexType.POINT,
+        supportPartitionedScan = false
+      )
+      .build()
+  }
+
+  test("Should use a point index seek on property in range function when the distance must be less than a value") {
+    val cfg = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Station", 50)
+      .addNodeIndex("Station", Seq("location"), 0.5, 0.01, indexType = IndexType.POINT)
+      .build()
+
+    val plan = cfg.plan(
+      s"""
+         |MATCH (a:Station) WHERE 5.0 > point.distance(a.location, point({x: 10, y: 20}))
+         |RETURN a
+         |""".stripMargin
+    ).stripProduceResults
+
+    plan shouldEqual cfg.subPlanBuilder()
+      .filter("5.0 > point.distance(cacheN[a.location], point({x: 10, y: 20}))")
+      .pointDistanceNodeIndexSeek(
+        "a",
+        "Station",
+        "location",
+        "{x: 10, y: 20}",
+        5.0,
+        getValue = GetValue,
+        indexType = IndexType.POINT
+      )
+      .build()
+  }
+
+  test("Should use POINT index scan when it is more selective than the RANGE index") {
+    val cfg = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Station", 50)
+      .addNodeIndex("Station", Seq("location"), 0.05, 0.001, indexType = IndexType.POINT)
+      .addNodeIndex("Station", Seq("prop"), 0.5, 0.01, indexType = IndexType.RANGE)
+      .build()
+
+    val plan = cfg.plan(
+      s"""
+         |MATCH (a:Station) WHERE a.prop < point.distance(a.location, point({x: 10, y: 20}))
+         |RETURN a
+         |""".stripMargin
+    ).stripProduceResults
+
+    plan shouldEqual cfg.subPlanBuilder()
+      .filter("a.prop < point.distance(cacheN[a.location], point({x: 10, y: 20}))")
+      .nodeIndexOperator(
+        "a:Station(location)",
+        getValue = Map("location" -> GetValue),
+        indexType = IndexType.POINT,
+        supportPartitionedScan = false
+      )
+      .build()
+  }
+
+  test("Should use RANGE index when it is more selective than the POINT index") {
+    val cfg = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("Station", 50)
+      .addNodeIndex("Station", Seq("location"), 0.5, 0.01, indexType = IndexType.POINT)
+      .addNodeIndex("Station", Seq("prop"), 0.05, 0.001, indexType = IndexType.RANGE)
+      .build()
+
+    val plan = cfg.plan(
+      s"""
+         |MATCH (a:Station) WHERE a.prop < point.distance(a.location, point({x: 10, y: 20}))
+         |RETURN a
+         |""".stripMargin
+    ).stripProduceResults
+
+    plan shouldEqual cfg.subPlanBuilder()
+      .filter("cacheN[a.prop] < point.distance(a.location, point({x: 10, y: 20}))")
+      .nodeIndexOperator("a:Station(prop)", getValue = Map("prop" -> GetValue), indexType = IndexType.RANGE)
+      .build()
+  }
+
 }

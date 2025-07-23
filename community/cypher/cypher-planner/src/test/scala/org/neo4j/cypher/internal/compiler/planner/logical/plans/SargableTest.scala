@@ -27,8 +27,13 @@ import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.expressions.FunctionName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.Namespace
+import org.neo4j.cypher.internal.expressions.PartialPredicate.PartialPredicateWrapper
 import org.neo4j.cypher.internal.logical.plans.ManySeekableArgs
+import org.neo4j.cypher.internal.logical.plans.PointDistanceRange
 import org.neo4j.cypher.internal.logical.plans.PrefixRange
 import org.neo4j.cypher.internal.logical.plans.SingleSeekableArg
 import org.neo4j.cypher.internal.util.NonEmptyList
@@ -37,10 +42,12 @@ import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNumber
+import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTStringNotNull
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.scalatest.OptionValues.convertOptionToValuable
 
 class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
 
@@ -222,8 +229,8 @@ class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
       leftExpr,
       NonEmptyList(greaterThan(leftExpr, min), lessThanOrEqual(leftExpr, max))
     ) match {
-      case AsValueRangeSeekable(seekable) => seekable
-      case _                              => null
+      case AsValueRangeSeekable(seekables) => seekables.head
+      case _                               => null
     }
 
     seekable.propertyValueType(table) should be(CTNumber)
@@ -239,8 +246,8 @@ class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
       leftExpr,
       NonEmptyList(greaterThan(leftExpr, min), lessThanOrEqual(leftExpr, max))
     ) match {
-      case AsValueRangeSeekable(seekable) => seekable
-      case _                              => null
+      case AsValueRangeSeekable(seekables) => seekables.head
+      case _                               => null
     }
 
     seekable.propertyValueType(table) should be(CTAny)
@@ -259,11 +266,11 @@ class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
     val expr = isNotNull(propertyExpr)
 
     assertMatches(expr) {
-      case AsPropertyScannable(scannable) =>
-        scannable.expr should equal(expr)
-        scannable.property should equal(propertyExpr)
-        scannable.ident should equal(nodeA)
-        scannable.propertyKey should equal(propertyExpr.propertyKey)
+      case AsPropertyScannable(scannables) =>
+        scannables.head.expr should equal(expr)
+        scannables.head.property should equal(propertyExpr)
+        scannables.head.ident should equal(nodeA)
+        scannables.head.propertyKey should equal(propertyExpr.propertyKey)
     }
   }
 
@@ -313,6 +320,259 @@ class SargableTest extends CypherFunSuite with AstConstructionTestSupport {
     val expr = isTyped(prop("a", "prop"), CTStringNotNull)
 
     assertMatches(expr) { case AsPropertyScannable(_) => }
+  }
+
+  def pointDistanceFunction(arg1: Expression, arg2: Expression): FunctionInvocation = {
+    FunctionInvocation(
+      FunctionName(
+        Namespace(List("point"))(pos),
+        "distance"
+      )(pos),
+      distinct = false,
+      IndexedSeq(
+        arg1,
+        arg2
+      )
+    )(pos)
+  }
+
+  test(
+    "Three scannable properties for a point.distance comparison"
+  ) {
+    val aProp1 = prop(v"a", "prop1")
+    val bProp2 = prop(v"b", "prop2")
+    val cProp3 = prop(v"c", "prop3")
+
+    // point.distance(a.prop1, b.prop2)
+    val pointDistanceAProp1BProp2 = pointDistanceFunction(aProp1, bProp2)
+
+    // ... > point.distance(a.prop1, b.prop2)
+    val gt = greaterThan(cProp3, pointDistanceAProp1BProp2)
+    // ... >= point.distance(a.prop1, b.prop2)
+    val gte = greaterThanOrEqual(cProp3, pointDistanceAProp1BProp2)
+
+    for (ineq <- Seq(gt, gte)) {
+      // unapply of AsDistanceSeekable
+      val distanceSeekablesFromIneq = AsDistanceSeekable.unapply(ineq).value
+      distanceSeekablesFromIneq.iterator.toList should contain theSameElementsInOrderAs List(
+        PointDistanceSeekable(
+          v"a",
+          aProp1,
+          PointDistanceRange(bProp2, cProp3, inclusive = ineq.includeEquality),
+          ineq
+        ),
+        PointDistanceSeekable(
+          v"b",
+          bProp2,
+          PointDistanceRange(aProp1, cProp3, inclusive = ineq.includeEquality),
+          ineq
+        )
+      )
+
+      // unapply of AsPropertyScannable
+      val propertyScannablesFromIneq = AsPropertyScannable.unapply(ineq).value
+      propertyScannablesFromIneq.iterator.toList should contain theSameElementsInOrderAs List(
+        ImplicitlyPropertyScannable(
+          PartialPredicateWrapper(isNotNull(aProp1), ineq),
+          v"a",
+          aProp1,
+          solvesPredicate = false,
+          CTPoint,
+          safelyScannableWhenNegated = true
+        ),
+        ImplicitlyPropertyScannable(
+          PartialPredicateWrapper(isNotNull(bProp2), ineq),
+          v"b",
+          bProp2,
+          solvesPredicate = false,
+          CTPoint,
+          safelyScannableWhenNegated = true
+        ),
+        ImplicitlyPropertyScannable(
+          PartialPredicateWrapper(isNotNull(cProp3), ineq),
+          v"c",
+          cProp3,
+          solvesPredicate = false,
+          CTAny,
+          safelyScannableWhenNegated = true
+        )
+      )
+    }
+  }
+
+  test(
+    "Two scannable properties for a point.distance function with two properties that is less than (or equal to) some value"
+  ) {
+    val aProp1 = prop(v"a", "prop1")
+    val bProp2 = prop(v"b", "prop2")
+
+    // point.distance(a.prop1, b.prop2)
+    val pointDistanceAProp1BProp2 = pointDistanceFunction(aProp1, bProp2)
+
+    // point.distance(a.prop1, b.prop2) < ...
+    val lt = lessThan(pointDistanceAProp1BProp2, literalInt(5))
+    // point.distance(a.prop1, b.prop2) <= ...
+    val lte = lessThanOrEqual(pointDistanceAProp1BProp2, literalInt(5))
+    // ... > point.distance(a.prop1, b.prop2)
+    val gt = greaterThan(literalInt(5), pointDistanceAProp1BProp2)
+    // ... >= point.distance(a.prop1, b.prop2)
+    val gte = greaterThanOrEqual(literalInt(5), pointDistanceAProp1BProp2)
+
+    for (ineq <- Seq(lt, lte, gt, gte)) {
+      // unapply of AsDistanceSeekable
+      val distanceSeekablesFromIneq = AsDistanceSeekable.unapply(ineq).value
+      distanceSeekablesFromIneq.iterator.toList should contain theSameElementsInOrderAs List(
+        PointDistanceSeekable(
+          v"a",
+          aProp1,
+          PointDistanceRange(bProp2, literalInt(5), inclusive = ineq.includeEquality),
+          ineq
+        ),
+        PointDistanceSeekable(
+          v"b",
+          bProp2,
+          PointDistanceRange(aProp1, literalInt(5), inclusive = ineq.includeEquality),
+          ineq
+        )
+      )
+
+      // unapply of AsPropertyScannable
+      val propertyScannablesFromIneq = AsPropertyScannable.unapply(ineq).value
+      propertyScannablesFromIneq.iterator.toList should contain theSameElementsInOrderAs List(
+        ImplicitlyPropertyScannable(
+          PartialPredicateWrapper(isNotNull(aProp1), ineq),
+          v"a",
+          aProp1,
+          solvesPredicate = false,
+          CTPoint,
+          safelyScannableWhenNegated = true
+        ),
+        ImplicitlyPropertyScannable(
+          PartialPredicateWrapper(isNotNull(bProp2), ineq),
+          v"b",
+          bProp2,
+          solvesPredicate = false,
+          CTPoint,
+          safelyScannableWhenNegated = true
+        )
+      )
+    }
+  }
+
+  test(
+    "One scannable properties for a point.distance function with one properties that is less than (or equal to) some value"
+  ) {
+    val aProp1 = prop(v"a", "prop1")
+    val pt = point(10, 20)
+
+    // point.distance(a.prop1, point({x: 10, y: 20}))
+    val pointDistance1 = pointDistanceFunction(aProp1, pt)
+    // point.distance(point({x: 10, y: 20}), a.prop1)
+    val pointDistance2 = pointDistanceFunction(pt, aProp1)
+
+    for (pointDistance <- Seq(pointDistance1, pointDistance2)) {
+
+      // point.distance(..., ...) < ...
+      val lt1 = lessThan(pointDistance, literalInt(5))
+      // point.distance(..., ...) <= ...
+      val lte1 = lessThanOrEqual(pointDistance, literalInt(5))
+      // ... > point.distance(..., ...)
+      val gt1 = greaterThan(literalInt(5), pointDistance)
+      // ... >= point.distance(..., ...)
+      val gte1 = greaterThanOrEqual(literalInt(5), pointDistance)
+
+      for (ineq <- Seq(lt1, lte1, gt1, gte1)) {
+        // unapply of AsDistanceSeekable
+        val distanceSeekablesFromIneq = AsDistanceSeekable.unapply(ineq).value
+        distanceSeekablesFromIneq.iterator.toList should contain theSameElementsInOrderAs List(
+          PointDistanceSeekable(
+            v"a",
+            aProp1,
+            PointDistanceRange(pt, literalInt(5), inclusive = ineq.includeEquality),
+            ineq
+          )
+        )
+
+        // unapply of AsPropertyScannable
+        val propertyScannablesFromIneq = AsPropertyScannable.unapply(ineq).value
+        propertyScannablesFromIneq.iterator.toList should contain theSameElementsInOrderAs List(
+          ImplicitlyPropertyScannable(
+            PartialPredicateWrapper(isNotNull(aProp1), ineq),
+            v"a",
+            aProp1,
+            solvesPredicate = false,
+            CTPoint,
+            safelyScannableWhenNegated = true
+          )
+        )
+      }
+    }
+  }
+
+  test(
+    "No scannable properties for a point.distance function with none properties that is less than (or equal to) some value"
+  ) {
+    val pt1 = point(10, 20)
+    val pt2 = point(20, 25)
+
+    // point.distance(a.prop1, b.prop2)
+    val pointDistance1 = pointDistanceFunction(pt1, pt2)
+
+    // point.distance(..., ...) < ...
+    val lt = lessThan(pointDistance1, literalInt(5))
+    // point.distance(..., ...) <= ...
+    val lte = lessThanOrEqual(pointDistance1, literalInt(5))
+    // ... > point.distance(..., ...)
+    val gt = greaterThan(literalInt(5), pointDistance1)
+    // ... >= point.distance(..., ...)
+    val gte = greaterThanOrEqual(literalInt(5), pointDistance1)
+
+    for (ineq <- Seq(lt, lte, gt, gte)) {
+      // unapply of AsDistanceSeekable
+      val unapplyAsDistanceSeekable = AsDistanceSeekable.unapply(ineq)
+      unapplyAsDistanceSeekable.isEmpty shouldBe true
+
+      // unapply of AsPropertyScannable
+      val unapplyAsPropertyScannable = AsPropertyScannable.unapply(ineq)
+      unapplyAsPropertyScannable.isEmpty shouldBe true
+    }
+  }
+
+  test("Negation of pointDistance predicate can use index scan") {
+    val aProp1 = prop(v"a", "prop1")
+    val bProp2 = prop(v"b", "prop2")
+    val notDistanceLessThan5 = not(greaterThan(pointDistanceFunction(aProp1, bProp2), literalInt(5)))
+    val notDistanceLessThanOrEqualTo5 = not(lessThanOrEqual(pointDistanceFunction(aProp1, bProp2), literalInt(5)))
+    val notDistanceGreaterThan5 = not(greaterThan(pointDistanceFunction(aProp1, bProp2), literalInt(5)))
+    val notDistanceGreaterThanOrEqualTo5 = not(greaterThanOrEqual(pointDistanceFunction(aProp1, bProp2), literalInt(5)))
+    for (
+      notIneq <- Seq(
+        notDistanceLessThan5,
+        notDistanceLessThanOrEqualTo5,
+        notDistanceGreaterThan5,
+        notDistanceGreaterThanOrEqualTo5
+      )
+    ) {
+      val asPropertyScannables = AsPropertyScannable.unapply(notIneq).value
+      asPropertyScannables.iterator.toList should contain theSameElementsInOrderAs List(
+        ImplicitlyPropertyScannable(
+          PartialPredicateWrapper(isNotNull(aProp1), notIneq),
+          v"a",
+          aProp1,
+          solvesPredicate = false,
+          CTPoint,
+          safelyScannableWhenNegated = true
+        ),
+        ImplicitlyPropertyScannable(
+          PartialPredicateWrapper(isNotNull(bProp2), notIneq),
+          v"b",
+          bProp2,
+          solvesPredicate = false,
+          CTPoint,
+          safelyScannableWhenNegated = true
+        )
+      )
+    }
   }
 
   private def assertMatches[T](item: Expression)(pf: PartialFunction[Expression, T]) =

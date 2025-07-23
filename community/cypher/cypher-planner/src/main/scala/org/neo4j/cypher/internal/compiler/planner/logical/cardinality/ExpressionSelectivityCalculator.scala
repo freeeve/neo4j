@@ -56,6 +56,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.InequalityRangeS
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.PointBoundingBoxSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.PointDistanceSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.PrefixRangeSeekable
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.PropertyScannablesFromDistanceComparison
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.Scannable
 import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
@@ -223,7 +224,8 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
 
     // WHERE distance(p.prop, otherPoint) <, <= number that could benefit from an index
     case AsDistanceSeekable(seekable) =>
-      calculateSelectivityForPointDistanceSeekable(seekable, labelInfo, relTypeInfo)
+      calculateSelectivityForPointDistanceSeekable(seekable.head, labelInfo, relTypeInfo)
+    // seekable.tail would be non-empty when `otherPoint` is a point property. It is ignored for cardinality estimation here.
 
     // WHERE point.withinBBox(p.prop, ll, ur) that could benefit from an index
     case AsBoundingBoxSeekable(seekable) =>
@@ -231,13 +233,15 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
 
     // WHERE x.prop <, <=, >=, > that could benefit from an index
     case AsValueRangeSeekable(seekable) =>
-      calculateSelectivityForValueRangeSeekable(seekable, labelInfo, relTypeInfo)
+      calculateSelectivityForValueRangeSeekable(seekable.head, labelInfo, relTypeInfo)
+    // possible seekable.tail is ignored here
 
     // WHERE NOT a.prop [...]
     case Not(inner @ AsPropertyScannable(scannable)) =>
       // Whether negated or not, predicates like CONTAINS and ENDS WITH will only apply to string properties
       val propertyTypeSelectivity =
-        propertyTypeSelectivityForScannable(scannable, labelInfo, relTypeInfo, existenceConstraints)
+        propertyTypeSelectivityForScannable(scannable.head, labelInfo, relTypeInfo, existenceConstraints)
+      // possible scannable.tail is ignored here.
       apply(inner, labelInfo, relTypeInfo, existenceConstraints, typeConstraints).negate * propertyTypeSelectivity
 
     // WHERE NOT [...]
@@ -287,15 +291,35 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
           }
         }
 
+    // WHERE point.distance(possiblePointProperty1, possiblePointProperty2) > possibleNumberProperty
+    case PropertyScannablesFromDistanceComparison(scannables) =>
+      val isNotNullSelectivity = scannables.map(scannable => {
+        calculateSelectivityForPropertyExistence(
+          scannable.variable,
+          labelInfo,
+          relTypeInfo,
+          scannable.property.propertyKey,
+          existenceConstraints
+        )
+      }).min // selectivity for the most selective `property IS NOT NULL` predicate
+      val defaultSelectivityForRangeGivenIsNotNull =
+        Selectivity(DEFAULT_RANGE_SELECTIVITY.factor / DEFAULT_PROPERTY_SELECTIVITY.factor)
+      // Probability that the range predicate holds given that the isNotNull predicate holds
+      //  = probability that both hold / probability that isNotNull predicate holds
+      //  = DEFAULT_RANGE_SELECTIVITY  / DEFAULT_PROPERTY_SELECTIVITY
+      isNotNullSelectivity * defaultSelectivityForRangeGivenIsNotNull
+
     // WHERE x.prop IS NOT NULL
-    case AsPropertyScannable(scannable) =>
-      calculateSelectivityForPropertyExistence(
-        scannable.ident,
-        labelInfo,
-        relTypeInfo,
-        scannable.propertyKey,
-        existenceConstraints
-      )
+    case AsPropertyScannable(scannables) =>
+      scannables.map(scannable =>
+        calculateSelectivityForPropertyExistence(
+          scannable.ident,
+          labelInfo,
+          relTypeInfo,
+          scannable.propertyKey,
+          existenceConstraints
+        )
+      ).min
 
     // Implicit relation uniqueness predicates
     case _: DifferentRelationships =>

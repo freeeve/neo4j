@@ -488,7 +488,7 @@ object CompositeExpressionSelectivityCalculator {
       // WHERE x.prop <, <=, >=, > that could benefit from an index
       case AsValueRangeSeekable(seekable) =>
         ExpressionSelectivityCalculator.getPropertyPredicateRangeSelectivity(
-          seekable,
+          seekable.head, // seekable.tail would be non-empty when the RHS is a property access. It is ignored for cardinality estimation here.
           assumedUniqueSelectivityPerPredicate
         )
 

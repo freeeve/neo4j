@@ -1949,6 +1949,82 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     )
   }
 
+  test("point.distance comparisons cardinality estimation using point indices") {
+    def isNotNullFromPointIndex(existsSelectivity: Double): Double = {
+      existsSelectivity + (1 - existsSelectivity) * DEFAULT_PROPERTY_SELECTIVITY
+    }
+
+    val points = 900
+    val pointLocationExistsSelectivity = 0.832
+    val pointHomeExistsSelectivity = 0.494
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(1000)
+        .setLabelCardinality("Point", points)
+        .addNodeIndex("Point", List("location"), pointLocationExistsSelectivity, 0.1, indexType = IndexType.POINT)
+        .addNodeIndex("Point", List("home"), pointHomeExistsSelectivity, 0.1, indexType = IndexType.POINT)
+        .build()
+
+    val defaultRangeSelectivityGivenIsNotNull = DEFAULT_RANGE_SELECTIVITY / DEFAULT_PROPERTY_SELECTIVITY
+    // One point property (on lhs)
+    queryShouldHaveCardinality(
+      planner,
+      "MATCH (p:Point) WHERE point.distance(p.location, point({x:1, y:2})) > 5",
+      points * isNotNullFromPointIndex(pointLocationExistsSelectivity) * defaultRangeSelectivityGivenIsNotNull
+    )
+    // One point predicate (on rhs)
+    queryShouldHaveCardinality(
+      planner,
+      "MATCH (p:Point) WHERE point.distance(point({x:1, y:2}), p.home) >= 5",
+      points * isNotNullFromPointIndex(pointHomeExistsSelectivity) * defaultRangeSelectivityGivenIsNotNull
+    )
+    // Two point property (most selective on the rhs)
+    queryShouldHaveCardinality(
+      planner,
+      "MATCH (p:Point) WHERE point.distance(p.location, p.home) > 5",
+      points * isNotNullFromPointIndex(pointHomeExistsSelectivity) * defaultRangeSelectivityGivenIsNotNull
+    )
+    // Two point property (most selective on the lhs)
+    queryShouldHaveCardinality(
+      planner,
+      "MATCH (p:Point) WHERE point.distance(p.home, p.location) > 5",
+      points * isNotNullFromPointIndex(pointHomeExistsSelectivity) * defaultRangeSelectivityGivenIsNotNull
+    )
+  }
+
+  test("point.distance comparisons cardinality estimation using range idex") {
+    def rangePredicateSelectivityFromRangeIndex(existsSelectivity: Double, uniqueSelectivity: Double): Double = {
+      existsSelectivity * Math.max((1 - uniqueSelectivity) * DEFAULT_RANGE_SEEK_FACTOR, uniqueSelectivity)
+    }
+    val points = 900
+    val pointLocationExistsSelectivity = 0.832
+    val pointHomeExistsSelectivity = 0.494
+    val rangeAwayExistsSelectivity = 0.227
+    val rangeAwayUniqueSelectivity = 0.01
+
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(1000)
+        .setLabelCardinality("Point", points)
+        .addNodeIndex("Point", List("location"), pointLocationExistsSelectivity, 0.1, indexType = IndexType.POINT)
+        .addNodeIndex("Point", List("home"), pointHomeExistsSelectivity, 0.1, indexType = IndexType.POINT)
+        .addNodeIndex("Point", List("away"), rangeAwayExistsSelectivity, rangeAwayUniqueSelectivity)
+        .build()
+
+    // Two point property and a number property
+    queryShouldHaveCardinality(
+      planner,
+      "MATCH (p1:Point) MATCH (p2:Point) WHERE point.distance(p1.home, p1.location) > p2.away",
+      points * points * rangePredicateSelectivityFromRangeIndex(rangeAwayExistsSelectivity, rangeAwayUniqueSelectivity)
+    )
+    // No point properties, but a number property
+    queryShouldHaveCardinality(
+      planner,
+      "MATCH (p:Point) WHERE point.distance(point({x:1, y:2}), point({x:2, y:2})) > p.away",
+      points * rangePredicateSelectivityFromRangeIndex(rangeAwayExistsSelectivity, rangeAwayUniqueSelectivity)
+    )
+  }
+
   private def uniquenessSelectivityForNRels(n: Int): Double = {
     RepetitionCardinalityModel.relationshipUniquenessSelectivity(
       differentRelationships = 0,

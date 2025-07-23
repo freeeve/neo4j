@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier.Extension
 import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
+import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.DynamicRelTypeExpression
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.Expression
@@ -214,6 +215,21 @@ object LogicalPlanToPlanBuilderString {
       case _: PartitionedNodeIndexScan      => "partitionedNodeIndexOperator"
       case _: DirectedRelationshipIndexScan => "relationshipIndexOperator"
       case _: PartitionedDirectedRelationshipIndexScan => "partitionedRelationshipIndexOperator"
+      case NodeIndexSeek(
+          _,
+          _,
+          _,
+          RangeQueryExpression(
+            PointDistanceSeekRangeWrapper(
+              PointDistanceRange(CachedProperty(_, _, _, _, _, _), _, _)
+            )
+          ),
+          _,
+          _,
+          _,
+          _
+        ) =>
+        "cachedPropertyPointDistanceNodeIndexSeek"
       case NodeIndexSeek(_, _, _, RangeQueryExpression(PointDistanceSeekRangeWrapper(_)), _, _, _, _) =>
         "pointDistanceNodeIndexSeek"
       case NodeIndexSeek(_, _, _, RangeQueryExpression(PointBoundingBoxSeekRangeWrapper(_)), _, _, _, _) =>
@@ -1008,8 +1024,37 @@ object LogicalPlanToPlanBuilderString {
           idName,
           labelToken,
           properties,
-          arg,
+          arg.quoted,
           distance,
+          argumentIds,
+          indexOrder,
+          inclusive = inclusive,
+          indexType
+        )
+      case NodeIndexSeek(
+          idName,
+          labelToken,
+          properties,
+          RangeQueryExpression(PointDistanceSeekRangeWrapper(PointDistanceRange(
+            CachedProperty(_, v, PropertyKeyName(propKeyName), _, _, _),
+            distance,
+            inclusive
+          ))),
+          argumentIds,
+          indexOrder,
+          indexType,
+          _
+        ) =>
+        pointDistanceNodeIndexSeek(
+          idName,
+          labelToken,
+          properties,
+          s"cachedNodePropFromStore(${v.name.quoted}, ${propKeyName.quoted})",
+          distance match {
+            case SignedDecimalIntegerLiteral(x) => s"literalInt($x)"
+            case DecimalDoubleLiteral(x)        => s"literalFloat($x)"
+            case _                              => distance
+          },
           argumentIds,
           indexOrder,
           inclusive = inclusive,
@@ -2057,8 +2102,8 @@ object LogicalPlanToPlanBuilderString {
     idName: LogicalVariable,
     labelToken: LabelToken,
     properties: Seq[IndexedProperty],
-    point: Expression,
-    distance: Expression,
+    point: Param,
+    distance: Param,
     argumentIds: Set[LogicalVariable],
     indexOrder: IndexOrder,
     inclusive: Boolean,
@@ -2068,7 +2113,7 @@ object LogicalPlanToPlanBuilderString {
       idName,
       labelToken,
       properties.head.propertyKeyToken,
-      point.quoted,
+      point,
       distance,
       "indexOrder" -> indexOrder,
       "argumentIds" -> argumentIds,

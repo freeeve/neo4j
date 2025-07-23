@@ -1784,10 +1784,8 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
           1,
           None
         )
-        .filter("cacheN[arg.prop] > u.prop")
         .apply()
-        .|.nodeByLabelScan("u", "User", "arg")
-        .cacheProperties("cacheNFromStore[arg.prop]")
+        .|.nodeIndexOperator("u:User(prop < arg.prop)", argumentIds = Set("arg"), getValue = Map("prop" -> GetValue))
         .allNodeScan("arg")
         .build()
     )

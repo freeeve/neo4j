@@ -365,7 +365,7 @@ class EntityIndexLeafPlannerTest extends CypherFunSuite with LogicalPlanningTest
       predicate = pointPredicate,
       queryExpression = pointPredicate match {
         case AsBoundingBoxSeekable(seekable) => seekable.asQueryExpression
-        case AsDistanceSeekable(seekable)    => seekable.asQueryExpression
+        case AsDistanceSeekable(seekables)   => seekables.head.asQueryExpression
         case _ => throw new IllegalArgumentException(s"Unexpected predicate: $pointPredicate")
       },
       predicateExactness = NotExactPredicate,

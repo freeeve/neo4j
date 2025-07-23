@@ -1813,6 +1813,24 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "cachedPropertyPointDistanceNodeIndexSeek",
+    new TestPlanBuilder()
+      .produceResults("x", "y")
+      .apply()
+      .|.cachedPropertyPointDistanceNodeIndexSeek(
+        "y",
+        "L",
+        "prop",
+        cachedNodePropFromStore("x", "prop"),
+        literalInt(10),
+        argumentIds = Set("x"),
+        getValue = GetValue
+      )
+      .nodeByLabelScan("x", "X")
+      .build()
+  )
+
+  testPlan(
     "pointBoundingBoxNodeIndexSeek",
     new TestPlanBuilder()
       .produceResults("x", "y")
@@ -3222,6 +3240,9 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         interpreter.interpret(
           """import org.neo4j.cypher.internal.util.collection.immutable.ListSet
             |
+            |import org.neo4j.cypher.internal.ast.Ast.cachedNodePropFromStore
+            |import org.neo4j.cypher.internal.ast.Ast.literalInt
+            |import org.neo4j.cypher.internal.ast.Ast.literalFloat
             |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.parameter
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
@@ -3307,6 +3328,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       "nestedPlanGetByNameExpressionProjection",
       "nestedPlanGetByNameExpressionInListComprehensionProjection",
       "pointDistanceNodeIndexSeekExpr",
+      "exprPointDistanceNodeIndexSeek",
       "pointDistanceNodeIndexSeekParam",
       "pointDistanceRelationshipIndexSeekExpr",
       "pointBoundingBoxNodeIndexSeekExpr",

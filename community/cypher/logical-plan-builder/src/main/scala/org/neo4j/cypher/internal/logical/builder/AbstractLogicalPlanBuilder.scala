@@ -2396,11 +2396,37 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(planBuilder))
   }
 
-  def pointDistanceNodeIndexSeekExpr(
+  def cachedPropertyPointDistanceNodeIndexSeek(
     node: String,
     labelName: String,
     property: String,
-    point: String,
+    point: CachedProperty,
+    distanceExpr: Expression,
+    getValue: GetValueFromIndexBehavior = DoNotGetValue,
+    indexOrder: IndexOrder = IndexOrderNone,
+    inclusive: Boolean = false,
+    argumentIds: Set[String] = Set.empty,
+    indexType: IndexType = IndexType.POINT
+  ): IMPL = {
+    exprPointDistanceNodeIndexSeek(
+      node,
+      labelName,
+      property,
+      point,
+      distanceExpr,
+      getValue,
+      indexOrder,
+      inclusive,
+      argumentIds,
+      indexType
+    )
+  }
+
+  def exprPointDistanceNodeIndexSeek(
+    node: String,
+    labelName: String,
+    property: String,
+    point: Expression,
     distanceExpr: Expression,
     getValue: GetValueFromIndexBehavior = DoNotGetValue,
     indexOrder: IndexOrder = IndexOrderNone,
@@ -2415,15 +2441,15 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       val labelToken = LabelToken(labelName, LabelId(label))
       val propToken = PropertyKeyToken(PropertyKeyName(property)(NONE), PropertyKeyId(propId))
       val indexedProperty = IndexedProperty(propToken, getValue, NODE_TYPE)
-      val e =
+      val otherPointExpr =
         RangeQueryExpression(PointDistanceSeekRangeWrapper(
-          PointDistanceRange(function("point", parseExpression(point)), distanceExpr, inclusive)
+          PointDistanceRange(point, distanceExpr, inclusive)
         )(NONE))
       val plan = NodeIndexSeek(
         varFor(node),
         labelToken,
         Seq(indexedProperty),
-        e,
+        otherPointExpr,
         argumentIds.map(varFor),
         indexOrder,
         indexType,
@@ -2433,6 +2459,32 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       plan
     }
     appendAtCurrentIndent(LeafOperator(planBuilder))
+  }
+
+  def pointDistanceNodeIndexSeekExpr(
+    node: String,
+    labelName: String,
+    property: String,
+    point: String,
+    distanceExpr: Expression,
+    getValue: GetValueFromIndexBehavior = DoNotGetValue,
+    indexOrder: IndexOrder = IndexOrderNone,
+    inclusive: Boolean = false,
+    argumentIds: Set[String] = Set.empty,
+    indexType: IndexType = IndexType.POINT
+  ): IMPL = {
+    exprPointDistanceNodeIndexSeek(
+      node,
+      labelName,
+      property,
+      function("point", parseExpression(point)),
+      distanceExpr,
+      getValue,
+      indexOrder,
+      inclusive,
+      argumentIds,
+      indexType
+    )
   }
 
   def pointBoundingBoxNodeIndexSeekExpr(
