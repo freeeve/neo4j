@@ -67,7 +67,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.ExhaustiveLimit
 import org.neo4j.cypher.internal.logical.plans.ExhaustiveLogicalPlan
@@ -490,7 +490,7 @@ object CardinalityCostModel {
       case _: NodeByLabelScan |
         _: UnionNodeByLabelsScan |
         _: NodeIndexScan |
-        _: DynamicNodeByLabelsScan => INDEX_SCAN_COST_PER_ROW
+        _: DynamicLabelNodeLookup => INDEX_SCAN_COST_PER_ROW
 
       case plan: IntersectionNodeByLabelsScan =>
         // A workaround for cases where we might get value from an index scan instead. Using the same cost means we will use leaf plan heuristic to decide.

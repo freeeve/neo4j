@@ -124,7 +124,7 @@ import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
@@ -487,33 +487,48 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     )
   }
 
-  test("DynamicNodeByLabelsScan") {
+  test("DynamicLabelNodeLookup") {
     assertGood(
       attach(
-        DynamicNodeByLabelsScan(
+        DynamicLabelNodeLookup(
           varFor("node"),
           DynamicElement.Simple(literal(List("A", "B")), DynamicElement.All),
           Set.empty,
-          IndexOrderNone
-        ),
-        33.0
-      ),
-      planDescription(id, "DynamicNodeByLabelsScan", Seq.empty, Seq(details("node:$all([\"A\", \"B\"])")), Set("node"))
-    )
-
-    assertGood(
-      attach(
-        DynamicNodeByLabelsScan(
-          varFor("  UNNAMED123"),
-          DynamicElement.Simple(varFor("y"), DynamicElement.Any),
-          Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          Map(
+            PropertyKeyToken("prop", PropertyKeyId(0)) -> literal(1),
+            PropertyKeyToken("foo", PropertyKeyId(0)) -> literal("bar")
+          )
         ),
         33.0
       ),
       planDescription(
         id,
-        "DynamicNodeByLabelsScan",
+        "DynamicLabelNodeLookup",
+        Seq.empty,
+        Seq(details(
+          """node:$all(["A", "B"])
+            |node.prop = 1
+            |node.foo = "bar"""".stripMargin
+        )),
+        Set("node")
+      )
+    )
+
+    assertGood(
+      attach(
+        DynamicLabelNodeLookup(
+          varFor("  UNNAMED123"),
+          DynamicElement.Simple(varFor("y"), DynamicElement.Any),
+          Set.empty,
+          IndexOrderNone,
+          Map.empty
+        ),
+        33.0
+      ),
+      planDescription(
+        id,
+        "DynamicLabelNodeLookup",
         Seq.empty,
         Seq(details(s"${anonVar("123")}:$$any(y)")),
         Set(anonVar("123"))

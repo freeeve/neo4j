@@ -98,7 +98,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesSca
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
@@ -355,7 +355,7 @@ object ReadFinder {
           .withIntroducedNodeVariable(variable)
           .withAddedNodeFilterExpression(variable, hasLabels)
 
-      case DynamicNodeByLabelsScan(variable, _, _, _) =>
+      case DynamicLabelNodeLookup(variable, _, _, _, _) =>
         PlanReads()
           .withIntroducedNodeVariable(variable)
           .withUnknownLabelsRead(Some(variable))

@@ -19,22 +19,24 @@
  */
 package org.neo4j.cypher.internal.runtime.slotted.pipes
 
+import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicNodeByLabelsScanPipe.getNodes
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicLabelNodeLookupPipe.getNodes
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
 
-case class DynamicNodeByLabelsScanSlottedPipe(
+case class DynamicLabelNodeLookupSlottedPipe(
   nodeOffset: Int,
   labelExpr: Expression,
   operator: DynamicElement.SetOperator,
-  indexOrder: IndexOrder
+  indexOrder: IndexOrder,
+  propertyExpressions: Map[PropertyKeyToken, Expression]
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
@@ -44,7 +46,8 @@ case class DynamicNodeByLabelsScanSlottedPipe(
         operator,
         indexOrder,
         state.newRowWithArgument(rowFactory),
-        state
+        state,
+        propertyExpressions
       ),
       n => {
         val context = state.newRowWithArgument(rowFactory)

@@ -88,6 +88,7 @@ import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.net.URI
+import java.util
 
 import scala.collection.immutable.ArraySeq
 
@@ -151,6 +152,13 @@ class ExceptionTranslatingReadQueryContext(val inner: ReadQueryContext) extends 
 
   override def constraintExists(matchFn: ConstraintDescriptor => Boolean, entityId: Int, properties: Int*): Boolean =
     translateException(tokenNameLookup, inner.constraintExists(matchFn, entityId, properties: _*))
+
+  override def indexReferences(
+    entityId: Int,
+    entityType: EntityType,
+    properties: Int*
+  ): util.Iterator[IndexDescriptor] =
+    translateException(tokenNameLookup, inner.indexReferences(entityId, entityType, properties: _*))
 
   override def indexReference(
     indexType: IndexType,

@@ -24,21 +24,21 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelScanLeafPlanner
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class DynamicLabelLookupLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
 
   test("simple dynamic label scan") {
     val n = v"n"
@@ -49,11 +49,12 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
     )
 
     dynamicLabelScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicNodeByLabelsScan(
+      DynamicLabelNodeLookup(
         idName = n,
         labelExpr = DynamicElement.Simple(literalString("A"), DynamicElement.All),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -67,11 +68,12 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
     )
 
     dynamicLabelScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicNodeByLabelsScan(
+      DynamicLabelNodeLookup(
         idName = n,
         labelExpr = DynamicElement.Simple(listOf(), DynamicElement.All),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -85,11 +87,12 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
     )
 
     dynamicLabelScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicNodeByLabelsScan(
+      DynamicLabelNodeLookup(
         n,
         DynamicElement.Simple(listOfString("A", "B"), DynamicElement.All),
         Set.empty,
-        IndexOrderNone
+        IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -103,11 +106,12 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
     )
 
     dynamicLabelScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicNodeByLabelsScan(
+      DynamicLabelNodeLookup(
         n,
         DynamicElement.Simple(listOfString("A", "B"), DynamicElement.Any),
         Set.empty,
-        IndexOrderNone
+        IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -177,11 +181,12 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
     val interestingOrderConfig = InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate.asc(n)))
 
     dynamicLabelScanLeafPlans(queryGraph, interestingOrderConfig = interestingOrderConfig) shouldEqual Set(
-      DynamicNodeByLabelsScan(
+      DynamicLabelNodeLookup(
         idName = n,
         labelExpr = DynamicElement.Simple(literalString("A"), DynamicElement.All),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderAscending
+        indexOrder = IndexOrderAscending,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -199,11 +204,12 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
     val interestingOrderConfig = InterestingOrderConfig(InterestingOrder.required(candidate))
 
     dynamicLabelScanLeafPlans(queryGraph, interestingOrderConfig = interestingOrderConfig) shouldEqual Set(
-      DynamicNodeByLabelsScan(
+      DynamicLabelNodeLookup(
         idName = n,
         labelExpr = DynamicElement.Simple(literalString("A"), DynamicElement.All),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderAscending
+        indexOrder = IndexOrderAscending,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -219,11 +225,12 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
     val interestingOrderConfig = InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate.desc(n)))
 
     dynamicLabelScanLeafPlans(queryGraph, interestingOrderConfig = interestingOrderConfig) shouldEqual Set(
-      DynamicNodeByLabelsScan(
+      DynamicLabelNodeLookup(
         idName = n,
         labelExpr = DynamicElement.Simple(literalString("A"), DynamicElement.All),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderDescending
+        indexOrder = IndexOrderDescending,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -239,11 +246,12 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
     val interestingOrderConfig = InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate.desc(v"m")))
 
     dynamicLabelScanLeafPlans(queryGraph, interestingOrderConfig = interestingOrderConfig) shouldEqual Set(
-      DynamicNodeByLabelsScan(
+      DynamicLabelNodeLookup(
         idName = n,
         labelExpr = DynamicElement.Simple(literalString("A"), DynamicElement.All),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -258,6 +266,6 @@ class DynamicLabelScanLeafPlannerTest extends CypherFunSuite with LogicalPlannin
       semanticTable = new SemanticTable(),
       configSettings = Map(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan -> java.lang.Boolean.TRUE)
     )
-    DynamicLabelScanLeafPlanner(skipIDs)(queryGraph, interestingOrderConfig, context)
+    DynamicLabelLookupLeafPlanner(skipIDs)(queryGraph, interestingOrderConfig, context)
   }
 }

@@ -52,7 +52,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderNone)
         .build()
   }
 
@@ -67,7 +67,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderNone)
         .build()
   }
 
@@ -83,7 +83,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("a")
         .filterExpression(hasDynamicLabels(varFor("a"), literalString("B")))
-        .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderNone)
         .build()
   }
 
@@ -97,7 +97,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicNodeByLabelsScan("a", listOfString("A", "B"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.All, IndexOrderNone)
         .build()
   }
 
@@ -111,7 +111,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicNodeByLabelsScan("a", listOfString("A", "B"), DynamicElement.Any, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.Any, IndexOrderNone)
         .build()
   }
 
@@ -126,7 +126,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("a")
         .filterExpression(hasDynamicLabels(varFor("a"), literalString("C")))
-        .dynamicNodeByLabelsScan("a", listOfString("A", "B"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.All, IndexOrderNone)
         .build()
   }
 
@@ -143,7 +143,7 @@ class DynamicLabelScanPlanningIntegrationTest
         .produceResults("a")
         .filterExpression(not(hasDynamicLabels(varFor("a"), varFor("labels"))))
         .apply()
-        .|.dynamicNodeByLabelsScan("a", varFor("labels"), DynamicElement.Any, IndexOrderNone, "labels")
+        .|.dynamicLabelNodeLookup("a", varFor("labels"), DynamicElement.Any, IndexOrderNone, "labels")
         .projection("['A', 'B'] AS labels")
         .argument()
         .build()
@@ -162,7 +162,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("b")
         .apply()
-        .|.dynamicNodeByLabelsScan("b", varFor("labels"), DynamicElement.All, IndexOrderNone, "labels")
+        .|.dynamicLabelNodeLookup("b", varFor("labels"), DynamicElement.All, IndexOrderNone, "labels")
         .projection("labels(a) AS labels")
         .nodeByLabelScan("a", "A", IndexOrderNone)
         .build()
@@ -180,7 +180,7 @@ class DynamicLabelScanPlanningIntegrationTest
         .produceResults("a")
         .distinct("a AS a")
         .union()
-        .|.dynamicNodeByLabelsScan("a", listOfString("B", "C"), DynamicElement.All, IndexOrderNone)
+        .|.dynamicLabelNodeLookup("a", listOfString("B", "C"), DynamicElement.All, IndexOrderNone)
         .nodeByLabelScan("a", "A", IndexOrderNone)
         .build()
   }
@@ -252,7 +252,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderAscending)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderAscending)
         .build()
   }
 
@@ -268,7 +268,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("b")
         .projection("a AS b")
-        .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderDescending)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderDescending)
         .build()
   }
 
@@ -283,7 +283,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("a")
         .merge(Seq(createNodeFull("a", dynamicLabels = Seq("'A'"))))
-        .dynamicNodeByLabelsScan("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderNone)
         .build()
   }
 
@@ -298,7 +298,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("n")
         .apply()
-        .|.dynamicNodeByLabelsScan("n", varFor("anon_0"), DynamicElement.All, IndexOrderNone, "anon_0")
+        .|.dynamicLabelNodeLookup("n", varFor("anon_0"), DynamicElement.All, IndexOrderNone, "anon_0")
         .rollUpApply("anon_0", "label")
         .|.unwind("['A', 'B'] AS label")
         .|.argument()

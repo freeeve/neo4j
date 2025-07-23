@@ -106,7 +106,7 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
 
     val labelTokenIndex =
       if (labelScan) {
-        // We need to use firstOrNull because the indexes might have have been dropped while creating the plan
+        // We need to use firstOrNull because the indexes might have been dropped while creating the plan
         Option(Iterators.firstOrNull(
           schemaRead.indexForSchemaNonTransactional(SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR)
         ))
@@ -114,7 +114,7 @@ class QueryIndexRegistrator(schemaRead: SchemaRead) {
 
     val typeTokenIndex =
       if (typeScan) {
-        // We need to use firstOrNull because the indexes might have have been dropped while creating the plan
+        // We need to use firstOrNull because the indexes might have been dropped while creating the plan
         Option(Iterators.firstOrNull(
           schemaRead.indexForSchemaNonTransactional(SchemaDescriptors.ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR)
         ))

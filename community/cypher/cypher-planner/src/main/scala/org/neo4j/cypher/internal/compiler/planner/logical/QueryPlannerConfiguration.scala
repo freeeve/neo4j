@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CandidateSelectorFactory
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelScanLeafPlanner
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeScanLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OptionalSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OrLeafPlanner
@@ -94,7 +94,7 @@ object QueryPlannerConfiguration {
     unionLabelScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
 
     // MATCH (n:$(['Person', 'Artist'])) RETURN n
-    DynamicLabelScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
+    DynamicLabelLookupLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
 
     // MATCH ()-[r:R]->()
     relationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),

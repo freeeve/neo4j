@@ -98,6 +98,7 @@ import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.net.URI
+import java.util
 import java.util.Optional
 
 import scala.collection.immutable.ArraySeq
@@ -156,6 +157,8 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
   def scanCursor(): RelationshipScanCursor
 
   def getAllIndexes(): Map[IndexDescriptor, IndexInfo]
+
+  def indexReferences(entityId: Int, entityType: EntityType, properties: Int*): util.Iterator[IndexDescriptor]
 
   def indexReference(indexType: IndexType, entityId: Int, entityType: EntityType, properties: Int*): IndexDescriptor
 

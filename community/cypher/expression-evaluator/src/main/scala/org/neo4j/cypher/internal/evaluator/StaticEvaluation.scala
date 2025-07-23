@@ -90,6 +90,7 @@ import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.net.URI
+import java.util
 
 import scala.collection.immutable.ArraySeq
 
@@ -324,6 +325,13 @@ object StaticEvaluation {
     override def constraintExists(name: String): Boolean = notAvailable()
 
     override def constraintExists(matchFn: ConstraintDescriptor => Boolean, entityId: Int, properties: Int*): Boolean =
+      notAvailable()
+
+    override def indexReferences(
+      entityId: Int,
+      entityType: EntityType,
+      properties: Int*
+    ): util.Iterator[IndexDescriptor] =
       notAvailable()
 
     override def indexReference(

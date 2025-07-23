@@ -3343,24 +3343,27 @@ object DynamicElement {
 }
 
 /**
- * Produce one row for every node in the graph that has labels matching the labelExpr predicate. This row contains the node (assigned to 'idName')
- * and the contents of argument.
+ * Produce one row for every node in the graph that has labels matching the labelExpr predicate and properties matching
+ * the propertyPredicates map. May use an index seek based on property predicates if it can find an appropriate one.
+ *
+ * This row contains the node (assigned to 'idName') and the contents of argument.
  */
-case class DynamicNodeByLabelsScan(
+case class DynamicLabelNodeLookup(
   idName: LogicalVariable,
   labelExpr: DynamicElement,
   argumentIds: Set[LogicalVariable],
-  indexOrder: IndexOrder
+  indexOrder: IndexOrder,
+  propertyPredicates: Map[PropertyKeyToken, Expression]
 )(implicit idGen: IdGen) extends NodeLogicalLeafPlan(idGen) with StableLeafPlan {
 
   override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName
 
   override def usedVariables: Set[LogicalVariable] = labelExpr.dependencies
 
-  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicNodeByLabelsScan =
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicLabelNodeLookup =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
 
-  override def removeArgumentIds(): DynamicNodeByLabelsScan =
+  override def removeArgumentIds(): DynamicLabelNodeLookup =
     copy(argumentIds = Set.empty)(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =

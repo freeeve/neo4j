@@ -110,6 +110,7 @@ import org.neo4j.values.virtual.MapValueBuilder
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 import java.net.URI
+import java.util
 
 import scala.collection.immutable.ArraySeq
 
@@ -311,6 +312,13 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
 
   override def constraintExists(matchFn: ConstraintDescriptor => Boolean, entityId: Int, properties: Int*): Boolean =
     singleDbHit(inner.constraintExists(matchFn, entityId, properties: _*))
+
+  override def indexReferences(
+    entityId: Int,
+    entityType: EntityType,
+    properties: Int*
+  ): util.Iterator[IndexDescriptor] =
+    singleDbHit(inner.indexReferences(entityId, entityType, properties: _*))
 
   override def indexReference(
     indexType: IndexType,

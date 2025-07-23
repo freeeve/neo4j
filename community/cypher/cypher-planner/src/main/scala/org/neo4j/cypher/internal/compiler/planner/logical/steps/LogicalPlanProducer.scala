@@ -171,7 +171,7 @@ import org.neo4j.cypher.internal.logical.plans.DistinctColumns
 import org.neo4j.cypher.internal.logical.plans.Distinctness
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
@@ -1658,7 +1658,7 @@ case class LogicalPlanProducer(
     )
   }
 
-  def planDynamicNodeByLabelsScan(
+  def planDynamicLabelNodeLookup(
     variable: LogicalVariable,
     labels: Expression,
     operator: DynamicElement.SetOperator,
@@ -1687,11 +1687,12 @@ case class LogicalPlanProducer(
     val rewrittenLabels = solver.solve(labels)
     val newArguments = solver.newArguments
 
-    val plan = DynamicNodeByLabelsScan(
+    val plan = DynamicLabelNodeLookup(
       idName = variable,
       labelExpr = DynamicElement.Simple(rewrittenLabels, operator),
       argumentIds = argumentIds.union(newArguments),
-      indexOrder = toIndexOrder(providedOrder)
+      indexOrder = toIndexOrder(providedOrder),
+      propertyPredicates = Map.empty
     )
 
     val annotatedPlan = annotate(plan, solved, providedOrder, context.plannerState.previouslyCachedProperties, context)

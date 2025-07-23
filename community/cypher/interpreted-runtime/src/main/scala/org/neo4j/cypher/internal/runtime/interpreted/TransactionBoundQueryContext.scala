@@ -35,7 +35,6 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.runtime
-import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
 import org.neo4j.cypher.internal.runtime.ConstraintInformation
@@ -57,7 +56,7 @@ import org.neo4j.cypher.internal.runtime.ThreadSafeResourceManager
 import org.neo4j.cypher.internal.runtime.ValuedNodeIndexCursor
 import org.neo4j.cypher.internal.runtime.ValuedRelationshipIndexCursor
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
-import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.PrimitiveCursorIterator
+import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.ReferenceCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.RelationshipCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.RelationshipTypeCursorIterator
 import org.neo4j.cypher.operations.CursorUtils
@@ -82,6 +81,7 @@ import org.neo4j.internal.kernel.api.PropertyCursor
 import org.neo4j.internal.kernel.api.PropertyIndexQuery
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate
 import org.neo4j.internal.kernel.api.Read
+import org.neo4j.internal.kernel.api.ReferenceCursor
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor
 import org.neo4j.internal.kernel.api.RelationshipTypeIndexCursor
@@ -944,18 +944,26 @@ private[internal] class TransactionBoundReadQueryContext(
     Iterators.single(transactionalContext.schemaRead.index(descriptor))
   }
 
+  override def indexReferences(
+    entityId: Int,
+    entityType: EntityType,
+    properties: Int*
+  ): util.Iterator[IndexDescriptor] = {
+    val descriptor = entityType match {
+      case EntityType.NODE         => SchemaDescriptors.forLabel(entityId, properties: _*)
+      case EntityType.RELATIONSHIP => SchemaDescriptors.forRelType(entityId, properties: _*)
+    }
+    // Get all indexes matching the schema
+    transactionalContext.schemaRead.index(descriptor)
+  }
+
   override def indexReference(
     indexType: IndexType,
     entityId: Int,
     entityType: EntityType,
     properties: Int*
   ): IndexDescriptor = {
-    val descriptor = entityType match {
-      case EntityType.NODE         => SchemaDescriptors.forLabel(entityId, properties: _*)
-      case EntityType.RELATIONSHIP => SchemaDescriptors.forRelType(entityId, properties: _*)
-    }
-    // Get all indexes matching the schema
-    val indexes = transactionalContext.schemaRead.index(descriptor)
+    val indexes = indexReferences(entityId, entityType, properties: _*)
 
     // Return the wanted index type if it exists
     while (indexes.hasNext) {
@@ -1166,13 +1174,7 @@ private[internal] class TransactionBoundReadQueryContext(
       new TokenPredicate(id),
       transactionalContext.cursorContext
     )
-    new PrimitiveCursorIterator {
-      override protected def fetchNext(): Long = if (cursor.next()) cursor.nodeReference() else -1L
-
-      override def close(): Unit = {
-        cursor.close()
-      }
-    }
+    new ReferenceCursorIterator(cursor)
   }
 
   override def nodeGetOutgoingDegreeWithMax(maxDegree: Int, node: Long, nodeCursor: NodeCursor): Int = {
@@ -1409,11 +1411,7 @@ private[internal] class TransactionBoundReadQueryContext(
     override def all: ClosingLongIterator = {
       val nodeCursor = allocateAndTraceNodeCursor()
       reads().allNodesScan(nodeCursor)
-      new PrimitiveCursorIterator {
-        override protected def fetchNext(): Long = if (nodeCursor.next()) nodeCursor.nodeReference() else -1L
-
-        override def close(): Unit = nodeCursor.close()
-      }
+      new ReferenceCursorIterator(nodeCursor)
     }
 
     override def isDeletedInThisTx(id: Long): Boolean = reads().nodeDeletedInTransaction(id)
@@ -1519,11 +1517,7 @@ private[internal] class TransactionBoundReadQueryContext(
     override def all: ClosingLongIterator = {
       val relCursor = allocateAndTraceRelationshipScanCursor()
       reads().allRelationshipsScan(relCursor)
-      new PrimitiveCursorIterator {
-        override protected def fetchNext(): Long = if (relCursor.next()) relCursor.relationshipReference() else -1L
-
-        override def close(): Unit = relCursor.close()
-      }
+      new ReferenceCursorIterator(relCursor)
     }
 
     override def isDeletedInThisTx(id: Long): Boolean =
@@ -1970,22 +1964,9 @@ object TransactionBoundQueryContext {
     }
   }
 
-  abstract class CursorIterator[T] extends ClosingIterator[T] {
-    private var _next: T = fetchNext()
-
-    protected def fetchNext(): T
-
-    override def innerHasNext: Boolean = _next != null
-
-    override def next(): T = {
-      if (!hasNext) {
-        Iterator.empty.next()
-      }
-
-      val current = _next
-      _next = fetchNext()
-      current
-    }
+  class ReferenceCursorIterator(refCursor: ReferenceCursor) extends PrimitiveCursorIterator {
+    override protected def fetchNext(): Long = if (refCursor.next()) refCursor.reference() else -1L
+    override def close(): Unit = refCursor.close()
   }
 
   abstract class BaseRelationshipCursorIterator extends ClosingLongIterator with RelationshipIterator {

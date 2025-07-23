@@ -148,7 +148,7 @@ import org.neo4j.cypher.internal.logical.plans.DropConstraintOnName
 import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
@@ -466,12 +466,23 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case DynamicNodeByLabelsScan(idName, labelExpr, _, _) =>
+      case DynamicLabelNodeLookup(idName, labelExpr, _, _, propertyConstraints) =>
         val label = getPrettyDynamicElement(labelExpr)
-        val prettyDetails = pretty"${asPrettyString(idName)}:$label"
+        var prettyDetails = pretty"${asPrettyString(idName)}:$label"
+
+        if (propertyConstraints.nonEmpty) {
+          prettyDetails = prettyDetails
+            .append(pretty"\n")
+            .append(propertyConstraints
+              .map { case (prop, expr) =>
+                pretty"${asPrettyString(idName)}.${asPrettyString.raw(prop.name)} = ${asPrettyString(expr)}"
+              }
+              .mkPrettyString("\n"))
+        }
+
         PlanDescriptionImpl(
           id,
-          "DynamicNodeByLabelsScan",
+          "DynamicLabelNodeLookup",
           children,
           Seq(Details(prettyDetails)),
           variables,

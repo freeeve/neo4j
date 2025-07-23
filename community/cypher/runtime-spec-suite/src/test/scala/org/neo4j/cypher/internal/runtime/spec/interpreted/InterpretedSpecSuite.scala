@@ -54,7 +54,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.DeleteRelationshipTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.DirectedRelationshipByElementIdSeekTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.DirectedRelationshipByIdSeekTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.DistinctTestBase
-import org.neo4j.cypher.internal.runtime.spec.tests.DynamicLabelsScanTestBase
+import org.neo4j.cypher.internal.runtime.spec.tests.DynamicLabelNodeLookupTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.DynamicRelationshipTypeScanTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.EagerLimitProfileRowsTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.EagerTestBase
@@ -280,8 +280,8 @@ class InterpretedBFSPruningVarExpandWalkTest
 class InterpretedProjectEndpointsTest extends ProjectEndpointsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedLabelScanTest extends LabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 
-class InterpretedDynamicLabelsScanTest
-    extends DynamicLabelsScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedDynamicLabelNodeLookupTest
+    extends DynamicLabelNodeLookupTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedUnionLabelScanTest extends UnionLabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedNodeIndexScanTest extends NodeIndexScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 

@@ -72,7 +72,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesSca
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
@@ -275,7 +275,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPrimitivePipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedSinglePrimitivePipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicDirectedRelationshipTypeScanSlottedPipe
-import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicNodeByLabelsScanSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicLabelNodeLookupSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicUndirectedRelationshipTypeScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.EagerSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.ExpandAllSlottedPipe
@@ -458,17 +458,18 @@ class SlottedPipeMapper(
         indexRegistrator.registerLabelScan()
         NodesByLabelScanSlottedPipe(column.name, LazyLabel(label)(semanticTable), slots, indexOrder)(id)
 
-      case DynamicNodeByLabelsScan(column, labelExpr, _, indexOrder) =>
+      case DynamicLabelNodeLookup(column, DynamicElement.Simple(expr, operator), _, indexOrder, propertyConstraints) =>
         indexRegistrator.registerLabelScan()
-        labelExpr match {
-          case DynamicElement.Simple(expr, operator) =>
-            DynamicNodeByLabelsScanSlottedPipe(
-              slots.longOffset(column.name),
-              expressionConverters.toCommandExpression(id, expr),
-              operator,
-              indexOrder
-            )(id = id)
-        }
+
+        DynamicLabelNodeLookupSlottedPipe(
+          slots.longOffset(column.name),
+          expressionConverters.toCommandExpression(id, expr),
+          operator,
+          indexOrder,
+          propertyConstraints.map { case (property, expr) =>
+            property -> expressionConverters.toCommandExpression(id, expr)
+          }
+        )(id = id)
 
       // Note: this plan shouldn't really be used here, but having it mapped here helps
       //      fallback and makes testing easier

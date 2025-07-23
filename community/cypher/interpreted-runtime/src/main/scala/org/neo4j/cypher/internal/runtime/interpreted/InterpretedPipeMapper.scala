@@ -80,7 +80,7 @@ import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesSca
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
@@ -265,7 +265,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedRelationshipT
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedUnionRelationshipTypesScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DistinctPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicDirectedRelationshipTypeScanPipe
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicNodeByLabelsScanPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicLabelNodeLookupPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicUndirectedRelationshipTypeScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EagerAggregationPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EagerPipe
@@ -431,17 +431,18 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerLabelScan()
         NodeByLabelScanPipe(ident.name, LazyLabel(label), indexOrder)(id = id)
 
-      case DynamicNodeByLabelsScan(ident, labelExpr, _, indexOrder) =>
+      case DynamicLabelNodeLookup(ident, DynamicElement.Simple(expr, operator), _, indexOrder, propertyConstraints) =>
         indexRegistrator.registerLabelScan()
-        labelExpr match {
-          case DynamicElement.Simple(expr, operator) =>
-            DynamicNodeByLabelsScanPipe(
-              ident.name,
-              expressionConverters.toCommandExpression(id, expr),
-              operator,
-              indexOrder
-            )(id = id)
-        }
+
+        DynamicLabelNodeLookupPipe(
+          ident.name,
+          expressionConverters.toCommandExpression(id, expr),
+          operator,
+          indexOrder,
+          propertyConstraints.map { case (property, expr) =>
+            property -> expressionConverters.toCommandExpression(id, expr)
+          }
+        )(id = id)
 
       // Note: this plan shouldn't really be used here, but having it mapped here helps
       //      fallback and makes testing easier

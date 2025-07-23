@@ -444,7 +444,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .|.nodeByLabelScan("n", "Account", IndexOrderNone, "anon_0")
       .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))))
       .merge(nodes = Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
-      .dynamicNodeByLabelsScan("anon_0", parameter("label", CTAny), DynamicElement.All, IndexOrderNone)
+      .dynamicLabelNodeLookup("anon_0", parameter("label", CTAny), DynamicElement.All, IndexOrderNone)
       .build()
   }
 
@@ -499,7 +499,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .emptyResult()
       .apply()
       .|.merge(Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
-      .|.dynamicNodeByLabelsScan("anon_0", parameter("label", CTAny), DynamicElement.All, IndexOrderNone)
+      .|.dynamicLabelNodeLookup("anon_0", parameter("label", CTAny), DynamicElement.All, IndexOrderNone)
       .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7)))))
       .apply()
       .|.nodeByLabelScan("n", "Account", IndexOrderNone, "one")

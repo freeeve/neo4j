@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelScanLeafPlanner.DynamicLabelExpression
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
 import org.neo4j.cypher.internal.expressions.HasDynamicLabels
@@ -38,7 +38,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
  * Plans dynamic label scans for nodes with dynamic labels.
  * @param skipIDs IDs of variables that should not be planned as dynamic label scans.
  */
-case class DynamicLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
+case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
 
   override def apply(
     queryGraph: QueryGraph,
@@ -49,7 +49,7 @@ case class DynamicLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends Le
       val logicalPlans = for {
         predicate <- queryGraph.selections.predicates.view
         expression <- extractDynamicLabelExpression(predicate)
-        plan <- planDynamicNodeByLabelsScan(
+        plan <- planDynamicLabelNodeLookup(
           queryGraph.patternNodes,
           queryGraph.argumentIds,
           interestingOrderConfig,
@@ -71,7 +71,7 @@ case class DynamicLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends Le
         DynamicLabelExpression(variable, labels, DynamicElement.Any)
     }
 
-  final private def planDynamicNodeByLabelsScan(
+  final private def planDynamicLabelNodeLookup(
     patternNodes: Set[LogicalVariable],
     argumentIds: Set[LogicalVariable],
     interestingOrderConfig: InterestingOrderConfig,
@@ -92,7 +92,7 @@ case class DynamicLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends Le
           indexOrderCapability = nodeTokenIndex.orderCapability,
           providedOrderFactory = context.providedOrderFactory
         )
-        context.staticComponents.logicalPlanProducer.planDynamicNodeByLabelsScan(
+        context.staticComponents.logicalPlanProducer.planDynamicLabelNodeLookup(
           variable = expression.variable,
           labels = expression.labels,
           operator = expression.operator,
@@ -104,7 +104,7 @@ case class DynamicLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends Le
     }
 }
 
-object DynamicLabelScanLeafPlanner {
+object DynamicLabelLookupLeafPlanner {
 
   final private case class DynamicLabelExpression(
     variable: Variable,

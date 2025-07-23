@@ -139,7 +139,7 @@ import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.SetOperator
-import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
@@ -1345,26 +1345,38 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     )(_)))
   }
 
-  def dynamicNodeByLabelsScan(
+  def dynamicLabelNodeLookup(
     node: String,
     labelExpr: String,
     operator: SetOperator,
     args: String*
   ): IMPL = {
-    dynamicNodeByLabelsScan(node, parseExpression(labelExpr), operator, IndexOrderNone, args: _*)
+    dynamicLabelNodeLookup(node, parseExpression(labelExpr), operator, IndexOrderNone, args: _*)
   }
 
-  def dynamicNodeByLabelsScan(
+  def dynamicLabelNodeLookup(
     node: String,
     labelExpr: String,
     operator: SetOperator,
     indexOrder: IndexOrder,
     args: String*
   ): IMPL = {
-    dynamicNodeByLabelsScan(node, parseExpression(labelExpr), operator, indexOrder, args: _*)
+    dynamicLabelNodeLookup(node, parseExpression(labelExpr), operator, indexOrder, args: _*)
   }
 
-  def dynamicNodeByLabelsScan(
+  def dynamicLabelNodeLookup(
+    node: String,
+    labelExpr: String,
+    operator: SetOperator,
+    indexOrder: IndexOrder,
+    propConstraints: Map[String, String],
+    args: String*
+  ): IMPL = {
+    val props = propConstraints.view.mapValues(parseExpression).toMap
+    dynamicLabelNodeLookup(node, parseExpression(labelExpr), operator, indexOrder, props, args: _*)
+  }
+
+  def dynamicLabelNodeLookup(
     node: String,
     labelExpr: Expression,
     operator: SetOperator,
@@ -1373,11 +1385,33 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   ): IMPL = {
     val n = VariableParser.unescaped(node)
     newNode(varFor(n))
-    appendAtCurrentIndent(LeafOperator(DynamicNodeByLabelsScan(
+    appendAtCurrentIndent(LeafOperator(DynamicLabelNodeLookup(
       varFor(n),
       DynamicElement.Simple(labelExpr, operator),
       args.map(a => VariableParser.unescapedVar(a)).toSet,
-      indexOrder
+      indexOrder,
+      Map.empty
+    )(_)))
+  }
+
+  def dynamicLabelNodeLookup(
+    node: String,
+    labelExpr: Expression,
+    operator: SetOperator,
+    indexOrder: IndexOrder,
+    propConstraints: Map[String, Expression],
+    args: String*
+  ): IMPL = {
+    val n = VariableParser.unescaped(node)
+    newNode(varFor(n))
+    appendAtCurrentIndent(LeafOperator(DynamicLabelNodeLookup(
+      varFor(n),
+      DynamicElement.Simple(labelExpr, operator),
+      args.map(a => varFor(VariableParser.unescaped(a))).toSet,
+      indexOrder,
+      propConstraints.map { case (prop, expr) =>
+        PropertyKeyToken(prop, PropertyKeyId(resolver.getPropertyKeyId(prop))) -> expr
+      }
     )(_)))
   }
 

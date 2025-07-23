@@ -579,11 +579,17 @@ object LogicalPlanToPlanBuilderString {
       case Skip(_, count)            => integerString(count)
       case NodeByLabelScan(idName, label, argumentIds, indexOrder) =>
         params(idName.escaped, label, indexOrder, spread(argumentIds.map(_.escaped)))
-      case DynamicNodeByLabelsScan(idName, labelExpr, argumentIds, indexOrder) =>
-        labelExpr match {
-          case DynamicElement.Simple(expr, operator) =>
-            params(idName.escaped, expr.quoted, operator, indexOrder, spread(argumentIds.map(_.escaped)))
-        }
+
+      case DynamicLabelNodeLookup(
+          idName,
+          DynamicElement.Simple(expr, operator),
+          argumentIds,
+          indexOrder,
+          propertyConstraints
+        ) =>
+        val props = propertyConstraints.view.mapValues(_.quoted).toMap
+        params(idName.escaped, expr.quoted, operator, indexOrder, spread(argumentIds.map(_.escaped)), props)
+
       case DynamicDirectedRelationshipTypeScan(idName, start, typeExpr, end, argumentIds, indexOrder) =>
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
