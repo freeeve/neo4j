@@ -43,10 +43,8 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.graphdb.config.Setting
-import org.neo4j.internal.kernel.api.Procedures
-import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction
-import org.neo4j.kernel.api.AssertOpen
+import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.lifecycle.LifeSupport
 import org.neo4j.logging.InternalLogProvider
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
@@ -182,8 +180,7 @@ object COMMUNITY {
     override def create(
       cypherVersion: CypherVersion,
       tokenContext: ReadTokenContext,
-      schemaRead: SchemaRead,
-      procedures: Procedures,
+      transactionalContext: TransactionalContext,
       clock: Clock,
       debugOptions: CypherDebugOptions,
       compileExpressions: Boolean,
@@ -191,14 +188,12 @@ object COMMUNITY {
       operatorEngine: CypherOperatorEngineOption,
       interpretedPipesFallback: CypherInterpretedPipesFallbackOption,
       anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-      assertOpen: AssertOpen,
       executionModel: ExecutionModel
     ): CommunityRuntimeContext = {
       delegate.create(
         cypherVersion,
         tokenContext,
-        schemaRead,
-        procedures,
+        transactionalContext,
         clock,
         debugOptions,
         compileExpressions,
@@ -206,7 +201,6 @@ object COMMUNITY {
         operatorEngine,
         interpretedPipesFallback,
         anonymousVariableNameGenerator,
-        assertOpen,
         executionModel
       )
     }

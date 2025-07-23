@@ -258,7 +258,7 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
-  test("should not fetch properties on merge queries") { // merge is not supported yet
+  test("should fetch properties on merge queries") {
     val query =
       """
         |MERGE (p:Person {name: 'Andy'})
@@ -272,16 +272,53 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual
       planner.planBuilder()
         .produceResults("`p.name`", "`p.existed`")
-        .projection("cacheN[p.name] AS `p.name`", "p.existed AS `p.existed`")
+        .projection("cacheN[p.name] AS `p.name`", "cacheN[p.existed] AS `p.existed`")
+        .remoteBatchProperties("cacheNFromStore[p.name]", "cacheNFromStore[p.existed]")
         .merge(
           Seq(createNodeFull("p", labels = Seq("Person"), properties = Some("{name: 'Andy'}"))),
-          Seq(),
+          Seq.empty,
           Seq(setNodeProperty("p", "existed", "true")),
           Seq(setNodeProperty("p", "existed", "false")),
-          Set()
+          Set.empty
         )
-        .filter("cacheNFromStore[p.name] = 'Andy'")
+        .filter("cacheN[p.name] = 'Andy'")
+        .remoteBatchProperties("cacheNFromStore[p.name]", "cacheNFromStore[p.existed]")
         .nodeByLabelScan("p", "Person")
+        .build()
+  }
+
+  test("should not fetch properties on locking merge queries") { // locking merge is not supported yet
+    val query =
+      """
+        |MATCH  (andy:Person {name: 'Andy'}),
+        |       (lou:Person {name: 'Lou'})
+        |MERGE (andy)-[r:KNOWS {from: 'Factory'}]->(lou)
+        |RETURN r.name, r.existed
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual
+      planner.planBuilder()
+        .produceResults("`r.name`", "`r.existed`")
+        .projection("cacheR[r.name] AS `r.name`", "cacheR[r.existed] AS `r.existed`")
+        .apply()
+        .|.merge(
+          Seq.empty,
+          Seq(createRelationship("r", "andy", "KNOWS", "lou", OUTGOING, Some("{from: 'Factory'}"))),
+          Seq.empty,
+          Seq.empty,
+          Set("andy", "lou")
+        )
+        .|.cacheProperties("cacheRFromStore[r.name]", "cacheRFromStore[r.existed]")
+        .|.filter("r.from = 'Factory'")
+        .|.expandInto("(andy)-[r:KNOWS]->(lou)")
+        .|.argument("andy", "lou")
+        .cartesianProduct()
+        .|.filter("lou.name = 'Lou'")
+        .|.nodeByLabelScan("lou", "Person")
+        .filter("andy.name = 'Andy'")
+        .nodeByLabelScan("andy", "Person")
         .build()
   }
 

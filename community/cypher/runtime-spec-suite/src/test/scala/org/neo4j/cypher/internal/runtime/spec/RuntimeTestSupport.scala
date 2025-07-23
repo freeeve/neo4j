@@ -118,7 +118,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
   private lazy val authManager = resolver.resolveDependency(classOf[AuthManager])
 
   private[this] var _tx: InternalTransaction = _
-  private[this] var _txContext: TransactionalContext = _
+  protected[this] var _txContext: TransactionalContext = _
 
   private[this] var runtimeTestParameters: RuntimeTestParameters = RuntimeTestParameters()
   private[this] var isParallel: Boolean = _
@@ -1095,8 +1095,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     runtimeContextManager.create(
       queryOptions.resolvedLanguage,
       queryContext,
-      queryContext.transactionalContext.schemaRead,
-      queryContext.transactionalContext.procedures,
+      _txContext,
       MasterCompiler.CLOCK,
       debugOptions,
       compileExpressions = queryOptions.useCompiledExpressions,
@@ -1104,7 +1103,6 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
       operatorEngine = queryOptions.queryOptions.operatorEngine,
       interpretedPipesFallback = queryOptions.queryOptions.interpretedPipesFallback,
       anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(),
-      () => {},
       executionModel
     )
   }

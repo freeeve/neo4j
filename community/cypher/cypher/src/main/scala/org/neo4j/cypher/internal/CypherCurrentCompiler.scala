@@ -237,8 +237,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       contextManager.create(
         query.resolvedLanguage,
         logicalPlanResult.plannerContext.planContext,
-        transactionalContext.kernelTransaction().schemaRead(),
-        transactionalContext.kernelTransaction().procedures(),
+        transactionalContext,
         logicalPlanResult.plannerContext.clock,
         logicalPlanResult.plannerContext.debugOptions,
         query.options.useCompiledExpressions,
@@ -246,7 +245,6 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
         query.options.queryOptions.operatorEngine,
         query.options.queryOptions.interpretedPipesFallback,
         planState.anonymousVariableNameGenerator,
-        transactionalContext.kernelTransaction(),
         logicalPlanResult.plannerContext.executionModel
       )
 

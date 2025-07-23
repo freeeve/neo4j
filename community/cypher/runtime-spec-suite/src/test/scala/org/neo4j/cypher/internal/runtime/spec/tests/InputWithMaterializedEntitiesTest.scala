@@ -252,8 +252,7 @@ abstract class InputWithMaterializedEntitiesTest[CONTEXT <: RuntimeContext](
         runtimeContextManager.create(
           dbDefaultLanguage,
           queryContext,
-          queryContext.transactionalContext.schemaRead,
-          queryContext.transactionalContext.procedures,
+          _txContext,
           MasterCompiler.CLOCK,
           CypherDebugOptions.default,
           compileExpressions = false,
@@ -261,7 +260,6 @@ abstract class InputWithMaterializedEntitiesTest[CONTEXT <: RuntimeContext](
           operatorEngine = CypherOperatorEngineOption.default,
           interpretedPipesFallback = CypherInterpretedPipesFallbackOption.default,
           anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(),
-          () => {},
           ExecutionModel.default
         )
       }

@@ -86,6 +86,10 @@ case class CypherRuntimeConfiguration(
     s"pipelinedBatchSizeSmall (got ${pipelinedBatchSizeSmall}) must be <= pipelinedBatchSizeBig (got ${pipelinedBatchSizeBig})"
   )
 
+  def forceEnableNonFusedMerge(): CypherRuntimeConfiguration = {
+    copy(enableNonFusedMerge = true)(cypherConfiguration)
+  }
+
   def snapshot(): CypherRuntimeConfiguration = {
     if (cypherConfiguration != null) {
       CypherRuntimeConfiguration.fromCypherConfiguration(cypherConfiguration)

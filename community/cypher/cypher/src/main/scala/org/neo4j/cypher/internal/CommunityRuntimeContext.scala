@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.internal.kernel.api.Procedures
 import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.kernel.api.AssertOpen
+import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.logging.InternalLog
 
 import java.time.Clock
@@ -58,8 +59,7 @@ case class CommunityRuntimeContextManager(log: InternalLog, config: CypherRuntim
   override def create(
     cypherVersion: CypherVersion,
     tokenContext: ReadTokenContext,
-    schemaRead: SchemaRead,
-    procedures: Procedures,
+    transactionalContext: TransactionalContext,
     clock: Clock,
     debugOptions: CypherDebugOptions,
     ignore: Boolean,
@@ -67,19 +67,24 @@ case class CommunityRuntimeContextManager(log: InternalLog, config: CypherRuntim
     ignore3: CypherOperatorEngineOption,
     ignore4: CypherInterpretedPipesFallbackOption,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    assertOpen: AssertOpen,
     ignore5: ExecutionModel
-  ): CommunityRuntimeContext =
+  ): CommunityRuntimeContext = {
+    val kernelTransaction = transactionalContext.kernelTransaction()
+    val configToUse = transactionalContext.databaseMode() match {
+      case TransactionalContext.DatabaseMode.SHARDED => config.snapshot().forceEnableNonFusedMerge()
+      case _                                         => config.snapshot()
+    }
     CommunityRuntimeContext(
       cypherVersion,
       tokenContext,
-      schemaRead,
-      procedures,
+      kernelTransaction.schemaRead(),
+      kernelTransaction.procedures(),
       log,
-      config.snapshot(),
+      configToUse,
       anonymousVariableNameGenerator,
-      assertOpen
+      kernelTransaction
     )
+  }
 
   // As we rely completely on transaction bound resources in community,
   // there is no need for further assertions here.

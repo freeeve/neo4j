@@ -40,6 +40,7 @@ import org.neo4j.exceptions.RuntimeUnsupportedException
 import org.neo4j.internal.kernel.api.Procedures
 import org.neo4j.internal.kernel.api.SchemaRead
 import org.neo4j.kernel.api.AssertOpen
+import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.logging.InternalLog
 import org.neo4j.notifications.RuntimeUnsupportedNotification
@@ -136,8 +137,7 @@ trait RuntimeContextManager[+CONTEXT <: RuntimeContext] {
   def create(
     cypherVersion: CypherVersion,
     tokenContext: ReadTokenContext,
-    schemaRead: SchemaRead,
-    procedures: Procedures,
+    transactionalContext: TransactionalContext,
     clock: Clock,
     debugOptions: CypherDebugOptions,
     compileExpressions: Boolean,
@@ -145,7 +145,6 @@ trait RuntimeContextManager[+CONTEXT <: RuntimeContext] {
     operatorEngine: CypherOperatorEngineOption,
     interpretedPipesFallback: CypherInterpretedPipesFallbackOption,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    assertOpen: AssertOpen,
     executionModel: ExecutionModel
   ): CONTEXT
 

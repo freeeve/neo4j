@@ -126,17 +126,21 @@ object RemoteBatchingStrategy {
     if (
       context.planContext.databaseMode == SHARDED
       && context.config.remoteBatchPropertiesImplementation() == RemoteBatchPropertiesImplementation.PLANNER
-      && !queryContainsMergePatterns(query) // Remote batch properties are not supported in slotted runtime,
-      // But merge patterns are only supported in slotted runtime.
+      && !queryContainsLockingMergePatterns(query)
     ) {
       InPlannerRemoteBatching
     } else
       SkipRemoteBatching
   }
 
-  private def queryContainsMergePatterns(query: PlannerQuery): Boolean = {
+  private def queryContainsLockingMergePatterns(query: PlannerQuery): Boolean = {
     !query.readOnly &&
-    query.flattenForeach.allQGsWithLeafInfo.exists(qgWithLeafInfo => qgWithLeafInfo.queryGraph.mergeQueryGraph.nonEmpty)
+    query.flattenForeach.allQGsWithLeafInfo.exists(qgWithLeafInfo =>
+      // This is a temporary check that should go away when we fully support locking merges in pipelined runtime
+      qgWithLeafInfo.queryGraph.mergeRelationshipPatterns.exists(r => {
+        (r.matchGraph.patternNodes intersect r.matchGraph.argumentIds).nonEmpty
+      })
+    )
   }
 
   def defaultValue(): RemoteBatchingStrategy = SkipRemoteBatching
