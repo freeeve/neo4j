@@ -74,25 +74,9 @@ final case class ReturnItems(
       item.alias match {
         case Some(variable) if item.expression == variable =>
           val maybePreviousSymbol = previousScope.symbol(variable.name)
-          declareVariable(
-            variable,
-            types(item.expression),
-            maybePreviousSymbol,
-            overriding = true,
-            groupVariable = maybePreviousSymbol.fold(false)(_.groupVariable)
-          )
+          declareVariable(variable, types(item.expression), maybePreviousSymbol, overriding = true)
         case Some(variable) =>
-          val maybePreviousSymbol = item.expression match {
-            case exprVariable: LogicalVariable => previousScope.symbol(exprVariable.name)
-            case _                             => None
-          }
-          declareVariable(
-            variable,
-            types(item.expression),
-            None,
-            overriding = true,
-            groupVariable = maybePreviousSymbol.fold(false)(_.groupVariable)
-          )
+          declareVariable(variable, types(item.expression), None, overriding = true)
         case None => (state: SemanticState) => SemanticCheckResult(state, Seq.empty)
       }
     )

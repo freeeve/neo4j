@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
-import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatchContext
 import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
@@ -339,12 +338,7 @@ trait SemanticAnalysisTooling {
     possibleTypes: TypeSpec,
     maybePreviousDeclaration: Option[Symbol]
   ): SemanticState => Either[SemanticError, SemanticState] =
-    (_: SemanticState).declareVariable(
-      v,
-      possibleTypes,
-      maybePreviousDeclaration,
-      groupVariable = maybePreviousDeclaration.fold(false)(_.groupVariable)
-    )
+    (_: SemanticState).declareVariable(v, possibleTypes, maybePreviousDeclaration)
 
   /**
    * @param overriding if `true` then a previous occurrence of that variable is overridden.
@@ -354,24 +348,10 @@ trait SemanticAnalysisTooling {
     v: LogicalVariable,
     typeGen: TypeGenerator,
     maybePreviousDeclaration: Option[Symbol] = None,
-    overriding: Boolean = false,
-    groupVariable: Boolean = false
+    overriding: Boolean = false
   ): SemanticState => Either[SemanticError, SemanticState] =
     (s: SemanticState) =>
-      s.declareVariable(
-        v,
-        typeGen(s),
-        maybePreviousDeclaration,
-        overriding,
-        groupVariable = groupVariable
-      )
-
-  def declareGroupVariable(
-    v: LogicalVariable,
-    typeGen: TypeGenerator
-  ): SemanticState => Either[SemanticError, SemanticState] =
-    (s: SemanticState) =>
-      s.declareVariable(v, typeGen(s), groupVariable = true)
+      s.declareVariable(v, typeGen(s), maybePreviousDeclaration, overriding)
 
   def implicitVariable(
     v: LogicalVariable,
@@ -397,11 +377,11 @@ trait SemanticAnalysisTooling {
    * In [[SemanticPatternCheck.declareVariablesInSeparateScope]] we store the
    * newly created variables to access and escape them from the import here.
    */
-  def importValuesFromParentInSubqueryExpression(subExpr: FullSubqueryExpression): SemanticCheck = {
+  def importValuesFromParentInExpression(expr: Expression): SemanticCheck = {
     (state: SemanticState) =>
       val outerLoc = state.currentScope.parent.get
       val outerParentScope = outerLoc.parent.fold(Scope.empty)(_.scope)
-      val escapedSymbols = state.recordedScopes.get(subExpr).fold(Set.empty[String])(_.scope.symbolNames)
+      val escapedSymbols = state.recordedScopes.get(expr).fold(Set.empty[String])(_.scope.symbolNames)
       SemanticCheckResult.success(state.importValuesFromScope(outerLoc.scope, escapedSymbols)
         .importValuesFromScope(outerParentScope, escapedSymbols ++ outerLoc.scope.symbolNames))
   }

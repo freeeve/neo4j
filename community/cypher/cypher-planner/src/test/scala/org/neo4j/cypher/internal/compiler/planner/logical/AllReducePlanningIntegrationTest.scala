@@ -1214,4 +1214,125 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         .build()
     )
   }
+
+  test("Should support inlined allReduces when the reduction variable has the same name as group variable") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)((left)-[rel]->(right))+(b)
+        |  WHERE allReduce(sum = 0, rel IN rel | sum + rel.prop, sum < 99)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    val `((left)-[rel]->(right))+ WITH sum = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "sum", "sum"))
+    )
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .repeatTrail(`((left)-[rel]->(right))+ WITH sum = 0`)
+        .|.filterExpressionOrString("sum < 99", isRepeatTrailUnique("rel"))
+        .|.projection("sum + rel.prop AS sum")
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left", "sum")
+        .nodeByLabelScan("a", "N", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test("Should support non-inlined allReduces when the reduction variable has the same name as group variable") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)((left)-[rel]->(right))+(b)
+        |  WHERE allReduce(sum = 0, rel IN rel | sum + rel.prop + size(right), sum < 99)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    val `((left)-[rel]->(right))+` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(("right", "right")),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set.empty,
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
+    )
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .filterExpression(
+          allReduceFallBack(
+            accumulator = v"sum",
+            init = literalInt(0),
+            groupVariable = v"rel",
+            allReduceStepExpression = add(add(v"sum", prop(v"rel", "prop")), size(v"right")),
+            allReducePredicate = lessThan(v"sum", literalInt(99)),
+            nextAnonymousVariable = v"anon_0",
+            stepVariable = v"rel"
+          )
+        )
+        .repeatTrail(`((left)-[rel]->(right))+`)
+        .|.filterExpressionOrString(isRepeatTrailUnique("rel"))
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left")
+        .nodeByLabelScan("a", "N", IndexOrderNone)
+        .build()
+    )
+  }
+
+  test("Should inline allReduce when the accumulator shadows a group variable") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)((left)-[rel]->(right))+(b)
+        |  WHERE allReduce(left = 0, rel IN rel | left + rel.prop, left < 99)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    val `((left)-[rel]->(right))+ WITH left = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "left", "left"))
+    )
+
+    plan should equal(
+      planner.subPlanBuilder()
+        .repeatTrail(`((left)-[rel]->(right))+ WITH left = 0`)
+        .|.filterExpressionOrString("left < 99", isRepeatTrailUnique("rel"))
+        .|.projection("left + rel.prop AS left")
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left")
+        .nodeByLabelScan("a", "N", IndexOrderNone)
+        .build()
+    )
+  }
 }

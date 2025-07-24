@@ -886,7 +886,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       // EXISTS
       case x: ExistsExpression =>
         withScopedState {
-          importValuesFromParentInSubqueryExpression(x) chain
+          importValuesFromParentInExpression(x) chain
             fromState(state => x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = true, state)) chain
             when(x.query.containsUpdates) {
               SemanticError.anExpressionCannotContainUpdates("Exists", x.position)
@@ -906,7 +906,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       // COUNT
       case x: CountExpression =>
         withScopedState {
-          importValuesFromParentInSubqueryExpression(x) chain
+          importValuesFromParentInExpression(x) chain
             fromState(state =>
               x.query.semanticCheckInSubqueryExpressionContext(
                 canOmitReturn =
@@ -932,7 +932,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       // COLLECT
       case x: CollectExpression =>
         withScopedState {
-          importValuesFromParentInSubqueryExpression(x) chain
+          importValuesFromParentInExpression(x) chain
             fromState(state => x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = false, state)) chain
             when(x.query.containsUpdates) {
               SemanticError.aExpressionCannotContainUpdates("Collect", x.position)
@@ -959,7 +959,8 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
                   expectType(CTList(CTAny).covariant, x.list) chain
                   declareVariable(x.accumulator, types(x.init)) chain
                   withScopedState {
-                    declareVariable(x.reductionStepVariable, unwrapLists(types(x.list))) chain
+                    importValuesFromParentInExpression(x.accumulator) chain
+                      declareVariable(x.reductionStepVariable, unwrapLists(types(x.list)), overriding = true) chain
                       simple(x.reductionStep) chain
                       expectType(
                         s => types(x.init)(s),

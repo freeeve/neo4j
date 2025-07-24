@@ -158,7 +158,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   test("predicate should be a boolean expression") {
     run25(
       """MATCH (a)-[r]->+(b)
-        |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop, 123)
+        |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop, acc)
         |RETURN a, b
         |""".stripMargin
     ).hasErrorMessages("Type mismatch: expected Boolean but was Integer")
@@ -265,7 +265,24 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
     ).hasNoErrors
   }
 
-  test("should allow shadowing extra group variables through CALL (*) in reduction step") {
+  test("should allow using the accumulator through CALL (*) in reduction step") {
+    run25(
+      """MATCH (a) ((n)-[r]->(m))+ (b)
+        |WHERE allReduce(acc = 0,
+        |                node IN n | acc + COUNT {
+        |                        CALL (*) {
+        |                          MATCH (node)-[:FRIEND_OF]->(x)
+        |                          WHERE x.prop < acc
+        |                          RETURN x
+        |                        }
+        |                      },
+        |                acc < 10)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasNoErrors
+  }
+
+  test("should identify improper usage of group variables through CALL (*) in reduction step") {
     run25(
       """MATCH (a)((n)-[r]->(m))+(b)
         |WHERE allReduce(acc = 0,
@@ -275,7 +292,89 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |                acc < 10)
         |RETURN a, b
         |""".stripMargin
+    ).hasErrorMessages("Type mismatch: m defined with conflicting type List<Node> (expected Node)")
+  }
+
+  test("should identify improper usage of group variables through CALL with variable in reduction step") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
+        |WHERE allReduce(acc = 0,
+        |                node IN n | acc + COUNT {
+        |                        CALL (m) { MATCH (node)-[:FRIEND_OF]->(m) RETURN node, m }
+        |                      },
+        |                acc < 10)
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages("Type mismatch: m defined with conflicting type List<Node> (expected Node)")
+  }
+
+  test("should override group variables through CALL without variables in reduction step") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
+        |WHERE allReduce(acc = 0,
+        |                node IN n | acc + COUNT {
+        |                        CALL () { MATCH (node)-[:FRIEND_OF]->(m) RETURN node, m }
+        |                      },
+        |                acc < 10)
+        |RETURN a, b
+        |""".stripMargin
     ).hasNoErrors
+  }
+
+  test("should identify improper usage of group variables through CALL (*) in the predicate") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
+        |WHERE allReduce(acc = 0,
+        |                node IN n | acc + node.prop,
+        |                EXISTS {
+        |                        CALL (*) { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a, m }
+        |                      })
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages("Type mismatch: m defined with conflicting type List<Node> (expected Node)")
+  }
+
+  test("should identify improper usage of group variables through CALL (m) in the predicate") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
+        |WHERE allReduce(acc = 0,
+        |                node IN n | acc + node.prop,
+        |                EXISTS {
+        |                        CALL (m) { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a, m }
+        |                      })
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages("Type mismatch: m defined with conflicting type List<Node> (expected Node)")
+  }
+
+  test("should not identify the usage of the accumulator if using CALL() in the predicate") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
+        |WHERE allReduce(acc = 0,
+        |                node IN n | acc + node.prop,
+        |                EXISTS {
+        |                        CALL () { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a, m }
+        |                      })
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages(
+      "Variable `acc` not defined"
+    ) // Note that the variable m is newly defined here, so you shouldn't see the error from the other tests here.
+  }
+
+  test("should not allow variables introduced in predicates in the reduction step") {
+    run25(
+      """MATCH (a)((n)-[r]->(m))+(b)
+        |WHERE allReduce(acc = 0,
+        |                node IN n | acc + node.prop + x.prop,
+        |                EXISTS {
+        |                  MATCH (x)-[:FRIEND_OF]->() WHERE x.prop = acc RETURN x
+        |                })
+        |RETURN a, b
+        |""".stripMargin
+    ).hasErrorMessages(
+      "Variable `x` not defined"
+    ) // Note that the variable m is newly defined here, so you shouldn't see the error from the other tests here.
   }
 
   test("should ensure that the accumulator and the reduction step have matching types") {
@@ -477,5 +576,14 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       "Type mismatch: expected List<T> but was Relationship",
       "Type mismatch: expected Map, Node, Relationship, Point, Duration, Date, Time, LocalTime, LocalDateTime or DateTime but was Any"
     )
+  }
+
+  test("reduction variable can shadow any variable outside of the allReduce scope") {
+    run25(
+      """MATCH (a)-[r]->+(b)
+        |WHERE allReduce(acc = 0, r IN r | acc + r.prop, acc <= 5)
+        |RETURN a, b, r
+        |""".stripMargin
+    ).hasNoErrors
   }
 }
