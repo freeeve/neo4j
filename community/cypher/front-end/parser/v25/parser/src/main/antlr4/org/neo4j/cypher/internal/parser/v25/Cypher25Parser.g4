@@ -1597,7 +1597,7 @@ writePrivilege
 databasePrivilege
    : (
       ACCESS
-      | ALTER DATABASE
+      | ALTER COMPOSITE? DATABASE
       | START
       | STOP
       | (indexToken | constraintToken | NAME) MANAGEMENT?

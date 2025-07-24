@@ -81,6 +81,8 @@ case class AlterDatabaseTopologyAction(useCypher5: Boolean) extends DatabaseAndD
  */
 case class AlterDatabaseOptionsAction(useCypher5: Boolean) extends DatabaseAndDbmsAction("ALTER DATABASE")
 
+case class AlterCompositeDatabaseAction(useCypher5: Boolean) extends DatabaseAndDbmsAction("ALTER COMPOSITE DATABASE")
+
 abstract class IndexManagementAction(override val name: String) extends DatabaseAction(name)
 
 case object AllIndexActions extends IndexManagementAction("INDEX MANAGEMENT")
@@ -194,8 +196,6 @@ case object CompositeDatabaseManagementActions extends DatabaseManagementAction(
 case object CreateCompositeDatabaseAction extends DatabaseManagementAction("CREATE COMPOSITE DATABASE")
 
 case object DropCompositeDatabaseAction extends DatabaseManagementAction("DROP COMPOSITE DATABASE")
-
-case object AlterCompositeDatabaseAction extends DatabaseManagementAction("ALTER COMPOSITE DATABASE")
 
 abstract class AliasManagementAction(override val name: String) extends DbmsAction(name)
 

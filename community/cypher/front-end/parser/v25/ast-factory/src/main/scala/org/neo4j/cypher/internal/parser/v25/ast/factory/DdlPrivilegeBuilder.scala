@@ -327,8 +327,9 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
           c.getSymbol.getType match {
             case Cypher25Parser.ACCESS => withQualifier(AccessDatabaseAction)
             case Cypher25Parser.ALTER => nodeChild(ctx, 1).getSymbol.getType match {
-                case Cypher25Parser.DATABASE => withQualifier(AlterDatabaseAction(false))
-                case _                       => throw new IllegalStateException()
+                case Cypher25Parser.COMPOSITE => withQualifier(AlterCompositeDatabaseAction(false))
+                case Cypher25Parser.DATABASE  => withQualifier(AlterDatabaseAction(false))
+                case _                        => throw new IllegalStateException()
               }
             case Cypher25Parser.NAME  => withQualifier(AllTokenActions)
             case Cypher25Parser.START => withQualifier(StartDatabaseAction)
@@ -372,7 +373,7 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
             case Cypher25Parser.ALIAS => withQualifier(AllAliasManagementActions)
             case Cypher25Parser.ALTER => nodeChild(ctx, 1).getSymbol.getType match {
                 case Cypher25Parser.ALIAS     => withQualifier(AlterAliasAction)
-                case Cypher25Parser.COMPOSITE => withQualifier(AlterCompositeDatabaseAction)
+                case Cypher25Parser.COMPOSITE => withQualifier(AlterCompositeDatabaseAction(false))
                 case Cypher25Parser.DATABASE  => withQualifier(AlterDatabaseAction(false))
                 case Cypher25Parser.USER      => withQualifier(AlterUserAction)
                 case _                        => throw new IllegalStateException()

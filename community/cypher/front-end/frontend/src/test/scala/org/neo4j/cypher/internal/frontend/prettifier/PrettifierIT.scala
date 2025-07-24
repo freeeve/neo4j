@@ -3570,8 +3570,6 @@ class PrettifierIT extends CypherFunSuite {
             s"$action CREATE COMPOSITE DATABASE ON DBMS $preposition role",
           s"$action drop composite database on dbms $preposition $$role" ->
             s"$action DROP COMPOSITE DATABASE ON DBMS $preposition $$role",
-          s"$action alter composite database on dbms $preposition role" ->
-            s"$action ALTER COMPOSITE DATABASE ON DBMS $preposition role",
           s"$action aliaS Management on dbms $preposition role" ->
             s"$action ALIAS MANAGEMENT ON DBMS $preposition role",
           s"$action  create alias on DBMS $preposition role" ->
@@ -3710,6 +3708,23 @@ class PrettifierIT extends CypherFunSuite {
           FailsInCypher5(
             s"$action set database default language on home database $preposition role",
             s"$action SET DATABASE DEFAULT LANGUAGE ON HOME DATABASE $preposition role"
+          ),
+          ChangedBetween5And25(
+            s"$action alter composite database on dbms $preposition role",
+            s"$action ALTER COMPOSITE DATABASE ON DBMS $preposition role",
+            s"$action ALTER COMPOSITE DATABASE ON DATABASE * $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action alter composite database on database * $preposition role",
+            s"$action ALTER COMPOSITE DATABASE ON DATABASE * $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action alter composite database on database foo $preposition role",
+            s"$action ALTER COMPOSITE DATABASE ON DATABASE foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action alter composite database on home database $preposition role",
+            s"$action ALTER COMPOSITE DATABASE ON HOME DATABASE $preposition role"
           )
         )
     }

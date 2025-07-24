@@ -366,7 +366,7 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
             case Cypher5Parser.ALIAS => withQualifier(AllAliasManagementActions)
             case Cypher5Parser.ALTER => nodeChild(ctx, 1).getSymbol.getType match {
                 case Cypher5Parser.ALIAS     => withQualifier(AlterAliasAction)
-                case Cypher5Parser.COMPOSITE => withQualifier(AlterCompositeDatabaseAction)
+                case Cypher5Parser.COMPOSITE => withQualifier(AlterCompositeDatabaseAction(true))
                 case Cypher5Parser.DATABASE  => withQualifier(AlterDatabaseAction(true))
                 case Cypher5Parser.USER      => withQualifier(AlterUserAction)
                 case _                       => throw new IllegalStateException()

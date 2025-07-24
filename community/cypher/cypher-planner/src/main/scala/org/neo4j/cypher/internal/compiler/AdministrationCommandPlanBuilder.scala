@@ -56,7 +56,7 @@ import org.neo4j.cypher.internal.ast.CreateRole
 import org.neo4j.cypher.internal.ast.CreateRoleAction
 import org.neo4j.cypher.internal.ast.CreateUser
 import org.neo4j.cypher.internal.ast.CreateUserAction
-import org.neo4j.cypher.internal.ast.DatabaseAction
+import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.DatabasePrivilege
 import org.neo4j.cypher.internal.ast.DatabaseScope
@@ -1225,9 +1225,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ) =>
         val cypherVersionForPrivileges = context.cypherVersion == CypherVersion.Cypher5
         // Composite databases currently don't have any sub-privileges, just ALTER privilege
-        val requiredPrivilegeActionsForCompositeDatabases = Seq(AlterCompositeDatabaseAction)
+        val requiredPrivilegeActionsForCompositeDatabases: Seq[DatabaseAndDbmsAction] =
+          Seq(AlterCompositeDatabaseAction(cypherVersionForPrivileges))
         // For a set of (predicate -> privilege); If the predicate is true, add the privilege to the set of required privileges
-        val requiredPrivilegedActionsForDatabases: Seq[DatabaseAction] = Seq(
+        val requiredPrivilegedActionsForDatabases: Seq[DatabaseAndDbmsAction] = Seq(
           // ALTER DATABASE foo SET TOPOLOGY requires internal AlterDatabaseTopology privilege which can be granted by 'ALTER DATABASE':
           topology.nonEmpty -> AlterDatabaseTopologyAction,
           replicas.nonEmpty -> AlterDatabaseTopologyAction,

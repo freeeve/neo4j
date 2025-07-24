@@ -174,7 +174,7 @@ object ActionMapper {
     case _: AlterDatabaseOptionsAction       => security.PrivilegeAction.ALTER_DATABASE_OPTIONS
     case CreateCompositeDatabaseAction       => security.PrivilegeAction.CREATE_COMPOSITE_DATABASE
     case DropCompositeDatabaseAction         => security.PrivilegeAction.DROP_COMPOSITE_DATABASE
-    case AlterCompositeDatabaseAction        => security.PrivilegeAction.ALTER_COMPOSITE_DATABASE
+    case _: AlterCompositeDatabaseAction     => security.PrivilegeAction.ALTER_COMPOSITE_DATABASE
     case CompositeDatabaseManagementActions  => security.PrivilegeAction.COMPOSITE_DATABASE_MANAGEMENT
 
     case AllAliasManagementActions => security.PrivilegeAction.ALIAS_MANAGEMENT

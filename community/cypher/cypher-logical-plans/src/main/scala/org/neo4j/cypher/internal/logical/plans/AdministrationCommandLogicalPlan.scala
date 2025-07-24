@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.ActionResource
 import org.neo4j.cypher.internal.ast.AdministrationAction
 import org.neo4j.cypher.internal.ast.DataExchangeAction
 import org.neo4j.cypher.internal.ast.DatabaseAction
+import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.DatabaseScope
 import org.neo4j.cypher.internal.ast.DbmsAction
@@ -240,8 +241,8 @@ case class AssertCanDropDatabase(
 case class AssertCanAlterDatabase(
   source: PrivilegePlan,
   namespacedName: DatabaseName,
-  actionsForCompositeDatabases: Seq[DbmsAction],
-  actionsForDatabases: Seq[DatabaseAction]
+  actionsForCompositeDatabases: Seq[DatabaseAndDbmsAction],
+  actionsForDatabases: Seq[DatabaseAndDbmsAction]
 )(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
 
 case class AssertAllowedDbmsActionsOrSelf(user: Either[String, Parameter], actions: Seq[DbmsAction])(implicit

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.AllIndexActions
 import org.neo4j.cypher.internal.ast.AllTokenActions
 import org.neo4j.cypher.internal.ast.AllTransactionActions
+import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.CreateConstraintAction
 import org.neo4j.cypher.internal.ast.CreateIndexAction
@@ -123,7 +124,8 @@ class DatabasePrivilegeAdministrationCommandParserTest extends AdministrationAnd
           val alterDatabasePrivilegesInCypher25 = Seq(
             PrivilegeAction("ALTER DATABASE", AlterDatabaseAction(false), Cypher25),
             PrivilegeAction("SET DATABASE ACCESS", SetDatabaseAccessAction(false), Cypher25),
-            PrivilegeAction("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction(false), Cypher25)
+            PrivilegeAction("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction(false), Cypher25),
+            PrivilegeAction("ALTER COMPOSITE DATABASE", AlterCompositeDatabaseAction(false), Cypher25)
           )
 
           (privilegesInAllVersions ++ alterDatabasePrivilegesInCypher25).foreach {

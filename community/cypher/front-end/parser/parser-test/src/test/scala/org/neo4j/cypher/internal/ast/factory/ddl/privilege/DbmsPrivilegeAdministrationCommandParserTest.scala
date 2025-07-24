@@ -98,7 +98,6 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
       ("COMPOSITE DATABASE MANAGEMENT", CompositeDatabaseManagementActions),
       ("CREATE COMPOSITE DATABASE", CreateCompositeDatabaseAction),
       ("DROP COMPOSITE DATABASE", DropCompositeDatabaseAction),
-      ("ALTER COMPOSITE DATABASE", AlterCompositeDatabaseAction),
       ("ALIAS MANAGEMENT", AllAliasManagementActions),
       ("CREATE ALIAS", CreateAliasAction),
       ("DROP ALIAS", DropAliasAction),
@@ -110,7 +109,8 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
     Seq(
       ("ALTER DATABASE", AlterDatabaseAction),
       ("SET DATABASE ACCESS", SetDatabaseAccessAction),
-      ("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction)
+      ("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction),
+      ("ALTER COMPOSITE DATABASE", AlterCompositeDatabaseAction)
     )
 
   def privilegeTests(command: String, preposition: String, privilegeFunc: adminPrivilegeFunc): Unit = {
@@ -358,6 +358,17 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
           failsParsing[Statements].withSyntaxErrorContaining(
             s"Invalid input 'DBMS': expected 'ON DBMS' (line 1, column ${offset + 31} (offset: ${offset + 30}))"
           )
+        }
+
+        test(s"$command$immutableString ALTER COMPOSITE DATABASE DBMS $preposition role") {
+          failsParsing[Statements].in {
+            case Cypher5 => _.withSyntaxErrorContaining(
+                s"Invalid input 'DBMS': expected 'ON DBMS' (line 1, column ${offset + 26} (offset: ${offset + 25}))"
+              )
+            case _ => _.withSyntaxErrorContaining(
+                s"Invalid input 'DBMS': expected 'ON' (line 1, column ${offset + 26} (offset: ${offset + 25}))"
+              )
+          }
         }
 
         test(s"$command$immutableString SET AUTHS ON DBMS $preposition role") {

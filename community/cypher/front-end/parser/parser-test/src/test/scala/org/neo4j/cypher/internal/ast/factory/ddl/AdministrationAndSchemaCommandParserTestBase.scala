@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
-import org.neo4j.cypher.internal.ast.DatabaseAction
+import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
 import org.neo4j.cypher.internal.ast.DbmsAction
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
@@ -281,7 +281,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     val (privilege, qualifier) = a match {
       case dbmsAction: DbmsAction =>
         (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
-      case databaseAction: DatabaseAction =>
+      case databaseAction: DatabaseAndDbmsAction =>
         (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
       case _ => throw new IllegalStateException(a.toString)
     }
@@ -374,7 +374,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     val (privilege, qualifier) = a match {
       case dbmsAction: DbmsAction =>
         (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
-      case databaseAction: DatabaseAction =>
+      case databaseAction: DatabaseAndDbmsAction =>
         (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
       case _ => throw new IllegalStateException(a.toString)
     }
@@ -649,7 +649,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     val (privilege, qualifier) = a match {
       case dbmsAction: DbmsAction =>
         (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
-      case databaseAction: DatabaseAction =>
+      case databaseAction: DatabaseAndDbmsAction =>
         (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
       case _ => throw new IllegalStateException(a.toString)
     }
