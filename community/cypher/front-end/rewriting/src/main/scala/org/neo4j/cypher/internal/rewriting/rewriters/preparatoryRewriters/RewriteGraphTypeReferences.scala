@@ -193,8 +193,13 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
         val existingConstraint = newConstraints.put(c.key, c)
         if (existingConstraint.isDefined) {
           throw throw cypherExceptionFactory.syntaxException(
-            GqlHelper.getGql42001_22N66(c.constraintDescriptor, c.position.offset, c.position.line, c.position.column),
-            s"Clashing constraints: '${c.constraintDescriptor}'",
+            GqlHelper.getGql42001_22N66(
+              c.kernelesqueConstraintDescriptor,
+              c.position.offset,
+              c.position.line,
+              c.position.column
+            ),
+            s"Clashing constraints: '${c.kernelesqueConstraintDescriptor}'",
             c.position
           )
         }

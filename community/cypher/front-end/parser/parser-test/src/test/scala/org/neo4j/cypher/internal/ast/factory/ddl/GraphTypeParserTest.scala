@@ -699,6 +699,40 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     }
   }
 
+  // fail at semantic checking
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR (:Label) REQUIRE (x.prop) IS NOT NULL }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(),
+              Seq(
+                existsConstraint(nodeTypeRefByLabel("Label"), ArraySeq(prop("x", "prop")))
+              )
+            )
+          )
+        )
+    }
+  }
+
+  // fail at semantic checking
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR ()-[:REL]->() REQUIRE (x.prop) IS NOT NULL }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.toAst(
+          alterCurrentGraphTypeSet(
+            graphType(
+              Seq(),
+              Seq(
+                existsConstraint(edgeTypeRefByLabel("REL"), ArraySeq(prop("x", "prop")))
+              )
+            )
+          )
+        )
+    }
+  }
+
   // Generated testcases from examples, see org.neo4j.cypher.internal.graphtype.GraphTypeTestCase
   GraphTypeTestCase.testcases.foreach { case GraphTypeTestCase(name, cypher, ast, _) =>
     test(name) {
@@ -903,20 +937,6 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
       case Cypher5 => cypher5Error
       case _ =>
         _.withMessageContaining("Property type constraints cannot be specified inline of a relationship element type")
-    }
-  }
-
-  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR (:Label) REQUIRE (x.prop) IS NOT NULL }""") {
-    parsesIn[Statements] {
-      case Cypher5 => cypher5Error
-      case _       => _.withMessageContaining("Graph type constraint definitions require an alias")
-    }
-  }
-
-  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR ()-[:REL]->() REQUIRE (x.prop) IS NOT NULL }""") {
-    parsesIn[Statements] {
-      case Cypher5 => cypher5Error
-      case _       => _.withMessageContaining("Graph type constraint definitions require an alias")
     }
   }
 

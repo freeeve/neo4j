@@ -179,25 +179,25 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
         case cd @ GraphTypeConstraintDefinition(_, n: NodeTypeReference, _: PropertyTypeConstraint, _) =>
           resolveEndpoint(n) match {
             case Some(NodeTypeReferenceByIdentifyingLabel(l, _)) =>
-              SemanticError.independentConstraintOnDependentElement(cd.constraintDescriptor, l, n.position)
+              SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, l, n.position)
             case _ => success
           }
         case cd @ GraphTypeConstraintDefinition(_, n: NodeTypeReference, _: ExistenceConstraint, _) =>
           resolveEndpoint(n) match {
             case Some(NodeTypeReferenceByIdentifyingLabel(l, _)) =>
-              SemanticError.independentConstraintOnDependentElement(cd.constraintDescriptor, l, n.position)
+              SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, l, n.position)
             case _ => success
           }
         case cd @ GraphTypeConstraintDefinition(_, e: EdgeTypeReference, _: PropertyTypeConstraint, _) =>
           resolveEndpoint(e) match {
             case Some(EdgeTypeReferenceByIdentifyingLabel(rt, _)) =>
-              SemanticError.independentConstraintOnDependentElement(cd.constraintDescriptor, rt, e.position)
+              SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, rt, e.position)
             case _ => success
           }
         case cd @ GraphTypeConstraintDefinition(_, e: EdgeTypeReference, _: ExistenceConstraint, _) =>
           resolveEndpoint(e) match {
             case Some(EdgeTypeReferenceByIdentifyingLabel(rt, _)) =>
-              SemanticError.independentConstraintOnDependentElement(cd.constraintDescriptor, rt, e.position)
+              SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, rt, e.position)
             case _ => success
           }
         case _ => success
@@ -391,20 +391,7 @@ case class GraphTypeConstraintDefinition(
         case EdgeTypeReferenceByLabel(_, v) => checkPropertyVariablesInScope("relationship", v.toSet, body.properties)
         case EdgeTypeReferenceByIdentifyingLabel(_, v) =>
           checkPropertyVariablesInScope("relationship", v.toSet, body.properties)
-        case EmptyNodeTypeReference() =>
-          error(
-            SemanticError(
-              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .atPosition(reference.position.offset, reference.position.line, reference.position.column)
-                .withCause(
-                  ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC8)
-                    .atPosition(reference.position.offset, reference.position.line, reference.position.column)
-                    .build()
-                ).build(),
-              s"the empty node type `()` is not a valid target for a constraint",
-              reference.position
-            )
-          )
+        case EmptyNodeTypeReference() => checkPropertyVariablesInScope("node", Set.empty, body.properties)
       }
     } chain options.checkOptionsForSchema("")
 
@@ -435,7 +422,7 @@ case class GraphTypeConstraintDefinition(
             .atPosition(prop.position.offset, prop.position.line, prop.position.column)
             .withCause(
               ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N75)
-                .withParam(GqlParams.StringParam.constrDescrOrName, constraintDescriptor)
+                .withParam(GqlParams.StringParam.constrDescrOrName, kernelesqueConstraintDescriptor)
                 .withParam(GqlParams.StringParam.token, prop.name)
                 .atPosition(prop.position.offset, prop.position.line, prop.position.column)
                 .build()
@@ -447,7 +434,21 @@ case class GraphTypeConstraintDefinition(
     }
   }
 
-  def constraintDescriptor: String = {
+  def kernelesqueConstraintDescriptor: String = {
+    val namePart = name.map(n => s"name='$n', ").getOrElse("")
+    val constraintTypePart = "type='" + (reference match {
+      case _: NodeTypeReference => "NODE_" + body.typeDescriptor
+      case _: EdgeTypeReference => "RELATIONSHIP_" + body.typeDescriptor
+    }) + "'"
+    val typePart = body match {
+      case PropertyTypeConstraint(_, propertyType) => s", propertyType=${propertyType.toCypherTypeString}"
+      case _                                       => ""
+    }
+
+    s"Constraint( $namePart$constraintTypePart, schema=$constraintSchema$typePart )"
+  }
+
+  private def constraintSchema: String = {
     val props = body.properties.map(prop => s"`${prop.propertyKey.name}`").mkString(", ")
     reference match {
       case NodeTypeReferenceByVariable(v)             => s"(`${v.name}` {$props})"
@@ -467,12 +468,16 @@ object GraphTypeConstraint {
 
     val properties: ArraySeq[Property]
 
+    def typeDescriptor: String
+
     def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody
   }
 
   case class ExistenceConstraint(override val properties: ArraySeq[Property])(val position: InputPosition)
       extends GraphTypeConstraintBody {
     override def semanticCheck: SemanticCheck = success
+
+    override def typeDescriptor: String = "PROPERTY_EXISTENCE"
 
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)
@@ -490,6 +495,8 @@ object GraphTypeConstraint {
         SemanticError.propertyTypeUnsupportedInConstraint("graph type", _, _, _)
       )
 
+    override def typeDescriptor: String = "PROPERTY_TYPE"
+
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)
   }
@@ -498,6 +505,8 @@ object GraphTypeConstraint {
       extends GraphTypeConstraintBody {
     override def semanticCheck: SemanticCheck = success
 
+    override def typeDescriptor: String = "KEY"
+
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)
   }
@@ -505,6 +514,8 @@ object GraphTypeConstraint {
   case class UniquenessConstraint(override val properties: ArraySeq[Property])(val position: InputPosition)
       extends GraphTypeConstraintBody {
     override def semanticCheck: SemanticCheck = success
+
+    override def typeDescriptor: String = "PROPERTY_UNIQUENESS"
 
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)

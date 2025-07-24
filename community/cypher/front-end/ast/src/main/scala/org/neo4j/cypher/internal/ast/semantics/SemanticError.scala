@@ -2125,7 +2125,7 @@ object SemanticError {
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
         .atPosition(position.offset, position.line, position.column)
         .withCause(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC9)
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC8)
             .withParam(GqlParams.StringParam.token, token)
             .atPosition(position.offset, position.line, position.column)
             .build()
