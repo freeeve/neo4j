@@ -89,7 +89,7 @@ case class SharedCacheContainer[K, V <: AnyRef](
   }
 
   override def put(key: K, value: V): Unit = {
-    if (innerAsMap.put((id, key), value) ne value) {
+    if (innerAsMap.put((id, key), value) == null) {
       sizeEstimation.onPut()
     }
   }
@@ -126,9 +126,7 @@ case class SharedCacheContainer[K, V <: AnyRef](
   final private class MapRepresentation extends ConcurrentMap[K, V] {
 
     override def replace(key: K, oldValue: V, newValue: V): Boolean = {
-      val didReplace = innerAsMap.replace((id, key), oldValue, newValue)
-      if (didReplace && (oldValue ne newValue)) sizeEstimation.onPut()
-      didReplace
+      innerAsMap.replace((id, key), oldValue, newValue)
     }
 
     override def values(): util.Collection[V] = new util.AbstractCollection[V] {

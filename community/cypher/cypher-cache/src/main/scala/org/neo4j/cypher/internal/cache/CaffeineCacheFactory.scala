@@ -204,7 +204,7 @@ final class SharedExecutorBasedCaffeineCacheFactory(
       val primaryEviction = new TwoLayerCache.EvictionListener(secondary.cache) {
         private[this] val listeners = secondary.listeners
         override def onPut(key: (Int, K), oldValue: V, value: V): Unit =
-          if (oldValue ne value) listeners.onPut(key._1)
+          if (oldValue == null) listeners.onPut(key._1)
       }
       val primary = newCache[(Int, K), V](CacheConf(
         executor = executor,
@@ -252,7 +252,9 @@ object SharedExecutorBasedCaffeineCacheFactory {
 
     val removalListener: RemovalListener[(Int, K), V] = new DbListener(dbListeners) {
       override def onRemoval(listeners: DbListeners[K, V], key: K, value: V, cause: RemovalCause): Unit = {
-        listeners.removal.onRemoval()
+        if (cause != RemovalCause.REPLACED) {
+          listeners.removal.onRemoval()
+        }
       }
     }
 

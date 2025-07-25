@@ -26,7 +26,9 @@ import org.mockito.Mockito.verifyNoMoreInteractions
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import java.util.Collections
+import java.util.concurrent.Executor
 
+import scala.collection.mutable
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -42,11 +44,14 @@ class SharedCacheContainerTest extends CypherFunSuite {
     backingCache: Cache[(Int, String), String]
   )
 
-  private def setup(): TestData = {
-    val tracers = new CacheTracerRepository {
+  private def mockCacheTracerRepository: CacheTracerRepository = {
+    new CacheTracerRepository {
       override def tracerForCacheKind(kind: String): CacheTracer[_] = mock[CacheTracer[String]]
     }
-    val factory = new SharedExecutorBasedCaffeineCacheFactory(_.run(), tracers)
+  }
+
+  private def setup(): TestData = {
+    val factory = new SharedExecutorBasedCaffeineCacheFactory(_.run(), mockCacheTracerRepository)
     val size = CacheSize.Static(10)
     val cache0 = factory.resolveCacheKind("a").createCache(size)
       .asInstanceOf[SharedCacheContainer[String, String]]
@@ -296,6 +301,34 @@ class SharedCacheContainerTest extends CypherFunSuite {
 
     cc0.asMap().values().iterator().asScala.toSet shouldBe Set("A", "b")
     cc1.asMap().values().iterator().asScala.toSeq shouldBe Seq("b")
+  }
+
+  test("replacing value does not increment estimated size") {
+    object executor extends Executor {
+      val commands: mutable.Buffer[Runnable] = mutable.Buffer[Runnable]()
+      override def execute(command: Runnable): Unit = commands.append(command)
+    }
+
+    val cache =
+      new SharedExecutorBasedCaffeineCacheFactory(executor, mockCacheTracerRepository)
+        .resolveCacheKind("cache-kind")
+        .createCache(CacheSize.Static(10))
+        .asInstanceOf[SharedCacheContainer[String, String]]
+
+    cache.estimatedSize() shouldBe 0
+
+    cache.put("key", "value")
+    cache.estimatedSize() shouldBe 1
+
+    cache.put("key", "new-value")
+    cache.estimatedSize() shouldBe 1
+
+    cache.put("key", "new-new-value")
+    cache.estimatedSize() shouldBe 1
+
+    // sends onRemoval notifications
+    executor.commands.foreach(_.run())
+    cache.estimatedSize() shouldBe 1
   }
 
   // policy method remains untested for now.
