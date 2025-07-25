@@ -22,7 +22,9 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy
+import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculator.subqueryCardinalityToExistsSelectivity
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
@@ -43,7 +45,8 @@ import org.neo4j.graphdb.schema.IndexType
 
 import scala.math.sqrt
 
-class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrationTestSupport {
+class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrationTestSupport
+    with LogicalPlanningAttributesTestSupport {
 
   private val allNodes = 733.0
   private val personCount = 324.0
@@ -2023,6 +2026,44 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       "MATCH (p:Point) WHERE point.distance(point({x:1, y:2}), point({x:2, y:2})) > p.away",
       points * rangePredicateSelectivityFromRangeIndex(rangeAwayExistsSelectivity, rangeAwayUniqueSelectivity)
     )
+  }
+
+  test("Label info from the LHS should be passed to the RHS of triadicSelection") {
+    val query =
+      """
+        |MATCH (a:A)-[r1:R]->(b:A)-[r2:R]->(c:A) USING SCAN a:A
+        |WHERE NOT (a)-[:R]->(c)
+        |RETURN a, b, c
+        |""".stripMargin
+
+    val triadicPlanner = plannerBuilder()
+      .setAllNodesCardinality(300)
+      .setLabelCardinality("A", 100)
+      .setRelationshipCardinality("()-[:R]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:A)", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:A)", 100)
+      .build()
+
+    // Selectivity of NOT (a)-[:R]->(c) given a:A and c as arguments
+    val notExistsSelGiven_aA_c = 1.0 - subqueryCardinalityToExistsSelectivity(100.0 / (100 * 300)).factor
+    // Selectivity of NOT (a)-[:R]->(c) given a:A and c:A as arguments
+    val notExistsSelGiven_aA_cA = 1.0 - subqueryCardinalityToExistsSelectivity(100.0 / (100 * 100)).factor
+
+    val expected = triadicPlanner.planBuilder()
+      .produceResults("a", "b", "c")
+      .withCardinality(100.0 * (notExistsSelGiven_aA_cA) * uniquenessSelectivityForNRels(2))
+      .filter("NOT r2 = r1", "c:A")
+      .withCardinality(100.0 * (notExistsSelGiven_aA_cA) * uniquenessSelectivityForNRels(2))
+      .triadicSelection(positivePredicate = false, "a", "b", "c").withCardinality(100.0 * (notExistsSelGiven_aA_c))
+      .|.expandAll("(b)-[r2:R]->(c)").withCardinality(1) // Without the labelInfo b:A from the LHS this would be 100/300
+      .|.argument("b", "r1").withCardinality(1)
+      .filter("b:A").withCardinality(100)
+      .expandAll("(a)-[r1:R]->(b)").withCardinality(100)
+      .nodeByLabelScan("a", "A").withCardinality(100)
+
+    val actual = triadicPlanner.planState(query)
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
   }
 
   private def uniquenessSelectivityForNRels(n: Int): Double = {
