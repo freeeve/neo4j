@@ -24,6 +24,9 @@ import org.neo4j.cypher.internal.runtime.graphtemplate.InstantiatedGraph
 import org.neo4j.cypher.internal.runtime.graphtemplate.TransactionTemplateInstantiator
 import org.neo4j.cypher.internal.runtime.graphtemplate.parsing.GraphTemplateParser
 import org.neo4j.cypher.internal.runtime.spec.GraphCreation.ComplexGraph
+import org.neo4j.cypher.internal.runtime.spec.GraphCreation.NodeSpec
+import org.neo4j.cypher.internal.runtime.spec.GraphCreation.NodeSpec.WithLabel
+import org.neo4j.cypher.internal.runtime.spec.GraphCreation.NodeSpec.WithProperty
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.topDown
 import org.neo4j.graphdb.Label
@@ -909,9 +912,32 @@ trait GraphCreation[CONTEXT <: RuntimeContext] {
       properties.foldLeft(creator) { case (acc, prop) => acc.assertPropertyIsNodeKey(prop) }
     }
   }
+
+  def newNode(params: NodeSpec*): Node = {
+    val (labels, props) = params.partitionMap {
+      case WithLabel(label)         => Left(label)
+      case WithProperty(key, value) => Right(key -> value)
+    }
+
+    val n = runtimeTestSupport.tx.createNode(labels: _*)
+    props.foreach { case (key, value) =>
+      n.setProperty(key, value)
+    }
+    n
+  }
 }
 
 object GraphCreation {
+
+  sealed trait NodeSpec
+
+  object NodeSpec {
+    case class WithLabel(label: Label) extends NodeSpec
+    case class WithProperty(key: String, value: Any) extends NodeSpec
+
+    implicit def labelStringToSpec(string: String): NodeSpec = WithLabel(Label.label(string))
+    implicit def propTupleToSpec(tuple: (String, Any)): NodeSpec = WithProperty.tupled(tuple)
+  }
 
   case class ComplexGraph(
     n0: Node,

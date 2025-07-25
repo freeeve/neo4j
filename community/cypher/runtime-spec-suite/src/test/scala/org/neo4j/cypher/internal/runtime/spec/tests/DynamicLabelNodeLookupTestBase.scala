@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
-import org.neo4j.graphdb.Label
 
 object DynamicLabelNodeLookupTestBase
 
@@ -148,22 +147,26 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
 
   test("should union any labels of all nodes") {
     // given
-    val nodes = givenGraph {
-      nodeGraph(sizeHint, "Butter") ++
-        nodeGraph(sizeHint, "Almond") ++
-        nodeGraph(sizeHint, "Honey")
+    val expected = givenGraph {
+      // not matched
+      nodeGraph(sizeHint, "Honey")
+
+      // matched
+      nodeGraph(sizeHint, "Butter", "Almond") ++
+        nodeGraph(sizeHint, "Butter") ++
+        nodeGraph(sizeHint, "Almond")
     }
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "['Honey', 'Almond', 'Butter']", Any, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "['Almond', 'Butter']", Any, IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    runtimeResult should beColumns("x").withRows(singleColumn(nodes))
+    runtimeResult should beColumns("x").withRows(singleColumn(expected))
   }
 
   test("should scan all nodes of a label and not produce duplicates if nodes have multiple labels") {
@@ -499,34 +502,119 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     the[Exception] thrownBy consume(execute(logicalQuery, runtime)) should not be a[NullCheckAssertException]
   }
 
-  test("should filter for properties") {
-    val nodes = givenGraph {
-      nodeIndex("Label", "prop")
+  test("should filter for a single label and single property") {
+    val expected = givenGraph {
+      nodeIndex("A", "prop")
 
-      val n = tx.createNode(Label.label("Label"))
-      n.setProperty("prop", 1)
+      // not matched
+      newNode("B", "prop" -> 1)
+      newNode("A", "prop" -> 2)
+      newNode("A", "paaaarp" -> 1)
 
-      val n2 = tx.createNode(Label.label("NotLabel"))
-      n2.setProperty("prop", 1)
-
-      val n3 = tx.createNode(Label.label("Label"))
-      n3.setProperty("prop", 2)
-
-      val n4 = tx.createNode(Label.label("Label"))
-      n4.setProperty("paaaarp", 1)
-
-      Seq(n)
+      // matched
+      Seq(
+        newNode("A", "prop" -> 1),
+        newNode("A", "B", "prop" -> 1),
+        newNode("A", "B", "prop" -> 1, "paaaarp" -> 1)
+      )
     }
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .filter("true")
-      .dynamicLabelNodeLookup("x", "'Label'", Any, IndexOrderNone, Map("prop" -> "1"))
+      .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1"))
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    runtimeResult should beColumns("x").withRows(singleColumn(nodes))
+    runtimeResult should beColumns("x").withRows(singleColumn(expected))
   }
 
+  test("should filter for all labels and a single property") {
+    val expected = givenGraph {
+      nodeIndex("A", "prop")
+      nodeIndex("B", "prop")
+      nodeIndex("B", "paaaarp")
+
+      // not matched
+      newNode("A", "B", "prop" -> 2)
+      newNode("A", "C", "prop" -> 1)
+      newNode("A", "C", "D", "prop" -> 1)
+      newNode("A", "B", "paaaarp" -> 1)
+
+      // matched
+      Seq(
+        newNode("A", "B", "prop" -> 1),
+        newNode("A", "B", "D", "prop" -> 1),
+        newNode("A", "B", "prop" -> 1, "brrrap" -> 7)
+      )
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .filter("true")
+      .dynamicLabelNodeLookup("x", "['A', 'B']", All, IndexOrderNone, Map("prop" -> "1"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+    runtimeResult should beColumns("x").withRows(singleColumn(expected))
+  }
+
+  test("should filter for a single label and multiple properties") {
+    val expected = givenGraph {
+      nodeIndex("A", "prop")
+
+      // not matched
+      newNode("B", "prop" -> 1, "name" -> "bob")
+      newNode("A", "prop" -> 2, "name" -> "bob")
+      newNode("A", "prop" -> 1, "name" -> "alice")
+      newNode("A", "prop" -> "bob", "name" -> 1)
+
+      // matched
+      Seq(
+        newNode("A", "prop" -> 1, "name" -> "bob"),
+        newNode("A", "B", "prop" -> 1, "name" -> "bob"),
+        newNode("A", "prop" -> 1, "name" -> "bob", "notes" -> "jumentous")
+      )
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .filter("true")
+      .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1", "name" -> "'bob'"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    runtimeResult should beColumns("x").withRows(singleColumn(expected))
+  }
+
+  test("should filter for a single label and multiple properties with a compound index") {
+    val expected = givenGraph {
+      nodeIndex("A", "prop", "name")
+
+      // not matched
+      newNode("B", "prop" -> 1, "name" -> "bob")
+      newNode("A", "prop" -> 2, "name" -> "bob")
+      newNode("A", "prop" -> 1, "name" -> "alice")
+      newNode("A", "prop" -> "bob", "name" -> 1)
+
+      // matched
+      Seq(
+        newNode("A", "prop" -> 1, "name" -> "bob"),
+        newNode("A", "B", "prop" -> 1, "name" -> "bob"),
+        newNode("A", "prop" -> 1, "name" -> "bob", "notes" -> "jumentous")
+      )
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .filter("true")
+      .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1", "name" -> "'bob'"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    runtimeResult should beColumns("x").withRows(singleColumn(expected))
+  }
 }

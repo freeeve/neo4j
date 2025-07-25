@@ -29,13 +29,13 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.PrimitiveCursorIterator
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel.UNKNOWN
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.UnionNodeByLabelsScanPipe.unionIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.internal.kernel.api.TokenReadSession
 import org.neo4j.internal.kernel.api.helpers.UnionNodeLabelIndexCursor.ascendingUnionNodeLabelIndexCursor
 import org.neo4j.internal.kernel.api.helpers.UnionNodeLabelIndexCursor.descendingUnionNodeLabelIndexCursor
 import org.neo4j.io.IOUtils
+import org.neo4j.token.api.TokenConstants.NO_TOKEN
 import org.neo4j.values.virtual.VirtualValues
 
 case class UnionNodeByLabelsScanPipe(ident: String, labels: Seq[LazyLabel], indexOrder: IndexOrder)(val id: Id =
@@ -56,10 +56,20 @@ object UnionNodeByLabelsScanPipe {
     labels: Seq[LazyLabel],
     indexOrder: IndexOrder,
     tokenReadSession: TokenReadSession
+  ): ClosingLongIterator =
+    unionIterator(query, labels.map(_.getId(query)).toArray, indexOrder, tokenReadSession)
+
+  def unionIterator(
+    query: QueryContext,
+    maybeUnknownIds: Array[Int],
+    indexOrder: IndexOrder,
+    tokenReadSession: TokenReadSession
   ): ClosingLongIterator = {
-    val ids = labels.map(l => l.getId(query)).filter(_ != UNKNOWN).toArray
+    val ids = maybeUnknownIds.filter(_ != NO_TOKEN)
     if (ids.isEmpty) ClosingLongIterator.empty
-    else {
+    else if (ids.length == 1) {
+      query.getNodesByLabel(tokenReadSession, ids.head, indexOrder)
+    } else {
       val cursors = ids.map(_ => {
         val c = query.nodeLabelIndexCursor()
         query.resources.trace(c)

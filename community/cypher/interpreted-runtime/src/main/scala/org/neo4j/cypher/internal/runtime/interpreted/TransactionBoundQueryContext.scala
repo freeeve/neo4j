@@ -984,11 +984,10 @@ private[internal] class TransactionBoundReadQueryContext(
 
     val nodeCursor: NodeValueIndexCursor = allocateAndTraceNodeValueIndexCursor()
     val actualValues =
-      if (needsValues && queries.forall(_.isInstanceOf[ExactPredicate]))
+      if (needsValues && queries.forall(_.isInstanceOf[ExactPredicate])) {
         // We don't need property values from the index for an exact seek
-        {
-          queries.map(_.asInstanceOf[ExactPredicate].value()).toArray
-        } else {
+        queries.map(_.asInstanceOf[ExactPredicate].value()).toArray
+      } else {
         null
       }
     val needsValuesFromIndexSeek = actualValues == null && needsValues

@@ -30,12 +30,12 @@ import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.PrimitiveCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.IntersectionNodeByLabelsScanPipe.intersectionIterator
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel.UNKNOWN
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.internal.kernel.api.TokenReadSession
 import org.neo4j.internal.kernel.api.helpers.IntersectionNodeLabelIndexCursor.ascendingIntersectionNodeLabelIndexCursor
 import org.neo4j.internal.kernel.api.helpers.IntersectionNodeLabelIndexCursor.descendingIntersectionNodeLabelIndexCursor
 import org.neo4j.io.IOUtils
+import org.neo4j.token.api.TokenConstants.NO_TOKEN
 import org.neo4j.values.virtual.VirtualValues
 
 case class IntersectionNodeByLabelsScanPipe(ident: String, labels: Seq[LazyLabel], indexOrder: IndexOrder)(val id: Id =
@@ -56,9 +56,16 @@ object IntersectionNodeByLabelsScanPipe {
     labels: Seq[LazyLabel],
     indexOrder: IndexOrder,
     tokenReadSession: TokenReadSession
+  ): ClosingLongIterator =
+    intersectionIterator(query, labels.map(_.getId(query)).toArray, indexOrder, tokenReadSession)
+
+  def intersectionIterator(
+    query: QueryContext,
+    ids: Array[Int],
+    indexOrder: IndexOrder,
+    tokenReadSession: TokenReadSession
   ): ClosingLongIterator = {
-    val ids = labels.map(l => l.getId(query)).filter(_ != UNKNOWN).toArray
-    if (ids.isEmpty || ids.length != labels.size) ClosingLongIterator.empty
+    if (ids.isEmpty || ids.contains(NO_TOKEN)) ClosingLongIterator.empty
     else if (ids.length == 1) {
       query.getNodesByLabel(tokenReadSession, ids.head, indexOrder)
     } else {
