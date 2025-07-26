@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial.index.curves;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import org.neo4j.gis.spatial.index.Envelope;
 
@@ -111,20 +110,20 @@ public abstract class SpaceFillingCurve {
         return range;
     }
 
-    protected abstract CurveRule rootCurve();
+    abstract CurveRule rootCurve();
 
     /**
      * Given a coordinate in multiple dimensions, calculate its derived key for maxLevel
      * Needs to be public due to dependency from Neo4j Spatial
      */
-    public Long derivedValueFor(double[] coord) {
+    public long derivedValueFor(double[] coord) {
         return derivedValueFor(coord, maxLevel);
     }
 
     /**
      * Given a coordinate in multiple dimensions, calculate its derived key for given level
      */
-    private Long derivedValueFor(double[] coord, int level) {
+    private long derivedValueFor(double[] coord, int level) {
         assertValidLevel(level);
         long[] normalizedValues = getNormalizedCoord(coord);
         return derivedValueFor(normalizedValues, level);
@@ -133,14 +132,14 @@ public abstract class SpaceFillingCurve {
     /**
      * Given a normalized coordinate in multiple dimensions, calculate its derived key for maxLevel
      */
-    public Long derivedValueFor(long[] normalizedValues) {
+    public long derivedValueFor(long[] normalizedValues) {
         return derivedValueFor(normalizedValues, maxLevel);
     }
 
     /**
      * Given a normalized coordinate in multiple dimensions, calculate its derived key for given level
      */
-    private Long derivedValueFor(long[] normalizedValues, int level) {
+    private long derivedValueFor(long[] normalizedValues, int level) {
         assertValidLevel(level);
         long derivedValue = 0;
         long mask = 1L << (maxLevel - 1);
@@ -228,9 +227,6 @@ public abstract class SpaceFillingCurve {
 
     public List<LongRange> getTilesIntersectingEnvelope(
             double[] from, double[] to, SpaceFillingCurveConfiguration config) {
-        from = Arrays.copyOf(from, from.length);
-        to = Arrays.copyOf(to, to.length);
-
         for (int i = 0; i < from.length; i++) {
             if (from[i] > to[i]) {
                 throw new IllegalArgumentException("Invalid range, min greater than max: " + from[i] + " > " + to[i]);
@@ -360,8 +356,8 @@ public abstract class SpaceFillingCurve {
                 // check
                 long normalizedOffset = (long) ((value - tileCenter) * scalingFactor[dim] - 0.5 + 1E-16);
                 // normalizedOffset is almost always 0, but can be +1 or -1 if there were rounding errors we need to
-                // correct for
-                normalizedCoord[dim] += normalizedOffset;
+                // correct for, we should never overcompensate though so that we end up outside [0, width)
+                normalizedCoord[dim] = Math.clamp(normalizedCoord[dim] + normalizedOffset, 0, width - 1);
             }
         }
         return normalizedCoord;

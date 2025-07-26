@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.index;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 public class Envelope {
     static final double MAXIMAL_ENVELOPE_SIDE_RATIO = 100_000;
@@ -41,7 +42,7 @@ public class Envelope {
         this.min = Arrays.copyOf(min, min.length);
         this.max = Arrays.copyOf(max, max.length);
         if (!isValid(min, max)) {
-            throw new IllegalArgumentException("Invalid envelope created " + toString());
+            throw new IllegalArgumentException("Invalid envelope created " + this);
         }
     }
 
@@ -168,16 +169,7 @@ public class Envelope {
 
     @Override
     public int hashCode() {
-        int result = 1;
-        for (double element : min) {
-            long bits = Double.doubleToLongBits(element);
-            result = 31 * result + (int) (bits ^ (bits >>> 32));
-        }
-        for (double element : max) {
-            long bits = Double.doubleToLongBits(element);
-            result = 31 * result + (int) (bits ^ (bits >>> 32));
-        }
-        return result;
+        return Objects.hash(Arrays.hashCode(this.min), Arrays.hashCode(this.max));
     }
 
     /**

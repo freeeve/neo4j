@@ -156,7 +156,7 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
                 indexFiles, layout(descriptor), descriptor, tokenNameLookup, elementIdMapper, openOptions, readOnly);
     }
 
-    protected abstract IndexAccessor newIndexAccessor(
+    abstract IndexAccessor newIndexAccessor(
             IndexFiles indexFiles,
             LAYOUT layout,
             IndexDescriptor descriptor,

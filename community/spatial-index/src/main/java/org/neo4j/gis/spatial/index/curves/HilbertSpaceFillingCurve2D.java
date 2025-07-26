@@ -43,18 +43,13 @@ public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve {
         private Direction2D direction(int end) {
             int start = npointValues[0];
             end -= start;
-            switch (end) {
-                case 1:
-                    return UP; // move up      00->01
-                case 2:
-                    return RIGHT; // move right   00->10
-                case -2:
-                    return LEFT; // move left    11->01
-                case -1:
-                    return DOWN; // move down    11->10
-                default:
-                    throw new IllegalArgumentException("Illegal direction: " + end);
-            }
+            return switch (end) {
+                case 1 -> UP; // move up      00->01
+                case 2 -> RIGHT; // move right   00->10
+                case -2 -> LEFT; // move left    11->01
+                case -1 -> DOWN; // move down    11->10
+                default -> throw new IllegalArgumentException("Illegal direction: " + end);
+            };
         }
 
         private Direction2D name() {
@@ -88,9 +83,7 @@ public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve {
     private static void addCurveRule(int... npointValues) {
         HilbertCurve2D curve = new HilbertCurve2D(npointValues);
         Direction2D name = curve.name();
-        if (!CURVES.containsKey(name)) {
-            CURVES.put(name, curve);
-        }
+        CURVES.putIfAbsent(name, curve);
     }
 
     private static void setChildren(Direction2D parent, Direction2D... children) {
@@ -102,7 +95,7 @@ public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve {
         curve.setChildren(childCurves);
     }
 
-    private static final HilbertCurve2D curveUp;
+    private static final HilbertCurve2D CURVE_UP;
 
     static {
         addCurveRule(0, 1, 3, 2);
@@ -113,7 +106,7 @@ public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve {
         setChildren(RIGHT, UP, RIGHT, RIGHT, DOWN);
         setChildren(DOWN, LEFT, DOWN, DOWN, RIGHT);
         setChildren(LEFT, DOWN, LEFT, LEFT, UP);
-        curveUp = CURVES.get(UP);
+        CURVE_UP = CURVES.get(UP);
     }
 
     public static final int MAX_LEVEL = 63 / 2 - 1;
@@ -129,7 +122,7 @@ public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve {
     }
 
     @Override
-    protected CurveRule rootCurve() {
-        return curveUp;
+    CurveRule rootCurve() {
+        return CURVE_UP;
     }
 }

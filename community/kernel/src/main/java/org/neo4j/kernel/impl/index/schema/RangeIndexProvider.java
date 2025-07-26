@@ -162,7 +162,7 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
     }
 
     @Override
-    protected IndexAccessor newIndexAccessor(
+    IndexAccessor newIndexAccessor(
             IndexFiles indexFiles,
             RangeLayout layout,
             IndexDescriptor descriptor,

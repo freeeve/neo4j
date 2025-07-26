@@ -127,7 +127,7 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
     }
 
     @Override
-    protected IndexAccessor newIndexAccessor(
+    IndexAccessor newIndexAccessor(
             IndexFiles indexFiles,
             PointLayout layout,
             IndexDescriptor descriptor,

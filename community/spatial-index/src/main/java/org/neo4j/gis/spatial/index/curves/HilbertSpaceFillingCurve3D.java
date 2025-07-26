@@ -76,22 +76,15 @@ public class HilbertSpaceFillingCurve3D extends SpaceFillingCurve {
 
         private static Direction3D direction(int start, int end) {
             end -= start;
-            switch (end) {
-                case 1:
-                    return FRONT; // move forward 000->001
-                case 2:
-                    return UP; // move up      000->010
-                case 4:
-                    return RIGHT; // move right   000->100
-                case -4:
-                    return LEFT; // move left    111->011
-                case -2:
-                    return DOWN; // move down    111->101
-                case -1:
-                    return BACK; // move back    111->110
-                default:
-                    throw new IllegalArgumentException("Illegal direction: " + end);
-            }
+            return switch (end) {
+                case 1 -> FRONT; // move forward 000->001
+                case 2 -> UP; // move up      000->010
+                case 4 -> RIGHT; // move right   000->100
+                case -4 -> LEFT; // move left    111->011
+                case -2 -> DOWN; // move down    111->101
+                case -1 -> BACK; // move back    111->110
+                default -> throw new IllegalArgumentException("Illegal direction: " + end);
+            };
         }
 
         SubCurve3D name() {
@@ -246,7 +239,7 @@ public class HilbertSpaceFillingCurve3D extends SpaceFillingCurve {
     }
 
     @Override
-    protected CurveRule rootCurve() {
+    CurveRule rootCurve() {
         return THE_CURVE;
     }
 }

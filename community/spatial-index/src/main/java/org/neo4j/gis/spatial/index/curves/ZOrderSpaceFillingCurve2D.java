@@ -59,7 +59,7 @@ public class ZOrderSpaceFillingCurve2D extends SpaceFillingCurve {
     }
 
     @Override
-    protected CurveRule rootCurve() {
+    CurveRule rootCurve() {
         return rootCurve;
     }
 }
