@@ -315,12 +315,12 @@ class CheckForUnresolvedTokensTest extends CypherFunSuite
   }
 
   private def parse(query: String): Query = {
-    val statement = parse(CypherVersion.Default, query)
+    val statement = parse(CypherVersion.Legacy.legacyVersion(), query)
 
     // Quick and dirty hack to try to make sure we have sufficient coverage of all cypher versions.
     // Feel free to improve ¯\_(ツ)_/¯.
     CypherVersion.values().foreach { version =>
-      if (version != CypherVersion.Default) {
+      if (version != CypherVersion.Legacy.legacyVersion()) {
         withClue(s"Parser $version") {
           statement shouldBe parse(version, query)
         }

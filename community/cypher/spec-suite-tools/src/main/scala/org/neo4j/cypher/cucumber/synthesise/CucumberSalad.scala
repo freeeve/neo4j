@@ -55,7 +55,7 @@ object CucumberSalad {
 
     private lazy val cypherVersion: CypherVersion = CypherVersion.values()
       .find(version => targetConf.expectFailureTags.contains(s"@fails:cypher-${version.versionName}"))
-      .getOrElse(CypherVersion.Default)
+      .getOrElse(CypherVersion.Legacy.legacyVersion())
     lazy val parser = new CachingParser(cypherVersion)
   }
 }

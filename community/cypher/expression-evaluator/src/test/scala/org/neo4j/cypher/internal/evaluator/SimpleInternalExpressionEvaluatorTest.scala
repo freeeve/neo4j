@@ -110,7 +110,7 @@ class SimpleInternalExpressionEvaluatorTest extends AnyFunSuiteLike with Matcher
 
   private def parse(cypher: String): Expression =
     AstParserFactory
-      .apply(CypherVersion.Default)
+      .apply(CypherVersion.Legacy.legacyVersion())
       .apply(cypher, Neo4jCypherExceptionFactory(cypher, None), None, Seq())
       .expression()
 

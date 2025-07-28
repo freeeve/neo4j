@@ -71,7 +71,7 @@ class CypherQueryObfuscatorIT extends CypherFunSuite {
     } {
       val renderedVersion = if (version == CypherVersionOption.default) "" else "CYPHER " + version.render + " "
       test(s"$renderedVersion$rawText [text]") {
-        obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText, CypherVersion.Default)
+        obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText, CypherVersion.Legacy.legacyVersion())
           .obfuscateText(rawText, 0) should equal(obfuscatedText)
       }
     }
@@ -125,7 +125,7 @@ class CypherQueryObfuscatorIT extends CypherFunSuite {
     test(s"$renderedVersion$rawText [params]") {
       val params = ValueUtils.asMapValue(rawParameters.asJava)
       val expectedParams = ValueUtils.asMapValue(obfuscatedParameters.asJava)
-      val ob = obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText, CypherVersion.Default)
+      val ob = obfuscatorFactory.obfuscatorForQuery(renderedVersion + rawText, CypherVersion.Legacy.legacyVersion())
       ob.obfuscateText(rawText, 0) should equal(obfuscatedText)
       ob.obfuscateParameters(params) should equal(expectedParams)
     }

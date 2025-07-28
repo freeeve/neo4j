@@ -699,7 +699,7 @@ class LogicalPlanGenerator(
     for {
       expression <- expressionGen(new SemanticAwareAstGenerator(allowedVarNames = Some(availableSymbols.map(_.name))))
         .suchThat(e => {
-          val context = SemanticCheckContext(CypherVersion.Default, MessageUtilProvider)
+          val context = SemanticCheckContext(CypherVersion.Legacy.legacyVersion(), MessageUtilProvider)
           SemanticExpressionCheck.check(Results, e).run(semanticState, context).errors.isEmpty
         })
       parameters = expression.folder.findAllByClass[Parameter].map(_.name)

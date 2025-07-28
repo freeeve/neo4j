@@ -693,7 +693,7 @@ class AstGenerator(
   simpleStrings: Boolean = true,
   allowedVarNames: Option[Seq[String]] = None,
   allowedParamNames: Option[Seq[String]] = None,
-  val whenAstDifferUseCypherVersion: CypherVersion = CypherVersion.Default
+  val whenAstDifferUseCypherVersion: CypherVersion = CypherVersion.Legacy.legacyVersion()
 ) {
   // HELPERS
   // ==========================================================================

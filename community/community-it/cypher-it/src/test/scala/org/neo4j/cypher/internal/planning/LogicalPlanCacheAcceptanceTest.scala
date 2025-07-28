@@ -151,7 +151,7 @@ class LogicalPlanCacheAcceptanceTest extends CypherFunSuite with GraphDatabaseTe
       new LFUCache[PreParsedQuery.CacheKey, PreParsedQuery](TestExecutorCaffeineCacheFactory, 1)
     )
 
-    val preParsedQuery = preParser.preParseQuery(query, devNullLogger, CypherVersion.Default)
+    val preParsedQuery = preParser.preParseQuery(query, devNullLogger, CypherVersion.Legacy.legacyVersion())
 
     graph.withTx { tx =>
       val noTracing = CompilationPhaseTracer.NO_TRACING

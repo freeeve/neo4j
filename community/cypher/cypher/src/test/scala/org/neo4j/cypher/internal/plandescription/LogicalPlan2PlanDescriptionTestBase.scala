@@ -104,7 +104,7 @@ class LogicalPlan2PlanDescriptionTestBase extends CypherFunSuite with TableDrive
     expectedPlanDescription: InternalPlanDescription,
     validateAllArgs: Boolean = false,
     readOnly: Boolean = true,
-    cypherVersion: CypherVersion = CypherVersion.Default
+    cypherVersion: CypherVersion = CypherVersion.Legacy.legacyVersion()
   ): Unit = {
     val producedPlanDescription = LogicalPlan2PlanDescription.create(
       logicalPlan,

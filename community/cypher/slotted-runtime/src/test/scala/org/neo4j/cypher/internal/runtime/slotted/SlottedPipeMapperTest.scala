@@ -157,12 +157,12 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
         anonymousVariableNameGenerator,
         new SelectivityTrackerRegistrator(),
         CypherRuntimeConfiguration.defaultConfiguration,
-        CypherVersion.Default
+        CypherVersion.Legacy.legacyVersion()
       )
     )
 
     val fallback = InterpretedPipeMapper(
-      CypherVersion.Default,
+      CypherVersion.Legacy.legacyVersion(),
       true,
       converters,
       tokenContext,

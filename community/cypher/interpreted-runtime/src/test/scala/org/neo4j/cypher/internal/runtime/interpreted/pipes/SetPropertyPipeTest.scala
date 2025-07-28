@@ -88,7 +88,7 @@ class SetPropertyPipeTest extends CypherFunSuite with PipeTestSupport {
         new AnonymousVariableNameGenerator(),
         new SelectivityTrackerRegistrator(),
         CypherRuntimeConfiguration.defaultConfiguration,
-        CypherVersion.Default
+        CypherVersion.Legacy.legacyVersion()
       )
     )
 

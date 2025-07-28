@@ -25,8 +25,6 @@ public enum CypherVersion {
     Cypher5("5", "CYPHER 5", false, "cypher-5", 5),
     Cypher25("25", "CYPHER 25", false, "cypher-25", 25);
 
-    public static final CypherVersion Default = Cypher5; // TODO Remove
-
     public final String versionName;
     public final String description;
     public final boolean experimental;
@@ -62,5 +60,17 @@ public enum CypherVersion {
             }
         }
         return Optional.empty();
+    }
+
+    public static class Legacy {
+        /**
+         * Never use this, it has no meaning!
+         * For testing, have assertions for all languages.
+         * For production, query language for a specific query is resolved by Cypher and accessible in InputQuery.
+         */
+        @Deprecated(since = "2025.06", forRemoval = true)
+        public static CypherVersion legacyVersion() {
+            return CypherVersion.Cypher5;
+        }
     }
 }

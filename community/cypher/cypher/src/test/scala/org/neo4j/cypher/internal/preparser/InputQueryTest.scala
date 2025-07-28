@@ -65,8 +65,8 @@ class InputQueryTest extends CypherFunSuite {
         |RETURN x, a, b
         |""".stripMargin
 
-    val a = toFullyParsedQuery(queryString, CypherVersion.Default)
-    val b = toFullyParsedQuery(queryString, CypherVersion.Default)
+    val a = toFullyParsedQuery(queryString, CypherVersion.Legacy.legacyVersion())
+    val b = toFullyParsedQuery(queryString, CypherVersion.Legacy.legacyVersion())
 
     a.cacheKey shouldEqual b.cacheKey
     a.cacheKey.hashCode() shouldEqual b.cacheKey.hashCode()
@@ -80,8 +80,8 @@ class InputQueryTest extends CypherFunSuite {
         |RETURN x, a, b
         |""".stripMargin
 
-    val a = toPreParsedQuery(queryString, CypherVersion.Default)
-    val b = toPreParsedQuery(queryString, CypherVersion.Default)
+    val a = toPreParsedQuery(queryString, CypherVersion.Legacy.legacyVersion())
+    val b = toPreParsedQuery(queryString, CypherVersion.Legacy.legacyVersion())
 
     a.cacheKey shouldEqual b.cacheKey
     a.cacheKey.hashCode() shouldEqual b.cacheKey.hashCode()

@@ -357,7 +357,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
     val check = check1 chain check2
 
     val context = new SemanticCheckContext {
-      override def cypherVersion: CypherVersion = CypherVersion.Default
+      override def cypherVersion: CypherVersion = CypherVersion.Legacy.legacyVersion()
       override def errorMessageProvider: ErrorMessageProvider = new ErrorMessageProvider {
         override def createMissingPropertyLabelHintError(
           operatorDescription: String,

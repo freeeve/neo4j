@@ -29,7 +29,8 @@ class CompilerInfoTest {
     @Test
     void plannerInfoShouldBeInSmallCase() {
         // given
-        CompilerInfo compilerInfo = new CompilerInfo("PLANNER", "RUNTIME", emptyList(), CypherVersion.Default);
+        CompilerInfo compilerInfo =
+                new CompilerInfo("PLANNER", "RUNTIME", emptyList(), CypherVersion.Legacy.legacyVersion());
 
         // then
         assertThat(compilerInfo.planner()).isEqualTo("planner");

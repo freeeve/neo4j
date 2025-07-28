@@ -51,7 +51,7 @@ class PathExpressionConversionTest extends CypherFunSuite with AstConstructionTe
         new AnonymousVariableNameGenerator(),
         new SelectivityTrackerRegistrator(),
         CypherRuntimeConfiguration.defaultConfiguration,
-        CypherVersion.Default
+        CypherVersion.Legacy.legacyVersion()
       )
     )
 

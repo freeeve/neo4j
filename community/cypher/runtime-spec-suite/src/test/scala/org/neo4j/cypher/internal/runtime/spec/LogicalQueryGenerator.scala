@@ -63,7 +63,7 @@ object LogicalQueryGenerator {
       TransactionalContextWrapper(txContext),
       devNullLogger,
       log,
-      CypherVersion.Default,
+      CypherVersion.Legacy.legacyVersion(),
       identity
     )
     val labelMap = tokenRead.labelsGetAllTokens().asScala.map(l => l.name() -> l.id()).toMap

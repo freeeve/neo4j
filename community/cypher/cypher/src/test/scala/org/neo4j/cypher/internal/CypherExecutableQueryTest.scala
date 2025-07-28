@@ -83,7 +83,7 @@ class CypherExecutableQueryTest extends CypherFunSuite {
       queryObfuscator = QueryObfuscator.PASSTHROUGH,
       renderPlanDescription = false,
       kernelMonitors = mock[Monitors],
-      cypherVersion = CypherVersion.Default,
+      cypherVersion = CypherVersion.Legacy.legacyVersion(),
       executionPlanCacheKeyHash = 0,
       returnColumns = Array.empty
     )

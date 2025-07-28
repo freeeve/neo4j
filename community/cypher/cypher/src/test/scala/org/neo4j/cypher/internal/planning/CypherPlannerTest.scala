@@ -301,7 +301,8 @@ class CypherPlannerTest extends CypherFunSuite {
         |MATCH (a)-[r]-(b)-[q*]-(c)
         |RETURN result
         |""".stripMargin
-    val preParserQuery = PreParsedQuery(query, query, QueryOptions.default(cypherConfig, CypherVersion.Default))
+    val preParserQuery =
+      PreParsedQuery(query, query, QueryOptions.default(cypherConfig, CypherVersion.Legacy.legacyVersion()))
 
     val tc = mock[TransactionalContext](org.mockito.Mockito.RETURNS_DEEP_STUBS)
 

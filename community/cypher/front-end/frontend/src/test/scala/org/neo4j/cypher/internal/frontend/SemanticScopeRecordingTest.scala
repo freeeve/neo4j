@@ -48,7 +48,7 @@ class SemanticScopeRecordingTest extends CypherFunSuite {
       """.stripMargin
     val startState = initStartState(query)
 
-    val context = new ErrorCollectingContext(CypherVersion.Default, query = query)
+    val context = new ErrorCollectingContext(CypherVersion.Legacy.legacyVersion(), query = query)
     val state = pipeline.transform(startState, context)
 
     context.errors shouldBe empty

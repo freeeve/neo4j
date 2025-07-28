@@ -149,12 +149,12 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   val mockRel = newPatternRelationship("a", "b", "r")
 
   def parse(query: String, exceptionFactory: CypherExceptionFactory): Statement = {
-    val defaultStatement = parse(CypherVersion.Default, query, exceptionFactory)
+    val defaultStatement = parse(CypherVersion.Legacy.legacyVersion(), query, exceptionFactory)
 
     // Quick and dirty hack to try to make sure we have sufficient coverage of all cypher versions.
     // Feel free to improve ¯\_(ツ)_/¯.
     CypherVersion.values().foreach { version =>
-      if (version != CypherVersion.Default) {
+      if (version != CypherVersion.Legacy.legacyVersion()) {
         val otherStatement = Try(parse(version, query, exceptionFactory))
         if (otherStatement != Success(defaultStatement)) {
           throw new AssertionError(

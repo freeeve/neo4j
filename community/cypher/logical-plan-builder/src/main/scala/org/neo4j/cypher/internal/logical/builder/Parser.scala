@@ -129,7 +129,7 @@ object Parser {
     case CypherVersion.Cypher25 => Cypher25
   }
 
-  val Latest: Parser = apply(CypherVersion.Default)
+  val Latest: Parser = apply(CypherVersion.Legacy.legacyVersion())
 
   trait AstParser {
     def expression(cypher: String): Expression

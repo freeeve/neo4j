@@ -304,7 +304,7 @@ class NFAToProductGraphCursorIT extends ExecutionEngineFunSuite {
                   new AnonymousVariableNameGenerator(),
                   new SelectivityTrackerRegistrator,
                   CypherRuntimeConfiguration.defaultConfiguration,
-                  CypherVersion.Default
+                  CypherVersion.Legacy.legacyVersion()
                 )
               )
 

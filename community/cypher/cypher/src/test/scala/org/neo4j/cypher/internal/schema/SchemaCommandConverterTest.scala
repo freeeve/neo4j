@@ -89,12 +89,12 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   private val cypher25InvalidOptionMessage = "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'"
 
   private val v1VectorConverterForDefaultCypherVersion =
-    new SchemaCommandConverter(CypherVersion.Default, VectorIndexVersion.V1_0)
+    new SchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V1_0)
   private val v1VectorConverterForCypher5 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V1_0)
   private val v1VectorConverterForCypher25 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V1_0)
 
   private val converterForDefaultCypherVersion =
-    new SchemaCommandConverter(CypherVersion.Default, VectorIndexVersion.V2_0)
+    new SchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V2_0)
   private val converterForCypher5 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V2_0)
   private val converterForCypher25 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V2_0)
 

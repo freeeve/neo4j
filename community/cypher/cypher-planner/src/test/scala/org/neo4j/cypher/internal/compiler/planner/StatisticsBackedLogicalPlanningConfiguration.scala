@@ -1709,10 +1709,10 @@ class StatisticsBackedLogicalPlanningConfiguration(
           .foreach(println)
     }
 
-  def planBuilder(language: CypherVersion = CypherVersion.Default): LogicalPlanBuilder =
+  def planBuilder(language: CypherVersion = CypherVersion.Legacy.legacyVersion()): LogicalPlanBuilder =
     new LogicalPlanBuilder(wholePlan = true, resolver, language = language)
 
-  def subPlanBuilder(language: CypherVersion = CypherVersion.Default): LogicalPlanBuilder =
+  def subPlanBuilder(language: CypherVersion = CypherVersion.Legacy.legacyVersion()): LogicalPlanBuilder =
     new LogicalPlanBuilder(wholePlan = false, resolver, language = language)
 
   def queryGraphSolver(): QueryGraphSolver = {

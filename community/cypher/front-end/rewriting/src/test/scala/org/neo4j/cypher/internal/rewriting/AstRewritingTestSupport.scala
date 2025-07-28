@@ -40,12 +40,12 @@ import org.neo4j.cypher.internal.util.bottomUp
 trait AstRewritingTestSupport extends AstConstructionTestSupport {
 
   def parse(query: String, exceptionFactory: CypherExceptionFactory): Statement = {
-    val defaultStatement = rewriteASTDifferences(parse(CypherVersion.Default, query, exceptionFactory))
+    val defaultStatement = rewriteASTDifferences(parse(CypherVersion.Legacy.legacyVersion(), query, exceptionFactory))
 
     // Quick and dirty hack to try to make sure we have sufficient coverage of all cypher versions.
     // Feel free to improve ¯\_(ツ)_/¯.
     CypherVersion.values().foreach { version =>
-      if (version != CypherVersion.Default) {
+      if (version != CypherVersion.Legacy.legacyVersion()) {
         val otherStatement = rewriteASTDifferences(parse(version, query, exceptionFactory))
         if (otherStatement != defaultStatement) {
           throw new AssertionError(

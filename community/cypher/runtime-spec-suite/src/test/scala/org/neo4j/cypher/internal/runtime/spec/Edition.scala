@@ -61,7 +61,7 @@ trait TestRuntimeContextManager[+CONTEXT <: RuntimeContext] extends RuntimeConte
       offset = InputPosition.NONE,
       queryOptions = queryOptions,
       derivedOptions = CypherQueryOptions.derivedOptions(queryOptions, cypherConfig),
-      defaultLanguage = CypherVersion.Default
+      defaultLanguage = CypherVersion.Legacy.legacyVersion()
     )
   }
 

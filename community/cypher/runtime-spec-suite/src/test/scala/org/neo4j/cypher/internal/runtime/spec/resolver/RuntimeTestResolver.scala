@@ -48,11 +48,11 @@ trait RuntimeTestResolver[CONTEXT <: RuntimeContext] extends Resolver {
 
   override def procedureSignature(name: QualifiedName): ProcedureSignature = {
     val ktx = tx.kernelTransaction()
-    TransactionBoundPlanContext.procedureSignature(ktx, name, CypherVersion.Default)
+    TransactionBoundPlanContext.procedureSignature(ktx, name, CypherVersion.Legacy.legacyVersion())
   }
 
   override def functionSignature(name: QualifiedName): Option[UserFunctionSignature] = {
     val ktx = tx.kernelTransaction()
-    TransactionBoundPlanContext.functionSignature(ktx, name, CypherVersion.Default)
+    TransactionBoundPlanContext.functionSignature(ktx, name, CypherVersion.Legacy.legacyVersion())
   }
 }

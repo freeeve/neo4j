@@ -31,7 +31,7 @@ object StatementHelper extends Assertions {
     private val allVariables = ast.folder.findAllByClass[Variable]
 
     def semanticState(features: SemanticFeature*): SemanticState =
-      semanticStateWithCypherVersion(CypherVersion.Default, features: _*)
+      semanticStateWithCypherVersion(CypherVersion.Legacy.legacyVersion(), features: _*)
 
     def semanticStateWithCypherVersion(version: CypherVersion, features: SemanticFeature*): SemanticState =
       ast.semanticCheck.run(SemanticState.clean.withFeatures(features: _*), version) match {

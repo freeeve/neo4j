@@ -40,7 +40,7 @@ class LogicalPlanBuilder(
   wholePlan: Boolean = true,
   resolver: Resolver = new LogicalPlanResolver,
   initialId: Int = 0,
-  language: CypherVersion = CypherVersion.Default
+  language: CypherVersion = CypherVersion.Legacy.legacyVersion()
 ) extends AbstractLogicalPlanBuilder[LogicalPlan, LogicalPlanBuilder](resolver, wholePlan, initialId, language) {
 
   val cardinalities: Cardinalities = new Cardinalities with Default[LogicalPlan, Cardinality] {

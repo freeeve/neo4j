@@ -146,7 +146,7 @@ object SimpleInternalExpressionEvaluator {
         new AnonymousVariableNameGenerator(),
         noopSelectivityTrackerRegistrator,
         CypherRuntimeConfiguration.defaultConfiguration,
-        CypherVersion.Default
+        CypherVersion.Legacy.legacyVersion()
       )
     )
 

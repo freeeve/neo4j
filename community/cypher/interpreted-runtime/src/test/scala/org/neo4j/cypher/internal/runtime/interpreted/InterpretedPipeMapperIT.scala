@@ -98,13 +98,13 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
         new AnonymousVariableNameGenerator(),
         new SelectivityTrackerRegistrator(),
         CypherRuntimeConfiguration.defaultConfiguration,
-        CypherVersion.Default
+        CypherVersion.Legacy.legacyVersion()
       )
     )
 
   private val pipeMapper =
     InterpretedPipeMapper(
-      CypherVersion.Default,
+      CypherVersion.Legacy.legacyVersion(),
       readOnly = true,
       converters,
       planContext,

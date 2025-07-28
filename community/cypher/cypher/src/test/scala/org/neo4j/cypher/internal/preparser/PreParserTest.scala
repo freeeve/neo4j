@@ -53,7 +53,7 @@ class PreParserTest extends CypherFunSuite {
   private val preParser = preParserWith()
 
   def preParse(queryText: String): PreParsedQuery =
-    preParser.preParseQuery(queryText, devNullLogger, CypherVersion.Default)
+    preParser.preParseQuery(queryText, devNullLogger, CypherVersion.Legacy.legacyVersion())
 
   test("should not allow inconsistent runtime options") {
     intercept[InvalidArgumentException](preParse("CYPHER runtime=slotted runtime=interpreted RETURN 42"))
@@ -245,7 +245,7 @@ class PreParserTest extends CypherFunSuite {
     val preParsedQuery = preParser.preParseQuery(
       "CYPHER connectComponentsPlanner=idp RETURN 42",
       notificationLogger,
-      CypherVersion.Default
+      CypherVersion.Legacy.legacyVersion()
     )
     notificationLogger.notifications should equal(Set(
       DeprecatedConnectComponentsPlannerPreParserOption(InputPosition(7, 1, 8))
@@ -260,7 +260,7 @@ class PreParserTest extends CypherFunSuite {
     val preParsedQuery = preParser.preParseQuery(
       "CYPHER cOnnectcomPONentsPlanner=idp RETURN 42",
       notificationLogger,
-      CypherVersion.Default
+      CypherVersion.Legacy.legacyVersion()
     )
     notificationLogger.notifications should equal(Set(
       DeprecatedConnectComponentsPlannerPreParserOption(InputPosition(7, 1, 8))
@@ -275,7 +275,7 @@ class PreParserTest extends CypherFunSuite {
     val preParsedQuery = preParser.preParseQuery(
       "CYPHER eagerAnalyzer=ir RETURN 42",
       notificationLogger,
-      CypherVersion.Default
+      CypherVersion.Legacy.legacyVersion()
     )
     notificationLogger.notifications shouldEqual Set(
       DeprecatedEagerAnalyzerPreParserOption(InputPosition(7, 1, 8))
@@ -290,7 +290,7 @@ class PreParserTest extends CypherFunSuite {
     val preParsedQuery = preParser.preParseQuery(
       "CYPHER eagerAnalyzer=lp RETURN 42",
       notificationLogger,
-      CypherVersion.Default
+      CypherVersion.Legacy.legacyVersion()
     )
     notificationLogger.notifications shouldEqual Set(
       DeprecatedEagerAnalyzerPreParserOption(InputPosition(7, 1, 8))
@@ -354,29 +354,45 @@ class PreParserTest extends CypherFunSuite {
     preParserWith(
       GraphDatabaseSettings.cypher_planner -> GraphDatabaseSettings.CypherPlanner.COST
     )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.planner shouldEqual
+      .preParseQuery(
+        "RETURN 1",
+        devNullLogger,
+        CypherVersion.Legacy.legacyVersion()
+      ).options.queryOptions.planner shouldEqual
       CypherPlannerOption.cost
 
     preParserWith(GraphDatabaseInternalSettings.cypher_runtime -> GraphDatabaseInternalSettings.CypherRuntime.PIPELINED)
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.runtime shouldEqual
+      .preParseQuery(
+        "RETURN 1",
+        devNullLogger,
+        CypherVersion.Legacy.legacyVersion()
+      ).options.queryOptions.runtime shouldEqual
       CypherRuntimeOption.pipelined
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_expression_engine -> GraphDatabaseInternalSettings.CypherExpressionEngine.COMPILED
     )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.expressionEngine shouldEqual
+      .preParseQuery(
+        "RETURN 1",
+        devNullLogger,
+        CypherVersion.Legacy.legacyVersion()
+      ).options.queryOptions.expressionEngine shouldEqual
       CypherExpressionEngineOption.compiled
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_operator_engine -> GraphDatabaseInternalSettings.CypherOperatorEngine.COMPILED
     )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.operatorEngine shouldEqual
+      .preParseQuery(
+        "RETURN 1",
+        devNullLogger,
+        CypherVersion.Legacy.legacyVersion()
+      ).options.queryOptions.operatorEngine shouldEqual
       CypherOperatorEngineOption.compiled
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_pipelined_interpreted_pipes_fallback -> GraphDatabaseInternalSettings.CypherPipelinedInterpretedPipesFallback.ALL
     )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default)
+      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Legacy.legacyVersion())
       .options.queryOptions.interpretedPipesFallback shouldEqual CypherInterpretedPipesFallbackOption.allPossiblePlans
   }
 
@@ -435,7 +451,7 @@ class PreParserTest extends CypherFunSuite {
     def shouldFail(query: String, settings: (Setting[_], AnyRef)*) =
       withClue(s"query: $query, settings: $settings") {
         intercept[InvalidArgumentException](
-          preParserWith(settings: _*).preParseQuery(query, devNullLogger, CypherVersion.Default)
+          preParserWith(settings: _*).preParseQuery(query, devNullLogger, CypherVersion.Legacy.legacyVersion())
         )
       }
 

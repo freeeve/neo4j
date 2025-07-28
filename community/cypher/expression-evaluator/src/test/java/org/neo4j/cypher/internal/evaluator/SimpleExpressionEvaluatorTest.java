@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.CypherVersion;
 
 class SimpleExpressionEvaluatorTest {
 
-    private final ExpressionEvaluator evaluator = expressionEvaluator(CypherVersion.Default);
+    private final ExpressionEvaluator evaluator = expressionEvaluator(CypherVersion.Legacy.legacyVersion());
 
     @ParameterizedTest
     @EnumSource(CypherVersion.class)

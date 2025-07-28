@@ -112,7 +112,7 @@ object GraphCountsJson {
 
   def parseAsGraphCountDataFromCypherMapString(mapString: String): GraphCountData = {
     // Note, assumes default cypher version.
-    val mapExpression = AstParserFactory(CypherVersion.Default)(
+    val mapExpression = AstParserFactory(CypherVersion.Legacy.legacyVersion())(
       mapString,
       Neo4jCypherExceptionFactory(mapString, None),
       None,

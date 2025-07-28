@@ -335,7 +335,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   protected val resolver: Resolver,
   wholePlan: Boolean = true,
   initialId: Int = 0,
-  language: CypherVersion = CypherVersion.Default
+  language: CypherVersion = CypherVersion.Legacy.legacyVersion()
 ) {
 
   self: IMPL =>

@@ -788,7 +788,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
           ImmutablePlanningAttributes.ProvidedOrders(logicalQuery.providedOrders),
           executionPlan,
           renderPlanDescription = false,
-          CypherVersion.Default
+          CypherVersion.Legacy.legacyVersion()
         )
       planDescriptionBuilder.explain()
     }
@@ -992,7 +992,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     prePopulateResults: Boolean,
     queryConfig: QueryRuntimeConfig
   ): RESULT = {
-    val defaultLanguage = CypherVersion.Default
+    val defaultLanguage = CypherVersion.Legacy.legacyVersion()
     txContext.executingQuery().setCompilerInfoForTesting(new CompilerInfo(
       "NO PLANNER",
       executableQuery.runtimeName.name,
@@ -1033,7 +1033,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     queryContext: QueryContext,
     testPlanCombinationRewriterHints: Set[TestPlanCombinationRewriterHint] = Set.empty[TestPlanCombinationRewriterHint]
   ): (ExecutionPlan, CONTEXT) = {
-    val defaultLanguage = CypherVersion.Default // To be replaced with db specific default
+    val defaultLanguage = CypherVersion.Legacy.legacyVersion() // To be replaced with db specific default
     val runtimeContext = newRuntimeContext(queryContext, defaultLanguage)
     val rewrittenLogicalQuery =
       rewriteLogicalQuery(logicalQuery, runtimeContext.anonymousVariableNameGenerator, testPlanCombinationRewriterHints)

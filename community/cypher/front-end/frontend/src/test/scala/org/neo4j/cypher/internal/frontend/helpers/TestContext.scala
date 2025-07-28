@@ -34,7 +34,7 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 
 //noinspection TypeAnnotation
 case class TestContext(
-  override val cypherVersion: CypherVersion = CypherVersion.Default,
+  override val cypherVersion: CypherVersion = CypherVersion.Legacy.legacyVersion(),
   override val notificationLogger: InternalNotificationLogger = mock[InternalNotificationLogger],
   override val sessionDatabase: DatabaseReference = null,
   override val semanticFeatures: Seq[SemanticFeature] = Seq()
