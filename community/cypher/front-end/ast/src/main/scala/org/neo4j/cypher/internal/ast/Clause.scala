@@ -1992,6 +1992,9 @@ case class Return(
       case _ =>
         Seq.empty
     }
+
+  def convertToWith: With =
+    With(distinct, returnItems, orderBy, skip, limit, None, AddedInRewriteGeneral)(position)
 }
 
 case class Yield(

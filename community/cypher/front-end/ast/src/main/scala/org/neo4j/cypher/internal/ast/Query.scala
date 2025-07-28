@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithG
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromFunctionWithContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.mapState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.setState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
@@ -44,10 +45,7 @@ import org.neo4j.cypher.internal.ast.semantics.Symbol
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.expressions.containsAggregate
 import org.neo4j.cypher.internal.util.ASTNode
-import org.neo4j.cypher.internal.util.Foldable.SkipChildren
-import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
@@ -82,6 +80,7 @@ sealed trait QueryUtils {
    * variables from the `outer` scope
    */
   def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck
+
   def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck
 
   /**
@@ -139,9 +138,13 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
 
   /**
    * Return a copy of this query where the mapping function f is applied
-   * to each single query, regardless if this a single query or a union query.
+   * to each returning single query, regardless if this a single query or a union query.
+   *
+   * If nextFirst is set to true the first query in the Next statement will be updated, not the last.
    */
-  def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query
+  def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query
+
+  def getLastSingleQuery: SingleQuery
 
   /**
    * Used in UnwrapTopLevelBraces
@@ -199,9 +202,11 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   val getCommandClauses: Seq[CommandClause] =
     clauses.filter(_.isInstanceOf[CommandClause]).map(_.asInstanceOf[CommandClause])
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query = f(this)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query = f(this)
 
   override def getQuery(fromUnion: Boolean): Query = this
+
+  override def getLastSingleQuery: SingleQuery = this
 
   lazy val partitionedClauses: SingleQuery.PartitionedClauses = SingleQuery.partitionClauses(clauses)
 
@@ -331,10 +336,16 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       }
     }
 
-    def checkDistinct: SemanticCheck = when(wth.distinct) { err("DISTINCT") }
+    def checkDistinct: SemanticCheck = when(wth.distinct) {
+      err("DISTINCT")
+    }
+
     def checkOrderBy: SemanticCheck = wth.orderBy.foldSemanticCheck(_ => err("ORDER BY"))
+
     def checkWhere: SemanticCheck = wth.where.foldSemanticCheck(_ => err("WHERE"))
+
     def checkSkip: SemanticCheck = wth.skip.foldSemanticCheck(_ => err("SKIP"))
+
     def checkLimit: SemanticCheck = wth.limit.foldSemanticCheck(_ => err("LIMIT"))
 
     fromFunctionWithContext { (state, context) =>
@@ -685,9 +696,9 @@ object SingleQuery {
   /**
    * The clauses making up a single query.
    *
-   * @param initialGraphSelection A `USE` clause in first position.
-   * @param importingWith An importing `WITH` clause in first position, or in second position immediately after [[initialGraphSelection]] when defined.
-   * @param subsequentGraphSelection A `USE` clause in second position immediately after [[importingWith]]. If this field is defined then [[initialGraphSelection]] cannot be.
+   * @param initialGraphSelection                              A `USE` clause in first position.
+   * @param importingWith                                      An importing `WITH` clause in first position, or in second position immediately after [[initialGraphSelection]] when defined.
+   * @param subsequentGraphSelection                           A `USE` clause in second position immediately after [[importingWith]]. If this field is defined then [[initialGraphSelection]] cannot be.
    * @param clausesExceptImportingWithAndLeadingGraphSelection All the other clauses afterwards.
    */
   case class PartitionedClauses(
@@ -754,12 +765,15 @@ case class TopLevelBraces(
 )(override val position: InputPosition) extends PartQuery {
 
   override def singleQuery: SingleQuery = wrapQuery(query, position)
+
+  override def getLastSingleQuery: SingleQuery = query.getLastSingleQuery
+
   override def clauses: Seq[Clause] = singleQuery.clauses
 
   val getCommandClauses: Seq[CommandClause] = query.getCommandClauses
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(query.mapEachSingleQuery(f))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
+    copy(query.mapEachSingleQuery(f, nextFirst))(position)
 
   override def getQuery(fromUnion: Boolean): Query = if (fromUnion) {
     wrapQuery(query, position)
@@ -821,7 +835,9 @@ case class TopLevelBraces(
     query.semanticCheckInContext(TopLevelBraces) chain recordCurrentScope(this)
 
   override def checkImportingWith: SemanticCheck = query.checkImportingWith
+
   override def importColumns: Seq[String] = query.importColumns
+
   override def isCorrelated: Boolean = query.isCorrelated
 
   override def returnVariables: ReturnVariables = query.returnVariables
@@ -841,11 +857,14 @@ object Union {
 
 sealed trait Union extends Query {
   def lhs: Query
+
   def rhs: PartQuery
 
   def unionMappings: List[UnionMapping]
 
   override def getQuery(fromUnion: Boolean): Query = this
+
+  override def getLastSingleQuery: SingleQuery = rhs.getLastSingleQuery
 
   val getCommandClauses: Seq[CommandClause] = lhs.getCommandClauses ++ rhs.getCommandClauses
 
@@ -932,8 +951,17 @@ sealed trait Union extends Query {
   override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
     checkRecursively(_.semanticCheckImportingWithSubQueryContext(outer))
 
-  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck =
-    checkRecursively(_.semanticCheckInContext(context))
+  override def semanticCheckInContext(context: UnaliasedNotAllowed): SemanticCheck = {
+    context match {
+      case NextStatement | TopLevelBraces => checkRecursively(innerQuery =>
+          mapState(s =>
+            s.importValuesFromScope(s.currentScope.parent.fold(Scope.empty)(_.scope))
+          ) chain innerQuery.semanticCheckInContext(context)
+        )
+      case _ => checkRecursively(_.semanticCheckInContext(context))
+    }
+
+  }
 
   private def defineUnionVariables: SemanticCheck = (state: SemanticState) => {
     var result = SemanticCheckResult.success(state.newChildScope)
@@ -1033,11 +1061,11 @@ sealed trait Union extends Query {
  *
  * This has two reasons:
  * a) We capture how variables are projected from the two final scopes of the parts of the union to the scope
- *    after the union, before the Namespacer changes the names so that the Variable inside and outside of the union have different names
- *    and we would not find them any longer. The Namespacer will still change the name, but since we captured the Variable and not the
- *    name, we still have the correct projecting information.
+ * after the union, before the Namespacer changes the names so that the Variable inside and outside of the union have different names
+ * and we would not find them any longer. The Namespacer will still change the name, but since we captured the Variable and not the
+ * name, we still have the correct projecting information.
  * b) We need to disable `checkColumnNamesAgree` for ProjectingUnion, because the names will actually not agree any more after the namespacing.
- *    This is not a problem though, since we would have failed earlier if the names did not agree originally.
+ * This is not a problem though, since we would have failed earlier if the names did not agree originally.
  */
 sealed trait UnmappedUnion extends Union {
 
@@ -1098,32 +1126,32 @@ final case class UnionAll(lhs: Query, rhs: PartQuery)(
   val position: InputPosition
 ) extends UnmappedUnion {
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
+    copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
 }
 
 final case class UnionDistinct(lhs: Query, rhs: PartQuery)(
   val position: InputPosition
 ) extends UnmappedUnion {
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
+    copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
 }
 
 final case class ProjectingUnionAll(lhs: Query, rhs: PartQuery, unionMappings: List[UnionMapping])(
   val position: InputPosition
 ) extends ProjectingUnion {
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
+    copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
 }
 
 final case class ProjectingUnionDistinct(lhs: Query, rhs: PartQuery, unionMappings: List[UnionMapping])(
   val position: InputPosition
 ) extends ProjectingUnion {
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
+    copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
 }
 
 // Predicate is None for Else branch
@@ -1132,6 +1160,7 @@ case class ConditionalQueryBranch(predicate: Option[Expression], query: PartQuer
     with SemanticCheckable with SemanticAnalysisTooling with QueryUtils {
 
   override def returnVariables: ReturnVariables = query.returnVariables
+
   override def isReturning: Boolean = query.isReturning
 
   override def semanticCheck: SemanticCheck =
@@ -1171,8 +1200,8 @@ case class ConditionalQueryBranch(predicate: Option[Expression], query: PartQuer
   override def finalScope(scope: Scope): Scope =
     if (scope.children.size < 1) Scope.empty else scope.children.last
 
-  def mapEachSingleQuery(f: SingleQuery => SingleQuery): ConditionalQueryBranch =
-    copy(query = query.mapEachSingleQuery(f).asInstanceOf[PartQuery])(position)
+  def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): ConditionalQueryBranch =
+    copy(query = query.mapEachSingleQuery(f, nextFirst).asInstanceOf[PartQuery])(position)
 
   def wrapInnerQuery: ConditionalQueryBranch = this.copy(query = query.singleQuery)(position)
 
@@ -1194,6 +1223,8 @@ case class ConditionalQueryWhen(
 
   override def getQuery(fromUnion: Boolean): Query = this
 
+  override def getLastSingleQuery: SingleQuery = branches.last.query.getLastSingleQuery
+
   override def getCommandClauses: Seq[CommandClause] =
     allBranches.flatMap(branch => branch.query.getCommandClauses)
 
@@ -1204,6 +1235,7 @@ case class ConditionalQueryWhen(
     allBranches.flatMap(_.query.getReturns)
 
   override def isReturning: Boolean = branches.head.isReturning
+
   override def endsWithFinish: Boolean = allBranches.exists(_.query.endsWithFinish)
 
   override def finalScope(scope: Scope): Scope = {
@@ -1292,8 +1324,8 @@ case class ConditionalQueryWhen(
   override def importColumns: Seq[String] =
     allBranches.flatMap(_.query.importColumns)
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(branches.map(_.mapEachSingleQuery(f)), default.map(_.mapEachSingleQuery(f)))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
+    copy(branches.map(_.mapEachSingleQuery(f, nextFirst)), default.map(_.mapEachSingleQuery(f, nextFirst)))(position)
 }
 
 case object NextStatement extends UnaliasedNotAllowed {
@@ -1318,10 +1350,16 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
 
   override def importColumns: Seq[String] = queries.flatMap(_.importColumns)
 
-  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
-    copy(queries.dropRight(1) ++ Seq(lastQuery.mapEachSingleQuery(f)))(position)
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query = {
+    if (nextFirst)
+      copy(queries.head.mapEachSingleQuery(f, nextFirst) +: queries.tail)(position)
+    else
+      copy(queries.dropRight(1) :+ lastQuery.mapEachSingleQuery(f))(position)
+  }
 
   override def getQuery(fromUnion: Boolean): Query = this
+
+  override def getLastSingleQuery: SingleQuery = queries.last.getLastSingleQuery
 
   override def getCommandClauses: Seq[CommandClause] =
     queries.flatMap(_.getCommandClauses)
@@ -1360,78 +1398,16 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
     )
   }
 
-  sealed trait ProblematicAggregation
-  private case object NoIssue extends ProblematicAggregation
-  private case class InProblematicContext(msg: String) extends ProblematicAggregation
-
-  private case class ProblematicAggregationFound(operation: String, msg: String, position: InputPosition)
-      extends ProblematicAggregation
-
-  private def errorOnAggregation: SemanticCheck = {
-    val directlyContainsAggregation = queries.tail.collectFirst {
-      case q: Query =>
-        q.folder.treeFold[ProblematicAggregation](NoIssue) {
-          case u: Union => {
-            case _ if u.containsUpdates =>
-              SkipChildren(ProblematicAggregationFound(operation = "Updates are", "when used in a `UNION`", u.position))
-            case _ =>
-              TraverseChildren(InProblematicContext("when used in a `UNION`"))
-          }
-          case tlb: TopLevelBraces => {
-            case _ if tlb.containsUpdates =>
-              SkipChildren(ProblematicAggregationFound(
-                operation = "Updates are",
-                "when wrapped in braces. Try without braces",
-                tlb.position
-              ))
-            case _ => TraverseChildren(InProblematicContext("when wrapped in braces. Try without braces"))
-          }
-          case _: UseGraph =>
-            _ => TraverseChildren(InProblematicContext("when used after a `USE` clause"))
-          case _: SubqueryCall         => _ => SkipChildren(NoIssue)
-          case _: ConditionalQueryWhen => _ => SkipChildren(NoIssue)
-          case r: Return => {
-            case acc: InProblematicContext if r.distinct =>
-              SkipChildren(ProblematicAggregationFound(operation = "`DISTINCT` is", acc.msg, r.position))
-            case acc => TraverseChildren(acc)
-          }
-          case w: With => {
-            case acc: InProblematicContext if w.distinct =>
-              SkipChildren(ProblematicAggregationFound(operation = "`DISTINCT` is", acc.msg, w.position))
-            case acc => TraverseChildren(acc)
-          }
-          case up: UpdateClause => {
-            case acc: InProblematicContext =>
-              SkipChildren(ProblematicAggregationFound("Updates are", acc.msg, up.position))
-            case acc => TraverseChildren(acc)
-          }
-          case exp: Expression => {
-            case acc: InProblematicContext if containsAggregate(exp) =>
-              SkipChildren(ProblematicAggregationFound(operation = "Aggregations are", acc.msg, exp.position))
-            case acc => TraverseChildren(acc)
-          }
-        }
-      case _ =>
-    }
-
-    directlyContainsAggregation match {
-      case _ @Some(ProblematicAggregationFound(operation, msg, pos)) =>
-        SemanticCheck.error(SemanticError.unsupportedAggregationInNEXT(operation, msg, pos))
-      case _ =>
-        SemanticCheck.success
-    }
-
-  }
-
   private def semanticCheckAbstract(check: Query => SemanticCheck): SemanticCheck = {
     val trunk = queries.dropRight(1)
-    errorOnAggregation chain
-      trunk.foldLeft(CheckWithPrevious(check)) {
-        case (accCheck, q) => accCheck.checkQuery(q)
-      }.accumulator chain
+    trunk.foldLeft(CheckWithPrevious(check)) {
+      case (accCheck, q) => accCheck.checkQuery(q)
+    }.accumulator chain
       withScopedState(fromState(s =>
         setState(s.recordWorkingGraph(None)) chain
-          when(trunk.last.isReturning) { importValuesFromRecordedFinalScope(trunk.last) } chain
+          when(trunk.last.isReturning) {
+            importValuesFromRecordedFinalScope(trunk.last)
+          } chain
           check(lastQuery)
       )) chain
       noteFinalScope chain
@@ -1439,7 +1415,7 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
   }
 
   override def semanticCheck: SemanticCheck =
-    semanticCheckAbstract(_.semanticCheck)
+    semanticCheckAbstract(_.semanticCheckInContext(NextStatement))
 
   override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
     semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))

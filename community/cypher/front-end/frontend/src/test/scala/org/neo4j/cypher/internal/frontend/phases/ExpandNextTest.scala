@@ -62,7 +62,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     }
   }
 
-  test("when single branch rewritten 1") {
+  test("NEXT query rewritten 1") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET a = 1
@@ -96,7 +96,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 2") {
+  test("NEXT query rewritten 2") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET a = 1
@@ -114,7 +114,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 3") {
+  test("NEXT query rewritten 3") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET a = 1
@@ -139,7 +139,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 4") {
+  test("NEXT query rewritten 4") {
     assertRewritten(
       CypherVersion.Cypher25,
       """FINISH
@@ -164,7 +164,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 5") {
+  test("NEXT query rewritten 5") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET a = 1
@@ -188,7 +188,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 6") {
+  test("NEXT query rewritten 6") {
     assertRewritten(
       CypherVersion.Cypher25,
       """RETURN 1 AS a
@@ -217,7 +217,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 7") {
+  test("NEXT query rewritten 7") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET x = 1, y = 2
@@ -255,7 +255,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 8") {
+  test("NEXT query rewritten 8") {
     assertRewritten(
       CypherVersion.Cypher25,
       """{
@@ -282,7 +282,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 9") {
+  test("NEXT query rewritten 9") {
     assertRewritten(
       CypherVersion.Cypher25,
       """MATCH (n)
@@ -314,7 +314,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 10") {
+  test("NEXT query rewritten 10") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET a = 1
@@ -343,7 +343,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 11") {
+  test("NEXT query rewritten 11") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET x = 1, y = 2
@@ -384,7 +384,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 12") {
+  test("NEXT query rewritten 12") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET x = 1, y = 2
@@ -418,18 +418,18 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |WITH `  UNNAMED0` AS a
         |CALL (*) {
         |  LET b = a + 1
-        |  RETURN *
+        |  RETURN a AS `  UNNAMED1`, b AS `  UNNAMED2`
         |  UNION
         |  LET b = a + 2
-        |  RETURN *
+        |  RETURN a AS `  UNNAMED1`, b AS `  UNNAMED2`
         |}
-        |WITH *
+        |WITH `  UNNAMED1` AS a, `  UNNAMED2` AS b
         |RETURN *""".stripMargin,
       additionalExpectedAstUpdates = withUpdate()
     )
   }
 
-  test("when single branch rewritten 13") {
+  test("NEXT query rewritten 13") {
     assertRewritten(
       CypherVersion.Cypher25,
       """LET a = 1
@@ -464,7 +464,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 14") {
+  test("NEXT query rewritten 14") {
     assertRewritten(
       CypherVersion.Cypher25,
       """USE neo1
@@ -484,9 +484,9 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
       """CALL (*) {
         |  USE `neo1`
         |  MATCH (n:L1)
-        |  RETURN *
+        |  RETURN n AS `  UNNAMED0`
         |}
-        |WITH *
+        |WITH `  UNNAMED0` AS n
         |MATCH (m:L1)
         |WITH *
         |MATCH (o:L2)
@@ -495,7 +495,7 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
     )
   }
 
-  test("when single branch rewritten 15") {
+  test("NEXT query rewritten 15") {
     assertRewritten(
       CypherVersion.Cypher25,
       """USE neo1
@@ -516,22 +516,22 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
       """CALL (*) {
         |  USE `neo1`
         |  MATCH (n:L1)
-        |  RETURN *
+        |  RETURN n AS `  UNNAMED0`
         |}
-        |WITH *
+        |WITH `  UNNAMED0` AS n
         |CALL (*) {
         |  USE `neo2`
         |  MATCH (m:L1)
-        |  RETURN *
+        |  RETURN n AS `  UNNAMED1`, m AS `  UNNAMED2`
         |}
-        |WITH *
+        |WITH `  UNNAMED1` AS n, `  UNNAMED2` AS m
         |MATCH (o:L2)
         |RETURN (n.x + m.x) + o.x AS `n.x + m.x + o.x`""".stripMargin,
       additionalExpectedAstUpdates = withUpdate()
     )
   }
 
-  test("when single branch rewritten 16") {
+  test("NEXT query rewritten 16") {
     assertRewritten(
       CypherVersion.Cypher25,
       """USE neo1
@@ -553,22 +553,121 @@ class ExpandNextTest extends CypherFunSuite with RewritePhaseTest with AstConstr
       """CALL (*) {
         |  USE `neo1`
         |  MATCH (n:L1)
-        |  RETURN *
+        |  RETURN n AS `  UNNAMED0`
         |}
-        |WITH *
+        |WITH `  UNNAMED0` AS n
         |CALL (*) {
         |  USE `neo2`
         |  MATCH (m:L1)
-        |  RETURN *
+        |  RETURN n AS `  UNNAMED1`, m AS `  UNNAMED2`
         |}
-        |WITH *
+        |WITH `  UNNAMED1` AS n, `  UNNAMED2` AS m
         |CALL (*) {
         |  USE `neo1`
         |  MATCH (o:L2)
-        |  RETURN (n.x + m.x) + o.x AS `  UNNAMED0`
+        |  RETURN (n.x + m.x) + o.x AS `  UNNAMED3`
         |}
-        |RETURN `  UNNAMED0` AS `n.x + m.x + o.x`""".stripMargin,
+        |RETURN `  UNNAMED3` AS `n.x + m.x + o.x`""".stripMargin,
       additionalExpectedAstUpdates = withUpdate()
+    )
+  }
+
+  test("NEXT query with aggregation rewritten 1") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """
+      UNWIND [1,2,3] AS a
+      RETURN a
+
+      NEXT
+
+      {
+        UNWIND [1,2,3] AS x
+        RETURN COUNT(x) AS x
+        UNION ALL
+        UNWIND [1,2,3] AS x
+        RETURN SUM(x) AS x
+
+        NEXT
+
+        RETURN x
+      }
+      """.stripMargin,
+      """UNWIND [1, 2, 3] AS a
+        |WITH a AS `  UNNAMED0`
+        |WITH count(*) AS `  UNNAMED1`, collect([`  UNNAMED0`]) AS `  UNNAMED0`
+        |CALL (*) {
+        |  {
+        |    CALL (*) {
+        |      UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED3`
+        |      WITH (`  UNNAMED0`[`  UNNAMED3`])[0] AS a
+        |      UNWIND [1, 2, 3] AS x
+        |      RETURN COUNT(x) AS `  UNNAMED5`
+        |      UNION ALL
+        |      UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED4`
+        |      WITH (`  UNNAMED0`[`  UNNAMED4`])[0] AS a
+        |      UNWIND [1, 2, 3] AS x
+        |      RETURN SUM(x) AS `  UNNAMED5`
+        |    }
+        |    WITH `  UNNAMED5` AS x
+        |    RETURN x AS `  UNNAMED2`
+        |  }
+        |}
+        |RETURN `  UNNAMED2` AS x""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      withUpdate()
+    )
+  }
+
+  test("NEXT query with aggregation rewritten 2") {
+    assertRewritten(
+      CypherVersion.Cypher25,
+      """
+      UNWIND [1,2,3] AS x
+      RETURN x
+
+      NEXT
+
+      RETURN COUNT(x) AS x
+      UNION ALL
+      RETURN SUM(x) AS x
+
+      NEXT
+
+      RETURN COUNT(x) AS x
+      UNION ALL
+      RETURN SUM(x) AS x
+
+      NEXT
+
+      RETURN x
+      """.stripMargin,
+      """UNWIND [1, 2, 3] AS x
+        |WITH x AS `  UNNAMED0`
+        |WITH count(*) AS `  UNNAMED1`, collect([`  UNNAMED0`]) AS `  UNNAMED0`
+        |CALL (*) {
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED4`
+        |  WITH (`  UNNAMED0`[`  UNNAMED4`])[0] AS x
+        |  RETURN COUNT(x) AS `  UNNAMED2`
+        |  UNION ALL
+        |  UNWIND range(0, `  UNNAMED1` - 1) AS `  UNNAMED5`
+        |  WITH (`  UNNAMED0`[`  UNNAMED5`])[0] AS x
+        |  RETURN SUM(x) AS `  UNNAMED2`
+        |}
+        |WITH count(*) AS `  UNNAMED3`, collect([`  UNNAMED2`]) AS `  UNNAMED2`
+        |CALL (*) {
+        |  UNWIND range(0, `  UNNAMED3` - 1) AS `  UNNAMED7`
+        |  WITH (`  UNNAMED2`[`  UNNAMED7`])[0] AS x
+        |  RETURN COUNT(x) AS `  UNNAMED6`
+        |  UNION ALL
+        |  UNWIND range(0, `  UNNAMED3` - 1) AS `  UNNAMED8`
+        |  WITH (`  UNNAMED2`[`  UNNAMED8`])[0] AS x
+        |  RETURN SUM(x) AS `  UNNAMED6`
+        |}
+        |WITH `  UNNAMED6` AS x
+        |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = withUpdate(),
+      withUpdate()
     )
   }
 }
