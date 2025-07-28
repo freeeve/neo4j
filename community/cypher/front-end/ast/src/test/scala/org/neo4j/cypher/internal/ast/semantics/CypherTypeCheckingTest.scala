@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.EmptyNodeTypeReference
@@ -77,7 +78,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
 
   test("non-nullable property type should be valid for dependent property type constraint") {
     val constraintCommand = nodePropertyTypeConstraint(Dependent, IntegerType(isNullable = false)(pos1), pos2)
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+    constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
   }
 
   test("non-nullable list of property type should not be valid for legacy property type constraint") {
@@ -122,14 +123,14 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
         pos3
       )
 
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+    constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
   }
 
   Seq(Legacy, Dependent, Independent).foreach {
     constraintType =>
       test(s"nullable property type should be valid for property type constraint - $constraintType") {
         val constraintCommand = relPropertyTypeConstraint(constraintType, IntegerType(isNullable = true)(pos1), pos2)
-        constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+        constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
       }
 
       test(s"non-property type should not be valid for property type constraint - $constraintType") {
@@ -145,7 +146,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           VectorType(Some(IntegerType(isNullable = false)(pos1)), Some(512), isNullable = true)(pos2),
           pos3
         )
-        constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+        constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
       }
 
       test(s"vector should be valid for relationship property type constraint - $constraintType") {
@@ -154,7 +155,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           VectorType(Some(Float32Type(isNullable = false)(pos1)), Some(12), isNullable = true)(pos2),
           pos3
         )
-        constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+        constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
       }
 
       test(s"vector with omitted dimension should not be valid for property type constraint - $constraintType") {
@@ -249,7 +250,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           VectorType(Some(Integer32Type(isNullable = false)(pos1)), Some(1), isNullable = true)(pos2),
           pos3
         )
-        constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+        constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
       }
 
       test(s"vector with dimension 4096 should be valid for property type constraint - $constraintType") {
@@ -258,7 +259,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           VectorType(Some(Integer8Type(isNullable = false)(pos1)), Some(4096), isNullable = true)(pos2),
           pos3
         )
-        constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+        constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
       }
 
       test(s"vector with too large dimension should not be valid for property type constraint - $constraintType") {
@@ -300,7 +301,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
             pos3
           )
 
-        constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+        constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
       }
 
       test(
@@ -415,7 +416,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           pos5
         )
 
-        constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+        constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
       }
 
       test(s"union with vector should be valid for property type constraint - $constraintType") {
@@ -428,7 +429,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           pos1
         )
 
-        constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
+        constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe empty
       }
 
       test(
@@ -674,7 +675,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
   ): Unit = {
     val constraintDescr =
       if (constraintType.equals(Legacy)) s"$elementType property type constraint" else "graph type constraint"
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError(
@@ -701,7 +702,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
   ): Unit = {
     val constraintDescr =
       if (constraintType.equals(Legacy)) s"$elementType property type constraint" else "graph type constraint"
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    constraintCommand.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError(
@@ -725,7 +726,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
   ): Unit = {
     constraintCommand.semanticCheck.run(
       initialStateNoVectorFeatureFlag,
-      SemanticCheckContext.default
+      arbitrarySemanticContext()
     ).errors shouldBe SemanticCheckResult
       .error(
         initialStateNoVectorFeatureFlag,

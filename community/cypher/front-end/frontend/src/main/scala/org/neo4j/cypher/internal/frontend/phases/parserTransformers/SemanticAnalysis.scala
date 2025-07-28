@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
@@ -43,10 +42,8 @@ import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions.ExpressionsHaveComputedDependencies
-import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
-import org.neo4j.kernel.database.DatabaseReference
 
 /**
  * Do variable binding, typing, type checking and other semantic checks.
@@ -60,13 +57,8 @@ case class SemanticAnalysis(warn: Option[Boolean], features: SemanticFeature*)
         .withFeatures(features: _*)
         .semanticCheckHasRunOnce(from.maybeSemanticTable.isDefined)
 
-    val checkContext = new SemanticCheckContext {
-      override def cypherVersion: CypherVersion = context.cypherVersion
-
-      override def errorMessageProvider: ErrorMessageProvider = context.errorMessageProvider
-
-      override def sessionDatabaseReference: DatabaseReference = context.sessionDatabase
-    }
+    val checkContext =
+      SemanticCheckContext.Impl(context.cypherVersion, context.errorMessageProvider, Option(context.sessionDatabase))
 
     val SemanticCheckResult(state, errors) = SemanticChecker.check(from.statement(), startState, checkContext)
     if (warn.getOrElse(!from.maybeSemantics.exists(_.semanticCheckHasRunOnce)))

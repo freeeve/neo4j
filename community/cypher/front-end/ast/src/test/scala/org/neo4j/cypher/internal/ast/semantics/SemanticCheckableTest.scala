@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
@@ -292,7 +293,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
       SemanticCheck.error(error)
     }
 
-    check.run(SemanticState.clean, SemanticCheckContext.default) shouldBe
+    check.run(SemanticState.clean, arbitrarySemanticContext()) shouldBe
       SemanticCheckResult(SemanticState.clean, Vector(error))
   }
 
@@ -307,7 +308,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
     val check = failingCheck ifOkChain nested
 
-    check.run(SemanticState.clean, SemanticCheckContext.default) shouldBe
+    check.run(SemanticState.clean, arbitrarySemanticContext()) shouldBe
       SemanticCheckResult(SemanticState.clean, Vector(error))
   }
 
@@ -327,14 +328,14 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
         declareVariable(varFor("x"), CTNode.invariant) chain
         checkFromState
 
-    check.run(SemanticState.clean, SemanticCheckContext.default).errors shouldBe Vector(error1, error2)
+    check.run(SemanticState.clean, arbitrarySemanticContext()).errors shouldBe Vector(error1, error2)
   }
 
   test("SemanticCheck.setState should work") {
     val state = SemanticState.clean.declareVariable(varFor("x"), CTNode.invariant).getOrElse(fail())
     SemanticCheck.setState(state).run(
       SemanticState.clean,
-      SemanticCheckContext.default
+      arbitrarySemanticContext()
     ) shouldBe SemanticCheckResult.success(state)
   }
 
@@ -386,7 +387,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
         ): String = missingMsg
       }
 
-      override def sessionDatabaseReference: DatabaseReference = null
+      override def sessionDatabaseReference: Option[DatabaseReference] = None
     }
 
     check.run(SemanticState.clean, context).errors.map(_.msg) shouldBe Seq(missingMsg, selfReferenceMsg)
@@ -394,7 +395,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("long chain should not cause stack overflow") {
     val check = Vector.fill(10000)(SemanticCheck.success).reduce(_ chain _)
-    check.run(SemanticState.clean, SemanticCheckContext.default) shouldBe
+    check.run(SemanticState.clean, arbitrarySemanticContext()) shouldBe
       SemanticCheckResult.success(SemanticState.clean)
   }
 }

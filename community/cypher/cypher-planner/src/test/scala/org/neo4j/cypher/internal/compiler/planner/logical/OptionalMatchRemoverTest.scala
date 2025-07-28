@@ -20,10 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.mockito.Mockito.when
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
@@ -68,7 +70,7 @@ class OptionalMatchRemoverTest extends CypherFunSuite with PlannerQueryRewriterT
     cypherExceptionFactory: CypherExceptionFactory,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator
   ): Statement = {
-    val orgAstState = SemanticChecker.check(astOriginal).state
+    val orgAstState = SemanticChecker.check(astOriginal, SemanticState.clean, arbitrarySemanticContext()).state
     val ast_0 = astOriginal.endoRewrite(inSequence(
       LabelExpressionPredicateNormalizer.instance,
       NormalizeExistsPatternExpressions(orgAstState),
@@ -77,7 +79,9 @@ class OptionalMatchRemoverTest extends CypherFunSuite with PlannerQueryRewriterT
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled)
     ))
     // computeDependenciesForExpressions needs a new run of SemanticChecker after normalizeExistsPatternExpressions
-    ast_0.endoRewrite(computeDependenciesForExpressions(SemanticChecker.check(ast_0).state))
+    ast_0.endoRewrite(computeDependenciesForExpressions(
+      SemanticChecker.check(ast_0, SemanticState.clean, arbitrarySemanticContext()).state
+    ))
   }
 
   test(

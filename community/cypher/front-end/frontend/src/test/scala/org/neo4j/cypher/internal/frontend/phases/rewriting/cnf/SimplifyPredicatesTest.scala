@@ -16,10 +16,10 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.rewriting.cnf
 
+import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.IsNormalized
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.Ands
@@ -271,7 +271,7 @@ class SimplifyPredicatesTest extends CypherFunSuite with AstRewritingTestSupport
   private def assertRewrittenMatches(originalQuery: String, matcher: PartialFunction[Any, Unit]): Unit = {
     val exceptionFactory = Neo4jCypherExceptionFactory(originalQuery, None)
     val original = parse("RETURN " + originalQuery, exceptionFactory)
-    val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
+    val checkResult = original.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)
     val rewriter =
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled) andThen simplifyPredicates(
         checkResult.state,

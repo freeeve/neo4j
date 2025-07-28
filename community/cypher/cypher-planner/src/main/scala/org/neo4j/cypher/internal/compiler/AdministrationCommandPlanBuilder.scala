@@ -145,7 +145,6 @@ import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
@@ -171,6 +170,7 @@ import org.neo4j.cypher.internal.logical.plans.DenyLoadAction
 import org.neo4j.cypher.internal.logical.plans.GrantLoadAction
 import org.neo4j.cypher.internal.logical.plans.PrivilegePlan
 import org.neo4j.cypher.internal.planner.spi.AdministrationPlannerName
+import org.neo4j.cypher.internal.util.EmptyErrorMessageProvider
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.StepSequencer
@@ -257,17 +257,18 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       case _         => plans.WaitForCompletion(logicalPlan, databaseName, waitUntilComplete)
     }
 
-    def planSystemProcedureCall(resolved: ResolvedCall, returns: Option[Return]): plans.LogicalPlan = {
-      val SemanticCheckResult(_, errors) = resolved.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
-      errors.foreach {
-        error =>
-          {
-            if (error.gqlStatusObject != null) {
-              throw context.cypherExceptionFactory.syntaxException(error.gqlStatusObject, error.msg, error.position)
-            }
-            // This case can be removed once all semantic errors have been ported to GQLSTATUS
-            throw context.cypherExceptionFactory.syntaxException(GqlHelper.getDefaultObject, error.msg, error.position)
-          }
+    def planSystemProcedureCall(
+      language: CypherVersion,
+      resolved: ResolvedCall,
+      returns: Option[Return]
+    ): plans.LogicalPlan = {
+      val semanticContext = SemanticCheckContext(language, EmptyErrorMessageProvider)
+      resolved.semanticCheck.run(SemanticState.clean, semanticContext).errors.foreach { error =>
+        if (error.gqlStatusObject != null) {
+          throw context.cypherExceptionFactory.syntaxException(error.gqlStatusObject, error.msg, error.position)
+        }
+        // This case can be removed once all semantic errors have been ported to GQLSTATUS
+        throw context.cypherExceptionFactory.syntaxException(GqlHelper.getDefaultObject, error.msg, error.position)
       }
       val signature = resolved.signature
       val checkCredentialsExpired = !signature.allowExpiredCredentials
@@ -1612,17 +1613,17 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           resolved @ ResolvedCall(signature, _, _, _, _, _, _),
           returns @ Return(_, _, _, _, _, _, _, _)
         )) if signature.systemProcedure =>
-        Some(planSystemProcedureCall(resolved, Some(returns)))
+        Some(planSystemProcedureCall(context.cypherVersion, resolved, Some(returns)))
 
       case SingleQuery(Seq(
           UseGraph(GraphDirectReference(CatalogName(List(SYSTEM_DATABASE_NAME), _))),
           resolved @ ResolvedCall(signature, _, _, _, _, _, _),
           returns @ Return(_, _, _, _, _, _, _, _)
         )) if signature.systemProcedure =>
-        Some(planSystemProcedureCall(resolved, Some(returns)))
+        Some(planSystemProcedureCall(context.cypherVersion, resolved, Some(returns)))
 
       case SingleQuery(Seq(resolved @ ResolvedCall(signature, _, _, _, _, _, _))) if signature.systemProcedure =>
-        Some(planSystemProcedureCall(resolved, None))
+        Some(planSystemProcedureCall(context.cypherVersion, resolved, None))
 
       case SingleQuery(
           Seq(
@@ -1630,7 +1631,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             resolved @ ResolvedCall(signature, _, _, _, _, _, _)
           )
         ) if signature.systemProcedure =>
-        Some(planSystemProcedureCall(resolved, None))
+        Some(planSystemProcedureCall(context.cypherVersion, resolved, None))
 
       // Non-administration commands that are allowed on system database, e.g. SHOW PROCEDURES YIELD ...
       case q @ SingleQuery(clauses) if checkClausesAllowedOnSystem(clauses) =>

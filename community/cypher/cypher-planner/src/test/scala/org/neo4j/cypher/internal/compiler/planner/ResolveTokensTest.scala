@@ -28,7 +28,9 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Where
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext
 import org.neo4j.cypher.internal.compiler.planner.ResolveTokensTest.AllPathsPattern
@@ -54,6 +56,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressio
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLabelsAndHasType
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -277,8 +280,9 @@ class ResolveTokensTest extends CypherFunSuite with AstConstructionTestSupport {
       val parsed =
         AstParserFactory(version)(queryText, Neo4jCypherExceptionFactory(queryText, None), None, Seq())
           .singleStatement()
+      val semanticContext = SemanticCheckContext(version, NotImplementedErrorMessageProvider)
       val rewriter = LabelExpressionPredicateNormalizer.instance andThen
-        NormalizeHasLabelsAndHasType(SemanticChecker.check(parsed).state)
+        NormalizeHasLabelsAndHasType(SemanticChecker.check(parsed, SemanticState.clean, semanticContext).state)
       rewriter(parsed) match {
         case query: Query => withClue(s"Parser: $version\n")(f(query))
         case other        => throw new IllegalArgumentException(s"Unexpected value with $version: $other")

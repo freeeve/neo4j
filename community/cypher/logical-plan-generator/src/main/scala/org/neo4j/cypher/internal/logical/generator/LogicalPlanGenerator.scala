@@ -92,7 +92,6 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cost
-import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.attribution.Default
@@ -104,7 +103,6 @@ import org.neo4j.cypher.messages.MessageUtilProvider
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
 import org.neo4j.kernel.api.StatementConstants
-import org.neo4j.kernel.database.DatabaseReference
 import org.scalacheck.Gen
 
 import scala.language.implicitConversions
@@ -701,15 +699,8 @@ class LogicalPlanGenerator(
     for {
       expression <- expressionGen(new SemanticAwareAstGenerator(allowedVarNames = Some(availableSymbols.map(_.name))))
         .suchThat(e => {
-          val errors = SemanticExpressionCheck.check(Results, e).run(
-            semanticState,
-            new SemanticCheckContext {
-              override def cypherVersion: CypherVersion = CypherVersion.Default
-              override def errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
-              override def sessionDatabaseReference: DatabaseReference = null
-            }
-          ).errors
-          errors.isEmpty
+          val context = SemanticCheckContext(CypherVersion.Default, MessageUtilProvider)
+          SemanticExpressionCheck.check(Results, e).run(semanticState, context).errors.isEmpty
         })
       parameters = expression.folder.findAllByClass[Parameter].map(_.name)
       state <- state.addParameters(parameters.toSet)

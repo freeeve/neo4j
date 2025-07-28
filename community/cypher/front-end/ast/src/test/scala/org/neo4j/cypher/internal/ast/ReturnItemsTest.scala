@@ -16,8 +16,8 @@
  */
 package org.neo4j.cypher.internal.ast
 
-import SemanticCheckInTest.SemanticCheckWithDefaultContext
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
+import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.functions.Size
@@ -178,7 +178,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
     tests.foreach { returnItems =>
       val result = ReturnItems.checkAmbiguousGrouping(
         ReturnItems(FreeProjection, returnItems)(InputPosition.NONE)
-      ).run(SemanticState.clean, SemanticCheckContext.default)
+      ).run(SemanticState.clean, arbitrarySemanticContext())
 
       withClue(s"returnItems threw unexpected error: $returnItems") {
         result.errors should have size 0
@@ -361,7 +361,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
     tests.foreach { case Scenario(returnItems, invalidExpr) =>
       val result = ReturnItems.checkAmbiguousGrouping(
         ReturnItems(FreeProjection, returnItems)(InputPosition.NONE)
-      ).run(SemanticState.clean, SemanticCheckContext.default)
+      ).run(SemanticState.clean, arbitrarySemanticContext())
       val expectedErrorMessage = SemanticError.implicitGroupingExpressionInAggregationColumnErrorMessage(invalidExpr)
 
       withClue(
@@ -380,7 +380,7 @@ class ReturnItemsTest extends CypherFunSuite with AstConstructionTestSupport {
     )
     val result = ReturnItems.checkAmbiguousGrouping(
       ReturnItems(FreeProjection, returnItems)(InputPosition.NONE)
-    ).run(SemanticState.clean, SemanticCheckContext.default)
+    ).run(SemanticState.clean, arbitrarySemanticContext())
 
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(4, 2, 3)

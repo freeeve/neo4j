@@ -22,8 +22,8 @@ object SemanticChecker {
 
   def check(
     statement: Statement,
-    state: SemanticState = SemanticState.clean,
-    context: SemanticCheckContext = SemanticCheckContext.default
+    state: SemanticState,
+    context: SemanticCheckContext
   ): SemanticCheckResult = {
     SemanticFeature.checkFeatureCompatibility(state.features)
     val result = statement.semanticCheck.run(state, context)

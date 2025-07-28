@@ -17,8 +17,8 @@
 package org.neo4j.cypher.internal.ast
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
@@ -150,7 +150,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       List(literalString("role", pos3), literalInt(42, pos4))
     )(p)
 
-    grantPrivilege.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    grantPrivilege.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlWrongType("42", "rolename", Seq("STRING NOT NULL"), pos4),
         initialState,
@@ -171,7 +171,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       List(literalString("role", pos3), literalInt(42, pos4))
     )(p)
 
-    denyPrivilege.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    denyPrivilege.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlWrongType("42", "rolename", Seq("STRING NOT NULL"), pos4),
         initialState,
@@ -193,7 +193,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RevokeBothType()(pos)
     )(p)
 
-    revokePrivilege.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    revokePrivilege.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlWrongType("42", "rolename", Seq("STRING NOT NULL"), pos4),
         initialState,
@@ -323,7 +323,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           Seq(literalString("role1"))
         )(p)
 
-        val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+        val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
         result.errors.size shouldBe 1
         val e = result.errors.head
         e.msg shouldBe "Failed to administer property rule. The expression: `{prop1: \"val1\", prop2: \"val2\"}` is not supported. Property rules can only contain one property."
@@ -363,7 +363,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           val e = result.errors.head
           e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator 1 AND n.prop2 $operator 1` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
@@ -396,7 +396,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           val e = result.errors.head
           e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator 1 OR n.prop2 $operator 1` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
@@ -417,7 +417,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe s"Failed to administer property rule. The property value access rule pattern `prop1 $operator NULL` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
         }
@@ -435,7 +435,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe s"Failed to administer property rule. The property value access rule pattern `NULL $operator prop1` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
         }
@@ -455,7 +455,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe s"Failed to administer property rule. The property value access rule pattern `prop $operator NULL` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
         }
@@ -475,7 +475,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe s"Failed to administer property rule. The property value access rule pattern `NULL $operator prop` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
         }
@@ -495,7 +495,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe "Failed to administer property rule. `NaN` is not supported for property-based access control."
           result.errors.head.gqlStatusObject should be(
@@ -525,7 +525,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe "Failed to administer property rule. `NaN` is not supported for property-based access control."
           result.errors.head.gqlStatusObject should be(gqlStatus(
@@ -556,7 +556,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           val e = result.errors.head
           e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator 1 + 2` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
@@ -582,7 +582,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           val e = result.errors.head
           e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator `date.realtime`()` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
@@ -689,7 +689,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
                 Seq(literalString("role1"))
               )(p)
 
-              val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+              val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
               result.errors.size shouldBe 1
               val e = result.errors.head
               e.msg shouldBe "Failed to administer property rule. " +
@@ -783,7 +783,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
                 Seq(literalString("role1"))
               )(p)
 
-              val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+              val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
               result.errors.size shouldBe 1
               val e = result.errors.head
               e.msg shouldBe "Failed to administer property rule. " +
@@ -813,7 +813,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           val e = result.errors.head
           e.msg shouldBe s"Failed to administer property rule. The expression: `NOT (NOT n.prop1 $operator 1)` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
@@ -836,7 +836,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             Seq(literalString("role1"))
           )(p)
 
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           val e = result.errors.head
           e.msg shouldBe s"Failed to administer property rule. The property `prop1` must appear on the left hand side of the `$operator` operator."
@@ -855,7 +855,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           Seq(literalString("role1"))
         )(p)
 
-        val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+        val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
         result.errors.size shouldBe 1
         result.errors.head.msg shouldBe "Failed to administer property rule. The property value access rule pattern `{prop1:NULL}` always evaluates to `NULL`. Use `WHERE` syntax in combination with `IS NULL` instead."
       }
@@ -878,7 +878,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           Seq(literalString("role1"))
         )(p)
 
-        val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+        val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
         result.errors.size shouldBe 1
         val e = result.errors.head
         e.msg shouldBe "Failed to administer property rule. The expression: `{prop1: 1 + 2}` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
@@ -1003,7 +1003,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
               Seq(literalString("role1"))
             )(p)
 
-            val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+            val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
             result.errors.size shouldBe 1
             val e = result.errors.head
             e.msg shouldBe "Failed to administer property rule. " +
@@ -1078,7 +1078,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
               Seq(literalString("role1"))
             )(p)
 
-            val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+            val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
             result.errors.size shouldBe 1
             val e = result.errors.head
             e.msg shouldBe "Failed to administer property rule. " +
@@ -1169,7 +1169,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
               Seq(literalString("role1"))
             )(p)
 
-            val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+            val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
             result.errors.isEmpty shouldBe true
           }
         }
@@ -1290,7 +1290,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
               Seq(literalString("role1"))
             )(p)
 
-            val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+            val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
             result.errors.isEmpty shouldBe true
           }
         }
@@ -1315,7 +1315,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           Seq(literalString("role1"))
         )(p)
 
-        val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+        val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
         result.errors.size shouldBe 1
         result.errors.head.msg shouldBe "Failed to administer property rule. " +
           s"The expression: `${expressionStringifier(expression)}` is not supported. " +
@@ -1352,7 +1352,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           Seq(literalString("role1"))
         )(p)
 
-        val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+        val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
         result.errors.size shouldBe 1
         result.errors.head.msg shouldBe "Variable `n` not defined"
       }
@@ -1375,7 +1375,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           Seq(literalString("role1"))
         )(p)
 
-        val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+        val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
         result.errors.size shouldBe 1
         result.errors.head.msg shouldBe "Variable `n` not defined"
       }
@@ -1402,7 +1402,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           Seq(literalString("role1"))
         )(p)
 
-        val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+        val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
         result.errors.exists(s =>
           s.msg == "Failed to administer property rule. " +
             "The expression: `1 = n.prop1(foo)` is not supported. " +
@@ -1459,7 +1459,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           Seq(literalString("role1"))
         )(p)
 
-        val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+        val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
         result.errors.size shouldBe 1
         val e = result.errors.head
         val pattern = element match {
@@ -1496,7 +1496,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             ),
             Seq(literalString("role1"))
           )(p)
-          val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
+          val result = privilege.semanticCheck.run(initialState, arbitrarySemanticContext())
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe s"${invalidAction.name} is not supported for property value access rules."
         }
@@ -1530,7 +1530,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(password(password)(pos1), password(password)(pos2)))(pos1))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
@@ -1548,7 +1548,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(password(paramPassword)(pos1), password(password)(pos2)))(pos1))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
@@ -1566,7 +1566,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(password(password)(pos)))(pos))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError(
@@ -1586,7 +1586,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError(
@@ -1606,7 +1606,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError(
@@ -1626,7 +1626,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(password(password)(pos)))(pos))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError(
@@ -1646,7 +1646,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError(
@@ -1666,7 +1666,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         initialState,
         SemanticError(
@@ -1686,7 +1686,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(passwordChange(requireChange = true)(pos1)))(pos1))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
@@ -1704,7 +1704,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gqlMissingAuth(p), initialState, "No auth given for user.", p).errors
   }
 
@@ -1717,7 +1717,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(passwordChange(requireChange = true)(pos1)))(pos1))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
@@ -1735,7 +1735,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(passwordChange(requireChange = true)(pos1)))(pos1))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
@@ -1753,7 +1753,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gqlMissingAuth(p), initialState, "No auth given for user.", p).errors
   }
 
@@ -1766,7 +1766,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(passwordChange(requireChange = false)(pos1)))(pos1))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
@@ -1784,7 +1784,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(passwordChange(requireChange = false)(pos1)))(pos1))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
@@ -1802,7 +1802,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gqlMissingAuth(p), initialState, "No auth given for user.", p).errors
   }
 
@@ -1815,7 +1815,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(passwordChange(requireChange = true)(pos1)))(pos1))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
@@ -1840,7 +1840,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       )(pos))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD CHANGE [NOT] REQUIRED", pos3),
         initialState,
@@ -1858,7 +1858,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
@@ -1898,7 +1898,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         "Auth provider `native` does not allow `SET ID` clause.",
         pos2
       ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2
   }
 
   test("CREATE USER foo SET AUTH PROVIDER 'foo' { SET PASSWORD 'password' }") {
@@ -1932,7 +1932,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         "Auth provider `foo` does not allow `SET PASSWORD` clause.",
         pos2
       ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2
   }
 
   test(
@@ -1962,7 +1962,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos3
     ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2
   }
 
   test(
@@ -1998,7 +1998,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos3
     ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2 ++ error3
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2 ++ error3
   }
 
   test("CREATE USER foo SET PASSWORD 'password' SET AUTH PROVIDER 'native' { SET PASSWORD 'password' }") {
@@ -2016,7 +2016,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       "Cannot combine old and new auth syntax for the same auth provider.",
       pos1
     ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error
   }
 
   test("CREATE USER foo SET AUTH PROVIDER 'native' { SET PASSWORD 'password' } SET PASSWORD CHANGE REQUIRED") {
@@ -2040,7 +2040,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos3
     ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2
   }
 
   test("CREATE USER foo SET PASSWORD 'password' SET AUTH PROVIDER 'native' { SET PASSWORD CHANGE REQUIRED }") {
@@ -2064,7 +2064,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos2
     ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2
   }
 
   test("CREATE USER foo SET AUTH PROVIDER 'native' { SET PASSWORD CHANGE NOT REQUIRED } SET PASSWORD CHANGE REQUIRED") {
@@ -2094,7 +2094,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos3
     ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2 ++ error3
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2 ++ error3
   }
 
   test("CREATE USER foo SET AUTH 'foo' { SET ID 'bar' } SET AUTH PROVIDER 'foo' { SET ID 'bar' }") {
@@ -2106,7 +2106,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
@@ -2124,7 +2124,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
@@ -2142,7 +2142,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos3),
         initialState,
@@ -2160,7 +2160,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos3),
         initialState,
@@ -2178,7 +2178,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET ID", pos2),
         initialState,
@@ -2203,7 +2203,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos2.line,
       pos2.column
     )
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `foo` does not allow `SET PASSWORD` clause.", pos2).errors
   }
 
@@ -2223,7 +2223,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos1.line,
       pos1.column
     )
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `native` does not allow `SET ID` clause.", pos1).errors
   }
 
@@ -2243,7 +2243,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos2.line,
       pos2.column
     )
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gql,
         initialState,
@@ -2261,7 +2261,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       Some(Auth("native", List(passwordChange(requireChange = true)(pos2)))(pos2))
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
@@ -2301,7 +2301,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         "Auth provider `native` does not allow `SET ID` clause.",
         pos1
       ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2
   }
 
   test(
@@ -2326,7 +2326,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos1.line,
       pos1.column
     )
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `native` does not allow `SET ID` clause.", pos1).errors
   }
 
@@ -2351,7 +2351,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos2.line,
       pos2.column
     )
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `foo` does not allow `SET PASSWORD` clause.", pos2).errors
   }
 
@@ -2392,7 +2392,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
     ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2 ++ error3
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2 ++ error3
   }
 
   test("CREATE USER foo SET AUTH PROVIDER '' { SET ID '' }") {
@@ -2404,7 +2404,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlAuthProviderNotAllowedEmpty(pos1),
         initialState,
@@ -2450,7 +2450,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
     ).errors
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2 ++ error3
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2 ++ error3
   }
 
   test("CREATE USER foo SET AUTH PROVIDER '' { SET ID 'bar' }") {
@@ -2462,7 +2462,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlAuthProviderNotAllowedEmpty(pos1),
         initialState,
@@ -2480,7 +2480,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlWrongType("42", "id", Seq("STRING NOT NULL"), pos3),
         initialState,
@@ -2498,7 +2498,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       None
     )(p)
 
-    createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    createUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlWrongType("$numberParam", "id", Seq("STRING NOT NULL"), pos3),
         initialState,
@@ -2514,7 +2514,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       ifExists = false
     )(p)
 
-    renameUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    renameUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlWrongType("true", "to username", Seq("STRING NOT NULL"), pos2),
         initialState,
@@ -2533,7 +2533,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gqlIncompleteAuthCommand(p), initialState, "`ALTER USER` requires at least one clause.", p).errors
   }
 
@@ -2547,7 +2547,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
@@ -2566,7 +2566,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
@@ -2585,7 +2585,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
@@ -2607,7 +2607,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD CHANGE [NOT] REQUIRED", pos2),
         initialState,
@@ -2635,7 +2635,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos1.line,
         pos1.column
       )
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `native` does not allow `SET ID` clause.", pos1).errors
   }
 
@@ -2671,7 +2671,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         "Clause `SET ID` is mandatory for auth provider `foo`.",
         pos1
       ).errors
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2
   }
 
   test(
@@ -2690,7 +2690,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET AUTH 'native'", pos3),
         initialState,
@@ -2715,7 +2715,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET AUTH 'native'", pos3),
         initialState,
@@ -2734,7 +2734,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlCannotCombineOldAndNewSyntax(pos3),
         initialState,
@@ -2753,7 +2753,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlCannotCombineOldAndNewSyntax(pos3),
         initialState,
@@ -2772,7 +2772,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlCannotCombineOldAndNewSyntax(pos1),
         initialState,
@@ -2791,7 +2791,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlCannotCombineOldAndNewSyntax(pos3),
         initialState,
@@ -2810,7 +2810,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
@@ -2829,7 +2829,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
@@ -2848,7 +2848,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos3),
         initialState,
@@ -2867,7 +2867,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET PASSWORD", pos3),
         initialState,
@@ -2886,7 +2886,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET ID", pos2),
         initialState,
@@ -2905,7 +2905,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET ID", pos2),
         initialState,
@@ -2932,7 +2932,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos2.line,
       pos2.column
     )
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `foo` does not allow `SET PASSWORD` clause.", pos2).errors
   }
 
@@ -2954,7 +2954,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos1.line,
       pos1.column
     )
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `native` does not allow `SET ID` clause.", pos1).errors
   }
 
@@ -2976,7 +2976,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos2.line,
       pos2.column
     )
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gql,
         initialState,
@@ -3003,7 +3003,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos1.line,
       pos1.column
     )
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `native` does not allow `SET ID` clause.", pos1).errors
   }
 
@@ -3030,7 +3030,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos1.line,
       pos1.column
     )
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `native` does not allow `SET ID` clause.", pos1).errors
   }
 
@@ -3057,7 +3057,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos2.line,
       pos2.column
     )
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(gql, initialState, "Auth provider `foo` does not allow `SET PASSWORD CHANGE [NOT] REQUIRED` clause.", pos2)
       .errors
   }
@@ -3102,7 +3102,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       ).errors
     alterUser.semanticCheck.run(
       initialState,
-      SemanticCheckContext.default
+      arbitrarySemanticContext()
     ).errors shouldBe error1 ++ error2 ++ error3 // shouldBe error1 ++ error2 ++ error3
   }
 
@@ -3116,7 +3116,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlAuthProviderNotAllowedEmpty(pos1),
         initialState,
@@ -3163,7 +3163,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         "Clause `SET ID` is mandatory for auth provider ``.",
         pos1
       ).errors
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2 ++ error3
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2 ++ error3
   }
 
   test("ALTER USER foo SET AUTH PROVIDER '' { SET ID 'bar' }") {
@@ -3176,7 +3176,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlAuthProviderNotAllowedEmpty(pos1),
         initialState,
@@ -3195,7 +3195,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlWrongType("42", "id", Seq("STRING NOT NULL"), pos3),
         initialState,
@@ -3214,7 +3214,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List(literalInt(42, pos1)))
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlRemoveAuthWrongType("42", pos1),
         initialState,
@@ -3233,7 +3233,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List(listOfWithPosition(pos1, literalInt(42, pos2), literalInt(69, pos3))))
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlRemoveAuthWrongType("[42, 69]", pos1),
         initialState,
@@ -3252,7 +3252,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List(listOfWithPosition(pos1, literalString("bar"), literalInt(69, pos3))))
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlRemoveAuthWrongType("""["bar", 69]""", pos1),
         initialState,
@@ -3271,7 +3271,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List(listOfWithPosition(pos1, literalInt(69, pos3), literalString("bar"))))
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlRemoveAuthWrongType("""[69, "bar"]""", pos1),
         initialState,
@@ -3290,7 +3290,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List(listOfWithPosition(pos1)))
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlRemoveAuthWrongType("[]", pos1),
         initialState,
@@ -3339,7 +3339,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         "Clause `SET ID` is mandatory for auth provider `foo`.",
         pos2
       ).errors
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe error1 ++ error2 ++ error3
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe error1 ++ error2 ++ error3
   }
 
   test("ALTER USER foo REMOVE ALL AUTH SET AUTH PROVIDER 'foo' { SET ID 'bar' } SET AUTH 'foo' { SET ID 'qux' }") {
@@ -3352,7 +3352,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = true, List.empty)
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
@@ -3371,7 +3371,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       RemoveAuth(all = false, List(literalString("foo")))
     )(p)
 
-    alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    alterUser.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
@@ -3388,7 +3388,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       ifExists = true
     )(p)
 
-    dropRole.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+    dropRole.semanticCheck.run(initialState, arbitrarySemanticContext()).errors shouldBe SemanticCheckResult
       .error(
         gqlWrongType("3.5", "rolename", Seq("STRING NOT NULL"), pos),
         initialState,

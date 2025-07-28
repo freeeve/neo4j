@@ -337,10 +337,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     def checkSkip: SemanticCheck = wth.skip.foldSemanticCheck(_ => err("SKIP"))
     def checkLimit: SemanticCheck = wth.limit.foldSemanticCheck(_ => err("LIMIT"))
 
-    fromState { state =>
-      val resultState = wth.returnItems.items.foldSemanticCheck(_.semanticCheck)
-        .run(state, SemanticCheckContext.empty)
-
+    fromFunctionWithContext { (state, context) =>
+      val resultState = wth.returnItems.items.foldSemanticCheck(_.semanticCheck).run(state, context)
       val hasImports = wth.returnItems.includeExisting || wth.returnItems.items.exists {
         item =>
           item.expression
@@ -348,7 +346,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
             .dependencies
             .nonEmpty
       }
-      when(hasImports) {
+      val check = when(hasImports) {
         checkReturnItems chain
           checkDistinct chain
           checkWhere chain
@@ -356,6 +354,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
           checkSkip chain
           checkLimit
       }
+      check.run(state, context)
     }
   }
 

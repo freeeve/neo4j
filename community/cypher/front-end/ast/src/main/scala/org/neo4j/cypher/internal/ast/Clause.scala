@@ -493,29 +493,24 @@ final case class UseGraph(graphReference: GraphReference)(val position: InputPos
   }
 
   private def checkWorkingGraph: SemanticCheck = {
-    SemanticCheck.fromFunctionWithContext((state, context) =>
-      if (state.workingGraph.isEmpty) {
+    SemanticCheck.fromFunctionWithContext { (state, context) =>
+      state.workingGraph match {
         // The session database reference is not forwarded in all places perform a semantic check.
         // Only record the working graph for the nested check if we know the session database
-        if (
-          context.sessionDatabaseReference != null && !repeatsSessionDatabaseReference(context.sessionDatabaseReference)
-        ) {
-          SemanticCheckResult.success(state.recordWorkingGraph(Some(graphReference)))
-        } else {
-          SemanticCheckResult.success(state)
-        }
-      } else {
-        if (state.workingGraph.get.semanticallyEqual(graphReference)) {
-          SemanticCheckResult.success(state)
-        } else {
-          SemanticCheckResult.error(
+        case None => context.sessionDatabaseReference match {
+            case Some(dbRef) if !repeatsSessionDatabaseReference(dbRef) =>
+              SemanticCheckResult.success(state.recordWorkingGraph(Some(graphReference)))
+            case _ => SemanticCheckResult.success(state)
+          }
+        case Some(workingGraph) =>
+          if (workingGraph.semanticallyEqual(graphReference)) SemanticCheckResult.success(state)
+          else SemanticCheckResult.error(
             state,
             "Nested subqueries must use the same graph as their parent query",
             graphReference.position
           )
-        }
       }
-    )
+    }
   }
 
   /**

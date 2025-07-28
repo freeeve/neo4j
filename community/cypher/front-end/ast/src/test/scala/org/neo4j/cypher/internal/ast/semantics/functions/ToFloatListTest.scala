@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics.functions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTDate
 import org.neo4j.cypher.internal.util.symbols.CTFloat
@@ -36,17 +37,20 @@ class ToFloatListTest extends FunctionTestBase("toFloatList") {
   }
 
   test("shouldFailTypeCheckForIncompatibleArguments") {
-    testInvalidApplication(CTNode)(
-      "Type mismatch: expected List<T> but was Node"
-    )
+    testInvalidApplicationInVersion(CTNode) {
+      case CypherVersion.Cypher5 => "Type mismatch: expected List<T> but was Node"
+      case _                     => "Type mismatch: expected Vector or List<T> but was Node"
+    }
 
-    testInvalidApplication(CTDate)(
-      "Type mismatch: expected List<T> but was Date"
-    )
+    testInvalidApplicationInVersion(CTDate) {
+      case CypherVersion.Cypher5 => "Type mismatch: expected List<T> but was Date"
+      case _                     => "Type mismatch: expected Vector or List<T> but was Date"
+    }
 
-    testInvalidApplication(CTString)(
-      "Type mismatch: expected List<T> but was String"
-    )
+    testInvalidApplicationInVersion(CTString) {
+      case CypherVersion.Cypher5 => "Type mismatch: expected List<T> but was String"
+      case _                     => "Type mismatch: expected Vector or List<T> but was String"
+    }
   }
 
   test("shouldFailIfWrongNumberOfArguments") {

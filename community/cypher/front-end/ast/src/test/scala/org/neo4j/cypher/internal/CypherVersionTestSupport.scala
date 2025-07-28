@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
+import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertions.withClue
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
@@ -24,10 +26,15 @@ import scala.util.Random
 
 object CypherVersionHelpers {
 
+  @deprecated("Please do not use this, find other ways to handle multi language testing", "now")
   def randomVersion(): CypherVersion = {
     val values = CypherVersion.values()
     values(Random.nextInt(values.length))
   }
+
+  @deprecated("Please do not use this, find other ways to handle multi language testing", "now")
+  def arbitrarySemanticContext(): SemanticCheckContext =
+    SemanticCheckContext(randomVersion(), NotImplementedErrorMessageProvider)
 
   def equalInVersions[T](versions: CypherVersion*)(f: CypherVersion => T): T = {
     val baselineVersion = versions(Random.nextInt(versions.size))

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.FreeProjection
@@ -31,7 +32,6 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.ast.With
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ExpandStar
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.ExpandShowWhere
@@ -298,7 +298,7 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
     val expressionPos = InputPosition(wizz.length, 1, wizz.length + 1)
 
     val original = prepRewrite(s"${wizz}RETURN *")
-    val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
+    val checkResult = original.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)
     val after = original.rewrite(ExpandStar(checkResult.state))
     val returnItem = after.asInstanceOf[Query].asInstanceOf[SingleQuery]
       .clauses.last.asInstanceOf[Return].returnItems.items.head.asInstanceOf[AliasedReturnItem]
@@ -368,7 +368,7 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
         )
       } else expectedUpdatedReturn
 
-    val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
+    val checkResult = original.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)
     val rewriter = ExpandStar(checkResult.state)
 
     val result = original.rewrite(rewriter)

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
@@ -139,7 +140,7 @@ trait PlannerQueryRewriterTest {
     val astOriginal = parse(query.replace("\r\n", "\n"), exceptionFactory)
     val ast = rewriteAST(astOriginal, exceptionFactory, anonymousVariableNameGenerator)
     val onError = SyntaxExceptionCreator.throwOnError(exceptionFactory)
-    val result = SemanticChecker.check(ast, SemanticState.clean)
+    val result = SemanticChecker.check(ast, SemanticState.clean, arbitrarySemanticContext())
     onError(result.errors)
     val table = SemanticTable(
       types = result.state.typeTable,

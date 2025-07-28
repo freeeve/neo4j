@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
@@ -35,7 +36,6 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.Expression
@@ -78,7 +78,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, Some(pos))
     val parsed = parse(queryText, exceptionFactory)
     val normalized = parsed.endoRewrite(inSequence(NormalizeWithAndReturnClauses(exceptionFactory)))
-    val checkResult = normalized.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
+    val checkResult = normalized.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)
     normalized.endoRewrite(inSequence(ExpandStar(checkResult.state)))
   }
 

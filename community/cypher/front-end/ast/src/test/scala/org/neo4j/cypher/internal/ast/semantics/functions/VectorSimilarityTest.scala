@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics.functions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTFloat
 import org.neo4j.cypher.internal.util.symbols.CTInteger
@@ -28,28 +29,48 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 abstract class VectorSimilarityTest(functionName: String) extends FunctionTestBase(s"vector.similarity.$functionName") {
 
   test("should accept correct types") {
-    testValidTypes(CTList(CTFloat), CTList(CTFloat))(CTFloat)
-    testValidTypes(CTList(CTFloat), CTList(CTInteger))(CTFloat)
-    testValidTypes(CTList(CTInteger), CTList(CTFloat))(CTFloat)
-    testValidTypes(CTList(CTInteger), CTList(CTInteger))(CTFloat)
+    testValidTypesInVersion(CTList(CTFloat), CTList(CTFloat)) {
+      case CypherVersion.Cypher5 => CTFloat
+      case _                     => CTFloat
+    }
+    testValidTypesInVersion(CTList(CTFloat), CTList(CTInteger)) {
+      case CypherVersion.Cypher5 => CTFloat
+      case _                     => CTFloat
+    }
+    testValidTypesInVersion(CTList(CTInteger), CTList(CTFloat)) {
+      case CypherVersion.Cypher5 => CTFloat
+      case _                     => CTFloat
+    }
+    testValidTypesInVersion(CTList(CTInteger), CTList(CTInteger)) {
+      case CypherVersion.Cypher5 => CTFloat
+      case _                     => CTFloat
+    }
   }
 
   test("should fail if wrong types") {
-    testInvalidApplication(CTList(CTNumber), CTList(CTString))(
-      "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was List<String>"
-    )
-    testInvalidApplication(CTList(CTInteger), CTList(CTBoolean))(
-      "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was List<Boolean>"
-    )
-    testInvalidApplication(CTList(CTFloat), CTPoint)(
-      "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was Point"
-    )
-    testInvalidApplication(CTBoolean, CTInteger)(
-      "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was Boolean"
-    )
-    testInvalidApplication(CTList(CTFloat), CTList(CTString))(
-      "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was List<String>"
-    )
+    testInvalidApplicationInVersion(CTList(CTNumber), CTList(CTString)) {
+      case CypherVersion.Cypher5 =>
+        "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was List<String>"
+      case _ => "Type mismatch: expected Vector, List<Float>, List<Integer> or List<Number> but was List<String>"
+    }
+    testInvalidApplicationInVersion(CTList(CTInteger), CTList(CTBoolean)) {
+      case CypherVersion.Cypher5 =>
+        "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was List<Boolean>"
+      case _ => "Type mismatch: expected Vector, List<Float>, List<Integer> or List<Number> but was List<Boolean>"
+    }
+    testInvalidApplicationInVersion(CTList(CTFloat), CTPoint) {
+      case CypherVersion.Cypher5 => "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was Point"
+      case _ => "Type mismatch: expected Vector, List<Float>, List<Integer> or List<Number> but was Point"
+    }
+    testInvalidApplicationInVersion(CTBoolean, CTInteger) {
+      case CypherVersion.Cypher5 => "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was Boolean"
+      case _ => "Type mismatch: expected Vector, List<Float>, List<Integer> or List<Number> but was Boolean"
+    }
+    testInvalidApplicationInVersion(CTList(CTFloat), CTList(CTString)) {
+      case CypherVersion.Cypher5 =>
+        "Type mismatch: expected List<Float>, List<Integer> or List<Number> but was List<String>"
+      case _ => "Type mismatch: expected Vector, List<Float>, List<Integer> or List<Number> but was List<String>"
+    }
   }
 
   test("should fail if wrong number of arguments") {

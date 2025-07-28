@@ -21,8 +21,10 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.flattenBooleanOperators
@@ -58,7 +60,7 @@ class InlineRelationshipTypePredicatesTest extends CypherFunSuite with PlannerQu
     ceF: CypherExceptionFactory,
     anonVarGen: AnonymousVariableNameGenerator
   ): Statement = {
-    val orgAstState = SemanticChecker.check(astOriginal).state
+    val orgAstState = SemanticChecker.check(astOriginal, SemanticState.clean, arbitrarySemanticContext()).state
     astOriginal.endoRewrite(inSequence(
       computeDependenciesForExpressions(orgAstState),
       LabelExpressionPredicateNormalizer.instance,

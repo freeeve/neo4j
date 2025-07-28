@@ -17,7 +17,7 @@
 package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
+import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
@@ -1482,7 +1482,7 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
     result.semanticCheck.run(
       SemanticState.clean.withFeatures(MultipleDatabases),
-      SemanticCheckContext.default
+      CypherVersionHelpers.arbitrarySemanticContext
     )
   }
 
@@ -1500,7 +1500,7 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
     result.semanticCheck.run(
       SemanticState.clean.withFeatures(MultipleDatabases),
-      SemanticCheckContext.default
+      CypherVersionHelpers.arbitrarySemanticContext
     )
   }
 

@@ -20,6 +20,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Return
@@ -194,7 +195,8 @@ class CNFNormalizerTest extends CypherFunSuite with PredicateTestSupport {
       case e: Expression =>
         val initialState =
           InitialState("", NoPlannerName, new AnonymousVariableNameGenerator()).withStatement(TestStatement(e))
-        val finalState = cnfNormalizerTransformer.transform(initialState, new TestContext(monitors))
+        val finalState = cnfNormalizerTransformer
+          .transform(initialState, new TestContext(monitors, Some(randomVersion())))
         val expression = finalState.statement() match {
           case TestStatement(expression) => expression
           case x                         => fail(s"Expected TestStatement but was ${x.getClass}")
@@ -273,11 +275,12 @@ object TestContext extends MockitoSugar {
 }
 
 class TestContext(
-  override val monitors: Monitors
+  override val monitors: Monitors,
+  language: Option[CypherVersion] = None
 ) extends BaseContext {
 
   override def cypherVersion: CypherVersion =
-    throw new UnsupportedOperationException("This context do not support cypher version")
+    language.getOrElse(throw new UnsupportedOperationException("This context do not support cypher version"))
   override def tracer: CompilationPhaseTracer = CompilationPhaseTracer.NO_TRACING
   override def notificationLogger: InternalNotificationLogger = ???
   override def cypherExceptionFactory: CypherExceptionFactory = ???

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionHelpers.randomVersion
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
@@ -52,6 +53,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.Normal
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
@@ -84,8 +86,9 @@ trait QueryGraphProducer {
     val cleanedStatement: Statement =
       ast.endoRewrite(inSequence(NormalizeWithAndReturnClauses(exceptionFactory)))
     val onError = SyntaxExceptionCreator.throwOnError(exceptionFactory)
+    val semanticContext = SemanticCheckContext(version, NotImplementedErrorMessageProvider)
     val SemanticCheckResult(semanticState, errors) =
-      SemanticChecker.check(cleanedStatement, SemanticState.clean.withFeatures(semanticFeatures: _*))
+      SemanticChecker.check(cleanedStatement, SemanticState.clean.withFeatures(semanticFeatures: _*), semanticContext)
     onError(errors)
 
     val ns = Namespace(List("my", "proc"))(pos)

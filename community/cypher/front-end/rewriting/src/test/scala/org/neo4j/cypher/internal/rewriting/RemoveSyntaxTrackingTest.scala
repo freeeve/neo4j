@@ -20,10 +20,13 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -90,7 +93,8 @@ class RemoveSyntaxTrackingTest extends CypherFunSuite with AstRewritingTestSuppo
     CypherVersion.values().foreach { version =>
       val original = parse(version, originalQuery, exceptionFactory)
       val expected = parse(version, expectedQuery, exceptionFactory)
-      SemanticChecker.check(original)
+      val semanticContext = SemanticCheckContext(version, NotImplementedErrorMessageProvider)
+      SemanticChecker.check(original, SemanticState.clean, semanticContext)
       val result = original.rewrite(rewriterUnderTest)
       assert(
         result === expected,

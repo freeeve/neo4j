@@ -19,11 +19,9 @@ package org.neo4j.cypher.internal.ast.semantics
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
-import org.neo4j.cypher.internal.util.EmptyErrorMessageProvider
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.kernel.database.DatabaseReference
 
@@ -213,28 +211,25 @@ object SemanticCheckResult {
 trait SemanticCheckContext {
   def cypherVersion: CypherVersion
   def errorMessageProvider: ErrorMessageProvider
-  def sessionDatabaseReference: DatabaseReference
+  def sessionDatabaseReference: Option[DatabaseReference]
 }
 
 object SemanticCheckContext {
 
-  def default: SemanticCheckContext = new SemanticCheckContext {
-    override def cypherVersion: CypherVersion = CypherVersion.Default
-    override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
-    override def sessionDatabaseReference: DatabaseReference = null
-  }
+  case class Impl private (
+    override val cypherVersion: CypherVersion,
+    override val errorMessageProvider: ErrorMessageProvider,
+    override val sessionDatabaseReference: Option[DatabaseReference]
+  ) extends SemanticCheckContext
 
-  def empty: SemanticCheckContext = new SemanticCheckContext {
-    override def cypherVersion: CypherVersion = CypherVersion.Default
-    override def errorMessageProvider: ErrorMessageProvider = EmptyErrorMessageProvider
-    override def sessionDatabaseReference: DatabaseReference = null
-  }
+  def apply(
+    language: CypherVersion,
+    errorMessages: ErrorMessageProvider,
+    sessionDb: DatabaseReference
+  ): SemanticCheckContext = Impl(language, errorMessages, Some(sessionDb))
 
-  def defaultWithVersion(version: CypherVersion): SemanticCheckContext = new SemanticCheckContext {
-    override def cypherVersion: CypherVersion = version
-    override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
-    override def sessionDatabaseReference: DatabaseReference = null
-  }
+  def apply(language: CypherVersion, errorMessages: ErrorMessageProvider): SemanticCheckContext =
+    Impl(language, errorMessages, None)
 }
 
 class OptionSemanticChecking[A](val option: Option[A]) extends AnyVal {

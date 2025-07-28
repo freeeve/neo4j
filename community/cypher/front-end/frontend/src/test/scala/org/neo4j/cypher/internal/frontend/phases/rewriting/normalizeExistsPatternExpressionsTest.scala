@@ -16,7 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.rewriting
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
+import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.simplifyPredicates
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
@@ -153,7 +153,7 @@ class normalizeExistsPatternExpressionsTest extends CypherFunSuite with AstRewri
     val original = parse(originalQuery, Neo4jCypherExceptionFactory(originalQuery, None))
     val expected = parse(expectedQuery, Neo4jCypherExceptionFactory(expectedQuery, None))
 
-    val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
+    val checkResult = original.semanticCheck.run(SemanticState.clean, CypherVersionHelpers.arbitrarySemanticContext)
     val rewriter =
       inSequence(
         computeDependenciesForExpressions(checkResult.state),

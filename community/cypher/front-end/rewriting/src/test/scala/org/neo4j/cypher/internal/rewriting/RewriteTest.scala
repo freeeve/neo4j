@@ -17,13 +17,16 @@
 package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -93,7 +96,8 @@ trait RewriteTest extends AstRewritingTestSupport {
   ): (Statement, AnyRef) = {
     val original = parseForRewriting(version, originalQuery)
     val expected = parseForRewriting(version, expectedQuery)
-    SemanticChecker.check(original)
+    val semanticContext = SemanticCheckContext(version, NotImplementedErrorMessageProvider)
+    SemanticChecker.check(original, SemanticState.clean, semanticContext)
     val result = rewrite(original, originalQuery)
     (expected, result)
   }
@@ -101,7 +105,8 @@ trait RewriteTest extends AstRewritingTestSupport {
   protected def getRewrite(originalQuery: String, expectedQuery: String): (Statement, AnyRef) = {
     val original = parseForRewriting(originalQuery)
     val expected = parseForRewriting(expectedQuery)
-    SemanticChecker.check(original)
+    val semanticContext = SemanticCheckContext(CypherVersionHelpers.randomVersion(), NotImplementedErrorMessageProvider)
+    SemanticChecker.check(original, SemanticState.clean, semanticContext)
     val result = rewrite(original, originalQuery)
     (expected, result)
   }
@@ -111,7 +116,8 @@ trait RewriteTest extends AstRewritingTestSupport {
     val expected = parseForRewriting(expectedQuery)
     SemanticChecker.check(
       original,
-      SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector)
+      SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector),
+      SemanticCheckContext(CypherVersionHelpers.randomVersion(), NotImplementedErrorMessageProvider)
     )
     val result = rewrite(original, originalQuery)
     (expected, result)
@@ -126,7 +132,8 @@ trait RewriteTest extends AstRewritingTestSupport {
     val expected = parseForRewriting(version, expectedQuery)
     SemanticChecker.check(
       original,
-      SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector)
+      SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector),
+      SemanticCheckContext(version, NotImplementedErrorMessageProvider)
     )
     val result = rewrite(original, originalQuery)
     (expected, result)

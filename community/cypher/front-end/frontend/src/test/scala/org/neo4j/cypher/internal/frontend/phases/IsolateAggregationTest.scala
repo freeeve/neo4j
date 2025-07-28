@@ -16,12 +16,14 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.frontend.helpers.TestState
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.TestContext
 import org.neo4j.cypher.internal.rewriting.RewriteTest
@@ -605,7 +607,7 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
   override protected def getRewrite(originalQuery: String, expectedQuery: String): (Statement, AnyRef) = {
     val original = parseForRewriting(originalQuery)
     val expected = parseForRewriting(expectedQuery)
-    val semanticCheckResult = SemanticChecker.check(original)
+    val semanticCheckResult = SemanticChecker.check(original, SemanticState.clean, arbitrarySemanticContext())
 
     val originalWithDeps = original.endoRewrite(computeDependenciesForExpressions(semanticCheckResult.state))
 

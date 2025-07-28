@@ -17,9 +17,11 @@
 package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.LabelExpressionPredicateNormalizer
@@ -29,6 +31,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredi
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
+import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -71,7 +74,9 @@ class normalizePredicatesTest extends CypherFunSuite with TestName with AstRewri
   private def assertRewrite(expectedQuery: String): Unit = {
     def rewrite(query: String, rewriter: SemanticState => Rewriter): Statement = {
       val ast = parseForRewriting(query)
-      ast.endoRewrite(rewriter(SemanticChecker.check(ast).state))
+      val semanticContext =
+        SemanticCheckContext(CypherVersionHelpers.randomVersion(), NotImplementedErrorMessageProvider)
+      ast.endoRewrite(rewriter(SemanticChecker.check(ast, SemanticState.clean, semanticContext).state))
     }
 
     val result = rewrite(testName, rewriter)

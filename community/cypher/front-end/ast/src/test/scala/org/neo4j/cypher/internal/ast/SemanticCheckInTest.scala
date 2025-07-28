@@ -17,19 +17,27 @@
 package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
+import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
 
 object SemanticCheckInTest {
 
   implicit class SemanticCheckWithDefaultContext(check: SemanticCheck) {
-    def run(state: SemanticState): SemanticCheckResult = check.run(state, SemanticCheckContext.default)
+
+    @deprecated("handle cypher versioning properly in your tests!", "2025.06")
+    def run(state: SemanticState): SemanticCheckResult = check.run(state, arbitrarySemanticContext())
+
+    @deprecated("handle cypher versioning properly in your tests!", "2025.06")
+    def runWithCypher5(state: SemanticState): SemanticCheckResult =
+      check.run(state, SemanticCheckContext(CypherVersion.Cypher5, NotImplementedErrorMessageProvider))
 
     def run(state: SemanticState, version: CypherVersion): SemanticCheckResult = check.run(
       state,
-      SemanticCheckContext.defaultWithVersion(version)
+      SemanticCheckContext(version, NotImplementedErrorMessageProvider)
     )
   }
 }

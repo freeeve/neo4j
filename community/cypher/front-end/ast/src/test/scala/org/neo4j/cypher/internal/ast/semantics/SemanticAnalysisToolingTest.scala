@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.TypeMismatchContext
@@ -108,6 +109,6 @@ class SemanticAnalysisToolingTest extends CypherFunSuite with AstConstructionTes
       }
     }
 
-    check.run(initialState, SemanticCheckContext.default) shouldBe SemanticCheckResult.error(initialState, error)
+    check.run(initialState, arbitrarySemanticContext()) shouldBe SemanticCheckResult.error(initialState, error)
   }
 }

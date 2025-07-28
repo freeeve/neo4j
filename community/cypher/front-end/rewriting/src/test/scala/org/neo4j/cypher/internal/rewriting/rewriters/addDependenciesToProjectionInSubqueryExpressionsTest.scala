@@ -16,10 +16,10 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters
 
+import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.With
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
@@ -556,7 +556,10 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
     val normalizedWithAndReturnClauses =
       original.endoRewrite(NormalizeWithAndReturnClauses.getRewriter(cypherExceptionFactory))
     val checkResult =
-      normalizedWithAndReturnClauses.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
+      normalizedWithAndReturnClauses.semanticCheck.run(
+        SemanticState.clean,
+        CypherVersionHelpers.arbitrarySemanticContext
+      )
     val rewriter =
       inSequence(
         computeDependenciesForExpressions(checkResult.state),

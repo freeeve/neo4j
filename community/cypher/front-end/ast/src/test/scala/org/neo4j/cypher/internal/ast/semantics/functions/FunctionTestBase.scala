@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics.functions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
@@ -35,26 +36,45 @@ abstract class FunctionTestBase(funcName: String) extends SemanticFunSuite {
   protected val context: SemanticContext = SemanticContext.Simple
 
   protected def testValidTypes(argumentTypes: TypeSpec*)(expected: TypeSpec): Unit = {
-    val (result, invocation) = evaluateWithTypes(argumentTypes.toIndexedSeq)
-    result.errors shouldBe empty
-    types(invocation)(result.state) should equal(expected)
+    testValidTypesInVersion(argumentTypes: _*)(_ => expected)
+  }
+
+  protected def testValidTypesInVersion(argumentTypes: TypeSpec*)(expected: CypherVersion => TypeSpec): Unit = {
+    assertInVersions(argumentTypes) { case (language, result, invocation) =>
+      result.errors shouldBe empty
+      types(invocation)(result.state) should equal(expected(language))
+    }
   }
 
   protected def testInvalidApplication(argumentTypes: TypeSpec*)(message: String): Unit = {
-    val (result, _) = evaluateWithTypes(argumentTypes.toIndexedSeq)
-    result.errors should not be empty
-    result.errors.head.msg should equal(message)
+    testInvalidApplicationInVersion(argumentTypes: _*)(_ => message)
   }
 
-  protected def testInvalidApplicationWithGql(argumentTypes: TypeSpec*)(message: String)(gql: ErrorGqlStatusObject)
-    : Unit = {
-    val (result, _) = evaluateWithTypes(argumentTypes.toIndexedSeq)
-    result.errors should not be empty
-    result.errors.head.msg should equal(message)
-    result.errors.head.asInstanceOf[SemanticError].gqlStatusObject should equal(gql)
+  protected def testInvalidApplicationInVersion(argumentTypes: TypeSpec*)(message: CypherVersion => String): Unit = {
+    assertInVersions(argumentTypes) { case (language, result, _) =>
+      result.errors should not be empty
+      result.errors.head.msg should equal(message(language))
+    }
   }
 
-  protected def evaluateWithTypes(argumentTypes: IndexedSeq[TypeSpec]): (SemanticCheckResult, FunctionInvocation) = {
+  protected def testInvalidApplicationWithGql(
+    argumentTypes: TypeSpec*
+  )(
+    message: String
+  )(
+    gql: ErrorGqlStatusObject
+  ): Unit = {
+    assertInVersions(argumentTypes) { case (_, result, _) =>
+      result.errors should not be empty
+      result.errors.head.msg should equal(message)
+      result.errors.head.asInstanceOf[SemanticError].gqlStatusObject should equal(gql)
+    }
+  }
+
+  protected def evaluateWithTypes(
+    language: CypherVersion,
+    argumentTypes: IndexedSeq[TypeSpec]
+  ): (SemanticCheckResult, FunctionInvocation) = {
     val arguments = argumentTypes.map(DummyExpression(_))
 
     val invocation = FunctionInvocation(
@@ -63,8 +83,21 @@ abstract class FunctionTestBase(funcName: String) extends SemanticFunSuite {
       arguments
     )(DummyPosition(5))
 
-    val state = SemanticExpressionCheck.check(context, arguments).run(SemanticState.clean).state
-    (SemanticExpressionCheck.check(context, invocation).run(state), invocation)
+    val state = SemanticExpressionCheck.check(context, arguments).run(SemanticState.clean, language).state
+    (SemanticExpressionCheck.check(context, invocation).run(state, language), invocation)
+  }
+
+  private def assertInVersions(types: Seq[TypeSpec])(f: (
+    CypherVersion,
+    SemanticCheckResult,
+    FunctionInvocation
+  ) => Unit): Unit = {
+    CypherVersion.values().foreach { language =>
+      withClue(s"Cypher version: $language") {
+        val (result, invocation) = evaluateWithTypes(language, types.toIndexedSeq)
+        f(language, result, invocation)
+      }
+    }
   }
 }
 
