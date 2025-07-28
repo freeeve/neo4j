@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.expressions
+import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
@@ -3262,12 +3263,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, mode, _) =>
+      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, mode, allReduceMappings) =>
         PlanDescriptionImpl(
           id = plan.id,
           s"Repeat(${expandModeDescription(mode)}, Trail)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end))),
+          Seq(Details(repeatDetails(repetition, start, end, allReduceMappings))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3278,7 +3279,7 @@ case class LogicalPlan2PlanDescription(
           id = plan.id,
           "BidirectionalRepeat(Trail)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end))),
+          Seq(Details(repeatDetails(repetition, start, end, Set.empty))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3295,12 +3296,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, _, mode, _) =>
+      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, _, mode, allReduceMappings) =>
         PlanDescriptionImpl(
           id = plan.id,
           s"Repeat(${expandModeDescription(mode)}, Walk)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end))),
+          Seq(Details(repeatDetails(repetition, start, end, allReduceMappings))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3318,15 +3319,31 @@ case class LogicalPlan2PlanDescription(
   private def repeatDetails(
     repetition: Repetition,
     start: LogicalVariable,
-    end: LogicalVariable
+    end: LogicalVariable,
+    inlinedAllReduceAccumulators: Set[AllReduceAccumulator]
   ): PrettyString = {
+    val allReduceInitString = {
+      inlinedAllReduceAccumulators.toSeq match {
+        case Seq() => pretty""
+        case accs =>
+          accs
+            .map(acc => pretty"  ${asPrettyString(acc.previous)} = ${asPrettyString(acc.initial)}")
+            .sorted
+            .mkPrettyString(
+              "\n \ninlined allReduce() initializers:\n",
+              "\n",
+              ""
+            )
+      }
+    }
+
     val repString = repetition match {
       case Repetition(min, Limited(n)) =>
         pretty"{${asPrettyString.raw(min.toString)}, ${asPrettyString.raw(n.toString)}}"
       case Repetition(min, Unlimited) =>
         pretty"{${asPrettyString.raw(min.toString)}, }"
     }
-    pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})"
+    pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})$allReduceInitString"
   }
 
   private def addPlanningAttributes(

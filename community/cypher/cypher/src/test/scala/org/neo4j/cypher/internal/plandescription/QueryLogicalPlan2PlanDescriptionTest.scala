@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
+import org.neo4j.cypher.internal.expressions.AllReduceAccumulator
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
@@ -5621,6 +5622,54 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Set("r", "a", "anon_2", "anon_0", "end")
       )
     )
+
+    assertGood(
+      attach(
+        RepeatTrail(
+          lhsLP,
+          rhsLP,
+          Repetition(0, Unlimited),
+          varFor("  UNNAMED0"),
+          varFor("  end@1"),
+          varFor("  a@1"),
+          varFor("  UNNAMED1"),
+          Set(
+            variableGrouping(varFor("  a@1"), varFor("  a@2")),
+            variableGrouping(varFor("  UNNAMED1"), varFor("  UNNAMED2"))
+          ),
+          Set(variableGrouping(varFor("  r@1"), varFor("  r@2"))),
+          Set(varFor("  r@1")),
+          Set.empty,
+          Set.empty,
+          reverseGroupVariableProjections = false,
+          ExpandAll,
+          accumulatorMappings = Set(
+            AllReduceAccumulator(literal(123), varFor("  acc@512"), varFor("  acc@1024"))(pos),
+            AllReduceAccumulator(literal("hello"), varFor("  acc@111"), varFor("  acc@222"))(pos),
+            AllReduceAccumulator(
+              listOf(literal(1), varFor("x"), literal(3)),
+              varFor("  result@512"),
+              varFor("  result@1024")
+            )(pos)
+          )
+        ),
+        2345.0
+      ),
+      planDescription(
+        id,
+        "Repeat(All, Trail)",
+        Seq(lhsPD, rhsPD),
+        List(details(Seq(
+          "(anon_0) (...){0, } (end)",
+          " ",
+          "inlined allReduce() initializers:",
+          "  acc = \"hello\"",
+          "  acc = 123",
+          "  result = [1, x, 3]"
+        ).mkString("\n"))),
+        Set("r", "a", "anon_2", "anon_0", "end")
+      )
+    )
   }
 
   test("BidirectionalRepeat && RepeatOptions") {
@@ -5722,6 +5771,52 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         "Repeat(All, Walk)",
         Seq(lhsPD, rhsPD),
         List(details("(anon_0) (...){0, } (end)")),
+        Set("r", "a", "anon_2", "anon_0", "end")
+      )
+    )
+
+    assertGood(
+      attach(
+        RepeatWalk(
+          lhsLP,
+          rhsLP,
+          Repetition(0, Unlimited),
+          varFor("  UNNAMED0"),
+          varFor("  end@1"),
+          varFor("  a@1"),
+          varFor("  UNNAMED1"),
+          Set(
+            variableGrouping(varFor("  a@1"), varFor("  a@2")),
+            variableGrouping(varFor("  UNNAMED1"), varFor("  UNNAMED2"))
+          ),
+          Set(variableGrouping(varFor("  r@1"), varFor("  r@2"))),
+          reverseGroupVariableProjections = false,
+          Set(varFor("  r@1")),
+          ExpandAll,
+          accumulatorMappings = Set(
+            AllReduceAccumulator(literal(123), varFor("  acc@512"), varFor("  acc@1024"))(pos),
+            AllReduceAccumulator(literal("hello"), varFor("  acc@111"), varFor("  acc@222"))(pos),
+            AllReduceAccumulator(
+              listOf(literal(1), varFor("x"), literal(3)),
+              varFor("  result@512"),
+              varFor("  result@1024")
+            )(pos)
+          )
+        ),
+        2345.0
+      ),
+      planDescription(
+        id,
+        "Repeat(All, Walk)",
+        Seq(lhsPD, rhsPD),
+        List(details(Seq(
+          "(anon_0) (...){0, } (end)",
+          " ",
+          "inlined allReduce() initializers:",
+          "  acc = \"hello\"",
+          "  acc = 123",
+          "  result = [1, x, 3]"
+        ).mkString("\n"))),
         Set("r", "a", "anon_2", "anon_0", "end")
       )
     )
