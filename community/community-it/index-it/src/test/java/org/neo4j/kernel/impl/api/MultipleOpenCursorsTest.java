@@ -502,7 +502,7 @@ class MultipleOpenCursorsTest {
                     ktx,
                     indexDescriptor,
                     PropertyIndexQuery.range(
-                            numberPropId1, stringProp1Values[0], true, stringProp1Values[numberOfNodes / 2], false));
+                            stringPropId1, stringProp1Values[0], true, stringProp1Values[numberOfNodes / 2], false));
         }
 
         @Override
