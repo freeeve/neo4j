@@ -259,3 +259,11 @@ object AllocationHintsOption extends MapOptionValidator {
     value.foreachEntry((k, v) => DatabaseAllocationHints.validate(k, v))
   }
 }
+
+object ExternalIdentityOption extends StringOptionValidator {
+  override val KEY: String = "externalIdentity"
+
+  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {
+    // no content validation, any string is accepted
+  }
+}
