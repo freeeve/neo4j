@@ -233,8 +233,8 @@ public class KernelTransactionImplementation
     private final TransactionClockContext clocks;
     private final AccessCapabilityFactory accessCapabilityFactory;
     private final ConstraintSemantics constraintSemantics;
-    private final TransactionMemoryPool transactionMemoryPool;
-    private final LogProvider logProvider;
+    protected final TransactionMemoryPool transactionMemoryPool;
+    protected final LogProvider logProvider;
     private final CursorContextFactory contextFactory;
     private final EntityLocks entityLocks;
     private final KernelProcedures.ForTransactionScope procedures;
