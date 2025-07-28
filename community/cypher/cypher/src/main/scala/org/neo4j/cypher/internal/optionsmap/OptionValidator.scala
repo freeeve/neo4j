@@ -23,6 +23,7 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.MapValueOps.Ops
 import org.neo4j.dbms.systemgraph.SeedRestoreUntil
+import org.neo4j.dbms.systemgraph.SeedURI
 import org.neo4j.dbms.systemgraph.allocation.DatabaseAllocationHints
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.kernel.database.NormalizedDatabaseName
@@ -32,7 +33,9 @@ import org.neo4j.string.SecureString
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable._
 import org.neo4j.values.virtual.MapValue
+import org.neo4j.values.virtual.VirtualValues
 
+import java.util
 import java.util.Locale
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -149,11 +152,37 @@ object StoreFormatOption extends StringOptionValidator {
   }
 }
 
-object SeedURIOption extends StringOptionValidator {
+object SeedURIOption extends OptionValidator[SeedURI] {
   override val KEY: String = "seedURI"
 
-  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {
-    // no content validation, any string is accepted
+  override protected def validate(value: AnyValue, config: Option[Config])(implicit operation: String): SeedURI = {
+    value match {
+      case textValue: TextValue => SeedURI.single(textValue.stringValue())
+      case mapValue: MapValue =>
+        val map = new util.HashMap[String, String](mapValue.size())
+        mapValue.foreachEntry((k, v) =>
+          map.put(
+            k,
+            v match {
+              case text: TextValue => text.stringValue()
+              case _ =>
+                throw InvalidArgumentsException.invalidStringOption(operation, "'" + k + "' in '" + KEY + "'", v)
+            }
+          )
+        )
+        SeedURI.sharded(map)
+      case _ => throw InvalidArgumentsException.invalidStringOption(operation, KEY, value)
+    }
+  }
+
+  def validateSingleOnly(seedURI: SeedURI)(implicit operation: String): SeedURI = {
+    val uriMap = seedURI.uriMap
+    if (!uriMap.isEmpty) {
+      val keys: Array[String] = uriMap.keySet.toArray(new Array[String](0))
+      val values: Array[AnyValue] = keys.map(uriMap.get).map(Values.stringValue)
+      throw InvalidArgumentsException.invalidStringOption(operation, KEY, VirtualValues.map(keys, values))
+    }
+    seedURI
   }
 }
 
@@ -227,6 +256,6 @@ object AllocationHintsOption extends MapOptionValidator {
   override val KEY: String = "allocationHints"
 
   override protected def validateContent(value: MapValue, config: Option[Config])(implicit operation: String): Unit = {
-    value.foreach((k, v) => DatabaseAllocationHints.validate(k, v))
+    value.foreachEntry((k, v) => DatabaseAllocationHints.validate(k, v))
   }
 }
