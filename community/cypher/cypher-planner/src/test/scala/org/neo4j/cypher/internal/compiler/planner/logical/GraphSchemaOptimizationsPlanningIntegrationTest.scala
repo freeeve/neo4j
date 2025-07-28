@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestS
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.andsReorderable
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
@@ -827,6 +828,157 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .filter("n:Actor").withCardinality(resultCount)
       .nodeIndexOperator("n:Person(pet)").withCardinality(personCount * petExistsSel)
 
+    val actual = planner.planState(query)
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  test("Should use implied label from end-node label constraint when estimating cardinality") {
+    val aCount = 1000.0
+    val cCount = aCount / 2
+    val bCount = aCount / 5
+    val totalNodes = 1000.0
+    val r1 = aCount
+    val r2 = aCount
+
+    val planner = plannerBuilder()
+      .setLabelCardinality("A", aCount)
+      .setLabelCardinality("B", bCount)
+      .setLabelCardinality("C", cCount)
+      .setRelationshipCardinality("()-[:R1]->()", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->()", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->(:C)", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->(:B)", r1)
+      .setRelationshipCardinality("()-[:R1]->(:B)", r1)
+      .setRelationshipCardinality("()-[:R1]->(:C)", r1)
+      .setRelationshipCardinality("(:B)-[:R2]->()", r2)
+      .setRelationshipCardinality("(:C)-[:R2]->()", r2)
+      .setRelationshipCardinality("()-[:R2]->()", r2)
+      .addRelationshipEndpointLabelConstraint("(:B)-[:R2]->()")
+      .setAllNodesCardinality(totalNodes)
+      .build()
+
+    val query = "MATCH (a:A)-[r:R1]->(b:C)-[s:R2]->(m) USING SCAN a:A RETURN m"
+    // Cardinalities based on MATCH (a:A)-[r:R1]->(b:B&C)-[s:R2]->(m)  RETURN m
+
+    val expected = planner.planBuilder()
+      .produceResults("m").withCardinality(400)
+      .expandAll("(b)-[:R2]->(m)").withCardinality(400)
+      .filter("b:C").withCardinality(aCount)
+      .expandAll("(a)-[:R1]->(b)").withCardinality(aCount)
+      .nodeByLabelScan("a", "A").withCardinality(aCount)
+
+    val actual = planner.planState(query)
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  test(
+    "Should use implied label from end-node label constraints on different relationships when estimating cardinality"
+  ) {
+    val aCount = 1000.0
+    val cCount = aCount / 2
+    val bCount = aCount / 5
+    val totalNodes = 1000.0
+    val r1 = aCount
+    val r2 = aCount
+
+    val planner = plannerBuilder()
+      .setLabelCardinality("A", aCount)
+      .setLabelCardinality("B", bCount)
+      .setLabelCardinality("C", cCount)
+      .setRelationshipCardinality("()-[:R1]->()", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->()", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->(:C)", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->(:B)", r1)
+      .setRelationshipCardinality("()-[:R1]->(:B)", r1)
+      .setRelationshipCardinality("()-[:R1]->(:C)", r1)
+      .setRelationshipCardinality("(:B)-[:R2]->()", r2)
+      .setRelationshipCardinality("(:C)-[:R2]->()", r2)
+      .setRelationshipCardinality("()-[:R2]->()", r2)
+      .addRelationshipEndpointLabelConstraint("(:B)-[:R2]->()")
+      .addRelationshipEndpointLabelConstraint("()-[:R1]->(:C)")
+      .setAllNodesCardinality(totalNodes)
+      .build()
+
+    val query = "MATCH (a:A)-[r:R1]->(b)-[s:R2]->(m) USING SCAN a:A RETURN m"
+    // Cardinalities based on MATCH (a:A)-[r:R1]->(b:B&C)-[s:R2]->(m)  RETURN m
+
+    val expected = planner.planBuilder()
+      .produceResults("m").withCardinality(400)
+      .expandAll("(b)-[:R2]->(m)").withCardinality(400)
+      .expandAll("(a)-[:R1]->(b)").withCardinality(aCount)
+      .nodeByLabelScan("a", "A").withCardinality(aCount)
+
+    val actual = planner.planState(query)
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  test(
+    "Should not use implied label from end-node label constraint when estimating cardinality if Type has disjunction"
+  ) {
+    val aCount = 1000.0
+    val cCount = aCount / 2
+    val bCount = aCount / 5
+    val totalNodes = 1000.0
+    val r1 = aCount
+    val r2 = aCount
+
+    val planner = plannerBuilder()
+      .setLabelCardinality("A", aCount)
+      .setLabelCardinality("B", bCount)
+      .setLabelCardinality("C", cCount)
+      .setRelationshipCardinality("()-[:R1]->()", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->()", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->(:C)", r1)
+      .setRelationshipCardinality("(:A)-[:R1]->(:B)", r1)
+      .setRelationshipCardinality("()-[:R1]->(:B)", r1)
+      .setRelationshipCardinality("()-[:R1]->(:C)", r1)
+      .setRelationshipCardinality("(:B)-[:R2]->()", r2)
+      .setRelationshipCardinality("(:C)-[:R2]->()", r2)
+      .setRelationshipCardinality("()-[:R2]->()", r2)
+      .setRelationshipCardinality("(:B)-[:R3]->()", r2)
+      .setRelationshipCardinality("(:C)-[:R3]->()", r2)
+      .setRelationshipCardinality("()-[:R3]->()", r2)
+      .addRelationshipEndpointLabelConstraint("(:B)-[:R2]->()")
+      .setAllNodesCardinality(totalNodes)
+      .build()
+
+    val query = "MATCH (a:A)-[r:R1]->(b:C)-[s:R2|R3]->(m) USING SCAN a:A RETURN m"
+
+    val expected = planner.planBuilder()
+      .produceResults("m").withCardinality(4000)
+      .expandAll("(b)-[:R2|R3]->(m)").withCardinality(4000)
+      .filter("b:C").withCardinality(aCount)
+      .expandAll("(a)-[:R1]->(b)").withCardinality(aCount)
+      .nodeByLabelScan("a", "A").withCardinality(aCount)
+
+    val actual = planner.planState(query)
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  test(
+    "Label implied by end-node constraint should raise cardinality even if not used"
+  ) {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(3000)
+        .setLabelCardinality("Person", 1000)
+        .setLabelCardinality("Actor", 1000)
+        .addRelationshipEndpointLabelConstraint("R", "Person", EndpointType.START)
+        .addNodeIndex("Person", Seq("firstName"), existsSelectivity = 0.4, uniqueSelectivity = 0.5)
+        .addNodeIndex("Actor", Seq("firstName"), existsSelectivity = 0.1, uniqueSelectivity = 0.1)
+        .setRelationshipCardinality("()-[:R]->()", 1000)
+        .setRelationshipCardinality("(:Person)-[:R]->()", 1000)
+        .setRelationshipCardinality("()-[:R]->(:Actor)", 1000)
+        .setRelationshipCardinality("(:Person)-[:R]->(:Actor)", 1000)
+        .enablePrintCostComparisons()
+        .build()
+
+    val query = "MATCH (n {firstName: 'Bosse'})-[r:R]->(m:Actor {firstName: 'Pierre'}) Return m"
+    val expected = planner.planBuilder()
+      .produceResults(column("m", "cacheN[m.firstName]")).withCardinality(2)
+      .filter("n.firstName = 'Bosse'").withCardinality(2) // Without end node constraint, this would be 0.5
+      .expandAll("(m)<-[:R]-(n)").withCardinality(10)
+      .nodeIndexOperator("m:Actor(firstName = 'Pierre')", getValue = Map("firstName" -> GetValue)).withCardinality(10)
     val actual = planner.planState(query)
     actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
   }

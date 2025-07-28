@@ -134,6 +134,7 @@ import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.config.Setting
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.SchemaValueType
 
 import scala.util.Success
@@ -280,6 +281,8 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
       override def databaseMode: DatabaseMode = DatabaseMode.SINGLE
 
       override def storageHasPropertyColocation: Boolean = false
+
+      override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] = Map.empty
     }
   }
 

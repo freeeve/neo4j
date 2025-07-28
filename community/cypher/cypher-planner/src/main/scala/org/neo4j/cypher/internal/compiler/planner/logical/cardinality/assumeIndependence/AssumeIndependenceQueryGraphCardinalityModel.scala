@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
 import org.neo4j.cypher.internal.util.Multiplier.NumericMultiplier
+import org.neo4j.cypher.internal.util.helpers.MapSupport.PowerMap
 
 final class AssumeIndependenceQueryGraphCardinalityModel(
   planContext: PlanContext,
@@ -89,12 +90,19 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
     previousLabelInfo: LabelInfo,
     queryGraph: QueryGraph
   ): (LabelInfo, Cardinality) = {
+
+    val impliedEndpointLabelsMap =
+      context.graphSchemaOptimizations.impliedEndpointLabelsMap(queryGraph)
+
     val predicates =
       QueryGraphPredicates.partitionSelections(
         previousLabelInfo,
-        context.graphSchemaOptimizations.addImpliedLabels(queryGraph.patternNodeLabels),
+        context.graphSchemaOptimizations.addImpliedLabels(
+          queryGraph.patternNodeLabels.fuse(impliedEndpointLabelsMap)(_ ++ _)
+        ),
         queryGraph.selections
       )
+
     val (inferredLabelInfo, newContext) =
       context.labelInferenceStrategy.inferLabels(context, predicates.allLabelInfo, queryGraph.nodeConnections.toSeq)
     val newPredicates = predicates.copy(allLabelInfo = inferredLabelInfo)

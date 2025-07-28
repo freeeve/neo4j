@@ -24,6 +24,10 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabel
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
+import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
+import org.neo4j.cypher.internal.ir.PatternRelationship
+import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.InputPosition
@@ -78,6 +82,8 @@ sealed trait GraphSchemaOptimizations {
   ): Boolean
 
   def partitionImpliedHasLabelsPredicates(unsolvedPredicates: Set[Expression]): (Set[Expression], Set[Expression])
+
+  def impliedEndpointLabelsMap(queryGraph: QueryGraph): Map[LogicalVariable, Set[LabelName]]
 }
 
 object GraphSchemaOptimizations {
@@ -106,6 +112,8 @@ object GraphSchemaOptimizations {
       inRelTypes: Set[DisjunctiveTypes]
     ): Boolean =
       false
+
+    override def impliedEndpointLabelsMap(queryGraph: QueryGraph): Map[LogicalVariable, Set[LabelName]] = Map.empty
 
     def partitionImpliedHasLabelsPredicates(unsolvedPredicates: Set[Expression]): (Set[Expression], Set[Expression]) =
       (Set.empty, unsolvedPredicates)
@@ -189,6 +197,38 @@ object GraphSchemaOptimizations {
         case HasLabel(expr, label) => impliedUnsolvedLabels(expr).contains(label)
         case _                     => false
       }
+    }
+
+    private case class impliedFromEndNodeConstraint(variable: LogicalVariable, labelName: LabelName)
+
+    private def implicationsFromRelationship(
+      patRel: PatternRelationship,
+      queryGraph: QueryGraph
+    ): List[impliedFromEndNodeConstraint] = {
+      planContext.getRelationshipEndpointLabelConstraints(patRel.types.head.name).toList
+        .flatMap { case (endPointType, impliedLabel) =>
+          val variable = endPointType match {
+            case EndpointType.START => patRel.inOrder._1
+            case EndpointType.END   => patRel.inOrder._2
+          }
+          if (queryGraph.patternNodeLabels.get(variable).exists(_.exists(_.name == impliedLabel))) {
+            None
+          } else {
+            Some(impliedFromEndNodeConstraint(variable, LabelName(impliedLabel)(variable.position)))
+          }
+        }
+    }
+
+    /**
+     * Returns a map of variables to the set of labels that are implied by the relationship constraints.
+     * This is used to infer labels that can be added to the query graph based on the relationship constraints.
+     */
+    def impliedEndpointLabelsMap(queryGraph: QueryGraph): Map[LogicalVariable, Set[LabelName]] = {
+      val implications = queryGraph.patternRelationships.filter(p => p.dir != BOTH && p.types.size == 1)
+        .flatMap { patRel =>
+          implicationsFromRelationship(patRel, queryGraph)
+        }
+      LabelInfo.from(implications.groupMap(_.variable)(_.labelName))
     }
   }
 }

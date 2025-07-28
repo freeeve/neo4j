@@ -70,6 +70,7 @@ import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.attribution.Default
 import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.SchemaValueType
 
 class CardinalityCalculatorTest extends CypherFunSuite with AstConstructionTestSupport {
@@ -103,6 +104,8 @@ class CardinalityCalculatorTest extends CypherFunSuite with AstConstructionTestS
         Map.empty
 
       override def databaseMode: DatabaseMode = DatabaseMode.SINGLE
+
+      override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] = Map.empty
     }
   }
 
