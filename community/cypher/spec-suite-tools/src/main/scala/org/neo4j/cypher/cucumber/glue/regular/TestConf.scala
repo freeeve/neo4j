@@ -76,7 +76,8 @@ object TestConf {
       Some("internal.cypher.enable_non_fused_merge" -> "true"),
       Option.when(useEnterprise)("server.metrics.enabled" -> "false"),
       Option.when(useBolt)("server.bolt.enabled" -> "true"),
-      serverLogsConfResource.map(resource => "server.logs.config" -> s"PLACEHOLDER:$resource")
+      // This setting is overridden in Executors (but provided here for visibility in test failures)
+      serverLogsConfResource.map(resource => "server.logs.config" -> s"CLASSPATH_RESOURCE/$resource")
     ).flatten.toMap ++ neo4jConf
 
     // Make these tests work with FormatOverrideMigrator.
