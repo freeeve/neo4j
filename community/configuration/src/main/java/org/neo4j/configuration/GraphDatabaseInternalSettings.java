@@ -1220,6 +1220,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Feature flag to enable/disable planning of EXISTS subqueries with implicit LIMIT 1.")
+    public static final Setting<Boolean> planning_exists_with_implicit_limit_enabled = newBuilder(
+                    "internal.cypher.planning_exists_with_implicit_limit_enabled", BOOL, true)
+            .build();
+
+    @Internal
     @Description(
             "By default, the sharded property database is disabled. This setting is a feature toggle behind which sharded property database is developed.")
     public static final Setting<Boolean> spd_enabled = newBuilder(

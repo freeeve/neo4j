@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransform
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.UnionQuery
+import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
@@ -151,7 +152,8 @@ case object QueryPlanner
         ShardOperatorPushdownStrategy.fromConfig(from.query, context),
       multiRelationshipExpansion = context.config.multiRelationshipExpansionEnabled(),
       pushDownArgumentsRBPWFEnabled = context.config.pushDownArgumentsRBPWFEnabled(),
-      dynamicLabelScansEnabled = context.config.dynamicLabelScansEnabled()
+      dynamicLabelScansEnabled = context.config.dynamicLabelScansEnabled(),
+      existsWithImplicitLimitEnabled = context.config.existsWithImplicitLimitEnabled()
     )
 
     LogicalPlanningContext(staticComponents, settings)
@@ -317,7 +319,8 @@ case object plannerQueryPlanner {
       plan(
         subqueryExpression.query,
         context.withModifiedPlannerState(_.forSubquery(
-          subqueryExpression.computedScopeDependencies.getOrElse(Set.empty)
+          subqueryExpression.computedScopeDependencies.getOrElse(Set.empty),
+          isExistsSubquery = subqueryExpression.isInstanceOf[ExistsIRExpression]
         ))
       )
     }

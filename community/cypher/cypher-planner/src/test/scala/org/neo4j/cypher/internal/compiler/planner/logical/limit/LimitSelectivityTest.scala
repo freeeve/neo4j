@@ -574,4 +574,58 @@ class LimitSelectivityTest extends CypherFunSuite with LogicalPlanningTestSuppor
       result shouldBe Selectivity(1 / (10.0 * (nodesA / nodes)))
     }
   }
+
+  test("should apply LIMIT 1 selectivity to EXISTS subqueries") {
+    val nodes = 100
+
+    // EXISTS { MATCH (n) RETURN n }
+    new givenConfig {
+      statistics = new TestGraphStatistics() {
+        override def nodesAllCardinality(): Cardinality = Cardinality(nodes)
+      }
+    }.withLogicalPlanningContext { (_, context) =>
+      val query = RegularSinglePlannerQuery(
+        queryGraph = QueryGraph(patternNodes = Set(v"n"))
+      )
+
+      // WHEN
+      val result = LimitSelectivity.forAllParts(
+        query,
+        context.withModifiedPlannerState(_.forSubquery(Set.empty, isExistsSubquery = true))
+      )
+
+      // THEN
+      result shouldBe List(
+        Selectivity(1 / nodes.toDouble)
+      )
+    }
+  }
+
+  test("should not apply LIMIT 1 selectivity to EXISTS subqueries if the setting is disabled") {
+    val nodes = 100
+
+    // EXISTS { MATCH (n) RETURN n }
+    new givenConfig {
+      statistics = new TestGraphStatistics() {
+        override def nodesAllCardinality(): Cardinality = Cardinality(nodes)
+      }
+    }.withLogicalPlanningContext { (_, context) =>
+      val query = RegularSinglePlannerQuery(
+        queryGraph = QueryGraph(patternNodes = Set(v"n"))
+      )
+
+      // WHEN
+      val result = LimitSelectivity.forAllParts(
+        query,
+        context
+          .withModifiedPlannerState(_.forSubquery(Set.empty, isExistsSubquery = true))
+          .withModifiedSettings(settings => settings.copy(existsWithImplicitLimitEnabled = false))
+      )
+
+      // THEN
+      result shouldBe List(
+        Selectivity.ONE
+      )
+    }
+  }
 }

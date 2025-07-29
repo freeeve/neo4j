@@ -138,6 +138,8 @@ object LogicalPlanningContext {
    *                                      Relevant for caching.
    * @param dynamicLabelScansEnabled a setting whether dynamic label scans should be planned.
    *                                 Relevant for caching.
+   * @param existsWithImplicitLimitEnabled plan EXISTS {} subquery as if it had LIMIT 1
+   *                                       Relevant for caching.
    */
   case class Settings(
     executionModel: ExecutionModel,
@@ -164,7 +166,9 @@ object LogicalPlanningContext {
       GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.defaultValue(),
     pushDownArgumentsRBPWFEnabled: Boolean =
       GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.defaultValue(),
-    dynamicLabelScansEnabled: Boolean = GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.defaultValue()
+    dynamicLabelScansEnabled: Boolean = GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.defaultValue(),
+    existsWithImplicitLimitEnabled: Boolean =
+      GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.defaultValue()
   ) {
 
     private def cacheKey(): Seq[Any] = this match {
@@ -188,7 +192,8 @@ object LogicalPlanningContext {
           shardOperatorPushdownStrategy: ShardOperatorPushdownStrategy,
           multiRelationshipExpansion: Boolean,
           pushDownArgumentsRBPWFEnabled: Boolean,
-          dynamicLabelScansEnabled: Boolean
+          dynamicLabelScansEnabled: Boolean,
+          existsWithImplicitLimitEnabled: Boolean
         ) =>
         val builder = Seq.newBuilder[Any]
 
@@ -239,6 +244,9 @@ object LogicalPlanningContext {
         if (GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.dynamic())
           builder.addOne(dynamicLabelScansEnabled)
 
+        if (GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.dynamic())
+          builder.addOne(existsWithImplicitLimitEnabled)
+
         builder.result()
     }
 
@@ -250,6 +258,10 @@ object LogicalPlanningContext {
     )
   }
 
+  object PlannerState {
+    case class EnclosingSubquery(importedVariables: Set[LogicalVariable], isExistsSubquery: Boolean)
+  }
+
   /**
    * Internal state that changes during one planner invocation.
    *
@@ -258,7 +270,7 @@ object LogicalPlanningContext {
    * @param input extracted information from the query, relevant to the QueryGraphSolver.
    * @param outerPlan When planning tails, this gives contextual information about the plan of the so-far solved
    *                                     query graphs, which will be connected with an Apply with the tail-query graph plan.
-   * @param isInSubquery whether we are currently planning a subquery
+   * @param maybeEnclosingSubquery whether we are currently planning a subquery
    * @param indexCompatiblePredicatesProviderContext extracted information from the query, relevant to the index planning.
    * @param accessedProperties All properties that are referenced (in the head planner query)
    *                           Used to break potential ties between index leaf plans
@@ -273,7 +285,7 @@ object LogicalPlanningContext {
   case class PlannerState(
     input: QueryGraphSolverInput = QueryGraphSolverInput.empty,
     outerPlan: Option[LogicalPlan] = None,
-    maybeImportedSubqueryVariables: Option[Set[LogicalVariable]] = None,
+    maybeEnclosingSubquery: Option[PlannerState.EnclosingSubquery] = None,
     indexCompatiblePredicatesProviderContext: IndexCompatiblePredicatesProviderContext =
       IndexCompatiblePredicatesProviderContext.default,
     accessedProperties: Set[PropertyAccess] = Set.empty,
@@ -310,8 +322,8 @@ object LogicalPlanningContext {
       copy(outerPlan = Some(outerPlan))
     }
 
-    def forSubquery(importedVariables: Set[LogicalVariable]): PlannerState = {
-      copy(maybeImportedSubqueryVariables = Some(importedVariables))
+    def forSubquery(importedVariables: Set[LogicalVariable], isExistsSubquery: Boolean): PlannerState = {
+      copy(maybeEnclosingSubquery = Some(PlannerState.EnclosingSubquery(importedVariables, isExistsSubquery)))
     }
 
     def withActivePlanner(planner: PlannerType): PlannerState =
@@ -335,10 +347,10 @@ object LogicalPlanningContext {
       copy(previouslyCachedProperties = cachedProperties)
 
     def isInSubquery: Boolean =
-      maybeImportedSubqueryVariables.nonEmpty
+      maybeEnclosingSubquery.nonEmpty
 
     def importedSubqueryVariables: Set[LogicalVariable] =
-      maybeImportedSubqueryVariables.getOrElse(Set.empty)
+      maybeEnclosingSubquery.fold(Set.empty[LogicalVariable])(_.importedVariables)
   }
 
 }

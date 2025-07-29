@@ -24,9 +24,9 @@ import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.AggregatingQueryProjection
-import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
+import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Selectivity
 
 import scala.annotation.tailrec
@@ -48,7 +48,7 @@ object LimitSelectivity {
       }
     }
 
-    recurse(Some(query), Selectivity.ONE, List.empty)
+    recurse(Some(query), initialParentSelectivity(query, context), List.empty)
   }
 
   def forLastPart(
@@ -67,17 +67,9 @@ object LimitSelectivity {
           val queryWithoutLimit = query.updateTailOrSelf(_.updateQueryProjection(_ =>
             proj.withPagination(proj.queryPagination.withLimit(None))
           ))
-          val cardinalityModel = context.staticComponents.metrics.cardinality(
-            _: PlannerQuery,
-            context.plannerState.input.labelInfo,
-            context.plannerState.input.relTypeInfo,
-            context.semanticTable,
-            context.plannerState.indexCompatiblePredicatesProviderContext,
-            context.staticComponents.graphSchemaOptimizations
-          )
 
-          val cardinalityWithoutLimit = cardinalityModel(queryWithoutLimit)
-          val cardinalityWithLimit = cardinalityModel(query)
+          val cardinalityWithoutLimit = cardinalityForQuery(queryWithoutLimit, context)
+          val cardinalityWithLimit = cardinalityForQuery(query, context)
 
           CardinalityCostModel.limitingPlanSelectivity(
             cardinalityWithoutLimit,
@@ -90,5 +82,29 @@ object LimitSelectivity {
         case _ => parentLimitSelectivity
       }
     }
+  }
+
+  private def initialParentSelectivity(query: SinglePlannerQuery, context: LogicalPlanningContext): Selectivity = {
+    context.plannerState.maybeEnclosingSubquery match {
+      case Some(enclosingSubquery)
+        if enclosingSubquery.isExistsSubquery && context.settings.existsWithImplicitLimitEnabled =>
+        CardinalityCostModel.limitingPlanSelectivity(
+          inputCardinality = cardinalityForQuery(query, context),
+          outputCardinality = Cardinality.SINGLE, // EXISTS {} only needs a single output row
+          parentLimitSelectivity = Selectivity.ONE
+        )
+      case _ => Selectivity.ONE
+    }
+  }
+
+  private def cardinalityForQuery(query: SinglePlannerQuery, context: LogicalPlanningContext): Cardinality = {
+    context.staticComponents.metrics.cardinality(
+      query,
+      context.plannerState.input.labelInfo,
+      context.plannerState.input.relTypeInfo,
+      context.semanticTable,
+      context.plannerState.indexCompatiblePredicatesProviderContext,
+      context.staticComponents.graphSchemaOptimizations
+    )
   }
 }

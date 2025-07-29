@@ -442,13 +442,13 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         val subqueryContext =
           if (correlated)
             context.withModifiedPlannerState(_
-              .forSubquery(importedVariables)
+              .forSubquery(importedVariables, isExistsSubquery = false)
               .withUpdatedLabelInfo(plan, context.staticComponents.planningAttributes.solveds)
               .withPreviouslyCachedProperties(
                 context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
               ))
           else
-            context.withModifiedPlannerState(_.forSubquery(importedVariables)
+            context.withModifiedPlannerState(_.forSubquery(importedVariables, isExistsSubquery = false)
               .withPreviouslyCachedProperties(
                 context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(plan.id)
               ))

@@ -373,4 +373,11 @@ class CypherPlannerConfiguration(
     () => config.limitBeforeCountRewriterEnabled
   }
 
+  val existsWithImplicitLimitEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.dynamic()
+    )
+    () => config.existsWithImplicitLimitEnabled
+  }
+
 }

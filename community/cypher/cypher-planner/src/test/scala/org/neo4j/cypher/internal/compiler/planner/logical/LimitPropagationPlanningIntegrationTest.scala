@@ -530,4 +530,199 @@ class LimitPropagationPlanningIntegrationTest
         .build()
     }
   }
+
+  test("should not plan node hash join under EXISTS when expand is cheaper with implicit LIMIT 1") {
+    val relCount = 50000
+    val fromStartRelCount = relCount * 0.1
+    val fromEndRelCount = relCount * 0.2
+
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(relCount)
+      .setAllRelationshipsCardinality(relCount)
+      .setLabelCardinality("Middle", 1)
+      .setLabelCardinality("Start", fromStartRelCount)
+      .setLabelCardinality("End", fromEndRelCount)
+      .setRelationshipCardinality("()-[:REL]->()", relCount)
+      .setRelationshipCardinality("()-[:REL]->(:Middle)", relCount)
+      .setRelationshipCardinality("(:End)-[:REL]->(:Middle)", fromEndRelCount)
+      .setRelationshipCardinality("(:End)-[:REL]->()", fromEndRelCount)
+      .setRelationshipCardinality("(:Start)-[:REL]->(:Middle)", fromStartRelCount)
+      .setRelationshipCardinality("(:Start)-[:REL]->()", fromStartRelCount)
+      .build()
+
+    val subQuery =
+      """
+        |MATCH (a:Start)-[r:REL]->(x:Middle)<-[p:REL]-(b:End)
+        |RETURN a, x, b
+        |""".stripMargin
+
+    val existsQuery = s"RETURN EXISTS { $subQuery } AS result"
+    val countQuery = s"RETURN COUNT { $subQuery } AS result"
+
+    planner.plan(existsQuery) shouldEqual planner.planBuilder()
+      .produceResults("result")
+      .letSemiApply("result")
+      .|.filter("b:End", "NOT p = r")
+      .|.expandAll("(x)<-[p:REL]-(b)")
+      .|.filter("x:Middle")
+      .|.expandAll("(a)-[r:REL]->(x)")
+      .|.nodeByLabelScan("a", "Start")
+      .argument()
+      .build()
+
+    planner.plan(countQuery) shouldEqual planner.planBuilder()
+      .produceResults("result")
+      .aggregation(Seq.empty, Seq("count(*) AS result"))
+      .filter("NOT p = r")
+      .nodeHashJoin("x")
+      .|.expandAll("(b)-[p:REL]->(x)")
+      .|.nodeByLabelScan("b", "End")
+      .filter("x:Middle")
+      .expandAll("(a)-[r:REL]->(x)")
+      .nodeByLabelScan("a", "Start")
+      .build()
+
+    // standalone query
+    planner.plan(subQuery) shouldEqual planner.planBuilder()
+      .produceResults("a", "x", "b")
+      .filter("NOT p = r")
+      .nodeHashJoin("x")
+      .|.expandAll("(b)-[p:REL]->(x)")
+      .|.nodeByLabelScan("b", "End")
+      .filter("x:Middle")
+      .expandAll("(a)-[r:REL]->(x)")
+      .nodeByLabelScan("a", "Start")
+      .build()
+  }
+
+  test("should plan node hash join under EXISTS when it's still cheaper with implicit LIMIT 1") {
+    val relCount = 50000
+    val fromStartRelCount = 10
+    val fromEndRelCount = 20
+
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(relCount)
+      .setAllRelationshipsCardinality(relCount)
+      .setLabelCardinality("Middle", 1)
+      .setLabelCardinality("Start", fromStartRelCount)
+      .setLabelCardinality("End", fromEndRelCount)
+      .setRelationshipCardinality("()-[:REL]->()", relCount)
+      .setRelationshipCardinality("()-[:REL]->(:Middle)", relCount)
+      .setRelationshipCardinality("(:End)-[:REL]->(:Middle)", fromEndRelCount)
+      .setRelationshipCardinality("(:End)-[:REL]->()", fromEndRelCount)
+      .setRelationshipCardinality("(:Start)-[:REL]->(:Middle)", fromStartRelCount)
+      .setRelationshipCardinality("(:Start)-[:REL]->()", fromStartRelCount)
+      .build()
+
+    val query =
+      """RETURN EXISTS {
+        |  MATCH (a:Start)-[r:REL]->(x:Middle)<-[p:REL]-(b:End)
+        |  RETURN a, x, b
+        |} AS result
+        |""".stripMargin
+
+    planner.plan(query) shouldEqual planner.planBuilder()
+      .produceResults("result")
+      .letSemiApply("result")
+      .|.filter("NOT p = r")
+      .|.nodeHashJoin("x")
+      .|.|.expandAll("(b)-[p:REL]->(x)")
+      .|.|.nodeByLabelScan("b", "End")
+      .|.filter("x:Middle")
+      .|.expandAll("(a)-[r:REL]->(x)")
+      .|.nodeByLabelScan("a", "Start")
+      .argument()
+      .build()
+  }
+
+  test("should not plan node hash join under EXISTS when expand is cheaper with implicit LIMIT, predicate in WHERE") {
+    val relCount = 50000
+    val fromStartRelCount = relCount * 0.1
+    val fromEndRelCount = relCount * 0.2
+    val nodeCount = 5
+    val hasStartCount = 5 * fromStartRelCount
+
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(relCount)
+      .setAllRelationshipsCardinality(relCount + hasStartCount)
+      .setLabelCardinality("Middle", 1)
+      .setLabelCardinality("Start", fromStartRelCount)
+      .setLabelCardinality("End", fromEndRelCount)
+      .setLabelCardinality("Node", nodeCount)
+      .setRelationshipCardinality("()-[:REL]->()", relCount)
+      .setRelationshipCardinality("()-[:REL]->(:Middle)", relCount)
+      .setRelationshipCardinality("(:End)-[:REL]->(:Middle)", fromEndRelCount)
+      .setRelationshipCardinality("(:End)-[:REL]->()", fromEndRelCount)
+      .setRelationshipCardinality("(:Start)-[:REL]->(:Middle)", fromStartRelCount)
+      .setRelationshipCardinality("(:Start)-[:REL]->()", fromStartRelCount)
+      .setRelationshipCardinality("()-[:HAS_START]->()", hasStartCount)
+      .setRelationshipCardinality("(:Node)-[:HAS_START]->()", hasStartCount)
+      .setRelationshipCardinality("(:Node)-[:HAS_START]->(:Start)", hasStartCount)
+      .setRelationshipCardinality("()-[:HAS_START]->(:Start)", hasStartCount)
+      .build()
+
+    val subQuery = "MATCH (n)-[z:HAS_START]->(a:Start)-[r:REL]->(x:Middle)<-[p:REL]-(b:End)"
+
+    val existsQuery =
+      s"""MATCH (n:Node) WHERE EXISTS {
+         |  $subQuery
+         |}
+         |RETURN n
+         |""".stripMargin
+
+    val countQuery =
+      s"""MATCH (n:Node) WHERE COUNT {
+         |  $subQuery
+         |} > n.prop
+         |RETURN n
+         |""".stripMargin
+
+    val skipQuery = s"MATCH (n:Node) SKIP 0 $subQuery RETURN n"
+
+    planner.plan(existsQuery) shouldEqual planner.planBuilder()
+      .produceResults("n")
+      .semiApply()
+      .|.filter("NOT p = r", "b:End")
+      .|.expandAll("(x)<-[p:REL]-(b)")
+      .|.filter("x:Middle")
+      .|.expandAll("(a)-[r:REL]->(x)")
+      .|.filter("a:Start")
+      .|.expandAll("(n)-[:HAS_START]->(a)")
+      .|.argument("n")
+      .nodeByLabelScan("n", "Node")
+      .build()
+
+    planner.plan(countQuery) shouldEqual planner.planBuilder()
+      .produceResults("n")
+      .filter("n.prop < anon_0")
+      .apply()
+      .|.aggregation(Seq.empty, Seq("count(*) AS anon_0"))
+      .|.filter("NOT p = r")
+      .|.nodeHashJoin("x")
+      .|.|.expandAll("(b)-[p:REL]->(x)")
+      .|.|.nodeByLabelScan("b", "End", "n")
+      .|.filter("x:Middle")
+      .|.expandAll("(a)-[r:REL]->(x)")
+      .|.filter("a:Start")
+      .|.expandAll("(n)-[:HAS_START]->(a)")
+      .|.argument("n")
+      .nodeByLabelScan("n", "Node")
+      .build()
+
+    planner.plan(skipQuery) shouldEqual planner.planBuilder()
+      .produceResults("n")
+      .filter("NOT p = r")
+      .apply()
+      .|.nodeHashJoin("x")
+      .|.|.expandAll("(b)-[p:REL]->(x)")
+      .|.|.nodeByLabelScan("b", "End", "n")
+      .|.filter("x:Middle")
+      .|.expandAll("(a)-[r:REL]->(x)")
+      .|.filter("a:Start")
+      .|.expandAll("(n)-[:HAS_START]->(a)")
+      .|.argument("n")
+      .skip(0)
+      .nodeByLabelScan("n", "Node")
+      .build()
+  }
 }
