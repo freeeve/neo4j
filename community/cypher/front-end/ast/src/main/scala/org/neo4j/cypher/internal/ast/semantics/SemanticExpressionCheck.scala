@@ -144,8 +144,6 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.helpers.Math
-import org.neo4j.cypher.internal.util.helpers.Try
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTDate
@@ -225,8 +223,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           expectType(TypeSpec.all, x.lhs) chain
           check(ctx, x.rhs) chain
           expectType(infixAddRhsTypes(x.lhs), x.rhs) chain
-          specifyType(infixAddOutputTypes(x.lhs, x.rhs), x) chain
-          checkAddBoundary(x)
+          specifyType(infixAddOutputTypes(x.lhs, x.rhs), x)
 
       case x: Concatenate =>
         check(ctx, x.arguments) chain
@@ -235,13 +232,11 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
       case x: Subtract =>
         check(ctx, x.arguments) chain
-          checkTypes(x, x.signatures) chain
-          checkSubtractBoundary(x)
+          checkTypes(x, x.signatures)
 
       case x: UnarySubtract =>
         check(ctx, x.arguments) chain
-          checkTypes(x, x.signatures) chain
-          checkUnarySubtractBoundary(x)
+          checkTypes(x, x.signatures)
 
       case x: UnaryAdd =>
         check(ctx, x.arguments) chain
@@ -249,8 +244,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
       case x: Multiply =>
         check(ctx, x.arguments) chain
-          checkTypes(x, x.signatures) chain
-          checkMultiplyBoundary(x)
+          checkTypes(x, x.signatures)
 
       case x: Divide =>
         check(ctx, x.arguments) chain
@@ -1083,46 +1077,6 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     def possibleInnerTypes(e: FilteringExpression): TypeGenerator = s =>
       (types(e.expression)(s) constrain CTList(CTAny)).unwrapLists
   }
-
-  private def checkAddBoundary(add: Add): SemanticCheck =
-    (add.lhs, add.rhs) match {
-      case (l: IntegerLiteral, r: IntegerLiteral) if Try(Math.addExact(l.value, r.value)).isFailure =>
-        SemanticError.integerOperationCannotBeRepresented(
-          s"${l.stringVal} + ${r.stringVal}",
-          add.position
-        )
-      case _ => SemanticCheck.success
-    }
-
-  private def checkSubtractBoundary(subtract: Subtract): SemanticCheck =
-    (subtract.lhs, subtract.rhs) match {
-      case (l: IntegerLiteral, r: IntegerLiteral) if Try(Math.subtractExact(l.value, r.value)).isFailure =>
-        SemanticError.integerOperationCannotBeRepresented(
-          s"${l.stringVal} - ${r.stringVal}",
-          subtract.position
-        )
-      case _ => SemanticCheck.success
-    }
-
-  private def checkUnarySubtractBoundary(subtract: UnarySubtract): SemanticCheck =
-    subtract.rhs match {
-      case r: IntegerLiteral if Try(Math.subtractExact(0, r.value)).isFailure =>
-        SemanticError.integerOperationCannotBeRepresented(
-          s"-${r.stringVal}",
-          subtract.position
-        )
-      case _ => SemanticCheck.success
-    }
-
-  private def checkMultiplyBoundary(multiply: Multiply): SemanticCheck =
-    (multiply.lhs, multiply.rhs) match {
-      case (l: IntegerLiteral, r: IntegerLiteral) if Try(Math.multiplyExact(l.value, r.value)).isFailure =>
-        SemanticError.integerOperationCannotBeRepresented(
-          s"${l.stringVal} * ${r.stringVal}",
-          multiply.position
-        )
-      case _ => SemanticCheck.success
-    }
 
   private def infixAddRhsTypes(lhs: Expression): TypeGenerator = s => {
     val lhsTypes = types(lhs)(s)

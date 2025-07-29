@@ -67,7 +67,7 @@ case object FoldConstants extends StepSequencer.Step with DefaultPostCondition w
     try {
       expr match {
         case e @ Add(lhs: SignedIntegerLiteral, rhs: SignedIntegerLiteral) =>
-          SignedDecimalIntegerLiteral((lhs.value + rhs.value).toString)(e.position.zeroLength)
+          SignedDecimalIntegerLiteral(Math.addExact(lhs.value, rhs.value).toString)(e.position.zeroLength)
         case e @ Add(lhs: DecimalDoubleLiteral, rhs: SignedIntegerLiteral) =>
           DecimalDoubleLiteral((lhs.value + rhs.value).toString)(e.position.zeroLength)
         case e @ Add(lhs: SignedIntegerLiteral, rhs: DecimalDoubleLiteral) =>
@@ -76,7 +76,7 @@ case object FoldConstants extends StepSequencer.Step with DefaultPostCondition w
           DecimalDoubleLiteral((lhs.value + rhs.value).toString)(e.position.zeroLength)
 
         case e @ Subtract(lhs: SignedIntegerLiteral, rhs: SignedIntegerLiteral) =>
-          SignedDecimalIntegerLiteral((lhs.value - rhs.value).toString)(e.position.zeroLength)
+          SignedDecimalIntegerLiteral(Math.subtractExact(lhs.value, rhs.value).toString)(e.position.zeroLength)
         case e @ Subtract(lhs: DecimalDoubleLiteral, rhs: SignedIntegerLiteral) =>
           DecimalDoubleLiteral((lhs.value - rhs.value).toString)(e.position.zeroLength)
         case e @ Subtract(lhs: SignedIntegerLiteral, rhs: DecimalDoubleLiteral) =>
@@ -85,7 +85,7 @@ case object FoldConstants extends StepSequencer.Step with DefaultPostCondition w
           DecimalDoubleLiteral((lhs.value - rhs.value).toString)(e.position.zeroLength)
 
         case e @ Multiply(lhs: SignedIntegerLiteral, rhs: SignedIntegerLiteral) =>
-          SignedDecimalIntegerLiteral((lhs.value * rhs.value).toString)(e.position.zeroLength)
+          SignedDecimalIntegerLiteral(Math.multiplyExact(lhs.value, rhs.value).toString)(e.position.zeroLength)
         case e @ Multiply(lhs: DecimalDoubleLiteral, rhs: SignedIntegerLiteral) =>
           DecimalDoubleLiteral((lhs.value * rhs.value).toString)(e.position.zeroLength)
         case e @ Multiply(lhs: SignedIntegerLiteral, rhs: DecimalDoubleLiteral) =>
@@ -133,7 +133,7 @@ case object FoldConstants extends StepSequencer.Step with DefaultPostCondition w
           e.rhs
 
         case e @ UnarySubtract(rhs: SignedIntegerLiteral) =>
-          SignedDecimalIntegerLiteral((-rhs.value).toString)(e.position.zeroLength)
+          SignedDecimalIntegerLiteral(Math.negateExact(rhs.value).toString)(e.position.zeroLength)
         case e: UnarySubtract =>
           Subtract(SignedDecimalIntegerLiteral("0")(e.position.zeroLength), e.rhs)(e.position)
 
