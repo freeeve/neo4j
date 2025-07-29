@@ -35,11 +35,13 @@ import org.neo4j.driver.internal.value.MapValue
 import org.neo4j.driver.internal.value.NodeValue
 import org.neo4j.driver.internal.value.PathValue
 import org.neo4j.driver.internal.value.RelationshipValue
+import org.neo4j.driver.internal.value.VectorValue
 import org.neo4j.graphdb.Entity
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Path
 import org.neo4j.graphdb.Relationship
 import org.neo4j.values.storable.DurationValue.duration
+import org.neo4j.values.storable.Values
 
 import java.time.temporal.Temporal
 import java.time.temporal.TemporalAmount
@@ -74,6 +76,7 @@ final object ResultValueMapper extends ValueMapper {
       case relValue: RelationshipValue => convertRel(relValue.asRelationship())
       case path: PathValue             => convertDriverPath(path.asPath())
       case float: FloatValue           => java.lang.Double.valueOf(float.asDouble() + 0.0)
+      case vector: VectorValue         => convertVector(vector)
       case durationValue: DurationValue => // Yes, durations are treated as strings here
         val d = durationValue.asIsoDuration()
         duration(d.months(), d.days(), d.seconds(), d.nanoseconds()).toString
@@ -101,6 +104,30 @@ final object ResultValueMapper extends ValueMapper {
         }
       NoIdPath(convertNode(p.start()), connections.toSeq)
     }
+
+    private def convertVector(vector: VectorValue): org.neo4j.values.storable.Value = {
+      val vec = vector.asBoltVector()
+      vec.elementType().toString match {
+        case "byte" =>
+          val coordinateArray: Array[Byte] = vec.elements().asInstanceOf[Array[Byte]]
+          Values.int8Vector(coordinateArray: _*)
+        case "short" =>
+          val coordinateArray: Array[Short] = vec.elements().asInstanceOf[Array[Short]]
+          Values.int16Vector(coordinateArray: _*)
+        case "int" =>
+          val coordinateArray: Array[Int] = vec.elements().asInstanceOf[Array[Int]]
+          Values.int32Vector(coordinateArray: _*)
+        case "long" =>
+          val coordinateArray: Array[Long] = vec.elements().asInstanceOf[Array[Long]]
+          Values.int64Vector(coordinateArray: _*)
+        case "float" =>
+          val coordinateArray: Array[Float] = vec.elements().asInstanceOf[Array[Float]]
+          Values.float32Vector(coordinateArray: _*)
+        case "double" =>
+          val coordinateArray: Array[Double] = vec.elements().asInstanceOf[Array[Double]]
+          Values.float64Vector(coordinateArray: _*)
+      }
+    }
   }
 
   /** Converts embedded API values. */
@@ -123,7 +150,7 @@ final object ResultValueMapper extends ValueMapper {
     }
 
     private def convertMap(map: java.util.Map[_, _]): java.util.Map[String, AnyRef] = {
-      if (needsConvertion(map)) {
+      if (needsConversion(map)) {
         val result = java.util.HashMap.newHashMap[String, AnyRef](map.size())
         map.forEach((k, v) => result.put(k.asInstanceOf[String], convertEmbeddedValue(v.asInstanceOf[AnyRef])))
         result
@@ -133,7 +160,7 @@ final object ResultValueMapper extends ValueMapper {
     }
 
     private def convertList(list: java.util.List[_]): java.util.List[_] = {
-      if (needsConvertion(list)) {
+      if (needsConversion(list)) {
         val result = new java.util.ArrayList[AnyRef](list.size())
         list.forEach(v => result.add(convertEmbeddedValue(v.asInstanceOf[AnyRef])))
         result
@@ -162,9 +189,9 @@ final object ResultValueMapper extends ValueMapper {
       NoIdPath(convertNode(p.startNode()), connections.toSeq)
     }
 
-    private def needsConvertion(value: AnyRef): Boolean = value match {
-      case map: util.Map[_, _] => map.values().stream().anyMatch(v => needsConvertion(v.asInstanceOf[AnyRef]))
-      case list: util.List[_]  => list.stream().anyMatch(v => needsConvertion(v.asInstanceOf[AnyRef]))
+    private def needsConversion(value: AnyRef): Boolean = value match {
+      case map: util.Map[_, _] => map.values().stream().anyMatch(v => needsConversion(v.asInstanceOf[AnyRef]))
+      case list: util.List[_]  => list.stream().anyMatch(v => needsConversion(v.asInstanceOf[AnyRef]))
       case _: Entity | _: Path | _: java.lang.Integer | _: Array[_] | _: Temporal | _: TemporalAmount => true
       case _                                                                                          => false
     }
