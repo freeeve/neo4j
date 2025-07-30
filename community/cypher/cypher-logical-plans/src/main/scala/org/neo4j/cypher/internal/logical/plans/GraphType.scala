@@ -19,12 +19,11 @@
  */
 package org.neo4j.cypher.internal.logical.plans
 
-import org.neo4j.cypher.internal.ast.NoOptions
-import org.neo4j.cypher.internal.ast.Options
-import org.neo4j.cypher.internal.ast.OptionsMap
-import org.neo4j.cypher.internal.ast.OptionsParam
+import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.prettifier.GraphTypeStringifier
 import org.neo4j.cypher.internal.expressions.LabelName
+import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.Variable
@@ -113,7 +112,102 @@ object GraphType {
    * @param constraints   The independent/undesignated constraints to be created of the graph type
    * @return              The canonical form of the graph type `{ ... }`
    */
-  def graphTypeInfo(
+  def graphTypeInfoForShow(
+    elementTypes: Set[GraphTypeEntry],
+    constraints: Set[GraphTypeCreateConstraint]
+  ): String =
+    if (elementTypes.isEmpty && constraints.isEmpty) "{}"
+    else {
+      // Turn into ast graph type representation to reuse it's stringifier
+      def getEndNodeRef(endNode: NodeElementTypeReferenceForRelationshipElementType): ast.NodeTypeReference =
+        endNode match {
+          case EmptyNodeElementTypeReference =>
+            ast.EmptyNodeTypeReference()(InputPosition.NONE)
+          case ref: NodeElementTypeReferenceByLabel =>
+            ast.NodeTypeReferenceByLabel(ref.labelName)(InputPosition.NONE)
+          case ref: NodeElementTypeReferenceByIdentifyingLabel =>
+            ast.NodeTypeReferenceByIdentifyingLabel(ref.labelName)(InputPosition.NONE)
+        }
+
+      val nodeVariable = Variable("n")(InputPosition.NONE, isIsolated = false)
+      val relVariable = Variable("r")(InputPosition.NONE, isIsolated = false)
+      def getConstraintRef(ref: GraphElementTypeReferenceForConstraint): (ast.GraphTypeElementReference, Variable) =
+        ref match {
+          case ref: NodeElementTypeReferenceByLabel =>
+            (ast.NodeTypeReferenceByLabel(ref.labelName, Some(nodeVariable))(InputPosition.NONE), nodeVariable)
+          case ref: NodeElementTypeReferenceByIdentifyingLabel =>
+            (
+              ast.NodeTypeReferenceByIdentifyingLabel(ref.labelName, Some(nodeVariable))(InputPosition.NONE),
+              nodeVariable
+            )
+          case ref: RelationshipElementTypeReferenceByLabel =>
+            (ast.EdgeTypeReferenceByLabel(ref.relTypeName, Some(relVariable))(InputPosition.NONE), relVariable)
+          case ref: RelationshipElementTypeReferenceByIdentifyingLabel =>
+            (
+              ast.EdgeTypeReferenceByIdentifyingLabel(ref.relTypeName, Some(relVariable))(InputPosition.NONE),
+              relVariable
+            )
+        }
+
+      val astElemTypes: Set[ast.GraphTypeEntry] = elementTypes.map {
+        case NodeElementType(identifyingLabel, additionalLabels, propertyTypes) =>
+          ast.NodeType(
+            None,
+            identifyingLabel,
+            additionalLabels,
+            propertyTypes.map(pt =>
+              ast.PropertyType(pt.name, pt.propertyType, None)(InputPosition.NONE)
+            ),
+            Set.empty
+          )(InputPosition.NONE)
+        case RelationshipElementType(identifyingLabel, sourceNode, targetNode, propertyTypes) =>
+          ast.EdgeType(
+            getEndNodeRef(sourceNode),
+            None,
+            identifyingLabel,
+            propertyTypes.map(pt =>
+              ast.PropertyType(pt.name, pt.propertyType, None)(InputPosition.NONE)
+            ),
+            getEndNodeRef(targetNode),
+            Set.empty
+          )(InputPosition.NONE)
+      }
+
+      val astConstraints: Set[ast.GraphTypeConstraint] = constraints.map(constraint => {
+        val (reference, variable) = getConstraintRef(constraint.reference)
+        val astProperties = constraint.properties.map(Property(variable, _)(InputPosition.NONE))
+
+        val constraintBody = constraint.constraintType match {
+          case ExistenceConstraint =>
+            ast.GraphTypeConstraint.ExistenceConstraint(astProperties)(InputPosition.NONE)
+          case ptc: PropertyTypeConstraint =>
+            ast.GraphTypeConstraint.PropertyTypeConstraint(astProperties, ptc.propertyType)(InputPosition.NONE)
+          case KeyConstraint =>
+            ast.GraphTypeConstraint.KeyConstraint(astProperties)(InputPosition.NONE)
+          case UniquenessConstraint =>
+            ast.GraphTypeConstraint.UniquenessConstraint(astProperties)(InputPosition.NONE)
+        }
+
+        ast.GraphTypeConstraintDefinition(
+          constraint.name,
+          reference,
+          constraintBody,
+          constraint.options
+        )(InputPosition.NONE)
+      })
+
+      val astGraphType = ast.GraphType(astElemTypes, astConstraints)(InputPosition.NONE)
+
+      GraphTypeStringifier.apply(astGraphType)
+    }
+
+  /** Returns the string representation of the graph type given by the element types and constraint specifications.
+   *
+   * @param elementTypes  The node and relationship element types of the graph type
+   * @param constraints   The independent/undesignated constraints to be created of the graph type
+   * @return              The canonical form of the graph type `{ ... }` (but on a single line)
+   */
+  def graphTypeInfoForPlan(
     elementTypes: Set[GraphTypeEntry],
     constraints: Set[GraphTypeCreateConstraint]
   ): String =
@@ -139,9 +233,9 @@ object GraphType {
         val propertiesString = if (props.size == 1) props.head else props.mkString("(", ", ", ")")
         val assertion = c.constraintType.predicate
         val options = c.options match {
-          case NoOptions               => ""
-          case OptionsParam(parameter) => s" OPTIONS ${stringifier(parameter)}"
-          case OptionsMap(innerMap) =>
+          case ast.NoOptions               => ""
+          case ast.OptionsParam(parameter) => s" OPTIONS ${stringifier(parameter)}"
+          case ast.OptionsMap(innerMap) =>
             val mapString = innerMap.map({
               case (s, e) =>
                 // maps in the expression have PropertyKeyName for the keys,
@@ -296,7 +390,7 @@ case class GraphTypeCreateConstraint(
   reference: GraphElementTypeReferenceForConstraint,
   properties: ArraySeq[PropertyKeyName],
   constraintType: GraphTypeConstraintType,
-  options: Options
+  options: ast.Options
 )
 
 sealed trait GraphTypeConstraintType {

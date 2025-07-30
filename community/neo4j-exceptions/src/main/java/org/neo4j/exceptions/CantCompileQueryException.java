@@ -83,7 +83,7 @@ public class CantCompileQueryException extends Neo4jException {
                         .formatted(planName));
     }
 
-    public static CantCompileQueryException schemaCommandUnsupportedInCommunityEdition(String component) {
+    public static CantCompileQueryException commandUnsupportedInCommunityEdition(String component) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
                 .withParam(GqlParams.StringParam.feat, "'%s'".formatted(component))
                 .withParam(GqlParams.StringParam.edition, "community edition")

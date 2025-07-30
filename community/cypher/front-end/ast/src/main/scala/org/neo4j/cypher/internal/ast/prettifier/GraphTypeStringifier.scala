@@ -48,6 +48,11 @@ import scala.math.Ordering.Implicits.seqOrdering
 
 object GraphTypeStringifier {
 
+  // In a lot of cases, we use multi-line strings to construct our line-breaks. Let's make sure we stay consistent with that here.
+  private val NL: String =
+    """
+      |""".stripMargin
+
   private val es: ExpressionStringifier = ExpressionStringifier(alwaysBacktick = true, alwaysParens = true)
 
   implicit object GraphTypeEntryOrdering extends Ordering[GraphTypeEntry] {
@@ -129,7 +134,7 @@ object GraphTypeStringifier {
     val graphTypeConstraints =
       graphType.constraints.toList.sorted.map(entry => stringifyGraphTypeConstraint(entry))
     s"""{
-       | ${(graphTypeEntries ++ graphTypeConstraints).mkString(s",${System.lineSeparator()} ")}
+       | ${(graphTypeEntries ++ graphTypeConstraints).mkString(s",$NL ")}
        |}""".stripMargin
   }
 

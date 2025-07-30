@@ -165,7 +165,7 @@ import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.FusedMerge
 import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeDropInfo
-import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeInfo
+import org.neo4j.cypher.internal.logical.plans.GraphType.graphTypeInfoForPlan
 import org.neo4j.cypher.internal.logical.plans.GraphTypeForAdd
 import org.neo4j.cypher.internal.logical.plans.GraphTypeForAlter
 import org.neo4j.cypher.internal.logical.plans.GraphTypeForDrop
@@ -1600,7 +1600,7 @@ case class LogicalPlan2PlanDescription(
         )
 
       case AlterCurrentGraphType(gt: GraphTypeForSet) =>
-        val details = Details(asPrettyString.raw(graphTypeInfo(gt.elementTypes, gt.constraints)))
+        val details = Details(asPrettyString.raw(graphTypeInfoForPlan(gt.elementTypes, gt.constraints)))
         PlanDescriptionImpl(
           id,
           "AlterCurrentGraphTypeSet",
@@ -1612,7 +1612,7 @@ case class LogicalPlan2PlanDescription(
         )
 
       case AlterCurrentGraphType(gt: GraphTypeForAdd) =>
-        val details = Details(asPrettyString.raw(graphTypeInfo(gt.elementTypes, gt.constraints)))
+        val details = Details(asPrettyString.raw(graphTypeInfoForPlan(gt.elementTypes, gt.constraints)))
         PlanDescriptionImpl(
           id,
           "AlterCurrentGraphTypeAdd",
@@ -1636,7 +1636,7 @@ case class LogicalPlan2PlanDescription(
         )
 
       case AlterCurrentGraphType(gt: GraphTypeForAlter) =>
-        val details = Details(asPrettyString.raw(graphTypeInfo(gt.elementTypes, Set.empty)))
+        val details = Details(asPrettyString.raw(graphTypeInfoForPlan(gt.elementTypes, Set.empty)))
         PlanDescriptionImpl(
           id,
           "AlterCurrentGraphTypeAlter",

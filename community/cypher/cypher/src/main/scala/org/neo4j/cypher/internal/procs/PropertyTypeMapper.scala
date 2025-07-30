@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.procs
 
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
@@ -62,6 +63,7 @@ import org.neo4j.internal.schema.constraints.SchemaValueType.POINT
 import org.neo4j.internal.schema.constraints.SchemaValueType.STRING
 import org.neo4j.internal.schema.constraints.SchemaValueType.ZONED_DATETIME
 import org.neo4j.internal.schema.constraints.SchemaValueType.ZONED_TIME
+import org.neo4j.values.storable.Vector.CoordinateType
 
 object PropertyTypeMapper {
 
@@ -113,5 +115,64 @@ object PropertyTypeMapper {
     case ListType(_: PointType, _)         => LIST_POINT
     case pt =>
       throw new IllegalStateException(s"Invalid property type: ${pt.description}")
+  }
+
+  // Will have InputPosition.NONE
+  def asCypherType(propertyTypeSet: PropertyTypeSet): CypherType = {
+    val cypherTypeList = propertyTypeSet.values().toList.map {
+      case BOOLEAN        => BooleanType(isNullable = true)(InputPosition.NONE)
+      case STRING         => StringType(isNullable = true)(InputPosition.NONE)
+      case INTEGER        => IntegerType(isNullable = true)(InputPosition.NONE)
+      case FLOAT          => FloatType(isNullable = true)(InputPosition.NONE)
+      case DATE           => DateType(isNullable = true)(InputPosition.NONE)
+      case LOCAL_TIME     => LocalTimeType(isNullable = true)(InputPosition.NONE)
+      case ZONED_TIME     => ZonedTimeType(isNullable = true)(InputPosition.NONE)
+      case LOCAL_DATETIME => LocalDateTimeType(isNullable = true)(InputPosition.NONE)
+      case ZONED_DATETIME => ZonedDateTimeType(isNullable = true)(InputPosition.NONE)
+      case DURATION       => DurationType(isNullable = true)(InputPosition.NONE)
+      case POINT          => PointType(isNullable = true)(InputPosition.NONE)
+      case vectorType: org.neo4j.internal.schema.constraints.VectorType =>
+        val innerType = vectorType.coordinateType() match {
+          case CoordinateType.INTEGER8  => Integer8Type(isNullable = false)(InputPosition.NONE)
+          case CoordinateType.INTEGER16 => Integer16Type(isNullable = false)(InputPosition.NONE)
+          case CoordinateType.INTEGER32 => Integer32Type(isNullable = false)(InputPosition.NONE)
+          case CoordinateType.INTEGER64 => IntegerType(isNullable = false)(InputPosition.NONE)
+          case CoordinateType.FLOAT32   => Float32Type(isNullable = false)(InputPosition.NONE)
+          case CoordinateType.FLOAT64   => FloatType(isNullable = false)(InputPosition.NONE)
+        }
+        VectorType(Some(innerType), Some(vectorType.dimensions().toLong), isNullable = true)(InputPosition.NONE)
+      case LIST_BOOLEAN =>
+        ListType(BooleanType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_STRING =>
+        ListType(StringType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_INTEGER =>
+        ListType(IntegerType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_FLOAT =>
+        ListType(FloatType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_DATE =>
+        ListType(DateType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_LOCAL_TIME =>
+        ListType(LocalTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_ZONED_TIME =>
+        ListType(ZonedTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_LOCAL_DATETIME =>
+        ListType(LocalDateTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_ZONED_DATETIME =>
+        ListType(ZonedDateTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_DURATION =>
+        ListType(DurationType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case LIST_POINT =>
+        ListType(PointType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+      case pt =>
+        throw new IllegalStateException(s"Invalid property type: ${pt.userDescription()}")
+    }
+
+    if (cypherTypeList.size == 1) {
+      // Single CypherType
+      cypherTypeList.head
+    } else {
+      // Union Cypher Type
+      ClosedDynamicUnionType(cypherTypeList.toSet)(InputPosition.NONE)
+    }
   }
 }

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.expressions.SignedHexIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedOctalIntegerLiteral
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import scala.util.Random
 
@@ -47,6 +48,21 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       List[ast.CommandResultItem],
       Option[ast.With]
     ) => InputPosition => ast.CommandClause
+
+  private case class CommandCombinationsWithNames(
+    firstCommand: String,
+    firstClause: CommandClauseWithNames,
+    secondCommand: String,
+    secondClause: CommandClauseWithNames
+  )
+
+  private case class CommandCombinationsNoNames(
+    firstCommand: String,
+    firstClause: CommandClauseNoNames,
+    secondCommand: String,
+    secondClause: CommandClauseNoNames,
+    supportedInCypher5: Boolean = true
+  )
 
   private def showTx(
     ids: Either[List[String], Expression],
@@ -125,62 +141,102 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   }
 
   private val commandCombinationsAllowingStringExpressions = Seq(
-    ("SHOW TRANSACTION", showTx: CommandClauseWithNames, "SHOW TRANSACTION", showTx: CommandClauseWithNames),
-    ("SHOW TRANSACTION", showTx: CommandClauseWithNames, "TERMINATE TRANSACTION", terminateTx: CommandClauseWithNames),
-    ("TERMINATE TRANSACTION", terminateTx: CommandClauseWithNames, "SHOW TRANSACTION", showTx: CommandClauseWithNames),
-    (
+    CommandCombinationsWithNames(
+      "SHOW TRANSACTION",
+      showTx: CommandClauseWithNames,
+      "SHOW TRANSACTION",
+      showTx: CommandClauseWithNames
+    ),
+    CommandCombinationsWithNames(
+      "SHOW TRANSACTION",
+      showTx: CommandClauseWithNames,
+      "TERMINATE TRANSACTION",
+      terminateTx: CommandClauseWithNames
+    ),
+    CommandCombinationsWithNames(
+      "TERMINATE TRANSACTION",
+      terminateTx: CommandClauseWithNames,
+      "SHOW TRANSACTION",
+      showTx: CommandClauseWithNames
+    ),
+    CommandCombinationsWithNames(
       "TERMINATE TRANSACTION",
       terminateTx: CommandClauseWithNames,
       "TERMINATE TRANSACTION",
       terminateTx: CommandClauseWithNames
     ),
-    ("SHOW SETTING", showSetting: CommandClauseWithNames, "SHOW SETTING", showSetting: CommandClauseWithNames),
-    ("SHOW TRANSACTION", showTx: CommandClauseWithNames, "SHOW SETTING", showSetting: CommandClauseWithNames),
-    ("SHOW SETTING", showSetting: CommandClauseWithNames, "SHOW TRANSACTION", showTx: CommandClauseWithNames),
-    ("TERMINATE TRANSACTION", terminateTx: CommandClauseWithNames, "SHOW SETTING", showSetting: CommandClauseWithNames),
-    ("SHOW SETTING", showSetting: CommandClauseWithNames, "TERMINATE TRANSACTION", terminateTx: CommandClauseWithNames)
+    CommandCombinationsWithNames(
+      "SHOW SETTING",
+      showSetting: CommandClauseWithNames,
+      "SHOW SETTING",
+      showSetting: CommandClauseWithNames
+    ),
+    CommandCombinationsWithNames(
+      "SHOW TRANSACTION",
+      showTx: CommandClauseWithNames,
+      "SHOW SETTING",
+      showSetting: CommandClauseWithNames
+    ),
+    CommandCombinationsWithNames(
+      "SHOW SETTING",
+      showSetting: CommandClauseWithNames,
+      "SHOW TRANSACTION",
+      showTx: CommandClauseWithNames
+    ),
+    CommandCombinationsWithNames(
+      "TERMINATE TRANSACTION",
+      terminateTx: CommandClauseWithNames,
+      "SHOW SETTING",
+      showSetting: CommandClauseWithNames
+    ),
+    CommandCombinationsWithNames(
+      "SHOW SETTING",
+      showSetting: CommandClauseWithNames,
+      "TERMINATE TRANSACTION",
+      terminateTx: CommandClauseWithNames
+    )
   )
 
-  private val commandCombinationsWithoutExpressions: Seq[(String, CommandClauseNoNames, String, CommandClauseNoNames)] =
+  private val commandCombinationsWithoutExpressions: Seq[CommandCombinationsNoNames] =
     Seq(
       // show functions only combinations
-      (
+      CommandCombinationsNoNames(
         "SHOW FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _),
         "SHOW FUNCTIONS EXECUTABLE",
         showFunction(ast.AllFunctions, Some(ast.CurrentUser), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW ALL FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _),
         "SHOW ALL FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
         showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW BUILT IN FUNCTIONS",
         showFunction(ast.BuiltInFunctions, None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW USER DEFINED FUNCTIONS",
         showFunction(ast.UserDefinedFunctions, None, _, _, _, _),
         "SHOW USER DEFINED FUNCTIONS EXECUTABLE BY user",
         showFunction(ast.UserDefinedFunctions, Some(ast.User("user")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW FUNCTIONS EXECUTABLE BY user",
         showFunction(ast.AllFunctions, Some(ast.User("user")), _, _, _, _),
         "SHOW BUILT IN FUNCTIONS",
         showFunction(ast.BuiltInFunctions, None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW BUILT IN FUNCTIONS",
         showFunction(ast.BuiltInFunctions, None, _, _, _, _),
         "SHOW USER DEFINED FUNCTIONS",
         showFunction(ast.UserDefinedFunctions, None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW USER DEFINED FUNCTIONS EXECUTABLE",
         showFunction(ast.UserDefinedFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW ALL FUNCTIONS",
@@ -188,31 +244,31 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       )
     ) ++ Seq(
       // show procedures only combinations
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE",
         showProcedure(Some(ast.CurrentUser), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES EXECUTABLE BY CURRENT USER",
         showProcedure(Some(ast.CurrentUser), _, _, _, _),
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY user",
         showProcedure(Some(ast.User("user")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES EXECUTABLE",
         showProcedure(Some(ast.CurrentUser), _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY SHOW",
@@ -220,49 +276,49 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       )
     ) ++ Seq(
       // show constraints only combinations
-      (
+      CommandCombinationsNoNames(
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW ALL CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW NODE KEY CONSTRAINTS",
         showConstraint(ast.NodeKeyConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW RELATIONSHIP KEY CONSTRAINTS",
         showConstraint(ast.RelKeyConstraints, _, _, _, _),
         "SHOW KEY CONSTRAINTS",
         showConstraint(ast.KeyConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW NODE UNIQUENESS CONSTRAINTS",
         showConstraint(ast.NodeUniqueConstraints.cypher25, _, _, _, _),
         "SHOW UNIQUE CONSTRAINTS",
         showConstraint(ast.UniqueConstraints.cypher25, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW REL UNIQUE CONSTRAINTS",
         showConstraint(ast.RelUniqueConstraints.cypher25, _, _, _, _),
         "SHOW PROPERTY EXISTENCE CONSTRAINTS",
         showConstraint(ast.PropExistsConstraints.cypher25, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW NODE PROPERTY EXIST CONSTRAINTS",
         showConstraint(ast.NodePropExistsConstraints.cypher25, _, _, _, _),
         "SHOW REL EXIST CONSTRAINTS",
         showConstraint(ast.RelAllExistsConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROPERTY TYPE CONSTRAINTS",
         showConstraint(ast.PropTypeConstraints, _, _, _, _),
         "SHOW NODE PROPERTY TYPE CONSTRAINTS",
         showConstraint(ast.NodePropTypeConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW RELATIONSHIP PROPERTY TYPE CONSTRAINTS",
@@ -270,31 +326,31 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       )
     ) ++ Seq(
       // show indexes only combinations
-      (
+      CommandCombinationsNoNames(
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW ALL INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW RANGE INDEXES",
         showIndex(ast.RangeIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW FULLTEXT INDEXES",
         showIndex(ast.FulltextIndexes, _, _, _, _),
         "SHOW TEXT INDEXES",
         showIndex(ast.TextIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW POINT INDEXES",
         showIndex(ast.PointIndexes, _, _, _, _),
         "SHOW LOOKUP INDEXES",
         showIndex(ast.LookupIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW VECTOR INDEXES",
@@ -306,228 +362,228 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       // as that is handled by `commandCombinationsAllowingStringExpressions`
 
       // show transaction combined with remaining commands
-      (
+      CommandCombinationsNoNames(
         "SHOW TRANSACTIONS",
         showTx(Left(List.empty), _, _, _, _),
         "SHOW FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW SETTINGS",
         showSetting(Left(List.empty), _, _, _, _),
         "SHOW TRANSACTIONS",
         showTx(Left(List.empty), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW ALL FUNCTIONS EXECUTABLE BY SHOW",
         showFunction(ast.AllFunctions, Some(ast.User("SHOW")), _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
         showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW TRANSACTIONS",
         showTx(Left(List.empty), _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE BY SHOW",
         showProcedure(Some(ast.User("SHOW")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
         showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW TRANSACTIONS",
         showTx(Left(List.empty), _, _, _, _),
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROPERTY TYPE CONSTRAINTS",
         showConstraint(ast.PropTypeConstraints, _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
         showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW TRANSACTIONS",
         showTx(Left(List.empty), _, _, _, _),
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW POINT INDEXES",
         showIndex(ast.PointIndexes, _, _, _, _),
         "SHOW TRANSACTIONS 'db1-transaction-123'",
         showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       // terminate transaction combined with remaining commands
-      (
+      CommandCombinationsNoNames(
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW BUILT IN FUNCTIONS",
         showFunction(ast.BuiltInFunctions, None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW FUNCTIONS EXECUTABLE BY TERMINATE",
         showFunction(ast.AllFunctions, Some(ast.User("TERMINATE")), _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES EXECUTABLE BY TERMINATE",
         showProcedure(Some(ast.User("TERMINATE")), _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW NODE EXISTENCE CONSTRAINTS",
         showConstraint(ast.NodeAllExistsConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
         "SHOW RANGE INDEXES",
         showIndex(ast.RangeIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
       // show settings combined with remaining commands
-      (
+      CommandCombinationsNoNames(
         "SHOW SETTINGS",
         showSetting(Left(List.empty), _, _, _, _),
         "SHOW USER DEFINED FUNCTIONS EXECUTABLE",
         showFunction(ast.UserDefinedFunctions, Some(ast.CurrentUser), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _),
         "SHOW SETTINGS $setting",
         showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW SETTINGS",
         showSetting(Left(List.empty), _, _, _, _),
         "SHOW PROCEDURES EXECUTABLE",
         showProcedure(Some(ast.CurrentUser), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW SETTINGS $setting",
         showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW SETTINGS",
         showSetting(Left(List.empty), _, _, _, _),
         "SHOW UNIQUENESS CONSTRAINTS",
         showConstraint(ast.UniqueConstraints.cypher25, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW SETTINGS $setting",
         showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW SETTINGS",
         showSetting(Left(List.empty), _, _, _, _),
         "SHOW TEXT INDEXES",
         showIndex(ast.TextIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW SETTINGS $setting",
         showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
       // show functions combined with remaining commands
-      (
+      CommandCombinationsNoNames(
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
         showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
         showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW KEY CONSTRAINTS",
         showConstraint(ast.KeyConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
         showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW LOOKUP INDEXES",
         showIndex(ast.LookupIndexes, _, _, _, _),
         "SHOW FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
       // show procedures combined with remaining commands
-      (
+      CommandCombinationsNoNames(
         "SHOW ALL CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW ALL INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _),
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW PROCEDURES",
         showProcedure(None, _, _, _, _),
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _)
       ),
       // show constraints combined with remaining commands
-      (
+      CommandCombinationsNoNames(
         "SHOW ALL CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _),
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _)
       ),
-      (
+      CommandCombinationsNoNames(
         "SHOW FULLTEXT INDEXES",
         showIndex(ast.FulltextIndexes, _, _, _, _),
         "SHOW CONSTRAINTS",
@@ -535,14 +591,15 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       )
     )
 
-  private val commandCombinationsAll: Seq[(String, CommandClauseNoNames, String, CommandClauseNoNames)] =
-    commandCombinationsAllowingStringExpressions.map { case (firstCommand, firstClause, secondCommand, secondClause) =>
-      (
-        s"$firstCommand 'txId1'",
-        firstClause(Right(literalString("txId1")), _, _, _, _),
-        s"$secondCommand 'txId2'",
-        secondClause(Right(literalString("txId2")), _, _, _, _)
-      )
+  private val commandCombinationsAll: Seq[CommandCombinationsNoNames] =
+    commandCombinationsAllowingStringExpressions.map {
+      case CommandCombinationsWithNames(firstCommand, firstClause, secondCommand, secondClause) =>
+        CommandCombinationsNoNames(
+          s"$firstCommand 'txId1'",
+          firstClause(Right(literalString("txId1")), _, _, _, _),
+          s"$secondCommand 'txId2'",
+          secondClause(Right(literalString("txId2")), _, _, _, _)
+        )
     } ++ commandCombinationsWithoutExpressions
 
   private def updateForCypher5(clause: ast.Clause): ast.Clause = clause match {
@@ -582,41 +639,66 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     case other => other
   }
 
-  private def assertAst(expectedClauses: ast.Clause*): Unit = {
+  private def assertAst(expectedClauses: ast.Clause*): Unit =
+    assertAstVersionAware(supportedInCypher5 = true, expectedClauses: _*)
+
+  // Can't be named `assertAst` or `assertAstVersionBased` as that leads to compile errors on `Cannot resolve overloaded method`
+  private def assertAstVersionAware(supportedInCypher5: Boolean, expectedClauses: ast.Clause*): Unit = {
     parsesIn[ast.Statements] {
+      case Cypher5 if !supportedInCypher5 =>
+        _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input ",
+          fuzzyStatusDescr = true
+        )
       case Cypher5 => _.toAstPositioned(ast.Statements(Seq(singleQuery(expectedClauses.map(updateForCypher5): _*))))
       case _       => _.toAstPositioned(ast.Statements(Seq(singleQuery(expectedClauses: _*))))
     }
   }
 
-  private def assertAstDontComparePosVersionBased(expectedClauses: Boolean => Seq[ast.Clause]): Unit = {
+  private def assertAstDontComparePosVersionBased(
+    supportedInCypher5: Boolean,
+    expectedClauses: Boolean => Seq[ast.Clause]
+  ): Unit = {
     parsesIn[ast.Statements] {
+      case Cypher5 if !supportedInCypher5 =>
+        _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input ",
+          fuzzyStatusDescr = true
+        )
       case Cypher5 => _.toAst(ast.Statements(Seq(singleQuery(expectedClauses(true).map(updateForCypher5): _*))))
       case _       => _.toAst(ast.Statements(Seq(singleQuery(expectedClauses(false): _*))))
     }
   }
 
   Random.shuffle(commandCombinationsAll).take(35).foreach {
-    case (firstCommand, firstClause, secondCommand, secondClause) =>
+    case CommandCombinationsNoNames(firstCommand, firstClause, secondCommand, secondClause, supportedInCypher5) =>
       test(s"$firstCommand $secondCommand") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(None, false, List.empty, None)(defaultPos),
           secondClause(None, false, List.empty, None)(pos)
         )
       }
 
       test(s"USE db $firstCommand $secondCommand") {
-        assertAstDontComparePosVersionBased(cypherVersion5 =>
-          Seq(
-            use(List("db"), !cypherVersion5),
-            firstClause(None, false, List.empty, None)(pos),
-            secondClause(None, false, List.empty, None)(pos)
-          )
+        assertAstDontComparePosVersionBased(
+          supportedInCypher5,
+          cypherVersion5 =>
+            Seq(
+              use(List("db"), !cypherVersion5),
+              firstClause(None, false, List.empty, None)(pos),
+              secondClause(None, false, List.empty, None)(pos)
+            )
         )
       }
 
       test(s"$firstCommand WHERE transactionId = '123' $secondCommand") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Some((where(equals(varFor("transactionId"), literalString("123"))), getWherePosition())),
             false,
@@ -628,7 +710,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"$firstCommand $secondCommand WHERE transactionId = '123'") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(None, false, List.empty, None)(defaultPos),
           secondClause(
             Some((where(equals(varFor("transactionId"), literalString("123"))), getWherePosition())),
@@ -642,7 +725,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(s"$firstCommand WHERE transactionId = '123' $secondCommand WHERE transactionId = '123'") {
         val where1Pos = getWherePosition()
         val where2Pos = getWherePosition(where1Pos.offset + 1)
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             Some((where(equals(varFor("transactionId"), literalString("123"))), where1Pos)),
             false,
@@ -659,7 +743,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"$firstCommand YIELD transactionId AS txId $secondCommand") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             None,
             false,
@@ -671,7 +756,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       }
 
       test(s"$firstCommand $secondCommand YIELD transactionId AS txId") {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(None, false, List.empty, None)(defaultPos),
           secondClause(
             None,
@@ -685,7 +771,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand YIELD transactionId AS txId $secondCommand YIELD username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             None,
             false,
@@ -704,7 +791,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand YIELD transactionId AS txId $secondCommand YIELD username RETURN txId, username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             None,
             false,
@@ -724,7 +812,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand YIELD * $secondCommand YIELD username RETURN txId, username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(defaultPos),
           secondClause(
             None,
@@ -739,7 +828,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand YIELD transactionId AS txId $secondCommand YIELD * RETURN txId, username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             None,
             false,
@@ -754,7 +844,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand YIELD * $secondCommand YIELD * RETURN txId, username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(defaultPos),
           secondClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
           returnClause(returnItems(variableReturnItem("txId"), variableReturnItem("username")))
@@ -764,7 +855,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       test(
         s"$firstCommand YIELD transactionId AS txId RETURN txId $secondCommand YIELD username RETURN txId, username"
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             None,
             false,
@@ -789,7 +881,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
            |YIELD username, message
            |RETURN *""".stripMargin
       ) {
-        assertAst(
+        assertAstVersionAware(
+          supportedInCypher5,
           firstClause(
             None,
             false,
@@ -816,11 +909,18 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       // more commands per query
 
       Random.shuffle(commandCombinationsAll).take(35).foreach {
-        case (thirdCommand, thirdClause, fourthCommand, fourthClause) =>
+        case CommandCombinationsNoNames(
+            thirdCommand,
+            thirdClause,
+            fourthCommand,
+            fourthClause,
+            secondSupportedInCypher5
+          ) =>
           test(
             s"$firstCommand $secondCommand $thirdCommand $fourthCommand"
           ) {
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(None, false, List.empty, None)(defaultPos),
               secondClause(None, false, List.empty, None)(pos),
               thirdClause(None, false, List.empty, None)(pos),
@@ -838,7 +938,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                |$fourthCommand
                |YIELD *""".stripMargin
           ) {
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(defaultPos),
               secondClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
               thirdClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
@@ -857,7 +958,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
                |YIELD transactionId AS txId, message AS status
                |RETURN *""".stripMargin
           ) {
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(
                 None,
                 false,
@@ -903,7 +1005,8 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             val where2Pos = getWherePosition(where1Pos.offset + 1)
             val where3Pos = getWherePosition(where2Pos.offset + 1)
             val where4Pos = getWherePosition(where3Pos.offset + 1)
-            assertAst(
+            assertAstVersionAware(
+              supportedInCypher5 && secondSupportedInCypher5,
               firstClause(
                 Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where1Pos)),
                 false,
@@ -934,7 +1037,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   }
 
   commandCombinationsAllowingStringExpressions.foreach {
-    case (firstCommand, firstClause, secondCommand, secondClause) =>
+    case CommandCombinationsWithNames(firstCommand, firstClause, secondCommand, secondClause) =>
       test(s"$firstCommand 'db1-transaction-123' $secondCommand 'db1-transaction-123'") {
         assertAst(
           firstClause(Right(literalString("db1-transaction-123")), None, false, List.empty, None)(defaultPos),
@@ -1141,7 +1244,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       // more commands per query
 
       commandCombinationsAllowingStringExpressions.foreach {
-        case (thirdCommand, thirdClause, fourthCommand, fourthClause) =>
+        case CommandCombinationsWithNames(thirdCommand, thirdClause, fourthCommand, fourthClause) =>
           test(
             s"""$firstCommand 'db1-transaction-123'
                |${secondCommand}S 'db1-transaction-123'

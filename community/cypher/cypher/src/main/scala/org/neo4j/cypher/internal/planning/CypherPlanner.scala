@@ -653,7 +653,7 @@ case class CypherPlanner(
             case s: SchemaCommand => s.commandDescription
             case s: Statement     => s.getClass.getSimpleName
           }
-          throw CantCompileQueryException.schemaCommandUnsupportedInCommunityEdition(name)
+          throw CantCompileQueryException.commandUnsupportedInCommunityEdition(name)
         }
       case _ =>
         val fingerprint = PlanFingerprint.take(
