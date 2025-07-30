@@ -41,6 +41,9 @@ import org.neo4j.memory.MemoryTracker;
  */
 public class ReadAheadChannel<T extends StoreChannel> implements ReadableChannel {
     public static final int DEFAULT_READ_AHEAD_SIZE = toIntExact(kibiBytes(4));
+
+    private static final ByteBuffer ZERO_BUFFER = ByteBuffer.allocate(DEFAULT_READ_AHEAD_SIZE);
+
     private final ScopedBuffer scopedBuffer;
 
     protected T channel;
@@ -213,11 +216,9 @@ public class ReadAheadChannel<T extends StoreChannel> implements ReadableChannel
 
     @Override
     public int getChecksum() {
-
         // Consume remaining bytes
         checksumView.limit(aheadBuffer.position());
         checksum.update(checksumView);
-
         return (int) checksum.getValue();
     }
 
@@ -299,8 +300,19 @@ public class ReadAheadChannel<T extends StoreChannel> implements ReadableChannel
         return channel;
     }
 
-    protected void resetAheadBuffer() {
-        aheadBuffer.limit(0);
+    protected void zeroOutBuffers() {
+        aheadBuffer.clear();
+
+        final var aheadSize = aheadBuffer.capacity();
+        var toZero = aheadSize;
+        while (toZero > 0) {
+            final var length = min(ZERO_BUFFER.capacity(), toZero);
+            aheadBuffer.put(aheadSize - toZero, ZERO_BUFFER, 0, length);
+            toZero -= length;
+        }
+        aheadBuffer.limit(0); // force a buffer fill on next read
+        checksum.reset();
+        checksumView.clear();
     }
 
     @Override

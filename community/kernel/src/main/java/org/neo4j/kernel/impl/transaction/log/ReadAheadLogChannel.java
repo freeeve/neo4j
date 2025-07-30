@@ -122,7 +122,7 @@ public class ReadAheadLogChannel extends ReadAheadChannel<LogVersionedStoreChann
             throw new IllegalArgumentException("Log position points log version %d but the current one is %d"
                     .formatted(positionMarker.getLogVersion(), channel.getLogVersion()));
         }
-        channel.position(positionMarker.getByteOffset());
+        position(positionMarker.getByteOffset());
     }
 
     @Override
@@ -132,7 +132,7 @@ public class ReadAheadLogChannel extends ReadAheadChannel<LogVersionedStoreChann
 
     @Override
     public void resetToPosition(long byteOffset) throws IOException {
-        super.resetAheadBuffer();
-        channel.position(byteOffset);
+        super.zeroOutBuffers();
+        position(byteOffset);
     }
 }

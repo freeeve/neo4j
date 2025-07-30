@@ -20,12 +20,15 @@
 package org.neo4j.kernel.impl.transaction;
 
 import static java.lang.Math.toIntExact;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.io.ByteUnit.KibiByte;
+import static org.neo4j.io.fs.ChecksumWriter.CHECKSUM_FACTORY;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 
@@ -34,6 +37,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.eclipse.collections.api.factory.primitive.IntIntMaps;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Visitor;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -54,6 +59,9 @@ import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
 class ReadAheadLogChannelTest {
+
+    private static final int BUFFER_SIZE = toIntExact(KibiByte.toBytes(1));
+
     @Inject
     private FileSystemAbstraction fileSystem;
 
@@ -82,7 +90,7 @@ class ReadAheadLogChannelTest {
             element.putFloat(floatValue);
             element.putDouble(doubleValue);
             element.put(byteArrayValue);
-            return true;
+            return false;
         });
 
         StoreChannel storeChannel = fileSystem.read(file);
@@ -127,13 +135,13 @@ class ReadAheadLogChannelTest {
             for (int i = 0; i < 10; i++) {
                 element.putLong(i);
             }
-            return true;
+            return false;
         });
         writeSomeData(file(1), element -> {
             for (int i = 10; i < 20; i++) {
                 element.putLong(i);
             }
-            return true;
+            return false;
         });
 
         StoreChannel storeChannel = fileSystem.read(file(0));
@@ -156,14 +164,14 @@ class ReadAheadLogChannelTest {
             for (var i = 0; i < 10; i++) {
                 buffer.putLong(i);
             }
-            return true;
+            return false;
         });
         final var channelSize2 = writeSomeData(file(1), buffer -> {
             buffer.put(byteValue);
             for (var i = 10; i < 20; i++) {
                 buffer.putLong(i);
             }
-            return true;
+            return false;
         });
 
         final var storeChannel = fileSystem.read(file(0));
@@ -191,13 +199,122 @@ class ReadAheadLogChannelTest {
         }
     }
 
+    @Test
+    void setLogPositionOnInvalidChannel() throws Exception {
+        final var version = 1;
+        final var numOfLongs = 8;
+        final var file = file(version);
+
+        writeSomeData(file, buffer -> {
+            for (var i = 0; i < numOfLongs; i++) {
+                buffer.putLong(i + 1);
+            }
+            return false;
+        });
+
+        try (var storeChannel = fileSystem.read(file);
+                var versionedStoreChannel = new PhysicalLogVersionedStoreChannel(
+                        storeChannel, version, LATEST_LOG_FORMAT, file, nativeChannelAccessor, databaseTracer);
+                var channel = new ReadAheadLogChannel(versionedStoreChannel, INSTANCE)) {
+            final var beforeMarker = new LogPositionMarker();
+            beforeMarker.mark(version - 1, 0);
+            assertThatThrownBy(() -> channel.setLogPosition(beforeMarker))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContainingAll(
+                            "Log position points log version",
+                            String.valueOf(beforeMarker.getLogVersion()),
+                            "but the current one is",
+                            String.valueOf(version));
+
+            final var afterMarker = new LogPositionMarker();
+            afterMarker.mark(version + 1, 0);
+            assertThatThrownBy(() -> channel.setLogPosition(afterMarker))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContainingAll(
+                            "Log position points log version",
+                            String.valueOf(afterMarker.getLogVersion()),
+                            "but the current one is",
+                            String.valueOf(version));
+        }
+    }
+
+    @Test
+    void setLogPositionAndChecksums() throws Exception {
+        final var checksum = CHECKSUM_FACTORY.get();
+        final var version = 0;
+        final var file = file(version);
+
+        final var totalSize = ReadAheadLogChannel.DEFAULT_READ_AHEAD_SIZE * 2;
+        final var payloadsPerBuffer = 4;
+        final var totalChunkSize = BUFFER_SIZE / payloadsPerBuffer;
+        final var totalChunks = totalSize / totalChunkSize;
+        final var totalPayloadSize = totalChunkSize - Integer.BYTES;
+        final var intsPerPayload = totalPayloadSize / Integer.BYTES;
+
+        final var checksums = IntIntMaps.mutable.empty();
+
+        final var currentSize = new MutableInt();
+        writeSomeData(file, buffer -> {
+            for (var i = 0; i < payloadsPerBuffer; i++) {
+                checksum.reset();
+                for (var j = 0; j < intsPerPayload; j++) {
+                    buffer.putInt(currentSize.intValue() + j);
+                }
+
+                final var startOffset = i * totalChunkSize;
+                checksum.update(buffer.array(), startOffset, totalPayloadSize);
+                final var checksumValue = (int) checksum.getValue();
+                buffer.putInt(checksumValue);
+
+                checksums.put(checksums.size(), checksumValue);
+
+                currentSize.add(totalChunkSize);
+            }
+
+            return currentSize.intValue() < totalSize;
+        });
+
+        try (var storeChannel = fileSystem.read(file);
+                var versionedStoreChannel = new PhysicalLogVersionedStoreChannel(
+                        storeChannel, version, LATEST_LOG_FORMAT, file, nativeChannelAccessor, databaseTracer);
+                var channel = new ReadAheadLogChannel(versionedStoreChannel, INSTANCE)) {
+            var marker = new LogPositionMarker();
+
+            for (var payload = 0; payload < totalChunks; payload++) {
+                marker.mark(version, (long) payload * totalChunkSize);
+                channel.setLogPosition(marker);
+
+                checksum.reset();
+                for (var j = 0; j < intsPerPayload; j++) {
+                    checksum.update(channel.getInt());
+                }
+
+                assertThat(channel.endChecksumAndValidate()).isEqualTo(checksums.get(payload));
+            }
+
+            for (var payload = totalChunks - 1; payload >= 0; payload--) {
+                marker.mark(version, (long) payload * totalChunkSize);
+                channel.setLogPosition(marker);
+
+                checksum.reset();
+                for (var j = 0; j < intsPerPayload; j++) {
+                    checksum.update(channel.getInt());
+                }
+
+                assertThat(channel.endChecksumAndValidate()).isEqualTo(checksums.get(payload));
+            }
+        }
+    }
+
     private long writeSomeData(Path file, Visitor<ByteBuffer, IOException> visitor) throws IOException {
-        try (StoreChannel channel = fileSystem.write(file)) {
-            ByteBuffer buffer =
-                    ByteBuffers.allocate(toIntExact(KibiByte.toBytes(1)), ByteOrder.LITTLE_ENDIAN, INSTANCE);
-            visitor.visit(buffer);
-            buffer.flip();
-            channel.writeAll(buffer);
+        try (var channel = fileSystem.write(file)) {
+            final var buffer = ByteBuffers.allocate(BUFFER_SIZE, ByteOrder.LITTLE_ENDIAN, INSTANCE);
+            while (visitor.visit(buffer)) {
+                channel.writeAll(buffer.flip());
+                buffer.clear();
+            }
+
+            channel.writeAll(buffer.flip());
             return channel.size();
         }
     }
@@ -210,7 +327,7 @@ class ReadAheadLogChannelTest {
         private final MutableBoolean rawWitness = new MutableBoolean(false);
 
         @Override
-        public LogVersionedStoreChannel next(LogVersionedStoreChannel channel, boolean raw) throws IOException {
+        public LogVersionedStoreChannel next(LogVersionedStoreChannel channel, boolean raw) {
             rawWitness.setValue(raw);
             return channel;
         }
