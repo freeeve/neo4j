@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.CommunityE
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.ExpressionConverter
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.ExpressionConverters
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NestedPipeExpressions
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeMapper
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeTreeBuilder
 import org.neo4j.cypher.internal.runtime.slotted.SlottedExecutionResultBuilderFactory
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper
@@ -126,7 +127,7 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
       val converters = new ExpressionConverters(mainConverter, fallbackConverters: _*)
 
       val queryIndexRegistrator = new QueryIndexRegistrator(context.schemaRead)
-      val fallback = InterpretedPipeMapper(
+      val fallback = getFallbackPipeMapper(InterpretedPipeMapper(
         context.cypherVersion,
         query.readOnly,
         converters,
@@ -135,7 +136,7 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
         context.anonymousVariableNameGenerator,
         context.isCommunity,
         physicalPlan.parameterMapping
-      )(query.semanticTable)
+      )(query.semanticTable))
       val pipeBuilder = new SlottedPipeMapper(
         fallback,
         converters,
@@ -199,6 +200,9 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
         throw e
     }
   }
+
+  // Method to be able to wrap the fallback from enterprise
+  protected def getFallbackPipeMapper(initialFallback: PipeMapper): PipeMapper = initialFallback
 }
 
 object SlottedRuntime {

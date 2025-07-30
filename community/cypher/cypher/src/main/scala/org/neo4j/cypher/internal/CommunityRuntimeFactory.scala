@@ -28,7 +28,7 @@ object CommunityRuntimeFactory {
 
   val interpreted =
     new FallbackRuntime[RuntimeContext](
-      ArraySeq(CommunitySchemaCommandRuntime, InterpretedRuntime),
+      ArraySeq(CommunitySchemaCommandRuntime, CommunityInterpretedRuntime),
       CypherRuntimeOption.interpreted
     )
 

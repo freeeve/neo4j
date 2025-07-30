@@ -23,10 +23,10 @@ import org.neo4j.common
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy
+import org.neo4j.cypher.internal.CommunityInterpretedRuntime
 import org.neo4j.cypher.internal.CommunitySchemaCommandRuntime
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
-import org.neo4j.cypher.internal.InterpretedRuntime
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
@@ -228,7 +228,7 @@ class InferSchemaPartsUsageMetricsTest extends CypherFunSuite with CypherVersion
     val tc = mock[TransactionalContext](org.mockito.Mockito.RETURNS_DEEP_STUBS)
 
     val logicalPlanResult = planner
-      .parseAndPlan(preParserQuery, NO_TRACING, tc, MapValue.EMPTY, InterpretedRuntime, devNullLogger, null)
+      .parseAndPlan(preParserQuery, NO_TRACING, tc, MapValue.EMPTY, CommunityInterpretedRuntime, devNullLogger, null)
 
     logicalPlanResult.plannerContext.internalUsageStats
   }

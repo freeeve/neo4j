@@ -21,9 +21,9 @@ package org.neo4j.cypher.internal.planning
 
 import org.neo4j.common
 import org.neo4j.configuration.Config
+import org.neo4j.cypher.internal.CommunityInterpretedRuntime
 import org.neo4j.cypher.internal.CommunitySchemaCommandRuntime
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.InterpretedRuntime
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
@@ -307,7 +307,7 @@ class CypherPlannerTest extends CypherFunSuite {
     val tc = mock[TransactionalContext](org.mockito.Mockito.RETURNS_DEEP_STUBS)
 
     val statement = planner
-      .parseAndPlan(preParserQuery, NO_TRACING, tc, MapValue.EMPTY, InterpretedRuntime, devNullLogger, null)
+      .parseAndPlan(preParserQuery, NO_TRACING, tc, MapValue.EMPTY, CommunityInterpretedRuntime, devNullLogger, null)
       .logicalPlanState
       .statement
 

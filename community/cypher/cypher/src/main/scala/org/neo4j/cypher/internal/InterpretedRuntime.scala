@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.cypher.internal.InterpretedRuntime.InterpretedExecutionPlan
+import org.neo4j.cypher.internal.InterpretedRuntime.calculateTransactionMode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.TransactionApply
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
@@ -45,6 +47,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.UpdateCountingQueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.CommunityExpressionConverter
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.ExpressionConverters
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NestedPipeExpressions
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeMapper
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeTreeBuilder
 import org.neo4j.cypher.internal.runtime.interpreted.profiler.InterpretedProfileInformation
 import org.neo4j.cypher.internal.runtime.interpreted.profiler.Profiler
@@ -59,14 +62,14 @@ import org.neo4j.values.virtual.MapValue
 
 import scala.collection.immutable.ArraySeq
 
-object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
+trait InterpretedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] {
   override def name: String = "interpreted"
 
   override def correspondingRuntimeOption: Option[CypherRuntimeOption] = Some(CypherRuntimeOption.legacy)
 
   override def compileToExecutable(
     query: LogicalQuery,
-    context: RuntimeContext,
+    context: CONTEXT,
     databaseMode: DatabaseMode
   ): ExecutionPlan = {
     val Result(logicalPlan, nExpressionSlots, availableExpressionVars) =
@@ -86,7 +89,7 @@ object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
       )
     )
     val queryIndexRegistrator = new QueryIndexRegistrator(context.schemaRead)
-    val pipeMapper = InterpretedPipeMapper(
+    val pipeMapper = getFallbackPipeMapper(InterpretedPipeMapper(
       context.cypherVersion,
       query.readOnly,
       converters,
@@ -95,7 +98,7 @@ object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
       context.anonymousVariableNameGenerator,
       context.isCommunity,
       parameterMapping
-    )(query.semanticTable)
+    )(query.semanticTable))
     val pipeTreeBuilder = PipeTreeBuilder(pipeMapper)
     val logicalPlanWithConvertedNestedPlans =
       NestedPipeExpressions.build(
@@ -133,6 +136,12 @@ object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
       generatedByteCodeSize = 0L
     )
   }
+
+  // Method to be able to wrap the fallback from enterprise
+  protected def getFallbackPipeMapper(initialFallback: PipeMapper): PipeMapper = initialFallback
+}
+
+object InterpretedRuntime {
 
   def calculateTransactionMode(logicalQuery: LogicalQuery): QueryTransactionMode = {
     doCalculateTransactionMode(logicalQuery.logicalPlan)
@@ -192,3 +201,5 @@ object InterpretedRuntime extends CypherRuntime[RuntimeContext] {
     override def notifications: Set[InternalNotification] = warnings
   }
 }
+
+object CommunityInterpretedRuntime extends InterpretedRuntime[RuntimeContext]

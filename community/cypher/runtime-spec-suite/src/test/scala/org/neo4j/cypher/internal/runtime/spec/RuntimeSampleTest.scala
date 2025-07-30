@@ -19,12 +19,12 @@
  */
 package org.neo4j.cypher.internal.runtime.spec
 
-import org.neo4j.cypher.internal.InterpretedRuntime
+import org.neo4j.cypher.internal.CommunityInterpretedRuntime
 
 /**
  * Sample tests to demonstrate the runtime acceptance test framework. Remove eventually?
  */
-class RuntimeSampleTest extends RuntimeTestSuite(COMMUNITY.EDITION, InterpretedRuntime) {
+class RuntimeSampleTest extends RuntimeTestSuite(COMMUNITY.EDITION, CommunityInterpretedRuntime) {
 
   test("sample test I - simple all nodes scan") {
     // given

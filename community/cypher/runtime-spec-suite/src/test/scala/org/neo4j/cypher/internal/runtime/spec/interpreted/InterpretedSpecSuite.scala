@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.interpreted
 
+import org.neo4j.cypher.internal.CommunityInterpretedRuntime
 import org.neo4j.cypher.internal.CommunityRuntimeContext
-import org.neo4j.cypher.internal.InterpretedRuntime
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.spec.COMMUNITY
@@ -211,214 +211,268 @@ object InterpretedSpecSuite {
   val SIZE_HINT = 200
 }
 
-class InterpretedAggregationTest extends AggregationTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedAggregationTest extends AggregationTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with UserDefinedAggregationSupport[CommunityRuntimeContext]
 
 class InterpretedOrderedAggregationTest
-    extends OrderedAggregationTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends OrderedAggregationTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
-class InterpretedAllNodeScanTest extends AllNodeScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedAllNodeScanTest extends AllNodeScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with AllNodeScanWithOtherOperatorsTestBase[CommunityRuntimeContext]
-class InterpretedCartesianProductTest extends CartesianProductTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedApplyTest extends ApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedWritingSubqueryApplyTest extends WritingSubqueryApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime)
-class InterpretedNodeByIdSeekTest extends NodeByIdSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+
+class InterpretedCartesianProductTest
+    extends CartesianProductTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedApplyTest extends ApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedWritingSubqueryApplyTest
+    extends WritingSubqueryApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
+
+class InterpretedNodeByIdSeekTest
+    extends NodeByIdSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedNodeByElementIdSeekTest
-    extends NodeByElementIdSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends NodeByElementIdSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedDirectedRelationshipByIdSeekTest
-    extends DirectedRelationshipByIdSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends DirectedRelationshipByIdSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedDirectedRelationshipByElementIdSeekTest
-    extends DirectedRelationshipByElementIdSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends DirectedRelationshipByElementIdSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedUndirectedRelationshipByIdSeekTest
-    extends UndirectedRelationshipByIdSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends UndirectedRelationshipByIdSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedUndirectedRelationshipByElementIdSeekTest
-    extends UndirectedRelationshipByElementIdSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends UndirectedRelationshipByElementIdSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedNodeCountFromCountStoreTest
-    extends NodeCountFromCountStoreTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends NodeCountFromCountStoreTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedRelationshipCountFromCountStoreTest
-    extends RelationshipCountFromCountStoreTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends RelationshipCountFromCountStoreTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
-class InterpretedExpandAllTest extends ExpandAllTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedExpandAllTest extends ExpandAllTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with ExpandAllWithOtherOperatorsTestBase[CommunityRuntimeContext]
 
-class InterpretedExpandIntoTest extends ExpandIntoTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedExpandIntoTest extends ExpandIntoTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with ExpandIntoWithOtherOperatorsTestBase[CommunityRuntimeContext]
 
 class InterpretedOptionalExpandAllTest
-    extends OptionalExpandAllTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends OptionalExpandAllTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedOptionalExpandIntoTest
-    extends OptionalExpandIntoTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends OptionalExpandIntoTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedVarExpandTrailTest
-    extends VarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Trail)
+    extends VarLengthExpandTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT, TraversalPathMode.Trail)
 
 class InterpretedVarExpandWalkTest
-    extends VarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Walk)
+    extends VarLengthExpandTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT, TraversalPathMode.Walk)
 
 class InterpretedPruningVarExpandTrailTest
-    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Trail)
+    extends PruningVarLengthExpandTestBase(
+      COMMUNITY.EDITION,
+      CommunityInterpretedRuntime,
+      SIZE_HINT,
+      TraversalPathMode.Trail
+    )
 
 class InterpretedPruningVarExpandWalkTest
-    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Walk)
+    extends PruningVarLengthExpandTestBase(
+      COMMUNITY.EDITION,
+      CommunityInterpretedRuntime,
+      SIZE_HINT,
+      TraversalPathMode.Walk
+    )
 
 class InterpretedPruningVarExpandFuzzTest
-    extends PruningVarLengthExpandFuzzTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends PruningVarLengthExpandFuzzTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedBFSPruningVarExpandTrailTest
-    extends BFSPruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Trail)
+    extends BFSPruningVarLengthExpandTestBase(
+      COMMUNITY.EDITION,
+      CommunityInterpretedRuntime,
+      SIZE_HINT,
+      TraversalPathMode.Trail
+    )
 
 class InterpretedBFSPruningVarExpandWalkTest
-    extends BFSPruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Walk)
-class InterpretedProjectEndpointsTest extends ProjectEndpointsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedLabelScanTest extends LabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends BFSPruningVarLengthExpandTestBase(
+      COMMUNITY.EDITION,
+      CommunityInterpretedRuntime,
+      SIZE_HINT,
+      TraversalPathMode.Walk
+    )
+
+class InterpretedProjectEndpointsTest
+    extends ProjectEndpointsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedLabelScanTest extends LabelScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedDynamicLabelNodeLookupTest
-    extends DynamicLabelNodeLookupTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedUnionLabelScanTest extends UnionLabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedNodeIndexScanTest extends NodeIndexScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends DynamicLabelNodeLookupTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedUnionLabelScanTest
+    extends UnionLabelScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedNodeIndexScanTest
+    extends NodeIndexScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedIntersectionLabelScanTest
-    extends IntersectionLabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends IntersectionLabelScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSubtractionLabelScanTest
-    extends SubtractionLabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SubtractionLabelScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedNodeIndexContainsScanTest
-    extends NodeIndexContainsScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends NodeIndexContainsScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedNodeIndexStartsWithSeekTest
-    extends NodeIndexStartsWithSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends NodeIndexStartsWithSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedNodeIndexEndsWithScanTest
-    extends NodeIndexEndsWithScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends NodeIndexEndsWithScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
-class InterpretedNodeIndexSeekTest extends NodeIndexSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedNodeIndexSeekTest
+    extends NodeIndexSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with NodeLockingUniqueIndexSeekTestBase[CommunityRuntimeContext]
 
 class InterpretedRelationshipIndexSeekTest
-    extends RelationshipIndexSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RelationshipIndexSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with RelationshipLockingUniqueIndexSeekTestBase[CommunityRuntimeContext]
 
 class InterpretedRelationshipIndexScanTest
-    extends RelationshipIndexScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RelationshipIndexScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedRelationshipIndexStartsWithSeekTest
-    extends RelationshipIndexStartsWithSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RelationshipIndexStartsWithSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedRelationshipIndexContainsScanTest
-    extends RelationshipIndexContainsScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RelationshipIndexContainsScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedRelationshipIndexEndsWithScanTest
-    extends RelationshipIndexEndsWithScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RelationshipIndexEndsWithScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedNodeIndexPointDistanceSeekTest
-    extends NodeIndexPointDistanceSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends NodeIndexPointDistanceSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedNodeIndexPointBoundingBoxSeekTest
-    extends NodeIndexPointBoundingBoxSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends NodeIndexPointBoundingBoxSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedRelationshipIndexPointBoundingBoxSeekTest
-    extends RelationshipIndexPointBoundingBoxSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RelationshipIndexPointBoundingBoxSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedMultiNodeIndexSeekTest
-    extends MultiNodeIndexSeekTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedInputTest extends InputTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends MultiNodeIndexSeekTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedInputTest extends InputTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
-class InterpretedLoadCsvTest extends LoadCsvTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedLoadCsvTest extends LoadCsvTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with LoadCsvWithCallInTransactionsAndMerge[CommunityRuntimeContext]
-class InterpretedPartialSortTest extends PartialSortTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedTopTest extends TopTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedTop1WithTiesTest extends Top1WithTiesTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedSortTest extends SortTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedPartialTopNTest extends PartialTopNTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedPartialTop1Test extends PartialTop1TestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedFilterTest extends FilterTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedArgumentTest extends ArgumentTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedProjectionTest extends ProjectionTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedPartialSortTest extends PartialSortTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedTopTest extends TopTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedTop1WithTiesTest
+    extends Top1WithTiesTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedSortTest extends SortTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedPartialTopNTest extends PartialTopNTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedPartialTop1Test extends PartialTop1TestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedFilterTest extends FilterTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedArgumentTest extends ArgumentTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedProjectionTest extends ProjectionTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedCachePropertiesTest
-    extends CachePropertiesTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, 1)
+    extends CachePropertiesTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT, 1)
     with CachePropertiesTxStateTestBase[CommunityRuntimeContext]
-class InterpretedUnwindTest extends UnwindTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedDistinctTest extends DistinctTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedOrderedDistinctTest extends OrderedDistinctTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedLimitTest extends LimitTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedExhaustiveLimitTest extends ExhaustiveLimitTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedSkipTest extends SkipTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedNodeHashJoinTest extends NodeHashJoinTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedValueHashJoinTest extends ValueHashJoinTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedUnwindTest extends UnwindTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedDistinctTest extends DistinctTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedOrderedDistinctTest
+    extends OrderedDistinctTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedLimitTest extends LimitTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedExhaustiveLimitTest
+    extends ExhaustiveLimitTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedSkipTest extends SkipTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedNodeHashJoinTest
+    extends NodeHashJoinTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedValueHashJoinTest
+    extends ValueHashJoinTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedRightOuterHashJoinTest
-    extends RightOuterHashJoinTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RightOuterHashJoinTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedLeftOuterHashJoinTest
-    extends LeftOuterHashJoinTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedReactiveResultsTest extends ReactiveResultTestBase(COMMUNITY.EDITION, InterpretedRuntime)
-class InterpretedMiscTest extends MiscTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends LeftOuterHashJoinTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedReactiveResultsTest extends ReactiveResultTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
+class InterpretedMiscTest extends MiscTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
-class InterpretedOptionalTest extends OptionalTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedOptionalTest extends OptionalTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with OptionalFailureTestBase[CommunityRuntimeContext]
 
-class InterpretedProvidedOrderTest extends ProvidedOrderTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedProvidedOrderTest
+    extends ProvidedOrderTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with NonParallelProvidedOrderTestBase[CommunityRuntimeContext]
     with CartesianProductProvidedOrderTestBase[CommunityRuntimeContext]
 
 class InterpretedProfileDbHitsTest
-    extends LegacyDbHitsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, createsRelValueInExpand = true)
+    extends LegacyDbHitsTestBase(
+      COMMUNITY.EDITION,
+      CommunityInterpretedRuntime,
+      SIZE_HINT,
+      createsRelValueInExpand = true
+    )
     with ProcedureCallDbHitsTestBase[CommunityRuntimeContext]
     with NestedPlanDbHitsTestBase[CommunityRuntimeContext]
     with NonFusedWriteOperatorsDbHitsTestBase[CommunityRuntimeContext]
     with TransactionForeachDbHitsTestBase[CommunityRuntimeContext]
 
-class InterpretedProfileRowsTest extends ProfileRowsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, 1)
+class InterpretedProfileRowsTest
+    extends ProfileRowsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT, 1)
     with EagerLimitProfileRowsTestBase[CommunityRuntimeContext]
     with MergeProfileRowsTestBase[CommunityRuntimeContext]
     with NonParallelProfileRowsTestBase[CommunityRuntimeContext]
     with TransactionForeachProfileRowsTestBase[CommunityRuntimeContext]
     with TrailProfileRowsTestBase[CommunityRuntimeContext]
 
-class InterpretedMemoryManagementTest extends MemoryManagementTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+class InterpretedMemoryManagementTest extends MemoryManagementTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
     with TimeLimitedCypherTest
     with FullSupportMemoryManagementTestBase[CommunityRuntimeContext]
     with TransactionForeachMemoryManagementTestBase[CommunityRuntimeContext]
 
 class InterpretedMemoryManagementDisabledTest
-    extends MemoryManagementDisabledTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends MemoryManagementDisabledTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedMemoryDeallocationTest
-    extends MemoryDeallocationTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends MemoryDeallocationTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
-class InterpretedProfileMemoryTest extends ProfileMemoryTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+class InterpretedProfileMemoryTest extends ProfileMemoryTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
     with FullSupportProfileMemoryTestBase[CommunityRuntimeContext]
 
 class InterpretedMemoryLeakTest
-    extends MemoryLeakTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends MemoryLeakTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
-class InterpretedSubscriberErrorTest extends SubscriberErrorTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+class InterpretedSubscriberErrorTest extends SubscriberErrorTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
-class InterpretedExpressionTest extends ExpressionTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+class InterpretedExpressionTest extends ExpressionTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
     with ExpressionWithTxStateChangesTests[CommunityRuntimeContext]
-class InterpretedProcedureCallTest extends ProcedureCallTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedShortestPathTest extends ShortestPathTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+
+class InterpretedProcedureCallTest
+    extends ProcedureCallTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedShortestPathTest
+    extends ShortestPathTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedStatefulShortestPathTrailModeTest
-    extends StatefulShortestPathTrailModeTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends StatefulShortestPathTrailModeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedStatefulShortestPathWalkModeTest
-    extends StatefulShortestPathWalkModeTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends StatefulShortestPathWalkModeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedStatefulShortestPathPropagationTrailModeTest
     extends StatefulShortestPathPropagationTestBase(
       COMMUNITY.EDITION,
-      InterpretedRuntime,
+      CommunityInterpretedRuntime,
       SIZE_HINT,
       TraversalPathMode.Trail
     )
@@ -426,119 +480,140 @@ class InterpretedStatefulShortestPathPropagationTrailModeTest
 class InterpretedStatefulShortestPathPropagationWalkModeTest
     extends StatefulShortestPathPropagationTestBase(
       COMMUNITY.EDITION,
-      InterpretedRuntime,
+      CommunityInterpretedRuntime,
       SIZE_HINT,
       TraversalPathMode.Walk
     )
 
-class InterpretedUnionTest extends UnionTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedOrderedUnionTest extends OrderedUnionTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedSemiApplyTest extends SemiApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedAntiSemiApplyTest extends AntiSemiApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedLetAntiSemiApplyTest extends LetAntiSemiApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedLetSemiApplyTest extends LetSemiApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedUnionTest extends UnionTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedOrderedUnionTest
+    extends OrderedUnionTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedSemiApplyTest extends SemiApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedAntiSemiApplyTest
+    extends AntiSemiApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedLetAntiSemiApplyTest
+    extends LetAntiSemiApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedLetSemiApplyTest
+    extends LetSemiApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedConditionalApplyTest
-    extends ConditionalApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends ConditionalApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with OrderedConditionalApplyTestBase[CommunityRuntimeContext]
 
 class InterpretedAntiConditionalApplyTest
-    extends AntiConditionalApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends AntiConditionalApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSelectOrSemiApplyTest
-    extends SelectOrSemiApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SelectOrSemiApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSelectOrAntiSemiApplyTest
-    extends SelectOrAntiSemiApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SelectOrAntiSemiApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedLetSelectOrSemiApplyTest
-    extends LetSelectOrSemiApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends LetSelectOrSemiApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedLetSelectOrAntiSemiApplyTest
-    extends LetSelectOrAntiSemiApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends LetSelectOrAntiSemiApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedNestedPlanExpressionTest
-    extends NestedPlanExpressionTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedRollupApplyTest extends RollupApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedRunQueryAtTest extends RunQueryAtTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends NestedPlanExpressionTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedRollupApplyTest extends RollupApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedRunQueryAtTest extends RunQueryAtTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedAllRelationshipsScanTest
-    extends AllRelationshipsScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends AllRelationshipsScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedRelationshipTypeScanTest
-    extends RelationshipTypeScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RelationshipTypeScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedDynamicRelationshipTypeScanTest
-    extends DynamicRelationshipTypeScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends DynamicRelationshipTypeScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedUnionRelationshipTypeTest
-    extends UnionRelationshipTypeTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends UnionRelationshipTypeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedRepeatTrailTest
-    extends RepeatTrailTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RepeatTrailTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with OrderedTrailTestBase[CommunityRuntimeContext]
 
 class InterpretedRepeatWalkTest
-    extends RepeatWalkTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RepeatWalkTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with OrderedWalkTestBase[CommunityRuntimeContext]
 
 //UPDATING
-class InterpretedEmptyResultTest extends EmptyResultTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedEagerTest extends EagerTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedTriadicSelectionTest extends TriadicSelectionTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedEmptyResultTest extends EmptyResultTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedEagerTest extends EagerTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
-class InterpretedAssertSameNodeTest extends AssertSameNodeTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedTriadicSelectionTest
+    extends TriadicSelectionTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedAssertSameNodeTest
+    extends AssertSameNodeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
     with EsotericAssertSameNodeTestBase[CommunityRuntimeContext]
 
 class InterpretedAssertSameRelationshipTest
-    extends AssertSameRelationshipTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedCreateTest extends CreateTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends AssertSameRelationshipTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedCreateTest extends CreateTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedLenientCreateRelationshipTest
-    extends LenientCreateRelationshipTestBase(COMMUNITY.EDITION, InterpretedRuntime)
-class InterpretedSetPropertyTest extends SetPropertyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends LenientCreateRelationshipTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
+class InterpretedSetPropertyTest extends SetPropertyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSetDynamicPropertyTest
-    extends SetDynamicPropertyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedSetPropertiesTest extends SetPropertiesTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SetDynamicPropertyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedSetPropertiesTest
+    extends SetPropertiesTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSetPropertiesFromMapNodeTest
-    extends SetPropertiesFromMapNodeTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SetPropertiesFromMapNodeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSetPropertiesFromMapRelationshipTest
-    extends SetPropertiesFromMapRelationshipTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedSetNodePropertyTest extends SetNodePropertyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SetPropertiesFromMapRelationshipTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedSetNodePropertyTest
+    extends SetNodePropertyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSetNodePropertiesTest
-    extends SetNodePropertiesTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SetNodePropertiesTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSetNodePropertiesFromMapTest
-    extends SetNodePropertiesFromMapTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SetNodePropertiesFromMapTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSetRelationshipPropertiesFromMapTest
-    extends SetRelationshipPropertiesFromMapTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedMergeTest extends MergeTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedMergeStressTest extends MergeStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
-class InterpretedSetLabelsTest extends SetLabelsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedSetDynamicLabelsTest extends SetDynamicLabelsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SetRelationshipPropertiesFromMapTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedMergeTest extends MergeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedMergeStressTest extends MergeStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
+class InterpretedSetLabelsTest extends SetLabelsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
-class InterpretedForEachTest extends ForeachTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedForEachApplyTest extends ForeachApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedSubqueryForeachTest extends SubqueryForeachTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class InterpretedSetDynamicLabelsTest
+    extends SetDynamicLabelsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedForEachTest extends ForeachTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedForEachApplyTest
+    extends ForeachApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedSubqueryForeachTest
+    extends SubqueryForeachTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedTransactionRetryTest
-    extends TransactionRetryTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends TransactionRetryTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedTransactionForeachTest
-    extends TransactionForeachTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends TransactionForeachTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedTransactionApplyTest
-    extends TransactionApplyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends TransactionApplyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedConcurrentTransactionForeachTest
     extends ConcurrentTransactionForeachTestBase(
       COMMUNITY.EDITION,
-      InterpretedRuntime,
+      CommunityInterpretedRuntime,
       SIZE_HINT,
       concurrency = TransactionConcurrency.Concurrent(None)
     )
@@ -546,61 +621,70 @@ class InterpretedConcurrentTransactionForeachTest
 class InterpretedConcurrentTransactionApplyTest
     extends ConcurrentTransactionApplyTestBase(
       COMMUNITY.EDITION,
-      InterpretedRuntime,
+      CommunityInterpretedRuntime,
       SIZE_HINT,
       concurrency = TransactionConcurrency.Concurrent(None)
     )
 
 class InterpretedSetRelationshipPropertyTest
-    extends SetRelationshipPropertyTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SetRelationshipPropertyTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedSetRelationshipPropertiesTest
-    extends SetRelationshipPropertiesTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedDeleteNodeTest extends DeleteNodeTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedDetachDeleteNodeTest extends DeleteDetachNodeTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends SetRelationshipPropertiesTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedDeleteNodeTest extends DeleteNodeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedDetachDeleteNodeTest
+    extends DeleteDetachNodeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedDeleteRelationshipTest
-    extends DeleteRelationshipTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedDeletePathTest extends DeletePathTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedDeleteDetachPathTest extends DeleteDetachPathTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedDeleteExpressionTest extends DeleteExpressionTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends DeleteRelationshipTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedDeletePathTest extends DeletePathTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedDeleteDetachPathTest
+    extends DeleteDetachPathTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedDeleteExpressionTest
+    extends DeleteExpressionTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedDeleteDetachExpressionTest
-    extends DeleteDetachExpressionTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
-class InterpretedRemoveLabelsTest extends RemoveLabelsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends DeleteDetachExpressionTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+
+class InterpretedRemoveLabelsTest
+    extends RemoveLabelsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedRemoveDynamicLabelsTest
-    extends RemoveDynamicLabelsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+    extends RemoveDynamicLabelsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 // CONCURRENT UPDATE STRESS TESTS
 class InterpretedRelationshipTypeScanConcurrencyStressTest
-    extends RelationshipTypeScanConcurrencyStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends RelationshipTypeScanConcurrencyStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedUnionRelationshipTypesScanConcurrencyStressTest
-    extends UnionRelationshipTypesScanConcurrencyStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends UnionRelationshipTypesScanConcurrencyStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedRelationshipIndexScanConcurrencyStressTest
-    extends RelationshipIndexScanConcurrencyStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends RelationshipIndexScanConcurrencyStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedRelationshipTypeReadConcurrencyStressTestBase
-    extends RelationshipTypeReadConcurrencyStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends RelationshipTypeReadConcurrencyStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedRelationshipIndexContainsScanConcurrencyStressTest
-    extends RelationshipIndexContainsScanConcurrencyStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends RelationshipIndexContainsScanConcurrencyStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedRelationshipIndexEndsWithScanConcurrencyStressTest
-    extends RelationshipIndexEndsWithScanConcurrencyStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends RelationshipIndexEndsWithScanConcurrencyStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedRelationshipIndexSeekConcurrencyStressTest
-    extends RelationshipIndexSeekConcurrencyStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends RelationshipIndexSeekConcurrencyStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
 class InterpretedRelationshipIndexLockingUniqueSeekConcurrencyStressTest
-    extends RelationshipIndexLockingUniqueSeekConcurrencyStressTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends RelationshipIndexLockingUniqueSeekConcurrencyStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
-class InterpretedRuntimeDebugLoggingTest
-    extends RuntimeDebugLoggingTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
+class CommunityInterpretedRuntimeDebugLoggingTest
+    extends RuntimeDebugLoggingTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedTransactionTerminationTest
-    extends TransactionTerminationTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+    extends TransactionTerminationTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 
-class InterpretedRuntimeNotificationsTest extends RuntimeNotificationsTestBase(COMMUNITY.EDITION, InterpretedRuntime)
+class CommunityInterpretedRuntimeNotificationsTest
+    extends RuntimeNotificationsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
