@@ -36,9 +36,7 @@ import org.neo4j.internal.helpers.NameUtil
 import org.neo4j.internal.helpers.collection.Iterables
 import org.neo4j.internal.kernel.api.security.LoginContext
 import org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED
-import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexProviderDescriptor
-import org.neo4j.internal.schema.SchemaDescriptors
 import org.neo4j.kernel.GraphDatabaseQueryService
 import org.neo4j.kernel.api.KernelTransaction.Type
 import org.neo4j.kernel.api.schema.vector.VectorTestUtils.VectorIndexSettings
@@ -207,37 +205,6 @@ trait GraphIcing {
       createRelationshipConstraint(Some(name), relType, properties, "IS REL KEY")
 
     // Create constraint help methods
-
-    def createNodeLabelConstraint(label: String, requiredLabel: String): Unit = {
-      withTx { tx =>
-        val ktx = tx.kernelTransaction()
-        val labelId = ktx.tokenWrite().labelGetOrCreateForName(label)
-        val requiredLabelId = ktx.tokenWrite().labelGetOrCreateForName(requiredLabel)
-        ktx.schemaWrite().nodeLabelExistenceConstraintCreate(
-          SchemaDescriptors.forNodeLabelExistence(labelId),
-          null,
-          requiredLabelId
-        )
-      }
-    }
-
-    def createRelationshipEndNodeLabelConstraint(
-      label: String,
-      relationshipType: String,
-      endPoint: EndpointType
-    ): Unit = {
-      withTx { tx =>
-        val ktx = tx.kernelTransaction()
-        val labelId = ktx.tokenWrite().labelGetOrCreateForName(label)
-        val relationshipTypeId = ktx.tokenWrite().relationshipTypeGetOrCreateForName(relationshipType)
-        ktx.schemaWrite().relationshipEndpointLabelConstraintCreate(
-          SchemaDescriptors.forRelationshipEndpointLabel(labelId),
-          null,
-          relationshipTypeId,
-          endPoint
-        )
-      }
-    }
 
     private def createNodeUniquenessConstraintCoreApi(
       name: Option[String],
