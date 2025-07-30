@@ -21,6 +21,8 @@ package org.neo4j.community.edition;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
+import static org.neo4j.test.extension.SkipOnSpd.Note.irrelevant;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,10 +32,14 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
+@SkipOnSpd(
+        reason = "Can't run against enterprise",
+        notes = {incompatible, irrelevant})
 public class CommunityDependenciesIT {
     @Inject
     private TestDirectory testDirectory;
