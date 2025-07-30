@@ -162,6 +162,7 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             PageCursor cursor,
             VALUE value,
             int pos,
+            int keyCount,
             CursorContext cursorContext,
             long stableGeneration,
             long unstableGeneration)
@@ -217,7 +218,7 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             long unstableGeneration)
             throws IOException {
         insertValueSlotsAt(cursor, pos, 1, keyCount);
-        setValueAt(cursor, value, pos, cursorContext, stableGeneration, unstableGeneration);
+        setValueAt(cursor, value, pos, keyCount, cursorContext, stableGeneration, unstableGeneration);
     }
 
     // Always insert together with key. Use removeKeyValueAt
@@ -303,7 +304,7 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     }
 
     @Override
-    public int findSplitter(
+    public int findSplitterForInsert(
             PageCursor cursor,
             int keyCount,
             KEY newKey,
@@ -324,7 +325,20 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     }
 
     @Override
-    public void doSplit(
+    public int findSplitterForUpdate(
+            PageCursor cursor,
+            int keyCount,
+            KEY key,
+            VALUE newValue,
+            VALUE oldValue,
+            int replacePos,
+            KEY newSplitter,
+            CursorContext cursorContext) {
+        throw new UnsupportedOperationException("Not supported.");
+    }
+
+    @Override
+    public void doSplitAndInsert(
             PageCursor leftCursor,
             int leftKeyCount,
             PageCursor rightCursor,
@@ -384,6 +398,11 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
         }
         setKeyCount(leftCursor, splitPos);
         setKeyCount(rightCursor, rightKeyCount);
+    }
+
+    @Override
+    public void doSplit(PageCursor leftCursor, int leftKeyCount, PageCursor rightCursor, int splitPos) {
+        throw new UnsupportedOperationException("Not supported.");
     }
 
     @Override

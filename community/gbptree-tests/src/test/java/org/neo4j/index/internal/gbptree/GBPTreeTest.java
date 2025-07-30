@@ -195,6 +195,60 @@ class GBPTreeTest {
     }
 
     @Test
+    void shouldWriteBiggerValueToExistingKey() throws IOException {
+        var layout = new SimpleByteArrayLayout(true);
+        try (var pageCache = createPageCache(PageCache.PAGE_SIZE);
+                var tree = new GBPTreeBuilder<>(pageCache, fileSystem, indexFile, layout).build()) {
+
+            // given a key value pair
+            try (var writer = tree.writer(NULL_CONTEXT)) {
+                var value = new RawBytes(new byte[100]);
+                writer.put(layout.key(0), value);
+            }
+
+            // when writing a bigger value to the key
+            try (var writer = tree.writer(NULL_CONTEXT)) {
+                var value = new RawBytes(new byte[142]);
+                writer.merge(layout.key(0), value, ValueMergers.overwrite());
+            }
+
+            // then should have the bigger value
+            try (var seeker = tree.seek(layout.key(0), layout.key(0), NULL_CONTEXT)) {
+                assertThat(seeker.next()).isTrue();
+                RawBytes value = seeker.value();
+                assertThat(value.bytes).hasSize(142);
+            }
+        }
+    }
+
+    @Test
+    void shouldWriteSmallerValueToExistingKey() throws IOException {
+        var layout = new SimpleByteArrayLayout(true);
+        try (var pageCache = createPageCache(PageCache.PAGE_SIZE);
+                var tree = new GBPTreeBuilder<>(pageCache, fileSystem, indexFile, layout).build()) {
+
+            // given a key value pair
+            try (var writer = tree.writer(NULL_CONTEXT)) {
+                var value = new RawBytes(new byte[100]);
+                writer.put(layout.key(0), value);
+            }
+
+            // when writing a smaller value to the key
+            try (var writer = tree.writer(NULL_CONTEXT)) {
+                var value = new RawBytes(new byte[42]);
+                writer.merge(layout.key(0), value, ValueMergers.overwrite());
+            }
+
+            // then should have the smaller value
+            try (var seeker = tree.seek(layout.key(0), layout.key(0), NULL_CONTEXT)) {
+                assertThat(seeker.next()).isTrue();
+                RawBytes value = seeker.value();
+                assertThat(value.bytes).hasSize(42);
+            }
+        }
+    }
+
+    @Test
     void shouldNeedRecreationIfNoCheckpointBeforeClose() throws Exception {
         try (PageCache pageCache = createPageCache(defaultPageSize)) {
             index(pageCache).build().close();

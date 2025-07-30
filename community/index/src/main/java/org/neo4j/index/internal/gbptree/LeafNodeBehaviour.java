@@ -56,6 +56,7 @@ public interface LeafNodeBehaviour<KEY, VALUE> extends SharedNodeBehaviour<KEY> 
             PageCursor cursor,
             VALUE value,
             int pos,
+            int keyCount,
             CursorContext cursorContext,
             long stableGeneration,
             long unstableGeneration)
@@ -88,7 +89,7 @@ public interface LeafNodeBehaviour<KEY, VALUE> extends SharedNodeBehaviour<KEY> 
 
     boolean canMerge(PageCursor leftCursor, int leftKeyCount, PageCursor rightCursor, int rightKeyCount);
 
-    int findSplitter(
+    int findSplitterForInsert(
             PageCursor cursor,
             int keyCount,
             KEY newKey,
@@ -98,7 +99,17 @@ public interface LeafNodeBehaviour<KEY, VALUE> extends SharedNodeBehaviour<KEY> 
             double ratioToKeepInLeftOnSplit,
             CursorContext cursorContext);
 
-    void doSplit(
+    int findSplitterForUpdate(
+            PageCursor cursor,
+            int keyCount,
+            KEY key,
+            VALUE newValue,
+            VALUE oldValue,
+            int replacePos,
+            KEY newSplitter,
+            CursorContext cursorContext);
+
+    void doSplitAndInsert(
             PageCursor leftCursor,
             int leftKeyCount,
             PageCursor rightCursor,
@@ -112,6 +123,8 @@ public interface LeafNodeBehaviour<KEY, VALUE> extends SharedNodeBehaviour<KEY> 
             long unstableGeneration,
             CursorContext cursorContext)
             throws IOException;
+
+    void doSplit(PageCursor leftCursor, int leftKeyCount, PageCursor rightCursor, int splitPos);
 
     void moveKeyValuesFromLeftToRight(
             PageCursor leftCursor,

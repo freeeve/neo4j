@@ -790,33 +790,28 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
             long unstableGeneration,
             CursorContext cursorContext)
             throws IOException {
-        if (leafNode.setValueAt(cursor, value, pos, cursorContext, stableGeneration, unstableGeneration)) {
+        if (leafNode.setValueAt(cursor, value, pos, keyCount, cursorContext, stableGeneration, unstableGeneration)) {
+            if (leafNode.underflow(cursor, keyCount)) {
+                // Underflow
+                underflowInLeaf(
+                        cursor, structurePropagation, keyCount, stableGeneration, unstableGeneration, cursorContext);
+            } else {
+                coordination.updateChildInformation(leafNode.availableSpace(cursor, keyCount), keyCount);
+            }
             return true;
         }
-        // Value could not be overwritten in a simple way because they differ in size.
-        // Delete old value and insert w/ overflow/underflow checks.
-        var newKeyCount =
-                leafNode.removeKeyValueAt(cursor, pos, keyCount, stableGeneration, unstableGeneration, cursorContext);
-        TreeNodeUtil.setKeyCount(cursor, newKeyCount);
-        // The doInsertInLeaf below will update the child information, so no explicit update here
-        var result = doInsertInLeaf(
+
+        // Split
+        return splitLeafAndUpdate(
                 cursor,
-                structurePropagation,
+                keyCount,
                 key,
                 value,
                 pos,
-                newKeyCount,
+                structurePropagation,
                 stableGeneration,
                 unstableGeneration,
                 cursorContext);
-        if (result == InsertResult.SPLIT_FAIL) {
-            return false;
-        }
-        if (result == InsertResult.NO_SPLIT && leafNode.underflow(cursor, newKeyCount + 1)) {
-            underflowInLeaf(
-                    cursor, structurePropagation, newKeyCount + 1, stableGeneration, unstableGeneration, cursorContext);
-        }
-        return true;
     }
 
     /**
@@ -854,7 +849,7 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         Overflow overflow = leafNode.overflow(cursor, keyCount, key, value, cursorContext);
         if (overflow == YES) {
             // Overflow, split leaf
-            if (!splitLeaf(
+            if (!splitLeafAndInsert(
                     cursor,
                     structurePropagation,
                     key,
@@ -904,7 +899,7 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
      * @return {@code true} if {@link TreeWriterCoordination} permitted the split operation, otherwise {@code false}.
      * @throws IOException on cursor failure
      */
-    private boolean splitLeaf(
+    private boolean splitLeafAndInsert(
             PageCursor cursor,
             StructurePropagation<KEY> structurePropagation,
             KEY newKey,
@@ -931,7 +926,7 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         // Position where newKey / newValue is to be inserted
         int pos = positionOf(KeySearch.search(cursor, leafNode, newKey, readKey, keyCount, cursorContext));
         // Position where to split
-        int middlePos = leafNode.findSplitter(
+        int middlePos = leafNode.findSplitterForInsert(
                 cursor,
                 keyCount,
                 newKey,
@@ -999,7 +994,7 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
             TreeNodeUtil.setLeftSibling(rightCursor, current, stableGeneration, unstableGeneration);
 
             // Do split
-            leafNode.doSplit(
+            leafNode.doSplitAndInsert(
                     cursor,
                     keyCount,
                     rightCursor,
@@ -1012,6 +1007,84 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
                     stableGeneration,
                     unstableGeneration,
                     cursorContext);
+        }
+
+        // Update old right with new left sibling (newRight)
+        if (TreeNodeUtil.isNode(oldRight)) {
+            try (PageCursor oldRightCursor = cursor.openLinkedCursor(oldRight)) {
+                TreeNodeUtil.goTo(oldRightCursor, "old right sibling", oldRight);
+                TreeNodeUtil.setLeftSibling(oldRightCursor, newRight, stableGeneration, unstableGeneration);
+            }
+        }
+
+        // Update left child
+        TreeNodeUtil.setRightSibling(cursor, newRight, stableGeneration, unstableGeneration);
+        return true;
+    }
+
+    private boolean splitLeafAndUpdate(
+            PageCursor cursor,
+            int keyCount,
+            KEY key,
+            VALUE newValue,
+            int updatePos,
+            StructurePropagation<KEY> structurePropagation,
+            long stableGeneration,
+            long unstableGeneration,
+            CursorContext cursorContext)
+            throws IOException {
+        var oldValue = leafNode.valueAt(cursor, new ValueHolder<>(layout.newValue()), updatePos, cursorContext).value;
+        int splitPos = leafNode.findSplitterForUpdate(
+                cursor, keyCount, key, newValue, oldValue, updatePos, structurePropagation.rightKey, cursorContext);
+
+        if (!coordination.beforeSplittingLeaf(internalNode.totalSpaceOfKeyChild(structurePropagation.rightKey))) {
+            return false;
+        }
+
+        long current = cursor.getCurrentPageId();
+        long oldRight = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
+                .pointer();
+        checkRightSiblingPointer(oldRight, true, cursor, stableGeneration, unstableGeneration);
+        long newRight = idProvider.acquireNewId(stableGeneration, unstableGeneration, bind(cursor));
+
+        structurePropagation.hasRightKeyInsert = true;
+        structurePropagation.midChild = current;
+        structurePropagation.rightChild = newRight;
+
+        structureWriteLog.split(
+                unstableGeneration,
+                currentLevel > 0 ? levels[currentLevel - 1].treeNodeId : -1,
+                cursor.getCurrentPageId(),
+                newRight);
+
+        try (PageCursor rightCursor = cursor.openLinkedCursor(newRight)) {
+            // Initialize new right
+            TreeNodeUtil.goTo(rightCursor, "new right sibling in split", newRight);
+            leafNode.initialize(rightCursor, layerType, stableGeneration, unstableGeneration);
+            TreeNodeUtil.setRightSibling(rightCursor, oldRight, stableGeneration, unstableGeneration);
+            TreeNodeUtil.setLeftSibling(rightCursor, current, stableGeneration, unstableGeneration);
+
+            // Do split and update
+            leafNode.doSplit(cursor, keyCount, rightCursor, splitPos);
+            if (updatePos >= splitPos) {
+                if (!leafNode.setValueAt(
+                        rightCursor,
+                        newValue,
+                        updatePos - splitPos,
+                        keyCount - splitPos,
+                        cursorContext,
+                        stableGeneration,
+                        unstableGeneration)) {
+                    throw new IllegalStateException(
+                            "Expected new value " + newValue + " to fit in right leaf after split, but it didn't.");
+                }
+            } else {
+                if (!leafNode.setValueAt(
+                        cursor, newValue, updatePos, splitPos, cursorContext, stableGeneration, unstableGeneration)) {
+                    throw new IllegalStateException(
+                            "Expected new value " + newValue + " to fit in left leaf after split, but it didn't.");
+                }
+            }
         }
 
         // Update old right with new left sibling (newRight)

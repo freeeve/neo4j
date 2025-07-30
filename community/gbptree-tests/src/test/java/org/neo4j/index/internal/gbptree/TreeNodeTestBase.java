@@ -86,11 +86,11 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
 
     abstract void assertAdditionalHeader(PageCursor cursor, int pageSize);
 
-    private KEY key(long seed) {
+    KEY key(long seed) {
         return layout.key(seed);
     }
 
-    private VALUE value(long seed) {
+    VALUE value(long seed) {
         return layout.value(seed);
     }
 
@@ -218,7 +218,7 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
         // WHEN
         VALUE overwriteValue = value(666);
         assertTrue(
-                leaf.setValueAt(cursor, overwriteValue, 0, NULL_CONTEXT, STABLE_GENERATION, UNSTABLE_GENERATION),
+                leaf.setValueAt(cursor, overwriteValue, 0, 2, NULL_CONTEXT, STABLE_GENERATION, UNSTABLE_GENERATION),
                 String.format("Could not overwrite value, oldValue=%s, newValue=%s", firstValue, overwriteValue));
 
         // THEN
@@ -763,7 +763,7 @@ public abstract class TreeNodeTestBase<KEY, VALUE> {
         }
     }
 
-    private void initializeLeaf() {
+    void initializeLeaf() {
         leaf.initialize(cursor, DATA_LAYER_FLAG, STABLE_GENERATION, UNSTABLE_GENERATION);
     }
 

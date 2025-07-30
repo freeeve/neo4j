@@ -365,41 +365,43 @@ public class DynamicSizeUtil {
 
     /**
      * Given the offsets and sizes, moves bytes located at those offsets to the right boundary and updates offset array using posToOffsetFunction.
-     *
+     * <p>
      * This function does second and third steps of node defragmetation:
      * The goal is to compact all alive keys in the node by reusing the space occupied by dead keys.
-     *
+     * <p>
      * BEFORE
      * [8][X][1][3][X][2][X][7][5]
-     *
+     * <p>
      * AFTER
      * .........[8][1][3][2][7][5]
      * ^ Reclaimed space
-     *
+     * <p>
      * It works in 3 simple steps:
      * 1. collect all alive blocks with their sizes
      * 2. move all alive blocks to the rightmost position
      * 3. update offsets in offsets array
-     *
+     * <p>
      * See {@link DynamicSizeUtil#recordAliveBlocks} for the first step
      *
-     * @param cursor - cursor pointing to the node
-     * @param count - number of elements in offsets and sizes arrays
-     * @param offsets - offsets to move
-     * @param sizes - corresponding numbers of bytes at offsets
-     * @param rightBoundary - right boundary
+     * @param cursor              - cursor pointing to the node
+     * @param count               - number of elements in offsets and sizes arrays
+     * @param offsetCount
+     * @param offsets             - offsets to move
+     * @param sizes               - corresponding numbers of bytes at offsets
+     * @param rightBoundary       - right boundary
      * @param posToOffsetFunction - function to map position in offset array to offset
      */
     static void compactToRight(
             PageCursor cursor,
             int count,
+            int offsetCount,
             int[] offsets,
             int[] sizes,
             int rightBoundary,
             IntToIntFunction posToOffsetFunction) {
         var remappedOffsets = compactRight(cursor, count, offsets, sizes, rightBoundary);
         if (!remappedOffsets.isEmpty()) {
-            remapOffsets(cursor, count, remappedOffsets, posToOffsetFunction);
+            remapOffsets(cursor, offsetCount, remappedOffsets, posToOffsetFunction);
         }
     }
 

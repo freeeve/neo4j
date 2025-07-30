@@ -65,20 +65,20 @@ import org.neo4j.test.extension.RandomExtension;
 abstract class InternalTreeLogicTestBase<KEY, VALUE> {
     static final String INDEX_RESOURCE = "index";
     private static final int PAGE_SIZE = 256;
-    private static long stableGeneration = GenerationSafePointer.MIN_GENERATION;
-    private static long unstableGeneration = stableGeneration + 1;
+    static long stableGeneration = GenerationSafePointer.MIN_GENERATION;
+    static long unstableGeneration = stableGeneration + 1;
 
     @Inject
     private RandomSupport random;
 
-    private PageAwareByteArrayCursor cursor;
-    private PageAwareByteArrayCursor readCursor;
-    private SimpleIdProvider id;
+    PageAwareByteArrayCursor cursor;
+    PageAwareByteArrayCursor readCursor;
+    SimpleIdProvider id;
 
     private ValueMerger<KEY, VALUE> adder;
     private InternalTreeLogic<KEY, VALUE> treeLogic;
     private VALUE dontCare;
-    private StructurePropagation<KEY> structurePropagation;
+    StructurePropagation<KEY> structurePropagation;
 
     private double ratioToKeepInLeftOnSplit = InternalTreeLogic.DEFAULT_SPLIT_RATIO;
 
@@ -1508,60 +1508,6 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
 
     @ParameterizedTest
     @MethodSource("generators")
-    void shouldCreateNewVersionWhenInsertInStableInternal(
-            String name, GenerationManager generationManager, boolean isCheckpointing) throws Exception {
-        assumeTrue(isCheckpointing, "No checkpointing, no successor");
-
-        // GIVEN
-        initialize();
-        long someHighMultiplier = 1000;
-        for (int i = 0; numberOfRootSplits < 2; i++) {
-            long seed = i * someHighMultiplier;
-            insert(key(seed), value(seed));
-        }
-        long rootAfterInitialData = root.id();
-        root.goTo(readCursor);
-        assertEquals(1, keyCount());
-        long leftInternal = childAt(readCursor, 0, stableGeneration, unstableGeneration);
-        long rightInternal = childAt(readCursor, 1, stableGeneration, unstableGeneration);
-        assertSiblings(leftInternal, rightInternal, TreeNodeUtil.NO_NODE_FLAG);
-        goTo(readCursor, leftInternal);
-        int leftInternalKeyCount = keyCount();
-        assertThat(TreeNodeUtil.isInternal(readCursor)).isTrue();
-        long leftLeaf = childAt(readCursor, 0, stableGeneration, unstableGeneration);
-        goTo(readCursor, leftLeaf);
-        KEY firstKeyInLeaf = keyAt(0, false);
-        long seedOfFirstKeyInLeaf = getSeed(firstKeyInLeaf);
-
-        // WHEN
-        generationManager.checkpoint();
-        long targetLastId =
-                id.lastId() + 3; /*one for successor in leaf, one for split leaf, one for successor in internal*/
-        for (int i = 0; id.lastId() < targetLastId; i++) {
-            insert(key(seedOfFirstKeyInLeaf + i), value(seedOfFirstKeyInLeaf + i));
-            assertThat(structurePropagation.hasRightKeyInsert).isFalse(); // there should be no root split
-        }
-
-        // THEN
-        // root hasn't been split further
-        assertThat(root.id()).isEqualTo(rootAfterInitialData);
-
-        // there's an successor to left internal w/ one more key in
-        root.goTo(readCursor);
-        long successorLeftInternal = id.lastId();
-        assertThat(childAt(readCursor, 0, stableGeneration, unstableGeneration)).isEqualTo(successorLeftInternal);
-        goTo(readCursor, successorLeftInternal);
-        int successorLeftInternalKeyCount = keyCount();
-        assertEquals(leftInternalKeyCount + 1, successorLeftInternalKeyCount);
-
-        // and left internal points to the successor
-        goTo(readCursor, leftInternal);
-        assertThat(successor(readCursor, stableGeneration, unstableGeneration)).isEqualTo(successorLeftInternal);
-        assertSiblings(successorLeftInternal, rightInternal, TreeNodeUtil.NO_NODE_FLAG);
-    }
-
-    @ParameterizedTest
-    @MethodSource("generators")
     void shouldOverwriteInheritedSuccessorOnSuccessor(
             String name, GenerationManager generationManager, boolean isCheckpointing) throws Exception {
         // GIVEN
@@ -1852,7 +1798,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         return keys;
     }
 
-    private int keyCount(long nodeId) throws IOException {
+    int keyCount(long nodeId) throws IOException {
         long prevId = readCursor.getCurrentPageId();
         try {
             goTo(readCursor, nodeId);
@@ -1862,7 +1808,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         }
     }
 
-    private int keyCount() {
+    int keyCount() {
         return TreeNodeUtil.keyCount(readCursor);
     }
 
@@ -1906,7 +1852,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         assertThat(KeySearch.isHit(search)).isFalse();
     }
 
-    private void assertSiblings(long left, long middle, long right) throws IOException {
+    void assertSiblings(long left, long middle, long right) throws IOException {
         long origin = readCursor.getCurrentPageId();
         goTo(readCursor, middle);
         assertThat(rightSibling(readCursor, stableGeneration, unstableGeneration))
@@ -1944,7 +1890,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         return layout.value(seed);
     }
 
-    private long getSeed(KEY key) {
+    long getSeed(KEY key) {
         return layout.keySeed(key);
     }
 
@@ -1961,7 +1907,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         updateRoot();
     }
 
-    private void assertSiblingOrderAndPointers(long... children) throws IOException {
+    void assertSiblingOrderAndPointers(long... children) throws IOException {
         long currentPageId = readCursor.getCurrentPageId();
         RightmostInChain rightmost = new RightmostInChain(null, true);
         ThrowingConsistencyCheckVisitor visitor = new ThrowingConsistencyCheckVisitor();
@@ -1998,7 +1944,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         }
     }
 
-    private KEY keyAt(int pos, boolean isInternal) {
+    KEY keyAt(int pos, boolean isInternal) {
         KEY into = layout.newKey();
         if (isInternal) {
             return internal.keyAt(readCursor, into, pos, NULL_CONTEXT);
@@ -2006,7 +1952,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         return leaf.keyAt(readCursor, into, pos, NULL_CONTEXT);
     }
 
-    private VALUE valueAt(long nodeId, int pos) throws IOException {
+    VALUE valueAt(long nodeId, int pos) throws IOException {
         var readValue = new ValueHolder<>(layout.newValue());
         long prevId = readCursor.getCurrentPageId();
         try {
@@ -2066,7 +2012,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         handleAfterChange();
     }
 
-    private interface GenerationManager {
+    interface GenerationManager {
         void checkpoint();
 
         void recovery();
@@ -2097,7 +2043,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         };
     }
 
-    private static void goTo(PageCursor cursor, long pageId) throws IOException {
+    static void goTo(PageCursor cursor, long pageId) throws IOException {
         PageCursorUtil.goTo(cursor, "test", pointer(pageId));
     }
 
@@ -2111,7 +2057,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
         goToSuccessor(cursor);
     }
 
-    private long childAt(PageCursor cursor, int pos, long stableGeneration, long unstableGeneration) {
+    long childAt(PageCursor cursor, int pos, long stableGeneration, long unstableGeneration) {
         return pointer(internal.childAt(cursor, pos, stableGeneration, unstableGeneration));
     }
 
@@ -2125,7 +2071,7 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
                 .pointer());
     }
 
-    private static long successor(PageCursor cursor, long stableGeneration, long unstableGeneration) {
+    static long successor(PageCursor cursor, long stableGeneration, long unstableGeneration) {
         return pointer(TreeNodeUtil.successor(cursor, stableGeneration, unstableGeneration)
                 .pointer());
     }
@@ -2151,14 +2097,14 @@ abstract class InternalTreeLogicTestBase<KEY, VALUE> {
                 format("expected no not equal, key1=%s, key2=%s", key1.toString(), key2.toString()));
     }
 
-    private void assertEqualsKey(KEY expected, KEY actual) {
+    void assertEqualsKey(KEY expected, KEY actual) {
         assertEquals(
                 0,
                 layout.compare(expected, actual),
                 format("expected equal, expected=%s, actual=%s", expected, actual));
     }
 
-    private void assertEqualsValue(VALUE expected, VALUE actual) {
+    void assertEqualsValue(VALUE expected, VALUE actual) {
         assertEquals(
                 0,
                 layout.compareValue(expected, actual),

@@ -331,7 +331,8 @@ public final class InternalNodeDynamicSize<KEY> implements InternalNodeBehaviour
         // collect alive offsets and sizes
         recordAliveBlocks(cursor, keyCount, offsets, sizes, payloadSize);
 
-        compactToRight(cursor, keyCount, offsets, sizes, payloadSize, InternalNodeDynamicSize::keyPosOffsetInternal);
+        compactToRight(
+                cursor, keyCount, keyCount, offsets, sizes, payloadSize, InternalNodeDynamicSize::keyPosOffsetInternal);
         // Update dead space
         setDeadSpace(cursor, 0);
     }
