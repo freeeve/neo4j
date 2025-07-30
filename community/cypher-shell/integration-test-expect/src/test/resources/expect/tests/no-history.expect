@@ -1,0 +1,12 @@
+#!/usr/bin/expect -f
+
+set extra_args {"--history" "disable"}
+source "common.expect"
+
+sendQuery "return 1 as result;"
+sendQuery "return 2 as result;"
+sendQuery "return 3 as result;"
+sendQuery ":history"
+
+sendQuery ":exit"
+expectCleanExit

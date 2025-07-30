@@ -133,6 +133,8 @@ public class JlineTerminal implements CypherShellTerminal {
         } else if (behaviour instanceof InMemoryHistory) {
             jLineReader.setVariable(LineReader.HISTORY_FILE, null);
             loadHistory();
+        } else if (behaviour instanceof DisableHistory) {
+            // This is handled on construction of the reader.
         }
     }
 

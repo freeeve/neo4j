@@ -468,6 +468,8 @@ class CliArgHelperTest extends LocaleDependentTestBase {
         assertThat(parse("--history", "/some/path/file.history").getHistoryBehaviour())
                 .isEqualTo(new CypherShellTerminal.FileHistory(Path.of("/some/path/file.history")));
         assertThatThrownBy(() -> parse("--history")).hasMessageContaining("Failed to parse arguments: [--history]");
+        assertThat(parse("--history", "disable").getHistoryBehaviour())
+                .isInstanceOf(CypherShellTerminal.DisableHistory.class);
     }
 
     @Test
@@ -624,10 +626,10 @@ named arguments:
   --log [LOG-FILE]       Enable logging to the specified  file,  or  standard  error  if the file is
                          omitted.
   --history HISTORY-BEHAVIOUR
-                         File path of a query  and  a  command  history  file or `in-memory` for in-
-                         memory history. If the option is omitted, history is saved to <user home>/.
-                         neo4j/.cypher_shell_history.  Can  also  be   set   using  the  environment
-                         variable NEO4J_CYPHER_SHELL_HISTORY.
+                         File path of a query and a  command history file, `in-memory` for in-memory
+                         history or `disable` to disable history.  If the option is omitted, history
+                         is saved  to  <user  home>/.neo4j/.cypher_shell_history.  Can  also  be set
+                         using the environment variable NEO4J_CYPHER_SHELL_HISTORY.
   --notifications        Enable notifications in interactive mode. (default: false)
   --idle-timeout IDLE-TIMEOUT
                          Closes  the  application  after  the  specified  amount  of  idle  time  in

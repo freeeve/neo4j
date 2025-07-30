@@ -76,6 +76,7 @@ public class Main implements AutoCloseable {
                 .logger(printer)
                 .parameters(parameters)
                 .idleTimeout(args.getIdleTimeout(), args.getIdleTimeoutDelay())
+                .enableHistory(args.getHistoryBehaviour().historyEnabled())
                 .build(dbInfo, completionEngine);
         this.shell = new CypherShell(
                 printer,

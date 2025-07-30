@@ -406,7 +406,7 @@ public class CliArgHelper {
 
         parser.addArgument("--history")
                 .help(
-                        "File path of a query and a command history file or `in-memory` for in-memory history. If the option is omitted, history is saved to <user home>/.neo4j/.cypher_shell_history. Can also be set using the environment variable %s."
+                        "File path of a query and a command history file, `in-memory` for in-memory history or `disable` to disable history. If the option is omitted, history is saved to <user home>/.neo4j/.cypher_shell_history. Can also be set using the environment variable %s."
                                 .formatted(HISTORY_ENV_VAR))
                 .dest("history-behaviour")
                 .type(new HistoryBehaviourHandler())
@@ -473,6 +473,8 @@ public class CliArgHelper {
                 ArgumentParser argumentParser, Argument argument, String value) {
             if ("in-memory".equals(value.toLowerCase(Locale.ROOT))) {
                 return new CypherShellTerminal.InMemoryHistory();
+            } else if ("disable".equals(value.toLowerCase(Locale.ROOT))) {
+                return new CypherShellTerminal.DisableHistory();
             } else {
                 return historyFromFilePath(value);
             }

@@ -29,7 +29,6 @@ import static org.neo4j.shell.expect.InteractionAssertion.assertEqualInteraction
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -133,7 +132,7 @@ public class ExpectTestExtension implements BeforeAllCallback, AfterAllCallback 
         final var expectImage = new ImageFromDockerfile()
                 .withFileFromClasspath("Dockerfile", "/expect/docker/Dockerfile")
                 .withFileFromClasspath("expect", "/expect/tests")
-                .withFileFromPath("cypher-shell.zip", cypherShellZip());
+                .withFileFromClasspath("cypher-shell.zip", "/cypher-shell.zip");
         final var expectContainer = new GenericContainer(expectImage)
                 .withNetwork(network)
                 .withEnv("NEO4J_USER", neo4jUser)
@@ -154,20 +153,6 @@ public class ExpectTestExtension implements BeforeAllCallback, AfterAllCallback 
 
         this.neo4jContainer = neo4jContainer;
         this.expectContainer = expectContainer;
-    }
-
-    private static Path cypherShellZip() throws IOException {
-        final var target = Path.of("../cypher-shell/target");
-        try (Stream<Path> pathStream = Files.list(target)) {
-            var zipFiles = pathStream
-                    .filter(f -> f.getFileName().toString().endsWith(".zip"))
-                    .toList();
-            if (zipFiles.size() == 1) {
-                return zipFiles.get(0);
-            } else {
-                throw new RuntimeException("Did not find cypher shell zip distribution in " + target);
-            }
-        }
     }
 
     private static class NeoContainer extends Neo4jContainer<NeoContainer> {

@@ -1,5 +1,6 @@
 #!/usr/bin/expect -f
 
+set extra_args {"--error-format" "legacy"}
 source "common.expect"
 
 # Start long running query

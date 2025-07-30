@@ -86,6 +86,36 @@
         </dependency>
     </dependencies>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-cypher-shell-to-classpath</id>
+                        <phase>generate-test-resources</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.neo4j</groupId>
+                                    <artifactId>cypher-shell</artifactId>
+                                    <version>${project.version}</version>
+                                    <type>zip</type>
+                                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                                    <destFileName>cypher-shell.zip</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
     <profiles>
         <!-- Disable integration test by default. -->
         <profile>

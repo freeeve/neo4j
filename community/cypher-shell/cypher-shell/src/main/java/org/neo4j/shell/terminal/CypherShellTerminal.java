@@ -92,11 +92,22 @@ public interface CypherShellTerminal extends AutoCloseable {
         void handleUserInterrupt();
     }
 
-    sealed interface HistoryBehaviour {}
+    sealed interface HistoryBehaviour {
+        default boolean historyEnabled() {
+            return true;
+        }
+    }
 
     final class InMemoryHistory implements HistoryBehaviour {}
 
     final class DefaultHistory implements HistoryBehaviour {}
 
     record FileHistory(Path historyFile) implements HistoryBehaviour {}
+
+    final class DisableHistory implements HistoryBehaviour {
+        @Override
+        public boolean historyEnabled() {
+            return false;
+        }
+    }
 }

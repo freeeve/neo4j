@@ -57,6 +57,7 @@ public class CypherShellTerminalBuilder {
     private Supplier<SimplePrompt> simplePromptSupplier = SimplePrompt::defaultPrompt;
     private Duration idleTimeout;
     private Duration idleDelay;
+    private boolean enableHistory = true;
 
     /** if enabled is true, this is an interactive terminal that supports user input */
     public CypherShellTerminalBuilder interactive(boolean isInteractive) {
@@ -77,6 +78,11 @@ public class CypherShellTerminalBuilder {
     public CypherShellTerminalBuilder idleTimeout(Duration idleTimeout, Duration delay) {
         this.idleTimeout = idleTimeout;
         this.idleDelay = delay;
+        return this;
+    }
+
+    public CypherShellTerminalBuilder enableHistory(boolean enableHistory) {
+        this.enableHistory = enableHistory;
         return this;
     }
 
@@ -139,17 +145,20 @@ public class CypherShellTerminalBuilder {
             jLineTerminal.dumb(true).type(Terminal.TYPE_DUMB).attributes(attributes);
         }
 
-        var reader = LineReaderBuilder.builder()
+        var readerBuilder = LineReaderBuilder.builder()
                 .terminal(jLineTerminal.build())
                 .parser(new StatementJlineParser(new ShellStatementParser()))
                 .completer(new JlineCompleter(new CommandFactoryHelper(), completionEngine))
-                .history(new DefaultHistory()) // The default history is in-memory until we set history file variable
                 .expander(new JlineTerminal.EmptyExpander())
                 .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true) // Disable '!' history expansion
                 .option(LineReader.Option.DISABLE_HIGHLIGHTER, true)
                 .option(LineReader.Option.CASE_INSENSITIVE, true)
-                .appName("Cypher Shell")
-                .build();
+                .appName("Cypher Shell");
+
+        // The default history is in-memory until we set history file variable (not sure why we don't do that here).
+        readerBuilder = readerBuilder.history(enableHistory ? new DefaultHistory() : new NoHistory());
+
+        final var reader = readerBuilder.build();
 
         bindKeyPadKeys(reader);
 
