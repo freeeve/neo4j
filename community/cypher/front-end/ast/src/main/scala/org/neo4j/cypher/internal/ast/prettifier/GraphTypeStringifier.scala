@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.EmptyNodeTypeReference
 import org.neo4j.cypher.internal.ast.GraphType
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.ExistenceConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.GraphTypeConstraintBody
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.KeyConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.PropertyTypeConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.UniquenessConstraint
@@ -60,6 +61,7 @@ object GraphTypeStringifier {
     }
   }
 
+  // for ordering graph type constraints
   implicit object GraphTypeConstraintOrdering extends Ordering[GraphTypeConstraint] {
 
     type SortKey = ((Int, String), Seq[String], Int)
@@ -104,6 +106,20 @@ object GraphTypeStringifier {
     }
   }
 
+  // For ordering in-lined constraints
+  implicit object GraphTypeConstraintBodyOrdering extends Ordering[GraphTypeConstraintBody] {
+
+    val sortKey: PartialFunction[GraphTypeConstraintBody, (Seq[String], Int)] = {
+      case KeyConstraint(props)             => (props.map(_.propertyKey.name), 1)
+      case UniquenessConstraint(props)      => (props.map(_.propertyKey.name), 2)
+      case ExistenceConstraint(props)       => (props.map(_.propertyKey.name), 3)
+      case PropertyTypeConstraint(props, _) => (props.map(_.propertyKey.name), 4)
+    }
+
+    override def compare(x: GraphTypeConstraintBody, y: GraphTypeConstraintBody): Int =
+      implicitly[Ordering[(Seq[String], Int)]].compare(sortKey(x), sortKey(y))
+  }
+
   implicit object PropertyTypeOrdering extends Ordering[PropertyType] {
     override def compare(x: PropertyType, y: PropertyType): Int = x.name.name.compareTo(y.name.name)
   }
@@ -134,8 +150,7 @@ object GraphTypeStringifier {
       case labels                   => labels.mkString(" :", "&", "")
     }
 
-    // Since these are non-canonical, we don't order them
-    val constraints = nodeType.constraints.map { case (const, options) =>
+    val constraints = nodeType.constraints.toList.sortBy(_._1).map { case (const, options) =>
       stringifyGraphTypeConstraintBody(const) + Prettifier.stringifyOptions(options)(es)
     }
     val constraintsStr = if (constraints.isEmpty) "" else constraints.mkString(" ", " ", "")
@@ -151,8 +166,7 @@ object GraphTypeStringifier {
       case props                  => props.mkString(" {", ", ", "}")
     }
 
-    // Since these are non-canonical, we don't order them
-    val constraints = edgeType.constraints.map { case (const, options) =>
+    val constraints = edgeType.constraints.toList.sortBy(_._1).map { case (const, options) =>
       stringifyGraphTypeConstraintBody(const) + Prettifier.stringifyOptions(options)(es)
     }
     val constraintsStr = if (constraints.isEmpty) "" else constraints.mkString(" ", " ", "")

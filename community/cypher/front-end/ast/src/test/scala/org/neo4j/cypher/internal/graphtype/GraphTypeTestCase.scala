@@ -36,12 +36,11 @@ import org.neo4j.cypher.internal.util.symbols.StringType
 
 import scala.collection.immutable.ArraySeq
 
-case class GraphTypeTestCase(name: String, cypher: String, ast: GraphType, prettifiedCypher: Option[String] = None)
+case class GraphTypeTestCase(name: String, cypher: String, ast: GraphType, prettifiedCypher: String) {
+  override def toString: String = name
+}
 
 object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
-
-  def apply(name: String, cypher: String, ast: GraphType, prettifiedCypher: String): GraphTypeTestCase =
-    GraphTypeTestCase(name, cypher, ast, Some(prettifiedCypher))
 
   private def re(): Seq[GraphTypeTestCase] = Seq(GraphTypeTestCase(
     "RE-1-1",
@@ -994,7 +993,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             PropertyInlineUniquenessConstraint()(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (:`Person` => {`name` :: STRING NOT NULL IS UNIQUE})
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SNT-PE-NUC-2-2",
@@ -1430,7 +1432,7 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         Seq()
       ),
       """{
-        | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}) REQUIRE (`p`.`socialNo`) IS UNIQUE REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY
+        | (`p`:`Person` => {`birthday` :: DATE, `name` :: STRING, `socialNo` :: STRING}) REQUIRE (`p`.`name`, `p`.`birthday`) IS KEY REQUIRE (`p`.`socialNo`) IS UNIQUE
         |}""".stripMargin
     ),
     GraphTypeTestCase(
@@ -2145,7 +2147,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("population", IntegerType(isNullable = true))
         ),
         edgeType(nodeTypeRefByVar("p"), "LIVES_IN", nodeTypeRefByVar("c"))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EI-1-2",
@@ -2164,7 +2171,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("population", IntegerType(isNullable = true))
         ),
         edgeType(nodeTypeRefByLabel("Person"), "LIVES_IN", nodeTypeRefByLabel("City"))
-      )
+      ),
+      """{
+        | (:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person`)-[:`LIVES_IN` =>]->(:`City`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EI-1-3",
@@ -2184,7 +2196,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("population", IntegerType(isNullable = true))
         ),
         edgeType(identifyingNodeTypeRef("Person"), "LIVES_IN", nodeTypeRefByVar("c"))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Person` =>)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPI-1-1",
@@ -2210,7 +2227,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPI-2-1",
@@ -2237,7 +2259,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("address", StringType(isNullable = false))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`address` :: STRING NOT NULL, `since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EEP-1-1",
@@ -2256,7 +2283,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`KNOWS` => {`since` :: DATE}]->(`p`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPANY-1-1",
@@ -2274,7 +2305,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           EmptyNodeTypeReference()(defaultPos),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`KNOWS` => {`since` :: DATE}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPANY-2-1",
@@ -2287,7 +2322,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("population", IntegerType(isNullable = true))
         ),
         edgeType(EmptyNodeTypeReference()(defaultPos), "LIVES_IN", nodeTypeRefByVar("c"))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | ()-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPANY-3-1",
@@ -2299,7 +2338,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           EmptyNodeTypeReference()(defaultPos),
           propertyType("reason", StringType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPANY-4-1",
@@ -2312,7 +2354,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true)),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPANY-4-2",
@@ -2325,7 +2370,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true)),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPANT-1-1",
@@ -2356,7 +2404,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByLabel("Location"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (:`City` => :`Location` {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (:`Village` => :`Location` {`name` :: STRING}),
+        | (`p`)-[:`KNOWS` => {`since` :: DATE}]->(:`Location`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPANT-2-1",
@@ -2379,7 +2433,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           "NEAR_BY",
           nodeTypeRefByLabel("Location")
         )
-      )
+      ),
+      """{
+        | (:`City` => :`Location` {`name` :: STRING}),
+        | (:`Village` => :`Location` {`name` :: STRING}),
+        | (:`Location`)-[:`NEAR_BY` =>]->(:`Location`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EPANT-3-1",
@@ -2401,7 +2460,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           "NEAR_BY",
           nodeTypeRefByLabel("Location")
         )
-      )
+      ),
+      """{
+        | (:`City` => :`Location` {`name` :: STRING}),
+        | (:`Village` => :`Location` {`name` :: STRING}),
+        | ()-[:`NEAR_BY` =>]->(:`Location`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-SPVT-1-1",
@@ -2413,7 +2477,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           EmptyNodeTypeReference()(defaultPos),
           propertyType("data", AnyType(isNullable = false))
         )
-      )
+      ),
+      """{
+        | ()-[:`LIVES_IN` => {`data` :: ANY NOT NULL}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-SPVT-2-1",
@@ -2432,7 +2499,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ))
           )
         )
-      )
+      ),
+      """{
+        | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-SPVT-2-2",
@@ -2451,7 +2521,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ))
           )
         )
-      )
+      ),
+      """{
+        | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-SPVT-2-3",
@@ -2470,7 +2543,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ))
           )
         )
-      )
+      ),
+      """{
+        | ()-[:`LIVES_IN` => {`rating` :: STRING | INTEGER, `since` :: DATE NOT NULL}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-SPVT-3-1",
@@ -2503,7 +2579,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           EmptyNodeTypeReference()(defaultPos),
           propertyType("reason", StringType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING IS KEY}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-1-2",
@@ -2517,7 +2596,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           Set(KeyConstraint(ArraySeq(prop("r", "reason")))(defaultPos)),
           propertyType("reason", StringType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING}]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-1-3",
@@ -2532,7 +2614,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(keyConstraint(edgeTypeRefByVar("r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-1-4",
@@ -2545,7 +2631,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(keyConstraint(edgeTypeRefByLabel("RELATED", "r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-1-5",
@@ -2558,7 +2648,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(keyConstraint(identifyingEdgeTypeRef("RELATED", "r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-1-6",
@@ -2571,7 +2665,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(keyConstraint(edgeTypeRefByLabel("RELATED", "bar"), ArraySeq(prop("bar", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-1-7",
@@ -2584,7 +2682,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(keyConstraint(identifyingEdgeTypeRef("RELATED", "bar"), ArraySeq(prop("bar", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-2-1",
@@ -2597,7 +2699,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false), PropertyInlineKeyConstraint()(defaultPos))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL IS KEY}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-2-2",
@@ -2612,7 +2717,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING NOT NULL}]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-2-3",
@@ -2626,7 +2734,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(keyConstraint(edgeTypeRefByVar("r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-2-4",
@@ -2639,7 +2751,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(keyConstraint(edgeTypeRefByLabel("RELATED", "r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-2-5",
@@ -2652,7 +2768,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(keyConstraint(identifyingEdgeTypeRef("RELATED", "r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-2-6",
@@ -2665,7 +2785,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(keyConstraint(edgeTypeRefByLabel("RELATED", "bar"), ArraySeq(prop("bar", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-2-7",
@@ -2678,7 +2802,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(keyConstraint(identifyingEdgeTypeRef("RELATED", "bar"), ArraySeq(prop("bar", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-3-1",
@@ -2694,7 +2822,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-3-2",
@@ -2709,7 +2840,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true))
         )),
         List(keyConstraint(edgeTypeRefByVar("r"), ArraySeq(prop("r", "reason"), prop("r", "since"))))
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-3-3",
@@ -2723,7 +2858,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true))
         )),
         List(keyConstraint(edgeTypeRefByLabel("RELATED", "r"), ArraySeq(prop("r", "reason"), prop("r", "since"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-3-4",
@@ -2741,7 +2880,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           identifyingEdgeTypeRef("RELATED", "r"),
           ArraySeq(prop("r", "reason"), prop("r", "since"))
         ))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-3-5",
@@ -2759,7 +2902,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByLabel("RELATED", "bar"),
           ArraySeq(prop("bar", "reason"), prop("bar", "since"))
         ))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKC-3-6",
@@ -2777,7 +2924,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           identifyingEdgeTypeRef("RELATED", "bar"),
           ArraySeq(prop("bar", "reason"), prop("bar", "since"))
         ))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-1-1",
@@ -2790,7 +2941,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true), PropertyInlineUniquenessConstraint()(defaultPos))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING IS UNIQUE}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-1-2",
@@ -2805,7 +2959,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING}]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-1-3",
@@ -2820,7 +2977,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(uniquenessConstraint(edgeTypeRefByVar("r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-1-4",
@@ -2834,7 +2995,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(uniquenessConstraint(edgeTypeRefByLabel("RELATED", "r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-1-5",
@@ -2848,7 +3013,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(uniquenessConstraint(identifyingEdgeTypeRef("RELATED", "r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-1-6",
@@ -2862,7 +3031,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(uniquenessConstraint(edgeTypeRefByLabel("RELATED", "bar"), ArraySeq(prop("bar", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-1-7",
@@ -2876,7 +3049,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = true))
         )),
         List(uniquenessConstraint(identifyingEdgeTypeRef("RELATED", "bar"), ArraySeq(prop("bar", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-2-1",
@@ -2889,7 +3066,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false), PropertyInlineUniquenessConstraint()(defaultPos))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL IS UNIQUE}]->()
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-2-2",
@@ -2904,7 +3084,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING NOT NULL}]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-2-3",
@@ -2919,7 +3102,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(uniquenessConstraint(edgeTypeRefByVar("r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-2-4",
@@ -2933,7 +3120,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(uniquenessConstraint(edgeTypeRefByLabel("RELATED", "r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-2-5",
@@ -2947,7 +3138,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(uniquenessConstraint(identifyingEdgeTypeRef("RELATED", "r"), ArraySeq(prop("r", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-2-6",
@@ -2961,7 +3156,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(uniquenessConstraint(edgeTypeRefByLabel("RELATED", "bar"), ArraySeq(prop("bar", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-2-7",
@@ -2975,7 +3174,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("reason", StringType(isNullable = false))
         )),
         List(uniquenessConstraint(identifyingEdgeTypeRef("RELATED", "bar"), ArraySeq(prop("bar", "reason"))))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING NOT NULL}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-3-1",
@@ -2991,7 +3194,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-3-2",
@@ -3006,7 +3212,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true))
         )),
         List(uniquenessConstraint(edgeTypeRefByVar("r"), ArraySeq(prop("r", "reason"), prop("r", "since"))))
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-3-3",
@@ -3024,7 +3234,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByLabel("RELATED", "r"),
           ArraySeq(prop("r", "reason"), prop("r", "since"))
         ))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-3-4",
@@ -3042,7 +3256,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           identifyingEdgeTypeRef("RELATED", "r"),
           ArraySeq(prop("r", "reason"), prop("r", "since"))
         ))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`:`RELATED` =>]->() REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-3-5",
@@ -3060,7 +3278,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByLabel("RELATED", "bar"),
           ArraySeq(prop("bar", "reason"), prop("bar", "since"))
         ))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EUC-3-6",
@@ -3078,7 +3300,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           identifyingEdgeTypeRef("RELATED", "bar"),
           ArraySeq(prop("bar", "reason"), prop("bar", "since"))
         ))
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-1-1",
@@ -3099,7 +3325,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("rating", IntegerType(isNullable = true))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`rating`) IS KEY REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-2-1",
@@ -3120,7 +3349,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("rating", IntegerType(isNullable = true))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`rating`) IS UNIQUE REQUIRE (`r`.`reason`, `r`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-3-1",
@@ -3141,7 +3373,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("rating", IntegerType(isNullable = true))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`rating`) IS UNIQUE REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-3-2",
@@ -3162,7 +3397,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("rating", IntegerType(isNullable = true))
         )),
         List()
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->() REQUIRE (`r`.`rating`) IS UNIQUE REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-3-3",
@@ -3188,7 +3426,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ),
           uniquenessConstraint(edgeTypeRefByVar("r"), ArraySeq(prop("r", "rating")))
         )
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-3-4",
@@ -3213,7 +3456,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ),
           uniquenessConstraint(edgeTypeRefByLabel("RELATED", "x"), ArraySeq(prop("x", "rating")))
         )
-      )
+      ),
+      """{
+        | ()-[:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`x`:`RELATED`]->() REQUIRE (`x`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`reason`, `r`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-3-5",
@@ -3239,7 +3487,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ),
           uniquenessConstraint(edgeTypeRefByLabel("RELATED", "x"), ArraySeq(prop("x", "rating")))
         )
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`x`:`RELATED`]->() REQUIRE (`x`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-3-6",
@@ -3265,7 +3518,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("bar", "reason"), prop("bar", "since"))
           )
         )
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`x`:`RELATED`]->() REQUIRE (`x`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`bar`:`RELATED`]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "SET-PE-EKUC-3-7",
@@ -3291,7 +3549,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("bar", "reason"), prop("bar", "since"))
           )
         )
-      )
+      ),
+      """{
+        | ()-[`r`:`RELATED` => {`rating` :: INTEGER, `reason` :: STRING, `since` :: DATE}]->(),
+        | CONSTRAINT FOR ()-[`x`:`RELATED` =>]->() REQUIRE (`x`.`rating`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`bar`:`RELATED` =>]->() REQUIRE (`bar`.`reason`, `bar`.`since`) IS KEY
+        |}""".stripMargin
     )
   )
 
@@ -3336,7 +3599,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           "EATS",
           nodeTypeRefByVar("n")
         )
-      )
+      ),
+      """{
+        | (`a`:`Animal` => {`family` :: STRING}),
+        | (`c`:`City` => {`population` :: INTEGER}),
+        | (`n`:`Nutriment` => {`energy` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`a`)-[:`EATS` =>]->(`n`),
+        | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-CIP-1-1",
@@ -3380,7 +3651,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("n"),
           propertyType("frequency", FloatType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`a`:`Animal` => {`family` :: STRING}),
+        | (`m`:`Dish` => {`name` :: STRING}),
+        | (`n`:`Nutriment` => {`energy` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`DINES` => {`frequency` :: FLOAT}]->(`m`),
+        | (`a`)-[:`EATS` => {`frequency` :: FLOAT}]->(`n`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-CIEP-1-1",
@@ -3411,7 +3690,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           "KNOWS",
           nodeTypeRefByVar("p")
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`KNOWS` =>]->(`p`),
+        | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-CIEP-2-1",
@@ -3448,7 +3733,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           "HAS_MAJOR",
           nodeTypeRefByVar("p")
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`c`)-[:`HAS_MAJOR` =>]->(`p`),
+        | (`p`)-[:`KNOWS` =>]->(`p`),
+        | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-CIEP-3-1",
@@ -3478,7 +3770,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           "HAS_MAJOR",
           nodeTypeRefByLabel("Person")
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (`c`)-[:`HAS_MAJOR` =>]->(:`Person`),
+        | (:`Person`)-[:`KNOWS` =>]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-CIEP-4-1",
@@ -3501,7 +3799,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           "HAS_MAJOR",
           nodeTypeRefByLabel("Person")
         )
-      )
+      ),
+      """{
+        | (:`City`)-[:`HAS_MAJOR` =>]->(:`Person`),
+        | (:`Person`)-[:`KNOWS` =>]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` =>]->(:`City`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-CIEPP-1-1",
@@ -3534,7 +3837,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`KNOWS` => {`since` :: DATE}]->(`p`),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-CIEPP-2-1",
@@ -3571,7 +3880,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           "KNOWS",
           nodeTypeRefByVar("p")
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING, `population` :: INTEGER}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`BORN_IN` =>]->(`c`),
+        | (`p`)-[:`KNOWS` =>]->(`p`),
+        | (`p`)-[:`LIVES_IN` =>]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-CIEPP-3-1",
@@ -3668,7 +3984,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByLabel("Person"),
           propertyType("since", DateType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (:`Person`)-[:`KNOWS` => {`since` :: DATE IS KEY}]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(:`City`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-KUC-2-1",
@@ -3695,7 +4015,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("sinceMonth", IntegerType(isNullable = true)),
           propertyType("sinceYear", IntegerType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (:`Person`)-[`k`:`KNOWS` => {`sinceMonth` :: INTEGER, `sinceYear` :: INTEGER}]->(:`Person`) REQUIRE (`k`.`sinceMonth`, `k`.`sinceYear`) IS UNIQUE,
+        | (:`Person`)-[`l`:`LIVES_IN` => {`street` :: STRING, `streetNumber` :: STRING}]->(:`City`) REQUIRE (`l`.`street`, `l`.`streetNumber`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-KUC-2-2",
@@ -3730,7 +4054,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("x", "sinceMonth"), prop("x", "sinceYear"))
           )
         )
-      )
+      ),
+      """{
+        | (:`Person`)-[:`KNOWS` => {`sinceMonth` :: INTEGER, `sinceYear` :: INTEGER}]->(:`Person`),
+        | (:`Person`)-[:`LIVES_IN` => {`street` :: STRING, `streetNumber` :: STRING}]->(:`City`),
+        | CONSTRAINT FOR ()-[`x`:`KNOWS` =>]->() REQUIRE (`x`.`sinceMonth`, `x`.`sinceYear`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`street`, `x`.`streetNumber`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "MET-PE-KUC-3-1",
@@ -3778,7 +4108,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("x", "since"))
           )
         )
-      )
+      ),
+      """{
+        | (:`Person`)-[:`KNOWS` => {`since` :: DATE, `sinceMonth` :: INTEGER, `sinceYear` :: INTEGER}]->(:`Person`),
+        | (:`Person`)-[`l`:`LIVES_IN` => {`since` :: DATE, `street` :: STRING, `streetNumber` :: STRING}]->(:`City`),
+        | CONSTRAINT FOR ()-[`x`:`KNOWS` =>]->() REQUIRE (`x`.`since`) IS KEY,
+        | CONSTRAINT FOR ()-[`x`:`KNOWS` =>]->() REQUIRE (`x`.`sinceMonth`, `x`.`sinceYear`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`street`, `x`.`streetNumber`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     )
   )
 
@@ -3794,7 +4132,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("s", "name"))
           )
         )
-      )
+      ),
+      """{
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCANT-2-1",
@@ -3815,7 +4156,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("s", "name"))
           )
         )
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCANT-3-1",
@@ -3828,7 +4173,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("s", "name"))
           )
         )
-      )
+      ),
+      """{
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCANT-4-1",
@@ -3849,7 +4197,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("s", "name"))
           )
         )
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCAET-1-1",
@@ -3862,7 +4214,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("k", "since"))
           )
         )
-      )
+      ),
+      """{
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCAET-2-1",
@@ -3882,7 +4237,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("k", "since"))
           )
         )
-      )
+      ),
+      """{
+        | (:`Person`)-[:`LIVES_IN` =>]->(:`City`),
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCAET-3-1",
@@ -3895,7 +4254,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("k", "since"))
           )
         )
-      )
+      ),
+      """{
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCAET-4-1",
@@ -3915,7 +4277,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("k", "since"))
           )
         )
-      )
+      ),
+      """{
+        | (:`Person`)-[:`LIVES_IN` =>]->(:`City`),
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-1-1",
@@ -3939,7 +4305,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-1-2",
@@ -3966,7 +4337,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS KEY,
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-1-3",
@@ -3996,7 +4372,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-1-4",
@@ -4026,7 +4408,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(identifyingNodeTypeRef("Person", "p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-1-5",
@@ -4056,7 +4444,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(identifyingNodeTypeRef("Person", "x"), ArraySeq(prop("x", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-1-6",
@@ -4084,7 +4478,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-2-1",
@@ -4108,7 +4508,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL IS KEY}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-2-2",
@@ -4134,7 +4539,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}) REQUIRE (`p`.`name`) IS KEY,
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-2-3",
@@ -4162,7 +4572,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-2-4",
@@ -4190,7 +4606,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(identifyingNodeTypeRef("Person", "p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-2-5",
@@ -4218,7 +4640,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(identifyingNodeTypeRef("Person", "x"), ArraySeq(prop("x", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-2-6",
@@ -4246,7 +4674,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-3-1",
@@ -4269,7 +4703,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS UNIQUE}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-3-2",
@@ -4296,7 +4735,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS UNIQUE,
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-3-3",
@@ -4323,7 +4767,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-3-4",
@@ -4350,7 +4800,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(identifyingNodeTypeRef("Person", "p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-3-5",
@@ -4380,7 +4836,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(identifyingNodeTypeRef("Person", "x"), ArraySeq(prop("x", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-3-6",
@@ -4410,7 +4872,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-4-1",
@@ -4433,7 +4901,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL IS UNIQUE}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-4-2",
@@ -4460,7 +4933,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}) REQUIRE (`p`.`name`) IS UNIQUE,
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-4-3",
@@ -4488,7 +4966,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-4-4",
@@ -4516,7 +5000,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(identifyingNodeTypeRef("Person", "p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-4-5",
@@ -4544,7 +5034,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(identifyingNodeTypeRef("Person", "x"), ArraySeq(prop("x", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-4-6",
@@ -4572,7 +5068,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "name"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING NOT NULL}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-5-1",
@@ -4600,7 +5102,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`address`) IS KEY,
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-5-2",
@@ -4628,7 +5135,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "address"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`address`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-6-1",
@@ -4656,7 +5169,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`address`) IS UNIQUE,
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTSP-6-2",
@@ -4684,7 +5202,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(nodeTypeRefByVar("p"), ArraySeq(prop("p", "address"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`address`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-1-1",
@@ -4708,7 +5232,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-1-2",
@@ -4735,7 +5264,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )(defaultPos)),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-1-3",
@@ -4765,7 +5299,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-1-4",
@@ -4793,7 +5333,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(identifyingEdgeTypeRef("LIVES_IN", "l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-1-5",
@@ -4823,7 +5369,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(identifyingEdgeTypeRef("LIVES_IN", "x"), ArraySeq(prop("x", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-1-6",
@@ -4853,7 +5405,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-2-1",
@@ -4876,7 +5434,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = false), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE NOT NULL IS KEY}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-2-2",
@@ -4904,7 +5467,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )(defaultPos)),
           propertyType("since", DateType(isNullable = false))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`) REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-2-3",
@@ -4932,7 +5500,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-2-4",
@@ -4960,7 +5534,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(identifyingEdgeTypeRef("LIVES_IN", "l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-2-5",
@@ -4988,7 +5568,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(identifyingEdgeTypeRef("LIVES_IN", "x"), ArraySeq(prop("x", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
+        | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-2-6",
@@ -5018,7 +5604,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-3-1",
@@ -5043,7 +5635,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true), PropertyInlineUniquenessConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS UNIQUE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-3-2",
@@ -5070,7 +5667,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )(defaultPos)),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-3-3",
@@ -5100,7 +5702,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-3-4",
@@ -5130,7 +5738,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(identifyingEdgeTypeRef("LIVES_IN", "l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-3-5",
@@ -5160,7 +5774,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(identifyingEdgeTypeRef("LIVES_IN", "x"), ArraySeq(prop("x", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-3-6",
@@ -5190,7 +5810,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-4-1",
@@ -5215,7 +5841,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = false), PropertyInlineUniquenessConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE NOT NULL IS UNIQUE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-4-2",
@@ -5245,7 +5876,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )(defaultPos)),
           propertyType("since", DateType(isNullable = false))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`) REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-4-3",
@@ -5275,7 +5911,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-4-4",
@@ -5305,7 +5947,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(identifyingEdgeTypeRef("LIVES_IN", "l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-4-5",
@@ -5335,7 +5983,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(identifyingEdgeTypeRef("LIVES_IN", "x"), ArraySeq(prop("x", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
+        | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-4-6",
@@ -5365,7 +6019,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE NOT NULL}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-5-1",
@@ -5393,7 +6053,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )(defaultPos)),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-5-2",
@@ -5423,7 +6088,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(keyConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "reason"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`reason`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-6-1",
@@ -5453,7 +6124,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )(defaultPos)),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETSP-6-2",
@@ -5483,7 +6159,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         Seq(uniquenessConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "reason"))))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`reason`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-1-1",
@@ -5509,7 +6191,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS KEY,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-1-2",
@@ -5538,7 +6225,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "name", defaultPos), prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`age`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-2-1",
@@ -5566,7 +6259,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-2-2",
@@ -5598,7 +6296,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "name", defaultPos), prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-3-1",
@@ -5621,7 +6325,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS KEY,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-3-2",
@@ -5651,7 +6360,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "name", defaultPos), prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`age`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-4-1",
@@ -5676,7 +6391,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-4-2",
@@ -5707,7 +6427,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "name", defaultPos), prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`, `p`.`age`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-5-1",
@@ -5730,7 +6456,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`address`, `p`.`age`) IS KEY,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-5-2",
@@ -5761,7 +6492,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "address", defaultPos), prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`address`, `p`.`age`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-6-1",
@@ -5784,7 +6521,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`name` :: STRING}) REQUIRE (`p`.`address`, `p`.`age`) IS UNIQUE,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCNTMP-6-2",
@@ -5815,7 +6557,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "address", defaultPos), prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`address`, `p`.`age`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-1-1",
@@ -5842,7 +6590,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("address", StringType(isNullable = true)),
           propertyType("rating", IntegerType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-1-2",
@@ -5877,7 +6630,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos), prop("l", "since", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-2-1",
@@ -5904,7 +6663,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("address", StringType(isNullable = true)),
           propertyType("rating", IntegerType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-2-2",
@@ -5939,7 +6703,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos), prop("l", "since", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `rating` :: INTEGER, `since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-3-1",
@@ -5966,7 +6736,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("rating", IntegerType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-3-2",
@@ -6000,7 +6775,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos), prop("l", "since", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-4-1",
@@ -6028,7 +6809,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("rating", IntegerType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-4-2",
@@ -6062,7 +6848,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos), prop("l", "since", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-5-1",
@@ -6089,7 +6881,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("rating", IntegerType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`taxNo`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-5-2",
@@ -6123,7 +6920,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos), prop("l", "taxNo", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`taxNo`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-6-1",
@@ -6150,7 +6953,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("rating", IntegerType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`, `l`.`taxNo`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCCETMP-6-2",
@@ -6183,7 +6991,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos), prop("l", "taxNo", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`rating` :: INTEGER, `since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`, `l`.`taxNo`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWN-1-1",
@@ -6215,7 +7029,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "name", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT `myConstraint` FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWN-2-1",
@@ -6249,7 +7069,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "name", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT `myConstraint` FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWN-3-1",
@@ -6283,7 +7109,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "since", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT `myConstraint` FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWN-4-1",
@@ -6317,7 +7149,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "since", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT `myConstraint` FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-1-1",
@@ -6340,7 +7178,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER IS KEY, `name` :: STRING IS KEY}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-1-2",
@@ -6364,7 +7207,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER IS KEY, `name` :: STRING}) REQUIRE (`p`.`name`) IS KEY,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-1-3",
@@ -6391,7 +7239,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`age`) IS KEY REQUIRE (`p`.`name`) IS KEY,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-1-4",
@@ -6424,7 +7277,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS KEY,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-1-5",
@@ -6462,7 +7321,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("p", "age", defaultPos))
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS KEY,
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-1-6",
@@ -6493,7 +7359,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-2-1",
@@ -6549,7 +7421,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER IS UNIQUE, `name` :: STRING}) REQUIRE (`p`.`name`) IS UNIQUE,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-2-3",
@@ -6580,7 +7457,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`age`) IS UNIQUE REQUIRE (`p`.`name`) IS UNIQUE,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-2-4",
@@ -6613,7 +7495,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS UNIQUE,
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-2-5",
@@ -6652,7 +7540,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("p", "age", defaultPos))
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS UNIQUE,
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSNT-2-6",
@@ -6684,7 +7579,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("p"),
           ArraySeq(prop("p", "age", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS UNIQUE}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`age`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-1-1",
@@ -6709,7 +7610,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos)),
           propertyType("address", StringType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING IS KEY, `since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-1-2",
@@ -6735,7 +7641,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("address", StringType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING IS KEY, `since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-1-3",
@@ -6765,7 +7676,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("address", StringType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`) IS KEY REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-1-4",
@@ -6801,7 +7717,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS KEY,
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-1-5",
@@ -6841,7 +7763,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("l", "address", defaultPos))
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS KEY,
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-1-6",
@@ -6875,7 +7804,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE IS KEY}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-2-1",
@@ -6900,7 +7835,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true), PropertyInlineUniquenessConstraint()(defaultPos)),
           propertyType("address", StringType(isNullable = true), PropertyInlineUniquenessConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING IS UNIQUE, `since` :: DATE IS UNIQUE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-2-2",
@@ -6926,7 +7866,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("address", StringType(isNullable = true), PropertyInlineUniquenessConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING IS UNIQUE, `since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-2-3",
@@ -6959,7 +7904,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           propertyType("since", DateType(isNullable = true)),
           propertyType("address", StringType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`) REQUIRE (`l`.`address`) IS UNIQUE REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-2-4",
@@ -6995,7 +7945,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-2-5",
@@ -7035,7 +7991,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("l", "address", defaultPos))
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS UNIQUE,
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFSET-2-6",
@@ -7069,7 +8032,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           edgeTypeRefByVar("l"),
           ArraySeq(prop("l", "address", defaultPos))
         ))
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`address` :: STRING, `since` :: DATE IS UNIQUE}]->(`c`),
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`address`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-1-1",
@@ -7092,7 +8061,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-2-1",
@@ -7115,7 +8089,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS UNIQUE}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-3-1",
@@ -7138,7 +8117,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true), PropertyInlineUniquenessConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS UNIQUE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-4-1",
@@ -7161,7 +8145,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true), PropertyInlineUniquenessConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS UNIQUE}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS UNIQUE}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-5-1",
@@ -7184,7 +8173,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING IS KEY}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-5-2",
@@ -7210,7 +8204,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           nodeTypeRefByVar("c"),
           propertyType("since", DateType(isNullable = true), PropertyInlineKeyConstraint()(defaultPos))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}) REQUIRE (`c`.`name`) IS KEY,
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING IS KEY}),
+        | (`p`)-[:`LIVES_IN` => {`since` :: DATE IS KEY}]->(`c`)
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-5-3",
@@ -7239,7 +8238,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           Set(KeyConstraint(ArraySeq(prop("l", "since")))(defaultPos)),
           propertyType("since", DateType(isNullable = true))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}) REQUIRE (`c`.`name`) IS KEY,
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}) REQUIRE (`p`.`name`) IS KEY,
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`) REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-5-4",
@@ -7274,7 +8278,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           keyConstraint(nodeTypeRefByVar("c"), ArraySeq(prop("c", "name", defaultPos))),
           keyConstraint(edgeTypeRefByVar("l"), ArraySeq(prop("l", "since", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`c`) REQUIRE (`c`.`name`) IS KEY,
+        | CONSTRAINT FOR (`p`) REQUIRE (`p`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-5-5",
@@ -7309,7 +8321,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           keyConstraint(identifyingNodeTypeRef("City", "c"), ArraySeq(prop("c", "name", defaultPos))),
           keyConstraint(identifyingEdgeTypeRef("LIVES_IN", "l"), ArraySeq(prop("l", "since", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`c`:`City` =>) REQUIRE (`c`.`name`) IS KEY,
+        | CONSTRAINT FOR (`p`:`Person` =>) REQUIRE (`p`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`l`:`LIVES_IN` =>]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-MCFD-5-6",
@@ -7344,7 +8364,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           keyConstraint(identifyingNodeTypeRef("City", "x"), ArraySeq(prop("x", "name", defaultPos))),
           keyConstraint(identifyingEdgeTypeRef("LIVES_IN", "x"), ArraySeq(prop("x", "since", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`x`:`City` =>) REQUIRE (`x`.`name`) IS KEY,
+        | CONSTRAINT FOR (`x`:`Person` =>) REQUIRE (`x`.`name`) IS KEY,
+        | CONSTRAINT FOR ()-[`x`:`LIVES_IN` =>]->() REQUIRE (`x`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWN-5-1",
@@ -7420,7 +8448,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           keyConstraint("myConstraint2", nodeTypeRefByVar("c"), ArraySeq(prop("c", "name", defaultPos))),
           keyConstraint("myConstraint3", edgeTypeRefByVar("l"), ArraySeq(prop("l", "since", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT `myConstraint2` FOR (`c`) REQUIRE (`c`.`name`) IS KEY,
+        | CONSTRAINT `myConstraint1` FOR (`p`) REQUIRE (`p`.`name`) IS KEY,
+        | CONSTRAINT `myConstraint3` FOR ()-[`l`]->() REQUIRE (`l`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWAS-1-1",
@@ -7451,7 +8487,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         Seq(
           keyConstraint(identifyingNodeTypeRef("Person", "c"), ArraySeq(prop("c", "name", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`c`:`Person` =>) REQUIRE (`c`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWAS-2-1",
@@ -7482,7 +8524,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         Seq(
           uniquenessConstraint(identifyingNodeTypeRef("Person", "c"), ArraySeq(prop("c", "name", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`c`:`Person` =>) REQUIRE (`c`.`name`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWAS-3-1",
@@ -7513,7 +8561,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         Seq(
           keyConstraint(identifyingNodeTypeRef("Person", "l"), ArraySeq(prop("l", "name", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR (`l`:`Person` =>) REQUIRE (`l`.`name`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWAS-4-1",
@@ -7586,7 +8640,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         Seq(
           keyConstraint(identifyingEdgeTypeRef("LIVES_IN", "k"), ArraySeq(prop("k", "since", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`k`:`KNOWS` => {`since` :: DATE}]->(`c`),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`k`:`LIVES_IN` =>]->() REQUIRE (`k`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWAS-6-1",
@@ -7627,7 +8688,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("k", "since", defaultPos))
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`k`:`KNOWS` => {`since` :: DATE}]->(`c`),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`k`:`LIVES_IN` =>]->() REQUIRE (`k`.`since`) IS UNIQUE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWAS-7-1",
@@ -7668,7 +8736,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("p", "since", defaultPos))
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`k`:`KNOWS` => {`since` :: DATE}]->(`c`),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`p`:`LIVES_IN` =>]->() REQUIRE (`p`.`since`) IS KEY
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "UDC-PE-SCWAS-8-1",
@@ -7709,7 +8784,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("p", "since", defaultPos))
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`k`:`KNOWS` => {`since` :: DATE}]->(`c`),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`p`:`LIVES_IN` =>]->() REQUIRE (`p`.`since`) IS UNIQUE
+        |}""".stripMargin
     )
   )
 
@@ -7720,7 +8802,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(
         List.empty,
         List(existsConstraint(nodeTypeRefByLabel("Student", "s"), ArraySeq(prop("s", "studId"))))
-      )
+      ),
+      """{
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-SCNIL-2-1",
@@ -7732,7 +8817,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ArraySeq(prop("s", "studId")),
           IntegerType(isNullable = true)(defaultPos)
         ))
-      )
+      ),
+      """{
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-SCNIL-3-1",
@@ -7748,7 +8836,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           )
         ),
         List(existsConstraint(nodeTypeRefByLabel("Student", "s"), ArraySeq(prop("s", "studId"))))
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-SCNIL-4-1",
@@ -7768,7 +8860,11 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ArraySeq(prop("s", "studId")),
           IntegerType(isNullable = true)(defaultPos)
         ))
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-SCNIL-5-1",
@@ -7776,7 +8872,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
       graphType(
         List.empty,
         List(existsConstraint(edgeTypeRefByLabel("LIVES_IN", "l"), ArraySeq(prop("l", "since"))))
-      )
+      ),
+      """{
+        | CONSTRAINT FOR ()-[`l`:`LIVES_IN`]->() REQUIRE (`l`.`since`) IS NOT NULL
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-SCNIL-6-1",
@@ -7788,7 +8887,10 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
           ArraySeq(prop("l", "since")),
           DateType(isNullable = true)(defaultPos)
         ))
-      )
+      ),
+      """{
+        | CONSTRAINT FOR ()-[`l`:`LIVES_IN`]->() REQUIRE (`l`.`since`) IS :: DATE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-SCNIL-7-1",
@@ -7820,7 +8922,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
         Seq(
           existsConstraint(edgeTypeRefByLabel("KNOWS", "k"), ArraySeq(prop("k", "since", defaultPos)))
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS NOT NULL
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-SCNIL-8-1",
@@ -7856,7 +8964,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             DateType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS :: DATE
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-SCIL-1-1",
@@ -7881,7 +8995,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             StringType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`Company` => :`Taxpayer`),
+        | (`p`:`Person` => :`Taxpayer`),
+        | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS :: STRING
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCSNIL-1-1",
@@ -7908,7 +9027,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             IntegerType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL,
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCSNIL-2-1",
@@ -7946,7 +9070,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             StringType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS NOT NULL,
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`name`) IS :: STRING,
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL,
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCSNIL-3-1",
@@ -8027,7 +9158,13 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             FloatType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`Company` => :`Taxpayer` {`isin` :: STRING, `name` :: STRING}),
+        | (`p`:`Person` => :`Taxpayer` {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS NOT NULL,
+        | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxRate`) IS :: FLOAT
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCSIL-2-1",
@@ -8072,7 +9209,15 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             FloatType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`Company` => :`Taxpayer` {`isin` :: STRING, `name` :: STRING}),
+        | (`p`:`Person` => :`Taxpayer` {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS NOT NULL,
+        | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxId`) IS :: STRING,
+        | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxRate`) IS NOT NULL,
+        | CONSTRAINT FOR (`s`:`Taxpayer`) REQUIRE (`s`.`taxRate`) IS :: FLOAT
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCDNIL-1-1",
@@ -8097,7 +9242,12 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             FloatType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Happy`) REQUIRE (`s`.`degree`) IS :: FLOAT,
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCDNIL-2-1",
@@ -8133,7 +9283,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             FloatType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | CONSTRAINT FOR (`s`:`Happy`) REQUIRE (`s`.`degree`) IS NOT NULL,
+        | CONSTRAINT FOR (`s`:`Happy`) REQUIRE (`s`.`degree`) IS :: FLOAT,
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS NOT NULL,
+        | CONSTRAINT FOR (`s`:`Student`) REQUIRE (`s`.`studId`) IS :: INTEGER
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCDNIL-3-1",
@@ -8172,7 +9329,14 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             StringType(isNullable = true)(defaultPos)
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS NOT NULL,
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS :: STRING
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCDNIL-4-1",
@@ -8220,7 +9384,16 @@ object GraphTypeTestCase extends AstGraphTypeConstructionTestSupport {
             ArraySeq(prop("r", "cause", defaultPos))
           )
         )
-      )
+      ),
+      """{
+        | (`c`:`City` => {`name` :: STRING}),
+        | (`p`:`Person` => {`age` :: INTEGER, `name` :: STRING}),
+        | (`p`)-[`l`:`LIVES_IN` => {`since` :: DATE}]->(`c`),
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS NOT NULL,
+        | CONSTRAINT FOR ()-[`k`:`KNOWS`]->() REQUIRE (`k`.`since`) IS :: DATE,
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS NOT NULL,
+        | CONSTRAINT FOR ()-[`r`:`RELATED`]->() REQUIRE (`r`.`cause`) IS :: STRING
+        |}""".stripMargin
     ),
     GraphTypeTestCase(
       "IDC-PE-MCDIL-1-1",

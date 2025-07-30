@@ -162,7 +162,7 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
         |}""".stripMargin
   }
 
-  GraphTypeTestCase.testcases.collect { case GraphTypeTestCase(name, _, ast, Some(prettifiedCypher)) =>
+  GraphTypeTestCase.testcases.collect { case GraphTypeTestCase(name, _, ast, prettifiedCypher) =>
     test(name) {
       ast shouldStringifyTo prettifiedCypher
     }
