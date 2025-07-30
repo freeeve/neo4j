@@ -23,15 +23,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
-import static org.neo4j.configuration.GraphDatabaseSettings.initial_default_database;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.kernel.impl.index.schema.tracking.TrackingReadersIndexAccessor.numberOfClosedReaders;
 import static org.neo4j.kernel.impl.index.schema.tracking.TrackingReadersIndexAccessor.numberOfOpenReaders;
 
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import org.neo4j.common.DependencyResolver;
-import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
@@ -72,8 +69,6 @@ class UniqueIndexSeekIT {
         TrackingIndexExtensionFactory indexExtensionFactory =
                 new TrackingIndexExtensionFactory(new RangeIndexProviderFactory());
         GraphDatabaseAPI database = createDatabase(indexExtensionFactory);
-        DependencyResolver dependencyResolver = database.getDependencyResolver();
-        Config config = dependencyResolver.resolveDependency(Config.class);
         try {
             Label label = label("spaceship");
             String nameProperty = "name";
@@ -81,7 +76,7 @@ class UniqueIndexSeekIT {
 
             generateRandomData(database, label, nameProperty);
 
-            assertNotNull(indexExtensionFactory.getIndexProvider(config.get(initial_default_database)));
+            assertNotNull(indexExtensionFactory.getIndexProvider(database.databaseName()));
             assertThat(numberOfClosedReaders()).isGreaterThan(0L);
             assertThat(numberOfOpenReaders()).isGreaterThan(0L);
             assertThat(numberOfClosedReaders()).isCloseTo(numberOfOpenReaders(), within(1L));
@@ -99,8 +94,6 @@ class UniqueIndexSeekIT {
         TrackingIndexExtensionFactory indexExtensionFactory =
                 new TrackingIndexExtensionFactory(new RangeIndexProviderFactory());
         GraphDatabaseAPI database = createDatabase(indexExtensionFactory);
-        DependencyResolver dependencyResolver = database.getDependencyResolver();
-        Config config = dependencyResolver.resolveDependency(Config.class);
         try {
             RelationshipType type = RelationshipType.withName("spaceship");
             String nameProperty = "name";
@@ -108,7 +101,8 @@ class UniqueIndexSeekIT {
 
             generateRandomData(database, type, nameProperty);
 
-            assertNotNull(indexExtensionFactory.getIndexProvider(config.get(initial_default_database)));
+            var dbName = database.databaseName();
+            assertNotNull(indexExtensionFactory.getIndexProvider(dbName));
             assertThat(numberOfClosedReaders()).isGreaterThan(0L);
             assertThat(numberOfOpenReaders()).isGreaterThan(0L);
             assertThat(numberOfClosedReaders()).isCloseTo(numberOfOpenReaders(), within(1L));
