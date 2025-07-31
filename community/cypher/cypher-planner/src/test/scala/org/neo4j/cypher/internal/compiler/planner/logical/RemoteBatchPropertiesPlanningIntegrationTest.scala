@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AllReduceFunctionAvailable
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
@@ -2501,7 +2500,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         |""".stripMargin
 
     val planner = spdPlanner
-      .addSemanticFeature(AllReduceFunctionAvailable)
       .setAllNodesCardinality(10000)
       .setLabelCardinality("N", 1000)
       .setAllRelationshipsCardinality(100000)

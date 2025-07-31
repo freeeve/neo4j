@@ -945,28 +945,25 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           specifyType(CTList(CTAny).covariant, x)
 
       case x: AllReducePredicate =>
-        requireFeatureSupport("allReduce() function", SemanticFeature.AllReduceFunctionAvailable, x.position)
-          .ifOkChain {
-            check(ctx, x.init) chain
+        check(ctx, x.init) chain
+          withScopedState {
+            check(ctx, x.list) chain
+              expectType(CTList(CTAny).covariant, x.list) chain
+              declareVariable(x.accumulator, types(x.init)) chain
               withScopedState {
-                check(ctx, x.list) chain
-                  expectType(CTList(CTAny).covariant, x.list) chain
-                  declareVariable(x.accumulator, types(x.init)) chain
-                  withScopedState {
-                    importValuesFromParentInExpression(x.accumulator) chain
-                      declareVariable(x.reductionStepVariable, unwrapLists(types(x.list)), overriding = true) chain
-                      simple(x.reductionStep) chain
-                      expectType(
-                        s => types(x.init)(s),
-                        x.reductionStep,
-                        TypeMismatchContext.ACCUMULATOR,
-                        AccumulatorReductionTypeMismatchMessageGenerator
-                      )
-                  } chain
-                  check(ctx, x.predicate) chain
-                  expectType(CTBoolean.covariant, x.predicate) chain
-                  specifyType(CTBoolean, x)
-              }
+                importValuesFromParentInExpression(x.accumulator) chain
+                  declareVariable(x.reductionStepVariable, unwrapLists(types(x.list)), overriding = true) chain
+                  simple(x.reductionStep) chain
+                  expectType(
+                    s => types(x.init)(s),
+                    x.reductionStep,
+                    TypeMismatchContext.ACCUMULATOR,
+                    AccumulatorReductionTypeMismatchMessageGenerator
+                  )
+              } chain
+              check(ctx, x.predicate) chain
+              expectType(CTBoolean.covariant, x.predicate) chain
+              specifyType(CTBoolean, x)
           }
 
       // FALLBACK

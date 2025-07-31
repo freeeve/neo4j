@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.AllReduceFunctionAvailable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfiguration
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
@@ -50,7 +49,6 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     .setLabelCardinality("N", 6)
     .setLabelCardinality("NN", 5)
     .addNodeIndex("NN", Seq("prop"), 0.1, 0.01)
-    .addSemanticFeature(AllReduceFunctionAvailable)
     .addSemanticFeature(SemanticFeature.ExperimentalCypherVersions)
 
   protected val planner: StatisticsBackedLogicalPlanningConfiguration = baseConfig.build()

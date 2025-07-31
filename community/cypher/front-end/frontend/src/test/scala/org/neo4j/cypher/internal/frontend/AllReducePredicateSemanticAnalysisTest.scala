@@ -18,7 +18,6 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
-import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -27,23 +26,11 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
   private def run25(query: String): AnalysisAssertions = {
     run(
       query,
-      pipeline = pipelineWithSemanticFeatures(SemanticFeature.AllReduceFunctionAvailable),
       disabledVersions = Set(CypherVersion.Cypher5)
     )
   }
 
-  test("allReduce() not available without semantic feature") {
-    // TODO: test this in Cypher 5
-    run(
-      "RETURN allReduce(acc = 0, a IN b | acc + 1, acc <= 5) AS result",
-      pipeline = pipelineWithSemanticFeatures(),
-      disabledVersions = Set(CypherVersion.Cypher5)
-    ).hasErrorMessages(
-      "allReduce() function is not available in this implementation of Cypher due to lack of support for allReduce() function."
-    )
-  }
-
-  test("allReduce() available with semantic feature") {
+  test("allReduce() is available") {
     run25(
       "MATCH (a)-[r]->+(b) RETURN allReduce(acc = [], iter IN r | acc + iter, size(acc) <= 5) AS result"
     ).hasNoErrors
@@ -102,7 +89,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |RETURN allReduce(acc = count(*), rel IN r | acc + rel.prop, acc <= 5) AS result
         |""".stripMargin,
       pipeline =
-        pipelineWithSemanticFeatures(SemanticFeature.AllReduceFunctionAvailable) andThen AmbiguousAggregationAnalysis,
+        pipelineWithSemanticFeatures() andThen AmbiguousAggregationAnalysis,
       disabledVersions = Set(CypherVersion.Cypher5)
     ).hasErrorMessages(SemanticError.implicitGroupingExpressionInAggregationColumnErrorMessage(Seq("r")))
   }
