@@ -292,6 +292,12 @@ public class DynamicSizeUtil {
         return (secondByte & FLAG_SECOND_BYTE_OFFLOAD) != 0;
     }
 
+    /**
+     * Gets the long representing the offload ID
+     * assumes the cursor is in position such that {@code cursor.getLong()} would read the offloadId
+     *
+     * @param cursor - cursor
+     */
     static long readOffloadId(PageCursor cursor) {
         return cursor.getLong();
     }
