@@ -44,6 +44,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -64,8 +65,10 @@ import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.monitoring.Monitors;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -73,9 +76,13 @@ import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.RandomValuesUtils;
 
 @TestDirectoryExtension
+@ExtendWith(RandomExtension.class)
 class IndexPopulationIT {
     @Inject
     private TestDirectory directory;
+
+    @Inject
+    private RandomSupport random;
 
     private GraphDatabaseAPI database;
     private ExecutorService executorService;
@@ -292,14 +299,16 @@ class IndexPopulationIT {
         }
     }
 
-    private static void prePopulateDatabase(GraphDatabaseService database, Label testLabel, String propertyName) {
-        final RandomValues randomValues =
-                RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(database));
+    private void prePopulateDatabase(GraphDatabaseService database, Label testLabel, String propertyName) {
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfigurationBuilder(database)
+                        .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY)
+                        .build())
+                .reset();
 
         try (Transaction transaction = database.beginTx()) {
             for (int j = 0; j < 10_000; j++) {
                 Node node = transaction.createNode(testLabel);
-                Object property = randomValues.nextValue().asObject();
+                Object property = random.nextValue().asObject();
                 node.setProperty(propertyName, property);
             }
             transaction.commit();
