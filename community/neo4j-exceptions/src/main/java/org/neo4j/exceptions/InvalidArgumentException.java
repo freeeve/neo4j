@@ -1072,6 +1072,7 @@ public class InvalidArgumentException extends Neo4jException {
     public static InvalidArgumentException cannotReallocate(boolean withCauseMessage, Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N54)
+                        .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                         .build())
                 .withParam(GqlParams.StringParam.msg, topologyDetailMessage(withCauseMessage, e))
                 .build();
