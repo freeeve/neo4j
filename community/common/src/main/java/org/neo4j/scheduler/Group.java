@@ -110,6 +110,7 @@ public enum Group {
     RAFT_READER_POOL_PRUNER("RaftReaderPoolPruner"),
     RAFT_LOG_PREFETCH("RaftLogPrefetch"),
     RAFT_DRAINING_SERVICE("RaftDrainingService"),
+    RAFT_BACKPRESSURE("RaftBackpressure"),
     LEADER_TRANSFER_SERVICE("LeaderTransferService"),
     CORE_STATE_APPLIER("CoreStateApplier"),
     MEMBERSHIP_LIST_NOTIFIER("MembershipNotifier"),
