@@ -25,11 +25,12 @@ class DatabaseTagLogMessage extends Neo4jMapMessage {
     private final String message;
     private final Throwable throwable;
 
-    DatabaseTagLogMessage(String databaseName, String databaseId, String message, Throwable throwable) {
-        super(2);
-        with("databaseName", databaseName);
-        with("databaseId", databaseId);
-        this.message = message;
+    DatabaseTagLogMessage(DatabaseLogIdentifier databaseLogIdentifier, String message, Throwable throwable) {
+        super(databaseLogIdentifier.externalId().map(i -> 3).orElse(2));
+        with("databaseName", databaseLogIdentifier.databaseName());
+        with("databaseId", databaseLogIdentifier.databaseId());
+        databaseLogIdentifier.externalId().ifPresent(o -> with("externalId", o));
+        this.message = databaseLogIdentifier.prefix() + message;
         this.throwable = throwable;
     }
 

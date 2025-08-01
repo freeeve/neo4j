@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,7 +57,9 @@ class DatabaseLogServiceTest {
         file = testDirectory.file("test.log");
         ctx = LogConfig.createTemporaryLoggerToSingleFile(testDirectory.getFileSystem(), file, Level.DEBUG, true);
         InternalLogProvider logProvider = new Log4jLogProvider(ctx);
-        logService = new DatabaseLogService(namedDatabaseId, new SimpleLogService(logProvider));
+        logService = new DatabaseLogService(
+                DatabaseLogIdentifier.create(namedDatabaseId, Optional.of("externalId")),
+                new SimpleLogService(logProvider));
     }
 
     @AfterEach

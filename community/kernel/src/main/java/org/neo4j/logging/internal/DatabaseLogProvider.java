@@ -19,42 +19,30 @@
  */
 package org.neo4j.logging.internal;
 
-import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.logging.AbstractLogProvider;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
 
 public class DatabaseLogProvider extends AbstractLogProvider<DatabaseLog> {
+    private final DatabaseLogIdentifier databaseLogIdentifier;
     private final InternalLogProvider logProvider;
-    private final String prefix;
-    private final String databaseName;
-    private final String databaseId;
-
-    public DatabaseLogProvider(NamedDatabaseId namedDatabaseId, InternalLogProvider logProvider) {
-        this.logProvider = logProvider;
-        this.prefix = namedDatabaseId.logPrefix();
-        databaseName = namedDatabaseId.name();
-        databaseId = namedDatabaseId.databaseId().uuid().toString();
-    }
-
-    private DatabaseLogProvider() {
-        this.logProvider = NullLogProvider.getInstance();
-        this.prefix = "";
-        this.databaseName = "";
-        this.databaseId = "";
-    }
 
     public static DatabaseLogProvider nullDatabaseLogProvider() {
-        return new DatabaseLogProvider();
+        return new DatabaseLogProvider(DatabaseLogIdentifier.EMPTY, NullLogProvider.getInstance());
+    }
+
+    public DatabaseLogProvider(DatabaseLogIdentifier databaseLogIdentifier, InternalLogProvider logProvider) {
+        this.databaseLogIdentifier = databaseLogIdentifier;
+        this.logProvider = logProvider;
     }
 
     @Override
     protected DatabaseLog buildLog(Class<?> loggingClass) {
-        return new DatabaseLog(prefix, databaseName, databaseId, logProvider.getLog(loggingClass));
+        return new DatabaseLog(databaseLogIdentifier, logProvider.getLog(loggingClass));
     }
 
     @Override
     protected DatabaseLog buildLog(String name) {
-        return new DatabaseLog(prefix, databaseName, databaseId, logProvider.getLog(name));
+        return new DatabaseLog(databaseLogIdentifier, logProvider.getLog(name));
     }
 }

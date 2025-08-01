@@ -25,9 +25,13 @@ public class DatabaseLogService extends AbstractLogService {
     private final DatabaseLogProvider userLogProvider;
     private final DatabaseLogProvider internalLogProvider;
 
-    public DatabaseLogService(NamedDatabaseId namedDatabaseId, LogService delegate) {
-        this.userLogProvider = new DatabaseLogProvider(namedDatabaseId, delegate.getUserLogProvider());
-        this.internalLogProvider = new DatabaseLogProvider(namedDatabaseId, delegate.getInternalLogProvider());
+    public DatabaseLogService(NamedDatabaseId databaseId, LogService delegate) {
+        this(DatabaseLogIdentifier.create(databaseId), delegate);
+    }
+
+    public DatabaseLogService(DatabaseLogIdentifier databaseLogIdentifier, LogService delegate) {
+        this.userLogProvider = new DatabaseLogProvider(databaseLogIdentifier, delegate.getUserLogProvider());
+        this.internalLogProvider = new DatabaseLogProvider(databaseLogIdentifier, delegate.getInternalLogProvider());
     }
 
     @Override

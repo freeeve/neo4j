@@ -75,6 +75,7 @@ import org.neo4j.kernel.internal.locker.FileLockerService;
 import org.neo4j.kernel.monitoring.DatabaseEventListeners;
 import org.neo4j.kernel.monitoring.DatabaseHealthEventGenerator;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.internal.DatabaseLogIdentifier;
 import org.neo4j.logging.internal.DatabaseLogService;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.GlobalMemoryGroupTracker;
@@ -141,6 +142,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             HostedOnMode mode,
             ServerIdentity serverIdentity,
             NamedDatabaseId namedDatabaseId,
+            DatabaseLogIdentifier databaseLogIdentifier,
             GlobalModule globalModule,
             Dependencies globalDependencies,
             CursorContextFactory contextFactory,
@@ -185,7 +187,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.databaseMonitorsFactory = databaseMonitorsFactory;
         this.storeIdGenerator = storeIdGenerator;
         this.exceptionHandlerService = exceptionHandlerService;
-        this.databaseLogService = new DatabaseLogService(namedDatabaseId, globalModule.getLogService());
+        this.databaseLogService = new DatabaseLogService(databaseLogIdentifier, globalModule.getLogService());
         this.scheduler = globalModule.getJobScheduler();
         this.globalDependencies = globalDependencies;
         this.tokenHolders = tokenHolders;

@@ -26,17 +26,12 @@ import org.neo4j.logging.Neo4jLogMessage;
 import org.neo4j.logging.Neo4jMessageSupplier;
 
 public class DatabaseLog implements InternalLog {
-    private final String prefix;
-    private final String databaseName;
-    private final String databaseId;
+    private final DatabaseLogIdentifier databaseLogIdentifier;
     private final InternalLog delegate;
 
-    DatabaseLog(String prefix, String databaseName, String databaseId, InternalLog delegate) {
-        requireNonNull(prefix, "prefix must be a string");
+    DatabaseLog(DatabaseLogIdentifier databaseLogIdentifier, InternalLog delegate) {
         requireNonNull(delegate, "delegate log cannot be null");
-        this.prefix = "[" + prefix + "] ";
-        this.databaseName = databaseName;
-        this.databaseId = databaseId;
+        this.databaseLogIdentifier = databaseLogIdentifier;
         this.delegate = delegate;
     }
 
@@ -143,14 +138,14 @@ public class DatabaseLog implements InternalLog {
     }
 
     private DatabaseTagLogMessage taggedMessage(String message) {
-        return new DatabaseTagLogMessage(databaseName, databaseId, prefix + message, null);
+        return new DatabaseTagLogMessage(databaseLogIdentifier, message, null);
     }
 
     private DatabaseTagLogMessage taggedMessage(String message, Throwable throwable) {
-        return new DatabaseTagLogMessage(databaseName, databaseId, prefix + message, throwable);
+        return new DatabaseTagLogMessage(databaseLogIdentifier, message, throwable);
     }
 
     private DatabaseTagLogMessage taggedMessage(String message, Object... arguments) {
-        return new DatabaseTagLogMessage(databaseName, databaseId, prefix + String.format(message, arguments), null);
+        return new DatabaseTagLogMessage(databaseLogIdentifier, String.format(message, arguments), null);
     }
 }

@@ -47,6 +47,7 @@ import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.CommunityVersionStorageFactory;
 import org.neo4j.kernel.impl.pagecache.IOControllerService;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
+import org.neo4j.logging.internal.DatabaseLogIdentifier;
 import org.neo4j.logging.internal.DatabaseLogProvider;
 import org.neo4j.storageengine.StoreIdGenerator;
 
@@ -92,10 +93,12 @@ public class DefaultDatabaseContextFactory
         private Creator(NamedDatabaseId namedDatabaseId) {
             var databaseConfig = new DatabaseConfig(globalModule.getGlobalConfig());
             var contextFactory = createContextFactory(databaseConfig, namedDatabaseId);
+            var databaseLogIdentifier = DatabaseLogIdentifier.create(namedDatabaseId);
             var creationContext = new ModularDatabaseCreationContext(
                     HostedOnMode.SINGLE,
                     serverIdentity,
                     namedDatabaseId,
+                    databaseLogIdentifier,
                     globalModule,
                     globalModule.getGlobalDependencies(),
                     contextFactory,
@@ -125,18 +128,18 @@ public class DefaultDatabaseContextFactory
                     new DatabaseTracers(globalModule.getTracers(), namedDatabaseId),
                     globalModule.getDefaultCommandCommitListeners(),
                     TransactionsFactory.DEFAULT,
-                    databaseMonitorsFactory(namedDatabaseId),
+                    databaseMonitorsFactory(databaseLogIdentifier),
                     StoreIdGenerator.UNIQUE_ID,
                     globalModule.getExceptionHandlerService());
             kernelDatabase = new Database(creationContext);
             context = new StandaloneDatabaseContext(kernelDatabase);
         }
 
-        private DatabaseMonitorsFactory databaseMonitorsFactory(NamedDatabaseId namedDatabaseId) {
+        private DatabaseMonitorsFactory databaseMonitorsFactory(DatabaseLogIdentifier databaseLogIdentifier) {
             return new DefaultDatabaseMonitorsFactory(new DatabaseMonitors(
                     globalModule.getGlobalMonitors(),
                     new DatabaseLogProvider(
-                            namedDatabaseId, globalModule.getLogService().getInternalLogProvider())));
+                            databaseLogIdentifier, globalModule.getLogService().getInternalLogProvider())));
         }
 
         private StandaloneDatabaseContext context() {
