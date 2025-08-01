@@ -242,6 +242,8 @@ class CypherConfiguration private (val config: Config) {
   val existsWithImplicitLimitEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled)
 
+  val selectorCandidatesMaximum: Int = config.get(GraphDatabaseInternalSettings.planning_selector_candidates_maximum)
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

@@ -20,6 +20,9 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
+import org.neo4j.cypher.internal.compiler.planner.logical.ShardPredicatePushdownPartition
+import org.neo4j.cypher.internal.compiler.planner.logical.SpdSelections
+import org.neo4j.cypher.internal.compiler.planner.logical.SpdSelections.SpdSelectionAndChild
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.QuerySolvableByGetDegree.SetExtractor
 import org.neo4j.cypher.internal.expressions.Ands
@@ -47,6 +50,13 @@ import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case object triadicSelectionFinder extends SelectionCandidateGenerator {
+
+  case class ExpandWithSelections(
+    expand: Expand,
+    predicatesOnMainAfterRBP: Set[Expression] = Set.empty,
+    predicatesOnShards: Set[Expression] = Set.empty,
+    predicatesOnMainBeforeRBP: Seq[Expression] = Seq.empty
+  )
 
   override def apply(
     input: LogicalPlan,
@@ -101,15 +111,39 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
         positivePredicate,
         triadicPredicate,
         subqueryExpression,
-        predicates.toSeq,
-        exp,
+        ExpandWithSelections(exp, predicatesOnMainBeforeRBP = predicates.toSeq),
         qg,
         context
       )
 
     // MATCH (a)-[:X]->(b)-[:Y]->(c) WHERE (predicate involving (a)-[:X]->(c))
     case exp: Expand =>
-      findMatchingOuterExpand(positivePredicate, triadicPredicate, subqueryExpression, Seq.empty, exp, qg, context)
+      findMatchingOuterExpand(
+        positivePredicate,
+        triadicPredicate,
+        subqueryExpression,
+        ExpandWithSelections(exp),
+        qg,
+        context
+      )
+
+    case SpdSelections(SpdSelectionAndChild(
+        spdSelections: ShardPredicatePushdownPartition,
+        exp: Expand
+      )) =>
+      findMatchingOuterExpand(
+        positivePredicate,
+        triadicPredicate,
+        subqueryExpression,
+        ExpandWithSelections(
+          exp,
+          predicatesOnMainAfterRBP = spdSelections.filterOnMainWithRemoteProperties,
+          predicatesOnShards = spdSelections.filterOnShards.map(_.expressions).getOrElse(Set.empty),
+          predicatesOnMainBeforeRBP = spdSelections.preFilterBeforePushdown.toSeq
+        ),
+        qg,
+        context
+      )
 
     case _ => Seq.empty
   }
@@ -118,33 +152,58 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
     positivePredicate: Boolean,
     triadicPredicate: Expression,
     subqueryExpression: ExistsIRExpression,
-    incomingPredicates: Seq[Expression],
-    expand: Expand,
+    expandWithSelections: ExpandWithSelections,
     qg: QueryGraph,
     context: LogicalPlanningContext
-  ): Seq[LogicalPlan] = expand match {
-    case exp2 @ Expand(exp1: Expand, _, _, _, _, _, ExpandAll) =>
+  ): Seq[LogicalPlan] = expandWithSelections.expand match {
+    case Expand(exp1: Expand, _, _, _, _, _, ExpandAll) =>
       findMatchingInnerExpand(
         positivePredicate,
         triadicPredicate,
         subqueryExpression,
-        incomingPredicates,
-        Seq.empty,
-        exp1,
-        exp2,
+        ExpandWithSelections(exp1),
+        expandWithSelections,
         qg,
         context
       )
 
-    case exp2 @ Expand(Selection(Ands(innerPredicates), exp1: Expand), _, _, _, _, _, ExpandAll) =>
+    case Expand(Selection(Ands(innerPredicates), exp1: Expand), _, _, _, _, _, ExpandAll) =>
       findMatchingInnerExpand(
         positivePredicate,
         triadicPredicate,
         subqueryExpression,
-        incomingPredicates,
-        innerPredicates.toSeq,
-        exp1,
-        exp2,
+        ExpandWithSelections(
+          exp1,
+          predicatesOnMainBeforeRBP = innerPredicates.toSeq
+        ),
+        expandWithSelections,
+        qg,
+        context
+      )
+
+    case Expand(
+        SpdSelections(SpdSelectionAndChild(
+          spdSelections: ShardPredicatePushdownPartition,
+          exp: Expand
+        )),
+        _,
+        _,
+        _,
+        _,
+        _,
+        ExpandAll
+      ) =>
+      findMatchingInnerExpand(
+        positivePredicate,
+        triadicPredicate,
+        subqueryExpression,
+        ExpandWithSelections(
+          exp,
+          predicatesOnMainAfterRBP = spdSelections.filterOnMainWithRemoteProperties,
+          predicatesOnShards = spdSelections.filterOnShards.map(_.expressions).getOrElse(Set.empty),
+          predicatesOnMainBeforeRBP = spdSelections.preFilterBeforePushdown.toSeq
+        ),
+        expandWithSelections,
         qg,
         context
       )
@@ -156,21 +215,21 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
     positivePredicate: Boolean,
     triadicPredicate: Expression,
     subqueryExpression: ExistsIRExpression,
-    incomingPredicates: Seq[Expression],
-    leftPredicates: Seq[Expression],
-    exp1: Expand,
-    exp2: Expand,
+    exp1WithSelections: ExpandWithSelections,
+    exp2WithSelections: ExpandWithSelections,
     qg: QueryGraph,
     context: LogicalPlanningContext
   ): Seq[LogicalPlan] = {
+    val exp1 = exp1WithSelections.expand
+    val exp2 = exp2WithSelections.expand
     val (acceptableLeftPredicates, newRightPredicates) =
-      leftPredicates.partition(leftPredicatesAcceptable(exp1.to, _))
+      exp1WithSelections.predicatesOnMainBeforeRBP.partition(leftPredicatesAcceptable(exp1.to, _))
     if (
       exp1.mode == ExpandAll && exp1.to == exp2.from &&
       matchingLabels(positivePredicate, exp1.to, exp2.to, qg) &&
       matchingIRExpression(subqueryExpression, exp1.from, exp2.to, exp1.types, exp1.dir)
     ) {
-      val left =
+      val left: LogicalPlan =
         if (acceptableLeftPredicates.nonEmpty)
           context.staticComponents.logicalPlanProducer.planSelection(exp1, acceptableLeftPredicates, context)
         else
@@ -180,8 +239,10 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
       val updatedContext = context.withModifiedPlannerState(
         _.withUpdatedLabelInfo(left, context.staticComponents.planningAttributes.solveds)
       )
+
       val exp2PR = getPatternRelationshipFromExpand(exp2, qg)
-      val right = planRhs(updatedContext, exp1.relName, exp2, exp2PR, left.id, incomingPredicates)
+      val right =
+        planRhs(updatedContext, exp1.relName, exp2, exp2PR, left.id, exp2WithSelections.predicatesOnMainBeforeRBP)
 
       val triadicSelection = updatedContext.staticComponents.logicalPlanProducer.planTriadicSelection(
         positivePredicate,
@@ -193,10 +254,15 @@ case object triadicSelectionFinder extends SelectionCandidateGenerator {
         triadicPredicate,
         updatedContext
       )
+
+      val possibleRemainingSelections = newRightPredicates ++
+        exp1WithSelections.predicatesOnShards ++ exp1WithSelections.predicatesOnMainAfterRBP ++
+        exp2WithSelections.predicatesOnShards ++ exp2WithSelections.predicatesOnMainAfterRBP
+
       val newPlan =
-        if (newRightPredicates.nonEmpty) {
+        if (possibleRemainingSelections.nonEmpty) {
           updatedContext.staticComponents.logicalPlanProducer
-            .planSelection(triadicSelection, newRightPredicates, updatedContext)
+            .planSelection(triadicSelection, possibleRemainingSelections, updatedContext)
         } else
           triadicSelection
 

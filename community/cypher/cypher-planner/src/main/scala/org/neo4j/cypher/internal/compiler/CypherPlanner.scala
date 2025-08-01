@@ -380,4 +380,10 @@ class CypherPlannerConfiguration(
     () => config.existsWithImplicitLimitEnabled
   }
 
+  val selectorCandidatesMaximum: () => Int = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.planning_selector_candidates_maximum.dynamic()
+    )
+    () => config.selectorCandidatesMaximum
+  }
 }

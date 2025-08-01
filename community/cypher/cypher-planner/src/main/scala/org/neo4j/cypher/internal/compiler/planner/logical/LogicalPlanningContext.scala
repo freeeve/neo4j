@@ -140,6 +140,8 @@ object LogicalPlanningContext {
    *                                 Relevant for caching.
    * @param existsWithImplicitLimitEnabled plan EXISTS {} subquery as if it had LIMIT 1
    *                                       Relevant for caching.
+   * @param selectorCandidatesMaximum a setting what maximum number of candidates for which we consider all possibilities
+   *                                  Relevant for caching.
    */
   case class Settings(
     executionModel: ExecutionModel,
@@ -168,7 +170,8 @@ object LogicalPlanningContext {
       GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.defaultValue(),
     dynamicLabelScansEnabled: Boolean = GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.defaultValue(),
     existsWithImplicitLimitEnabled: Boolean =
-      GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.defaultValue()
+      GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.defaultValue(),
+    selectorCandidatesMaximum: Int = GraphDatabaseInternalSettings.planning_selector_candidates_maximum.defaultValue()
   ) {
 
     private def cacheKey(): Seq[Any] = this match {
@@ -193,7 +196,8 @@ object LogicalPlanningContext {
           multiRelationshipExpansion: Boolean,
           pushDownArgumentsRBPWFEnabled: Boolean,
           dynamicLabelScansEnabled: Boolean,
-          existsWithImplicitLimitEnabled: Boolean
+          existsWithImplicitLimitEnabled: Boolean,
+          selectorCandidatesMaximum: Int
         ) =>
         val builder = Seq.newBuilder[Any]
 
@@ -246,6 +250,9 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.dynamic())
           builder.addOne(existsWithImplicitLimitEnabled)
+
+        if (GraphDatabaseInternalSettings.planning_selector_candidates_maximum.dynamic())
+          builder.addOne(selectorCandidatesMaximum)
 
         builder.result()
     }

@@ -2119,8 +2119,14 @@ case class LogicalPlanProducer(
         rewrittenPredicates
       )
 
+    // planBatchPropertiesForSelections can solve some property predicates using RemoteBatchPropertiesWithFilter, which
+    // will be evaluated on the shards. We need to consider those predicates as being solved by this selection.
+    val solvedWithFetchedProperties = solveds.get(planWithProperties.id).asSinglePlannerQuery
+
+    // The rewrittenExpressionsWithCachedProperties will be solved too by this selection
     val expressionsToReport = rewrittenExpressionsWithCachedProperties.originalExpressions.toSeq
-    val updatedSourcePlan = solved.updateTailOrSelf(_.amendQueryGraph(_.addPredicates(expressionsToReport: _*)))
+    val updatedSourcePlan =
+      solvedWithFetchedProperties.updateTailOrSelf(_.amendQueryGraph(_.addPredicates(expressionsToReport: _*)))
 
     coercePredicatesWithAnds(
       rewrittenExpressionsWithCachedProperties.allRewrittenExpressions

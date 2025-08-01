@@ -153,7 +153,8 @@ case object QueryPlanner
       multiRelationshipExpansion = context.config.multiRelationshipExpansionEnabled(),
       pushDownArgumentsRBPWFEnabled = context.config.pushDownArgumentsRBPWFEnabled(),
       dynamicLabelScansEnabled = context.config.dynamicLabelScansEnabled(),
-      existsWithImplicitLimitEnabled = context.config.existsWithImplicitLimitEnabled()
+      existsWithImplicitLimitEnabled = context.config.existsWithImplicitLimitEnabled(),
+      selectorCandidatesMaximum = context.config.selectorCandidatesMaximum()
     )
 
     LogicalPlanningContext(staticComponents, settings)

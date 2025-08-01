@@ -1226,6 +1226,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Maximum number of candidates for which we consider all possibilities")
+    public static final Setting<Integer> planning_selector_candidates_maximum = newBuilder(
+                    "internal.cypher.planning_selector_candidates_maximum", INT, 3)
+            .addConstraint(min(1))
+            .build();
+
+    @Internal
     @Description(
             "By default, the sharded property database is disabled. This setting is a feature toggle behind which sharded property database is developed.")
     public static final Setting<Boolean> spd_enabled = newBuilder(
