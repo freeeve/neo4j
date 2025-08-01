@@ -29,6 +29,7 @@ import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.cypher.result.RuntimeResult.ConsumptionState
 import org.neo4j.internal.kernel.api.security.SecurityContext
+import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.memory.HeapHighWaterMarkTracker
 
@@ -122,21 +123,13 @@ case class SystemCommandProfile(rows: Long, dbHits: Long) extends QueryProfile w
 
   override def numberOfAvailableProcessors(): Int = OperatorProfile.NO_DATA.toInt
 
-  override def hashCode: Int = util.Arrays.hashCode(
-    Array(this.time(), this.dbHits, this.rows, this.pageCacheHits(), this.pageCacheMisses(), this.maxAllocatedMemory())
-  )
+  override def hashCode: Int = OperatorProfile.hashCode(this)
 
-  override def equals(o: Any): Boolean = o match {
-    case that: OperatorProfile =>
-      this.time == that.time &&
-      this.dbHits == that.dbHits &&
-      this.rows == that.rows &&
-      this.pageCacheHits == that.pageCacheHits &&
-      this.pageCacheMisses == that.pageCacheMisses &&
-      this.maxAllocatedMemory == that.maxAllocatedMemory()
-    case _ => false
-  }
+  override def equals(o: Any): Boolean = OperatorProfile.equals(this, o)
 
-  override def toString: String =
-    s"Operator Profile { time: ${this.time()}, dbHits: ${this.dbHits}, rows: ${this.rows}, page cache hits: ${this.pageCacheHits()}, page cache misses: ${this.pageCacheMisses()}, max allocated: ${this.maxAllocatedMemory()} }"
+  override def toString: String = OperatorProfile.toString(this)
+
+  override def indexesUsed(): Array[IndexDescriptor] = Array.empty
+
+  override def indexUseCount(): Array[Int] = Array.empty
 }

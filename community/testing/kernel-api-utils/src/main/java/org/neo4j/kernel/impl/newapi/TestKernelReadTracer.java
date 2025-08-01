@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.neo4j.internal.kernel.api.KernelReadTracer;
+import org.neo4j.internal.schema.IndexDescriptor;
 
 public class TestKernelReadTracer implements KernelReadTracer {
     static final TraceEvent ON_ALL_NODES_SCAN = new TraceEvent(TraceEventKind.AllNodesScan);
@@ -57,7 +58,7 @@ public class TestKernelReadTracer implements KernelReadTracer {
     }
 
     @Override
-    public void onIndexSeek() {
+    public void onIndexSeek(IndexDescriptor index) {
         traceEvents.add(indexSeekEvent());
     }
 

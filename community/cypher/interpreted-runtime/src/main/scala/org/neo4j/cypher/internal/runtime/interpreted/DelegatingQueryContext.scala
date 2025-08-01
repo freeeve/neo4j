@@ -126,8 +126,6 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
   protected def manyDbHitsCliRi(value: ClosingLongIterator with RelationshipIterator)
     : ClosingLongIterator with RelationshipIterator = value
   protected def manyDbHits(value: RelationshipTraversalCursor): RelationshipTraversalCursor = value
-  protected def manyDbHits(value: NodeValueIndexCursor): NodeValueIndexCursor = value
-  protected def manyDbHits(value: RelationshipValueIndexCursor): RelationshipValueIndexCursor = value
   protected def manyDbHits(value: NodeCursor): NodeCursor = value
   protected def manyDbHits(value: NodeLabelIndexCursor): NodeLabelIndexCursor = value
   protected def manyDbHits(value: RelationshipTypeIndexCursor): RelationshipTypeIndexCursor = value
@@ -339,14 +337,14 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     indexOrder: IndexOrder,
     queries: Seq[PropertyIndexQuery]
   ): NodeValueIndexCursor =
-    manyDbHits(inner.nodeIndexSeek(index, needsValues, indexOrder, queries))
+    inner.nodeIndexSeek(index, needsValues, indexOrder, queries)
 
   override def nodeIndexScan(
     index: IndexReadSession,
     needsValues: Boolean,
     indexOrder: IndexOrder
   ): NodeValueIndexCursor =
-    manyDbHits(inner.nodeIndexScan(index, needsValues, indexOrder))
+    inner.nodeIndexScan(index, needsValues, indexOrder)
 
   override def nodeIndexSeekByContains(
     index: IndexReadSession,
@@ -354,7 +352,7 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     indexOrder: IndexOrder,
     value: TextValue
   ): NodeValueIndexCursor =
-    manyDbHits(inner.nodeIndexSeekByContains(index, needsValues, indexOrder, value))
+    inner.nodeIndexSeekByContains(index, needsValues, indexOrder, value)
 
   override def nodeIndexSeekByEndsWith(
     index: IndexReadSession,
@@ -362,7 +360,7 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     indexOrder: IndexOrder,
     value: TextValue
   ): NodeValueIndexCursor =
-    manyDbHits(inner.nodeIndexSeekByEndsWith(index, needsValues, indexOrder, value))
+    inner.nodeIndexSeekByEndsWith(index, needsValues, indexOrder, value)
 
   override def relationshipIndexSeek(
     index: IndexReadSession,
@@ -370,7 +368,7 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     indexOrder: IndexOrder,
     queries: Seq[PropertyIndexQuery]
   ): RelationshipValueIndexCursor =
-    manyDbHits(inner.relationshipIndexSeek(index, needsValues, indexOrder, queries))
+    inner.relationshipIndexSeek(index, needsValues, indexOrder, queries)
 
   override def relationshipLockingUniqueIndexSeek(
     index: IndexDescriptor,
@@ -384,7 +382,7 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     indexOrder: IndexOrder,
     value: TextValue
   ): RelationshipValueIndexCursor =
-    manyDbHits(inner.relationshipIndexSeekByContains(index, needsValues, indexOrder, value))
+    inner.relationshipIndexSeekByContains(index, needsValues, indexOrder, value)
 
   override def relationshipIndexSeekByEndsWith(
     index: IndexReadSession,
@@ -392,14 +390,14 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
     indexOrder: IndexOrder,
     value: TextValue
   ): RelationshipValueIndexCursor =
-    manyDbHits(inner.relationshipIndexSeekByEndsWith(index, needsValues, indexOrder, value))
+    inner.relationshipIndexSeekByEndsWith(index, needsValues, indexOrder, value)
 
   override def relationshipIndexScan(
     index: IndexReadSession,
     needsValues: Boolean,
     indexOrder: IndexOrder
   ): RelationshipValueIndexCursor =
-    manyDbHits(inner.relationshipIndexScan(index, needsValues, indexOrder))
+    inner.relationshipIndexScan(index, needsValues, indexOrder)
 
   override def getNodesByLabel(
     tokenReadSession: TokenReadSession,

@@ -116,7 +116,7 @@ public abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<
         this.query = query;
 
         if (tracer != null) {
-            tracer.onIndexSeek();
+            tracer.onIndexSeek(descriptor);
         }
 
         shortcutSecurity = canAccessAllDescribedEntities(descriptor);

@@ -503,8 +503,9 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should filter for a single label and single property") {
+    val indexName = "the_index"
     val expected = givenGraph {
-      nodeIndex("A", "prop")
+      nodeIndex("A")(_.on("prop").withName(indexName))
 
       // not matched
       newNode("B", "prop" -> 1)
@@ -525,15 +526,27 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1"))
       .build()
 
-    val runtimeResult = execute(logicalQuery, runtime)
+    val runtimeResult = profile(logicalQuery, runtime)
 
     runtimeResult should beColumns("x").withRows(singleColumn(expected))
+
+    val prof = runtimeResult.runtimeResult.queryProfile().operatorProfile(2)
+    val indexesUsed = prof.indexesUsed().map(_.getName)
+
+    // change this assertion when indexes supported in other runtimes
+    runtime.name match {
+      case "slotted" | "interpreted" => indexesUsed shouldEqual Array(indexName)
+      case _                         => indexesUsed shouldBe empty
+    }
   }
 
   test("should filter for all labels and a single property") {
+    val index_a = "A_prop"
+    val index_b = "B_prop"
+
     val expected = givenGraph {
-      nodeIndex("A", "prop")
-      nodeIndex("B", "prop")
+      nodeIndex("A")(_.on("prop").withName(index_a))
+      nodeIndex("B")(_.on("prop").withName(index_b))
       nodeIndex("B", "paaaarp")
 
       // not matched
@@ -556,13 +569,24 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['A', 'B']", All, IndexOrderNone, Map("prop" -> "1"))
       .build()
 
-    val runtimeResult = execute(logicalQuery, runtime)
+    val runtimeResult = profile(logicalQuery, runtime)
+
     runtimeResult should beColumns("x").withRows(singleColumn(expected))
+
+    val prof = runtimeResult.runtimeResult.queryProfile().operatorProfile(2)
+    val indexesUsed = prof.indexesUsed().map(_.getName)
+
+    // change this assertion when indexes supported in other runtimes
+    runtime.name match {
+      case "slotted" | "interpreted" => indexesUsed should (equal(Array(index_a)) or equal(Array(index_b)))
+      case _                         => indexesUsed shouldBe empty
+    }
   }
 
   test("should filter for a single label and multiple properties") {
+    val indexName = "the_index"
     val expected = givenGraph {
-      nodeIndex("A", "prop")
+      nodeIndex("A")(_.on("prop").withName(indexName))
 
       // not matched
       newNode("B", "prop" -> 1, "name" -> "bob")
@@ -584,14 +608,25 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1", "name" -> "'bob'"))
       .build()
 
-    val runtimeResult = execute(logicalQuery, runtime)
+    val runtimeResult = profile(logicalQuery, runtime)
 
     runtimeResult should beColumns("x").withRows(singleColumn(expected))
+
+    val prof = runtimeResult.runtimeResult.queryProfile().operatorProfile(2)
+    val indexesUsed = prof.indexesUsed().map(_.getName)
+
+    // change this assertion when indexes supported in other runtimes
+    runtime.name match {
+      case "slotted" | "interpreted" => indexesUsed shouldEqual Array(indexName)
+      case _                         => indexesUsed shouldBe empty
+    }
   }
 
   test("should filter for a single label and multiple properties with a compound index") {
+    val indexName = "compound_index"
+
     val expected = givenGraph {
-      nodeIndex("A", "prop", "name")
+      nodeIndex("A")(_.withName(indexName).on("prop").on("name"))
 
       // not matched
       newNode("B", "prop" -> 1, "name" -> "bob")
@@ -613,8 +648,17 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1", "name" -> "'bob'"))
       .build()
 
-    val runtimeResult = execute(logicalQuery, runtime)
+    val runtimeResult = profile(logicalQuery, runtime)
 
     runtimeResult should beColumns("x").withRows(singleColumn(expected))
+
+    val prof = runtimeResult.runtimeResult.queryProfile().operatorProfile(2)
+    val indexesUsed = prof.indexesUsed().map(_.getName)
+
+    // change this assertion when indexes supported in other runtimes
+    runtime.name match {
+      case "slotted" | "interpreted" => indexesUsed shouldEqual Array(indexName)
+      case _                         => indexesUsed shouldBe empty
+    }
   }
 }

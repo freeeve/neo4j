@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.kernel.api;
 
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.storageengine.api.ReadTracer;
 
@@ -60,7 +61,7 @@ public interface KernelReadTracer extends ReadTracer {
     /**
      * Called on {@link Read#nodeIndexSeek(IndexReadSession, NodeValueIndexCursor, IndexQueryConstraints, PropertyIndexQuery...)}.
      */
-    void onIndexSeek();
+    void onIndexSeek(IndexDescriptor index);
 
     /**
      * Called just before {@link RelationshipScanCursor#next()} returns true.

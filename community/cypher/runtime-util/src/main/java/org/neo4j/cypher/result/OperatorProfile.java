@@ -20,6 +20,8 @@
 package org.neo4j.cypher.result;
 
 import java.util.Arrays;
+import java.util.Objects;
+import org.neo4j.internal.schema.IndexDescriptor;
 
 /**
  * Profile for a operator during a query execution.
@@ -56,10 +58,56 @@ public interface OperatorProfile {
      */
     long maxAllocatedMemory();
 
+    IndexDescriptor[] indexesUsed();
+
+    int[] indexUseCount();
+
     long NO_DATA = -1L;
 
     OperatorProfile NONE = new ConstOperatorProfile(NO_DATA);
     OperatorProfile ZERO = new ConstOperatorProfile(0);
+
+    static int hashCode(OperatorProfile self) {
+        return Objects.hash(
+                Arrays.hashCode(new long[] {
+                    self.time(),
+                    self.dbHits(),
+                    self.rows(),
+                    self.pageCacheHits(),
+                    self.pageCacheMisses(),
+                    self.maxAllocatedMemory()
+                }),
+                Arrays.hashCode(self.indexesUsed()),
+                Arrays.hashCode(self.indexUseCount()));
+    }
+
+    static boolean equals(OperatorProfile self, Object o) {
+        if (self == o) {
+            return true;
+        }
+        if (!(o instanceof OperatorProfile that)) {
+            return false;
+        }
+        return self.time() == that.time()
+                && self.dbHits() == that.dbHits()
+                && self.rows() == that.rows()
+                && self.pageCacheHits() == that.pageCacheHits()
+                && self.pageCacheMisses() == that.pageCacheMisses()
+                && self.maxAllocatedMemory() == that.maxAllocatedMemory()
+                && Arrays.equals(self.indexesUsed(), that.indexesUsed())
+                && Arrays.equals(self.indexUseCount(), that.indexUseCount());
+    }
+
+    static String toString(OperatorProfile self) {
+        return String.format(
+                "Operator Profile { time: %d, dbHits: %d, rows: %d, page cache hits: %d, page cache misses: %d, max allocated: %d }",
+                self.time(),
+                self.dbHits(),
+                self.rows(),
+                self.pageCacheHits(),
+                self.pageCacheMisses(),
+                self.maxAllocatedMemory());
+    }
 
     class ConstOperatorProfile implements OperatorProfile {
 
@@ -115,43 +163,28 @@ public interface OperatorProfile {
         }
 
         @Override
+        public IndexDescriptor[] indexesUsed() {
+            return new IndexDescriptor[0];
+        }
+
+        @Override
+        public int[] indexUseCount() {
+            return new int[0];
+        }
+
+        @Override
         public int hashCode() {
-            return Arrays.hashCode(new long[] {
-                this.time(),
-                this.dbHits(),
-                this.rows(),
-                this.pageCacheHits(),
-                this.pageCacheMisses(),
-                this.maxAllocatedMemory()
-            });
+            return OperatorProfile.hashCode(this);
         }
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (!(o instanceof OperatorProfile that)) {
-                return false;
-            }
-            return this.time() == that.time()
-                    && this.dbHits() == that.dbHits()
-                    && this.rows() == that.rows()
-                    && this.pageCacheHits() == that.pageCacheHits()
-                    && this.pageCacheMisses() == that.pageCacheMisses()
-                    && this.maxAllocatedMemory() == that.maxAllocatedMemory();
+            return OperatorProfile.equals(this, o);
         }
 
         @Override
         public String toString() {
-            return String.format(
-                    "Operator Profile { time: %d, dbHits: %d, rows: %d, page cache hits: %d, page cache misses: %d, max allocated: %d }",
-                    this.time(),
-                    this.dbHits(),
-                    this.rows(),
-                    this.pageCacheHits(),
-                    this.pageCacheMisses(),
-                    this.maxAllocatedMemory());
+            return OperatorProfile.toString(this);
         }
     }
 }

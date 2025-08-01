@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.profiling;
 
 import org.neo4j.internal.kernel.api.KernelReadTracer;
+import org.neo4j.internal.schema.IndexDescriptor;
 
 public abstract class OperatorProfileEvent implements AutoCloseable, KernelReadTracer {
     @Override
@@ -71,7 +72,7 @@ public abstract class OperatorProfileEvent implements AutoCloseable, KernelReadT
     }
 
     @Override
-    public void onIndexSeek() {
+    public void onIndexSeek(IndexDescriptor index) {
         dbHit();
     }
 
