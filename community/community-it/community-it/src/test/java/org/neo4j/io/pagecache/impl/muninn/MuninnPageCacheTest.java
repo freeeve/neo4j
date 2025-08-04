@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_buffered_flush_enabled;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_flush_buffer_size_in_pages;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.CONTEXT_VERSION_UPDATES;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
@@ -600,8 +601,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             assertEquals(1, recordingTracer.faults());
             assertEquals(1, tracer.faults());
 
-            long clockArm = pageCache.evictPages(1, 1, tracer.beginPageEvictions(1));
-            assertThat(clockArm).isEqualTo(1L);
+            var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages(), 0);
+            pageCache.evictPages(EMPTY_ASYNC_BLOCK_ACCESSOR, 1, evictionClockArm, tracer.beginPageEvictions(1));
+            assertThat(evictionClockArm.nextPage()).isEqualTo(1L);
             assertNotNull(tracer.observe(Evict.class));
         }
     }
@@ -626,8 +628,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             assertEquals(1, recordingTracer.faults());
             assertEquals(1, tracer.faults());
 
-            long clockArm = pageCache.evictPages(1, 0, tracer.beginPageEvictions(1));
-            assertThat(clockArm).isEqualTo(1L);
+            var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages());
+            pageCache.evictPages(EMPTY_ASYNC_BLOCK_ACCESSOR, 1, evictionClockArm, tracer.beginPageEvictions(1));
+            assertThat(evictionClockArm.nextPage()).isEqualTo(1L);
             assertNotNull(tracer.observe(Evict.class));
 
             checkFileWithTwoLongs("a", 0L, Y);
@@ -653,8 +656,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             assertEquals(1, recordingTracer.faults());
             assertEquals(1, tracer.faults());
 
-            long clockArm = pageCache.evictPages(1, 0, tracer.beginPageEvictions(1));
-            assertThat(clockArm).isEqualTo(1L);
+            var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages());
+            pageCache.evictPages(EMPTY_ASYNC_BLOCK_ACCESSOR, 1, evictionClockArm, tracer.beginPageEvictions(1));
+            assertThat(evictionClockArm.nextPage()).isEqualTo(1L);
             assertNotNull(tracer.observe(Evict.class));
 
             checkFileWithTwoLongs("a", X, 0L);
@@ -700,8 +704,10 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             try (var readCursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
                 assertTrue(readCursor.next()); // first pin
 
-                var clockArm = pageCache.evictPages(1, 0, cacheTracer.beginPageEvictions(1));
-                assertThat(clockArm).isEqualTo(1L);
+                var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages());
+                pageCache.evictPages(
+                        EMPTY_ASYNC_BLOCK_ACCESSOR, 1, evictionClockArm, cacheTracer.beginPageEvictions(1));
+                assertThat(evictionClockArm.nextPage()).isEqualTo(1L);
                 assertTrue(readCursor.shouldRetry()); // another pin
             }
             assertEquals(2, cursorContext.getCursorTracer().pins());
@@ -794,8 +800,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
             assertEquals(2, recordingTracer.faults());
             assertEquals(2, tracer.faults());
 
-            long clockArm = pageCache.evictPages(2, 0, tracer.beginPageEvictions(2));
-            assertThat(clockArm).isEqualTo(2L);
+            var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages());
+            pageCache.evictPages(EMPTY_ASYNC_BLOCK_ACCESSOR, 2, evictionClockArm, tracer.beginPageEvictions(2));
+            assertThat(evictionClockArm.nextPage()).isEqualTo(2L);
             assertNotNull(tracer.observe(Evict.class));
             assertNotNull(tracer.observe(Evict.class));
 
@@ -1036,8 +1043,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                 }
             }
 
+            var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages());
             try (EvictionRunEvent evictionRunEvent = pageCacheTracer.beginEviction()) {
-                pageCache.evictPages(10, 0, evictionRunEvent);
+                pageCache.evictPages(EMPTY_ASYNC_BLOCK_ACCESSOR, 10, evictionClockArm, evictionRunEvent);
             }
 
             assertEquals(10, pageCacheTracer.evictions() - evictionsBefore);
@@ -1954,8 +1962,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                 cursor.putLong(value + 1);
             }
 
-            long clockArm = pageCache.evictPages(1, 0, EvictionRunEvent.NULL);
-            assertThat(clockArm).isEqualTo(1L);
+            var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages());
+            pageCache.evictPages(EMPTY_ASYNC_BLOCK_ACCESSOR, 1, evictionClockArm, EvictionRunEvent.NULL);
+            assertThat(evictionClockArm.nextPage()).isEqualTo(1L);
 
             checkFileWithTwoLongs("a", 42L, Y);
         }
@@ -2032,8 +2041,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                     }
                 }));
                 race.addContestant(Race.throwing(() -> {
+                    var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages());
                     try (var evictionRunEvent = PageCacheTracer.NULL.beginPageEvictions(1000)) {
-                        pageCache.evictPages(1000, 0, evictionRunEvent);
+                        pageCache.evictPages(EMPTY_ASYNC_BLOCK_ACCESSOR, 1000, evictionClockArm, evictionRunEvent);
                     }
                 }));
                 race.go();
@@ -2068,7 +2078,8 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                 }
 
                 // This will run into that exception, in background eviction:
-                pageCache.evictPages(1, 0, EvictionRunEvent.NULL);
+                var evictionClockArm = new EvictionClockArm((int) pageCache.maxCachedPages());
+                pageCache.evictPages(EMPTY_ASYNC_BLOCK_ACCESSOR, 1, evictionClockArm, EvictionRunEvent.NULL);
 
                 // We now have a background eviction exception. A successful flushAndForce should clear it, though.
                 throwException.setFalse();
@@ -3230,8 +3241,10 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                             }
                         }));
                         race.addContestant(Race.throwing(() -> {
+                            var evictionClockArm = new EvictionClockArm((int) localPageCache.maxCachedPages());
                             try (var evictionRunEvent = PageCacheTracer.NULL.beginPageEvictions(1000)) {
-                                localPageCache.evictPages(1000, 0, evictionRunEvent);
+                                localPageCache.evictPages(
+                                        EMPTY_ASYNC_BLOCK_ACCESSOR, 1000, evictionClockArm, evictionRunEvent);
                             } finally {
                                 stopFlag.set(true);
                             }
@@ -3339,7 +3352,12 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                 SHORT_TIMEOUT_MILLIS,
                 TimeUnit.MILLISECONDS);
         var maxCachedPages = (int) pageCache.maxCachedPages();
-        pageCache.evictPages(pageCache.tryGetNumberOfPagesToEvict(maxCachedPages), 0, EvictionRunEvent.NULL);
+        var evictionClockArm = new EvictionClockArm(maxCachedPages);
+        pageCache.evictPages(
+                EMPTY_ASYNC_BLOCK_ACCESSOR,
+                pageCache.tryGetNumberOfPagesToEvict(maxCachedPages),
+                evictionClockArm,
+                EvictionRunEvent.NULL);
         assertThat(pageCache.tryGetNumberOfPagesToEvict(maxCachedPages)).isEqualTo(-1);
     }
 

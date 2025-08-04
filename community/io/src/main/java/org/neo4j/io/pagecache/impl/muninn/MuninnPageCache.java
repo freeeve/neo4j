@@ -50,6 +50,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.async.AsyncBlockAccessor;
+import org.neo4j.io.async.AsyncIOProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.IOController;
@@ -174,6 +176,7 @@ public class MuninnPageCache implements PageCache {
     private final boolean preallocateStoreFiles;
     private final boolean enableEvictionThread;
     private final MemoryAllocator memoryAllocator;
+    private final MemoryTracker memoryTracker;
     private final boolean closeAllocatorOnShutdown;
     final PageList pages;
     // All PageCursors are initialised with their pointers pointing to the victim page. This way, we don't have to throw
@@ -224,7 +227,7 @@ public class MuninnPageCache implements PageCache {
     }
 
     public static class Configuration {
-        private MemoryAllocator memoryAllocator;
+        private final MemoryAllocator memoryAllocator;
         private SystemNanoClock clock;
         private MemoryTracker memoryTracker;
         private PageCacheTracer pageCacheTracer;
@@ -260,14 +263,6 @@ public class MuninnPageCache implements PageCache {
             this.enableEvictionThread = enableEvictionThread;
             this.preallocateStoreFiles = preallocateStoreFiles;
             this.closeAllocatorOnShutdown = closeAllocatorOnShutdown;
-        }
-
-        /**
-         * @param memoryAllocator the source of native memory the page cache should use
-         */
-        public Configuration memoryAllocator(MemoryAllocator memoryAllocator) {
-            this.memoryAllocator = memoryAllocator;
-            return this;
         }
 
         /**
@@ -414,6 +409,7 @@ public class MuninnPageCache implements PageCache {
                 getBufferAlignment(cachePageSize));
         this.scheduler = jobScheduler;
         this.clock = configuration.clock;
+        this.memoryTracker = configuration.memoryTracker;
         this.faultLockStriping = configuration.faultLockStriping;
         this.enableEvictionThread = configuration.enableEvictionThread;
         this.preallocateStoreFiles = configuration.preallocateStoreFiles;
@@ -877,30 +873,28 @@ public class MuninnPageCache implements PageCache {
     private long cooperativelyEvict(PageFaultEvent faultEvent) throws IOException {
         int iterations = 0;
         int pageCount = pages.getPageCount();
-        int clockArm = ThreadLocalRandom.current().nextInt(pageCount);
-        boolean evicted = false;
-        long pageRef;
+        var clockArm =
+                new EvictionClockArm(pageCount, ThreadLocalRandom.current().nextInt(pageCount));
         do {
             assertHealthy();
             if (getFreelistHead() != null) {
                 return 0;
             }
 
-            if (clockArm == pageCount) {
+            int nextPage = clockArm.nextPage();
+            if (nextPage == 0) {
                 if (iterations == cooperativeEvictionLiveLockThreshold) {
                     throw cooperativeEvictionLiveLock();
                 }
                 iterations++;
-                clockArm = 0;
             }
-
-            pageRef = pages.deref(clockArm);
+            long pageRef = pages.deref(nextPage);
             if (PageList.isLoaded(pageRef) && PageList.decrementUsage(pageRef)) {
-                evicted = pages.tryEvict(pageRef, faultEvent);
+                if (pages.tryEvict(pageRef, faultEvent)) {
+                    return pageRef;
+                }
             }
-            clockArm++;
-        } while (!evicted);
-        return pageRef;
+        } while (true);
     }
 
     private static CacheLiveLockException cooperativeEvictionLiveLock() {
@@ -952,18 +946,25 @@ public class MuninnPageCache implements PageCache {
      */
     void continuouslySweepPages() {
         evictionThread = Thread.currentThread();
-        int clockArm = 0;
+        var clockArm = new EvictionClockArm(pages.getPageCount());
 
-        while (!closed) {
-            int pageCountToEvict = parkUntilEvictionRequired(keepFree);
-            try (EvictionRunEvent evictionRunEvent = pageCacheTracer.beginPageEvictions(pageCountToEvict)) {
-                clockArm = evictPages(pageCountToEvict, clockArm, evictionRunEvent);
+        try (AsyncBlockAccessor blockAccessor =
+                createAsyncBlockAccessor(AsyncIOProvider.getInstance(), memoryTracker)) {
+            while (!closed) {
+                int pageCountToEvict = parkUntilEvictionRequired(keepFree);
+                try (EvictionRunEvent evictionRunEvent = pageCacheTracer.beginPageEvictions(pageCountToEvict)) {
+                    evictPages(blockAccessor, pageCountToEvict, clockArm, evictionRunEvent);
+                }
             }
         }
 
         // The last thing we do, is signalling the shutdown of the cache via
         // the freelist. This signal is looked out for in grabFreePage.
         setFreelistHead(shutdownSignal);
+    }
+
+    private AsyncBlockAccessor createAsyncBlockAccessor(AsyncIOProvider asyncIOProvider, MemoryTracker memoryTracker) {
+        return AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
     }
 
     private int parkUntilEvictionRequired(int keepFree) {
@@ -1004,21 +1005,30 @@ public class MuninnPageCache implements PageCache {
         return UNKNOWN_PAGES_TO_EVICT;
     }
 
-    int evictPages(int pageEvictionAttempts, int clockArm, EvictionRunEvent evictionRunEvent) {
-        while (pageEvictionAttempts > 0 && !closed) {
-            if (clockArm == pages.getPageCount()) {
-                clockArm = 0;
-            }
+    void evictPages(
+            AsyncBlockAccessor blockAccessor,
+            int pagesToEvict,
+            EvictionClockArm evictionClockArm,
+            EvictionRunEvent evictionRunEvent) {
+        if (closed) {
+            return;
+        }
 
+        if (blockAccessor.isAvailable() && pagesToEvict > 1) {
+            asyncEvict(blockAccessor, pagesToEvict, evictionClockArm, evictionRunEvent);
+        } else {
+            syncEvict(pagesToEvict, evictionClockArm, evictionRunEvent);
+        }
+    }
+
+    void syncEvict(int pagesToEvict, EvictionClockArm clockArm, EvictionRunEvent evictionRunEvent) {
+        while (pagesToEvict > 0) {
             if (closed) {
-                // The page cache has been shut down.
-                return 0;
+                return;
             }
-
-            long pageRef = pages.deref(clockArm);
+            long pageRef = pages.deref(clockArm.nextPage());
             if (PageList.isLoaded(pageRef) && PageList.decrementUsage(pageRef)) {
                 try {
-                    pageEvictionAttempts--;
                     if (pages.tryEvict(pageRef, evictionRunEvent)) {
                         clearEvictorException();
                         addFreePageToFreelist(pageRef, evictionRunEvent);
@@ -1030,12 +1040,17 @@ public class MuninnPageCache implements PageCache {
                 } catch (Throwable th) {
                     evictorException = new IOException("Eviction thread encountered a problem", th);
                 }
+                pagesToEvict--;
             }
-
-            clockArm++;
         }
+    }
 
-        return clockArm;
+    void asyncEvict(
+            AsyncBlockAccessor blockAccessor,
+            int pageEvictionAttempts,
+            EvictionClockArm clockArm,
+            EvictionRunEvent evictionRunEvent) {
+        throw new IllegalStateException("Async eviction should be unreachable.");
     }
 
     @VisibleForTesting
