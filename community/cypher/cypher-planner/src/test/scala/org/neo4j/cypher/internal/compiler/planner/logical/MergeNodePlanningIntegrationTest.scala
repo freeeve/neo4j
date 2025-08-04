@@ -399,6 +399,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       plannerBuilder()
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
+        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
         .build()
 
     val query =
@@ -424,7 +425,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("insert an eager between merging a node with a dynamic label and reading nodes – using dynamic label scan") {
     val planner =
       plannerBuilder()
-        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -453,6 +453,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       plannerBuilder()
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
+        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
         .build()
 
     val query =
@@ -481,7 +482,6 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
   test("insert an eager between reading nodes and merging a node with a dynamic label – using dynamic label scan") {
     val planner =
       plannerBuilder()
-        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()

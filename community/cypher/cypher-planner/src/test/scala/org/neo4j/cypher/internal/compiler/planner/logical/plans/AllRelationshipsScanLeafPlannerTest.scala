@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
 import org.mockito.Mockito.when
 import org.neo4j.common
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
@@ -104,7 +103,7 @@ class AllRelationshipsScanLeafPlannerTest extends CypherFunSuite with LogicalPla
 
   test("should not scan if pattern has dynamic types") {
     // given
-    val context = planningContext(dynamicLabelScansEnabled = true)
+    val context = planningContext()
     // (a)-[r:$('R')]->(b)
     val qg = pattern(v"r", v"a", v"b", OUTGOING).addPredicates(Set(hasDynamicType(v"r", literalString("R"))))
 
@@ -209,8 +208,7 @@ class AllRelationshipsScanLeafPlannerTest extends CypherFunSuite with LogicalPla
     )
 
   def planningContext(
-    typeScanEnabled: Boolean = true,
-    dynamicLabelScansEnabled: Boolean = false
+    typeScanEnabled: Boolean = true
   ): LogicalPlanningContext = {
     val planContext = newMockedPlanContext()
     val tokenIndex =
@@ -219,10 +217,7 @@ class AllRelationshipsScanLeafPlannerTest extends CypherFunSuite with LogicalPla
     when(planContext.relationshipTokenIndex).thenReturn(tokenIndex)
     newMockedLogicalPlanningContext(
       planContext = planContext,
-      semanticTable = newMockedSemanticTable,
-      configSettings = Map(
-        GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan -> boolean2Boolean(dynamicLabelScansEnabled)
-      )
+      semanticTable = newMockedSemanticTable
     )
   }
 

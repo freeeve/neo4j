@@ -1769,6 +1769,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("C", 10)
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
     val query = """WITH ["A", "B"] as labels
@@ -1796,7 +1797,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
   test("eagerness should handle matching on dynamic labels - Create overlap – using dynamic label scan") {
     val planner = plannerBuilder()
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
       .setAllNodesCardinality(100)
       .setLabelCardinality("C", 10)
       .build()
@@ -1863,6 +1863,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .setRelationshipCardinality("()-[]->()", 10)
       .setLabelCardinality("A", 10)
       .setLabelCardinality("C", 10)
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
     val query = """WITH ["A", "B"] as types
@@ -1899,7 +1900,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
   test("eagerness should handle matching on Dynamic Labels - Delete overlap – using dynamic label scan") {
     val planner = plannerBuilder()
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
       .setAllNodesCardinality(100)
       .setLabelCardinality("Z", 10)
       .setRelationshipCardinality("()-[]->()", 10)
@@ -1944,6 +1944,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .setLabelCardinality("A", 10)
       .setLabelCardinality("C", 10)
       .withSetting(GraphDatabaseInternalSettings.resolve_simple_dynamic_expressions, TRUE)
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
     val query = """WITH ["A", "B"] as types
@@ -2004,6 +2005,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       plannerBuilder()
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
+        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
         .build()
 
     val query =
@@ -2067,6 +2069,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       plannerBuilder()
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
+        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
         .build()
 
     val query =
@@ -2095,7 +2098,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
   test("insert an eager between reading nodes and merging a node with a dynamic label – using dynamic label scan") {
     val planner =
       plannerBuilder()
-        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
         .build()
@@ -2203,6 +2205,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("100", 50)
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
     val query =
@@ -2244,7 +2247,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
   test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH – using dynamic label scan") {
     val planner = plannerBuilder()
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
       .setAllNodesCardinality(100)
       .setLabelCardinality("100", 50)
       .build()
@@ -2465,6 +2467,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setAllRelationshipsCardinality(10)
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
     val query = """WITH ['A', 'B'] AS types
@@ -2492,7 +2495,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
   test("insert eager between MATCH with dynamic relationship type and CREATE – using dynamic label scan") {
     val planner = plannerBuilder()
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
       .setAllNodesCardinality(100)
       .setAllRelationshipsCardinality(10)
       .build()
@@ -2601,6 +2603,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setAllRelationshipsCardinality(10)
+      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
     val query = """WITH ['A', 'B'] AS types
@@ -2638,7 +2641,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
   test("insert eager between MATCH with dynamic relationship type and DELETE – using dynamic label scan") {
     val planner = plannerBuilder()
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
       .setAllNodesCardinality(100)
       .setAllRelationshipsCardinality(10)
       .build()

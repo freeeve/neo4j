@@ -37,7 +37,6 @@ class DynamicLabelScanPlanningIntegrationTest
 
   final private val planner =
     plannerBuilder()
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.TRUE)
       .setAllNodesCardinality(100)
       .setLabelCardinality("A", 10)
       .build()

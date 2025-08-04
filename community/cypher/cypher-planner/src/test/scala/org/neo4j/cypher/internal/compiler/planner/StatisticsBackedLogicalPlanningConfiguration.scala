@@ -1174,10 +1174,6 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     withSetting(GraphDatabaseInternalSettings.planning_intersection_scans_enabled, Boolean.box(enabled))
   }
 
-  def enablePlanningDynamicLabelScans(enabled: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
-    withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, Boolean.box(enabled))
-  }
-
   def setDatabaseReferenceRepository(
     databaseReferenceRepository: DatabaseReferenceRepository
   ): StatisticsBackedLogicalPlanningConfigurationBuilder =

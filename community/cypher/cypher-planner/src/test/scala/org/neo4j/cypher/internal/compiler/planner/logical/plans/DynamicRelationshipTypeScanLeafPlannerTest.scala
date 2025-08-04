@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
@@ -463,8 +462,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
   ): Set[LogicalPlan] = {
     val context = newMockedLogicalPlanningContext(
       planContext = newMockedPlanContext(),
-      semanticTable = new SemanticTable(),
-      configSettings = Map(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan -> java.lang.Boolean.TRUE)
+      semanticTable = new SemanticTable()
     )
     DynamicRelationshipTypeScanLeafPlanner(skipIDs)(queryGraph, interestingOrderConfig, context)
   }
