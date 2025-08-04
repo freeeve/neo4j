@@ -402,6 +402,7 @@ import org.neo4j.cypher.internal.ast.generator.AstGenerator.zeroOrMore
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AnonymousPatternPart
@@ -985,6 +986,28 @@ class AstGenerator(
     list <- _expression
   } yield ReduceExpression(scope, init, list)(pos)
 
+  def _allReducePredicate: Gen[AllReducePredicate] = for {
+    accumulator <- _variable
+    reductionStepVariable <- _variable
+    reductionStep <- _expression
+    predicate <- _expression
+    init <- _expression
+    list <- _expression
+  } yield {
+    AllReducePredicate(
+      scope = AllReducePredicate.AllReduceScope(
+        accumulator = accumulator,
+        reductionStepScope = AllReducePredicate.ReductionStepScope(
+          reductionStepVariable = reductionStepVariable,
+          reductionStep = reductionStep
+        )(pos),
+        predicate = predicate
+      )(pos),
+      init = init,
+      list = list
+    )(pos)
+  }
+
   // Arithmetic
   // ----------------------------------
 
@@ -1173,7 +1196,8 @@ class AstGenerator(
     lzy(_countExpression),
     lzy(_collectExpression),
     lzy(_patternComprehension),
-    lzy(_vectorValueConstructor)
+    lzy(_vectorValueConstructor),
+    lzy(_allReducePredicate)
   )
 
   def _expression: Gen[Expression] = Gen.sized { size =>
