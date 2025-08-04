@@ -22,10 +22,8 @@ package org.neo4j.shell.expect;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.regex.Pattern.compile;
 import static org.apache.commons.io.IOUtils.resourceToString;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.neo4j.shell.expect.ExpectTestExtension.CYPHER_SHELL_PATH;
-import static org.neo4j.shell.expect.InteractionAssertion.assertEqualInteraction;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -38,6 +36,7 @@ import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.neo4j.util.VisibleForTesting;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.containers.Neo4jLabsPlugin;
@@ -102,6 +101,11 @@ public class ExpectTestExtension implements BeforeAllCallback, AfterAllCallback 
             fail(message);
         }
         assertEqualInteraction(execution.getStdout(), expected);
+    }
+
+    @VisibleForTesting
+    public static void assertEqualInteraction(String actual, String expected) {
+        InteractionAssertion.assertEqualInteraction(actual, expected);
     }
 
     public static Stream<Path> findAllExpectResources() throws IOException {
@@ -169,11 +173,12 @@ class InteractionAssertion {
             compile("^Connected to Neo4j using Bolt protocol version ([0-9.]+) at"),
             compile("^ready to start consuming query after ([0-9]+) ms, results consumed after another ([0-9]+) ms"));
     private static final Pattern ANSI_CODE_PATTERN = Pattern.compile("\u001B\\[[?]?[;\\d]*[mhlCDA]");
+    private static final Pattern REGEX_PATTERN = Pattern.compile("\\$\\{regex:(?<exp>.*?)\\}");
 
     static void assertEqualInteraction(String actual, String expected) {
         final var cleanedActual = cleanActual(actual).collect(Collectors.joining(System.lineSeparator()));
         final var cleanedExpected = cleanExpected(expected).collect(Collectors.joining(System.lineSeparator()));
-        if (!cleanedExpected.equals(cleanedActual)) {
+        if (!compareWithRegex(cleanedActual, cleanedExpected)) {
             String message =
                     "Actual interaction was not equal to expected. Hint: expect has debug options you might want to consider"
                             + System.lineSeparator()
@@ -181,7 +186,7 @@ class InteractionAssertion {
                             + debugString(cleanedExpected, "Expected Interaction Cleaned")
                             + debugString(actual, "Actual Interaction")
                             + debugString(expected, "Expected Interaction");
-            assertEquals(message, cleanedExpected, cleanedActual);
+            fail(message);
         }
     }
 
@@ -248,5 +253,41 @@ class InteractionAssertion {
                 .append(" ")
                 .append("=".repeat(size - 2))
                 .append(nl);
+    }
+
+    // Compares strings with regex placeholders, e.g., ${regex:\d+}.
+    @VisibleForTesting
+    public static boolean compareWithRegex(String actual, String expected) {
+        if (actual.equals(expected)) return true;
+
+        final var actualLines = actual.lines().toList();
+        final var expectedLines = expected.lines().toList();
+
+        if (actualLines.size() != expectedLines.size()) return false;
+        for (int i = 0; i < actualLines.size(); ++i) {
+            if (!compareSingleLine(actualLines.get(i), expectedLines.get(i))) return false;
+        }
+        return true;
+    }
+
+    // Compares single lines with regex placeholders, e.g., ${regex:\d+}.
+    private static boolean compareSingleLine(String actualLine, String expectedLine) {
+        if (actualLine.equals(expectedLine)) return true;
+
+        final var placeholderMatcher = REGEX_PATTERN.matcher(expectedLine);
+
+        StringBuilder finalRegex = new StringBuilder();
+        int lastIndex = 0;
+
+        while (placeholderMatcher.find()) {
+            if (placeholderMatcher.start() != lastIndex) {
+                finalRegex.append(Pattern.quote(expectedLine.substring(lastIndex, placeholderMatcher.start())));
+            }
+            finalRegex.append(placeholderMatcher.group("exp"));
+            lastIndex = placeholderMatcher.end();
+        }
+        finalRegex.append(Pattern.quote(expectedLine.substring(lastIndex)));
+
+        return actualLine.matches(finalRegex.toString());
     }
 }

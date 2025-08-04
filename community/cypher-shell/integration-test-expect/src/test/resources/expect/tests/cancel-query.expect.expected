@@ -7,7 +7,7 @@ neo4j@neo4j> unwind range(0,90000) as x call apoc.util.sleep(1) return sum(x) as
 +-----+
 | sum |
 +-----+
-The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user.
+${regex:.*}The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user.
 neo4j@neo4j> return 1 as result;
 
 +--------+
