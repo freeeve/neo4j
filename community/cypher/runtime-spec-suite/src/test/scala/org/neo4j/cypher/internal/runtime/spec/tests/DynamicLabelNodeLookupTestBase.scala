@@ -32,6 +32,8 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
+import org.neo4j.exceptions.CypherTypeException
+import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException
 
 object DynamicLabelNodeLookupTestBase
 
@@ -40,6 +42,38 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
+
+  test("should throw error on invalid label name") {
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .apply()
+      .|.dynamicLabelNodeLookup("x", "relType", All, "relType")
+      .input(variables = Seq("relType"))
+      .build()
+
+    def theResultFor(v: Any) = execute(logicalQuery, runtime, inputValues(Array(v)))
+    def theDynamicType(v: Any): Unit = consume(theResultFor(v))
+
+    // then
+    the[CypherTypeException] thrownBy theDynamicType(
+      1
+    ) should have message "Expected node label to be a string or list of strings."
+    the[CypherTypeException] thrownBy theDynamicType(
+      Array(1)
+    ) should have message "Expected node label to be a string or list of strings."
+    the[CypherTypeException] thrownBy theDynamicType(
+      null
+    ) should have message "Expected node label to be a string or list of strings."
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(""))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType("\u0000"))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("\u0000", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("C", "")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("X", "")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "C")))
+  }
 
   test("should scan all nodes of a dynamic label") {
     // given

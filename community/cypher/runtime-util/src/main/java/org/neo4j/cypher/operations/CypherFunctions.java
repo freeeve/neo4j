@@ -1551,15 +1551,15 @@ public final class CypherFunctions {
     }
 
     @CalledFromGeneratedCode
-    public static String[] getDynamicLabels(AnyValue labelName) {
+    public static String[] getDynamicLabels(AnyValue labelName) throws IllegalTokenNameException {
         if (labelName instanceof TextValue textLabel) {
-            return new String[] {textLabel.stringValue()};
+            return new String[] {checkValidTokenName(textLabel.stringValue(), TokenType.LABEL)};
         } else if (labelName instanceof SequenceValue labelSequence) {
             var list = new String[labelSequence.intSize()];
             int i = 0;
             for (var l : labelSequence) {
                 if (l instanceof TextValue textLabel) {
-                    list[i++] = textLabel.stringValue();
+                    list[i++] = checkValidTokenName(textLabel.stringValue(), TokenType.LABEL);
                 } else {
                     throw CypherTypeException.expectedStringNotNull(
                             "Expected node label to be a string or list of strings.",
