@@ -23,7 +23,6 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.Ast.hasLabels
 import org.neo4j.cypher.internal.ast.Ast.prop
 import org.neo4j.cypher.internal.ast.Ast.propEquality
-import org.neo4j.cypher.internal.ast.Ast.propLessThan
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
@@ -474,6 +473,9 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .setRelationshipCardinality("()-[:R]->(:B)", 200)
       .setRelationshipCardinality("(:A)-[:R]->()", 100)
       .setRelationshipCardinality("(:A)-[:R]->(:B)", 100)
+      .setRelationshipCardinality("(:B)-[]->(:B)", 15)
+      .setRelationshipCardinality("(:B)-[]->()", 15)
+      .setRelationshipCardinality("()-[]->(:B)", 200)
       .addRelationshipEndpointLabelConstraint("()-[:R]->(:B)")
       .build()
 
@@ -970,7 +972,6 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
         .setRelationshipCardinality("(:Person)-[:R]->()", 1000)
         .setRelationshipCardinality("()-[:R]->(:Actor)", 1000)
         .setRelationshipCardinality("(:Person)-[:R]->(:Actor)", 1000)
-        .enablePrintCostComparisons()
         .build()
 
     val query = "MATCH (n {firstName: 'Bosse'})-[r:R]->(m:Actor {firstName: 'Pierre'}) Return m"
@@ -1008,17 +1009,21 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
       .addNodeLabelConstraint(constrainedLabel = "X", impliedLabel = "Y")
       .setAllNodesCardinality(3000)
+      .enableMinimumGraphStatistics()
+      .defaultRelationshipCardinalityTo0()
       .build()
 
     val query = "MATCH (n:Actor:Person:X:Y)--(m:X:Y) RETURN n.name AS result"
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projection("n.name AS result")
-      .filterExpression(andsReorderable(
-        hasLabels("m", "X"),
-        hasLabels("n", "X"),
-        hasLabels("n", "Actor")
-      )) // m:X implies m:Y, n:X implies n:Y, n:Actor implies n:Person
+      .filterExpression(
+        hasLabels("n", "Actor"),
+        andsReorderable(
+          hasLabels("m", "X"),
+          hasLabels("n", "X")
+        )
+      ) // m:X implies m:Y, n:X implies n:Y, n:Actor implies n:Person
       .allRelationshipsScan("(n)-[]-(m)")
       .build()
   }
@@ -1051,15 +1056,19 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .addNodeLabelConstraint(constrainedLabel = "X", impliedLabel = "Y")
       .setAllNodesCardinality(3000)
       .setAllRelationshipsCardinality(10)
+      .enableMinimumGraphStatistics()
+      .defaultRelationshipCardinalityTo0()
       .build()
 
     val query = "MATCH (n:Actor:Person:X:Y)--(m:Y) WHERE n.birthYear < 1800 RETURN n.name AS result"
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projection("n.name AS result")
-      .filterExpression(
-        andsReorderable(hasLabels("n", "X"), hasLabels("m", "Y"), hasLabels("n", "Actor")),
-        propLessThan("n", "birthYear", 1800)
+      .filter(
+        "n:Actor",
+        "n:X",
+        "m:Y",
+        "n.birthYear < 1800"
       ) // n:X implies n:Y, n:Actor implies n:Person, m:Y is NOT implied
       .allRelationshipsScan("(n)-[]-(m)")
       .build()

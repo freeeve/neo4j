@@ -88,8 +88,7 @@ class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
 
   test("should plan limit before count() aggregation in CALL") {
     val planner = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setLabelCardinality("A", 100)
+      .setAllNodesCardinality(10000)
       .setAllRelationshipsCardinality(5000)
       .build()
 
@@ -103,7 +102,7 @@ class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
       val filterExpr = if (isCountStar) "" else "cacheNFromStore[n.prop]"
 
       val query =
-        s"""MATCH (n:A)
+        s"""MATCH (n)
            |CALL (n) {
            |  MATCH (n)-[r]->(m)
            |  RETURN count($queryExpr) $op 10 AS result
@@ -122,7 +121,7 @@ class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
         .|.filterIfNotCountStar(isCountStar, s"$filterExpr IS NOT NULL")
         .|.expandAll("(n)-[]->()")
         .|.argument("n")
-        .nodeByLabelScan("n", "A")
+        .allNodeScan("n")
         .build()
     }
   }
@@ -156,8 +155,7 @@ class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
 
   test("should plan limit for COUNT {} in WHERE") {
     val planner = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setLabelCardinality("A", 100)
+      .setAllNodesCardinality(10000)
       .setAllRelationshipsCardinality(5000)
       .build()
 
@@ -166,7 +164,7 @@ class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
     } withClue(s"operator: $op\n\n") {
 
       val query =
-        s"""MATCH (n:A)
+        s"""MATCH (n)
            |WHERE COUNT { (n)-[r]->(m) WHERE n.prop > m.prop } $op 10
            |RETURN n.x AS x
            |""".stripMargin
@@ -182,15 +180,14 @@ class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
         .|.filter("n.prop > m.prop")
         .|.expandAll("(n)-[]->(m)")
         .|.argument("n")
-        .nodeByLabelScan("n", "A")
+        .allNodeScan("n")
         .build()
     }
   }
 
   test("should plan limit for COUNT {} in RETURN") {
     val planner = plannerBuilder()
-      .setAllNodesCardinality(100)
-      .setLabelCardinality("A", 100)
+      .setAllNodesCardinality(10000)
       .setAllRelationshipsCardinality(5000)
       .build()
 
@@ -199,7 +196,7 @@ class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
     } withClue(s"operator: $op\n\n") {
 
       val query =
-        s"""MATCH (n:A)
+        s"""MATCH (n)
            |RETURN COUNT { (n)-[r]->(m) WHERE n.prop > m.prop } $op 10 AS result
            |""".stripMargin
 
@@ -213,7 +210,7 @@ class LimitBeforeCountPlanningIntegrationTest extends CypherFunSuite
         .|.filter("n.prop > m.prop")
         .|.expandAll("(n)-[]->(m)")
         .|.argument("n")
-        .nodeByLabelScan("n", "A")
+        .allNodeScan("n")
         .build()
     }
   }

@@ -941,7 +941,6 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
       .setRelationshipCardinality("(:A)-[R]->()", r)
       .setRelationshipCardinality("()-[R]->(:A)", r)
       .setRelationshipCardinality("(:A)-[R]->(:A)", r)
-      .enablePrintCostComparisons()
       .build()
 
     val query = "MATCH (n1:A)-[r:R*]->(n2:A) RETURN n1, n2, r"
@@ -1016,6 +1015,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
       val planner = plannerBuilder()
         .setAllNodesCardinality(1000)
         .setRelationshipCardinality("()-[]->()", 10000)
+        .setRelationshipCardinality("(:L)-[]->()", 3333)
         .setLabelCardinality("L", 100)
         .build()
 

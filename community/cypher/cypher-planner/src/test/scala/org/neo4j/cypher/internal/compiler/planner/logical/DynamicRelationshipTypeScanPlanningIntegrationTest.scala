@@ -204,6 +204,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
     val plan = plannerBuilder()
       .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(20)
       .build()
       .plan(query)
 
@@ -222,6 +223,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
 
     val plan = plannerBuilder()
       .setAllNodesCardinality(100)
+      .setAllRelationshipsCardinality(20)
       .removeRelationshipLookupIndex()
       .build()
       .plan(query)

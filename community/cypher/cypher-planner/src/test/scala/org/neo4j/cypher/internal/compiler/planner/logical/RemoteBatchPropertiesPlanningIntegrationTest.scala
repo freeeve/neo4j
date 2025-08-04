@@ -2443,7 +2443,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
   test("should properly handle property access in QPP") {
     val query =
       """
-        |MATCH (a:N)
+        |MATCH (a)
         |      ((left)-[rel]->(right) WHERE rel.prop = a.prop)+
         |      (b)
         |RETURN rel
@@ -2451,7 +2451,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     val planner = spdPlanner
       .setAllNodesCardinality(10000)
-      .setLabelCardinality("N", 1000)
       .setAllRelationshipsCardinality(100000)
       .build()
 
@@ -2481,14 +2480,14 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         // We could cache this earlier on before the Repeat, so to not fetch it on each iteration
         .|.remoteBatchProperties("cacheNFromStore[a.prop]")
         .|.argument("left", "a")
-        .nodeByLabelScan("a", "N", IndexOrderNone)
+        .allNodeScan("a")
         .build()
   }
 
   test("should properly handle property access in allReduce") {
     val query =
       """
-        |MATCH (a:N)
+        |MATCH (a)
         |      ((left)-[rel]->(right))+
         |      (b)
         |  WHERE allReduce(
@@ -2501,7 +2500,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     val planner = spdPlanner
       .setAllNodesCardinality(10000)
-      .setLabelCardinality("N", 1000)
       .setAllRelationshipsCardinality(100000)
       .build()
 
@@ -2534,7 +2532,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .|.expandAll("(left)-[rel]->(right)")
         .|.remoteBatchProperties("cacheNFromStore[a.prop]")
         .|.argument("left", "a", "sum")
-        .nodeByLabelScan("a", "N", IndexOrderNone)
+        .allNodeScan("a")
         .build()
   }
 

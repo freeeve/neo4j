@@ -626,4 +626,50 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
       "Actor" -> Set("Person")
     )
   }
+
+  test(
+    "should throw if cardinality is not set for a relationship without type, nor for a matching typed relationships"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 100)
+      .build()
+
+    val q = "MATCH (a:A)-->(b) USING SCAN a:A RETURN count(*) AS res"
+    val ex = intercept[IllegalStateException] {
+      planner.plan(q).stripProduceResults
+    }
+    ex.getMessage should include("No cardinality set for relationship")
+  }
+
+  test(
+    "should not throw if cardinality is not set for a relationship without type, but default-cardinality-to-0 is set"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 100)
+      .defaultRelationshipCardinalityTo0()
+      .build()
+
+    val q = "MATCH (a:A)-->(b) USING SCAN a:A RETURN count(*) AS res"
+    noException should be thrownBy {
+      planner.plan(q).stripProduceResults
+    }
+  }
+
+  test(
+    "should not throw if cardinality is not set for a relationship without type, but is set for a matching typed relationship"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 100)
+      .setRelationshipCardinality("()-[:REL]->()", 100)
+      .setRelationshipCardinality("(:A)-[:REL]->()", 100)
+      .build()
+
+    val q = "MATCH (a:A)-->(b) USING SCAN a:A RETURN count(*) AS res"
+    noException should be thrownBy {
+      planner.plan(q).stripProduceResults
+    }
+  }
 }

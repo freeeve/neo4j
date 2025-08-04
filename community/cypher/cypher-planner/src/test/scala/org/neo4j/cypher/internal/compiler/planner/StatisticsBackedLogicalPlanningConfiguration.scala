@@ -175,11 +175,12 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
              |.setRelationshipCardinality("$relDef", cardinality)""".stripMargin
         )
       def getForAllRelationshipsMatching: Option[Double] = {
-        if (relDef.relType.isEmpty)
-          Some(relationships.filter(r =>
+        Option.when(relDef.relType.isEmpty) {
+          val matchingRels = relationships.filter(r =>
             r._1.fromLabel == relDef.fromLabel && r._1.toLabel == relDef.toLabel
-          ).values.sum)
-        else None
+          )
+          Option.when(matchingRels.nonEmpty)(matchingRels.values.sum)
+        }.flatten
       }
 
       relationships.get(relDef).orElse(getForAllRelationshipsMatching).getOrElse(defaultOrThrow)

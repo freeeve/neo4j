@@ -84,6 +84,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
       .setRelationshipCardinality("(:Y)-[]->(:Z)", 20)
       .setRelationshipCardinality("()-[]->(:Y)", 20)
       .setRelationshipCardinality("()-[]->(:Z)", 20)
+      .setRelationshipCardinality("(:Y)-[]->(:Y)", 20)
       .build()
 
     val plan =
@@ -115,6 +116,7 @@ class TriadicSelectionPlanningIntegrationTest extends CypherFunSuite with Logica
       .setRelationshipCardinality("(:Y)-[]->(:Z)", 20)
       .setRelationshipCardinality("()-[]->(:Y)", 20)
       .setRelationshipCardinality("()-[]->(:Z)", 20)
+      .setRelationshipCardinality("(:Y)-[]->(:Y)", 20)
       .build()
     val plan =
       planner.plan("MATCH (a:X)-[r1]->(b:Y {prop: 42})-[r2]->(c:Y) WHERE NOT (a)-->(c) RETURN 1").stripProduceResults

@@ -1207,7 +1207,6 @@ class ABCDECardinalityDataCardinalityIntegrationTest extends CypherFunSuite with
   ) {
     val query =
       "MATCH (nOuterLeft:A)((nInnerLeft:A)-[:T1]->(nInnerRight) WHERE nOuterRight.prop IS NOT NULL){1}(nOuterRight:A)"
-    println(plannerBuilder().enablePrintCostComparisons().build().plan(query + " RETURN *"))
     planShouldHaveCardinality(
       query,
       {
@@ -1222,7 +1221,6 @@ class ABCDECardinalityDataCardinalityIntegrationTest extends CypherFunSuite with
   ) {
     val query =
       "MATCH (nOuterLeft:A)((nInnerLeft)-[:T1]->(nInnerRight:A) WHERE nOuterLeft.prop IS NOT NULL){1}(nOuterRight:A)"
-    println(plannerBuilder().enablePrintCostComparisons().build().plan(query + " RETURN *"))
     planShouldHaveCardinality(
       query,
       {
@@ -1237,7 +1235,6 @@ class ABCDECardinalityDataCardinalityIntegrationTest extends CypherFunSuite with
   ) {
     val query =
       "MATCH (nOuterLeft:A)((nInnerLeft)-[:T1]->(nInnerRight:A) WHERE nOuterLeft.prop IS NOT NULL){1,3}(nOuterRight:A)"
-    println(plannerBuilder().enablePrintCostComparisons().build().plan(query + " RETURN *"))
     // effective cardinality on the RHS of Trail cannot take uniqueness selectivity into account
     val inputIter1 = A
     val outputIter1 = inputIter1 * A_T1_A_sel * A
