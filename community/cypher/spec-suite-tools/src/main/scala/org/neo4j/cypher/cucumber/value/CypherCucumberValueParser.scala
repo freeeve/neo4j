@@ -50,20 +50,17 @@ import scala.jdk.CollectionConverters.SetHasAsJava
  */
 object CypherCucumberValueParser {
 
-  private var driverParameters = false;
-
   def parse(value: String, asDriverParameter: Boolean = false): AnyRef = {
-    driverParameters = asDriverParameter
-    fastparse.parse[AnyRef](value, statement(_), verboseFailures = true) match {
+    fastparse.parse[AnyRef](value, statement(_, asDriverParameter), verboseFailures = true) match {
       case Parsed.Success(value, _) => value
       case failure: Parsed.Failure  => throw new IllegalArgumentException(s"Failed to parse $value: ${failure.msg}")
     }
   }
 
   implicit private val whitespace: Whitespace = LimitedWhiteSpace
-  private def statement[X: P]: P[AnyRef] = Start ~ cypherValue ~ End
+  private def statement[X: P](implicit asDriverParameter: Boolean): P[AnyRef] = Start ~ cypherValue ~ End
 
-  private def cypherValue[X: P]: P[AnyRef] =
+  private def cypherValue[X: P](implicit asDriverParameter: Boolean): P[AnyRef] =
     string |
       float |
       integer |
@@ -86,34 +83,37 @@ object CypherCucumberValueParser {
   private def float[X: P]: P[java.lang.Double] = P("-".? ~ floatRepr).!.map(_.toDouble)
   private def boolean[X: P]: P[java.lang.Boolean] = P("true" | "false").!.map(_.toBoolean)
   private def nullValue[X: P]: P[AnyRef] = P("null").!.map(_ => null)
-  private def list[X: P]: P[java.util.List[AnyRef]] = P("[" ~~ cypherValue.rep(sep = ",") ~~/ "]").map(_.asJava)
 
-  private def map[X: P]: P[java.util.Map[String, AnyRef]] =
+  private def list[X: P](implicit asDriverParameter: Boolean): P[java.util.List[AnyRef]] =
+    P("[" ~~ cypherValue.rep(sep = ",") ~~/ "]").map(_.asJava)
+
+  private def map[X: P](implicit asDriverParameter: Boolean): P[java.util.Map[String, AnyRef]] =
     P("{" ~~/ keyValue.rep(sep = ",") ~~/ "}").map(_.toMap.asJava)
 
-  private def node[X: P]: P[NoIdNode] = P("(" ~~/ label.rep ~/ map.? ~/ ")")
+  private def node[X: P](implicit asDriverParameter: Boolean): P[NoIdNode] = P("(" ~~/ label.rep ~/ map.? ~/ ")")
     .map { case (labels, properties) => NoIdNode(labels.toSet.asJava, properties.getOrElse(Collections.emptyMap())) }
 
-  private def relationship[X: P]: P[NoIdRel] = P("[" ~~ label ~/ map.? ~/ "]")
+  private def relationship[X: P](implicit asDriverParameter: Boolean): P[NoIdRel] = P("[" ~~ label ~/ map.? ~/ "]")
     .map { case (relType, props) => NoIdRel(relType, props.getOrElse(Collections.emptyMap())) }
 
-  private def path[X: P]: P[NoIdPath] = P("<" ~~/ node ~~/ (outgoing | incoming).rep ~~/ ">").map {
-    case (node, links) =>
-      NoIdPath(node, links)
-  }
+  private def path[X: P](implicit asDriverParameter: Boolean): P[NoIdPath] =
+    P("<" ~~/ node ~~/ (outgoing | incoming).rep ~~/ ">").map {
+      case (node, links) =>
+        NoIdPath(node, links)
+    }
 
   private def nanValue[X: P]: P[java.lang.Double] = P("NaN").!.map(_ => Double.NaN)
 
   private def vectorCoordinateType[X: P]: P[java.lang.String] = P(CharsWhileIn("A-Za-z0-9")).!
 
-  private def vector[X: P]: P[AnyRef] = P(vectorCoordinateType ~/ list).map {
+  private def vector[X: P](implicit asDriverParameter: Boolean): P[AnyRef] = P(vectorCoordinateType ~/ list).map {
     case (vectorType: String, coordinates: java.util.List[AnyRef]) =>
       vectorType match {
         case "Int8Vector" =>
           val coordinateArray: Array[Byte] = coordinates.asScala.collect { case i: Number =>
             i.byteValue()
           }.toArray
-          if (driverParameters) {
+          if (asDriverParameter) {
             org.neo4j.driver.Values.vector(coordinateArray)
           } else {
             Values.int8Vector(coordinateArray: _*)
@@ -122,7 +122,7 @@ object CypherCucumberValueParser {
           val coordinateArray: Array[Short] = coordinates.asScala.collect { case i: Number =>
             i.shortValue()
           }.toArray
-          if (driverParameters) {
+          if (asDriverParameter) {
             org.neo4j.driver.Values.vector(coordinateArray)
           } else {
             Values.int16Vector(coordinateArray: _*)
@@ -131,7 +131,7 @@ object CypherCucumberValueParser {
           val coordinateArray: Array[Int] = coordinates.asScala.collect { case i: Number =>
             i.intValue()
           }.toArray
-          if (driverParameters) {
+          if (asDriverParameter) {
             org.neo4j.driver.Values.vector(coordinateArray)
           } else {
             Values.int32Vector(coordinateArray: _*)
@@ -140,7 +140,7 @@ object CypherCucumberValueParser {
           val coordinateArray: Array[Long] = coordinates.asScala.collect { case i: Number =>
             i.longValue()
           }.toArray
-          if (driverParameters) {
+          if (asDriverParameter) {
             org.neo4j.driver.Values.vector(coordinateArray)
           } else {
             Values.int64Vector(coordinateArray: _*)
@@ -149,7 +149,7 @@ object CypherCucumberValueParser {
           val coordinateArray: Array[Float] = coordinates.asScala.collect { case i: Number =>
             i.floatValue()
           }.toArray
-          if (driverParameters) {
+          if (asDriverParameter) {
             org.neo4j.driver.Values.vector(coordinateArray)
           } else {
             Values.float32Vector(coordinateArray: _*)
@@ -158,7 +158,7 @@ object CypherCucumberValueParser {
           val coordinateArray: Array[Double] = coordinates.asScala.collect { case i: Number =>
             i.doubleValue()
           }.toArray
-          if (driverParameters) {
+          if (asDriverParameter) {
             org.neo4j.driver.Values.vector(coordinateArray)
           } else {
             Values.float64Vector(coordinateArray: _*)
@@ -167,13 +167,17 @@ object CypherCucumberValueParser {
   }
 
   private def label[X: P]: P[String] = ":" ~~ symbolicName.!
-  private def keyValue[X: P]: P[(String, AnyRef)] = symbolicName ~~ ":" ~ cypherValue
 
-  private def outgoing[X: P]: P[Connection] = ("-" ~~/ relationship ~~/ "->" ~~/ node)
-    .map { case (r, n) => Connection(r, n, outgoing = true) }
+  private def keyValue[X: P](implicit asDriverParameter: Boolean): P[(String, AnyRef)] =
+    symbolicName ~~ ":" ~ cypherValue
 
-  private def incoming[X: P]: P[Connection] = ("<-" ~~/ relationship ~~/ "-" ~~/ node)
-    .map { case (r, n) => Connection(r, n, outgoing = false) }
+  private def outgoing[X: P](implicit asDriverParameter: Boolean): P[Connection] =
+    ("-" ~~/ relationship ~~/ "->" ~~/ node)
+      .map { case (r, n) => Connection(r, n, outgoing = true) }
+
+  private def incoming[X: P](implicit asDriverParameter: Boolean): P[Connection] =
+    ("<-" ~~/ relationship ~~/ "-" ~~/ node)
+      .map { case (r, n) => Connection(r, n, outgoing = false) }
   private def symbolicName[X: P]: P[String] = CharsWhileIn("a-zA-Z0-9$_").!
 
   private def digits[X: P]: P[Unit] = CharsWhileIn("0-9")
