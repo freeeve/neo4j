@@ -38,4 +38,9 @@ public final class BoltProtocolV60 extends AbstractBoltProtocol {
     public ProtocolVersion version() {
         return VERSION;
     }
+
+    @Override
+    public boolean preview() {
+        return true;
+    }
 }

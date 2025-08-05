@@ -218,10 +218,10 @@ public class BoltServer extends LifecycleAdapter {
                 .register(
                         minProtocolVersion.isEmpty() && maxProtocolVersion.isEmpty()
                                 ? BoltProtocol.available()
-                                : BoltProtocol.available().stream()
+                                : BoltProtocol.installed().stream()
                                         .filter(candidate -> minProtocolVersion.isEmpty()
                                                 || candidate.version().isAtLeast(minProtocolVersion.get()))
-                                        .filter(candidate -> maxProtocolVersion.isEmpty()
+                                        .filter(candidate -> (maxProtocolVersion.isEmpty() && !candidate.preview())
                                                 || candidate.version().isAtMost(maxProtocolVersion.get()))
                                         .toList())
                 .build();

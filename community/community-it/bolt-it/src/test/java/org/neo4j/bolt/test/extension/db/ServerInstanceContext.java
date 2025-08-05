@@ -34,10 +34,14 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.platform.commons.util.AnnotationUtils;
 import org.junit.platform.commons.util.ReflectionUtils.HierarchyTraversalMode;
+import org.neo4j.bolt.negotiation.ProtocolVersion;
+import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.bolt.test.annotation.setup.FactoryFunction;
 import org.neo4j.bolt.test.annotation.setup.SettingsFunction;
 import org.neo4j.bolt.transport.Neo4jWithSocket;
 import org.neo4j.bolt.transport.Neo4jWithSocketSupportExtension;
+import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
+import org.neo4j.configuration.connectors.BoltConnectorInternalSettings.ConfiguredProtocolVersion;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
@@ -216,8 +220,16 @@ public class ServerInstanceContext {
         }
 
         neo4j.setGraphDatabaseFactory(this.databaseFactory.apply(context));
-        neo4j.setConfigure(
-                config -> this.settingsCustomizers.forEach(customizer -> customizer.accept(context, config)));
+        neo4j.setConfigure(config -> {
+            BoltProtocol.installed().stream()
+                    .map(BoltProtocol::version)
+                    .max(ProtocolVersion::compareTo)
+                    .ifPresent(latest -> config.put(
+                            BoltConnectorInternalSettings.max_protocol_version,
+                            new ConfiguredProtocolVersion((int) latest.major(), (int) latest.minor())));
+
+            this.settingsCustomizers.forEach(customizer -> customizer.accept(context, config));
+        });
 
         return neo4j;
     }

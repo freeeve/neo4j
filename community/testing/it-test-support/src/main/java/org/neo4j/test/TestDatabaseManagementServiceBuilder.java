@@ -30,12 +30,14 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import org.neo4j.bolt.protocol.common.BoltProtocol;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
+import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilderImplementation;
@@ -176,6 +178,10 @@ public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServ
                 .setDefault(GraphDatabaseInternalSettings.gbptree_structure_log_enabled, true)
                 .setDefault(GraphDatabaseSettings.filewatcher_enabled, false)
                 .setDefault(GraphDatabaseSettings.udc_enabled, false)
+                .setDefault(
+                        BoltConnectorInternalSettings.max_protocol_version,
+                        BoltConnectorInternalSettings.ConfiguredProtocolVersion.fromString(
+                                BoltProtocol.latestVersionInstalled()))
                 .setDefault(
                         BoltConnector.listen_address,
                         new SocketAddress("localhost", DynamicPorts.OS_SELECTED_DYNAMIC_PORT))

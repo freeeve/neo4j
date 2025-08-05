@@ -63,7 +63,7 @@ public class ModernNegotiationIT {
 
             Assertions.assertThat(proposal.negotiationVersion()).isEqualTo(ProtocolVersion.NEGOTIATION_V2);
 
-            Assertions.assertThat(BoltProtocol.available())
+            Assertions.assertThat(BoltProtocol.installed())
                     .allSatisfy(protocol -> Assertions.assertThat(proposal.versions())
                             .anyMatch(version -> version.matches(protocol.version())));
 

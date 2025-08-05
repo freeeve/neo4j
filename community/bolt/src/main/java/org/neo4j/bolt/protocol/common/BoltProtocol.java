@@ -63,7 +63,7 @@ import org.neo4j.values.storable.Value;
 
 public interface BoltProtocol {
 
-    static List<BoltProtocol> available() {
+    static List<BoltProtocol> installed() {
         return List.of(
                 BoltProtocolV40.getInstance(),
                 BoltProtocolV41.getInstance(),
@@ -81,12 +81,34 @@ public interface BoltProtocol {
                 BoltProtocolV60.getInstance());
     }
 
+    static String latestVersionInstalled() {
+        return installed().stream()
+                .map(BoltProtocol::version)
+                .max(ProtocolVersion::compareTo)
+                .map(ProtocolVersion::toString)
+                .orElseThrow();
+    }
+
+    static List<BoltProtocol> available() {
+        return installed().stream().filter(it -> !it.preview()).toList();
+    }
+
     /**
      * Identifies the version number via which this protocol implementation is identified during the negotiation process.
      *
      * @return a protocol version number.
      */
     ProtocolVersion version();
+
+    /**
+     * Indicates whether this protocol version is currently a preview-release (e.g. will be
+     * unavailable unless explicitly selected via configuration options).
+     *
+     * @return true if preview, false otherwise.
+     */
+    default boolean preview() {
+        return false;
+    }
 
     /**
      * Retrieves a set of features which are always enabled on this connection regardless of whether they have been

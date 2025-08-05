@@ -58,26 +58,7 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
     public static final SettingValueParser<ConfiguredProtocolVersion> PROTOCOL_VERSION = new SettingValueParser<>() {
         @Override
         public ConfiguredProtocolVersion parse(String value) {
-            String trimmedValue = value.trim();
-
-            return Optional.of(trimmedValue)
-                    .map(trimmed -> trimmed.split("\\."))
-                    .filter(partsArr -> partsArr.length == 2)
-                    .map(List::of)
-                    .map(partsList -> partsList.stream()
-                            .map(maybeInt -> {
-                                try {
-                                    return Integer.parseInt(maybeInt);
-                                } catch (NumberFormatException ignored) {
-                                    return null;
-                                }
-                            })
-                            .filter(Objects::nonNull)
-                            .toList())
-                    .filter(partsInt -> partsInt.size() == 2)
-                    .map(partsInt -> new ConfiguredProtocolVersion(partsInt.get(0), partsInt.get(1)))
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            format("'%s' is not a valid protocol version value, must be '<major>.<minor>'", value)));
+            return ConfiguredProtocolVersion.fromString(value);
         }
 
         @Override
@@ -347,5 +328,32 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
         }
     }
 
-    public record ConfiguredProtocolVersion(Integer major, Integer minor) {}
+    public record ConfiguredProtocolVersion(Integer major, Integer minor) {
+        public String toString() {
+            return major + "." + minor;
+        }
+
+        public static ConfiguredProtocolVersion fromString(String value) {
+            String trimmedValue = value.trim();
+
+            return Optional.of(trimmedValue)
+                    .map(trimmed -> trimmed.split("\\."))
+                    .filter(partsArr -> partsArr.length == 2)
+                    .map(List::of)
+                    .map(partsList -> partsList.stream()
+                            .map(maybeInt -> {
+                                try {
+                                    return Integer.parseInt(maybeInt);
+                                } catch (NumberFormatException ignored) {
+                                    return null;
+                                }
+                            })
+                            .filter(Objects::nonNull)
+                            .toList())
+                    .filter(partsInt -> partsInt.size() == 2)
+                    .map(partsInt -> new ConfiguredProtocolVersion(partsInt.get(0), partsInt.get(1)))
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            format("'%s' is not a valid protocol version value, must be '<major>.<minor>'", value)));
+        }
+    }
 }
