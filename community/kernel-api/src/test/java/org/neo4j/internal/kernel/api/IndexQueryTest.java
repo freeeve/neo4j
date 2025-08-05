@@ -23,10 +23,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.util.Arrays.array;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.internal.kernel.api.PropertyIndexQuery.range;
 import static org.neo4j.values.storable.Values.pointValue;
 import static org.neo4j.values.storable.Values.stringValue;
 
+import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAmount;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -40,7 +43,9 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery.StringSuffixPredicate;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DateValue;
+import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.LocalDateTimeValue;
+import org.neo4j.values.storable.PointArray;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueCategory;
@@ -135,7 +140,7 @@ class IndexQueryTest {
     }
 
     @Test
-    void testNumRange_ExclusiveLowerExclusiveLower() {
+    void testNumRange_ExclusiveLowerExclusiveUpper() {
         RangePredicate<?> p = PropertyIndexQuery.range(propId, 11, false, 13, false);
 
         assertFalse(test(p, 11));
@@ -271,6 +276,387 @@ class IndexQueryTest {
         assertFalse(test(p, DateValue.date(2017, 3, 7)));
         assertFalse(test(p, DateValue.date(2017, 3, 8)));
         assertFalse(test(p, LocalDateTimeValue.localDateTime(2016, 3, 8, 0, 0, 0, 0)));
+    }
+
+    // Duration RANGE
+
+    @Test
+    void testDurationRange_FalseForIrrelevant() {
+        RangePredicate<?> p = range(propId, secs(11), true, secs(13), true);
+
+        assertFalseForOtherThings(p);
+    }
+
+    @Test
+    void testDurationRange_InclusiveLowerInclusiveUpper() {
+
+        RangePredicate<?> p = range(propId, secs(11), true, secs(13), true);
+
+        assertFalse(test(p, secs(10)));
+        assertFalse(test(p, secs(11)));
+        assertFalse(test(p, secs(12)));
+        assertFalse(test(p, secs(13)));
+        assertFalse(test(p, secs(14)));
+    }
+
+    @Test
+    void testDurationRange_ExclusiveLowerExclusiveUpper() {
+        RangePredicate<?> p = range(propId, secs(11), false, secs(13), false);
+
+        assertFalse(test(p, secs(11)));
+        assertFalse(test(p, secs(12)));
+        assertFalse(test(p, secs(13)));
+    }
+
+    @Test
+    void testDurationRange_InclusiveLowerExclusiveUpper() {
+        RangePredicate<?> p = range(propId, secs(11), true, secs(13), false);
+
+        assertFalse(test(p, secs(10)));
+        assertFalse(test(p, secs(11)));
+        assertFalse(test(p, secs(12)));
+        assertFalse(test(p, secs(13)));
+    }
+
+    @Test
+    void testDurationRange_ExclusiveLowerInclusiveUpper() {
+        RangePredicate<?> p = range(propId, secs(11), false, secs(13), true);
+
+        assertFalse(test(p, secs(11)));
+        assertFalse(test(p, secs(12)));
+        assertFalse(test(p, secs(13)));
+        assertFalse(test(p, secs(14)));
+    }
+
+    @Test
+    void testDurationRange_LowerNullValue() {
+        RangePredicate<?> p = range(propId, null, true, secs(13), true);
+
+        assertFalse(test(p, secs(10)));
+        assertFalse(test(p, secs(11)));
+        assertFalse(test(p, secs(12)));
+        assertTrue(test(p, secs(13)));
+        assertFalse(test(p, secs(14)));
+    }
+
+    @Test
+    void testDurationRange_UpperNullValue() {
+        RangePredicate<?> p = range(propId, secs(11), true, null, true);
+
+        assertFalse(test(p, secs(10)));
+        assertTrue(test(p, secs(11)));
+        assertFalse(test(p, secs(12)));
+        assertFalse(test(p, secs(13)));
+        assertFalse(test(p, secs(14)));
+    }
+
+    @Test
+    void testDurationRange_EqualBoundsInclusive() {
+        RangePredicate<?> p = range(propId, secs(11), true, secs(11), true);
+
+        assertFalse(test(p, secs(10)));
+        assertTrue(test(p, secs(11)));
+        assertFalse(test(p, secs(12)));
+    }
+
+    @Test
+    void testDurationRange_EqualBoundsNotInclusive() {
+        RangePredicate<?> fromInclusive = range(propId, secs(11), true, secs(11), false);
+
+        assertFalse(test(fromInclusive, secs(10)));
+        assertFalse(test(fromInclusive, secs(11)));
+        assertFalse(test(fromInclusive, secs(12)));
+
+        RangePredicate<?> toInclusive = range(propId, secs(11), false, secs(11), true);
+
+        assertFalse(test(toInclusive, secs(10)));
+        assertFalse(test(toInclusive, secs(11)));
+        assertFalse(test(toInclusive, secs(12)));
+    }
+
+    // Point RANGE
+
+    @Test
+    void testPointRange_FalseForIrrelevant() {
+        RangePredicate<?> p = range(propId, point(11), true, point(13), true);
+
+        assertFalseForOtherThings(p);
+    }
+
+    @Test
+    void testPointRange_InclusiveLowerInclusiveUpper() {
+        RangePredicate<?> p = range(propId, point(11), true, point(13), true);
+
+        assertFalse(test(p, point(10)));
+        assertFalse(test(p, point(11)));
+        assertFalse(test(p, point(12)));
+        assertFalse(test(p, point(13)));
+        assertFalse(test(p, point(14)));
+    }
+
+    @Test
+    void testPointRange_ExclusiveLowerExclusiveUpper() {
+        RangePredicate<?> p = range(propId, point(11), false, point(13), false);
+
+        assertFalse(test(p, point(11)));
+        assertFalse(test(p, point(12)));
+        assertFalse(test(p, point(13)));
+    }
+
+    @Test
+    void testPointRange_InclusiveLowerExclusiveUpper() {
+        RangePredicate<?> p = range(propId, point(11), true, point(13), false);
+
+        assertFalse(test(p, point(10)));
+        assertFalse(test(p, point(11)));
+        assertFalse(test(p, point(12)));
+        assertFalse(test(p, point(13)));
+    }
+
+    @Test
+    void testPointRange_ExclusiveLowerInclusiveUpper() {
+        RangePredicate<?> p = range(propId, point(11), false, point(13), true);
+
+        assertFalse(test(p, point(11)));
+        assertFalse(test(p, point(12)));
+        assertFalse(test(p, point(13)));
+        assertFalse(test(p, point(14)));
+    }
+
+    @Test
+    void testPointRange_LowerNullValue() {
+        RangePredicate<?> p = range(propId, null, true, point(13), true);
+
+        assertFalse(test(p, point(10)));
+        assertFalse(test(p, point(11)));
+        assertFalse(test(p, point(12)));
+        assertTrue(test(p, point(13)));
+        assertFalse(test(p, point(14)));
+    }
+
+    @Test
+    void testPointRange_UpperNullValue() {
+        RangePredicate<?> p = range(propId, point(11), true, null, true);
+
+        assertFalse(test(p, point(10)));
+        assertTrue(test(p, point(11)));
+        assertFalse(test(p, point(12)));
+        assertFalse(test(p, point(13)));
+        assertFalse(test(p, point(14)));
+    }
+
+    @Test
+    void testPointRange_EqualBounds() {
+        RangePredicate<?> p = range(propId, point(11), true, point(11), true);
+
+        assertFalse(test(p, point(10)));
+        assertTrue(test(p, point(11)));
+        assertFalse(test(p, point(12)));
+    }
+
+    @Test
+    void testPointRange_EqualBoundsNotInclusive() {
+        RangePredicate<?> fromInclusive = range(propId, point(11), true, point(11), false);
+
+        assertFalse(test(fromInclusive, point(10)));
+        assertFalse(test(fromInclusive, point(11)));
+        assertFalse(test(fromInclusive, point(12)));
+
+        RangePredicate<?> toInclusive = range(propId, point(11), false, point(11), true);
+
+        assertFalse(test(toInclusive, point(10)));
+        assertFalse(test(toInclusive, point(11)));
+        assertFalse(test(toInclusive, point(12)));
+    }
+
+    // Duration Array RANGE
+
+    @Test
+    void testDurationArrayRange_FalseForIrrelevant() {
+        RangePredicate<?> p = range(propId, secsArray(11), true, secsArray(13), true);
+
+        assertFalseForOtherThings(p);
+    }
+
+    @Test
+    void testDurationArrayRange_InclusiveLowerInclusiveUpper() {
+        RangePredicate<?> p = range(propId, secsArray(11), true, secsArray(13), true);
+
+        assertFalse(test(p, secsArray(10)));
+        assertFalse(test(p, secsArray(11)));
+        assertFalse(test(p, secsArray(12)));
+        assertFalse(test(p, secsArray(13)));
+        assertFalse(test(p, secsArray(14)));
+    }
+
+    @Test
+    void testDurationArrayRange_ExclusiveLowerExclusiveUpper() {
+        RangePredicate<?> p = range(propId, secsArray(11), false, secsArray(13), false);
+
+        assertFalse(test(p, secsArray(11)));
+        assertFalse(test(p, secsArray(12)));
+        assertFalse(test(p, secsArray(13)));
+    }
+
+    @Test
+    void testDurationArrayRange_InclusiveLowerExclusiveUpper() {
+        RangePredicate<?> p = range(propId, secsArray(11), true, secsArray(13), false);
+
+        assertFalse(test(p, secsArray(10)));
+        assertFalse(test(p, secsArray(11)));
+        assertFalse(test(p, secsArray(12)));
+        assertFalse(test(p, secsArray(13)));
+    }
+
+    @Test
+    void testDurationArrayRange_ExclusiveLowerInclusiveUpper() {
+        RangePredicate<?> p = range(propId, secsArray(11), false, secsArray(13), true);
+
+        assertFalse(test(p, secsArray(11)));
+        assertFalse(test(p, secsArray(12)));
+        assertFalse(test(p, secsArray(13)));
+        assertFalse(test(p, secsArray(14)));
+    }
+
+    @Test
+    void testDurationArrayRange_LowerNullValue() {
+        RangePredicate<?> p = range(propId, null, true, secsArray(13), true);
+
+        assertFalse(test(p, secsArray(10)));
+        assertFalse(test(p, secsArray(11)));
+        assertFalse(test(p, secsArray(12)));
+        assertTrue(test(p, secsArray(13)));
+        assertFalse(test(p, secsArray(14)));
+    }
+
+    @Test
+    void testDurationArrayRange_UpperNullValue() {
+        RangePredicate<?> p = range(propId, secsArray(11), true, null, true);
+
+        assertFalse(test(p, secsArray(10)));
+        assertTrue(test(p, secsArray(11)));
+        assertFalse(test(p, secsArray(12)));
+        assertFalse(test(p, secsArray(13)));
+        assertFalse(test(p, secsArray(14)));
+    }
+
+    @Test
+    void testDurationArrayRange_EqualBounds() {
+        RangePredicate<?> p = range(propId, secsArray(11), true, secsArray(11), true);
+
+        assertFalse(test(p, secsArray(10)));
+        assertTrue(test(p, secsArray(11)));
+        assertFalse(test(p, secsArray(12)));
+    }
+
+    @Test
+    void testDurationArrayRange_EqualBoundsNotInclusive() {
+        RangePredicate<?> fromInclusive = range(propId, secsArray(11), true, secsArray(11), false);
+
+        assertFalse(test(fromInclusive, secsArray(10)));
+        assertFalse(test(fromInclusive, secsArray(11)));
+        assertFalse(test(fromInclusive, secsArray(12)));
+
+        RangePredicate<?> toInclusive = range(propId, secsArray(11), false, secsArray(11), true);
+
+        assertFalse(test(toInclusive, secsArray(10)));
+        assertFalse(test(toInclusive, secsArray(11)));
+        assertFalse(test(toInclusive, secsArray(12)));
+    }
+
+    // Point Array RANGE
+
+    @Test
+    void testPointArrayRange_FalseForIrrelevant() {
+        RangePredicate<?> p = range(propId, pointArray(11), true, pointArray(13), true);
+
+        assertFalseForOtherThings(p);
+    }
+
+    @Test
+    void testPointArrayRange_InclusiveLowerInclusiveUpper() {
+        RangePredicate<?> p = range(propId, pointArray(11), true, pointArray(13), true);
+
+        assertFalse(test(p, pointArray(10)));
+        assertFalse(test(p, pointArray(11)));
+        assertFalse(test(p, pointArray(12)));
+        assertFalse(test(p, pointArray(13)));
+        assertFalse(test(p, pointArray(14)));
+    }
+
+    @Test
+    void testPointArrayRange_ExclusiveLowerExclusiveUpper() {
+        RangePredicate<?> p = range(propId, pointArray(11), false, pointArray(13), false);
+
+        assertFalse(test(p, pointArray(11)));
+        assertFalse(test(p, pointArray(12)));
+        assertFalse(test(p, pointArray(13)));
+    }
+
+    @Test
+    void testPointArrayRange_InclusiveLowerExclusiveUpper() {
+        RangePredicate<?> p = range(propId, pointArray(11), true, pointArray(13), false);
+
+        assertFalse(test(p, pointArray(10)));
+        assertFalse(test(p, pointArray(11)));
+        assertFalse(test(p, pointArray(12)));
+        assertFalse(test(p, pointArray(13)));
+    }
+
+    @Test
+    void testPointArrayRange_ExclusiveLowerInclusiveUpper() {
+        RangePredicate<?> p = range(propId, pointArray(11), false, pointArray(13), true);
+
+        assertFalse(test(p, pointArray(11)));
+        assertFalse(test(p, pointArray(12)));
+        assertFalse(test(p, pointArray(13)));
+        assertFalse(test(p, pointArray(14)));
+    }
+
+    @Test
+    void testPointArrayRange_LowerNullValue() {
+        RangePredicate<?> p = range(propId, null, true, pointArray(13), true);
+
+        assertFalse(test(p, pointArray(10)));
+        assertFalse(test(p, pointArray(11)));
+        assertFalse(test(p, pointArray(12)));
+        assertTrue(test(p, pointArray(13)));
+        assertFalse(test(p, pointArray(14)));
+    }
+
+    @Test
+    void testPointArrayRange_UpperNullValue() {
+        RangePredicate<?> p = range(propId, pointArray(11), true, null, true);
+
+        assertFalse(test(p, pointArray(10)));
+        assertTrue(test(p, pointArray(11)));
+        assertFalse(test(p, pointArray(12)));
+        assertFalse(test(p, pointArray(13)));
+        assertFalse(test(p, pointArray(14)));
+    }
+
+    @Test
+    void testPointArrayRange_EqualBounds() {
+        RangePredicate<?> p = range(propId, pointArray(11), true, pointArray(11), true);
+
+        assertFalse(test(p, pointArray(10)));
+        assertTrue(test(p, pointArray(11)));
+        assertFalse(test(p, pointArray(12)));
+    }
+
+    @Test
+    void testPointArrayRange_EqualBoundsNotInclusive() {
+        RangePredicate<?> fromInclusive = range(propId, pointArray(11), true, pointArray(11), false);
+
+        assertFalse(test(fromInclusive, pointArray(10)));
+        assertFalse(test(fromInclusive, pointArray(11)));
+        assertFalse(test(fromInclusive, pointArray(12)));
+
+        RangePredicate<?> toInclusive = range(propId, pointArray(11), false, pointArray(11), true);
+
+        assertFalse(test(toInclusive, pointArray(10)));
+        assertFalse(test(toInclusive, pointArray(11)));
+        assertFalse(test(toInclusive, pointArray(12)));
     }
 
     // BOUNDING BOX
@@ -435,5 +821,23 @@ class IndexQueryTest {
 
     private static boolean test(PropertyIndexQuery p, Object x) {
         return p.acceptsValue(x instanceof Value ? (Value) x : Values.of(x));
+    }
+
+    private static DurationValue secs(int seconds) {
+        return Values.durationValue(Duration.ofSeconds(seconds));
+    }
+
+    private static Value secsArray(int secs) {
+        var v = Values.durationValue(Duration.ofSeconds(secs));
+        return Values.durationArray(new TemporalAmount[] {v, v});
+    }
+
+    private static PointValue point(int coordinate) {
+        return Values.pointValue(CoordinateReferenceSystem.CARTESIAN, coordinate, coordinate);
+    }
+
+    private static PointArray pointArray(int coordinate) {
+        var v = Values.pointValue(CoordinateReferenceSystem.CARTESIAN, coordinate, coordinate);
+        return Values.pointArray(new PointValue[] {v, v});
     }
 }

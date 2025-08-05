@@ -132,12 +132,14 @@ public abstract class PropertyIndexQuery implements IndexQuery {
                     yield new RangePredicate<>(propertyKeyId, valueGroup, from, true, from, true);
                 } else if (toInclusive && from == null) {
                     yield new RangePredicate<>(propertyKeyId, valueGroup, to, true, to, true);
+                } else if (fromInclusive && toInclusive && from.equals(to)) {
+                    // We treat specially ONLY because we want to keep the same behavior we have without an index
+                    yield new RangePredicate<>(propertyKeyId, valueGroup, from, true, to, true);
                 } else {
                     yield new IncomparableRangePredicate<>(
                             propertyKeyId, valueGroup, from, fromInclusive, to, toInclusive);
                 }
             }
-
             default -> new RangePredicate<>(propertyKeyId, valueGroup, from, fromInclusive, to, toInclusive);
         };
     }
