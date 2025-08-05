@@ -1518,12 +1518,11 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         // remoteBatchProperties invalidated our order. Therefore, we need to sort again such that elements are produced in the right order
         .sort("firstName ASC")
         .projection("cacheN[subject.firstName] AS firstName")
-        .remoteBatchProperties("cacheNFromStore[subject.name]")
-        .nodeIndexOperator(
-          "subject:Person(firstName)",
-          indexOrder = IndexOrderNone,
-          getValue = Map("firstName" -> GetValue)
-        )
+        .remoteBatchPropertiesWithFilter(
+          "cacheNFromStore[subject.firstName]",
+          "cacheNFromStore[subject.name]"
+        )("subject.firstName IS NOT NULL")
+        .nodeByLabelScan("subject", "Person", IndexOrderNone)
         .build()
     }
 
@@ -2581,6 +2580,30 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .filter("cacheN[p.firstName] ENDS WITH 'bob'")
       .nodeIndexOperator(
         "p:Person(firstName STARTS WITH 'Sponge')",
+        indexOrder = IndexOrderNone,
+        getValue = Map("firstName" -> GetValue)
+      )
+      .build()
+  }
+
+  test("should prefer plans with index seeks rather than scan with filters") {
+    val lowSelectivityPlanner = spdPlanner
+      .setAllNodesCardinality(10)
+      .setLabelCardinality("Person", 10)
+      .addNodeIndex("Person", List("firstName"), existsSelectivity = 1.0, uniqueSelectivity = 0.1, isUnique = false)
+      .build()
+
+    val query = """
+                  |MATCH (p:Person)
+                  |WHERE p.firstName STARTS WITH ''
+                  |RETURN p.firstName
+                  |""".stripMargin
+
+    lowSelectivityPlanner.plan(query) shouldEqual lowSelectivityPlanner.planBuilder()
+      .produceResults("`p.firstName`")
+      .projection("cacheN[p.firstName] AS `p.firstName`")
+      .nodeIndexOperator(
+        "p:Person(firstName STARTS WITH '')",
         indexOrder = IndexOrderNone,
         getValue = Map("firstName" -> GetValue)
       )

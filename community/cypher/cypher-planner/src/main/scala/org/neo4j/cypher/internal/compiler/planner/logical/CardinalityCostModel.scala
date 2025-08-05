@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.SelectedBatchSize
 import org.neo4j.cypher.internal.compiler.ExecutionModel.VolcanoBatchSize
+import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.ALL_SCAN_COST_PER_ROW
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.EffectiveCardinalities
@@ -76,6 +77,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
+import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 import org.neo4j.cypher.internal.logical.plans.IntersectionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.LeftOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.Limit
@@ -92,8 +94,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.NodeIndexContainsScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexEndsWithScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexScan
-import org.neo4j.cypher.internal.logical.plans.NodeIndexSeek
-import org.neo4j.cypher.internal.logical.plans.NodeUniqueIndexSeek
+import org.neo4j.cypher.internal.logical.plans.NodeIndexSeekLeafPlan
 import org.neo4j.cypher.internal.logical.plans.Optional
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
 import org.neo4j.cypher.internal.logical.plans.OrderedUnion
@@ -398,6 +399,7 @@ object CardinalityCostModel {
   val PROBE_SEARCH_COST: CostPerRow = 2.4
   // A property has at least 2 db hits, even though it could even have many more.
   val PROPERTY_ACCESS_DB_HITS = 2
+  val PROPERTY_ACCESS_CACHE_HITS = 1
   val LABEL_CHECK_DB_HITS = 1
   val EXPAND_INTO_COST: CostPerRow = 6.4
   val EXPAND_ALL_COST: CostPerRow = 1.5
@@ -427,14 +429,18 @@ object CardinalityCostModel {
    * The cost of evaluating an expression, per row.
    */
   def costPerRowFor(expression: Expression, semanticTable: SemanticTable): CostPerRow = {
-    val noOfStoreAccesses = calculateNumberOfStoreAccesses(expression, semanticTable)
+    val noOfStoreAccesses = calculateNumberOfStoreAccesses(expression, semanticTable, includeCacheAccesses = true)
     if (noOfStoreAccesses > 0)
       CostPerRow(noOfStoreAccesses)
     else
       DEFAULT_COST_PER_ROW
   }
 
-  def calculateNumberOfStoreAccesses(expression: Expression, semanticTable: SemanticTable): Int =
+  def calculateNumberOfStoreAccesses(
+    expression: Expression,
+    semanticTable: SemanticTable,
+    includeCacheAccesses: Boolean = false
+  ): Int =
     expression.folder.treeFold(0) {
       case AndedPropertyInequalities(_: LogicalVariable, _: LogicalProperty, _: NonEmptyList[InequalityExpression]) =>
         count =>
@@ -443,6 +449,8 @@ object CardinalityCostModel {
         count => TraverseChildren(count + PROPERTY_ACCESS_DB_HITS)
       case cp: CachedProperty if cp.knownToAccessStore    => count => TraverseChildren(count + PROPERTY_ACCESS_DB_HITS)
       case cp: CachedHasProperty if cp.knownToAccessStore => count => TraverseChildren(count + PROPERTY_ACCESS_DB_HITS)
+      case _: CachedProperty | _: CachedHasProperty if includeCacheAccesses =>
+        count => TraverseChildren(count + PROPERTY_ACCESS_CACHE_HITS)
       case _: HasLabels |
         _: HasTypes |
         _: HasLabelsOrTypes => count => TraverseChildren(count + LABEL_CHECK_DB_HITS)
@@ -489,8 +497,9 @@ object CardinalityCostModel {
 
       case _: NodeByLabelScan |
         _: UnionNodeByLabelsScan |
-        _: NodeIndexScan |
         _: DynamicLabelNodeLookup => INDEX_SCAN_COST_PER_ROW
+
+      case NodeIndexScan(_, _, properties, _, _, _, _) => INDEX_SCAN_COST_PER_ROW + indexGetValueCost(properties)
 
       case plan: IntersectionNodeByLabelsScan =>
         // A workaround for cases where we might get value from an index scan instead. Using the same cost means we will use leaf plan heuristic to decide.
@@ -504,10 +513,20 @@ object CardinalityCostModel {
 
       case Selection(predicate, _) => costPerRowFor(predicate, semanticTable)
 
-      case RemoteBatchPropertiesWithFilter(_, _, properties) =>
-        properties.flatMap(_.dependencies).size * STORE_LOOKUP_COST_PER_ROW
+      case RemoteBatchPropertiesWithFilter(_, predicates, properties) =>
+        // RemoteBatchPropertiesWithFilter will execute the predicates on the shard and fetch properties.
+        // We need to include a cost for property retrieval as well as the cost of evaluating the predicates.
+        val predicatePropertyAccesses = PropertyAccessHelper.findPropertyAccesses(predicates).size
+        val propertyAccessCost = properties.size * 0.1
+        (propertyAccessCost + predicatePropertyAccesses) * STORE_LOOKUP_COST_PER_ROW
 
-      case _: RemoteBatchPropertiesWithPushdownOperators => STORE_LOOKUP_COST_PER_ROW
+      case remoteBatchPropertiesWithPushdownOperators: RemoteBatchPropertiesWithPushdownOperators =>
+        // The operator will execute the predicates on the shard and fetch properties.
+        // We need to include a cost for property retrieval as well as the cost of evaluating the predicates.
+        val predicatePropertyAccesses =
+          PropertyAccessHelper.findPropertyAccesses(remoteBatchPropertiesWithPushdownOperators.predicates).size
+        val propertyAccessCost = remoteBatchPropertiesWithPushdownOperators.properties.size * 0.1
+        (propertyAccessCost + predicatePropertyAccesses) * STORE_LOOKUP_COST_PER_ROW
 
       case _: AllNodesScan => ALL_SCAN_COST_PER_ROW
 
@@ -521,10 +540,14 @@ object CardinalityCostModel {
         _: VarExpand |
         _: OptionalExpand => EXPAND_ALL_COST
 
-      case _: NodeUniqueIndexSeek |
-        _: NodeIndexSeek |
-        _: NodeIndexContainsScan |
-        _: NodeIndexEndsWithScan => INDEX_SEEK_COST_PER_ROW
+      case nodeIndexSeekLeafPlan: NodeIndexSeekLeafPlan =>
+        INDEX_SEEK_COST_PER_ROW + indexGetValueCost(nodeIndexSeekLeafPlan.properties)
+
+      case NodeIndexContainsScan(_, _, containsProperty, _, _, _, _) =>
+        INDEX_SEEK_COST_PER_ROW + indexGetValueCost(Seq(containsProperty))
+
+      case NodeIndexEndsWithScan(_, _, endsWithProperty, _, _, _, _) =>
+        INDEX_SEEK_COST_PER_ROW + indexGetValueCost(Seq(endsWithProperty))
 
       case _: NodeByIdSeek |
         _: NodeByElementIdSeek |
@@ -557,21 +580,33 @@ object CardinalityCostModel {
       case plan: UndirectedUnionRelationshipTypesScan =>
         hackyRelTypeScanCost(propertyAccess, plan.idName, directed = false)
 
-      case _: DirectedRelationshipIndexScan => DIRECTED_RELATIONSHIP_INDEX_SCAN_COST_PER_ROW
+      case directedRelationshipIndexScan: DirectedRelationshipIndexScan =>
+        DIRECTED_RELATIONSHIP_INDEX_SCAN_COST_PER_ROW + indexGetValueCost(directedRelationshipIndexScan.properties)
 
-      case _: UndirectedRelationshipIndexScan
+      case undirectedRelationshipIndexScan: UndirectedRelationshipIndexScan
         // Only every second row needs to access the index and the store
-        => DIRECTED_RELATIONSHIP_INDEX_SCAN_COST_PER_ROW / 2
+        => DIRECTED_RELATIONSHIP_INDEX_SCAN_COST_PER_ROW / 2 + indexGetValueCost(
+          undirectedRelationshipIndexScan.properties
+        )
 
-      case _: DirectedRelationshipIndexSeek |
-        _: DirectedRelationshipIndexContainsScan |
-        _: DirectedRelationshipIndexEndsWithScan => INDEX_SEEK_COST_PER_ROW + STORE_LOOKUP_COST_PER_ROW
+      case directedRelationshipIndexSeek: DirectedRelationshipIndexSeek =>
+        INDEX_SEEK_COST_PER_ROW + STORE_LOOKUP_COST_PER_ROW + indexGetValueCost(
+          directedRelationshipIndexSeek.properties
+        )
+      case containsScan: DirectedRelationshipIndexContainsScan =>
+        INDEX_SEEK_COST_PER_ROW + STORE_LOOKUP_COST_PER_ROW + indexGetValueCost(containsScan.properties)
+      case endsWithScan: DirectedRelationshipIndexEndsWithScan =>
+        INDEX_SEEK_COST_PER_ROW + STORE_LOOKUP_COST_PER_ROW + indexGetValueCost(endsWithScan.properties)
 
-      case _: UndirectedRelationshipIndexSeek |
-        _: UndirectedRelationshipIndexContainsScan |
-        _: UndirectedRelationshipIndexEndsWithScan
-        // Only every second row needs to access the index and the store
-        => (INDEX_SEEK_COST_PER_ROW + STORE_LOOKUP_COST_PER_ROW) / 2
+      // Only every second row needs to access the index and the store
+      case undirectedRelationshipIndexSeek: UndirectedRelationshipIndexSeek =>
+        (INDEX_SEEK_COST_PER_ROW + STORE_LOOKUP_COST_PER_ROW) / 2 + indexGetValueCost(
+          undirectedRelationshipIndexSeek.properties
+        )
+      case containsScan: UndirectedRelationshipIndexContainsScan =>
+        (INDEX_SEEK_COST_PER_ROW + STORE_LOOKUP_COST_PER_ROW) / 2 + indexGetValueCost(containsScan.properties)
+      case endsWithScan: UndirectedRelationshipIndexEndsWithScan =>
+        (INDEX_SEEK_COST_PER_ROW + STORE_LOOKUP_COST_PER_ROW) / 2 + indexGetValueCost(endsWithScan.properties)
 
       case _: NodeHashJoin |
         _: AggregatingPlan |
@@ -606,11 +641,40 @@ object CardinalityCostModel {
       case _: PartitionedScanPlan =>
         throw new IllegalStateException("partitioned scans should only be planned at physical planning")
 
-      case RemoteBatchProperties(_, properties) => properties.flatMap(_.dependencies).size * STORE_LOOKUP_COST_PER_ROW
-
+      case RemoteBatchProperties(_, properties) =>
+        // RemoteBatchProperties will need to consider two things for cost:
+        // 1. The number of distinct variables that we need to fetch from the shard.
+        // 2. The number of properties per variable that we need to fetch from the shard.
+        // While the cost of fetching each variable is higher, the cost of each property per variable is not free either.
+        // Therefore, each variable will have a cost proportional to 1 + properties.size * 0.1. where 1 is the cost factor for fetching the variable and 0.1 for fetching each property.
+        properties.groupBy(_.map).foldLeft(0.0) {
+          case (count, (_, props)) => count + (1 + props.size * 0.1) * STORE_LOOKUP_COST_PER_ROW
+        }
       case _ // Default
         => DEFAULT_COST_PER_ROW
     }
+
+  // An index seek is 0.9 costlier per row than an index scan, but a seek getting 1 value should be cheaper than a scan getting 2 values.
+  // Essentially, we want
+  //      .nodeIndexOperator(
+  //        "n:Person(firstName = 'foo')",
+  //        indexOrder = IndexOrderAscending,
+  //        getValue = Map("firstName" -> DoNotGetValue)
+  //      ) this has a cost of 1.9
+  // to be cheaper than
+  //
+  //       .nodeIndexOperator(
+  //        "n:Person(firstName)",
+  //        indexOrder = IndexOrderAscending,
+  //        getValue = Map("firstName" -> GetValue)
+  //      ) the index operator here has a cost of 1.0 (ignoring firstName -> getValue). (That could be used in a filter like this later .filter(cache[n.firstName] == 'foo'))
+  // However, given that we actually have to fetch the values, this scan should be more expensive than a seek that does not get the value.
+  // Therefore, we use a cost of 0.95 for each property that should be fetched.
+  // This example is further accentuated in composite indexes, in order to reduce the number of variables that need to be fetched.
+  // This is particularly important for SPD, where the properties are fetched from a remote shard.
+  // In other cases this metric will not be used, since the GetValue behaviour is determined after the plan is generated in rewriters.
+  private def indexGetValueCost(indexProperties: Seq[IndexedProperty]): Double =
+    indexProperties.count(_.shouldGetValue) * 0.95
 
   /**
    * The input cardinality if defined, otherwise the output cardinality

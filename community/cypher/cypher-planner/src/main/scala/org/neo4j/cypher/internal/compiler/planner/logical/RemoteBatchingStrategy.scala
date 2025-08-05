@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityInde
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicateWithValueBehavior
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.IsNotNull
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Property
@@ -269,6 +270,8 @@ object RemoteBatchingStrategy {
       propertyPredicate.queryExpression match {
         case ExistenceQueryExpression() => propertyPredicate.predicate match {
             case _: ExistsExpression =>
+              false // the original query was an existence query, so no other predicate to execute later
+            case _: IsNotNull =>
               false // the original query was an existence query, so no other predicate to execute later
             case _ => true // the original query was not an existence query, so we will execute this predicate later
           }
