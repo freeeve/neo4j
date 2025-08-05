@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertThat;
 import static org.neo4j.configuration.SettingValueParsers.TRUE;
 import static org.neo4j.server.helpers.CommunityWebContainerBuilder.serverOnRandomPorts;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import io.netty.channel.unix.DomainSocketAddress;
 import java.io.IOException;
@@ -47,6 +48,7 @@ import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.server.helpers.TestWebContainer;
 import org.neo4j.server.rest.domain.JsonHelper;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.server.ExclusiveWebContainerTestBase;
 
 class BoltIT extends ExclusiveWebContainerTestBase {
@@ -103,6 +105,9 @@ class BoltIT extends ExclusiveWebContainerTestBase {
     }
 
     @Test
+    @SkipOnSpd(
+            reason = "We bind to more addresses",
+            notes = {incompatible})
     void shouldBindToMultipleAddresses() throws Exception {
         testWebContainer = serverOnRandomPorts()
                 .withProperty(BoltConnector.enabled.name(), TRUE)

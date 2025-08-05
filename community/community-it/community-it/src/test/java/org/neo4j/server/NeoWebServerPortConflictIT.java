@@ -61,7 +61,6 @@ class NeoWebServerPortConflictIT extends ExclusiveWebContainerTestBase {
             }
 
             assertThat(logProvider)
-                    .forClass(CommunityNeoWebServer.class)
                     .forLevel(ERROR)
                     .containsMessageWithArguments(
                             "Failed to start Neo4j on %s: %s",
@@ -100,7 +99,6 @@ class NeoWebServerPortConflictIT extends ExclusiveWebContainerTestBase {
             }
 
             assertThat(logProvider)
-                    .forClass(CommunityNeoWebServer.class)
                     .forLevel(ERROR)
                     .containsMessageWithArguments(
                             "Failed to start Neo4j on %s: %s",
