@@ -133,6 +133,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
+import org.neo4j.cypher.internal.util.Cardinality.NumericCardinality
 import org.neo4j.cypher.internal.util.Cost
 import org.neo4j.cypher.internal.util.CostPerRow
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
@@ -352,8 +353,9 @@ case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChec
 
       case UnionNodeByLabelsScan(_, labels, _, _) =>
         val rowCost = costPerRow(plan, effectiveCardinalities.inputCardinality, semanticTable, propertyAccess)
-        val nextCallsForCursor = labels.map(l => statistics.nodesWithLabelCardinality(semanticTable.id(l)).amount).sum
-        Cardinality(nextCallsForCursor) * rowCost
+        val nextCallsForCursor =
+          labels.map(l => statistics.nodesWithLabelCardinality(semanticTable.id(l))).sum(NumericCardinality)
+        nextCallsForCursor * effectiveCardinalities.lhsReduction.fraction * rowCost
 
       case IntersectionNodeByLabelsScan(_, labels, _, _) =>
         // We don't use the outgoing cardinality to compute the cost here since for doing the intersection
@@ -363,7 +365,7 @@ case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChec
         // need to visit all 10 A nodes to find all the intersecting nodes.
         val nextCallsForCursor = labels.map(l => statistics.nodesWithLabelCardinality(semanticTable.id(l))).min
         val rowCost = costPerRow(plan, effectiveCardinalities.inputCardinality, semanticTable, propertyAccess)
-        nextCallsForCursor * rowCost
+        nextCallsForCursor * effectiveCardinalities.lhsReduction.fraction * rowCost
 
       case SubtractionNodeByLabelsScan(_, positiveLabels, negativeLabels, _, _) =>
         val rowCost = costPerRow(plan, effectiveCardinalities.inputCardinality, semanticTable, propertyAccess)
@@ -375,14 +377,13 @@ case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChec
         // Nodes with any negative label:  n3, n4, n6, n7
         // The set difference gives all resulting nodes of the subtraction scan: n5
         val nextCallsForPositiveCursor =
-          positiveLabels.map(l => statistics.nodesWithLabelCardinality(semanticTable.id(l)).amount).min
+          positiveLabels.map(l => statistics.nodesWithLabelCardinality(semanticTable.id(l))).min
         // Take the worst case where the sets are disjoint (i.e. the sum of the set cardinalities)
         val negativeLabelsCardinalitySum = negativeLabels.map(l =>
-          statistics.nodesWithLabelCardinality(semanticTable.id(l)).amount
-        ).sum
-        val nextCallsForNegativeCursor = math.min(nextCallsForPositiveCursor, negativeLabelsCardinalitySum)
-
-        Cardinality(nextCallsForPositiveCursor + nextCallsForNegativeCursor) * rowCost
+          statistics.nodesWithLabelCardinality(semanticTable.id(l))
+        ).sum(NumericCardinality)
+        val nextCallsForNegativeCursor = Cardinality.min(nextCallsForPositiveCursor, negativeLabelsCardinalitySum)
+        (nextCallsForPositiveCursor + nextCallsForNegativeCursor) * effectiveCardinalities.lhsReduction.fraction * rowCost
 
       case _ =>
         val rowCost = costPerRow(plan, effectiveCardinalities.inputCardinality, semanticTable, propertyAccess)

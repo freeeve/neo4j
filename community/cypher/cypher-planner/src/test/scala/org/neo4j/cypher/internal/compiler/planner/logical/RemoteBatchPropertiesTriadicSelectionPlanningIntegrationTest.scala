@@ -90,9 +90,7 @@ class RemoteBatchPropertiesTriadicSelectionPlanningIntegrationTest
         |RETURN a, b, c
         |""".stripMargin
 
-    val triadicPlanner = triadicPlannerBase
-      .enablePrintCostComparisons()
-      .build()
+    val triadicPlanner = triadicPlannerBase.build()
     val plan = triadicPlanner.plan(query).stripProduceResults
     plan shouldEqual triadicPlanner.subPlanBuilder()
       .filter("NOT r2 = r1", "c:Person")

@@ -725,4 +725,46 @@ class LimitPropagationPlanningIntegrationTest
       .nodeByLabelScan("n", "Node")
       .build()
   }
+
+  test("should prefer intersection scan under LIMIT") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 700)
+      .setLabelCardinality("B", 200)
+      .build()
+
+    val plan = planner.plan("MATCH (a:A&B) RETURN a LIMIT 20").stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .limit(20)
+      .intersectionNodeByLabelsScan("a", Seq("A", "B"))
+      .build()
+  }
+
+  test("should prefer union scan under LIMIT") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 700)
+      .setLabelCardinality("B", 200)
+      .build()
+
+    val plan = planner.plan("MATCH (ab:A|B) RETURN ab LIMIT 20").stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .limit(20)
+      .unionNodeByLabelsScan("ab", Seq("A", "B"))
+      .build()
+  }
+
+  test("should prefer subtraction scan under LIMIT") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 700)
+      .setLabelCardinality("B", 200)
+      .build()
+
+    val plan = planner.plan("MATCH (a:A&!B) RETURN a LIMIT 20").stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .limit(20)
+      .subtractionNodeByLabelsScan("a", Seq("A"), Seq("B"))
+      .build()
+  }
 }

@@ -54,6 +54,7 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cost
 import org.neo4j.cypher.internal.util.CostPerRow
+import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.Multiplier
 import org.neo4j.cypher.internal.util.Selectivity
 import org.neo4j.cypher.internal.util.UpperBound
@@ -1154,5 +1155,82 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
     }
 
     ansExpandCost should be < relTypeScanCost
+  }
+
+  test("should reduce cost of intersection scan under LIMIT") {
+    val builder = new LogicalPlanBuilder(wholePlan = false)
+    val plan = builder
+      .intersectionNodeByLabelsScan("n", Seq("A", "B"))
+      .build()
+
+    val resolvedLabels = Map("A" -> LabelId(0), "B" -> LabelId(1))
+
+    val semanticTable = SemanticTable(resolvedLabelNames = resolvedLabels)
+
+    val withoutLimit = QueryGraphSolverInput.empty
+    val withLimit =
+      QueryGraphSolverInput.empty
+        .withLimitSelectivityConfig(LimitSelectivityConfig(Selectivity.of(0.5).get, Selectivity.ONE))
+
+    val unlimited =
+      costFor(plan, withoutLimit, semanticTable, builder.cardinalities, builder.providedOrders)
+    unlimited shouldEqual
+      HardcodedGraphStatistics.nodesWithLabelCardinality(resolvedLabels.get("A")) *
+      CostPerRow(INDEX_SCAN_COST_PER_ROW)
+
+    val limited =
+      costFor(plan, withLimit, semanticTable, builder.cardinalities, builder.providedOrders)
+    limited should be < unlimited
+    limited shouldEqual (unlimited * 0.5)
+  }
+
+  test("should reduce cost of union scan under LIMIT") {
+    val builder = new LogicalPlanBuilder(wholePlan = false)
+    val plan = builder
+      .unionNodeByLabelsScan("n", Seq("A", "B"))
+      .build()
+
+    val resolvedLabels = Map("A" -> LabelId(0), "B" -> LabelId(1))
+    val semanticTable = SemanticTable(resolvedLabelNames = resolvedLabels)
+
+    val withoutLimit = QueryGraphSolverInput.empty
+    val withLimit =
+      QueryGraphSolverInput.empty
+        .withLimitSelectivityConfig(LimitSelectivityConfig(Selectivity.of(0.5).get, Selectivity.ONE))
+
+    val unlimited = costFor(plan, withoutLimit, semanticTable, builder.cardinalities, builder.providedOrders)
+    unlimited shouldEqual
+      (HardcodedGraphStatistics.nodesWithLabelCardinality(resolvedLabels.get("A")) +
+        HardcodedGraphStatistics.nodesWithLabelCardinality(resolvedLabels.get("B"))) *
+      CostPerRow(INDEX_SCAN_COST_PER_ROW)
+
+    val limited = costFor(plan, withLimit, semanticTable, builder.cardinalities, builder.providedOrders)
+    limited should be < unlimited
+    limited shouldEqual (unlimited * 0.5)
+  }
+
+  test("should reduce cost of subtraction scan under LIMIT") {
+    val builder = new LogicalPlanBuilder(wholePlan = false)
+    val plan = builder
+      .subtractionNodeByLabelsScan("n", Seq("A"), Seq("B"))
+      .build()
+
+    val resolvedLabels = Map("A" -> LabelId(0), "B" -> LabelId(1))
+    val semanticTable = SemanticTable(resolvedLabelNames = resolvedLabels)
+
+    val withoutLimit = QueryGraphSolverInput.empty
+    val withLimit =
+      QueryGraphSolverInput.empty
+        .withLimitSelectivityConfig(LimitSelectivityConfig(Selectivity.of(0.5).get, Selectivity.ONE))
+
+    val unlimited = costFor(plan, withoutLimit, semanticTable, builder.cardinalities, builder.providedOrders)
+    unlimited shouldEqual
+      (HardcodedGraphStatistics.nodesWithLabelCardinality(resolvedLabels.get("A")) +
+        HardcodedGraphStatistics.nodesWithLabelCardinality(resolvedLabels.get("B"))) *
+      DEFAULT_COST_PER_ROW
+
+    val limited = costFor(plan, withLimit, semanticTable, builder.cardinalities, builder.providedOrders)
+    limited should be < unlimited
+    limited shouldEqual (unlimited * 0.5)
   }
 }
