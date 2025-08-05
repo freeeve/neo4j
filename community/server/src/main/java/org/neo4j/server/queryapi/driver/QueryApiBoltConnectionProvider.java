@@ -21,6 +21,7 @@ package org.neo4j.server.queryapi.driver;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import org.neo4j.bolt.connection.AuthToken;
@@ -61,15 +62,20 @@ record QueryApiBoltConnectionProvider(BoltConnectionProvider delegate) implement
             return CompletableFuture.failedStage(e);
         }
         return delegate.connect(
-                uri,
-                routingContextAddress,
-                boltAgent,
-                userAgent,
-                connectTimeoutMillis,
-                securityPlan,
-                authToken,
-                minVersion,
-                notificationConfig);
+                        uri,
+                        routingContextAddress,
+                        boltAgent,
+                        userAgent,
+                        connectTimeoutMillis,
+                        securityPlan,
+                        authToken,
+                        minVersion,
+                        notificationConfig)
+                .thenApply(conn -> {
+                    conn.setReadTimeout(Duration.ofDays(Integer.MAX_VALUE));
+                    return conn;
+                })
+                .thenApply(QueryApiBoltConnection::new);
     }
 
     @Override
