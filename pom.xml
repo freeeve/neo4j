@@ -1383,7 +1383,7 @@
         <version>${guava.version}</version>
         <scope>test</scope>
       </dependency>
-	  <dependency>
+      <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
         <version>${guava.version}</version>
@@ -1571,7 +1571,25 @@
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-core_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
         <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+     <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-compatible</artifactId>
         <version>${scala.test.version}</version>
         <scope>test</scope>
       </dependency>
@@ -1585,6 +1603,12 @@
         <groupId>org.scalatestplus</groupId>
         <artifactId>mockito-4-6_${scala.binary.version}</artifactId>
         <version>${scala.test.version}.0</version>
+        <scope>test</scope>
+      </dependency>
+     <dependency>
+        <groupId>org.scalactic</groupId>
+        <artifactId>scalactic_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>
@@ -1631,6 +1655,12 @@
         <groupId>com.lihaoyi</groupId>
         <artifactId>pprint_${scala.binary.version}</artifactId>
         <version>0.6.0</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.lihaoyi</groupId>
+        <artifactId>fansi_${scala.binary.version}</artifactId>
+        <version>0.2.9</version>
         <scope>test</scope>
       </dependency>
       <dependency>

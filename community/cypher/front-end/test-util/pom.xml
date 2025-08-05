@@ -55,12 +55,27 @@
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-core_${scala.binary.version}</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
             <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.binary.version}</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -71,6 +86,11 @@
         <dependency>
             <groupId>org.scalatestplus</groupId>
             <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-compatible</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -106,6 +126,11 @@
         <dependency>
             <groupId>com.lihaoyi</groupId>
             <artifactId>pprint_${scala.binary.version}</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.lihaoyi</groupId>
+            <artifactId>fansi_${scala.binary.version}</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>

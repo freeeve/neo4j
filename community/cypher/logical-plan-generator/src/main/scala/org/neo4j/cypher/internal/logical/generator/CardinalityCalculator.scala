@@ -64,7 +64,6 @@ import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.Multiplier
-import org.scalatest.Assertions.fail
 
 trait CardinalityCalculator[-T <: LogicalPlan] {
 
@@ -244,7 +243,7 @@ object CardinalityCalculator {
   private def toIntegerLiteral(count: Expression): IntegerLiteral = {
     count match {
       case x: IntegerLiteral => x
-      case x                 => fail(s"Expected IntegerLiteral but got ${x.getClass}")
+      case x                 => throw new IllegalArgumentException(s"Expected IntegerLiteral but got ${x.getClass}")
     }
   }
 }

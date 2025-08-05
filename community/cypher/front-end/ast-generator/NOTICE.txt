@@ -29,11 +29,7 @@ Apache Software License, Version 2.0
   Java Native Access
   Javassist
   Reflections
-  scala-xml
   scalacheck-1.16
-  scalactic
-  scalatest-compatible
-  scalatest-core
 
 BSD - Scala License
   Scala Library
