@@ -74,7 +74,7 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
         Some(
           NodeTypeReferenceByIdentifyingLabel(
             node.identifyingLabel,
-            typeRef.orElse(node.variable)
+            typeRef.orElse(node.variable.map(_.copyId))
           )(nodeTypeReference.position)
         )
       ).getOrElse(Some(ntrl))

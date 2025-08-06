@@ -32,9 +32,11 @@ import org.neo4j.cypher.internal.ast.PropertyType.PropertyInlineUniquenessConstr
 import org.neo4j.cypher.internal.ast.prettifier.GraphTypeStringifier
 import org.neo4j.cypher.internal.graphtype.GraphTypeTestCase
 import org.neo4j.cypher.internal.rewriting.conditions.NoInlineConstraints
+import org.neo4j.cypher.internal.rewriting.conditions.NoReferenceEqualityAmongVariables
 import org.neo4j.cypher.internal.util.CancellationChecker.NeverCancelled
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.symbols.AnyType
 import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.StringType
@@ -430,6 +432,36 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
     )
   }
 
+  test("Rewrite endpoints should not duplicate variables") {
+    val gt = graphType(
+      nodeType(
+        "Node",
+        "n",
+        propertyType(
+          "name",
+          AnyType(isNullable = false)
+        )
+      ),
+      edgeType(nodeTypeRefByVar("n"), "REL", nodeTypeRefByLabel("Node"))
+    )
+
+    // When
+    val rewritten = rewriter.apply(gt)
+
+    NoReferenceEqualityAmongVariables.apply(rewritten)(NeverCancelled) shouldBe empty
+    rewritten shouldBe graphType(
+      nodeType(
+        "Node",
+        "n",
+        propertyType(
+          "name",
+          AnyType(isNullable = false)
+        )
+      ),
+      edgeType(identifyingNodeTypeRef("Node", "n"), "REL", identifyingNodeTypeRef("Node", "n"))
+    )
+  }
+
   // Negative
   test("Rewrite invalid edge type should throw exception") {
     // Given
@@ -526,6 +558,7 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
     test(s"${tc.name} should rewrite with no errors") {
       val rewritten = rewriter(tc.ast)
       NoInlineConstraints.apply(rewritten)(NeverCancelled) shouldBe empty
+      NoReferenceEqualityAmongVariables.apply(rewritten)(NeverCancelled) shouldBe empty
     }
   }
 }
