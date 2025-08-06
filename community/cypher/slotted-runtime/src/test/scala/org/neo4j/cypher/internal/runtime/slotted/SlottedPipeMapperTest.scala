@@ -22,9 +22,9 @@ package org.neo4j.cypher.internal.runtime.slotted
 import org.mockito.Mockito
 import org.mockito.Mockito.when
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -121,6 +121,8 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.VarLengthExpandSlottedPip
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.cypher.internal.util.attribution.IdGen
+import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
@@ -132,8 +134,8 @@ import org.neo4j.values.storable.Values.longValue
 import org.neo4j.values.virtual.VirtualValues
 
 //noinspection NameBooleanParameters
-class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSupport2 with FakeEntityTestSupport {
-
+class SlottedPipeMapperTest extends CypherFunSuite with AstConstructionTestSupport with FakeEntityTestSupport {
+  implicit val idGen: IdGen = new SequentialIdGen()
   implicit private val table: CachableSemanticTable = CachableSemanticTable(SemanticTable())
 
   private def build(beforeRewrite: LogicalPlan): Pipe = {

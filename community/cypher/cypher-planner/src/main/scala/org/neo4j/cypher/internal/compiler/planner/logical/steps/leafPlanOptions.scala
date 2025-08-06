@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
-import org.neo4j.cypher.internal.compiler.helpers.SeqSupport.RichSeq
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanFinder
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerConfiguration
@@ -45,6 +44,7 @@ import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexEndsWi
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.IndexType
+import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
 
 object leafPlanOptions extends LeafPlanFinder {
 

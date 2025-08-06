@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.helpers
 
-import org.neo4j.cypher.internal.compiler.helpers.SeqSupport.RichSeq
+import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
 import org.scalatest.matchers.should.Matchers

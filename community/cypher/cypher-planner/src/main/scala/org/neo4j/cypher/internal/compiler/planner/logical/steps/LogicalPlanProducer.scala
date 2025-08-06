@@ -43,7 +43,6 @@ import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.UsingScanHint
 import org.neo4j.cypher.internal.ast.UsingStatefulShortestPathHint
 import org.neo4j.cypher.internal.compiler.ExecutionModel
-import org.neo4j.cypher.internal.compiler.helpers.PredicateHelper.coercePredicatesWithAnds
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
@@ -305,6 +304,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LeveragedOrders
 import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.PredicateHelper.coercePredicatesWithAnds
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.attribution.IdGen
