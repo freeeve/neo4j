@@ -413,9 +413,12 @@ trait GraphDatabaseTestSupport
       val relationships = tx.getAllRelationships
       try {
         val relIterator = relationships.iterator()
-
-        while (relIterator.hasNext) {
-          relIterator.next().delete()
+        try {
+          while (relIterator.hasNext) {
+            relIterator.next().delete()
+          }
+        } finally {
+          relIterator.close()
         }
       } finally {
         relationships.close()
