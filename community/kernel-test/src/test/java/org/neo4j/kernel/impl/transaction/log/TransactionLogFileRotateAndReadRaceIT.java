@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.transaction.log;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
@@ -87,6 +88,9 @@ class TransactionLogFileRotateAndReadRaceIT {
 
     @Test
     void shouldNotSeeEmptyLogFileWhenReadingTransactionStream() throws Exception {
+        assumeFalse(
+                LatestVersions.LATEST_LOG_FORMAT.usesSegments(),
+                "Disabled for Enveloped log files as they can give spurious errors when reads overlap live writes");
         // GIVEN
         LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
         Config cfg = Config.newBuilder()
