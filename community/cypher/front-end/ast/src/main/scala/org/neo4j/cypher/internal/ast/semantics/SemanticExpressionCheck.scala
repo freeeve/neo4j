@@ -17,7 +17,6 @@
 package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.CypherTypeName
@@ -1207,8 +1206,8 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     }
 
   private def checkForShadowedVariables(
-    importingWithSubqueryCallsToFilter: Seq[Clause],
-    scopeClauseSubqueryCallsToFilter: Seq[Clause]
+    importingWithSubqueryCallsToFilter: Seq[ImportingWithSubqueryCall],
+    scopeClauseSubqueryCallsToFilter: Seq[ScopeClauseSubqueryCall]
   ): SemanticCheck = (inner: SemanticState) => {
     // Only check the first time to avoid unnecessary checks after extensive rewriting.
     if (inner.semanticCheckHasRunOnce) SemanticCheckResult(inner, Seq.empty)
@@ -1226,9 +1225,11 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
         scope.parent.map(_.scope.allSymbols).getOrElse(Map.empty)
       }.flatten.groupMapReduce(_._1)(_._2)(_ ++ _)
 
-      // Variables inside CALL {} are allowed to shadow outside variables and should not be considered errors.
+      // Variables inside CALL () {} are allowed to shadow outside variables and should not be considered errors.
       val scopedClauseSubqueryCallScopes =
         inner.recordedScopes.filter(recordedScope => scopeClauseSubqueryCallsToFilter.contains(recordedScope._1.node))
+      val returnsOfSubquery = scopeClauseSubqueryCallsToFilter.flatMap(_.innerQuery.returnVariables.explicitVariables)
+      val returnVariableNames = returnsOfSubquery.map(_.name)
       val scopeClauseSubqueryCallSymbols = scopedClauseSubqueryCallScopes.map { case (_, scope) =>
         scope.parent.map(_.scope.allSymbols).getOrElse(Map.empty)
       }.flatten.groupMapReduce(_._1)(_._2)(_ ++ _)
@@ -1244,19 +1245,29 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           (name, symbols.filterNot(symbol => symbol.unionSymbol).map(_.definition))
       }
 
+      val innerVariables = innerDefinitions.values.flatMap(x => x.map(_.asVariable)) ++ returnsOfSubquery
+
       // If a variable of the same name exists in the inner scope and it is not a reference to the outer scope variable.
       // Also the outer variable must come before the inner variable (i.e. have a lower position) for it to be a case of shadowing.
       def isShadowed(s: Symbol): Boolean = {
         val outerName = s.name
         val outerPos = s.definition.positionsAndUniqueIdString._1
 
-        innerDefinitions.contains(outerName) &&
-        innerDefinitions(outerName).exists(inner => inner.positionsAndUniqueIdString._1 > outerPos)
+        (innerDefinitions.contains(outerName) &&
+          innerDefinitions(outerName).exists(inner => inner.positionsAndUniqueIdString._1 > outerPos)) ||
+        returnVariableNames.contains(outerName)
       }
 
-      val shadowedSymbols = outerScopeSymbols.collect {
-        case (name, symbol) if isShadowed(symbol) =>
+      val shadowedSymbols: Map[String, InputPosition] = outerScopeSymbols.collect {
+        // Return variables only need a name match, but inner definitions we need to make sure we don't collect
+        // the wrong position
+        case (name, symbol)
+          if innerDefinitions.contains(name) && innerDefinitions(name).exists(_ != symbol.definition) && isShadowed(
+            symbol
+          ) =>
           name -> innerDefinitions(name).find(_ != symbol.definition).get.asVariable.position
+        case (name, symbol) if isShadowed(symbol) =>
+          name -> innerVariables.find(_.name == name).get.position
       }
 
       val errors = shadowedSymbols.map {

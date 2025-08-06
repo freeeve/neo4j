@@ -274,7 +274,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)((n)-[r]->(m))+(b)
         |WHERE allReduce(acc = 0,
         |                node IN n | acc + COUNT {
-        |                        CALL (*) { MATCH (node)-[:FRIEND_OF]->(m) RETURN node, m }
+        |                        CALL (*) { MATCH (node)-[:FRIEND_OF]->(m) RETURN node AS y, m AS x }
         |                      },
         |                acc < 10)
         |RETURN a, b
@@ -287,7 +287,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)((n)-[r]->(m))+(b)
         |WHERE allReduce(acc = 0,
         |                node IN n | acc + COUNT {
-        |                        CALL (m) { MATCH (node)-[:FRIEND_OF]->(m) RETURN node, m }
+        |                        CALL (m) { MATCH (node)-[:FRIEND_OF]->(m) RETURN node AS k, m AS x }
         |                      },
         |                acc < 10)
         |RETURN a, b
@@ -300,7 +300,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)((n)-[r]->(m))+(b)
         |WHERE allReduce(acc = 0,
         |                node IN n | acc + COUNT {
-        |                        CALL () { MATCH (node)-[:FRIEND_OF]->(m) RETURN node, m }
+        |                        CALL () { MATCH (node)-[:FRIEND_OF]->(m) RETURN node AS k, m AS x }
         |                      },
         |                acc < 10)
         |RETURN a, b
@@ -314,7 +314,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |WHERE allReduce(acc = 0,
         |                node IN n | acc + node.prop,
         |                EXISTS {
-        |                        CALL (*) { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a, m }
+        |                        CALL (*) { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a AS k, m AS x}
         |                      })
         |RETURN a, b
         |""".stripMargin
@@ -327,7 +327,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |WHERE allReduce(acc = 0,
         |                node IN n | acc + node.prop,
         |                EXISTS {
-        |                        CALL (m) { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a, m }
+        |                        CALL (m) { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a AS k, m AS x }
         |                      })
         |RETURN a, b
         |""".stripMargin
@@ -340,7 +340,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |WHERE allReduce(acc = 0,
         |                node IN n | acc + node.prop,
         |                EXISTS {
-        |                        CALL () { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a, m }
+        |                        CALL () { MATCH (a)-[:FRIEND_OF]->(m) WHERE a.prop = acc RETURN a AS k, m AS x }
         |                      })
         |RETURN a, b
         |""".stripMargin
@@ -391,7 +391,7 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
       """MATCH (a)((n)-[r]->(m))+(b)
         |WHERE allReduce(acc = {},
         |                node IN n | acc + COUNT {
-        |                        CALL (*) { MATCH (node)-[:FRIEND_OF]->(x) RETURN node, x}
+        |                        CALL (*) { MATCH (node)-[:FRIEND_OF]->(x) RETURN node AS k, x AS y}
         |                      },
         |                acc < 10)
         |RETURN a, b
