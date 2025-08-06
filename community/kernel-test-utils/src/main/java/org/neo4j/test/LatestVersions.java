@@ -19,7 +19,10 @@
  */
 package org.neo4j.test;
 
+import static org.neo4j.kernel.KernelVersion.GLORIOUS_FUTURE;
+
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
@@ -46,6 +49,9 @@ public final class LatestVersions {
             LogFormat.getLastVersionPreEnvelopeFormat();
     public static final DbmsRuntimeVersion LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES =
             findDbmsVersionMatchingKernelVersion(LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES);
+
+    public static final BinarySupportedKernelVersions FUTURE_BINARY_VERSIONS = new BinarySupportedKernelVersions(
+            Config.defaults(GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version()));
 
     private static DbmsRuntimeVersion findDbmsVersionMatchingKernelVersion(KernelVersion version) {
         for (DbmsRuntimeVersion dbmsRuntimeVersion : DbmsRuntimeVersion.VERSIONS) {
