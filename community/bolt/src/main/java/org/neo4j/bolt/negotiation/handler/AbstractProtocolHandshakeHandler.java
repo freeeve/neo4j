@@ -88,7 +88,9 @@ public abstract sealed class AbstractProtocolHandshakeHandler<I> extends SimpleC
 
         ChunkFrameDecoder frameDecoder;
         var readLimit = config.maxAuthenticationInboundBytes();
-        if (readLimit != 0) {
+        var isInternalConnector = config.isInternalConnector();
+
+        if (readLimit != 0 && !isInternalConnector) {
             this.log.debug(
                     "Imposing %d byte read-limit on connection '%s' until authentication is completed",
                     readLimit, this.connection.id());

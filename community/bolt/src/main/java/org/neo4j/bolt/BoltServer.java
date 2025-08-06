@@ -349,7 +349,8 @@ public class BoltServer extends LifecycleAdapter {
                     clusterSslPolicyProvider,
                     createAuthentication(internalAuthManager),
                     ConnectorType.INTRA_BOLT,
-                    allocator));
+                    allocator,
+                    true));
 
             log.info("Configured internal Bolt connector with listener address %s", internalListenAddress);
         }
@@ -510,10 +511,21 @@ public class BoltServer extends LifecycleAdapter {
         }
 
         // if read-limit has been configured, we'll register a listener which appends the necessary handlers to the
-        // network pipelines upon connection negotiation
-        var readLimit = config.get(BoltConnectorInternalSettings.unsupported_bolt_unauth_connection_max_inbound_bytes);
-        if (readLimit != 0) {
-            connector.registerListener(new ReadLimitConnectorListener(readLimit, logService.getInternalLogProvider()));
+        // network pipelines upon connection negotiation, but we only want to do this if it's an external connector
+        // This is because of an issue caused by using session auth:
+        // if you use session auth, the driver will pipeline the `LOGOFF` `, LOGON`, and `RUN` messages,
+        // This meant the read limit connector will be added between the logoff and logon.
+        // if your parameter map in the run is large# (like in SPD) this will hit the read limit and fail the query.
+        // meaning using session auth with a large parameter map will throw, even if you would be authenticated
+        // properly, we can fix
+        // this for SPD and query router by not installing it at all for internal trusted connections.
+        if (!connector.configuration().isInternalConnector()) {
+            var readLimit =
+                    config.get(BoltConnectorInternalSettings.unsupported_bolt_unauth_connection_max_inbound_bytes);
+            if (readLimit != 0) {
+                connector.registerListener(
+                        new ReadLimitConnectorListener(readLimit, logService.getInternalLogProvider()));
+            }
         }
 
         // Register the reset message connection listener
@@ -550,9 +562,11 @@ public class BoltServer extends LifecycleAdapter {
             ScopedSslPolicyProvider sslPolicyProvider,
             Authentication authentication,
             ConnectorType connectorType,
-            ByteBufAllocator allocator) {
+            ByteBufAllocator allocator,
+            boolean isInternalConnector) {
         var config = SocketConnectorConfiguration.factory()
                 .fromConfig(this.config)
+                .isInternalConnector(isInternalConnector)
                 .requireEncryption(encryptionRequired)
                 .sslPolicyProvider(sslPolicyProvider)
                 .build();
@@ -583,6 +597,28 @@ public class BoltServer extends LifecycleAdapter {
                 config,
                 logService.getUserLogProvider(),
                 logService.getInternalLogProvider());
+    }
+
+    private Connector createSocketConnector(
+            SocketAddress bindAddress,
+            Connection.Factory connectionFactory,
+            boolean encryptionRequired,
+            ConnectorTransport transport,
+            ScopedSslPolicyProvider sslPolicyProvider,
+            Authentication authentication,
+            ConnectorType connectorType,
+            ByteBufAllocator allocator) {
+
+        return createSocketConnector(
+                bindAddress,
+                connectionFactory,
+                encryptionRequired,
+                transport,
+                sslPolicyProvider,
+                authentication,
+                connectorType,
+                allocator,
+                false);
     }
 
     private Connector createAdditionalSocketConnector(

@@ -199,6 +199,16 @@ public interface ConnectorConfiguration {
     boolean enableTransactionThreadBinding();
 
     /**
+     * Identifies whether this connector is an internal connector.
+     * <p/>
+     * This allows the server to distinguish between internal and external connectors, if features are
+     * not applicable to one or the other.
+     *
+     * @return true if this is an internal connector, false otherwise.
+     */
+    boolean isInternalConnector();
+
+    /**
      * Specifies the total duration for which a thread is bound to a given connection when no requests
      * remain to be processed.
      * <p/>
@@ -262,5 +272,7 @@ public interface ConnectorConfiguration {
         SELF enableTransactionThreadBinding(boolean value);
 
         SELF threadBindingTimeout(Duration value);
+
+        SELF isInternalConnector(boolean value);
     }
 }

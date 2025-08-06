@@ -45,6 +45,7 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
     private final Duration connectionShutdownDuration;
     private final boolean enableTransactionThreadBinding;
     private final Duration threadBindingTimeout;
+    private final boolean isInternalConnector;
 
     protected AbstractConnectorConfiguration(AbstractFactory<?> builder) {
         this.enableProtocolCapture = builder.enableProtocolCapture;
@@ -65,6 +66,7 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
         this.connectionShutdownDuration = builder.connectionShutdownDuration;
         this.enableTransactionThreadBinding = builder.enableTransactionThreadBinding;
         this.threadBindingTimeout = builder.threadBindingTimeout;
+        this.isInternalConnector = builder.isInternalConnector;
     }
 
     @Override
@@ -153,6 +155,11 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
     }
 
     @Override
+    public boolean isInternalConnector() {
+        return this.isInternalConnector;
+    }
+
+    @Override
     public Duration threadBindingTimeout() {
         return this.threadBindingTimeout;
     }
@@ -179,6 +186,7 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
         private Duration connectionShutdownDuration = Duration.ofMinutes(5);
         private boolean enableTransactionThreadBinding = true;
         private Duration threadBindingTimeout = Duration.ofMillis(100);
+        private boolean isInternalConnector = false;
 
         @Override
         public SELF fromConfig(Config config) {
@@ -322,6 +330,12 @@ public abstract class AbstractConnectorConfiguration implements ConnectorConfigu
         @Override
         public SELF threadBindingTimeout(Duration value) {
             this.threadBindingTimeout = value;
+            return (SELF) this;
+        }
+
+        @Override
+        public SELF isInternalConnector(boolean value) {
+            this.isInternalConnector = value;
             return (SELF) this;
         }
     }
