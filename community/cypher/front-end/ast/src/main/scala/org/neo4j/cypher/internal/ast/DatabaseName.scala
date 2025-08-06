@@ -71,7 +71,8 @@ case class ParameterName(parameter: Parameter)(val position: InputPosition) exte
   ): (Option[String], String, String, String) = {
     val paramValue = params.get(parameter.name)
     if (!paramValue.isInstanceOf[TextValue]) {
-      throw ParameterWrongTypeException.expectedParameterToBeString(
+      throw ParameterWrongTypeException.expectedParameterToBeString42N51(
+        false,
         parameter.name,
         String.valueOf(paramValue),
         paramValue.prettify()

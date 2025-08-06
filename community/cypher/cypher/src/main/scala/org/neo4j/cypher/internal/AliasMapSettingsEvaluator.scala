@@ -64,11 +64,19 @@ class AliasMapSettingsEvaluator(procedures: Procedures, cypherVersion: CypherVer
     driverSettings.map(settings =>
       evaluateMap(params).applyOrElse(
         settings.map(param => params.get(param.name)),
-        (param: ExpressionMapOrParamValue) => {
-          throw InvalidArgumentsException.invalidDriverSettingsExpectedMap(
-            operation,
-            param.toOption.get
-          )
+        (paramValue: ExpressionMapOrParamValue) => {
+          settings match {
+            case Left(_) => throw InvalidArgumentsException.invalidDriverSettingsExpectedMap(
+                operation,
+                paramValue.toOption.get
+              )
+            case Right(parameter) =>
+              throw InvalidArgumentsException.invalidDriverSettingsExpectedMap42N51(
+                operation,
+                paramValue.toOption.get,
+                parameter.name
+              )
+          }
         }
       )
     ).map(AliasMapSettingsEvaluator.convert(_, operation))
@@ -83,7 +91,14 @@ class AliasMapSettingsEvaluator(procedures: Procedures, cypherVersion: CypherVer
       evaluateMap(params).applyOrElse(
         settings.map(param => params.get(param.name)),
         (param: ExpressionMapOrParamValue) =>
-          throw InvalidArgumentsException.invalidPropertiesExpectedMap(operation, param.toOption.get)
+          settings match {
+            case Left(_) => throw InvalidArgumentsException.invalidPropertiesExpectedMap(operation, param.toOption.get)
+            case Right(parameter) => throw InvalidArgumentsException.invalidPropertiesExpectedMap42N51(
+                operation,
+                param.toOption.get,
+                parameter.name
+              )
+          }
       )
     )
   }

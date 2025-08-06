@@ -1177,8 +1177,11 @@ public class InvalidArgumentException extends Neo4jException {
 
     public static InvalidArgumentException queryContainsIllegalName(String name) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N15)
-                        .withParam(GqlParams.StringParam.syntax, name)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
+                        .withParam(GqlParams.StringParam.param, name)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N15)
+                                .withParam(GqlParams.StringParam.syntax, name)
+                                .build())
                         .build())
                 .build();
         return new InvalidArgumentException(

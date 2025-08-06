@@ -984,7 +984,8 @@ object AdministrationCommandRuntime {
       val paramValue = params.get(parameter)
       // Check the parameter is actually the expected type
       if (!paramValue.isInstanceOf[TextValue]) {
-        throw ParameterWrongTypeException.expectedParameterToBeString(
+        throw ParameterWrongTypeException.expectedParameterToBeString42N51(
+          false,
           parameter,
           String.valueOf(paramValue),
           paramValue.prettify()

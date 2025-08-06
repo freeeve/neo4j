@@ -21,6 +21,7 @@ package org.neo4j.kernel.api.exceptions;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
+import static org.neo4j.gqlstatus.GqlHelper.getGql42N51;
 import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.databasesAlreadyExists;
 
 import java.util.List;
@@ -418,9 +419,23 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         return invalidInput(input, GqlParams.StringParam.cmd.process("DRIVER"), List.of("MAP"), oldMsg);
     }
 
+    public static InvalidArgumentsException invalidDriverSettingsExpectedMap42N51(
+            String operation, AnyValue input, String paramName) {
+        var oldMsg =
+                String.format("Failed to %s: Invalid driver settings '%s'. Expected a map value.", operation, input);
+        return invalidInput42N51(input, GqlParams.StringParam.cmd.process("DRIVER"), List.of("MAP"), oldMsg, paramName);
+    }
+
     public static InvalidArgumentsException invalidPropertiesExpectedMap(String operation, AnyValue input) {
         var oldMsg = String.format("Failed to %s: Invalid properties '%s'. Expected a map value.", operation, input);
         return invalidInput(input, GqlParams.StringParam.cmd.process("PROPERTIES"), List.of("MAP"), oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidPropertiesExpectedMap42N51(
+            String operation, AnyValue input, String paramName) {
+        var oldMsg = String.format("Failed to %s: Invalid properties '%s'. Expected a map value.", operation, input);
+        return invalidInput42N51(
+                input, GqlParams.StringParam.cmd.process("PROPERTIES"), List.of("MAP"), oldMsg, paramName);
     }
 
     public static InvalidArgumentsException unexpectedDriverSettingValue(
@@ -569,6 +584,13 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     private static InvalidArgumentsException invalidInput(
             AnyValue input, String context, List<String> validTypes, String oldMessage) {
         var gql = GqlHelper.getGql22G03_22N27(input.prettify(), context, validTypes);
+        return new InvalidArgumentsException(gql, oldMessage);
+    }
+
+    private static InvalidArgumentsException invalidInput42N51(
+            AnyValue input, String context, List<String> validTypes, String oldMessage, String paramName) {
+        var cause = GqlHelper.getGql22G03_22N27(input.prettify(), context, validTypes);
+        var gql = getGql42N51(paramName, cause);
         return new InvalidArgumentsException(gql, oldMessage);
     }
 }

@@ -353,15 +353,20 @@ object GqlExceptionMatchers extends GqlExceptionMatchers {
     )
   }
 
-  def typeExceptionGqlException(legacyMsg: String, msgPart: String): BeMatcher[Exception] = {
+  def typeExceptionGqlException(legacyMsg: String, msgPart: String, param: String): BeMatcher[Exception] = {
     gqlException(
       legacyMsg,
       gqlStatus(
-        GqlStatusInfoCodes.STATUS_22G03,
-        "error: data exception - invalid value type"
+        GqlStatusInfoCodes.STATUS_42N51,
+        s"error: syntax error or access rule violation - invalid parameter. Invalid parameter $$`$param`."
       ).withCause(
-        GqlStatusInfoCodes.STATUS_22N27,
-        s"error: data exception - invalid entity type. $msgPart"
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22G03,
+          "error: data exception - invalid value type"
+        ).withCause(
+          GqlStatusInfoCodes.STATUS_22N27,
+          s"error: data exception - invalid entity type. $msgPart"
+        )
       )
     )
   }
