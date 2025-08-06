@@ -211,6 +211,7 @@
     <s3mock.version>4.4.0</s3mock.version>
     <shiro.version>2.0.5</shiro.version>
     <cypherdsl.version>2024.7.1</cypherdsl.version>
+    <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
   </properties>
 
   <modules>
@@ -876,6 +877,38 @@
       <!-- Execute integration tests by default -->
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
+
+      <!-- Dependency analysis, fail on warnings if `dependency.analyze.failOnWarning` is true -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <failOnWarning>${dependency.analyze.failOnWarning}</failOnWarning>
+              <ignoredUnusedDeclaredDependencies>
+                <!-- Ignore test dependencies that are needed to run tests but not used directly. -->
+                <ignoredUnusedDeclaredDependency>org.junit.jupiter:*</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.scalatest:*</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>co.helmethair:scalatest-junit-runner</ignoredUnusedDeclaredDependency>
+
+                <!-- Dependency analysis fails to find usage of this dependency. -->
+                <ignoredUnusedDeclaredDependency>com.lihaoyi:pprint_${scala.binary.version}</ignoredUnusedDeclaredDependency>
+              </ignoredUnusedDeclaredDependencies>
+              <ignoredNonTestScopedDependencies>
+                <!-- TODO Not sure why this is needed. -->
+                <ignoredNonTestScopedDependency>org.neo4j:neo4j-gql-status</ignoredNonTestScopedDependency>
+                <!-- TODO Not sure why this is needed. -->
+                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-logical-plan-builder</ignoredUnusedDeclaredDependency>
+              </ignoredNonTestScopedDependencies>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- Spotless is used for checkstyle and automatic code formatting -->
@@ -1686,6 +1719,11 @@
       <dependency>
         <groupId>org.eclipse.collections</groupId>
         <artifactId>eclipse-collections</artifactId>
+        <version>${eclipse-collections.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.collections</groupId>
+        <artifactId>eclipse-collections-api</artifactId>
         <version>${eclipse-collections.version}</version>
       </dependency>
       <dependency>

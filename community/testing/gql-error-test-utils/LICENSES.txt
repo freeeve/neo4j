@@ -7,9 +7,6 @@ Apache Software License, Version 2.0
   Apache Commons Lang
   Apache Commons Text
   AssertJ Core
-  Jackson-annotations
-  Jackson-core
-  jackson-databind
   Neo4j Java Driver
   Netty/Buffer
   Netty/Codec/Base

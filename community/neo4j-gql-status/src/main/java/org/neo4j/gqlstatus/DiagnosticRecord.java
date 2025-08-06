@@ -19,8 +19,6 @@
  */
 package org.neo4j.gqlstatus;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
@@ -156,34 +154,6 @@ public class DiagnosticRecord implements Serializable {
     private static void addClassificationToMap(GqlClassification classification, Map<String, Object> map) {
         if (classification != ErrorClassification.UNKNOWN && classification != NotificationClassification.UNKNOWN) {
             map.put("_classification", String.valueOf(classification));
-        }
-    }
-
-    // This is not used right now, but will be later when Gql is included in logs
-    // This returns an Optional since this operation might fail and throw a JsonProcessingException
-    // JsonProcessingException is part of the Jackson library, and to avoid other modules depending
-    // on that library, we catch it here and return an Optional instead
-    // We could also catch the JsonProcessingException and return a new error instead,
-    // But right now we go for Optional
-    public Optional<String> asJson() {
-        var mapper = new ObjectMapper();
-        try {
-            var json = mapper.writeValueAsString(this.innerDiagnosticRecord);
-            return Optional.of(json);
-        } catch (JsonProcessingException e) {
-            return Optional.empty();
-        }
-    }
-
-    // This is not used right now, but could be useful
-    public static Optional<DiagnosticRecord> fromJson(String json) {
-        var mapper = new ObjectMapper();
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> parsed = mapper.readValue(json, Map.class);
-            return Optional.of(new DiagnosticRecord(parsed));
-        } catch (JsonProcessingException e) {
-            return Optional.empty();
         }
     }
 

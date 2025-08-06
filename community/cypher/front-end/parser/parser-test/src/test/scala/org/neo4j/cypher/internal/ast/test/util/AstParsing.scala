@@ -16,8 +16,6 @@
  */
 package org.neo4j.cypher.internal.ast.test.util
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ObjectNode
 import org.antlr.v4.runtime.Vocabulary
 import org.neo4j.cypher.internal.ast.CallClause
 import org.neo4j.cypher.internal.ast.Clause
@@ -60,10 +58,6 @@ import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.internal.helpers.Exceptions
 
-import java.nio.file.Files
-import java.nio.file.Path
-import java.nio.file.StandardOpenOption
-
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
@@ -74,7 +68,7 @@ trait AstParsing extends Parsers.Implicit {
 
   def parseAst[T <: ASTNode : ClassTag](cypher: String)(implicit parsers: Parsers[T]): ParseResults[T] = {
     val result = ParseResults[T](cypher, ParserInTest.AllParsers.map(p => p -> parseAst[T](p, cypher)).toMap)
-    if (LogParserTestQueries.enable) LogParserTestQueries.log(result)
+    // if (LogParserTestQueries.enable) LogParserTestQueries.log(result)
     result
   }
 
@@ -271,14 +265,17 @@ object Parsers {
   }
 }
 
-case class LogConf(mapper: ObjectMapper, path: Path)
+/*
 
 // Hack to dump parser test queries
 // 1. Set enable = true
 // 2. Run all parser tests.
 // 3. All queries and their results will be written to a temp file (search for "Writing parser test queries" in output)
+
+case class LogConf(mapper: ObjectMapper, path: Path)
+
 object LogParserTestQueries {
-  final val enable = false
+  final val enable = true
   var conf: LogConf = _
   val newLine = "\n".getBytes
 
@@ -314,3 +311,4 @@ object LogParserTestQueries {
       .set("parseResults", parseResults)
   }
 }
+ */

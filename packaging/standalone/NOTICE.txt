@@ -56,9 +56,6 @@ Apache Software License, Version 2.0
   firebase
   forever-agent
   grpc
-  Jackson-annotations
-  Jackson-core
-  jackson-databind
   jansi
   Java Native Access
   long

@@ -36,6 +36,7 @@
 
     <properties>
         <moduleName>org.neo4j.cypher.internal.frontend</moduleName>
+        <dependency.analyse.strict>true</dependency.analyse.strict>
     </properties>
 
     <dependencies>
@@ -220,33 +221,4 @@
         </dependency>
 
     </dependencies>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>analyze</id>
-                        <goals>
-                            <goal>analyze-only</goal>
-                        </goals>
-                        <configuration>
-                            <failOnWarning>true</failOnWarning>
-
-                            <ignoredUnusedDeclaredDependencies>
-                                <!-- Uses scala magic that the dependency analysis do not understand. -->
-                                <ignoredUnusedDeclaredDependency>com.lihaoyi:pprint_${scala.binary.version}</ignoredUnusedDeclaredDependency>
-                            </ignoredUnusedDeclaredDependencies>
-                            <ignoredNonTestScopedDependencies>
-                                <!-- Not sure why dependency analysis do not understand this dependency, fails to compile without it. -->
-                                <ignoredNonTestScopedDependency>org.neo4j:neo4j-gql-status</ignoredNonTestScopedDependency>
-                            </ignoredNonTestScopedDependencies>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
 </project>

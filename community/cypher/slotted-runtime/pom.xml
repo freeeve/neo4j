@@ -20,6 +20,7 @@
 
     <properties>
         <moduleName>org.neo4j.cypher.internal.compatibility.runtime.slotted</moduleName>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <scm>

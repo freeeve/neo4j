@@ -35,7 +35,6 @@ import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParseSuccess
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.ast.test.util.LogParserTestQueries
 import org.neo4j.cypher.internal.ast.test.util.Parses
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
@@ -722,9 +721,5 @@ class MiscParserTest extends AstParsingTestBase {
       )),
       return_(aliasedReturnItem(add(add(add(v"LF", v"BS1"), v"LF"), v"LF"), "x"))
     ))
-  }
-
-  test("Test logging is disabled") {
-    LogParserTestQueries.enable shouldBe false
   }
 }
