@@ -20,11 +20,10 @@
 package org.neo4j.cypher.internal.physicalplanning
 
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
-import org.neo4j.cypher.internal.compiler.planner.logical.PlanMatchHelp
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
@@ -83,6 +82,8 @@ import org.neo4j.cypher.internal.runtime.expressionVariableAllocation.AvailableE
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.attribution.IdGen
+import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
@@ -92,8 +93,8 @@ import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 //noinspection NameBooleanParameters
-class SlotAllocationTest extends CypherFunSuite with LogicalPlanningTestSupport2 with PlanMatchHelp {
-
+class SlotAllocationTest extends CypherFunSuite with AstConstructionTestSupport {
+  implicit val idGen: IdGen = new SequentialIdGen()
   private val LABEL = labelName("label")
   private val semanticTable = CachableSemanticTable(SemanticTable())
   private val NO_EXPR_VARS = new AvailableExpressionVariables()

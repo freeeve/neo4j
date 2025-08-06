@@ -19,9 +19,9 @@
  */
 package org.neo4j.cypher.internal.physicalplanning
 
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
-import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport2
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.plans.Aggregation
@@ -44,13 +44,15 @@ import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
 import org.neo4j.cypher.internal.runtime.expressionVariableAllocation.AvailableExpressionVariables
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
+import org.neo4j.cypher.internal.util.attribution.IdGen
+import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 //noinspection NameBooleanParameters
-class SlotAllocationArgumentsTest extends CypherFunSuite with LogicalPlanningTestSupport2 {
-
+class SlotAllocationArgumentsTest extends CypherFunSuite with AstConstructionTestSupport {
+  implicit val idGen: IdGen = new SequentialIdGen()
   private val semanticTable = CachableSemanticTable(SemanticTable())
   private val NO_EXPR_VARS = new AvailableExpressionVariables()
   private val config = CypherRuntimeConfiguration.defaultConfiguration

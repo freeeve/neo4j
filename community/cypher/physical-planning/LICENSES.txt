@@ -5,7 +5,6 @@ libraries. For an overview of the licenses see the NOTICE.txt file.
 ------------------------------------------------------------------------------
 Apache Software License, Version 2.0
   aircompressor
-  Apache Commons Codec
   Apache Commons Lang
   Apache Commons Text
   Apache Log4j API
@@ -28,7 +27,6 @@ Apache Software License, Version 2.0
   Java Concurrency Tools Core Library
   Java Native Access
   Jettison
-  magnolia
   Scala Reflect
   scala-collection-contrib
   snappy-java
@@ -285,8 +283,6 @@ SUCH DAMAGE.
 ------------------------------------------------------------------------------
 BSD License
   ANTLR 4 Runtime
-  asm
-  asm-tree
 ------------------------------------------------------------------------------
 
 Copyright (c) <year>, <copyright holder>

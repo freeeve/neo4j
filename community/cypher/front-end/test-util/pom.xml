@@ -74,13 +74,13 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.scalactic</groupId>
-            <artifactId>scalactic_${scala.binary.version}</artifactId>
+            <groupId>org.scalatestplus</groupId>
+            <artifactId>mockito-4-6_${scala.binary.version}</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.scalatestplus</groupId>
-            <artifactId>mockito-4-6_${scala.binary.version}</artifactId>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.binary.version}</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>

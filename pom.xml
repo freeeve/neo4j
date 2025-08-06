@@ -1581,7 +1581,13 @@
         <version>${scala.test.version}</version>
         <scope>test</scope>
       </dependency>
-     <dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
         <version>${scala.test.version}</version>
@@ -1594,18 +1600,12 @@
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>org.scalatest</groupId>
-        <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
-        <version>${scala.test.version}</version>
-        <scope>test</scope>
-      </dependency>
-      <dependency>
         <groupId>org.scalatestplus</groupId>
         <artifactId>mockito-4-6_${scala.binary.version}</artifactId>
         <version>${scala.test.version}.0</version>
         <scope>test</scope>
       </dependency>
-     <dependency>
+      <dependency>
         <groupId>org.scalactic</groupId>
         <artifactId>scalactic_${scala.binary.version}</artifactId>
         <version>${scala.test.version}</version>
