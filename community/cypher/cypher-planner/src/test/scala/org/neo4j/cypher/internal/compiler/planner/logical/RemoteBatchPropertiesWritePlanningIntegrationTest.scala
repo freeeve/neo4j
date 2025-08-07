@@ -310,7 +310,10 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
           Seq.empty,
           Set("andy", "lou")
         )
-        .|.cacheProperties("cacheRFromStore[r.name]", "cacheRFromStore[r.existed]")
+        .|.cacheProperties(
+          "cacheRFromStore[r.name]",
+          "cacheRFromStore[r.existed]"
+        ) // insert cache properties invoked because RemoteBatchProperties is not supported for locking merge
         .|.filter("r.from = 'Factory'")
         .|.expandInto("(andy)-[r:KNOWS]->(lou)")
         .|.argument("andy", "lou")

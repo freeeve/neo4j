@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.phases
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
@@ -67,7 +66,6 @@ case class LogicalPlanState(
   hasLoadCSV: Boolean = false,
   maybeReturnColumns: Option[Seq[String]] = None,
   maybeObfuscationMetadata: Option[ObfuscationMetadata] = None,
-  maybeRemoteBatchPropertiesImplementation: Option[RemoteBatchPropertiesImplementation] = None,
   semanticsUpToDate: Boolean = false
 ) extends BaseState {
 
@@ -118,9 +116,6 @@ case class LogicalPlanState(
   override def withProcedureSignatureVersion(generation: Option[Long]): LogicalPlanState =
     copy(maybeProcedureSignatureVersion = generation)
 
-  def withRemoteBatchPropertiesImplementation(remoteBatchPropertiesImplementation: RemoteBatchPropertiesImplementation)
-    : LogicalPlanState = copy(maybeRemoteBatchPropertiesImplementation = Some(remoteBatchPropertiesImplementation))
-
   override def withSemanticsUpToDate(b: Boolean): BaseState = copy(semanticsUpToDate = b)
 }
 
@@ -131,6 +126,7 @@ object LogicalPlanState {
       queryText = state.queryText,
       plannerName = state.plannerName,
       planningAttributes = PlanningAttributes.newAttributes,
+      anonymousVariableNameGenerator = state.anonymousVariableNameGenerator,
       maybeProcedureSignatureVersion = state.maybeProcedureSignatureVersion,
       maybeStatement = state.maybeStatement,
       maybeSemantics = state.maybeSemantics,
@@ -139,7 +135,6 @@ object LogicalPlanState {
       accumulatedConditions = state.accumulatedConditions,
       maybeReturnColumns = state.maybeReturnColumns,
       maybeObfuscationMetadata = state.maybeObfuscationMetadata,
-      anonymousVariableNameGenerator = state.anonymousVariableNameGenerator,
       semanticsUpToDate = state.semanticsUpToDate
     )
 }

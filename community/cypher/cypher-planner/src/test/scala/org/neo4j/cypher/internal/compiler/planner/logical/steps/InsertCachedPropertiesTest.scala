@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.Mockito.when
-import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
@@ -3129,15 +3128,12 @@ class InsertCachedPropertiesTest extends CypherFunSuite with PlanMatchHelp with 
     pushdownPropertyReads: Boolean = false,
     cachePropertiesForEntities: Boolean = true,
     databaseMode: DatabaseMode = DatabaseMode.SINGLE,
-    remoteBatchPropertiesImplementation: RemoteBatchPropertiesImplementation =
-      RemoteBatchPropertiesImplementation.PLANNER,
     debugOptions: Set[CypherDebugOption] = Set.empty
   ): (LogicalPlan, SemanticTable) = {
     val state = LogicalPlanState(InitialState("", IDPPlannerName, new AnonymousVariableNameGenerator))
       .withSemanticTable(initialTable)
       .withMaybeLogicalPlan(Some(plan))
       .withNewPlanningAttributes(PlanningAttributes.newAttributes.copy(effectiveCardinalities = effectiveCardinalities))
-      .withRemoteBatchPropertiesImplementation(remoteBatchPropertiesImplementation)
 
     val icp = new InsertCachedProperties(pushdownPropertyReads = pushdownPropertyReads)
 

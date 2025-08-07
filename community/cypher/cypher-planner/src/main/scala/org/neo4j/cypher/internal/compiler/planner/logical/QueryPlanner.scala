@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
@@ -50,7 +49,6 @@ import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
@@ -91,12 +89,7 @@ case object QueryPlanner
         }
       }
 
-    from.copy(
-      maybeLogicalPlan = Some(logicalPlan),
-      maybeSemanticTable = Some(logicalPlanningContext.semanticTable),
-      maybeRemoteBatchPropertiesImplementation =
-        Some(remoteBatchPropertiesImplementation(from.query, context))
-    )
+    from.copy(maybeSemanticTable = Some(logicalPlanningContext.semanticTable), maybeLogicalPlan = Some(logicalPlan))
   }
 
   def getLogicalPlanningContext(from: LogicalPlanState, context: PlannerContext): LogicalPlanningContext = {
@@ -160,15 +153,6 @@ case object QueryPlanner
 
     LogicalPlanningContext(staticComponents, settings)
   }
-
-  private def remoteBatchPropertiesImplementation(
-    query: PlannerQuery,
-    context: PlannerContext
-  ): RemoteBatchPropertiesImplementation =
-    if (query.readOnly && context.planContext.databaseMode == SHARDED)
-      context.config.remoteBatchPropertiesImplementation()
-    else
-      RemoteBatchPropertiesImplementation.SKIP_REMOTE_BATCHING
 
   private def getMetricsFrom(context: PlannerContext) =
     if (context.debugOptions.inverseCostEnabled) {
