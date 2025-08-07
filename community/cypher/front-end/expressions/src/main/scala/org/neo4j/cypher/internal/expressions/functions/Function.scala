@@ -48,6 +48,7 @@ object Function {
   private val knownFunctions: Seq[Function] = Vector(
     Abs,
     Acos,
+    AllReduce,
     Asin,
     Atan,
     Atan2,

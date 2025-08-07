@@ -1734,7 +1734,12 @@ object SemanticError {
   }
 
   def invalidReduceAccumulator(position: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+    val gql = missingPipeExpression(position)
+    SemanticError(gql, "reduce(...) requires '| expression' (an accumulation expression)", position)
+  }
+
+  private def missingPipeExpression(position: InputPosition) = {
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
       .withCause(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N41)
@@ -1742,7 +1747,11 @@ object SemanticError {
           .build()
       )
       .build()
-    SemanticError(gql, "reduce(...) requires '| expression' (an accumulation expression)", position)
+  }
+
+  def invalidAllReduceAccumulator(position: InputPosition): SemanticError = {
+    val gql = missingPipeExpression(position)
+    SemanticError(gql, "allReduce(...) requires '| expression' (an accumulation expression)", position)
   }
 
   def invalidDistinct(fun: String, position: InputPosition): SemanticError = {

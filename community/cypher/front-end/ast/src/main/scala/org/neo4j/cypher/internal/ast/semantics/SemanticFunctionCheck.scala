@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.TypeSignature
 import org.neo4j.cypher.internal.expressions.functions.AggregatingFunction
+import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.expressions.functions.Coalesce
 import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.expressions.functions.Distance
@@ -76,57 +77,64 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
   def check(
     ctx: Expression.SemanticContext,
     invocation: FunctionInvocation
-  ): SemanticCheck =
-    invocation.function match {
-      case f: AggregatingFunction =>
-        when(ctx == Expression.SemanticContext.Simple) {
-          SemanticCheck.error(
-            SemanticError.aggregateExpressionsNotAllowedInSimpleExpressions(
-              invocation.asCanonicalStringVal,
-              f.name,
-              invocation.position
+  ): SemanticCheck = {
+    fromContext(semanticCheckContext => {
+      invocation.functionWithScope(semanticCheckContext.cypherVersion) match {
+        case f: AggregatingFunction =>
+          when(ctx == Expression.SemanticContext.Simple) {
+            SemanticCheck.error(
+              SemanticError.aggregateExpressionsNotAllowedInSimpleExpressions(
+                invocation.asCanonicalStringVal,
+                f.name,
+                invocation.position
+              )
             )
+          } chain {
+            checkNoNestedAggregateFunctions(invocation) chain
+              SemanticExpressionCheck.check(ctx, invocation.arguments) chain
+              semanticCheck(ctx, invocation)
+          }
+
+        case Reduce =>
+          error(SemanticError.invalidReduceAccumulator(invocation.position))
+
+        case AllReduce =>
+          checkArgs(invocation, 3, AllReduce.signatures) ifOkChain
+            error(SemanticError.invalidAllReduceAccumulator(invocation.position))
+
+        case _: Function
+          if invocation.name.equalsIgnoreCase("graph.names") || invocation.name.equalsIgnoreCase(
+            "graph.propertiesByName"
+          ) =>
+          SemanticCheck.fromState(state =>
+            if (state.workingGraph.nonEmpty) { // We are targeting a constituent graph.
+              val pos = invocation.position
+              SemanticError.apply(
+                GqlHelper.getGql42001_42N72(pos.offset, pos.line, pos.column),
+                "Calling %s() is only supported on composite databases.".formatted(invocation.name),
+                pos
+              )
+            } else {
+              SemanticExpressionCheck.check(ctx, invocation.arguments) chain semanticCheck(
+                ctx,
+                invocation
+              )
+            }
           )
-        } chain {
-          checkNoNestedAggregateFunctions(invocation) chain
+
+        case f: Function => whenState(
+            !_.features.contains(SemanticFeature.VectorType) && isVectorFunction(f)
+          ) {
+            error(SemanticError.vectorTypeNotSupported("Vector functions.", invocation.position))
+          } chain
+            when(invocation.distinct) {
+              error(SemanticError.invalidDistinct(invocation.functionName.name, invocation.position))
+            } chain
             SemanticExpressionCheck.check(ctx, invocation.arguments) chain
             semanticCheck(ctx, invocation)
-        }
-
-      case Reduce =>
-        error(SemanticError.invalidReduceAccumulator(invocation.position))
-
-      case _: Function
-        if invocation.name.equalsIgnoreCase("graph.names") || invocation.name.equalsIgnoreCase(
-          "graph.propertiesByName"
-        ) =>
-        SemanticCheck.fromState(state =>
-          if (state.workingGraph.nonEmpty) { // We are targeting a constituent graph.
-            val pos = invocation.position
-            SemanticError.apply(
-              GqlHelper.getGql42001_42N72(pos.offset, pos.line, pos.column),
-              "Calling %s() is only supported on composite databases.".formatted(invocation.name),
-              pos
-            )
-          } else {
-            SemanticExpressionCheck.check(ctx, invocation.arguments) chain semanticCheck(
-              ctx,
-              invocation
-            )
-          }
-        )
-
-      case f: Function => whenState(
-          !_.features.contains(SemanticFeature.VectorType) && isVectorFunction(f)
-        ) {
-          error(SemanticError.vectorTypeNotSupported("Vector functions.", invocation.position))
-        } chain
-          when(invocation.distinct) {
-            error(SemanticError.invalidDistinct(invocation.functionName.name, invocation.position))
-          } chain
-          SemanticExpressionCheck.check(ctx, invocation.arguments) chain
-          semanticCheck(ctx, invocation)
-    }
+      }
+    })
+  }
 
   // Remove once the feature flag for vectors is removed :)
   private def isVectorFunction(function: Function): Boolean =

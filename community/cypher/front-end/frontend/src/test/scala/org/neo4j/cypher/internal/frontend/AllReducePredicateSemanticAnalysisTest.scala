@@ -18,8 +18,14 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAggregationAnalysis
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlParams.NumberParam
+import org.neo4j.gqlstatus.GqlParams.StringParam
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysisTestSuite {
 
@@ -572,5 +578,54 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |RETURN a, b, r
         |""".stripMargin
     ).hasNoErrors
+  }
+
+  test("should not allow parsing allReduce as a function invocation without a | expression") {
+    run(
+      """MATCH (a)-[r]->+(b)
+        |RETURN allReduce(acc = 0, acc + 1, acc <= 5)
+        |""".stripMargin
+    ).hasGQLErrorsIn {
+      case CypherVersion.Cypher5 => Seq((
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001).withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62).atPosition(37, 2, 18).withParam(
+              StringParam.variable,
+              "acc"
+            ).build()
+          ).atPosition(37, 2, 18).build(),
+          "Variable `acc` not defined",
+          InputPosition(line = 2, column = 18, offset = 37)
+        )) // No errors in Cypher5. It could be an unresolved function
+      case _ => Seq((
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001).withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N41).atPosition(27, 2, 8).build()
+          ).atPosition(27, 2, 8).build(),
+          "allReduce(...) requires '| expression' (an accumulation expression)",
+          InputPosition(line = 2, column = 8, offset = 27)
+        ))
+    }
+  }
+
+  test("should not allow parsing allReduce as a function invocation with no arguments") {
+    run(
+      """MATCH (a)-[r]->+(b)
+        |RETURN allReduce()
+        |""".stripMargin
+    ).hasGQLErrorsIn {
+      case CypherVersion.Cypher5 => Seq() // No errors in Cypher5. It could be an unresolved function
+      case _ => Seq((
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001).withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I13).withParam(
+              NumberParam.count1,
+              3
+            ).withParam(NumberParam.count2, 0).withParam(
+              StringParam.procFun,
+              AllReduce.name
+            ).withParam(StringParam.sig, AllReduce.signatures.head.getSignatureAsString).atPosition(27, 2, 8).build()
+          ).atPosition(27, 2, 8).build(),
+          "Insufficient parameters for function 'allReduce'",
+          InputPosition(line = 2, column = 8, offset = 27)
+        ))
+    }
   }
 }

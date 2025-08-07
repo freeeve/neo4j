@@ -93,6 +93,47 @@
     "cypherVersionScope": [5, 25]
   },
   {
+    "name": "allReduce",
+    "category": "Predicate",
+    "description": "Evaluates `expression` against each element of `LIST<ANY>`, with the result stored in `accumulator`. Returns true if `predicate` holds for each iteration of `accumulator`.",
+    "signature": "allReduce(accumulator :: VARIABLE = initial :: ANY, variable :: VARIABLE IN list :: LIST<ANY> | reducer :: ANY, predicate :: BOOLEAN) :: BOOLEAN",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "accumulator = initial",
+        "description" : "The variable holding the result of reducer for each iteration, set to the value initial.",
+        "type": "ANY",
+        "isDeprecated": false
+      },
+      {
+        "name": "variable IN list | reducer",
+        "description" : "The iteration over a list that binds each list element to var and evaluates reducer to update the accumulator.",
+        "type": "ANY",
+        "isDeprecated": false
+      },
+      {
+        "name": "predicate",
+        "description" : "The predicate applied to the accumulator value for each element in the list.",
+        "type": "BOOLEAN",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "BOOLEAN",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [25]
+  },
+  {
     "name": "any",
     "category": "Predicate",
     "description": "Returns true if the predicate holds for at least one element in the given `LIST<ANY>`.",

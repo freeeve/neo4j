@@ -89,4 +89,26 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
         )(pos))
     }
   }
+
+  test("allReduce(iter IN r | acc + 1, acc < nestedAcc)") {
+    parsesIn[Expression](_ => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','"))
+  }
+
+  test("allReduce(acc =0, iter IN r | acc + 1)") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
+      case _       => _.withSyntaxErrorContaining("Invalid input ')': expected an expression or ','")
+    }
+  }
+
+  test("allReduce(acc =0, acc + 5, iter IN r | acc + 1)") {
+    parsesIn[Expression](_ => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','"))
+  }
+
+  test("allReduce(acc =0, iter IN r | acc + 1, acc < 5, acc > 10)") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
+      case _       => _.withSyntaxErrorContaining("Invalid input ',': expected an expression or ')'")
+    }
+  }
 }
