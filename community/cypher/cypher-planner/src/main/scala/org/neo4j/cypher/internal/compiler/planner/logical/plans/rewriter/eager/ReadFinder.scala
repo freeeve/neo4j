@@ -96,10 +96,10 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -507,7 +507,7 @@ object ReadFinder {
       case DirectedRelationshipTypeScan(relationship, leftNode, relType, rightNode, _, _) =>
         processRelTypeRead(relationshipVariable(relationship), leftNode, relType, rightNode)
 
-      case DynamicDirectedRelationshipTypeScan(relationship, startNode, relType, endNode, _, _) =>
+      case DynamicDirectedRelationshipTypeLookup(relationship, startNode, relType, endNode, _, _) =>
         val r = relationshipVariable(relationship)
         val predicate = relType match {
           case DynamicElement.Simple(expr, operator) => operator match {
@@ -521,7 +521,7 @@ object ReadFinder {
           .withIntroducedRelationshipVariable(relationship)
           .withAddedRelationshipFilterExpression(r, predicate)
 
-      case DynamicUndirectedRelationshipTypeScan(relationship, leftNode, relType, rightNode, _, _) =>
+      case DynamicUndirectedRelationshipTypeLookup(relationship, leftNode, relType, rightNode, _, _) =>
         val r = relationshipVariable(relationship)
         val predicate = relType match {
           case DynamicElement.Simple(expr, operator) => operator match {

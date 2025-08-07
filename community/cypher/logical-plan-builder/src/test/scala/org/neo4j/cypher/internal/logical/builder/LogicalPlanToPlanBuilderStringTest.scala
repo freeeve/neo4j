@@ -1970,12 +1970,12 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
-    "dynamicRelationshipTypeScan",
+    "dynamicRelationshipTypeLookup",
     new TestPlanBuilder()
       .produceResults("x", "y")
       .apply()
-      .|.dynamicRelationshipTypeScan("(x)-[r]-(y)", "$all('R')")
-      .dynamicRelationshipTypeScan("(x)-[r]->(y)", "$any('R')")
+      .|.dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$all('R')")
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any('R')")
       .build()
   )
 

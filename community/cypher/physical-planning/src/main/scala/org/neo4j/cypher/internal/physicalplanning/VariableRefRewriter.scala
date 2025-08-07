@@ -69,8 +69,8 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
@@ -460,7 +460,7 @@ object VariableRefRewriter extends Rewriter {
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
 
-            case s @ DynamicDirectedRelationshipTypeScan(
+            case s @ DynamicDirectedRelationshipTypeLookup(
                 idName,
                 startNode,
                 _,
@@ -474,7 +474,7 @@ object VariableRefRewriter extends Rewriter {
                 endNode = endNode.map(varRef),
                 argumentIds = argumentIds.map(varRef)
               )(SameId(s.id))
-            case s @ DynamicUndirectedRelationshipTypeScan(
+            case s @ DynamicUndirectedRelationshipTypeLookup(
                 idName,
                 leftNode,
                 _,

@@ -25,19 +25,21 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
+import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.RelationshipIterator
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.BaseRelationshipCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedAllRelationshipsScanPipe.allRelationshipsIterator
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedUnionRelationshipTypesScanPipe.unionTypeIterator
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicUndirectedRelationshipTypeScanPipe.getIterator
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.UndirectedRelationshipTypeScanPipe.UndirectedIterator
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicDirectedRelationshipTypeLookupPipe.getIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherFunctions
-import org.neo4j.cypher.operations.CypherFunctions.GetSingleDynamicTypeResult
+import org.neo4j.cypher.operations.CypherTypeValueMapper
+import org.neo4j.exceptions.CypherTypeException
+import org.neo4j.values.storable.Values
+import org.neo4j.values.virtual.VirtualValues
 
-case class DynamicUndirectedRelationshipTypeScanPipe(
+case class DynamicDirectedRelationshipTypeLookupPipe(
   ident: Option[String],
   fromNode: Option[String],
   typeExpr: Expression,
@@ -46,24 +48,45 @@ case class DynamicUndirectedRelationshipTypeScanPipe(
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
+  private val relationshipWriter =
+    Relationships.compileRelationshipWriter(ident, fromNode, toNode)
+
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    val baseContext = state.newRowWithArgument(rowFactory)
-    val relIterator = getIterator(state, baseContext, typeExpr, operator, indexOrder)
-    new UndirectedIterator(relIterator, ident, fromNode, toNode, rowFactory, state)
+    val ctx = state.newRowWithArgument(rowFactory)
+    val relIterator = getIterator(state, ctx, typeExpr, operator, indexOrder)
+    PrimitiveLongHelper.map(
+      relIterator,
+      relationshipId => {
+        relationshipWriter.writeRow(
+          rowFactory,
+          ctx,
+          VirtualValues.relationship(relationshipId),
+          VirtualValues.node(relIterator.startNodeId()),
+          VirtualValues.node(relIterator.endNodeId())
+        )
+      }
+    )
   }
 }
 
-object DynamicUndirectedRelationshipTypeScanPipe {
+object DynamicDirectedRelationshipTypeLookupPipe {
 
   def getIterator(
     state: QueryState,
-    baseContext: ReadableRow,
+    ctx: ReadableRow,
     typeExpr: Expression,
     operator: SetOperator,
     indexOrder: IndexOrder
   ): ClosingLongIterator with RelationshipIterator = {
-    val typeValue = typeExpr.apply(baseContext, state)
-
+    val query = state.query
+    val typeValue = typeExpr.apply(ctx, state)
+    if (typeValue == Values.NO_VALUE) {
+      throw CypherTypeException.expectedStringNotNull(
+        "Expected relationship type to be a string or list of strings.",
+        typeValue.prettyPrint,
+        CypherTypeValueMapper.valueType(typeValue)
+      )
+    }
     operator match {
       case DynamicElement.All =>
         val typeName = CypherFunctions.getSingleDynamicType(typeValue, state)
@@ -71,19 +94,17 @@ object DynamicUndirectedRelationshipTypeScanPipe {
           case _: CypherFunctions.GetSingleDynamicTypeResult.ConflictingDynamicTypes =>
             BaseRelationshipCursorIterator.EMPTY
           case _: CypherFunctions.GetSingleDynamicTypeResult.EmptyDynamicTypeList =>
-            allRelationshipsIterator(state.query)
-          case dynamicType: GetSingleDynamicTypeResult.SingleDynamicType =>
-            state.query.getOptRelTypeId(dynamicType.value()) match {
-              case Some(typeId) =>
-                state.query.getRelationshipsByType(state.relTypeTokenReadSession.get, typeId, indexOrder)
-              case None =>
-                BaseRelationshipCursorIterator.EMPTY
+            allRelationshipsIterator(query)
+          case dynamicType: CypherFunctions.GetSingleDynamicTypeResult.SingleDynamicType =>
+            query.getOptRelTypeId(dynamicType.value) match {
+              case Some(typeId) => query.getRelationshipsByType(state.relTypeTokenReadSession.get, typeId, indexOrder)
+              case None         => BaseRelationshipCursorIterator.EMPTY
             }
         }
 
       case DynamicElement.Any =>
         val typeNames = CypherFunctions.getDynamicTypes(typeValue)
-        unionTypeIterator(
+        DirectedUnionRelationshipTypesScanPipe.unionTypeIterator(
           state,
           typeNames.map(LazyTypeStatic(_)),
           indexOrder,

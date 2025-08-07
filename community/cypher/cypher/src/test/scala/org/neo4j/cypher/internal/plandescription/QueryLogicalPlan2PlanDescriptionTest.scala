@@ -122,11 +122,11 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -1813,10 +1813,10 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     )
   }
 
-  test("DynamicRelationshipTypeScan") {
+  test("DynamicRelationshipTypeLookup") {
     assertGood(
       attach(
-        DynamicDirectedRelationshipTypeScan(
+        DynamicDirectedRelationshipTypeLookup(
           Some(varFor("r")),
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R", "S")), Any),
@@ -1828,7 +1828,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       ),
       planDescription(
         id,
-        "DynamicDirectedRelationshipTypeScan",
+        "DynamicDirectedRelationshipTypeLookup",
         Seq.empty,
         Seq(details("(x)-[r:$any([\"R\", \"S\"])]->(y)")),
         Set("r", "x", "y")
@@ -1836,7 +1836,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
     )
     assertGood(
       attach(
-        DynamicDirectedRelationshipTypeScan(
+        DynamicDirectedRelationshipTypeLookup(
           None,
           None,
           DynamicElement.Simple(literal(List("R", "S")), Any),
@@ -1848,7 +1848,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       ),
       planDescription(
         id,
-        "DynamicDirectedRelationshipTypeScan",
+        "DynamicDirectedRelationshipTypeLookup",
         Seq.empty,
         Seq(details("()-[:$any([\"R\", \"S\"])]->(y)")),
         Set("y")
@@ -1857,7 +1857,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        DynamicUndirectedRelationshipTypeScan(
+        DynamicUndirectedRelationshipTypeLookup(
           Some(varFor("r")),
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R", "S")), Any),
@@ -1869,7 +1869,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       ),
       planDescription(
         id,
-        "DynamicUndirectedRelationshipTypeScan",
+        "DynamicUndirectedRelationshipTypeLookup",
         Seq.empty,
         Seq(details("(x)-[r:$any([\"R\", \"S\"])]-(y)")),
         Set("r", "x", "y")
@@ -1878,7 +1878,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        DynamicUndirectedRelationshipTypeScan(
+        DynamicUndirectedRelationshipTypeLookup(
           None,
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R", "S")), Any),
@@ -1890,7 +1890,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       ),
       planDescription(
         id,
-        "DynamicUndirectedRelationshipTypeScan",
+        "DynamicUndirectedRelationshipTypeLookup",
         Seq.empty,
         Seq(details("(x)-[:$any([\"R\", \"S\"])]-(y)")),
         Set("x", "y")
@@ -1899,7 +1899,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        DynamicDirectedRelationshipTypeScan(
+        DynamicDirectedRelationshipTypeLookup(
           Some(varFor("r")),
           None,
           DynamicElement.Simple(literal(List("R", "S")), Any),
@@ -1911,7 +1911,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       ),
       planDescription(
         id,
-        "DynamicDirectedRelationshipTypeScan",
+        "DynamicDirectedRelationshipTypeLookup",
         Seq.empty,
         Seq(details("()-[r:$any([\"R\", \"S\"])]->()")),
         Set("r")
@@ -1920,7 +1920,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        DynamicDirectedRelationshipTypeScan(
+        DynamicDirectedRelationshipTypeLookup(
           None,
           None,
           DynamicElement.Simple(literal(List("R", "S")), Any),
@@ -1932,7 +1932,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       ),
       planDescription(
         id,
-        "DynamicDirectedRelationshipTypeScan",
+        "DynamicDirectedRelationshipTypeLookup",
         Seq.empty,
         Seq(details("()-[:$any([\"R\", \"S\"])]->()")),
         Set.empty
@@ -1941,7 +1941,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        DynamicUndirectedRelationshipTypeScan(
+        DynamicUndirectedRelationshipTypeLookup(
           Some(varFor("r")),
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R", "S")), Any),
@@ -1953,7 +1953,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       ),
       planDescription(
         id,
-        "DynamicUndirectedRelationshipTypeScan",
+        "DynamicUndirectedRelationshipTypeLookup",
         Seq.empty,
         Seq(details("(x)-[r:$any([\"R\", \"S\"])]-()")),
         Set("r", "x")
@@ -1962,7 +1962,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        DynamicDirectedRelationshipTypeScan(
+        DynamicDirectedRelationshipTypeLookup(
           Some(varFor("  UNNAMED123")),
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R")), Any),
@@ -1974,7 +1974,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
       ),
       planDescription(
         id,
-        "DynamicDirectedRelationshipTypeScan",
+        "DynamicDirectedRelationshipTypeLookup",
         Seq.empty,
         Seq(details(s"(x)-[${anonVar("123")}:$$any([\"R\"])]->(y)")),
         Set(anonVar("123"), "x", "y")

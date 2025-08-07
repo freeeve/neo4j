@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeScanLeafPlanner
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeLookupLeafPlanner
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
@@ -34,9 +34,9 @@ import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.ir.ordering.RequiredOrderCandidate
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -44,7 +44,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSupport {
 
   test("simple dynamic outgoing relationship type scan") {
     val r = v"r"
@@ -57,7 +57,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     )
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicDirectedRelationshipTypeScan(
+      DynamicDirectedRelationshipTypeLookup(
         idName = Some(r),
         startNode = Some(a),
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -79,7 +79,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     )
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicDirectedRelationshipTypeScan(
+      DynamicDirectedRelationshipTypeLookup(
         idName = Some(r),
         startNode = Some(b),
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -101,7 +101,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     )
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicUndirectedRelationshipTypeScan(
+      DynamicUndirectedRelationshipTypeLookup(
         idName = Some(r),
         leftNode = Some(a),
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -123,7 +123,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     )
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicUndirectedRelationshipTypeScan(
+      DynamicUndirectedRelationshipTypeLookup(
         idName = Some(r),
         leftNode = Some(a),
         relType = DynamicElement.Simple(listOf(), DynamicElement.All),
@@ -145,7 +145,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     )
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicUndirectedRelationshipTypeScan(
+      DynamicUndirectedRelationshipTypeLookup(
         idName = Some(r),
         leftNode = Some(a),
         relType = DynamicElement.Simple(listOfString("R", "S"), DynamicElement.All),
@@ -167,7 +167,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     )
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicUndirectedRelationshipTypeScan(
+      DynamicUndirectedRelationshipTypeLookup(
         idName = Some(r),
         leftNode = Some(a),
         relType = DynamicElement.Simple(listOfString("R", "S"), DynamicElement.Any),
@@ -191,7 +191,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     )
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set(
-      DynamicUndirectedRelationshipTypeScan(
+      DynamicUndirectedRelationshipTypeLookup(
         idName = Some(r),
         leftNode = Some(a),
         relType = DynamicElement.Simple(types, DynamicElement.All),
@@ -253,7 +253,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     dynamicRelationshipTypeScanLeafPlans(queryGraph) shouldEqual Set(
       Selection(
         predicate = ands(equals(a, unnamed0)),
-        source = DynamicDirectedRelationshipTypeScan(
+        source = DynamicDirectedRelationshipTypeLookup(
           idName = Some(r),
           startNode = Some(unnamed0),
           relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -285,7 +285,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
           equals(a, unnamed0),
           equals(b, unnamed1)
         ),
-        source = DynamicUndirectedRelationshipTypeScan(
+        source = DynamicUndirectedRelationshipTypeLookup(
           idName = Some(r),
           leftNode = Some(unnamed0),
           relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -314,7 +314,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
         predicate = ands(
           equals(a, unnamed0)
         ),
-        source = DynamicUndirectedRelationshipTypeScan(
+        source = DynamicUndirectedRelationshipTypeLookup(
           idName = Some(r),
           leftNode = Some(a),
           relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -345,7 +345,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
           equals(a, unnamed0),
           equals(a, unnamed1)
         ),
-        source = DynamicDirectedRelationshipTypeScan(
+        source = DynamicDirectedRelationshipTypeLookup(
           idName = Some(r),
           startNode = Some(unnamed1),
           relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -370,7 +370,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     val interestingOrderConfig = InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate.asc(r)))
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph, interestingOrderConfig = interestingOrderConfig) shouldEqual Set(
-      DynamicDirectedRelationshipTypeScan(
+      DynamicDirectedRelationshipTypeLookup(
         idName = Some(r),
         startNode = Some(a),
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -396,7 +396,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     val interestingOrderConfig = InterestingOrderConfig(InterestingOrder.required(candidate))
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph, interestingOrderConfig = interestingOrderConfig) shouldEqual Set(
-      DynamicDirectedRelationshipTypeScan(
+      DynamicDirectedRelationshipTypeLookup(
         idName = Some(r),
         startNode = Some(a),
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -420,7 +420,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     val interestingOrderConfig = InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate.desc(r)))
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph, interestingOrderConfig = interestingOrderConfig) shouldEqual Set(
-      DynamicDirectedRelationshipTypeScan(
+      DynamicDirectedRelationshipTypeLookup(
         idName = Some(r),
         startNode = Some(b),
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -444,7 +444,7 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
     val interestingOrderConfig = InterestingOrderConfig(InterestingOrder.required(RequiredOrderCandidate.asc(a)))
 
     dynamicRelationshipTypeScanLeafPlans(queryGraph, interestingOrderConfig = interestingOrderConfig) shouldEqual Set(
-      DynamicUndirectedRelationshipTypeScan(
+      DynamicUndirectedRelationshipTypeLookup(
         idName = Some(r),
         leftNode = Some(a),
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
@@ -464,6 +464,6 @@ class DynamicRelationshipTypeScanLeafPlannerTest extends CypherFunSuite with Log
       planContext = newMockedPlanContext(),
       semanticTable = new SemanticTable()
     )
-    DynamicRelationshipTypeScanLeafPlanner(skipIDs)(queryGraph, interestingOrderConfig, context)
+    DynamicRelationshipTypeLookupLeafPlanner(skipIDs)(queryGraph, interestingOrderConfig, context)
   }
 }

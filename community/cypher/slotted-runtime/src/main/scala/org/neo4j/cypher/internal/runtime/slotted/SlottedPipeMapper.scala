@@ -70,10 +70,10 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -274,9 +274,9 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedUnionRelationship
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPrimitivePipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedSinglePrimitivePipe
-import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicDirectedRelationshipTypeScanSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicDirectedRelationshipTypeLookupSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicLabelNodeLookupSlottedPipe
-import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicUndirectedRelationshipTypeScanSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicUndirectedRelationshipTypeLookupSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.EagerSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.ExpandAllSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.ExpandIntoSlottedPipe
@@ -789,12 +789,12 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
-      case DynamicDirectedRelationshipTypeScan(name, start, relTypeLabel, end, _, indexOrder) =>
+      case DynamicDirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
 
         relTypeLabel match {
           case DynamicElement.Simple(expr, operator) =>
-            DynamicDirectedRelationshipTypeScanSlottedPipe(
+            DynamicDirectedRelationshipTypeLookupSlottedPipe(
               name.map(r => slots.longOffset(r)),
               start.map(n => slots.longOffset(n)),
               expressionConverters.toCommandExpression(id, expr),
@@ -814,12 +814,12 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
-      case DynamicUndirectedRelationshipTypeScan(name, start, relTypeLabel, end, _, indexOrder) =>
+      case DynamicUndirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
 
         relTypeLabel match {
           case DynamicElement.Simple(expr, operator) =>
-            DynamicUndirectedRelationshipTypeScanSlottedPipe(
+            DynamicUndirectedRelationshipTypeLookupSlottedPipe(
               name.map(r => slots.longOffset(r)),
               start.map(n => slots.longOffset(n)),
               expressionConverters.toCommandExpression(id, expr),

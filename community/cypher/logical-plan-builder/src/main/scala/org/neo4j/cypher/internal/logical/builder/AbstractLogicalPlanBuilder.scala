@@ -136,11 +136,11 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.SetOperator
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -1910,16 +1910,16 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   // implicit IndexOrderNone
-  def dynamicRelationshipTypeScan(
+  def dynamicRelationshipTypeLookup(
     pattern: String,
     relTypeExpr: String,
     args: String*
   ): IMPL = {
-    dynamicRelationshipTypeScan(pattern, relTypeExpr, IndexOrderNone, args: _*)
+    dynamicRelationshipTypeLookup(pattern, relTypeExpr, IndexOrderNone, args: _*)
   }
 
   // supplied index order
-  def dynamicRelationshipTypeScan(
+  def dynamicRelationshipTypeLookup(
     pattern: String,
     relTypeExpr: String,
     indexOrder: IndexOrder,
@@ -1936,7 +1936,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             DynamicElement.Any
         }
 
-        dynamicRelationshipTypeScan(
+        dynamicRelationshipTypeLookup(
           p.maybeFrom,
           p.maybeRelName,
           parseExpression(expression),
@@ -1952,7 +1952,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   // use supplied indexOrder, Option nodes
-  def dynamicRelationshipTypeScan(
+  def dynamicRelationshipTypeLookup(
     leftNode: Option[String],
     relName: Option[String],
     relTypeExpr: Expression,
@@ -1968,7 +1968,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
     direction match {
       case SemanticDirection.OUTGOING =>
-        appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeScan(
+        appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeLookup(
           varFor(relName),
           varFor(leftNode),
           DynamicElement.Simple(relTypeExpr, operator),
@@ -1977,7 +1977,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           indexOrder
         )(_)))
       case SemanticDirection.INCOMING =>
-        appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeScan(
+        appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeLookup(
           varFor(relName),
           varFor(rightNode),
           DynamicElement.Simple(relTypeExpr, operator),
@@ -1986,7 +1986,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           indexOrder
         )(_)))
       case SemanticDirection.BOTH =>
-        appendAtCurrentIndent(LeafOperator(DynamicUndirectedRelationshipTypeScan(
+        appendAtCurrentIndent(LeafOperator(DynamicUndirectedRelationshipTypeLookup(
           varFor(relName),
           varFor(leftNode),
           DynamicElement.Simple(relTypeExpr, operator),

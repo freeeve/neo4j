@@ -43,7 +43,7 @@ case class allRelationshipsScanLeafPlanner(skipIDs: Set[LogicalVariable]) extend
         skipIDs.contains(pattern.right)
 
     // We should not plan a relationship scan if there are dynamic relationship type scans that cover the same relationships
-    lazy val dynamicTypeScans = DynamicRelationshipTypeScanLeafPlanner.collectDynamicRelationshipTypeScanDetails(
+    lazy val dynamicTypeScans = DynamicRelationshipTypeLookupLeafPlanner.collectDynamicRelationshipTypeLookupDetails(
       skipIDs,
       context,
       queryGraph,

@@ -22,7 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CandidateSelectorFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner
-import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeScanLeafPlanner
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeLookupLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OptionalSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OrLeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectPatternPredicates
@@ -103,7 +103,7 @@ object QueryPlannerConfiguration {
     unionRelationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners),
 
     // MATCH ()-[r:$any(['R', 'S'])]->()
-    DynamicRelationshipTypeScanLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners)
+    DynamicRelationshipTypeLookupLeafPlanner(restrictions.symbolsThatShouldOnlyUseIndexSeekLeafPlanners)
   )
 
   private def allLeafPlanners(restrictions: LeafPlanRestrictions): IndexedSeq[LeafPlanner] = {

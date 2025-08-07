@@ -2108,7 +2108,7 @@ object DirectedRelationshipTypeScan {
     new DirectedRelationshipTypeScan(Some(idName), Some(startNode), relType, Some(endNode), argumentIds, indexOrder)
 }
 
-case class DynamicDirectedRelationshipTypeScan(
+case class DynamicDirectedRelationshipTypeLookup(
   idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   relType: DynamicElement,
@@ -2120,10 +2120,10 @@ case class DynamicDirectedRelationshipTypeScan(
 
   override def usedVariables: Set[LogicalVariable] = relType.dependencies
 
-  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicDirectedRelationshipTypeScan =
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicDirectedRelationshipTypeLookup =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
 
-  override def removeArgumentIds(): DynamicDirectedRelationshipTypeScan =
+  override def removeArgumentIds(): DynamicDirectedRelationshipTypeLookup =
     copy(argumentIds = Set.empty)(SameId(this.id))
 
   override def leftNode: Option[LogicalVariable] = startNode
@@ -5629,7 +5629,7 @@ object UndirectedRelationshipTypeScan {
     new UndirectedRelationshipTypeScan(Some(idName), Some(startNode), relType, Some(endNode), argumentIds, indexOrder)
 }
 
-case class DynamicUndirectedRelationshipTypeScan(
+case class DynamicUndirectedRelationshipTypeLookup(
   idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   relType: DynamicElement,
@@ -5641,10 +5641,10 @@ case class DynamicUndirectedRelationshipTypeScan(
 
   override def usedVariables: Set[LogicalVariable] = relType.dependencies
 
-  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicUndirectedRelationshipTypeScan =
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicUndirectedRelationshipTypeLookup =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
 
-  override def removeArgumentIds(): DynamicUndirectedRelationshipTypeScan =
+  override def removeArgumentIds(): DynamicUndirectedRelationshipTypeLookup =
     copy(argumentIds = Set.empty)(SameId(this.id))
 
   override def directed: Boolean = false

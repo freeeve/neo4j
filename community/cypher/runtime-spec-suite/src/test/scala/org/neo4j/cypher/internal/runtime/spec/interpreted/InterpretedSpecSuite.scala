@@ -55,7 +55,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.DirectedRelationshipByElemen
 import org.neo4j.cypher.internal.runtime.spec.tests.DirectedRelationshipByIdSeekTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.DistinctTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.DynamicLabelNodeLookupTestBase
-import org.neo4j.cypher.internal.runtime.spec.tests.DynamicRelationshipTypeScanTestBase
+import org.neo4j.cypher.internal.runtime.spec.tests.DynamicRelationshipTypeLookupTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.EagerLimitProfileRowsTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.EagerTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.EmptyResultTestBase
@@ -530,8 +530,8 @@ class InterpretedAllRelationshipsScanTest
 class InterpretedRelationshipTypeScanTest
     extends RelationshipTypeScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
-class InterpretedDynamicRelationshipTypeScanTest
-    extends DynamicRelationshipTypeScanTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedDynamicRelationshipTypeLookupTest
+    extends DynamicRelationshipTypeLookupTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 
 class InterpretedUnionRelationshipTypeTest
     extends UnionRelationshipTypeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)

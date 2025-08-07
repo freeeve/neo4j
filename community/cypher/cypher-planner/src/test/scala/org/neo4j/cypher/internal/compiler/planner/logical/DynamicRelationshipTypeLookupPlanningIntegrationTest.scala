@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class DynamicRelationshipTypeScanPlanningIntegrationTest
+class DynamicRelationshipTypeLookupPlanningIntegrationTest
     extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
@@ -54,7 +54,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a", "r", "b")
-        .dynamicRelationshipTypeScan(
+        .dynamicRelationshipTypeLookup(
           leftNode = Some("a"),
           relName = Some("r"),
           relTypeExpr = literalString("R"),
@@ -77,7 +77,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a", "r", "b")
-        .dynamicRelationshipTypeScan(
+        .dynamicRelationshipTypeLookup(
           leftNode = Some("a"),
           relName = Some("r"),
           relTypeExpr = literalString("R"),
@@ -99,7 +99,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a", "r", "b")
-        .dynamicRelationshipTypeScan(
+        .dynamicRelationshipTypeLookup(
           leftNode = Some("a"),
           relName = Some("r"),
           relTypeExpr = listOfString("R", "S", "T"),
@@ -123,7 +123,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("a", "r", "b")
         .apply()
-        .|.dynamicRelationshipTypeScan(
+        .|.dynamicRelationshipTypeLookup(
           leftNode = Some("a"),
           relName = Some("r"),
           relTypeExpr = varFor("types"),
@@ -151,7 +151,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("x", "r", "y")
         .apply()
-        .|.dynamicRelationshipTypeScan(
+        .|.dynamicRelationshipTypeLookup(
           leftNode = Some("x"),
           relName = Some("r"),
           relTypeExpr = varFor("labels"),
@@ -182,7 +182,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
             createRelationshipWithDynamicType("r", "anon_0", "'R'", "anon_1", SemanticDirection.OUTGOING)
           )
         )
-        .dynamicRelationshipTypeScan(
+        .dynamicRelationshipTypeLookup(
           leftNode = Some("anon_0"),
           relName = Some("r"),
           relTypeExpr = literalString("R"),
@@ -245,7 +245,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a", "r", "b")
-        .dynamicRelationshipTypeScan(
+        .dynamicRelationshipTypeLookup(
           leftNode = Some("a"),
           relName = Some("r"),
           relTypeExpr = literalString("R"),
@@ -269,7 +269,7 @@ class DynamicRelationshipTypeScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("a", "s", "b")
         .projection("r AS s")
-        .dynamicRelationshipTypeScan(
+        .dynamicRelationshipTypeLookup(
           leftNode = Some("a"),
           relName = Some("r"),
           relTypeExpr = literalString("R"),

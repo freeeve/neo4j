@@ -67,9 +67,9 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.ExhaustiveLimit
 import org.neo4j.cypher.internal.logical.plans.ExhaustiveLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Expand
@@ -563,10 +563,10 @@ object CardinalityCostModel {
 
       case _: UndirectedAllRelationshipsScan => ALL_SCAN_COST_PER_ROW / 2
 
-      case plan: DynamicDirectedRelationshipTypeScan =>
+      case plan: DynamicDirectedRelationshipTypeLookup =>
         hackyRelTypeScanCost(propertyAccess, plan.idName, directed = true)
 
-      case plan: DynamicUndirectedRelationshipTypeScan =>
+      case plan: DynamicUndirectedRelationshipTypeLookup =>
         hackyRelTypeScanCost(propertyAccess, plan.idName, directed = false)
 
       case plan: DirectedRelationshipTypeScan =>

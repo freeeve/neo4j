@@ -147,10 +147,10 @@ import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForLookupIndex
 import org.neo4j.cypher.internal.logical.plans.DropConstraintOnName
 import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -1231,12 +1231,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case DynamicDirectedRelationshipTypeScan(idName, start, typeExpr, end, _, _) =>
+      case DynamicDirectedRelationshipTypeLookup(idName, start, typeExpr, end, _, _) =>
         val prettyType =
           pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${getPrettyDynamicElement(typeExpr)}]->(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
-          "DynamicDirectedRelationshipTypeScan",
+          "DynamicDirectedRelationshipTypeLookup",
           children,
           Seq(Details(prettyType)),
           variables,
@@ -1255,12 +1255,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case DynamicUndirectedRelationshipTypeScan(idName, start, typeExpr, end, _, _) =>
+      case DynamicUndirectedRelationshipTypeLookup(idName, start, typeExpr, end, _, _) =>
         val prettyDetails =
           pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${getPrettyDynamicElement(typeExpr)}]-(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
-          "DynamicUndirectedRelationshipTypeScan",
+          "DynamicUndirectedRelationshipTypeLookup",
           children,
           Seq(Details(prettyDetails)),
           variables,

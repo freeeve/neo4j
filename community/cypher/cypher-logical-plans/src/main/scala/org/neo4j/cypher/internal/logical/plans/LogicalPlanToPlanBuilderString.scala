@@ -306,8 +306,8 @@ object LogicalPlanToPlanBuilderString {
       case _: DirectedRelationshipUniqueIndexSeek             => "relationshipIndexOperator"
       case _: DirectedRelationshipTypeScan                    => "relationshipTypeScan"
       case _: UndirectedRelationshipTypeScan                  => "relationshipTypeScan"
-      case _: DynamicDirectedRelationshipTypeScan             => "dynamicRelationshipTypeScan"
-      case _: DynamicUndirectedRelationshipTypeScan           => "dynamicRelationshipTypeScan"
+      case _: DynamicDirectedRelationshipTypeLookup           => "dynamicRelationshipTypeLookup"
+      case _: DynamicUndirectedRelationshipTypeLookup         => "dynamicRelationshipTypeLookup"
       case _: PartitionedDirectedRelationshipTypeScan         => "partitionedRelationshipTypeScan"
       case _: PartitionedUndirectedRelationshipTypeScan       => "partitionedRelationshipTypeScan"
       case _: DirectedAllRelationshipsScan                    => "allRelationshipsScan"
@@ -606,7 +606,7 @@ object LogicalPlanToPlanBuilderString {
         val props = propertyConstraints.view.mapValues(_.quoted).toMap
         params(idName.escaped, expr.quoted, operator, indexOrder, spread(argumentIds.map(_.escaped)), props)
 
-      case DynamicDirectedRelationshipTypeScan(idName, start, typeExpr, end, argumentIds, indexOrder) =>
+      case DynamicDirectedRelationshipTypeLookup(idName, start, typeExpr, end, argumentIds, indexOrder) =>
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
             val op = operator match {
@@ -622,7 +622,7 @@ object LogicalPlanToPlanBuilderString {
               spread(argumentIds)
             )
         }
-      case DynamicUndirectedRelationshipTypeScan(idName, start, typeExpr, end, argumentIds, indexOrder) =>
+      case DynamicUndirectedRelationshipTypeLookup(idName, start, typeExpr, end, argumentIds, indexOrder) =>
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
             val op = operator match {

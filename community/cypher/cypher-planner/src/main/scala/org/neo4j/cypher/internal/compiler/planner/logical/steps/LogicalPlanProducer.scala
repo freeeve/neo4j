@@ -168,10 +168,10 @@ import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesSca
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DistinctColumns
 import org.neo4j.cypher.internal.logical.plans.Distinctness
-import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicLabelNodeLookup
-import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeLookup
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -613,7 +613,7 @@ case class LogicalPlanProducer(
     planHiddenSelectionIfNeeded(planLeaf, hiddenSelections, context, originalPattern)
   }
 
-  def planDynamicRelationshipByTypeScan(
+  def planDynamicRelationshipByTypeLookup(
     variable: LogicalVariable,
     relationshipTypes: Expression,
     operator: DynamicElement.SetOperator,
@@ -640,7 +640,7 @@ case class LogicalPlanProducer(
 
     val leafPlan = patternForLeafPlan.dir match {
       case SemanticDirection.OUTGOING =>
-        DynamicDirectedRelationshipTypeScan(
+        DynamicDirectedRelationshipTypeLookup(
           idName = Some(variable),
           startNode = Some(patternForLeafPlan.left),
           relType = element,
@@ -649,7 +649,7 @@ case class LogicalPlanProducer(
           indexOrder = indexOrder
         )
       case SemanticDirection.INCOMING =>
-        DynamicDirectedRelationshipTypeScan(
+        DynamicDirectedRelationshipTypeLookup(
           idName = Some(variable),
           startNode = Some(patternForLeafPlan.right),
           relType = element,
@@ -658,7 +658,7 @@ case class LogicalPlanProducer(
           indexOrder = indexOrder
         )
       case SemanticDirection.BOTH =>
-        DynamicUndirectedRelationshipTypeScan(
+        DynamicUndirectedRelationshipTypeLookup(
           idName = Some(variable),
           leftNode = Some(patternForLeafPlan.left),
           relType = element,

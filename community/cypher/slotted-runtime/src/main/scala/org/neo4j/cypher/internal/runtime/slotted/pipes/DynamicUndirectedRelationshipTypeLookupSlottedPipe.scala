@@ -24,13 +24,13 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicDirectedRelationshipTypeScanPipe.getIterator
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicDirectedRelationshipTypeLookupPipe.getIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipTypeScanSlottedPipe.UndirectedIterator
 import org.neo4j.cypher.internal.util.attribution.Id
 
-case class DynamicUndirectedRelationshipTypeScanSlottedPipe(
+case class DynamicUndirectedRelationshipTypeLookupSlottedPipe(
   relOffset: Option[Int],
   fromOffset: Option[Int],
   typeExpr: Expression,
