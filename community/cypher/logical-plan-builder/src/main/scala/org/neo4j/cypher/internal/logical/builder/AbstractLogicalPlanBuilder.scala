@@ -1351,36 +1351,24 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     operator: SetOperator,
     args: String*
   ): IMPL = {
-    dynamicLabelNodeLookup(node, parseExpression(labelExpr), operator, IndexOrderNone, args: _*)
+    dynamicLabelNodeLookup(node, parseExpression(labelExpr), operator, args: _*)
   }
 
   def dynamicLabelNodeLookup(
     node: String,
     labelExpr: String,
     operator: SetOperator,
-    indexOrder: IndexOrder,
-    args: String*
-  ): IMPL = {
-    dynamicLabelNodeLookup(node, parseExpression(labelExpr), operator, indexOrder, args: _*)
-  }
-
-  def dynamicLabelNodeLookup(
-    node: String,
-    labelExpr: String,
-    operator: SetOperator,
-    indexOrder: IndexOrder,
     propConstraints: Map[String, String],
     args: String*
   ): IMPL = {
     val props = propConstraints.view.mapValues(parseExpression).toMap
-    dynamicLabelNodeLookup(node, parseExpression(labelExpr), operator, indexOrder, props, args: _*)
+    dynamicLabelNodeLookup(node, parseExpression(labelExpr), operator, props, args: _*)
   }
 
   def dynamicLabelNodeLookup(
     node: String,
     labelExpr: Expression,
     operator: SetOperator,
-    indexOrder: IndexOrder,
     args: String*
   ): IMPL = {
     val n = VariableParser.unescaped(node)
@@ -1389,7 +1377,6 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       varFor(n),
       DynamicElement.Simple(labelExpr, operator),
       args.map(a => VariableParser.unescapedVar(a)).toSet,
-      indexOrder,
       Map.empty
     )(_)))
   }
@@ -1398,7 +1385,6 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     node: String,
     labelExpr: Expression,
     operator: SetOperator,
-    indexOrder: IndexOrder,
     propConstraints: Map[String, Expression],
     args: String*
   ): IMPL = {
@@ -1408,7 +1394,6 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       varFor(n),
       DynamicElement.Simple(labelExpr, operator),
       args.map(a => varFor(VariableParser.unescaped(a))).toSet,
-      indexOrder,
       propConstraints.map { case (prop, expr) =>
         PropertyKeyToken(prop, PropertyKeyId(resolver.getPropertyKeyId(prop))) -> expr
       }

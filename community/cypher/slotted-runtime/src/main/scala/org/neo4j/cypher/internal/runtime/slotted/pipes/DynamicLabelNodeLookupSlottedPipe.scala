@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.runtime.slotted.pipes
 
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
@@ -35,7 +34,6 @@ case class DynamicLabelNodeLookupSlottedPipe(
   nodeOffset: Int,
   labelExpr: Expression,
   operator: DynamicElement.SetOperator,
-  indexOrder: IndexOrder,
   propertyExpressions: Map[PropertyKeyToken, Expression]
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
@@ -44,7 +42,6 @@ case class DynamicLabelNodeLookupSlottedPipe(
       getNodes(
         labelExpr,
         operator,
-        indexOrder,
         state.newRowWithArgument(rowFactory),
         state,
         propertyExpressions

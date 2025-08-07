@@ -402,7 +402,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "dynamicLabelNodeLookup",
     new TestPlanBuilder()
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "['A', 'B']", All, IndexOrderNone, Map("foo" -> "1"))
+      .dynamicLabelNodeLookup("x", "['A', 'B']", All, Map("foo" -> "1"))
       .build()
   )
 

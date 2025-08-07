@@ -26,9 +26,6 @@ import org.neo4j.cypher.internal.expressions.NullCheckAssert.NullCheckAssertExce
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
-import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
-import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
-import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -87,7 +84,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "'Honey'", All, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "'Honey'", All)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -96,58 +93,11 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("x").withRows(singleColumn(honeys))
   }
 
-  test("should scan all nodes of a label in ascending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
-
-    // given
-    val honeys = givenGraph {
-      nodeGraph(sizeHint, "Butter")
-      nodeGraph(sizeHint, "Almond")
-
-      nodeGraph(sizeHint, "Honey")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x")
-      .dynamicLabelNodeLookup("x", "'Honey'", All, IndexOrderAscending)
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("x").withRows(singleColumnInOrder(honeys.sortBy(_.getId)))
-  }
-
-  test("should scan all nodes of a label in descending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
-    // given
-    val honeys = givenGraph {
-      nodeGraph(sizeHint, "Butter")
-      nodeGraph(sizeHint, "Almond")
-
-      nodeGraph(sizeHint, "Honey")
-    }
-
-    // when
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x")
-      .dynamicLabelNodeLookup("x", "'Honey'", All, IndexOrderDescending)
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("x").withRows(singleColumnInOrder(honeys.sortBy(_.getId * -1)))
-  }
-
   test("should scan empty graph") {
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "'Honey'", All, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "'Honey'", All)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -165,11 +115,11 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .produceResults("y", "z", "x")
       .apply()
       .|.filter("true")
-      .|.dynamicLabelNodeLookup("x", "'Honey'", All, IndexOrderNone)
+      .|.dynamicLabelNodeLookup("x", "'Honey'", All)
       .apply()
       .|.filter("true")
-      .|.dynamicLabelNodeLookup("y", "'Honey'", All, IndexOrderNone)
-      .dynamicLabelNodeLookup("z", "'Honey'", All, IndexOrderNone)
+      .|.dynamicLabelNodeLookup("y", "'Honey'", All)
+      .dynamicLabelNodeLookup("z", "'Honey'", All)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -194,7 +144,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "['Almond', 'Butter']", Any, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "['Almond', 'Butter']", Any)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -214,7 +164,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "['Almond', 'Butter']", Any, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "['Almond', 'Butter']", Any)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -227,7 +177,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     // given
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "['Honey', 'Almond', 'Butter']", Any, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "['Honey', 'Almond', 'Butter']", Any)
       .build()
 
     // empty db
@@ -260,7 +210,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "['Honey', 'Almond', 'Butter']", All, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "['Honey', 'Almond', 'Butter']", All)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -283,7 +233,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .produceResults("x")
       .union()
       .|.filter("true")
-      .|.dynamicLabelNodeLookup("x", "['C', 'D']", All, IndexOrderNone, "x")
+      .|.dynamicLabelNodeLookup("x", "['C', 'D']", All, "x")
       .unwind("[1, 2] as x")
       .argument()
       .build()
@@ -308,7 +258,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .produceResults("x", "y")
       .cartesianProduct()
       .|.filter("true")
-      .|.dynamicLabelNodeLookup("y", "['C', 'D']", All, IndexOrderNone)
+      .|.dynamicLabelNodeLookup("y", "['C', 'D']", All)
       .unwind("[1, 2] as x")
       .argument()
       .build()
@@ -332,7 +282,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .apply()
-      .|.dynamicLabelNodeLookup("x", "lbl", Any, IndexOrderNone, "lbl")
+      .|.dynamicLabelNodeLookup("x", "lbl", Any, "lbl")
       .input(variables = Seq("lbl"))
       .build()
 
@@ -349,7 +299,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "[]", Any, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "[]", Any)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -365,7 +315,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "[]", All, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "[]", All)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -498,7 +448,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "['NONEXISTENT_LABEL_1', 'Foo']", Any, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "['NONEXISTENT_LABEL_1', 'Foo']", Any)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -514,7 +464,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", "['NONEXISTENT_LABEL_1', 'Foo']", All, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", "['NONEXISTENT_LABEL_1', 'Foo']", All)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -530,7 +480,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicLabelNodeLookup("x", NullCheckAssert(), Any, IndexOrderNone)
+      .dynamicLabelNodeLookup("x", NullCheckAssert(), Any)
       .build()
 
     the[Exception] thrownBy consume(execute(logicalQuery, runtime)) should not be a[NullCheckAssertException]
@@ -557,7 +507,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .filter("true")
-      .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1"))
+      .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1"))
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)
@@ -600,7 +550,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .filter("true")
-      .dynamicLabelNodeLookup("x", "['A', 'B']", All, IndexOrderNone, Map("prop" -> "1"))
+      .dynamicLabelNodeLookup("x", "['A', 'B']", All, Map("prop" -> "1"))
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)
@@ -639,7 +589,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .filter("true")
-      .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1", "name" -> "'bob'"))
+      .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)
@@ -679,7 +629,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .filter("true")
-      .dynamicLabelNodeLookup("x", "'A'", Any, IndexOrderNone, Map("prop" -> "1", "name" -> "'bob'"))
+      .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)

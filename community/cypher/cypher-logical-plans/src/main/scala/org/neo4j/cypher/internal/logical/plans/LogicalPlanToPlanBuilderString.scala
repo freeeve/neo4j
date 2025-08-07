@@ -600,11 +600,10 @@ object LogicalPlanToPlanBuilderString {
           idName,
           DynamicElement.Simple(expr, operator),
           argumentIds,
-          indexOrder,
           propertyConstraints
         ) =>
         val props = propertyConstraints.view.mapValues(_.quoted).toMap
-        params(idName.escaped, expr.quoted, operator, indexOrder, spread(argumentIds.map(_.escaped)), props)
+        params(idName.escaped, expr.quoted, operator, spread(argumentIds.map(_.escaped)), props)
 
       case DynamicDirectedRelationshipTypeLookup(idName, start, typeExpr, end, argumentIds, indexOrder) =>
         typeExpr match {

@@ -3352,7 +3352,6 @@ case class DynamicLabelNodeLookup(
   idName: LogicalVariable,
   labelExpr: DynamicElement,
   argumentIds: Set[LogicalVariable],
-  indexOrder: IndexOrder,
   propertyPredicates: Map[PropertyKeyToken, Expression]
 )(implicit idGen: IdGen) extends NodeLogicalLeafPlan(idGen) with StableLeafPlan {
 

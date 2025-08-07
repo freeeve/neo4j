@@ -431,14 +431,13 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerLabelScan()
         NodeByLabelScanPipe(ident.name, LazyLabel(label), indexOrder)(id = id)
 
-      case DynamicLabelNodeLookup(ident, DynamicElement.Simple(expr, operator), _, indexOrder, propertyConstraints) =>
+      case DynamicLabelNodeLookup(ident, DynamicElement.Simple(expr, operator), _, propertyConstraints) =>
         indexRegistrator.registerLabelScan()
 
         DynamicLabelNodeLookupPipe(
           ident.name,
           expressionConverters.toCommandExpression(id, expr),
           operator,
-          indexOrder,
           propertyConstraints.map { case (property, expr) =>
             property -> expressionConverters.toCommandExpression(id, expr)
           }

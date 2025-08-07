@@ -467,7 +467,7 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case DynamicLabelNodeLookup(idName, labelExpr, _, _, propertyConstraints) =>
+      case DynamicLabelNodeLookup(idName, labelExpr, _, propertyConstraints) =>
         val label = getPrettyDynamicElement(labelExpr)
         var prettyDetails = pretty"${asPrettyString(idName)}:$label"
 

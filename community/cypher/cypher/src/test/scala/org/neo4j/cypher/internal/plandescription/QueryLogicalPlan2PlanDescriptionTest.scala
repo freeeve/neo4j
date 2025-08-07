@@ -495,7 +495,6 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           varFor("node"),
           DynamicElement.Simple(literal(List("A", "B")), DynamicElement.All),
           Set.empty,
-          IndexOrderNone,
           Map(
             PropertyKeyToken("prop", PropertyKeyId(0)) -> literal(1),
             PropertyKeyToken("foo", PropertyKeyId(0)) -> literal("bar")
@@ -522,7 +521,6 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           varFor("  UNNAMED123"),
           DynamicElement.Simple(varFor("y"), DynamicElement.Any),
           Set.empty,
-          IndexOrderNone,
           Map.empty
         ),
         33.0

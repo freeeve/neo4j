@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
-import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner.DynamicLabelExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
@@ -52,7 +51,6 @@ case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
         plan <- planDynamicLabelNodeLookup(
           queryGraph.patternNodes,
           queryGraph.argumentIds,
-          interestingOrderConfig,
           context,
           expression
         )
@@ -74,33 +72,24 @@ case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
   final private def planDynamicLabelNodeLookup(
     patternNodes: Set[LogicalVariable],
     argumentIds: Set[LogicalVariable],
-    interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext,
     expression: DynamicLabelExpression
   ): Option[LogicalPlan] =
     if (
       !patternNodes.contains(expression.variable) ||
       skipIDs.contains(expression.variable) ||
-      argumentIds.contains(expression.variable)
+      argumentIds.contains(expression.variable) ||
+      context.staticComponents.planContext.nodeTokenIndex.isEmpty
     ) {
       None
     } else {
-      context.staticComponents.planContext.nodeTokenIndex.map { nodeTokenIndex =>
-        val providedOrder = ResultOrdering.providedOrderForLabelScan(
-          interestingOrder = interestingOrderConfig.orderToSolve,
-          variable = expression.variable,
-          indexOrderCapability = nodeTokenIndex.orderCapability,
-          providedOrderFactory = context.providedOrderFactory
-        )
-        context.staticComponents.logicalPlanProducer.planDynamicLabelNodeLookup(
-          variable = expression.variable,
-          labels = expression.labels,
-          operator = expression.operator,
-          argumentIds = argumentIds,
-          providedOrder = providedOrder,
-          context = context
-        )
-      }
+      Some(context.staticComponents.logicalPlanProducer.planDynamicLabelNodeLookup(
+        variable = expression.variable,
+        labels = expression.labels,
+        operator = expression.operator,
+        argumentIds = argumentIds,
+        context = context
+      ))
     }
 }
 

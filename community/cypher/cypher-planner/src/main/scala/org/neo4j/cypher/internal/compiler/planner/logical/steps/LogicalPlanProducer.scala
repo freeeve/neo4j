@@ -1663,7 +1663,6 @@ case class LogicalPlanProducer(
     labels: Expression,
     operator: DynamicElement.SetOperator,
     argumentIds: Set[LogicalVariable],
-    providedOrder: ProvidedOrder,
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val predicate =
@@ -1691,11 +1690,11 @@ case class LogicalPlanProducer(
       idName = variable,
       labelExpr = DynamicElement.Simple(rewrittenLabels, operator),
       argumentIds = argumentIds.union(newArguments),
-      indexOrder = toIndexOrder(providedOrder),
       propertyPredicates = Map.empty
     )
 
-    val annotatedPlan = annotate(plan, solved, providedOrder, context.plannerState.previouslyCachedProperties, context)
+    val annotatedPlan =
+      annotate(plan, solved, ProvidedOrder.empty, context.plannerState.previouslyCachedProperties, context)
 
     solver.rewriteLeafPlan(annotatedPlan)
   }

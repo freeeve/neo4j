@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
-import org.neo4j.cypher.internal.logical.plans.IndexOrder
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
@@ -52,13 +52,12 @@ case class DynamicLabelNodeLookupPipe(
   ident: String,
   labelExpr: Expression,
   operator: DynamicElement.SetOperator,
-  indexOrder: IndexOrder,
   propertyExpressions: Map[PropertyKeyToken, Expression]
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val baseContext = state.newRowWithArgument(rowFactory)
-    val nodes = getNodes(labelExpr, operator, indexOrder, baseContext, state, propertyExpressions)
+    val nodes = getNodes(labelExpr, operator, baseContext, state, propertyExpressions)
     PrimitiveLongHelper.map(nodes, n => rowFactory.copyWith(baseContext, ident, VirtualValues.node(n)))
   }
 }
@@ -68,7 +67,6 @@ object DynamicLabelNodeLookupPipe {
   def getNodes(
     labelExpr: Expression,
     operator: DynamicElement.SetOperator,
-    indexOrder: IndexOrder,
     context: CypherRow,
     state: QueryState,
     propertyExprs: Map[PropertyKeyToken, Expression]
@@ -103,10 +101,10 @@ object DynamicLabelNodeLookupPipe {
         case Any if labels.isEmpty => ClosingLongIterator.empty
 
         case Any =>
-          unionIterator(state.query, labels, indexOrder, state.nodeLabelTokenReadSession.get)
+          unionIterator(state.query, labels, IndexOrderNone, state.nodeLabelTokenReadSession.get)
 
         case All =>
-          intersectionIterator(state.query, labels, indexOrder, state.nodeLabelTokenReadSession.get)
+          intersectionIterator(state.query, labels, IndexOrderNone, state.nodeLabelTokenReadSession.get)
       }
     }
 
@@ -119,7 +117,7 @@ object DynamicLabelNodeLookupPipe {
       val cursor = state.query.nodeIndexSeek(
         state.query.dataRead.indexReadSession(index),
         needsValues = false, // we already know the values because we only support ExactPredicate
-        indexOrder,
+        IndexOrderNone,
         properties
       )
       new ReferenceCursorIterator(cursor)

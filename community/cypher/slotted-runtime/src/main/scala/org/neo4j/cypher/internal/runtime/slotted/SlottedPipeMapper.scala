@@ -458,14 +458,13 @@ class SlottedPipeMapper(
         indexRegistrator.registerLabelScan()
         NodesByLabelScanSlottedPipe(column.name, LazyLabel(label)(semanticTable), slots, indexOrder)(id)
 
-      case DynamicLabelNodeLookup(column, DynamicElement.Simple(expr, operator), _, indexOrder, propertyConstraints) =>
+      case DynamicLabelNodeLookup(column, DynamicElement.Simple(expr, operator), _, propertyConstraints) =>
         indexRegistrator.registerLabelScan()
 
         DynamicLabelNodeLookupSlottedPipe(
           slots.longOffset(column.name),
           expressionConverters.toCommandExpression(id, expr),
           operator,
-          indexOrder,
           propertyConstraints.map { case (property, expr) =>
             property -> expressionConverters.toCommandExpression(id, expr)
           }

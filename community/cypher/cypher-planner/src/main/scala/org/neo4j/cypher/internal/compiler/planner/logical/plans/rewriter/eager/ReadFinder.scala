@@ -355,7 +355,7 @@ object ReadFinder {
           .withIntroducedNodeVariable(variable)
           .withAddedNodeFilterExpression(variable, hasLabels)
 
-      case DynamicLabelNodeLookup(variable, _, _, _, _) =>
+      case DynamicLabelNodeLookup(variable, _, _, _) =>
         PlanReads()
           .withIntroducedNodeVariable(variable)
           .withUnknownLabelsRead(Some(variable))

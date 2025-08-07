@@ -24,8 +24,6 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeFull
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
-import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
-import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -50,7 +48,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All)
         .build()
   }
 
@@ -65,7 +63,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All)
         .build()
   }
 
@@ -81,7 +79,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("a")
         .filterExpression(hasDynamicLabels(varFor("a"), literalString("B")))
-        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All)
         .build()
   }
 
@@ -95,7 +93,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.All)
         .build()
   }
 
@@ -109,7 +107,7 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.Any, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.Any)
         .build()
   }
 
@@ -124,7 +122,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("a")
         .filterExpression(hasDynamicLabels(varFor("a"), literalString("C")))
-        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", listOfString("A", "B"), DynamicElement.All)
         .build()
   }
 
@@ -141,7 +139,7 @@ class DynamicLabelScanPlanningIntegrationTest
         .produceResults("a")
         .filterExpression(not(hasDynamicLabels(varFor("a"), varFor("labels"))))
         .apply()
-        .|.dynamicLabelNodeLookup("a", varFor("labels"), DynamicElement.Any, IndexOrderNone, "labels")
+        .|.dynamicLabelNodeLookup("a", varFor("labels"), DynamicElement.Any, "labels")
         .projection("['A', 'B'] AS labels")
         .argument()
         .build()
@@ -160,7 +158,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("b")
         .apply()
-        .|.dynamicLabelNodeLookup("b", varFor("labels"), DynamicElement.All, IndexOrderNone, "labels")
+        .|.dynamicLabelNodeLookup("b", varFor("labels"), DynamicElement.All, "labels")
         .projection("labels(a) AS labels")
         .nodeByLabelScan("a", "A", IndexOrderNone)
         .build()
@@ -178,7 +176,7 @@ class DynamicLabelScanPlanningIntegrationTest
         .produceResults("a")
         .distinct("a AS a")
         .union()
-        .|.dynamicLabelNodeLookup("a", listOfString("B", "C"), DynamicElement.All, IndexOrderNone)
+        .|.dynamicLabelNodeLookup("a", listOfString("B", "C"), DynamicElement.All)
         .nodeByLabelScan("a", "A", IndexOrderNone)
         .build()
   }
@@ -239,7 +237,7 @@ class DynamicLabelScanPlanningIntegrationTest
         .build()
   }
 
-  test("should plan dynamic label scan ordered by the variable name") {
+  test("should plan dynamic label scan ordered by the variable name by sorting afterwards") {
     val query =
       """MATCH (a:$('A'))
         |RETURN a ORDER BY a""".stripMargin
@@ -250,23 +248,8 @@ class DynamicLabelScanPlanningIntegrationTest
     plan shouldEqual
       planner.planBuilder()
         .produceResults("a")
-        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderAscending)
-        .build()
-  }
-
-  test("should plan dynamic label scan ordered by the variable name renamed") {
-    val query =
-      """MATCH (a:$('A'))
-        |RETURN a AS b ORDER BY b DESC""".stripMargin
-
-    val plan = planner
-      .plan(query)
-
-    plan shouldEqual
-      planner.planBuilder()
-        .produceResults("b")
-        .projection("a AS b")
-        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderDescending)
+        .sort("a ASC")
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All)
         .build()
   }
 
@@ -281,7 +264,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("a")
         .merge(Seq(createNodeFull("a", dynamicLabels = Seq("'A'"))))
-        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All, IndexOrderNone)
+        .dynamicLabelNodeLookup("a", literalString("A"), DynamicElement.All)
         .build()
   }
 
@@ -296,7 +279,7 @@ class DynamicLabelScanPlanningIntegrationTest
       planner.planBuilder()
         .produceResults("n")
         .apply()
-        .|.dynamicLabelNodeLookup("n", varFor("anon_0"), DynamicElement.All, IndexOrderNone, "anon_0")
+        .|.dynamicLabelNodeLookup("n", varFor("anon_0"), DynamicElement.All, "anon_0")
         .rollUpApply("anon_0", "label")
         .|.unwind("['A', 'B'] AS label")
         .|.argument()
