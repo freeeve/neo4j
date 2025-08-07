@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.schema;
 
+import static org.apache.commons.lang3.RandomStringUtils.insecure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -26,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.useFieldForUniquenessVerification;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -40,7 +40,7 @@ class TextDocumentStructureTest {
     @ParameterizedTest
     @EnumSource
     void stringWithMaximumLengthShouldBeAllowed(LuceneContext luceneContext) {
-        String longestString = RandomStringUtils.randomAscii(LuceneIndexWriter.MAX_TERM_LENGTH);
+        String longestString = insecure().nextAscii(LuceneIndexWriter.MAX_TERM_LENGTH);
         LuceneDocument document =
                 luceneContext.documentsFactory().reusableTextDocument(123, Values.values(longestString));
         assertEquals(longestString, document.get(LuceneDocumentsFactory.textValueKey(0)));

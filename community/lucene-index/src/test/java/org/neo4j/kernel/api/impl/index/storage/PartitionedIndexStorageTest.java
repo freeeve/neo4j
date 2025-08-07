@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.impl.index.storage;
 import static java.lang.Integer.parseInt;
 import static java.util.Arrays.asList;
 import static org.apache.commons.lang3.ArrayUtils.isEmpty;
+import static org.apache.commons.lang3.RandomStringUtils.insecure;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,7 +36,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -101,14 +101,15 @@ class PartitionedIndexStorageTest {
     void prepareFolderRemovesFromLucene(LuceneContext luceneContext) throws IOException {
         PartitionedIndexStorage storage = createIndexStorage(luceneContext);
         Path folder = createRandomFolder(testDir.homePath());
-        LuceneDirectory dir = createRandomLuceneDir(folder, luceneContext);
+        try (LuceneDirectory dir = createRandomLuceneDir(folder, luceneContext)) {
 
-        assertFalse(isEmpty(dir.listAll()));
+            assertFalse(isEmpty(dir.listAll()));
 
-        storage.prepareFolder(folder);
+            storage.prepareFolder(folder);
 
-        assertTrue(fs.fileExists(folder));
-        assertTrue(isEmpty(dir.listAll()));
+            assertTrue(fs.fileExists(folder));
+            assertTrue(isEmpty(dir.listAll()));
+        }
     }
 
     @ParameterizedTest
@@ -238,7 +239,7 @@ class PartitionedIndexStorageTest {
     private void createRandomFile(Path rootFolder) throws IOException {
         Path file;
         do {
-            file = rootFolder.resolve(RandomStringUtils.randomNumeric(5));
+            file = rootFolder.resolve(insecure().nextNumeric(5));
         } while (fs.fileExists(file));
 
         try (StoreChannel channel = fs.write(file);
@@ -250,7 +251,7 @@ class PartitionedIndexStorageTest {
     private Path createRandomFolder(Path rootFolder) throws IOException {
         Path folder;
         do {
-            folder = rootFolder.resolve(RandomStringUtils.randomNumeric(5));
+            folder = rootFolder.resolve(insecure().nextNumeric(5));
         } while (fs.fileExists(folder));
 
         fs.mkdirs(folder);
@@ -259,7 +260,7 @@ class PartitionedIndexStorageTest {
 
     private static LuceneDocument randomDocument(LuceneContext luceneContext) {
         LuceneDocument doc = luceneContext.documentsFactory().newDocument();
-        doc.addStringField("field", RandomStringUtils.randomNumeric(5), true);
+        doc.addStringField("field", insecure().nextNumeric(5), true);
         return doc;
     }
 }

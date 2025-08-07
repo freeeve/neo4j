@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.impl.api;
 
-import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
+import static org.apache.commons.lang3.RandomStringUtils.insecure;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -56,8 +56,8 @@ class LuceneIndexValueValidatorTest {
     @Test
     void tooLongArrayIsNotAllowed() {
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> {
-            TextArray largeArray =
-                    Values.stringArray(randomAlphabetic(MAX_TERM_LENGTH), randomAlphabetic(MAX_TERM_LENGTH));
+            TextArray largeArray = Values.stringArray(
+                    insecure().nextAlphabetic(MAX_TERM_LENGTH), insecure().nextAlphabetic(MAX_TERM_LENGTH));
             VALIDATOR.validate(ENTITY_ID, largeArray);
         });
         assertThat(iae.getMessage()).contains("Property value is too large to index");
@@ -67,7 +67,8 @@ class LuceneIndexValueValidatorTest {
     void stringOverExceedLimitNotAllowed() {
         int length = MAX_TERM_LENGTH + 1;
         IllegalArgumentException iae = assertThrows(
-                IllegalArgumentException.class, () -> VALIDATOR.validate(ENTITY_ID, values(randomAlphabetic(length))));
+                IllegalArgumentException.class,
+                () -> VALIDATOR.validate(ENTITY_ID, values(insecure().nextAlphabetic(length))));
         assertThat(iae.getMessage()).contains("Property value is too large to index");
     }
 
@@ -75,7 +76,7 @@ class LuceneIndexValueValidatorTest {
     void nullIsNotAllowed() {
         IllegalArgumentException iae = assertThrows(
                 IllegalArgumentException.class, () -> VALIDATOR.validate(ENTITY_ID, values((Object) null)));
-        assertEquals(iae.getMessage(), "Null value");
+        assertEquals("Null value", iae.getMessage());
     }
 
     @Test
@@ -94,11 +95,11 @@ class LuceneIndexValueValidatorTest {
 
     @Test
     void shortStringIsValidValue() {
-        VALIDATOR.validate(ENTITY_ID, values(randomAlphabetic(5)));
-        VALIDATOR.validate(ENTITY_ID, values(randomAlphabetic(10)));
-        VALIDATOR.validate(ENTITY_ID, values(randomAlphabetic(250)));
-        VALIDATOR.validate(ENTITY_ID, values(randomAlphabetic(450)));
-        VALIDATOR.validate(ENTITY_ID, values(randomAlphabetic(MAX_TERM_LENGTH)));
+        VALIDATOR.validate(ENTITY_ID, values(insecure().nextAlphabetic(5)));
+        VALIDATOR.validate(ENTITY_ID, values(insecure().nextAlphabetic(10)));
+        VALIDATOR.validate(ENTITY_ID, values(insecure().nextAlphabetic(250)));
+        VALIDATOR.validate(ENTITY_ID, values(insecure().nextAlphabetic(450)));
+        VALIDATOR.validate(ENTITY_ID, values(insecure().nextAlphabetic(MAX_TERM_LENGTH)));
     }
 
     private static Value[] values(Object... objects) {
