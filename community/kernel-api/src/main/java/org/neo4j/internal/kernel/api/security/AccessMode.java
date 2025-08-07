@@ -35,16 +35,52 @@ import org.neo4j.storageengine.api.PropertySelection;
  */
 public interface AccessMode {
 
+    /**
+     * Check whether the executing user has full write access.
+     *
+     * @return true if the the user has full write access
+     */
     boolean allowsWrites();
 
+    /*
+     * Check whether the executing user is allowed to create new tokens in the token store of the provided type.
+     *
+     * @param action the type of token to check. PrivilegeAction.CREATE_LABEL, PrivilegeAction.CREATE_PROPERTYKEY
+     * and PrivilegeAction.CREATE_RELTYPE are valid here.
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
+     */
     PermissionState allowsTokenCreates(PrivilegeAction action);
 
+    /**
+     * Check whether the executing user has any schema write access (INDEX or CONSTRAINTS)
+     * @return true if the executing user has any schema write access
+     */
     boolean allowsSchemaWrites();
 
+    /*
+     * Check whether the executing user has permission to execute the specified schema write action
+     *
+     * @param action the schema write action to check.
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
+     */
     PermissionState allowsSchemaWrites(PrivilegeAction action);
 
+    /**
+     * Check whether the executing user has permission to call SHOW INDEX
+     *
+     * @return true if the executing user has permission
+     */
     boolean allowsShowIndex();
 
+    /**
+     * Check whether the executing user has permission to call SHOW CONSTRAINTS
+     *
+     * @return true if the executing user has permission
+     */
     boolean allowsShowConstraint();
 
     /**
@@ -212,14 +248,18 @@ public interface AccessMode {
      * Check if execution of a procedure is allowed
      *
      * @param procedureId id of the procedure
-     * @return true if the procedure with this id is allowed to be executed
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
      */
     PermissionState allowsExecuteProcedure(int procedureId);
 
     /**
      * Check if the 'execute admin procedures' privilege is granted.
      *
-     * @return true if admin procedures are allowed to be executed.
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
      */
     PermissionState allowExecuteAdminProcedures();
 
@@ -229,7 +269,10 @@ public interface AccessMode {
      * <strong>Note: this does not check if execution is allowed</strong>
      *
      * @param procedureId id of the procedure
-     * @return true if the procedure with this id should be executed with boosted privileges
+     *
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
      */
     PermissionState shouldBoostProcedure(int procedureId);
 
@@ -237,7 +280,10 @@ public interface AccessMode {
      * Check if execution of a user defined function is allowed
      *
      * @param id id of the function
-     * @return true if the function with this id is allowed to be executed
+     *
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
      */
     PermissionState allowsExecuteFunction(int id);
 
@@ -247,7 +293,10 @@ public interface AccessMode {
      * <strong>Note: this does not check if execution is allowed</strong>
      *
      * @param id id of the function
-     * @return true if the function with this id should be executed with boosted privileges
+     *
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
      */
     PermissionState shouldBoostFunction(int id);
 
@@ -255,7 +304,10 @@ public interface AccessMode {
      * Check if execution of a aggregating user defined function is allowed
      *
      * @param id id of the function
-     * @return true if the function with this id is allowed to be executed
+     *
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
      */
     PermissionState allowsExecuteAggregatingFunction(int id);
 
@@ -265,7 +317,9 @@ public interface AccessMode {
      * <strong>Note: this does not check if execution is allowed</strong>
      *
      * @param id id of the function
-     * @return true if the function with this id should be executed with boosted privileges
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
      */
     PermissionState shouldBoostAggregatingFunction(int id);
 
@@ -273,32 +327,103 @@ public interface AccessMode {
      * Check if a given setting is available to the executing user
      *
      * @param setting name of the setting
-     * @return true if the setting is available to user
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
      */
     PermissionState allowsShowSetting(String setting);
 
+    /**
+     * Check if the executing user is allowed to set the label with the supplied label id.
+     *
+     * @param labelId the id of the label to check.
+     * @return true if the executing user is allowed to set that label
+     */
     boolean allowsSetLabel(int labelId);
 
+    /**
+     * Check if the executing user is allowed to remove the label with the supplied label id.
+     *
+     * @param labelId the id of the label to check.
+     * @return true if the executing user is allowed to remove that label
+     */
     boolean allowsRemoveLabel(int labelId);
 
+    /**
+     * Check if the executing user is allowed to create a node with the supplied label id(s).
+     *
+     * @param labelIds the ids of the labels to check.
+     * @return true if the executing user is allowed to create this node.
+     */
     boolean allowsCreateNode(int[] labelIds);
 
+    /**
+     * Check if the executing user is allowed to delete a node with the supplied label id(s).
+     *
+     * @param labelSupplier a function supplying the label id(s) to check.
+     * @return true if the executing user is allowed to delete this node
+     */
     boolean allowsDeleteNode(Supplier<TokenSet> labelSupplier);
 
+    /**
+     * Check if the executing user is allowed to create a relationship with the supplied relationship type.
+     *
+     * @param relType the id of the relationship type to check.
+     * @return true if the executing user is allowed to create this relationship
+     */
     boolean allowsCreateRelationship(int relType);
 
+    /**
+     * Check if the executing user is allowed to delete a relationship with the supplied relationship type.
+     *
+     * @param relType the id of the relationship type to check.
+     * @return true if the executing user is allowed to delete this relationship
+     */
     boolean allowsDeleteRelationship(int relType);
 
+    /**
+     * Check if the executing user is allowed to set a property on a node.
+     *
+     * @param labels the set of labels on the node
+     * @param propertyKey the id of the property key the user wishes to set
+     * @return true if the executing user is allowed to set this property
+     */
     boolean allowsSetProperty(LabelsSupplier labels, int propertyKey);
 
+    /**
+     * Check if the executing user is allowed to set a property on a relationship.
+     *
+     * @param relType the relationship type of the relationship
+     * @param propertyKey the id of the property key the user wishes to set
+     * @return true if the executing user is allowed to set this property
+     */
     boolean allowsSetProperty(RelTypeSupplier relType, int propertyKey);
 
+    /**
+     * Check if the executing user has permission to use LOAD CSV from any location
+     *
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
+     */
     PermissionState allowsLoadAllData();
 
+    /**
+     * Check if the executing user has permission to use LOAD CSV from the specified location
+     *
+     * @return PermissionState.EXPLICIT_GRANT if the user has been granted permission with a GRANT rule,
+     * PermissionState.EXPLICIT_DENY if the user is denied due to a DENY rule and PermissionState.NOT_GRANTED
+     * if no relevent privileges have been found.
+     */
     PermissionState allowsLoadUri(URI url, InetAddress inetAddress);
 
     String name();
 
+    /**
+     * Return the set of role names used to populate this AccessMode
+     *
+     * @return a set of role names
+     */
     default Set<String> roles() {
         return Collections.emptySet();
     }
@@ -307,6 +432,10 @@ public interface AccessMode {
         return false;
     }
 
+    /**
+     * Return true if this AccessMode contains a full set of privileges and is thus cacheable.
+     * @return
+     */
     default boolean isCacheable() {
         return false;
     }
