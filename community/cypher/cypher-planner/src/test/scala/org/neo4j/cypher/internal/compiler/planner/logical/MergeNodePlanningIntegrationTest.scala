@@ -19,12 +19,10 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.BeLikeMatcher.beLike
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
 import org.neo4j.cypher.internal.ir.EagernessReason.ReadCreateConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.UnknownLabelReadSetConflict
@@ -394,12 +392,12 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
     plan shouldEqual expected
   }
 
-  test("insert an eager between merging a node with a dynamic label and reading nodes") {
+  test("insert an eager between merging a node with a dynamic label and reading nodes - using dynamic label filter") {
     val planner =
       plannerBuilder()
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
-        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
+        .enablePlanningDynamicLabelScans(false)
         .build()
 
     val query =
@@ -414,9 +412,9 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .planBuilder()
       .produceResults("n")
       .apply()
-      .|.nodeByLabelScan("n", "Account", IndexOrderNone, "anon_0")
-      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))))
-      .merge(nodes = Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
+      .|.nodeByLabelScan("n", "Account", IndexOrderNone, "anon_0") // Id(2)
+      .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(4), Id(2)))))
+      .merge(nodes = Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label")))) // Id(4)
       .filterExpression(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
       .allNodeScan("anon_0")
       .build()
@@ -442,18 +440,18 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .produceResults("n")
       .apply()
       .|.nodeByLabelScan("n", "Account", IndexOrderNone, "anon_0")
-      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))))
+      .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(4), Id(2)))))
       .merge(nodes = Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
       .dynamicLabelNodeLookup("anon_0", parameter("label", CTAny), DynamicElement.All, IndexOrderNone)
       .build()
   }
 
-  test("insert an eager between reading nodes and merging a node with a dynamic label") {
+  test("insert an eager between reading nodes and merging a node with a dynamic label - using dynamic label filter") {
     val planner =
       plannerBuilder()
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
-        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
+        .enablePlanningDynamicLabelScans(false)
         .build()
 
     val query =
@@ -468,12 +466,12 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .produceResults()
       .emptyResult()
       .apply()
-      .|.merge(Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
+      .|.merge(Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label")))) // Id(3)
       .|.filterExpression(hasDynamicLabels(varFor("anon_0"), parameter("label", CTAny)))
       .|.allNodeScan("anon_0")
-      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(8)))))
+      .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(3), Id(8)))))
       .apply()
-      .|.nodeByLabelScan("n", "Account", IndexOrderNone, "one")
+      .|.nodeByLabelScan("n", "Account", IndexOrderNone, "one") // Id(8)
       .unwind("[1] AS one")
       .argument()
       .build()
@@ -500,7 +498,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .apply()
       .|.merge(Seq(createNodeFull("anon_0", dynamicLabels = Seq("$label"))))
       .|.dynamicLabelNodeLookup("anon_0", parameter("label", CTAny), DynamicElement.All, IndexOrderNone)
-      .eager(ListSet(EagernessReason.ReadCreateConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7)))))
+      .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(3), Id(7)))))
       .apply()
       .|.nodeByLabelScan("n", "Account", IndexOrderNone, "one")
       .unwind("[1] AS one")
@@ -531,7 +529,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .apply()
       .|.merge(nodes = Seq(createNodeFull("n")), onCreate = Seq(setLabel("n", Seq(), Seq("$label"))))
       .|.allNodeScan("n")
-      .eager(ListSet(EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7)))))
+      .eager(ListSet(UnknownLabelReadSetConflict.withConflict(Conflict(Id(3), Id(7)))))
       .apply()
       .|.nodeByLabelScan("account", "Account", IndexOrderNone, "one")
       .unwind("[1] AS one")
@@ -562,7 +560,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .apply()
       .|.merge(nodes = Seq(createNodeFull("n")), onMatch = Seq(setLabel("n", Seq(), Seq("$label"))))
       .|.allNodeScan("n")
-      .eager(ListSet(EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7)))))
+      .eager(ListSet(UnknownLabelReadSetConflict.withConflict(Conflict(Id(3), Id(7)))))
       .apply()
       .|.nodeByLabelScan("account", "Account", IndexOrderNone, "one")
       .unwind("[1] AS one")
@@ -595,8 +593,8 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .|.nodeByLabelScan(node = "account", label = "Person", "n")
       .eager(
         ListSet(
-          UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(0))),
-          EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))
+          UnknownLabelReadSetConflict.withConflict(Conflict(Id(4), Id(0))),
+          UnknownLabelReadSetConflict.withConflict(Conflict(Id(4), Id(2)))
         )
       )
       .merge(
@@ -632,8 +630,8 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
       .|.nodeByLabelScan(node = "account", label = "Person", "n")
       .eager(
         ListSet(
-          UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(0))),
-          EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(2)))
+          UnknownLabelReadSetConflict.withConflict(Conflict(Id(4), Id(0))),
+          UnknownLabelReadSetConflict.withConflict(Conflict(Id(4), Id(2)))
         )
       )
       .merge(
@@ -675,7 +673,7 @@ class MergeNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         onCreate = Seq(setLabel(node = "m", staticLabels = Seq(), dynamicLabelExpressions = Seq("labels(n)")))
       )
       .|.nodeByLabelScan(node = "m", label = "B", "n")
-      .eager(ListSet(EagernessReason.UnknownLabelReadSetConflict.withConflict(EagernessReason.Conflict(Id(4), Id(8)))))
+      .eager(ListSet(UnknownLabelReadSetConflict.withConflict(Conflict(Id(4), Id(8)))))
       .cartesianProduct()
       .|.nodeByLabelScan(node = "n", label = "A")
       .allNodeScan("anon_0")

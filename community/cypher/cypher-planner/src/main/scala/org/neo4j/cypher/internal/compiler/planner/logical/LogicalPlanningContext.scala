@@ -138,6 +138,8 @@ object LogicalPlanningContext {
    *                                      Relevant for caching.
    * @param dynamicLabelScansEnabled a setting whether dynamic label scans should be planned.
    *                                 Relevant for caching.
+   * @param dynamicLabelIndexUseEnabled a setting whether indexes should be used to plan queries with dynamic labels.
+   *                                    Relevant for caching.
    * @param existsWithImplicitLimitEnabled plan EXISTS {} subquery as if it had LIMIT 1
    *                                       Relevant for caching.
    * @param selectorCandidatesMaximum a setting what maximum number of candidates for which we consider all possibilities
@@ -169,6 +171,8 @@ object LogicalPlanningContext {
     pushDownArgumentsRBPWFEnabled: Boolean =
       GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.defaultValue(),
     dynamicLabelScansEnabled: Boolean = GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.defaultValue(),
+    dynamicLabelIndexUseEnabled: Boolean =
+      GraphDatabaseInternalSettings.cypher_enable_dynamic_label_index_use.defaultValue(),
     existsWithImplicitLimitEnabled: Boolean =
       GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.defaultValue(),
     selectorCandidatesMaximum: Int = GraphDatabaseInternalSettings.planning_selector_candidates_maximum.defaultValue()
@@ -196,6 +200,7 @@ object LogicalPlanningContext {
           multiRelationshipExpansion: Boolean,
           pushDownArgumentsRBPWFEnabled: Boolean,
           dynamicLabelScansEnabled: Boolean,
+          dynamicLabelIndexUseEnabled: Boolean,
           existsWithImplicitLimitEnabled: Boolean,
           selectorCandidatesMaximum: Int
         ) =>
@@ -247,6 +252,9 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.dynamic())
           builder.addOne(dynamicLabelScansEnabled)
+
+        if (GraphDatabaseInternalSettings.cypher_enable_dynamic_label_index_use.dynamic())
+          builder.addOne(dynamicLabelIndexUseEnabled)
 
         if (GraphDatabaseInternalSettings.planning_exists_with_implicit_limit_enabled.dynamic())
           builder.addOne(existsWithImplicitLimitEnabled)

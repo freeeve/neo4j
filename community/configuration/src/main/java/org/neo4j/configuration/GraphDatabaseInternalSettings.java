@@ -361,10 +361,15 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description(
-            "Set this to enable using dynamic label/relationship type scans to solve queries that use dynamic labels.")
+    @Description("Set this to enable using label/relationship type scans to solve queries that use dynamic labels.")
     public static final Setting<Boolean> cypher_enable_dynamic_label_scan =
             newBuilder("internal.cypher.enable_dynamic_label_scan", BOOL, true).build();
+
+    @Internal
+    @Description("Set this to enable using indexes to solve queries that use dynamic labels.")
+    public static final Setting<Boolean> cypher_enable_dynamic_label_index_use = newBuilder(
+                    "internal.cypher.enable_dynamic_label_index_use", BOOL, false)
+            .build();
 
     @Internal
     @Description("Set this to enable using non-fused pipelined MERGE.")

@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
@@ -208,7 +207,7 @@ class DynamicLabelScanPlanningIntegrationTest
         |RETURN a""".stripMargin
 
     val plan = plannerBuilder()
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
+      .enablePlanningDynamicLabelScans(false)
       .setAllNodesCardinality(100)
       .build()
       .plan(query)

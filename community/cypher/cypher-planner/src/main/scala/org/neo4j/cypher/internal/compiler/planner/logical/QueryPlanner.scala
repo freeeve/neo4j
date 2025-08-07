@@ -153,6 +153,7 @@ case object QueryPlanner
       multiRelationshipExpansion = context.config.multiRelationshipExpansionEnabled(),
       pushDownArgumentsRBPWFEnabled = context.config.pushDownArgumentsRBPWFEnabled(),
       dynamicLabelScansEnabled = context.config.dynamicLabelScansEnabled(),
+      dynamicLabelIndexUseEnabled = context.config.dynamicLabelIndexUseEnabled(),
       existsWithImplicitLimitEnabled = context.config.existsWithImplicitLimitEnabled(),
       selectorCandidatesMaximum = context.config.selectorCandidatesMaximum()
     )

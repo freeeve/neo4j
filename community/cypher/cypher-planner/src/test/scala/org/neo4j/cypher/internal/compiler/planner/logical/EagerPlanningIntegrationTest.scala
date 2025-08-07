@@ -26,7 +26,6 @@ import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder
 import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
-import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
@@ -1455,7 +1454,10 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .setLabelCardinality("Label2", 50)
       .build()
 
-    val query = """MATCH (n:Label), (m:Label2) SET n:$("Label2") RETURN m, n""".stripMargin
+    val query =
+      """MATCH (n:Label), (m:Label2)
+        |SET n:$("Label2")
+        |RETURN m, n""".stripMargin
 
     val plan = planner.plan(query)
 
@@ -1765,31 +1767,31 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     )
   }
 
-  test("eagerness should handle matching on dynamic labels - Create overlap") {
+  test("eagerness should handle matching on dynamic labels - Create overlap - using dynamic label filter") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("C", 10)
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
-    val query = """WITH ["A", "B"] as labels
+    val query = """UNWIND range(1, 10) as i
+                  |MATCH (n)
+                  |WITH ["A", "B"] as labels, n
                   |MATCH (n:$any(labels))
                   |CREATE (:Z)
                   |RETURN n""".stripMargin
 
     val plan = planner.plan(query)
 
-    val expression = hasAnyDynamicLabel(varFor("n"), varFor("labels"))
-
     plan should equal(
       planner.planBuilder()
         .produceResults("n")
         .create(createNode("anon_0", "Z"))
-        .eager(ListSet(LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(1), Id(5)))))
-        .filterExpression(expression)
-        .apply()
-        .|.allNodeScan("n", "labels")
+        .eager(ListSet(LabelReadSetConflict(labelName("Z")).withConflict(Conflict(Id(1), Id(6)))))
+        .filterExpressionOrString("n:$any(labels)", assertIsNode("n"))
         .projection("['A', 'B'] AS labels")
+        .apply()
+        .|.allNodeScan("n", "i")
+        .unwind("range(1, 10) AS i")
         .argument()
         .build()
     )
@@ -1856,43 +1858,45 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     )
   }
 
-  test("eagerness should handle matching on Dynamic Labels - Delete overlap") {
+  test("eagerness should handle matching on Dynamic Labels - Delete overlap - using dynamic label filter") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("Z", 10)
       .setRelationshipCardinality("()-[]->()", 10)
       .setLabelCardinality("A", 10)
       .setLabelCardinality("C", 10)
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
-    val query = """WITH ["A", "B"] as types
+    val query = """UNWIND range(1, 10) as i
+                  |MATCH (n)
+                  |SKIP 0
                   |MATCH (n:$([])), (m:!%)
                   |DELETE m
                   |RETURN n""".stripMargin
 
     val plan = planner.plan(query)
 
-    val dynExpr = hasDynamicLabels(varFor("n"), ListLiteral(List.empty)(pos))
-
     plan should equal(
       planner.planBuilder()
         .produceResults("n")
         .eager(ListSet(ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(0)))))
-        .deleteNode("m")
+        .deleteNode("m") // Id(2)
         .eager(ListSet(
-          ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(6))),
-          ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(7))),
-          ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(8))),
-          ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(9)))
+          ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(6))),
+          ReadDeleteConflict("m").withConflict(Conflict(Id(2), Id(7))),
+          ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(8))),
+          ReadDeleteConflict("n").withConflict(Conflict(Id(2), Id(12)))
         ))
         .apply()
         .|.cartesianProduct()
-        .|.|.filterExpression(dynExpr)
-        .|.|.allNodeScan("n", "types")
-        .|.filter("NOT m:%")
-        .|.allNodeScan("m", "types")
-        .projection("['A', 'B'] AS types")
+        .|.|.filter("NOT m:%") // Id(6)
+        .|.|.allNodeScan("m", "i", "n") // Id(7)
+        .|.filterExpressionOrString("n:$all([])", assertIsNode("n")) // Id(8)
+        .|.argument("n", "i")
+        .skip(0)
+        .apply()
+        .|.allNodeScan("n", "i") // Id(12)
+        .unwind("range(1, 10) AS i")
         .argument()
         .build()
     )
@@ -1944,7 +1948,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .setLabelCardinality("A", 10)
       .setLabelCardinality("C", 10)
       .withSetting(GraphDatabaseInternalSettings.resolve_simple_dynamic_expressions, TRUE)
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
       .build()
 
     val query = """WITH ["A", "B"] as types
@@ -2005,7 +2008,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       plannerBuilder()
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
-        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
         .build()
 
     val query =
@@ -2064,12 +2066,13 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  test("insert an eager between reading nodes and merging a node with a dynamic label") {
+  test("insert an eager between reading nodes and merging a node with a dynamic label - using dynamic label filter") {
     val planner =
       plannerBuilder()
         .setAllNodesCardinality(10)
         .setLabelCardinality("Account", 10)
-        .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
+        // We do not have a way to force a dynamic label scan through the query in this case, so we disable planning it
+        .enablePlanningDynamicLabelScans(false)
         .build()
 
     val query =
@@ -2201,11 +2204,11 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH") {
+  test("Eager should be inserted between FOREACH REMOVE with dynamic label and MATCH - using dynamic label filter") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("100", 50)
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
+      .enablePlanningDynamicLabelScans(false)
       .build()
 
     val query =
@@ -2214,7 +2217,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         |MATCH (n:$any(numericLabels))
         |FOREACH (l IN numericLabels | REMOVE n:$(l))
         |WITH *
-        |MATCH ()
         |MATCH (m:$all(numericLabels))
         |RETURN count(m) AS shouldBeZero
         |""".stripMargin
@@ -2224,20 +2226,16 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual planner
       .subPlanBuilder()
       .aggregation(groupingExpressions = Seq(), aggregationExpression = Seq("count(m) AS shouldBeZero"))
+      .filter("m:$all(numericLabels)") // Id(2)
       .apply()
-      .|.cartesianProduct()
-      .|.|.allNodeScan(node = "anon_0", "n", "numericLabels")
-      .|.filterExpression(hasDynamicLabels(varFor("m"), varFor("numericLabels")))
       .|.allNodeScan(node = "m", "n", "numericLabels")
-      .eager(
-        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(8), Id(5))))
-      )
+      .eager(ListSet(UnknownLabelReadRemoveConflict.withConflict(Conflict(Id(6), Id(2)))))
       .foreach(
         variable = "l",
         expression = "numericLabels",
         mutations = Seq(removeLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("l")))
-      )
-      .filterExpression(hasAnyDynamicLabel(varFor("n"), varFor("numericLabels")))
+      ) // Id(6)
+      .filter("n:$any(numericLabels)")
       .apply()
       .|.allNodeScan(node = "n", "numericLabels")
       .projection("[i IN range(1, 5) | toString(i)] AS numericLabels")
@@ -2257,7 +2255,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         |MATCH (n:$any(numericLabels))
         |FOREACH (l IN numericLabels | REMOVE n:$(l))
         |WITH *
-        |MATCH ()
         |MATCH (m:$all(numericLabels))
         |RETURN count(m) AS shouldBeZero
         |""".stripMargin
@@ -2268,22 +2265,17 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .subPlanBuilder()
       .aggregation(groupingExpressions = Seq(), aggregationExpression = Seq("count(m) AS shouldBeZero"))
       .apply()
-      .|.cartesianProduct()
-      .|.|.dynamicLabelNodeLookup("m", "numericLabels", DynamicElement.All, IndexOrderNone, "n", "numericLabels")
-      .|.allNodeScan("anon_0", "n", "numericLabels")
-      .eager(
-        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(7), Id(4))))
-      )
+      .|.dynamicLabelNodeLookup("m", "numericLabels", DynamicElement.All, IndexOrderNone, "n", "numericLabels") // Id(3)
+      .eager(ListSet(UnknownLabelReadRemoveConflict.withConflict(Conflict(Id(5), Id(3)))))
       .foreach(
         variable = "l",
         expression = "numericLabels",
         mutations = Seq(removeLabel(node = "n", staticLabels = Seq(), dynamicLabelExpressions = Seq("l")))
-      )
-      .eager(
-        ListSet(EagernessReason.UnknownLabelReadRemoveConflict.withConflict(EagernessReason.Conflict(Id(7), Id(10))))
-      )
+      ) // Id(5)
+      // this eager could be avoided if we could analyse that `numericLabels` remains constant throughout the RHS of the apply
+      .eager(ListSet(UnknownLabelReadRemoveConflict.withConflict(Conflict(Id(5), Id(8)))))
       .apply()
-      .|.dynamicLabelNodeLookup("n", "numericLabels", DynamicElement.Any, IndexOrderNone, "numericLabels")
+      .|.dynamicLabelNodeLookup("n", "numericLabels", DynamicElement.Any, IndexOrderNone, "numericLabels") // Id(8)
       .projection("[i IN range(1, 5) | toString(i)] AS numericLabels")
       .argument()
       .build()
@@ -2463,11 +2455,11 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  test("insert eager between MATCH with dynamic relationship type and CREATE") {
+  test("insert eager between MATCH with dynamic relationship type and CREATE - using dynamic relationship filter") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setAllRelationshipsCardinality(10)
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
+      .enablePlanningDynamicLabelScans(false)
       .build()
 
     val query = """WITH ['A', 'B'] AS types
@@ -2599,11 +2591,11 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
-  test("insert eager between MATCH with dynamic relationship type and DELETE") {
+  test("insert eager between MATCH with dynamic relationship type and DELETE - using dynamic relationship filter") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setAllRelationshipsCardinality(10)
-      .withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan, java.lang.Boolean.FALSE)
+      .enablePlanningDynamicLabelScans(false)
       .build()
 
     val query = """WITH ['A', 'B'] AS types

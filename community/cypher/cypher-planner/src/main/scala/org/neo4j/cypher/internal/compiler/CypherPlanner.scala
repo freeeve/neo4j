@@ -366,6 +366,13 @@ class CypherPlannerConfiguration(
     () => config.dynamicLabelScansEnabled
   }
 
+  val dynamicLabelIndexUseEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.cypher_enable_dynamic_label_index_use.dynamic()
+    )
+    () => config.dynamicLabelIndexUseEnabled
+  }
+
   val limitBeforeCountRewriterEnabled: () => Boolean = {
     AssertMacros.checkOnlyWhenAssertionsAreEnabled(
       !GraphDatabaseInternalSettings.planning_limit_before_count_rewriter_enabled.dynamic()

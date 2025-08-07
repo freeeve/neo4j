@@ -234,6 +234,9 @@ class CypherConfiguration private (val config: Config) {
 
   val dynamicLabelScansEnabled: Boolean = config.get(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan)
 
+  val dynamicLabelIndexUseEnabled: Boolean =
+    config.get(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_index_use)
+
   val enableNonFusedMerge: Boolean = config.get(GraphDatabaseInternalSettings.cypher_enable_non_fused_merge)
 
   val limitBeforeCountRewriterEnabled: Boolean =
