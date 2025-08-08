@@ -49,7 +49,6 @@ import org.neo4j.cypher.internal.procs.ThrowException
 import org.neo4j.cypher.internal.procs.UpdatingSystemCommandExecutionPlan
 import org.neo4j.cypher.internal.util.HomeDatabaseNotPresent
 import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH
@@ -80,9 +79,6 @@ import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.exceptions.ParameterWrongTypeException
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
-import org.neo4j.gqlstatus.GqlParams
-import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity
 import org.neo4j.graphdb.Direction
 import org.neo4j.graphdb.Transaction
@@ -100,8 +96,6 @@ import org.neo4j.string.UTF8
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.BooleanValue
 import org.neo4j.values.storable.ByteArray
-import org.neo4j.values.storable.IntegralValue
-import org.neo4j.values.storable.LongValue
 import org.neo4j.values.storable.StringValue
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.storable.Value
@@ -129,7 +123,7 @@ object AdministrationCommandRuntime {
   private val secureHasher = new SecureHasher
   private val internalPrefix: String = "__internal_"
 
-  private[internal] def internalKey(name: String): String = internalPrefix + name
+  def internalKey(name: String): String = internalPrefix + name
 
   private[internal] def validatePassword(password: Array[Byte])(config: Config): Array[Byte] = {
     if (password == null || password.length == 0) throw InvalidArgumentException.providedPasswordEmpty()
@@ -233,11 +227,11 @@ object AdministrationCommandRuntime {
     }
   }
 
-  private[internal] def getParameterName(parameter: Either[String, Parameter]): Option[String] =
+  def getParameterName(parameter: Either[String, Parameter]): Option[String] =
     // Either.toOption returns a Some containing the Right value if it exists or a None if this is a Left
     parameter.toOption.map(_.name)
 
-  private[internal] def makeCreateUserExecutionPlan(
+  def makeCreateUserExecutionPlan(
     userName: Either[String, Parameter],
     suspended: Boolean,
     defaultDatabase: Option[HomeDatabaseAction],
@@ -374,7 +368,7 @@ object AdministrationCommandRuntime {
     )
   }
 
-  private[internal] def makeAlterUserExecutionPlan(
+  def makeAlterUserExecutionPlan(
     userName: Either[String, Parameter],
     suspended: Option[Boolean],
     homeDatabase: Option[HomeDatabaseAction],
@@ -642,7 +636,7 @@ object AdministrationCommandRuntime {
       }
     }).getOrElse((params, Set.empty))
 
-  private[internal] def makeRenameExecutionPlan(
+  def makeRenameExecutionPlan(
     entityType: PrivilegeGqlCodeEntity,
     namePropKey: String,
     fromName: Either[String, Parameter],
@@ -723,7 +717,7 @@ object AdministrationCommandRuntime {
    * @param valueMapper function to apply to the value
    * @return
    */
-  private[internal] def getNameFields(
+  def getNameFields(
     key: String,
     name: Either[String, Parameter],
     valueMapper: String => String = identity
@@ -749,7 +743,7 @@ object AdministrationCommandRuntime {
    * @param emulateGetNameFields make this behave closer to getNameFields to keep existing behaviour for example for create database
    * @return
    */
-  private[internal] def getDatabaseNameFields(
+  def getDatabaseNameFields(
     nameKey: String,
     name: DatabaseName,
     emulateGetNameFields: Boolean = false
@@ -821,85 +815,12 @@ object AdministrationCommandRuntime {
     }
   }
 
-  private[internal] def runtimeIntInRange(
-    params: MapValue,
-    lower: Int,
-    upper: Int,
-    component: String
-  )(literalOrParam: Either[Int, Parameter]): Int = {
-    val value = runtimeIntegralValue(literalOrParam, params, component)
-    if (value < lower || value > upper) {
-      literalOrParam match {
-        case Right(param) =>
-          throw parameterOutOfNumericRangeException(
-            param,
-            component,
-            Values.longValue(value),
-            "Integer",
-            lower = lower,
-            upper = upper
-          )
-        case Left(_) =>
-          // This should have been caught in semantic checking
-          throw CypherExecutionException.internalError(
-            "Cypher Execution",
-            s"Numeric value for $component out of range of valid values",
-            null
-          )
-      }
-    }
-    value.toInt // safe because upper is also an Int
-  }
-
-  private[internal] def runtimeStringValue(field: DatabaseName, params: MapValue): String = field match {
+  def runtimeStringValue(field: DatabaseName, params: MapValue): String = field match {
     case n: NamespacedName => n.toString
     case ParameterName(p)  => runtimeStringValue(p.name, params, prettyPrint = false)
   }
 
-  private[internal] def runtimeIntegralValue(
-    either: Either[Int, Parameter],
-    params: MapValue,
-    component: String
-  ): Long = {
-    either match {
-      case Left(literal) => literal
-      case Right(param) => params.get(param.name) match {
-          case i: IntegralValue => i.longValue()
-          case invalidType =>
-            throw ParameterWrongTypeException.parameterWrongType(
-              param.name,
-              invalidType.prettify(),
-              component,
-              CTInteger.toCypherTypeString
-            )
-        }
-    }
-  }
-
-  private def parameterOutOfNumericRangeException(
-    parameter: Parameter,
-    component: String,
-    value: LongValue,
-    expectedType: String,
-    lower: Int,
-    upper: Int
-  ): InvalidArgumentException = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
-      .withParam(GqlParams.StringParam.param, parameter.name)
-      .withCause(
-        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
-          .withParam(GqlParams.StringParam.component, component)
-          .withParam(GqlParams.StringParam.valueType, expectedType)
-          .withParam(GqlParams.StringParam.lower, String.valueOf(lower))
-          .withParam(GqlParams.StringParam.upper, String.valueOf(upper))
-          .withParam(GqlParams.StringParam.value, String.valueOf(value.value()))
-          .build()
-      )
-      .build()
-    new InvalidArgumentException(gql, gql.getMessage)
-  }
-
-  private[internal] def runtimeStringValue(
+  def runtimeStringValue(
     field: Either[String, Parameter],
     params: MapValue,
     literalValueMapper: String => String = identity
@@ -908,12 +829,12 @@ object AdministrationCommandRuntime {
     case Right(p) => runtimeStringValue(p.name, params, prettyPrint = false)
   }
 
-  private[internal] def runtimeStringValue(field: Expression, params: MapValue, prettyPrint: Boolean): String = ({
+  def runtimeStringValue(field: Expression, params: MapValue, prettyPrint: Boolean): String = ({
     case StringLiteral(s) => s
     case p: Parameter     => runtimeStringValue(p.name, params, prettyPrint)
   }: PartialFunction[Expression, String]).apply(field)
 
-  private[internal] def runtimeStringValue(parameter: String, params: MapValue, prettyPrint: Boolean): String = {
+  def runtimeStringValue(parameter: String, params: MapValue, prettyPrint: Boolean): String = {
     val value: AnyValue =
       if (params.containsKey(parameter))
         params.get(parameter)

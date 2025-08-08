@@ -166,10 +166,10 @@ case class CommunityAdministrationCommandRuntime(
     }.distinct.sorted.mkString(" and/or ")
   }
 
-  private[internal] def adminActionErrorMessage(
+  def adminActionErrorMessage(
     permissionState: PermissionState,
     actions: Seq[AdministrationAction]
-  ) = {
+  ): String = {
     permissionState match {
       case PermissionState.EXPLICIT_DENY =>
         s"Permission denied for ${prettifyActionName(actions: _*)}. $checkShowUserPrivilegesText"
@@ -188,7 +188,7 @@ case class CommunityAdministrationCommandRuntime(
       case _            => None
     }
 
-  private[internal] def checkActions(
+  def checkActions(
     actions: Seq[DbmsAction],
     securityContext: SecurityContext
   ): Seq[(DbmsAction, PermissionState)] =
