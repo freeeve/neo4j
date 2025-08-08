@@ -63,12 +63,12 @@ public abstract class AbstractConnector<CFG extends ConnectorConfiguration> impl
     private final RoutingService routingService;
     private final ErrorAccountant errorAccountant;
     private final TrafficAccountant trafficAccountant;
-
-    private final ConnectionRegistry connectionRegistry;
     private final BoltDriverMetricsMonitor driverMetricsMonitor;
     private final CFG configuration;
 
-    private final Set<ProtocolCapability> supportedCapabilities;
+    private final ConnectionRegistry connectionRegistry;
+
+    private final Set<ProtocolCapability> supportedProtocolCapabilities;
 
     private final List<ConnectorListener> listeners = new ArrayList<>();
 
@@ -107,14 +107,14 @@ public abstract class AbstractConnector<CFG extends ConnectorConfiguration> impl
         this.errorAccountant = errorAccountant;
         this.trafficAccountant = trafficAccountant;
 
-        var capabilities = EnumSet.noneOf(ProtocolCapability.class);
-        this.registerSupportedCapabilities(capabilities);
-        this.supportedCapabilities = Collections.unmodifiableSet(capabilities);
+        var protocolCapabilities = EnumSet.noneOf(ProtocolCapability.class);
+        this.registerSupportedProtocolCapabilities(protocolCapabilities);
+        this.supportedProtocolCapabilities = Collections.unmodifiableSet(protocolCapabilities);
 
         this.connectionRegistry = new ConnectionRegistry(id, connectionTracker, logging);
     }
 
-    protected void registerSupportedCapabilities(EnumSet<ProtocolCapability> capabilities) {}
+    protected void registerSupportedProtocolCapabilities(EnumSet<ProtocolCapability> capabilities) {}
 
     @Override
     public String id() {
@@ -142,8 +142,8 @@ public abstract class AbstractConnector<CFG extends ConnectorConfiguration> impl
     }
 
     @Override
-    public Set<ProtocolCapability> supportedCapabilities() {
-        return this.supportedCapabilities;
+    public Set<ProtocolCapability> supportedProtocolCapabilities() {
+        return this.supportedProtocolCapabilities;
     }
 
     @Override

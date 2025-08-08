@@ -97,7 +97,7 @@ public interface Connector<CFG extends ConnectorConfiguration> extends Lifecycle
      *
      * @return a set of supported capabilities.
      */
-    Set<ProtocolCapability> supportedCapabilities();
+    Set<ProtocolCapability> supportedProtocolCapabilities();
 
     /**
      * Retrieves the authentication implementation which is responsible for authorizing connections
@@ -205,6 +205,14 @@ public interface Connector<CFG extends ConnectorConfiguration> extends Lifecycle
      * @return a connection.
      */
     Connection createConnection(Channel channel);
+
+    /**
+     * Return whether this connector only allows local query execution.
+     * @return true if connector only allows local execution.
+     */
+    default boolean localQueryExecutionOnly() {
+        return false;
+    }
 
     @Override
     default void init() throws Exception {}

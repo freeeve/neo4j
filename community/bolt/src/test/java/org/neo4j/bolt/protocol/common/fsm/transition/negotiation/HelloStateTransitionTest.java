@@ -37,6 +37,7 @@ import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessag
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.testing.assertions.ListValueAssertions;
 import org.neo4j.bolt.testing.assertions.MapValueAssertions;
+import org.neo4j.bolt.testing.mock.ConnectorMockFactory;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.ListValue;
@@ -55,7 +56,7 @@ class HelloStateTransitionTest extends AbstractStateTransitionTest<HelloMessage,
 
     @BeforeEach
     void prepareConnector() {
-        this.connector = Mockito.mock(Connector.class);
+        this.connector = ConnectorMockFactory.newInstance();
         this.connectionHintRegistry = Mockito.mock(ConnectionHintRegistry.class);
 
         Mockito.doReturn(this.connector).when(this.connection).connector();

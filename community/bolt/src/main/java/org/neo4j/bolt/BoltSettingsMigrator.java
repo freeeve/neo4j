@@ -21,7 +21,10 @@ package org.neo4j.bolt;
 
 import java.util.Map;
 import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.SettingMigrator;
+import org.neo4j.configuration.SettingMigrators;
+import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.logging.InternalLog;
 
 @ServiceProvider
@@ -38,5 +41,12 @@ public class BoltSettingsMigrator implements SettingMigrator {
                     "Use of deprecated value %s for setting %s. Support for this value will be removed in a future release.",
                     SETTING_KEEP_ALIVE_FOR_REQUESTS_STREAMING, SETTING_KEEP_ALIVE_FOR_REQUESTS);
         }
+
+        SettingMigrators.migrateSettingNameChange(
+                values, log, "internal.dbms.loopback_file", BoltConnector.unix_socket_path);
+        SettingMigrators.migrateSettingNameChange(
+                values, log, "internal.dbms.loopback_delete", BoltConnector.unix_socket_delete);
+        SettingMigrators.migrateSettingNameChange(
+                values, log, "internal.dbms.loopback_enabled", GraphDatabaseInternalSettings.enable_aura_profile);
     }
 }

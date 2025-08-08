@@ -98,7 +98,9 @@ class DomainSocketNettyConnectorTest extends AbstractNettyConnectorTest<DomainSo
 
     @Override
     protected DomainSocketNettyConnector createConnector(SocketAddress address) {
-        var config = DomainSocketConnectorConfiguration.newInstance();
+        var config = DomainSocketConnectorConfiguration.factory()
+                .fromConfig(Config.defaults())
+                .build();
 
         return new DomainSocketNettyConnector(
                 CONNECTOR_ID,
@@ -164,7 +166,9 @@ class DomainSocketNettyConnectorTest extends AbstractNettyConnectorTest<DomainSo
     void shouldFailWithIllegalArgumentWhenTransportIsIncompatible() {
         Assertions.assertThatExceptionOfType(IllegalArgumentException.class)
                 .isThrownBy(() -> {
-                    var config = DomainSocketConnectorConfiguration.newInstance();
+                    var config = DomainSocketConnectorConfiguration.factory()
+                            .fromConfig(Config.defaults())
+                            .build();
 
                     new DomainSocketNettyConnector(
                             CONNECTOR_ID,

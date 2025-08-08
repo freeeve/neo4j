@@ -22,6 +22,7 @@ package org.neo4j.bolt.protocol.common.connector.netty;
 import static org.neo4j.util.Preconditions.checkArgument;
 
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.unix.DomainSocketAddress;
@@ -37,9 +38,15 @@ import org.neo4j.bolt.protocol.common.connector.accounting.error.ErrorAccountant
 import org.neo4j.bolt.protocol.common.connector.accounting.traffic.NoopTrafficAccountant;
 import org.neo4j.bolt.protocol.common.connector.config.DomainSocketConnectorConfiguration;
 import org.neo4j.bolt.protocol.common.connector.connection.Connection;
+import org.neo4j.bolt.protocol.common.connector.connection.listener.ConnectionListener;
+import org.neo4j.bolt.protocol.common.connector.error.IllegalDatabaseAccessException;
+import org.neo4j.bolt.protocol.common.connector.listener.ConnectorListener;
 import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
+import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.security.Authentication;
 import org.neo4j.bolt.tx.TransactionManager;
+import org.neo4j.bolt.tx.TransactionType;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.helpers.PortBindException;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.kernel.api.net.NetworkConnectionTracker;
@@ -114,6 +121,13 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
                 "Unsupported transport: " + transport.getName() + " does not support domain sockets");
 
         this.path = path;
+
+        // access to user databases is restricted within the publicly available version of the
+        // connector as this connector is explicitly designed for maintenance purposes - lack of
+        // proper routing support also means that queries on non-leader instances would likely fail
+        if (!configuration.permitUserDatabaseAccess()) {
+            this.registerListener(new DomainSocketRestrictionListener());
+        }
     }
 
     @Override
@@ -128,7 +142,7 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
         if (Files.exists(path)) {
             if (!this.configuration().deleteSocketFile()) {
                 throw new PortBindException(
-                        bindAddress, new BindException("Loopback listen file: " + path + " already exists."));
+                        bindAddress, new BindException("Domain socket listen file: " + path + " already exists."));
             }
 
             try {
@@ -140,7 +154,52 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
     }
 
     @Override
+    protected void onChannelBound(Channel channel) throws PortBindException {
+        try {
+            Files.setPosixFilePermissions(path, configuration().socketFilePermissionMask());
+        } catch (IOException ex) {
+            throw new PortBindException(bindAddress, ex);
+        }
+    }
+
+    @Override
     protected void logStartupMessage() {
-        userLog.info("Bolt (loopback) enabled on file %s", path);
+        userLog.info("Bolt (Unix Domain Socket) enabled on file %s", path);
+    }
+
+    private class DomainSocketRestrictionListener implements ConnectorListener, ConnectionListener {
+
+        @Override
+        public void onConnectionCreated(Connection connection) {
+            connection.registerListener(this);
+        }
+
+        @Override
+        public void onListenerAdded() {
+            // NOP - make the compiler happy
+        }
+
+        @Override
+        public void onListenerRemoved() {
+            // NOP - make the compiler happy
+        }
+
+        @Override
+        public void onPrepareTransaction(TransactionType type, AccessMode mode, String db) {
+            // explicitly prevent access to databases other than "system" for now since we want to
+            // avoid a situation in which queries unexpectedly get routed or access stale data
+            // within a recovery scenario - this restriction may be lifted in the future
+            if (!GraphDatabaseSettings.SYSTEM_DATABASE_NAME.equals(db)) {
+                throw new IllegalDatabaseAccessException(
+                        db,
+                        "Cannot access database \"" + db
+                                + "\": Only system database access is permitted via UNIX domain sockets");
+            }
+        }
+    }
+
+    @Override
+    public boolean localQueryExecutionOnly() {
+        return true;
     }
 }

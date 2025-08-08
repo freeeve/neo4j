@@ -198,7 +198,7 @@ public interface Connection extends TrackedNetworkConnection, TransactionOwner {
      *
      * @return a set of capabilities or an empty list of none haven't been selected (yet).
      */
-    Set<ProtocolCapability> selectedCapabilities();
+    Set<ProtocolCapability> selectedProtocolCapabilities();
 
     /**
      * Evaluates whether this connection has selected a given protocol capability.
@@ -206,7 +206,7 @@ public interface Connection extends TrackedNetworkConnection, TransactionOwner {
      * @param capability a capability to evaluate.
      * @return true if the given capability has been selected, false otherwise.
      */
-    boolean hasSelectedCapability(ProtocolCapability capability);
+    boolean hasSelectedProtocolCapability(ProtocolCapability capability);
 
     /**
      * Selects a protocol revision for use with this connection.

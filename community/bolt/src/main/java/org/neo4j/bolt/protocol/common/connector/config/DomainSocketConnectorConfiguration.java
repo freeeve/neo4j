@@ -19,17 +19,25 @@
  */
 package org.neo4j.bolt.protocol.common.connector.config;
 
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Set;
 import java.util.function.Consumer;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 
 public final class DomainSocketConnectorConfiguration extends AbstractNettyConnectorConfiguration {
 
+    private final Set<PosixFilePermission> socketFilePermissionMask;
     private final boolean deleteSocketFile;
+    private final boolean permitUserDatabaseAccess;
 
     private DomainSocketConnectorConfiguration(Factory builder) {
         super(builder);
 
+        this.socketFilePermissionMask = builder.socketFilePermissionMask;
+        this.permitUserDatabaseAccess = builder.permitUserDatabaseAccess;
         this.deleteSocketFile = builder.deleteSocketFile;
     }
 
@@ -57,9 +65,29 @@ public final class DomainSocketConnectorConfiguration extends AbstractNettyConne
         return this.deleteSocketFile;
     }
 
+    /**
+     * Identifies the permission mask which shall be applied to the domain socket file once
+     * created.
+     * <p/>
+     * This value effectively operates as either a secondary or primary authentication factor
+     * depending on the server configuration as only users with the correct permissions will be able
+     * to interact with the domain socket as a result.
+     *
+     * @return a Unix file permission mask.
+     */
+    public Set<PosixFilePermission> socketFilePermissionMask() {
+        return socketFilePermissionMask;
+    }
+
+    public boolean permitUserDatabaseAccess() {
+        return permitUserDatabaseAccess;
+    }
+
     public static final class Factory extends AbstractNettyConnectorConfiguration.AbstractFactory<Factory> {
 
+        private Set<PosixFilePermission> socketFilePermissionMask;
         private boolean deleteSocketFile;
+        private boolean permitUserDatabaseAccess;
 
         private Factory() {}
 
@@ -70,13 +98,28 @@ public final class DomainSocketConnectorConfiguration extends AbstractNettyConne
 
         @Override
         public Factory fromConfig(Config config) {
-            this.deleteSocketFile = config.get(BoltConnectorInternalSettings.unsupported_loopback_delete);
+            this.socketFilePermissionMask =
+                    config.get(BoltConnector.unix_socket_permission_mask).getPosixPermissions();
+            this.permitUserDatabaseAccess = config.get(GraphDatabaseInternalSettings.enable_aura_profile)
+                    || config.get(BoltConnectorInternalSettings.enable_unix_socket_user_database_access);
+
+            this.deleteSocketFile = config.get(BoltConnector.unix_socket_delete);
 
             return super.fromConfig(config);
         }
 
         public Factory deleteSocketFile(boolean deleteSocketFile) {
             this.deleteSocketFile = deleteSocketFile;
+            return this;
+        }
+
+        public Factory permitUserDatabaseAccess(boolean permitUserDatabaseAccess) {
+            this.permitUserDatabaseAccess = permitUserDatabaseAccess;
+            return this;
+        }
+
+        public Factory socketFilePermissionMask(Set<PosixFilePermission> socketFilePermissionMask) {
+            this.socketFilePermissionMask = socketFilePermissionMask;
             return this;
         }
     }

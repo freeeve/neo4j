@@ -22,21 +22,24 @@ package org.neo4j.bolt.test.connection.transport;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.ParameterContext;
 import org.neo4j.bolt.test.annotation.connection.SelectTransport;
+import org.neo4j.bolt.test.annotation.connection.transport.UseTransport;
 import org.neo4j.bolt.testing.client.TransportType;
 import org.neo4j.bolt.testing.util.AnnotationUtil;
 
 /**
  * Selects the set of transports for which a given test template shall be instantiated.
- * <p />
- * This interface is typically implemented in conjunction with a {@link SelectTransport} annotation or a custom
- * annotation bearing the {@link SelectTransport} annotation.
- * <p />
- * Implementations of this interface are expected to provide a publicly accessible no-args construction via which they
- * are resolved when referenced using the {@link TransportSelector} annotation or one of its children.
- * <p />
- * Refer to the {@link org.neo4j.bolt.test.annotation.connection.transport} package for examples on how to utilize this
- * interface in the most optimal fashion.
+ * <p/>
+ * This interface is typically implemented in conjunction with a {@link SelectTransport} annotation
+ * or a custom annotation bearing the {@link SelectTransport} annotation.
+ * <p/>
+ * Implementations of this interface are expected to provide a publicly accessible no-args
+ * construction via which they are resolved when referenced using the {@link TransportSelector}
+ * annotation or one of its children.
+ * <p/>
+ * Refer to the {@link org.neo4j.bolt.test.annotation.connection.transport} package for examples on
+ * how to utilize this interface in the most optimal fashion.
  */
 public interface TransportSelector {
 
@@ -50,5 +53,9 @@ public interface TransportSelector {
 
     static Optional<TransportSelector> findSelector(ExtensionContext context) {
         return AnnotationUtil.selectProvider(context, SelectTransport.class, SelectTransport::value);
+    }
+
+    static Optional<TransportType> findTransportOverride(ParameterContext context) {
+        return AnnotationUtil.selectValue(context.getAnnotatedElement(), UseTransport.class, UseTransport::value);
     }
 }

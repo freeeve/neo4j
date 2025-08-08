@@ -25,6 +25,7 @@ import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.fsm.state.transition.AbstractStateTransition;
 import org.neo4j.bolt.negotiation.message.ProtocolCapability;
 import org.neo4j.bolt.protocol.common.fsm.States;
+import org.neo4j.bolt.protocol.common.fsm.error.CapabilityViolationStateTransitionException;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.fsm.transition.authentication.AuthenticationStateTransition;
 import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
@@ -61,6 +62,11 @@ public final class HelloStateTransition extends AbstractStateTransition<HelloMes
         var notificationsConfig = message.notificationsConfig();
         var boltAgent = message.boltAgent();
 
+        if (routingContext.isServerRoutingEnabled()
+                && ctx.connection().connector().localQueryExecutionOnly()) {
+            throw new CapabilityViolationStateTransitionException("Routing is not supported on this connector");
+        }
+
         var enabledFeatures =
                 ctx.connection().negotiate(features, userAgent, routingContext, notificationsConfig, boltAgent);
         if (!enabledFeatures.isEmpty()) {
@@ -74,7 +80,7 @@ public final class HelloStateTransition extends AbstractStateTransition<HelloMes
         handler.onMetadata("connection_id", Values.stringValue(ctx.connection().id()));
         handler.onMetadata("server", Values.stringValue("Neo4j/" + Version.getNeo4jVersion()));
 
-        if (ctx.connection().hasSelectedCapability(ProtocolCapability.HANDSHAKE_V2)) {
+        if (ctx.connection().hasSelectedProtocolCapability(ProtocolCapability.HANDSHAKE_V2)) {
             handler.onMetadata(
                     "protocol_version",
                     Values.stringValue(ctx.connection().protocol().version().toString()));

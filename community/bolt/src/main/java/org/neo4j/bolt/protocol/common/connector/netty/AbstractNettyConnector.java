@@ -171,7 +171,7 @@ public abstract class AbstractNettyConnector<CFG extends NettyConnectorConfigura
      *
      * @param channel a server channel.
      */
-    protected void onChannelBound(Channel channel) {}
+    protected void onChannelBound(Channel channel) throws Exception {}
 
     /**
      * Performs additional implementation specific tasks when the server channel is about to be

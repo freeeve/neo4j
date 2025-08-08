@@ -1753,6 +1753,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.dbms.prefetch_on_commit", BOOL, false).build();
 
     @Internal
+    @Description("Indicates that the application is running within an Aura environment.")
+    public static final Setting<Boolean> enable_aura_profile =
+            newBuilder("internal.dbms.enable_aura_profile", BOOL, false).build();
+
+    @Internal
     @Description("The maximum amount of time to wait for terminated transactions to start closing before allowing "
             + "initiated database shutdown to continue")
     public static final Setting<Duration> shutdown_terminated_transaction_wait_timeout = newBuilder(

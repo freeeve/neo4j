@@ -378,13 +378,17 @@ public class AtomicSchedulingConnection extends AbstractConnection {
             databaseName = this.selectedDefaultDatabase();
         }
 
+        var db = databaseName;
+        this.notifyListeners(l -> l.onPrepareTransaction(type, mode, db));
+
         var notificationsConfig = resolveNotificationsConfig(transactionNotificationsConfig);
 
         // optimistically create the transaction as we do not know what state the connection is in
         // at the moment
         var transaction = this.connector()
                 .transactionManager()
-                .create(type, this, databaseName, mode, bookmarks, timeout, metadata, notificationsConfig);
+                .create(type, this, db, mode, bookmarks, timeout, metadata, notificationsConfig);
+
         // if another transaction has been created in the meantime or was already present when the
         // method was originally invoked, we'll destroy the optimistically created transaction and
         // throw immediately to indicate misuse

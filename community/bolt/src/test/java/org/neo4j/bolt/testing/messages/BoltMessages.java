@@ -69,7 +69,7 @@ public interface BoltMessages {
     }
 
     default RequestMessage hello(Map<String, Object> authToken) {
-        return this.hello(Collections.emptyList(), null, authToken);
+        return this.hello(Collections.emptyList(), new RoutingContext(false, Collections.emptyMap()), authToken);
     }
 
     default RequestMessage hello(RoutingContext routingContext) {

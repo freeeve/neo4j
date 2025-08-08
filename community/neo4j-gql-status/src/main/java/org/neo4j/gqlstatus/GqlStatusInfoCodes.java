@@ -4666,6 +4666,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "not supported in this store format",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_51N78(
+            new GqlStatus("51N78"),
+            "Routing is not permitted via this connector. Switch the connection URI scheme to bolt:// or connect to a connector with routing support.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "routing unavailable",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_51N79(
+            new GqlStatus("51N79"),
+            "Access to database { %s } is not permitted via this connector.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "database unavailable",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
             "Execution of the procedure { %s } timed out after { %s } { %s }.",

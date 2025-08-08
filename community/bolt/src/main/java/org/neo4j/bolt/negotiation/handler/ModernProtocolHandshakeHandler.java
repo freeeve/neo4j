@@ -52,7 +52,7 @@ public final class ModernProtocolHandshakeHandler
         var versions = protocolRegistry.versionsAvailable();
 
         ctx.writeAndFlush(new ModernProtocolNegotiationInitMessage(
-                ProtocolVersion.NEGOTIATION_V2, versions, this.connector.supportedCapabilities()));
+                ProtocolVersion.NEGOTIATION_V2, versions, this.connector.supportedProtocolCapabilities()));
     }
 
     @Override
@@ -83,7 +83,7 @@ public final class ModernProtocolHandshakeHandler
 
         // ensure that the client has only provided capabilities that were initially indicated to be
         // supported by the connector
-        var connectorCapabilities = this.connector.supportedCapabilities();
+        var connectorCapabilities = this.connector.supportedProtocolCapabilities();
         if (msg.capabilities().stream().anyMatch(capability -> !connectorCapabilities.contains(capability))) {
             var mismatch = msg.capabilities().stream()
                     .filter(capability -> !connectorCapabilities.contains(capability))

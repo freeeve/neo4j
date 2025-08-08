@@ -25,14 +25,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.junit.jupiter.api.TestTemplate;
-import org.neo4j.bolt.test.annotation.wire.SelectWire;
-import org.neo4j.bolt.test.wire.selector.FilteredBoltWireSelector;
 
 /**
- * Marks an annotated function as a Bolt protocol test which shall be executed across a range of supported versions.
- * <p />
- * When combined with {@link TransportTest}, a transport test matrix may be extended to additionally include various
- * protocol versions.
+ * Marks an annotated function as a Bolt protocol test which shall be executed across a range of
+ * supported versions and transports.
  * <p />
  * This annotation implies {@link TestTemplate}. Note, however, that it may additionally be placed on class level in
  * order to configure the set of available protocol versions for all tests within a class. In that case, test functions
@@ -40,7 +36,8 @@ import org.neo4j.bolt.test.wire.selector.FilteredBoltWireSelector;
  */
 @Documented
 @TestTemplate
+@ProtocolTest
+@TransportTest
 @Retention(RetentionPolicy.RUNTIME)
-@SelectWire(FilteredBoltWireSelector.class)
 @Target({ElementType.ANNOTATION_TYPE, ElementType.METHOD})
-public @interface ProtocolTest {}
+public @interface BoltTest {}

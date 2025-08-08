@@ -21,6 +21,9 @@ package org.neo4j.bolt.test.util;
 
 import static org.neo4j.internal.kernel.api.procs.ProcedureSignature.procedureSignature;
 
+import java.util.concurrent.ThreadPoolExecutor;
+import org.assertj.core.api.Assertions;
+import org.neo4j.bolt.BoltServer;
 import org.neo4j.bolt.transport.Neo4jWithSocket;
 import org.neo4j.collection.ResourceRawIterator;
 import org.neo4j.exceptions.KernelException;
@@ -38,6 +41,7 @@ import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.storageengine.api.TransactionIdStore;
+import org.neo4j.test.assertion.Assert;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.IntegralValue;
 
@@ -110,5 +114,29 @@ public final class ServerUtil {
                         return ResourceRawIterator.empty();
                     }
                 });
+    }
+
+    /**
+     * Suspends test execution until {@code n} threads within the Bolt thread pool are occupied.
+     *
+     * @param n the desired number of occupied threads.
+     */
+    public static void awaitPrimaryThreadPoolSaturation(BoltServer server, int n) {
+        var executor = (ThreadPoolExecutor) server.getPrimaryExecutorService();
+
+        Assert.awaitUntilAsserted(
+                () -> Assertions.assertThat(executor.getActiveCount()).isEqualTo(n));
+    }
+
+    /**
+     * Suspends test execution until {@code n} threads within the Bolt thread pool are occupied.
+     *
+     * @param n the desired number of occupied threads.
+     */
+    public static void awaitDomainSocketThreadPoolSaturation(BoltServer server, int n) {
+        var executor = (ThreadPoolExecutor) server.getDomainSocketExecutorService();
+
+        Assert.awaitUntilAsserted(
+                () -> Assertions.assertThat(executor.getActiveCount()).isEqualTo(n));
     }
 }

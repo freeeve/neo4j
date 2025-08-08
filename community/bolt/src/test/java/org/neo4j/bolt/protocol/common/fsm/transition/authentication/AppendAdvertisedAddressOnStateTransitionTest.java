@@ -138,6 +138,7 @@ class AppendAdvertisedAddressOnStateTransitionTest
 
         Mockito.doReturn(connector).when(connection).connector();
         Mockito.doReturn(configuration).when(connector).configuration();
+        // Mockito.doReturn(socketAddress).when(configuration).advertisedAddress();
     }
 
     private record AdvertisedAddressScenario(

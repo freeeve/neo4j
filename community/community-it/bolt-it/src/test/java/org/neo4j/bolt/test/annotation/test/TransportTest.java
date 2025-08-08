@@ -42,7 +42,7 @@ import org.neo4j.bolt.test.connection.transport.FilteredTransportSelector;
  */
 @Documented
 @TestTemplate
-@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @SelectTransport(FilteredTransportSelector.class)
+@Target({ElementType.ANNOTATION_TYPE, ElementType.METHOD})
 public @interface TransportTest {}

@@ -36,19 +36,23 @@ import org.neo4j.bolt.protocol.common.connector.connection.AtomicSchedulingConne
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Connected;
 import org.neo4j.bolt.test.annotation.connection.initializer.VersionSelected;
+import org.neo4j.bolt.test.annotation.connection.transport.ExcludeTransport;
+import org.neo4j.bolt.test.annotation.connection.transport.IncludeTransport;
 import org.neo4j.bolt.test.annotation.setup.FactoryFunction;
 import org.neo4j.bolt.test.annotation.setup.SettingsFunction;
-import org.neo4j.bolt.test.annotation.test.ProtocolTest;
+import org.neo4j.bolt.test.annotation.test.BoltTest;
 import org.neo4j.bolt.test.annotation.wire.selector.ExcludeWire;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.test.provider.ConnectionProvider;
 import org.neo4j.bolt.testing.annotation.Version;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
+import org.neo4j.bolt.testing.client.TransportType;
 import org.neo4j.bolt.testing.messages.BoltWire;
 import org.neo4j.bolt.transport.Neo4jWithSocketExtension;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
+import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.config.Setting;
@@ -68,6 +72,7 @@ import org.neo4j.values.virtual.VirtualValues;
 @Neo4jWithSocketExtension
 @BoltTestExtension
 @ExcludeWire(until = @Version(major = 5, minor = 0))
+@IncludeTransport({TransportType.TCP, TransportType.UNIX, TransportType.LOCAL})
 public class AuthenticationIT {
 
     protected final AssertableLogProvider userLogProvider = new AssertableLogProvider();
@@ -80,6 +85,8 @@ public class AuthenticationIT {
     @SettingsFunction
     protected void customizeSettings(Map<Setting<?>, Object> settings) {
         settings.put(GraphDatabaseSettings.auth_enabled, true);
+        settings.put(BoltConnector.enable_unix_socket_auth, true);
+        settings.put(BoltConnectorInternalSettings.enable_unix_socket_user_database_access, true);
         settings.put(BoltConnector.advertised_address, new SocketAddress("my-server.neo4j.io", 7688));
     }
 
@@ -92,7 +99,7 @@ public class AuthenticationIT {
         return VirtualValues.map(new String[] {key}, new AnyValue[] {ValueUtils.of(value)});
     }
 
-    @ProtocolTest
+    @BoltTest
     void shouldRespondWithCredentialsExpiredOnFirstUse(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
@@ -110,7 +117,7 @@ public class AuthenticationIT {
                 .receivesSuccess(meta -> Assertions.assertThat(meta).containsEntry("credentials_expired", true));
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfWrongCredentialsV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -146,7 +153,7 @@ public class AuthenticationIT {
                 SECONDS);
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfWrongCredentials(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -186,7 +193,7 @@ public class AuthenticationIT {
                 SECONDS);
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfWrongCredentialsFollowingSuccessfulLoginV40(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
@@ -243,7 +250,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfWrongCredentialsFollowingSuccessfulLogin(
             BoltWire wire, @VersionSelected ConnectionProvider connectionProvider) {
@@ -303,7 +310,7 @@ public class AuthenticationIT {
         }
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfMalformedAuthTokenWrongTypeV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -323,7 +330,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfMalformedAuthTokenWrongType(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
@@ -347,7 +354,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfMalformedAuthTokenMissingKeyV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
@@ -367,7 +374,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfMalformedAuthTokenMissingKey(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
@@ -391,7 +398,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfMalformedAuthTokenMissingSchemeV40(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
@@ -410,7 +417,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailIfMalformedAuthTokenMissingScheme(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
@@ -433,7 +440,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     protected void shouldFailIfMalformedAuthTokenUnknownSchemeV40(
             BoltWire wire, @VersionSelected BoltTestConnection connection) throws IOException {
@@ -454,7 +461,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     protected void shouldFailIfMalformedAuthTokenUnknownScheme(
             BoltWire wire, @VersionSelected BoltTestConnection connection) throws InterruptedException {
@@ -478,7 +485,7 @@ public class AuthenticationIT {
                 .isEventuallyTerminated();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailDifferentlyIfTooManyFailedAuthAttemptsV40(
             BoltWire wire, @Connected ConnectionProvider connectionProvider) {
@@ -506,7 +513,7 @@ public class AuthenticationIT {
         });
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailDifferentlyIfTooManyFailedAuthAttempts(
             BoltWire wire, @Connected ConnectionProvider connectionProvider) {
@@ -536,7 +543,7 @@ public class AuthenticationIT {
         });
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailWhenReusingTheSamePasswordV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -582,7 +589,7 @@ public class AuthenticationIT {
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailWhenReusingTheSamePassword(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -637,7 +644,7 @@ public class AuthenticationIT {
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailWhenSubmittingEmptyPasswordV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -673,7 +680,7 @@ public class AuthenticationIT {
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldFailWhenSubmittingEmptyPassword(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -714,7 +721,7 @@ public class AuthenticationIT {
         BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldNotBeAbleToReadWhenPasswordChangeRequiredV40(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
@@ -752,7 +759,7 @@ public class AuthenticationIT {
         }
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldNotBeAbleToReadWhenPasswordChangeRequired(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
@@ -810,7 +817,7 @@ public class AuthenticationIT {
         }
     }
 
-    @ProtocolTest
+    @BoltTest
     void shouldBeAbleToLogoffAfterBeingAuthenticatedThenLogBackOn(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -838,7 +845,7 @@ public class AuthenticationIT {
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldNotBeAbleToAuthenticateOnHelloMessageV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         // authenticate normally using the preset credentials and update the password to a new value
@@ -854,7 +861,7 @@ public class AuthenticationIT {
                         Status.Request.Invalid, "cannot be handled by a session in the AUTHENTICATION state.");
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void shouldNotBeAbleToAuthenticateOnHelloMessage(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         // authenticate normally using the preset credentials and update the password to a new value
@@ -879,7 +886,7 @@ public class AuthenticationIT {
                                 BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 1), until = @Version(major = 5, minor = 7))
     void shouldNotReturnAdvertiseAddressOnLogonMessageSuccess(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
@@ -899,8 +906,29 @@ public class AuthenticationIT {
                 .receivesSuccess(meta -> Assertions.assertThat(meta).doesNotContainKeys("advertised_address"));
     }
 
-    @ProtocolTest
+    @BoltTest
     @IncludeWire(since = @Version(major = 5, minor = 8))
+    @IncludeTransport({TransportType.LOCAL, TransportType.UNIX})
+    void shouldNotReturnAdvertiseAddressOnLogonMessageSuccessWhenRoutingIsUnavailable(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello());
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", "neo4j",
+                "credentials", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).doesNotContainKeys("advertised_address"));
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 5, minor = 8))
+    // address advertisement is not available on LOCAL and UNIX connectors
+    @ExcludeTransport({TransportType.LOCAL, TransportType.UNIX})
     void shouldReturnAdvertiseAddressOnLogonMessageSuccess(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());

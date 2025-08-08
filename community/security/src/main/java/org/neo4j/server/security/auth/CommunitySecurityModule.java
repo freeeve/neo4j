@@ -27,6 +27,7 @@ import java.nio.file.Path;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.function.Suppliers;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -50,6 +51,7 @@ public class CommunitySecurityModule extends SecurityModule {
     private final Dependencies globalDependencies;
     private final AbstractSecurityLog securityLog;
     private BasicSystemGraphRealm authManager;
+    private AuthManager domainSocketAuthManager;
 
     public CommunitySecurityModule(
             LogService logService, Config config, Dependencies globalDependencies, AbstractSecurityLog securityLog) {
@@ -75,6 +77,12 @@ public class CommunitySecurityModule extends SecurityModule {
                 new SecurityGraphHelper(systemSupplier, new SecureHasher(), securityLog),
                 createAuthenticationStrategy(config));
 
+        if (config.get(BoltConnector.enable_unix_socket_auth)) {
+            domainSocketAuthManager = authManager;
+        } else {
+            domainSocketAuthManager = AuthManager.NO_AUTH;
+        }
+
         registerProcedure(
                 globalDependencies.resolveDependency(GlobalProcedures.class),
                 debugLogProvider.getLog(getClass()),
@@ -92,8 +100,8 @@ public class CommunitySecurityModule extends SecurityModule {
     }
 
     @Override
-    public AuthManager loopbackAuthManager() {
-        return null;
+    public AuthManager domainSocketAuthManager() {
+        return domainSocketAuthManager;
     }
 
     private static final String INITIAL_USER_STORE_FILENAME = "auth.ini";

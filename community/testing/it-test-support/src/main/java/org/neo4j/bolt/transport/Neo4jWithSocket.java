@@ -177,9 +177,13 @@ public class Neo4jWithSocket {
         settings.put(BoltConnector.encryption_level, DISABLED);
         settings.put(BoltConnectorInternalSettings.tcp_fast_open, true);
         if (!SystemUtils.IS_OS_WINDOWS) {
-            settings.put(BoltConnectorInternalSettings.enable_loopback_auth, true);
-            settings.put(BoltConnectorInternalSettings.unsupported_loopback_listen_file, listenFile);
-            settings.put(BoltConnectorInternalSettings.unsupported_loopback_delete, true);
+            settings.put(BoltConnector.enable_unix_socket, true);
+            settings.put(BoltConnector.unix_socket_path, listenFile);
+            settings.put(BoltConnector.unix_socket_delete, true);
+
+            // this is not a typical configuration, but most of our tests try to test the entire
+            // surface with those that check this behavior being the minority
+            settings.put(BoltConnectorInternalSettings.enable_unix_socket_user_database_access, true);
         }
         settings.put(BoltConnectorInternalSettings.enable_local_connector, true);
         configure.accept(settings);

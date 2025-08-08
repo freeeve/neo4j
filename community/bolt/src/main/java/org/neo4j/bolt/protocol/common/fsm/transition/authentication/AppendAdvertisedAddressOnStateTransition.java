@@ -66,8 +66,6 @@ public final class AppendAdvertisedAddressOnStateTransition extends AbstractStat
 
             handler.onMetadata(ADVERTISED_ADDRESS_KEY, Values.stringValue(address));
         }
-
-        // Do not move the state
         return null;
     }
 }

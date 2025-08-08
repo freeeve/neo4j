@@ -26,5 +26,5 @@ public interface SecurityProvider {
 
     AuthManager inClusterAuthManager();
 
-    AuthManager loopbackAuthManager();
+    AuthManager domainSocketAuthManager();
 }

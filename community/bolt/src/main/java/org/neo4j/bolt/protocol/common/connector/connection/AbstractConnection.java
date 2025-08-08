@@ -251,12 +251,12 @@ public abstract class AbstractConnection implements ConnectionHandle {
     }
 
     @Override
-    public Set<ProtocolCapability> selectedCapabilities() {
+    public Set<ProtocolCapability> selectedProtocolCapabilities() {
         return Collections.unmodifiableSet(this.selectedCapabilities.get());
     }
 
     @Override
-    public boolean hasSelectedCapability(ProtocolCapability capability) {
+    public boolean hasSelectedProtocolCapability(ProtocolCapability capability) {
         return this.selectedCapabilities.get().contains(capability);
     }
 

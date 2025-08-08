@@ -31,14 +31,9 @@ import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.client.TransportType;
 
 public class TransportConnectionManager implements AfterEachCallback {
-    private final TransportType transportType;
 
     private final Lock lock = new ReentrantLock();
     private final List<BoltTestConnection> activeConnections = new ArrayList<>();
-
-    public TransportConnectionManager(TransportType transportType) {
-        this.transportType = transportType;
-    }
 
     @Override
     public void afterEach(ExtensionContext extensionContext) {
@@ -58,8 +53,9 @@ public class TransportConnectionManager implements AfterEachCallback {
         }
     }
 
-    public BoltTestConnection acquire(ConnectorTransport transport, SocketAddress address) {
-        var connection = this.transportType.getFactory().create(transport, address);
+    public BoltTestConnection acquire(
+            ConnectorTransport transport, SocketAddress address, TransportType transportType) {
+        var connection = transportType.getFactory().create(transport, address);
         this.lock.lock();
         try {
             this.activeConnections.add(connection);

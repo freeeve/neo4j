@@ -22,8 +22,10 @@ package org.neo4j.bolt.protocol.common.connector.connection.listener;
 import io.netty.channel.ChannelPipeline;
 import org.neo4j.bolt.fsm.StateMachine;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
+import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.protocol.common.message.Error;
 import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
+import org.neo4j.bolt.tx.TransactionType;
 import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.values.virtual.MapValue;
 
@@ -139,6 +141,21 @@ public interface ConnectionListener {
     default void onLogoff() {}
 
     /**
+     * Handles the selection of a default database for the connection.
+     *
+     * @param db a database name.
+     */
+    default void onDefaultDatabaseSelected(String db) {}
+
+    /**
+     * Handles the preparation of a transaction on a given database.
+     * @param type the type of transaction to create.
+     * @param mode the access mode.
+     * @param db a database name.
+     */
+    default void onPrepareTransaction(TransactionType type, AccessMode mode, String db) {}
+
+    /**
      * Handles the selected impersonation of the connection.
      *
      * @param ctx an impersonation login context.
@@ -149,13 +166,6 @@ public interface ConnectionListener {
      * Handles the end of impersonation of the connection.
      */
     default void onUserImpersonationCleared() {}
-
-    /**
-     * Handles the selection of a default database for the connection.
-     *
-     * @param db a database name.
-     */
-    default void onDefaultDatabaseSelected(String db) {}
 
     /**
      * Handles a successful result for a given request.

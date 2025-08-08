@@ -528,9 +528,9 @@ public final class SettingMigrators {
                         "internal.dbms.lock_manager.verbose_deadlocks"),
                 new Mapping(
                         "unsupported.dbms.logs.query.heap_dump_enabled", "internal.dbms.logs.query.heap_dump_enabled"),
-                new Mapping("unsupported.dbms.loopback_delete", "internal.dbms.loopback_delete"),
-                new Mapping("unsupported.dbms.loopback_enabled", "internal.dbms.loopback_enabled"),
-                new Mapping("unsupported.dbms.loopback_file", "internal.dbms.loopback_file"),
+                new Mapping("unsupported.dbms.loopback_delete", "server.bolt.unix_socket_delete"),
+                new Mapping("unsupported.dbms.loopback_enabled", "internal.dbms.enable_aura_profile"),
+                new Mapping("unsupported.dbms.loopback_file", "server.bolt.unix_socket_path"),
                 new Mapping("unsupported.dbms.lucene.max_partition_size", "internal.dbms.lucene.max_partition_size"),
                 new Mapping(
                         "unsupported.dbms.max_http_request_header_size", "internal.dbms.max_http_request_header_size"),

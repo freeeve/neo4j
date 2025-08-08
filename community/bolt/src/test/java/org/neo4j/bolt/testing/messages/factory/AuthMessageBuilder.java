@@ -28,6 +28,10 @@ public interface AuthMessageBuilder<T extends AuthMessageBuilder<T>> extends Wir
         return withBasicScheme().withPrincipal(principal).withCredentials(credentials);
     }
 
+    default T withoutAuth() {
+        return withScheme("none");
+    }
+
     default T withScheme(String scheme) {
         getMeta().put("scheme", scheme);
         return (T) this;

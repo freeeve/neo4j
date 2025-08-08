@@ -17,28 +17,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.security.provider;
+package org.neo4j.bolt.protocol.common.connector.error;
 
-import org.neo4j.kernel.api.security.AuthManager;
-import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 
-public class NoAuthSecurityProvider extends LifecycleAdapter implements SecurityProvider {
-    public static final NoAuthSecurityProvider INSTANCE = new NoAuthSecurityProvider();
+public abstract class ConnectorException extends RuntimeException implements ErrorGqlStatusObject {
 
-    private NoAuthSecurityProvider() {}
+    private final ErrorGqlStatusObject statusObject;
+
+    public ConnectorException(String message, Throwable cause) {
+        super(message, cause);
+
+        this.statusObject = this.createGqlStatusObject();
+    }
+
+    public ConnectorException(String message) {
+        super(message);
+
+        this.statusObject = this.createGqlStatusObject();
+    }
+
+    protected abstract ErrorGqlStatusObject createGqlStatusObject();
 
     @Override
-    public AuthManager authManager() {
-        return AuthManager.NO_AUTH;
+    public ErrorGqlStatusObject gqlStatusObject() {
+        return this.statusObject;
     }
 
     @Override
-    public AuthManager inClusterAuthManager() {
-        return AuthManager.NO_AUTH;
-    }
-
-    @Override
-    public AuthManager domainSocketAuthManager() {
-        return AuthManager.NO_AUTH;
+    public String legacyMessage() {
+        return this.getMessage();
     }
 }

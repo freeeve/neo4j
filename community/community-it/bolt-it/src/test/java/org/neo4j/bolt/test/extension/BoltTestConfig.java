@@ -41,7 +41,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
  *
  * @param databaseFactoryType database factory implementation class reference.
  * @param wire selected wire.
- * @param transportType selected transportType.
+ * @param transport selected transport.
  */
 record BoltTestConfig(
         Class<? extends TestDatabaseManagementServiceBuilder> databaseFactoryType,
@@ -58,7 +58,7 @@ record BoltTestConfig(
 
     @Override
     public List<Extension> getAdditionalExtensions() {
-        var connectionManager = new TransportConnectionManager(this.transportType);
+        var connectionManager = new TransportConnectionManager();
 
         return List.of(
                 new ConnectionTerminationRetryHandler(),

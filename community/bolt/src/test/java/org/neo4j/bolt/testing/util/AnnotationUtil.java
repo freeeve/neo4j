@@ -61,6 +61,16 @@ public final class AnnotationUtil {
         return results;
     }
 
+    public static <A extends Annotation, T> Optional<T> selectValue(
+            ExtensionContext context, Class<A> annotationType, Function<A, T> function) {
+        return findAnnotation(context, annotationType).map(function::apply);
+    }
+
+    public static <A extends Annotation, T> Optional<T> selectValue(
+            AnnotatedElement element, Class<A> annotationType, Function<A, T> function) {
+        return AnnotationSupport.findAnnotation(element, annotationType).map(function::apply);
+    }
+
     private static <T> T instantiateProvider(Class<? extends T> type) {
         Constructor<? extends T> constructor;
         try {

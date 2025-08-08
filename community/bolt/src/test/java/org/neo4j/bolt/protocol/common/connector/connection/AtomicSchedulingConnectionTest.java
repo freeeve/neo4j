@@ -254,7 +254,7 @@ class AtomicSchedulingConnectionTest {
 
         this.connection.selectProtocol(protocol, EnumSet.of(ProtocolCapability.HANDSHAKE_V2));
 
-        Assertions.assertThat(this.connection.selectedCapabilities())
+        Assertions.assertThat(this.connection.selectedProtocolCapabilities())
                 .hasSize(1)
                 .containsAll(EnumSet.of(ProtocolCapability.HANDSHAKE_V2));
     }

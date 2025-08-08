@@ -464,7 +464,7 @@ public class DatabaseManagementServiceFactory {
                 globalModule.getGlobalDependencies(),
                 edition.getBoltAuthManager(globalModule.getGlobalDependencies()),
                 edition.getBoltInClusterAuthManager(),
-                edition.getBoltLoopbackAuthManager(),
+                edition.getBoltDomainSocketAuthManager(),
                 globalModule.getMemoryPools(),
                 routingService,
                 edition.getDefaultDatabaseResolver(),

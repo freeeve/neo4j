@@ -27,6 +27,7 @@ import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
 import org.neo4j.bolt.test.connection.initializer.ConnectionInitializer;
 import org.neo4j.bolt.test.connection.resolver.AddressResolver;
 import org.neo4j.bolt.test.connection.resolver.DefaultAddressResolver;
+import org.neo4j.bolt.test.connection.transport.TransportSelector;
 import org.neo4j.bolt.test.extension.lifecycle.TransportConnectionManager;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.client.TransportType;
@@ -51,14 +52,21 @@ public abstract class AbstractConnectionInitializingParameterResolver implements
         this.transportType = transportType;
     }
 
+    protected TransportType getTransportType(ExtensionContext extensionContext, ParameterContext context) {
+        return TransportSelector.findTransportOverride(context).orElse(this.transportType);
+    }
+
     protected BoltTestConnection acquireConnection(ExtensionContext extensionContext, ParameterContext context) {
         var server = Neo4jWithSocketSupportExtension.getInstance(extensionContext);
 
         var resolver = AddressResolver.findResolver(context).orElseGet(DefaultAddressResolver::new);
         var initializers = ConnectionInitializer.findInitializers(context);
 
+        var transportType = this.getTransportType(extensionContext, context);
+
         var address = resolver.resolve(extensionContext, context, server, transportType);
-        var connection = this.connectionManager.acquire(this.transport, address);
+
+        var connection = this.connectionManager.acquire(this.transport, address, transportType);
 
         try {
             for (var initializer : initializers) {

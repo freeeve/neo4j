@@ -205,8 +205,8 @@ public abstract class AbstractEditionModule {
         return securityProvider.inClusterAuthManager();
     }
 
-    public AuthManager getBoltLoopbackAuthManager() {
-        return securityProvider.loopbackAuthManager();
+    public AuthManager getBoltDomainSocketAuthManager() {
+        return securityProvider.domainSocketAuthManager();
     }
 
     public abstract Lifecycle createWebServer(

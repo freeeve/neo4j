@@ -35,6 +35,7 @@ import org.neo4j.bolt.protocol.common.fsm.error.AuthenticationStateTransitionExc
 import org.neo4j.bolt.protocol.common.fsm.transition.AbstractStateTransitionTest;
 import org.neo4j.bolt.protocol.common.message.request.connection.RouteMessage;
 import org.neo4j.bolt.security.error.AuthenticationException;
+import org.neo4j.bolt.testing.mock.ConnectorMockFactory;
 import org.neo4j.dbms.routing.RoutingException;
 import org.neo4j.dbms.routing.RoutingResult;
 import org.neo4j.dbms.routing.RoutingService;
@@ -52,7 +53,7 @@ class RouteStateTransitionTest extends AbstractStateTransitionTest<RouteMessage,
     protected void prepareContext() throws Exception {
         super.prepareContext();
 
-        this.connector = Mockito.mock(Connector.class);
+        this.connector = ConnectorMockFactory.newInstance();
         this.routingService = Mockito.mock(RoutingService.class);
 
         var impersonationCaptor = new AtomicReference<String>();

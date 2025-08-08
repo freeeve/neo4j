@@ -158,30 +158,6 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
             .build();
 
     @Internal
-    @Description("The absolute path of the file for use with the Unix Domain Socket based loopback interface. "
-            + "This file must be specified and will be created at runtime and deleted on shutdown.")
-    public static final Setting<Path> unsupported_loopback_listen_file =
-            newBuilder("internal.dbms.loopback_file", PATH, null).build();
-
-    @Internal
-    @Description(
-            "Whether or not to delete an existing file for use with the Unix Domain Socket based loopback interface. "
-                    + "This improves the handling of the case where a previous hard shutdown was unable to delete the file.")
-    public static final Setting<Boolean> unsupported_loopback_delete =
-            newBuilder("internal.dbms.loopback_delete", BOOL, false).build();
-
-    @Internal
-    @Description("Enable or disable the bolt loopback connector. "
-            + "A user successfully authenticated over this will execute all queries with no security restrictions. "
-            + "This includes overriding the `"
-            + "internal.dbms.block_create_drop_database" + "`, " + "`"
-            + "internal.dbms.block_start_stop_database" + "` and `"
-            + "internal.dbms.upgrade_restriction_enabled"
-            + "` settings.")
-    public static final Setting<Boolean> enable_loopback_auth =
-            newBuilder("internal.dbms.loopback_enabled", BOOL, false).build();
-
-    @Internal
     @Description("The maximum time to wait for the thread pool to finish processing its pending jobs and shutdown")
     public static final Setting<Duration> thread_pool_shutdown_wait_time = newBuilder(
                     "internal.server.bolt.thread_pool_shutdown_wait_time", DURATION, ofMinutes(5))
@@ -293,6 +269,13 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
     @Description("Enabled of disable local bolt connector.")
     public static final Setting<Boolean> enable_local_connector =
             newBuilder("internal.dbms.bolt.local_enabled", BOOL, true).build();
+
+    @Internal
+    @Description(
+            "Permits the use of user-databases (databases other than \"system\") via the Unix Domain Socket connector.")
+    public static final Setting<Boolean> enable_unix_socket_user_database_access = newBuilder(
+                    "internal.dbms.bolt.unix_socket_permit_unix_socket_user_database_access", BOOL, false)
+            .build();
 
     @Internal
     @Description("Minimum Bolt Protocol version negotiated by the bolt connector.")

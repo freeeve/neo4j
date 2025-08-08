@@ -33,6 +33,7 @@ import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.nio.file.Files;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -132,12 +133,13 @@ public class BoltServer extends LifecycleAdapter {
     private final LogService logService;
     private final AuthManager externalAuthManager;
     private final AuthManager internalAuthManager;
-    private final AuthManager loopbackAuthManager;
+    private final AuthManager domainSocketAuthManager;
     private final MemoryPools memoryPools;
     private final DefaultDatabaseResolver defaultDatabaseResolver;
     private final ConnectionHintRegistry connectionHintRegistry;
 
-    private final ExecutorServiceFactory executorServiceFactory;
+    private final ExecutorServiceFactory primaryExecutorServiceFactory;
+    private final ExecutorServiceFactory domainSocketExecutorServiceFactory;
     private final SslPolicyProvider sslPolicyProvider;
     private final BoltProtocolRegistry protocolRegistry;
     private final AuthConfigProvider authConfigProvider;
@@ -154,6 +156,8 @@ public class BoltServer extends LifecycleAdapter {
     private EventLoopGroup localBossEventLoopGroup;
     private EventLoopGroup localWorkerEventLoopGroup;
     private ExecutorService executorService;
+    private ExecutorService primaryExecutorService;
+    private ExecutorService domainSocketExecutorService;
     private BoltConnectionMetricsMonitor connectionMetricsMonitor;
     private BoltDriverMetricsMonitor driverMetricsMonitor;
 
@@ -170,7 +174,7 @@ public class BoltServer extends LifecycleAdapter {
             DependencyResolver dependencyResolver,
             AuthManager externalAuthManager,
             AuthManager internalAuthManager,
-            AuthManager loopbackAuthManager,
+            AuthManager domainSocketAuthManager,
             MemoryPools memoryPools,
             RoutingService routingService,
             DefaultDatabaseResolver defaultDatabaseResolver,
@@ -186,7 +190,7 @@ public class BoltServer extends LifecycleAdapter {
         this.logService = logService;
         this.externalAuthManager = externalAuthManager;
         this.internalAuthManager = internalAuthManager;
-        this.loopbackAuthManager = loopbackAuthManager;
+        this.domainSocketAuthManager = domainSocketAuthManager;
         this.memoryPools = memoryPools;
         this.defaultDatabaseResolver = defaultDatabaseResolver;
         this.connectionHintRegistry = ConnectionHintRegistry.newBuilder()
@@ -195,13 +199,25 @@ public class BoltServer extends LifecycleAdapter {
                 .withProvider(new SeverSideRoutingHintProvider(config))
                 .build();
 
-        this.executorServiceFactory = new ThreadPoolExecutorServiceFactory(
+        this.primaryExecutorServiceFactory = new ThreadPoolExecutorServiceFactory(
                 config.get(BoltConnector.thread_pool_min_size),
                 config.get(BoltConnector.thread_pool_max_size),
                 true,
                 config.get(BoltConnector.thread_pool_keep_alive),
                 config.get(BoltConnectorInternalSettings.unsupported_thread_pool_queue_size),
                 this.jobScheduler.threadFactory(Group.BOLT_WORKER));
+
+        if (config.get(BoltConnector.unix_socket_use_dedicated_thread_pool)) {
+            this.domainSocketExecutorServiceFactory = new ThreadPoolExecutorServiceFactory(
+                    config.get(BoltConnector.unix_socket_dedicated_thread_pool_min_size),
+                    config.get(BoltConnector.unix_socket_dedicated_thread_pool_max_size),
+                    true,
+                    config.get(BoltConnector.unix_socket_dedicated_thread_pool_keep_alive),
+                    config.get(BoltConnectorInternalSettings.unsupported_thread_pool_queue_size),
+                    this.jobScheduler.threadFactory(Group.BOLT_WORKER));
+        } else {
+            this.domainSocketExecutorServiceFactory = null;
+        }
 
         this.routingService = routingService;
 
@@ -232,8 +248,13 @@ public class BoltServer extends LifecycleAdapter {
     }
 
     @VisibleForTesting
-    public ExecutorService getExecutorService() {
-        return executorService;
+    public ExecutorService getPrimaryExecutorService() {
+        return primaryExecutorService;
+    }
+
+    @VisibleForTesting
+    public ExecutorService getDomainSocketExecutorService() {
+        return domainSocketExecutorService;
     }
 
     @VisibleForTesting
@@ -272,7 +293,7 @@ public class BoltServer extends LifecycleAdapter {
 
         bossEventLoopGroup = createEventLoopGroup(transport);
         workerEventLoopGroup = createEventLoopGroup(transport);
-        executorService = executorServiceFactory.create();
+        primaryExecutorService = primaryExecutorServiceFactory.create();
         connectionMetricsMonitor = monitors.newMonitor(BoltConnectionMetricsMonitor.class);
 
         if (config.get(BoltConnector.server_bolt_telemetry_enabled)) {
@@ -284,11 +305,26 @@ public class BoltServer extends LifecycleAdapter {
         ByteBufAllocator allocator = getBufferAllocator();
         var connectionFactory = createConnectionFactory();
 
-        if (config.get(BoltConnectorInternalSettings.enable_loopback_auth)) {
-            registerConnector(createDomainSocketConnector(
-                    connectionFactory, transport, createAuthentication(loopbackAuthManager), allocator));
+        // to support legacy installations more easily, we'll consider the
+        // enable_unix_socket_loopback_auth option to be equivalent to enable_unix_socket - all
+        // relevant parameters sans enable_unix_socket will be migrated automatically
+        var unixDomainSocketEnabled = config.get(BoltConnector.enable_unix_socket)
+                || config.get(GraphDatabaseInternalSettings.enable_aura_profile);
+        if (unixDomainSocketEnabled) {
+            domainSocketExecutorService = primaryExecutorService;
+            var domainSocketConnectionFactory = connectionFactory;
+            if (domainSocketExecutorServiceFactory != null) {
+                domainSocketExecutorService = domainSocketExecutorServiceFactory.create();
+                domainSocketConnectionFactory = createDomainSocketConnectionFactory();
+            }
 
-            log.info("Configured loopback (domain socket) Bolt connector");
+            registerConnector(createDomainSocketConnector(
+                    domainSocketConnectionFactory,
+                    transport,
+                    createAuthentication(domainSocketAuthManager),
+                    allocator));
+
+            log.info("Configured Unix Domain Socket Bolt connector");
         }
 
         var listenAddress = config.get(BoltConnector.listen_address).socketAddress();
@@ -407,7 +443,11 @@ public class BoltServer extends LifecycleAdapter {
 
             // also make sure that our executor service is cleanly shut down - there should be no remaining jobs present
             // as connectors will kill any remaining jobs forcefully as part of their shutdown procedures
-            var remainingJobs = executorService.shutdownNow();
+            var remainingJobs = new ArrayList<>(primaryExecutorService.shutdownNow());
+            if (domainSocketExecutorService != null) {
+                remainingJobs.addAll(domainSocketExecutorService.shutdownNow());
+            }
+
             if (!remainingJobs.isEmpty()) {
                 log.warn("Forcefully killed %d remaining Bolt jobs to fulfill shutdown request", remainingJobs.size());
             }
@@ -537,7 +577,12 @@ public class BoltServer extends LifecycleAdapter {
 
     private Connection.Factory createConnectionFactory() {
         return new AtomicSchedulingConnection.Factory(
-                executorService, clock, logService, admissionControlTrackerFactory);
+                primaryExecutorService, clock, logService, admissionControlTrackerFactory);
+    }
+
+    private Connection.Factory createDomainSocketConnectionFactory() {
+        return new AtomicSchedulingConnection.Factory(
+                domainSocketExecutorService, clock, logService, admissionControlTrackerFactory);
     }
 
     private static Authentication createAuthentication(AuthManager authManager) {
@@ -667,14 +712,14 @@ public class BoltServer extends LifecycleAdapter {
             ConnectorTransport transport,
             Authentication authentication,
             ByteBufAllocator allocator) {
+
         var config = DomainSocketConnectorConfiguration.factory()
                 .fromConfig(this.config)
                 .build();
 
-        var socketFile = this.config.get(BoltConnectorInternalSettings.unsupported_loopback_listen_file);
-        if (socketFile == null) {
-            throw new IllegalArgumentException(
-                    "A file has not been specified for use with the loopback domain socket.");
+        var socketFile = this.config.get(BoltConnector.unix_socket_path);
+        if (socketFile == null || Files.isDirectory(socketFile)) {
+            throw new IllegalArgumentException("A file has not been specified for use with the Unix Domain Socket.");
         }
 
         return new DomainSocketNettyConnector(
