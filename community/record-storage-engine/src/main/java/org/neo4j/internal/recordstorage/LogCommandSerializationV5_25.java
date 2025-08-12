@@ -36,6 +36,8 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
             new LogCommandSerializationV5_25(KernelVersion.V2025_07);
     static final LogCommandSerializationV5_25 V2025_08_INSTANCE =
             new LogCommandSerializationV5_25(KernelVersion.V2025_08);
+    static final LogCommandSerializationV5_25 V2025_09_INSTANCE =
+            new LogCommandSerializationV5_25(KernelVersion.V2025_09);
 
     LogCommandSerializationV5_25(KernelVersion kernelVersion) {
         super(kernelVersion);

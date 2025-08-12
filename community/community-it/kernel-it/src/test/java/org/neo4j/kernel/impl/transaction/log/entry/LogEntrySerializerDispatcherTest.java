@@ -212,13 +212,9 @@ class LogEntrySerializerDispatcherTest {
         expectedChecksums.put(KernelVersion.V5_25, -460838645);
         expectedChecksums.put(KernelVersion.V2025_04, -1150487212);
         expectedChecksums.put(KernelVersion.V2025_05, 1531023797);
-        if (version.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED)) {
-            expectedChecksums.put(KernelVersion.V2025_07, -361070784);
-            expectedChecksums.put(KernelVersion.V2025_08, -361070784);
-        } else {
-            expectedChecksums.put(KernelVersion.V2025_07, 77942250);
-            expectedChecksums.put(KernelVersion.V2025_08, 1778983324);
-        }
+        expectedChecksums.put(KernelVersion.V2025_07, 77942250);
+        expectedChecksums.put(KernelVersion.V2025_08, 1778983324);
+        expectedChecksums.put(KernelVersion.V2025_09, 904789443);
 
         final LogEntryCommit commit = newCommitEntry(version, 42, 21, expectedChecksums.get(version));
         final InMemoryClosableChannel channel = new InMemoryClosableChannel();
