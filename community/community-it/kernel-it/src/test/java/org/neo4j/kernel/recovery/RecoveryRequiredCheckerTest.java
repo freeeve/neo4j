@@ -318,7 +318,8 @@ class RecoveryRequiredCheckerTest {
             RecoveryRequiredChecker recoveryChecker =
                     getRecoveryChecker(ephemeralFs, pageCache, storageEngineFactory, config);
 
-            assertThat(recoveryChecker.isRecoveryRequiredAt(DatabaseLayout.of(config), INSTANCE))
+            assertThat(recoveryChecker.isRecoveryRequiredAt(
+                            DatabaseLayout.of(config, databaseLayout.getDatabaseName()), INSTANCE))
                     .isEqualTo(true);
 
             DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDir)

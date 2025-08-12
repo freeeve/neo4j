@@ -115,11 +115,12 @@ class RecoveryWithTokenIndexesIT {
         // Don't flush/checkpoint before taking the snapshot, to make the indexes need to recover (clean crash
         // generation)
         EphemeralFileSystemAbstraction crashedFs = fs.snapshot();
+        var dbName = db.databaseName();
         managementService.shutdown();
         fs.close();
 
         try (PageCache cache = pageCacheExtension.getPageCache(crashedFs)) {
-            DatabaseLayout layout = DatabaseLayout.of(config);
+            DatabaseLayout layout = DatabaseLayout.of(config, dbName);
             recoverDatabase(layout, crashedFs, cache);
         }
 

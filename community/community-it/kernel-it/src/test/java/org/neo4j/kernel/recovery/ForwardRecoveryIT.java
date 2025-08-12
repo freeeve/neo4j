@@ -96,8 +96,8 @@ class ForwardRecoveryIT {
 
     @BeforeEach
     void setUp() {
-        databaseLayout = neo4jLayout.databaseLayout(DEFAULT_DATABASE_NAME);
         monitors = new Monitors();
+        databaseLayout = neo4jLayout.databaseLayout(DEFAULT_DATABASE_NAME);
         recoveryMonitorListener = new RecoveryMonitorListener(logProvider);
         monitors.addMonitorListener(new LoggingLogFileMonitor(logProvider.getLog(getClass())));
         monitors.addMonitorListener(recoveryMonitorListener);
@@ -234,7 +234,9 @@ class ForwardRecoveryIT {
     protected GraphDatabaseAPI createDatabase(long logThreshold) {
         var builder = createBuilder(logThreshold);
         managementService = builder.build();
-        return (GraphDatabaseAPI) managementService.database(databaseLayout.getDatabaseName());
+        var database = (GraphDatabaseAPI) managementService.database(databaseLayout.getDatabaseName());
+        databaseLayout = database.databaseLayout();
+        return database;
     }
 
     private TestDatabaseManagementServiceBuilder createBuilder(long logThreshold) {

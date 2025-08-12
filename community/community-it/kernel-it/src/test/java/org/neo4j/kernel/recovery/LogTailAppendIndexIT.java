@@ -33,7 +33,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -284,12 +283,14 @@ public class LogTailAppendIndexIT {
     }
 
     private LogFiles buildDefaultLogFiles(DatabaseLayout databaseLayout) throws IOException {
+        var storageEngine = StorageEngineFactory.selectStorageEngine(new DefaultFileSystemAbstraction(), databaseLayout)
+                .get();
         return LogFilesBuilder.builder(
                         databaseLayout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
-                .withStorageEngineFactory(StorageEngineFactory.selectStorageEngine(Config.defaults()))
+                .withStorageEngineFactory(storageEngine)
                 .build();
     }
 }

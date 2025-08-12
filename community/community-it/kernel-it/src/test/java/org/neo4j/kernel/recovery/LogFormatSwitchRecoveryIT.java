@@ -177,13 +177,17 @@ public class LogFormatSwitchRecoveryIT {
         assertKernelVersion(testDb, KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);
     }
 
-    private record DatabaseAndSnapshot(GraphDatabaseAPI testDb, Path snapshot, DatabaseLayout layout) {}
+    private record DatabaseAndSnapshot(GraphDatabaseAPI testDb, Path snapshot, DatabaseLayout layout) {
+        String dbName() {
+            return testDb.databaseName();
+        }
+    }
 
     private DatabaseAndSnapshot prepareUpgradedDatabaseAndSnapshot(String dbName) throws Exception {
         GraphDatabaseAPI testDb = (GraphDatabaseAPI) managementService.database(dbName);
         // write an initial graph captured in the snapshot
         writeGraph(testDb, 1);
-        DatabaseLayout layout = neo4jLayout.databaseLayout(dbName);
+        DatabaseLayout layout = neo4jLayout.databaseLayout(testDb.databaseName());
         shutdownDbms();
         // capture DB store with an older version set of nodes and relationships
         Path initialState = layout.databaseDirectory().getParent().resolve("original");
@@ -246,27 +250,25 @@ public class LogFormatSwitchRecoveryIT {
 
     @Test
     void recoveryShouldReRunOverOldAndNew() throws Exception {
-        String dbName = DEFAULT_DATABASE_NAME;
         // create a basic database without enveloped logs and snapshot the gen 1 data
         // then upgrade and add further data to be replayed during recovery
         // gen 2 after snapshot and before upgrade. gen 3 on enveloped logs
-        DatabaseAndSnapshot databaseAndSnapshot = prepareUpgradedDatabaseAndSnapshot(dbName);
+        DatabaseAndSnapshot databaseAndSnapshot = prepareUpgradedDatabaseAndSnapshot(DEFAULT_DATABASE_NAME);
         verifyGraph(databaseAndSnapshot.testDb, 3);
         shutdownDbms();
         // roll store files back to state on gen 1 version of data
         // and clear checkpoints
         restoreDBSnapshot(databaseAndSnapshot);
         // confirm recovery process and data integrity
-        verifyRecovery(dbName, false);
+        verifyRecovery(databaseAndSnapshot.dbName(), false);
     }
 
     @Test
     void recoveryWithUpgradeAndCorruptedItems() throws Exception {
-        String dbName = DEFAULT_DATABASE_NAME;
         // create a basic database without enveloped logs and snapshot the gen 1 data
         // then upgrade and add further data to be replayed during recovery
         // gen 2 after snapshot and before upgrade. gen 3 on enveloped logs
-        DatabaseAndSnapshot databaseAndSnapshot = prepareUpgradedDatabaseAndSnapshot(dbName);
+        DatabaseAndSnapshot databaseAndSnapshot = prepareUpgradedDatabaseAndSnapshot(DEFAULT_DATABASE_NAME);
         // ensure gen3 flushed to uncorrupted log
         LogFile logFile = databaseAndSnapshot
                 .testDb
@@ -291,16 +293,15 @@ public class LogFormatSwitchRecoveryIT {
         }
         // confirm clean recovery process and data integrity up to generation 3
         // with gen 4 excised
-        verifyRecovery(dbName, true);
+        verifyRecovery(databaseAndSnapshot.dbName(), true);
     }
 
     @Test
     void recoveryWithUpgradeAndTruncation() throws Exception {
-        String dbName = DEFAULT_DATABASE_NAME;
         // create a basic database without enveloped logs and snapshot the gen 1 data
         // then upgrade and add further data to be replayed during recovery
         // gen 2 after snapshot and before upgrade. gen 3 on enveloped logs
-        DatabaseAndSnapshot databaseAndSnapshot = prepareUpgradedDatabaseAndSnapshot(dbName);
+        DatabaseAndSnapshot databaseAndSnapshot = prepareUpgradedDatabaseAndSnapshot(DEFAULT_DATABASE_NAME);
         // capture current transaction log position
         LogFile logFile = databaseAndSnapshot
                 .testDb
@@ -320,6 +321,6 @@ public class LogFormatSwitchRecoveryIT {
         fileSystem.truncate(currentLogFile, position.getByteOffset());
         // confirm clean recovery process and data integrity up to generation 3
         // with gen 4 excised
-        verifyRecovery(dbName, false);
+        verifyRecovery(databaseAndSnapshot.dbName(), false);
     }
 }
