@@ -1099,18 +1099,6 @@
           <vm.target.version>${env.VM_TARGET_VERSION}</vm.target.version>
       </properties>
     </profile>
-  <profile>
-      <id>jdk24-workarounds</id>
-      <activation>
-          <jdk>24</jdk>
-      </activation>
-      <properties>
-        <!-- Check after following will arrive -->
-        <!-- https://github.com/netty/netty/pull/15381-->
-        <!-- https://github.com/netty/netty/pull/15338-->
-          <test.runner.jvm.settings.workarounds>-Dio.netty.noUnsafe=false</test.runner.jvm.settings.workarounds>
-      </properties>
-  </profile>
 
     <!-- Disable parallel execution with "-DsequentialTests" -->
     <profile>
