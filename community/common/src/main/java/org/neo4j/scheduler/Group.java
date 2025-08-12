@@ -22,6 +22,7 @@ package org.neo4j.scheduler;
 import java.util.OptionalInt;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.neo4j.function.Factory;
 import org.neo4j.util.FeatureToggles;
 
 /**
@@ -64,7 +65,7 @@ public enum Group {
      */
     INDEX_POPULATION_WORK("IndexPopulationWork", ExecutorServiceFactory.cached()),
     /** Background index sampling */
-    INDEX_SAMPLING("IndexSampling", ServiceFactorySelector.selectGroupServiceFactory()),
+    INDEX_SAMPLING("IndexSampling", ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::cached)),
     /** Background index update applier, for eventually consistent indexes. */
     INDEX_UPDATING("IndexUpdating"),
     INDEX_REFRESHING("IndexRefreshing"),
@@ -76,7 +77,7 @@ public enum Group {
     /** Threads that perform database manager operations necessary to bring databases to their desired states. */
     DATABASE_RECONCILER("DatabaseReconciler"),
 
-    UDC("UserDataCollector", ExecutorServiceFactory.singleThread()),
+    UDC("UserDataCollector", ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::singleThread)),
 
     // CYPHER.
     /** Thread pool for parallel Cypher query execution. */
@@ -93,7 +94,7 @@ public enum Group {
     CDC("CDC"),
 
     // DATA COLLECTOR
-    DATA_COLLECTOR("DataCollector"),
+    DATA_COLLECTOR("DataCollector", ServiceFactorySelector.selectGroupServiceFactory(ExecutorServiceFactory::cached)),
 
     // BOLT.
     /** Network IO threads for the Bolt protocol. */
@@ -215,10 +216,11 @@ public enum Group {
         private static final boolean USE_VIRTUAL_THREADS =
                 FeatureToggles.flag(Group.class, "enableVirtualThreads", true);
 
-        private static ExecutorServiceFactory selectGroupServiceFactory() {
+        private static ExecutorServiceFactory selectGroupServiceFactory(
+                Factory<ExecutorServiceFactory> executorServiceFactoryFactory) {
             return USE_VIRTUAL_THREADS
                     ? ExecutorServiceFactory.newVirtualThreadPerTask()
-                    : ExecutorServiceFactory.cached();
+                    : executorServiceFactoryFactory.newInstance();
         }
     }
 }

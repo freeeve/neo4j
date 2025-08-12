@@ -137,18 +137,19 @@ public class UserDataCollector extends LifecycleAdapter {
         }
 
         try {
-            HttpClient httpClient = HttpClient.newHttpClient();
-            String jsonPayload = OBJECT_MAPPER.writeValueAsString(data);
-            log.debug("Sending anonymous user data '%s'", jsonPayload);
-            if (networkEnabled) {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(UDC_URI)
-                        .header("Content-Type", "application/json")
-                        .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
-                        .build();
-                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    log.debug(UDC_URI + " responded with " + response.statusCode());
+            try (HttpClient httpClient = HttpClient.newHttpClient()) {
+                String jsonPayload = OBJECT_MAPPER.writeValueAsString(data);
+                log.debug("Sending anonymous user data '%s'", jsonPayload);
+                if (networkEnabled) {
+                    HttpRequest request = HttpRequest.newBuilder()
+                            .uri(UDC_URI)
+                            .header("Content-Type", "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
+                            .build();
+                    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+                    if (response.statusCode() != 200) {
+                        log.debug(UDC_URI + " responded with " + response.statusCode());
+                    }
                 }
             }
         } catch (Exception e) {
