@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.io.IOException;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -32,6 +33,7 @@ import org.neo4j.graphdb.event.DatabaseEventListenerAdapter;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 
 class TestShutdownSequence {
     private DatabaseManagementService managementService;
@@ -49,6 +51,7 @@ class TestShutdownSequence {
     }
 
     @Test
+    @SkipOnSpd(reason = "Different number of databases in SPD setup", notes = incompatible)
     void notifyEventListenersOnShutdown() {
         MutableInt counter = new MutableInt();
         managementService.registerDatabaseEventListener(new DatabaseEventListenerAdapter() {
