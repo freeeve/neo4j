@@ -121,6 +121,7 @@ class KernelDiagnosticsIT {
         NativeIndexFileFilter nativeIndexFilter = new NativeIndexFileFilter(dbDir);
         var storeFiles = Arrays.stream(fs.listFiles(dbDir))
                 .filter(p -> !p.equals(databaseLayout.databaseLockFile()))
+                .filter(p -> !p.equals(databaseLayout.quarantineFile()))
                 .filter(p -> !fs.isDirectory(p))
                 .map(p -> p.getFileName().toString())
                 .collect(Collectors.toSet());

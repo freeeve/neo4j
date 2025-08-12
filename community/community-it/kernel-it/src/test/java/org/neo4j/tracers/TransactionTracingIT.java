@@ -22,6 +22,7 @@ package org.neo4j.tracers;
 import static org.neo4j.graphdb.RelationshipType.withName;
 import static org.neo4j.test.PageCacheTracerAssertions.assertThatTracing;
 import static org.neo4j.test.PageCacheTracerAssertions.pins;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.util.function.Consumer;
 import org.assertj.core.api.SoftAssertions;
@@ -43,6 +44,7 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ExtendWith(SoftAssertionsExtension.class)
 @DbmsExtension
@@ -84,6 +86,10 @@ class TransactionTracingIT {
     }
 
     @Test
+    @SkipOnSpd(
+            reason =
+                    "On SPD create node will reserve a node and pin an unexpected page (so we have pins after createNode)",
+            notes = incompatible)
     void tracePageCacheAccessOnNodeCreation() {
         try (InternalTransaction transaction = (InternalTransaction) database.beginTx()) {
             var cursorContext = transaction.kernelTransaction().cursorContext();

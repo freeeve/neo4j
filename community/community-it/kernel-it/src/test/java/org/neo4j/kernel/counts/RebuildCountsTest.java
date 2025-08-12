@@ -27,6 +27,7 @@ import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
 import static org.neo4j.kernel.api.KernelTransaction.Type.EXPLICIT;
 import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 import static org.neo4j.logging.LogAssertions.assertThat;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.io.IOException;
 import org.junit.jupiter.api.AfterEach;
@@ -54,8 +55,10 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @EphemeralNeo4jLayoutExtension
+@SkipOnSpd(reason = "Relies on a RecordDatabaseLayout", notes = incompatible)
 class RebuildCountsTest {
     private static final int ALIENS = 16;
     private static final int HUMANS = 16;

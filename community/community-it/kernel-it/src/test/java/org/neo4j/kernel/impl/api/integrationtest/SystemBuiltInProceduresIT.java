@@ -47,6 +47,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.security.AnonymousContext;
 import org.neo4j.kernel.internal.Version;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.VirtualValues;
 
@@ -141,6 +142,7 @@ class SystemBuiltInProceduresIT extends KernelIntegrationTest implements Procedu
     }
 
     @Test
+    @SkipOnSpd(reason = "There are different components on SPD")
     void listAllComponentsShouldWork() throws Throwable {
         // its NOT a dummy procedure on system
 

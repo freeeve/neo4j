@@ -28,7 +28,7 @@
             <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSSZ}{GMT+0} %-5p [%c{1.}] %m%n"
                            header="%d{yyyy-MM-dd HH:mm:ss.SSSZ}{GMT+0} $${neo4j:diagnostics} %n"/>
             <Policies>
-                <SizeBasedTriggeringPolicy size="100 kB"/>
+                <SizeBasedTriggeringPolicy size="10 MB"/>
             </Policies>
             <DefaultRolloverStrategy fileIndex="min" max="7"/>
         </RollingFile>

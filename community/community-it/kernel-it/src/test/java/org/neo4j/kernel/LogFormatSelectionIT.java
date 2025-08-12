@@ -230,6 +230,7 @@ class LogFormatSelectionIT {
 
     @ParameterizedTest
     @MethodSource("formatSwitchAllowedAndDbName")
+    @SkipOnSpd(reason = "System is being auto-upgraded on startup (not sure there is a way to turn that off)")
     void recoveryOverUpgradeTransaction(String dbName, boolean allowFormatSwitchOnUpgrade) throws Throwable {
         LogFormat expectedFormat = newFormatExpected(allowFormatSwitchOnUpgrade)
                 ? LogFormat.fromKernelVersion(KernelVersion.GLORIOUS_FUTURE)
