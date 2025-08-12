@@ -27,6 +27,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
 import org.neo4j.bolt.test.annotation.connection.initializer.VersionSelected;
@@ -58,6 +60,7 @@ import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 @EphemeralTestDirectoryExtension
 @Neo4jWithSocketExtension
 @BoltTestExtension
+@DisabledOnOs(OS.WINDOWS)
 public class UnixDomainSocketSchedulerIT {
 
     private final AssertableLogProvider internalLogProvider = new AssertableLogProvider();

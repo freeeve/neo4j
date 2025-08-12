@@ -22,6 +22,7 @@ package org.neo4j.bolt.test.connection.transport;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.SystemUtils;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.neo4j.bolt.test.annotation.connection.transport.ExcludeTransport;
 import org.neo4j.bolt.test.annotation.connection.transport.IncludeTransport;
@@ -45,6 +46,9 @@ public class FilteredTransportSelector implements TransportSelector {
                 .map(annotation -> List.of(annotation.value()))
                 .orElseGet(Collections::emptyList);
 
-        return explicitIncludes.distinct().filter(transport -> !explicitExcludes.contains(transport));
+        return explicitIncludes
+                .distinct()
+                .filter(transport -> !explicitExcludes.contains(transport))
+                .filter(transportType -> !(SystemUtils.IS_OS_WINDOWS && transportType.equals(TransportType.UNIX)));
     }
 }

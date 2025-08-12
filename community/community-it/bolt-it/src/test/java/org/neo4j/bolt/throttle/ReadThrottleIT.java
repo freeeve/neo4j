@@ -38,7 +38,6 @@ import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.messages.BoltWire;
 import org.neo4j.bolt.transport.Neo4jWithSocket;
 import org.neo4j.bolt.transport.Neo4jWithSocketExtension;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
@@ -70,7 +69,6 @@ public class ReadThrottleIT {
     static void customizeSettings(Map<Setting<?>, Object> settings) {
         settings.put(BoltConnectorInternalSettings.bolt_inbound_message_throttle_high_water_mark, 8);
         settings.put(BoltConnectorInternalSettings.bolt_inbound_message_throttle_low_water_mark, 3);
-        settings.put(GraphDatabaseInternalSettings.enable_aura_profile, true);
     }
 
     @BeforeEach

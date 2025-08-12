@@ -22,6 +22,8 @@ package org.neo4j.bolt.authentication;
 import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Negotiated;
 import org.neo4j.bolt.test.annotation.connection.initializer.VersionSelected;
@@ -46,6 +48,7 @@ import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 @Neo4jWithSocketExtension
 @BoltTestExtension
 @IncludeTransport(TransportType.UNIX)
+@DisabledOnOs(OS.WINDOWS)
 public class UnixDomainSocketAuthenticationIT {
 
     @SettingsFunction

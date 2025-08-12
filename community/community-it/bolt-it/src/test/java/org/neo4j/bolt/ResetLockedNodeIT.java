@@ -22,18 +22,14 @@ package org.neo4j.bolt;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertThat;
 import static org.neo4j.values.storable.Values.intValue;
 
-import java.util.Map;
 import org.junit.jupiter.api.Timeout;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
-import org.neo4j.bolt.test.annotation.setup.SettingsFunction;
 import org.neo4j.bolt.test.annotation.test.TransportTest;
 import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.messages.BoltWire;
 import org.neo4j.bolt.transport.Neo4jWithSocketExtension;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
-import org.neo4j.graphdb.config.Setting;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.values.virtual.MapValueBuilder;
@@ -42,11 +38,6 @@ import org.neo4j.values.virtual.MapValueBuilder;
 @Neo4jWithSocketExtension
 @BoltTestExtension
 public class ResetLockedNodeIT {
-
-    @SettingsFunction
-    static void customizeSettings(Map<Setting<?>, Object> settings) {
-        settings.put(GraphDatabaseInternalSettings.enable_aura_profile, true);
-    }
 
     @Timeout(30)
     @TransportTest
