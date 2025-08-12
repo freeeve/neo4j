@@ -21,15 +21,15 @@ package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
 import java.util.Iterator;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.MultiBits;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.FilteredDocIdSetIterator;
-import org.apache.lucene.util.Bits;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
 import org.neo4j.kernel.api.impl.index.LuceneDocumentRetrievalException;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.shaded.lucene9.index.IndexReader;
+import org.neo4j.shaded.lucene9.index.MultiBits;
+import org.neo4j.shaded.lucene9.search.DocIdSetIterator;
+import org.neo4j.shaded.lucene9.search.FilteredDocIdSetIterator;
+import org.neo4j.shaded.lucene9.util.Bits;
 
 /**
  * Provides a view of all {@link LuceneDocument}s in a single partition.

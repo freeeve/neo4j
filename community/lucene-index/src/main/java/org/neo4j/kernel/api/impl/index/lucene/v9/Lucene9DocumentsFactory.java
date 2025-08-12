@@ -19,15 +19,14 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v9;
 
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
-import org.apache.lucene.index.IndexOptions;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
-import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
+import org.neo4j.shaded.lucene9.analysis.TokenStream;
+import org.neo4j.shaded.lucene9.document.Field;
+import org.neo4j.shaded.lucene9.document.FieldType;
+import org.neo4j.shaded.lucene9.index.IndexOptions;
 import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
@@ -52,12 +51,13 @@ public class Lucene9DocumentsFactory implements LuceneDocumentsFactory {
 
     @Override
     public LuceneDocument createTrigramDocument(long id, Value value) {
-        var document = new Lucene9Document();
+        Lucene9Document document = new Lucene9Document();
         document.addStringField(ENTITY_ID_KEY, Long.toString(id), false);
         document.addNumericField(ENTITY_ID_KEY, id);
         if (value.valueGroup() == ValueGroup.TEXT) {
-            var tokenStream = new TrigramTokenStream(value.asObject().toString());
-            var valueField = new TrigramField(TRIGRAM_VALUE_KEY, tokenStream);
+            Lucene9TrigramTokenStream tokenStream =
+                    new Lucene9TrigramTokenStream(value.asObject().toString());
+            TrigramField valueField = new TrigramField(TRIGRAM_VALUE_KEY, tokenStream);
             document.document.add(valueField);
         }
 
@@ -70,7 +70,7 @@ public class Lucene9DocumentsFactory implements LuceneDocumentsFactory {
             long id,
             VectorCandidate candidate,
             Neo4jVectorSimilarityFunction similarityFunction) {
-        final var vector = similarityFunction.maybeToValidVector(candidate);
+        float[] vector = similarityFunction.maybeToValidVector(candidate);
         if (vector == null) {
             return null;
         }

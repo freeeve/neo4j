@@ -25,15 +25,15 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.lucene.index.MergePolicy;
-import org.apache.lucene.index.MergeScheduler;
-import org.apache.lucene.index.MergeTrigger;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory.OnThreadConcurrentMergeScheduler;
+import org.neo4j.shaded.lucene9.index.MergePolicy;
+import org.neo4j.shaded.lucene9.index.MergeScheduler;
+import org.neo4j.shaded.lucene9.index.MergeTrigger;
 import org.neo4j.test.Barrier;
 import org.neo4j.test.OtherThreadExecutor;
 
-class OnThreadConcurrentMergeSchedulerTest {
+class Lucene9OnThreadConcurrentMergeSchedulerTest {
     @Test
     void shouldMergeSourcesConcurrently() throws Exception {
         // given

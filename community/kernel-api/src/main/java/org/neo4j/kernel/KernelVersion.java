@@ -112,6 +112,7 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_CDC_USE_NAME_INTRODUCED = V2025_04;
     public static final KernelVersion VERSION_VECTOR_TYPE_INTRODUCED = GLORIOUS_FUTURE;
     public static final KernelVersion VERSION_UPGRADE_CONTAINS_LOG_FORMAT = V2025_05;
+    public static final KernelVersion VERSION_LUCENE_10_INTRODUCED = GLORIOUS_FUTURE;
     // Keep updated each time there is an new schema rule added
     // related to IntegrityValidator
     public static final KernelVersion LATEST_SCHEMA_CHANGE = VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS;

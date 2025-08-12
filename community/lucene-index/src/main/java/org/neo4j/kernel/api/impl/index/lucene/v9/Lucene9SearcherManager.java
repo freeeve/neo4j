@@ -20,9 +20,9 @@
 package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
-import org.apache.lucene.search.SearcherManager;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSearcherManager;
+import org.neo4j.shaded.lucene9.search.SearcherManager;
 
 class Lucene9SearcherManager implements LuceneSearcherManager {
     final SearcherManager searcherManager;

@@ -90,7 +90,13 @@ class TextIndexPopulationIT {
                 Arguments.of(LuceneContext.LUCENE_9, 14),
                 Arguments.of(LuceneContext.LUCENE_9, 20),
                 Arguments.of(LuceneContext.LUCENE_9, 35),
-                Arguments.of(LuceneContext.LUCENE_9, 58));
+                Arguments.of(LuceneContext.LUCENE_9, 58),
+                Arguments.of(LuceneContext.LUCENE_10, 7),
+                Arguments.of(LuceneContext.LUCENE_10, 11),
+                Arguments.of(LuceneContext.LUCENE_10, 14),
+                Arguments.of(LuceneContext.LUCENE_10, 20),
+                Arguments.of(LuceneContext.LUCENE_10, 35),
+                Arguments.of(LuceneContext.LUCENE_10, 58));
     }
 
     @ParameterizedTest

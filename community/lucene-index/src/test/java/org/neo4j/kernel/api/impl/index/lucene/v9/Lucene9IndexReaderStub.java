@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_STRING_ARRAY;
 
@@ -28,33 +28,33 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.lucene.index.BinaryDocValues;
-import org.apache.lucene.index.ByteVectorValues;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.DocValuesType;
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.FieldInfos;
-import org.apache.lucene.index.Fields;
-import org.apache.lucene.index.FloatVectorValues;
-import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.LeafMetaData;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.PointValues;
-import org.apache.lucene.index.SortedDocValues;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.apache.lucene.index.StoredFields;
-import org.apache.lucene.index.TermVectors;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.VectorEncoding;
-import org.apache.lucene.index.VectorSimilarityFunction;
-import org.apache.lucene.search.KnnCollector;
-import org.apache.lucene.util.Bits;
 import org.neo4j.internal.helpers.collection.MapUtil;
+import org.neo4j.shaded.lucene9.index.BinaryDocValues;
+import org.neo4j.shaded.lucene9.index.ByteVectorValues;
+import org.neo4j.shaded.lucene9.index.DocValues;
+import org.neo4j.shaded.lucene9.index.DocValuesType;
+import org.neo4j.shaded.lucene9.index.FieldInfo;
+import org.neo4j.shaded.lucene9.index.FieldInfos;
+import org.neo4j.shaded.lucene9.index.Fields;
+import org.neo4j.shaded.lucene9.index.FloatVectorValues;
+import org.neo4j.shaded.lucene9.index.IndexOptions;
+import org.neo4j.shaded.lucene9.index.LeafMetaData;
+import org.neo4j.shaded.lucene9.index.LeafReader;
+import org.neo4j.shaded.lucene9.index.NumericDocValues;
+import org.neo4j.shaded.lucene9.index.PointValues;
+import org.neo4j.shaded.lucene9.index.SortedDocValues;
+import org.neo4j.shaded.lucene9.index.SortedNumericDocValues;
+import org.neo4j.shaded.lucene9.index.SortedSetDocValues;
+import org.neo4j.shaded.lucene9.index.StoredFieldVisitor;
+import org.neo4j.shaded.lucene9.index.StoredFields;
+import org.neo4j.shaded.lucene9.index.TermVectors;
+import org.neo4j.shaded.lucene9.index.Terms;
+import org.neo4j.shaded.lucene9.index.VectorEncoding;
+import org.neo4j.shaded.lucene9.index.VectorSimilarityFunction;
+import org.neo4j.shaded.lucene9.search.KnnCollector;
+import org.neo4j.shaded.lucene9.util.Bits;
 
-public class IndexReaderStub extends LeafReader {
+public class Lucene9IndexReaderStub extends LeafReader {
     private Fields fields;
     private String[] elements = EMPTY_STRING_ARRAY;
     private Function<String, NumericDocValues> ndvs;
@@ -78,11 +78,11 @@ public class IndexReaderStub extends LeafReader {
             true,
             false);
 
-    public IndexReaderStub(final NumericDocValues ndv) {
+    public Lucene9IndexReaderStub(final NumericDocValues ndv) {
         this.ndvs = s -> ndv;
     }
 
-    public IndexReaderStub(Fields fields) {
+    public Lucene9IndexReaderStub(Fields fields) {
         this.fields = fields;
     }
 

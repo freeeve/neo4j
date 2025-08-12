@@ -31,8 +31,8 @@ import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
+import org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV2;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
-import org.neo4j.kernel.api.impl.schema.vector.codec.VectorCodecV2;
 import org.neo4j.logging.LogProvider;
 
 class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> {

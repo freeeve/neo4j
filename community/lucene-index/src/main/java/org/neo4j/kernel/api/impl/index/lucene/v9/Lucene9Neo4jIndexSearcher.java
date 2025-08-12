@@ -20,10 +20,10 @@
 package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.Collector;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Weight;
+import org.neo4j.shaded.lucene9.index.IndexReader;
+import org.neo4j.shaded.lucene9.search.Collector;
+import org.neo4j.shaded.lucene9.search.IndexSearcher;
+import org.neo4j.shaded.lucene9.search.Weight;
 
 class Lucene9Neo4jIndexSearcher extends IndexSearcher {
     Lucene9Neo4jIndexSearcher(IndexReader reader) {

@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.apache.lucene.index.IndexReader;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.kernel.api.impl.index.LucenePartitionsAllDocumentsReader;
@@ -35,6 +34,7 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.partition.PartitionSearcher;
+import org.neo4j.shaded.lucene9.index.IndexReader;
 
 class Lucene9AllDocumentsReaderTest {
     private final PartitionSearcher partitionSearcher1 = createPartitionSearcher(1, 0, 2);

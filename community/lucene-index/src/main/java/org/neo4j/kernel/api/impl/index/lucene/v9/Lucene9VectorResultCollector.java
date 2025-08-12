@@ -17,17 +17,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.vector;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.util.function.LongPredicate;
 import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
-import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector;
+import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 
-public class VectorResultCollector extends ScoredEntityResultCollector {
+class Lucene9VectorResultCollector extends Lucene9ScoredEntityResultCollector {
     private static final LongPredicate ALWAYS_FALSE = LongPredicates.alwaysFalse();
 
-    public VectorResultCollector(IndexQueryConstraints constraints) {
+    Lucene9VectorResultCollector(IndexQueryConstraints constraints) {
         super(constraints, ALWAYS_FALSE);
     }
 

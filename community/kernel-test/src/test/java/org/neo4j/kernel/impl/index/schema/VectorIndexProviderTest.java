@@ -54,9 +54,23 @@ class VectorIndexProviderTest {
     }
 
     @Nested
+    class V1Lucene10 extends V1 {
+        V1Lucene10() {
+            super(LuceneContext.LUCENE_10);
+        }
+    }
+
+    @Nested
     class V2Lucene9 extends V2 {
         V2Lucene9() {
             super(LuceneContext.LUCENE_9);
+        }
+    }
+
+    @Nested
+    class V2Lucene10 extends V2 {
+        V2Lucene10() {
+            super(LuceneContext.LUCENE_10);
         }
     }
 

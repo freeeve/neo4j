@@ -17,11 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.vector.codec;
+package org.neo4j.kernel.api.impl.index.lucene.v9.codec;
 
-import org.apache.lucene.codecs.KnnVectorsFormat;
-import org.apache.lucene.codecs.lucene99.Lucene99Codec;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig;
+import org.neo4j.shaded.lucene9.codecs.KnnVectorsFormat;
+import org.neo4j.shaded.lucene9.codecs.lucene99.Lucene99Codec;
 
 public class VectorCodecV2 extends Lucene99Codec {
     private final KnnVectorsFormat vectorFormat;

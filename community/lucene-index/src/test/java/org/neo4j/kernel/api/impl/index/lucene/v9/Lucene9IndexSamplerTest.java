@@ -29,19 +29,18 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.lucene.index.Fields;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.util.BytesRef;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.helpers.collection.MapUtil;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
-import org.neo4j.kernel.api.impl.index.IndexReaderStub;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.shaded.lucene9.index.Fields;
+import org.neo4j.shaded.lucene9.index.Terms;
+import org.neo4j.shaded.lucene9.index.TermsEnum;
+import org.neo4j.shaded.lucene9.util.BytesRef;
 
 class Lucene9IndexSamplerTest {
     private final Lucene9IndexSearcher indexSearcher = mock(Lucene9IndexSearcher.class, Mockito.RETURNS_DEEP_STUBS);
@@ -52,7 +51,7 @@ class Lucene9IndexSamplerTest {
     void nonUniqueSamplingCancel() throws IOException {
         Terms terms = getTerms("test", 1);
         Map<String, Terms> fieldTermsMap = MapUtil.genericMap("0string", terms, "id", terms, "0string", terms);
-        IndexReaderStub indexReader = new IndexReaderStub(new SamplingFields(fieldTermsMap));
+        Lucene9IndexReaderStub indexReader = new Lucene9IndexReaderStub(new SamplingFields(fieldTermsMap));
         when(indexSearcher.getIndexReader()).thenReturn(indexReader);
 
         Lucene9IndexSampler lucene9IndexSampler = createSampler();
@@ -69,7 +68,7 @@ class Lucene9IndexSamplerTest {
         Terms idTerms = getTerms("id", 2);
         Terms bTerms = getTerms("b", 3);
         Map<String, Terms> fieldTermsMap = MapUtil.genericMap("0string", aTerms, "id", idTerms, "0array", bTerms);
-        IndexReaderStub indexReader = new IndexReaderStub(new SamplingFields(fieldTermsMap));
+        Lucene9IndexReaderStub indexReader = new Lucene9IndexReaderStub(new SamplingFields(fieldTermsMap));
         indexReader.setElements(new String[4]);
         when(indexSearcher.getIndexReader()).thenReturn(indexReader);
 

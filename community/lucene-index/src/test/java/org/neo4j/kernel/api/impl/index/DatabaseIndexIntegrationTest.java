@@ -51,6 +51,7 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10Directory;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
@@ -93,6 +94,7 @@ class DatabaseIndexIntegrationTest {
     void setUp(LuceneContext luceneContext) throws IOException {
         directoryFactory = switch (luceneContext) {
             case LUCENE_9 -> new Lucene9SyncNotifierDirectoryFactory(raceSignal);
+            case LUCENE_10 -> new Lucene10SyncNotifierDirectoryFactory(raceSignal);
         };
         luceneIndex = createTestLuceneIndex(directoryFactory, testDirectory.homePath());
     }
@@ -133,7 +135,7 @@ class DatabaseIndexIntegrationTest {
     private WritableTestDatabaseIndex createTestLuceneIndex(DirectoryFactory dirFactory, Path folder)
             throws IOException {
         PartitionedIndexStorage indexStorage =
-                new PartitionedIndexStorage(dirFactory.getContext(), dirFactory, fileSystem, folder);
+                new PartitionedIndexStorage(LuceneContext.LUCENE_10, dirFactory, fileSystem, folder);
         WritableTestDatabaseIndex index = new WritableTestDatabaseIndex(indexStorage);
         index.create();
         index.open();
@@ -236,6 +238,53 @@ class DatabaseIndexIntegrationTest {
         }
     }
 
+    private static class Lucene10SyncNotifierDirectoryFactory implements DirectoryFactory {
+        final CountDownLatch signal;
+
+        Lucene10SyncNotifierDirectoryFactory(CountDownLatch signal) {
+            this.signal = signal;
+        }
+
+        @Override
+        public LuceneDirectory open(Path dir) throws IOException {
+            Files.createDirectories(dir);
+            return new Lucene10Directory(new Lucene10SyncNotifierLuceneDirectory(FSDirectory.open(dir), signal));
+        }
+
+        @Override
+        public LuceneContext getContext() {
+            return LuceneContext.LUCENE_10;
+        }
+
+        @Override
+        public void close() {}
+
+        private static class Lucene10SyncNotifierLuceneDirectory extends FilterDirectory {
+            private final CountDownLatch signal;
+
+            Lucene10SyncNotifierLuceneDirectory(Directory delegate, CountDownLatch signal) {
+                super(delegate);
+                this.signal = signal;
+            }
+
+            @Override
+            public void sync(Collection<String> names) throws IOException {
+                // where are waiting for a specific sync during index commit process inside lucene
+                // as soon as we will reach it - we will fail into sleep to give chance for concurrent close calls
+                if (names.stream().noneMatch(name -> name.startsWith(IndexFileNames.PENDING_SEGMENTS))) {
+                    try {
+                        signal.countDown();
+                        Thread.sleep(500);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                super.sync(names);
+            }
+        }
+    }
+
     private static class Lucene9SyncNotifierDirectoryFactory implements DirectoryFactory {
         final CountDownLatch signal;
 
@@ -246,7 +295,8 @@ class DatabaseIndexIntegrationTest {
         @Override
         public LuceneDirectory open(Path dir) throws IOException {
             Files.createDirectories(dir);
-            return new Lucene9Directory(new Lucene9SyncNotifierLuceneDirectory(FSDirectory.open(dir), signal));
+            return new Lucene9Directory(new Lucene9SyncNotifierLuceneDirectory(
+                    org.neo4j.shaded.lucene9.store.FSDirectory.open(dir), signal));
         }
 
         @Override
@@ -257,10 +307,11 @@ class DatabaseIndexIntegrationTest {
         @Override
         public void close() {}
 
-        private static class Lucene9SyncNotifierLuceneDirectory extends FilterDirectory {
+        private static class Lucene9SyncNotifierLuceneDirectory extends org.neo4j.shaded.lucene9.store.FilterDirectory {
             private final CountDownLatch signal;
 
-            Lucene9SyncNotifierLuceneDirectory(Directory delegate, CountDownLatch signal) {
+            Lucene9SyncNotifierLuceneDirectory(
+                    org.neo4j.shaded.lucene9.store.Directory delegate, CountDownLatch signal) {
                 super(delegate);
                 this.signal = signal;
             }

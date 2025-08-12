@@ -17,16 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.vector.codec;
+package org.neo4j.kernel.api.impl.index.lucene.v9.codec;
 
 import java.io.IOException;
-import org.apache.lucene.codecs.KnnVectorsFormat;
-import org.apache.lucene.codecs.KnnVectorsReader;
-import org.apache.lucene.codecs.KnnVectorsWriter;
-import org.apache.lucene.codecs.lucene99.Lucene99HnswVectorsFormat;
-import org.apache.lucene.index.SegmentReadState;
-import org.apache.lucene.index.SegmentWriteState;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig.HnswConfig;
+import org.neo4j.shaded.lucene9.codecs.KnnVectorsFormat;
+import org.neo4j.shaded.lucene9.codecs.KnnVectorsReader;
+import org.neo4j.shaded.lucene9.codecs.KnnVectorsWriter;
+import org.neo4j.shaded.lucene9.codecs.lucene99.Lucene99HnswVectorsFormat;
+import org.neo4j.shaded.lucene9.index.SegmentReadState;
+import org.neo4j.shaded.lucene9.index.SegmentWriteState;
 
 public class LuceneKnnVectorFormatV2 extends KnnVectorsFormat {
     private static final String LUCENE_VECTOR_FORMAT_V2_NAME = "LuceneKnnVectorFormatV2";

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.vector.codec;
+package org.neo4j.kernel.api.impl.index.lucene.v10.codec;
 
 import java.io.IOException;
 import org.apache.lucene.backward_codecs.lucene95.Lucene95HnswVectorsFormat;

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.collector;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,15 +30,15 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector.ScoredEntityPriorityQueue;
-import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector.ScoredEntityResultsMaxQueueIterator;
-import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector.ScoredEntityResultsMinQueueIterator;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9ScoredEntityResultCollector.ScoredEntityPriorityQueue;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9ScoredEntityResultCollector.ScoredEntityResultsMaxQueueIterator;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9ScoredEntityResultCollector.ScoredEntityResultsMinQueueIterator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 
 @ExtendWith(RandomExtension.class)
-class ScoredEntityResultCollectorTest {
+class Lucene9ScoredEntityResultCollectorTest {
     @Inject
     RandomSupport random;
 

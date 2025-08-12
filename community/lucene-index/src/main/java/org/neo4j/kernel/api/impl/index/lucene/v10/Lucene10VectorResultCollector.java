@@ -17,21 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.vector.codec;
+package org.neo4j.kernel.api.impl.index.lucene.v10;
 
-import org.apache.lucene.backward_codecs.lucene95.Lucene95Codec;
-import org.apache.lucene.codecs.KnnVectorsFormat;
+import java.util.function.LongPredicate;
+import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
+import org.neo4j.internal.kernel.api.IndexQueryConstraints;
+import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 
-public class VectorCodecV1 extends Lucene95Codec {
-    private final LuceneKnnVectorFormatV1 vectorFormat;
+class Lucene10VectorResultCollector extends Lucene10ScoredEntityResultCollector {
+    private static final LongPredicate ALWAYS_FALSE = LongPredicates.alwaysFalse();
 
-    public VectorCodecV1(int maxDimensions) {
-        super();
-        this.vectorFormat = new LuceneKnnVectorFormatV1(maxDimensions);
+    Lucene10VectorResultCollector(IndexQueryConstraints constraints) {
+        super(constraints, ALWAYS_FALSE);
     }
 
     @Override
-    public KnnVectorsFormat getKnnVectorsFormatForField(String field) {
-        return vectorFormat;
+    protected String entityIdFieldKey() {
+        return VectorDocumentStructure.ENTITY_ID_KEY;
     }
 }

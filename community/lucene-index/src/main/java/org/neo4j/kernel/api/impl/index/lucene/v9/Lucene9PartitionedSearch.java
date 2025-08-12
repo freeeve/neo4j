@@ -27,21 +27,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.LongPredicate;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermStates;
-import org.apache.lucene.search.CollectionStatistics;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.TermStatistics;
-import org.apache.lucene.search.Weight;
-import org.apache.lucene.util.BytesRef;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator;
-import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure;
+import org.neo4j.shaded.lucene9.index.Term;
+import org.neo4j.shaded.lucene9.index.TermStates;
+import org.neo4j.shaded.lucene9.search.CollectionStatistics;
+import org.neo4j.shaded.lucene9.search.IndexSearcher;
+import org.neo4j.shaded.lucene9.search.TermStatistics;
+import org.neo4j.shaded.lucene9.search.Weight;
+import org.neo4j.shaded.lucene9.util.BytesRef;
 
 class Lucene9PartitionedSearch implements LucenePartitionedSearch {
     private final List<PreparedSearch> searches;
@@ -188,7 +187,7 @@ class Lucene9PartitionedSearch implements LucenePartitionedSearch {
         }
     }
 
-    private static class FulltextResultCollector extends ScoredEntityResultCollector {
+    private static class FulltextResultCollector extends Lucene9ScoredEntityResultCollector {
         private FulltextResultCollector(IndexQueryConstraints constraints, LongPredicate exclusionFilter) {
             super(constraints, exclusionFilter);
         }

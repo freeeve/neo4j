@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.neo4j</groupId>
+        <artifactId>parent</artifactId>
+        <version>2025.08.0-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <artifactId>lucene9-shaded</artifactId>
+
+    <name>Neo4j - Shaded Lucene 9</name>
+    <description>Shaded Apache Lucene 9 Modules</description>
+
+    <properties>
+        <moduleName>org.neo4j.shaded.lucene9</moduleName>
+    </properties>
+
+    <packaging>jar</packaging>
+
+    <scm>
+        <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
+        <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
+        <url>https://github.com/neo4j/neo4j</url>
+    </scm>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <extraArtifacts>
+                                <extraArtifact>org.apache.lucene:lucene-core:${lucene9.version}</extraArtifact>
+                                <extraArtifact>org.apache.lucene:lucene-analysis-common:${lucene9.version}</extraArtifact>
+                                <extraArtifact>org.apache.lucene:lucene-backward-codecs:${lucene9.version}</extraArtifact>
+                                <extraArtifact>org.apache.lucene:lucene-queryparser:${lucene9.version}</extraArtifact>
+                            </extraArtifacts>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>org.apache.lucene:lucene-queries</exclude>
+                                    <exclude>org.apache.lucene:lucene-sandbox</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.apache.lucene</pattern>
+                                    <shadedPattern>${moduleName}</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <!--
+                                        META-INF/version file structure does not match shadedPattern MSHADE-406.
+                                        Use additional rawString relocation to compensate.
+                                    -->
+                                    <pattern>org/apache/lucene</pattern>
+                                    <shadedPattern>org/neo4j/shaded/lucene9</shadedPattern>
+                                    <rawString>true</rawString>
+                                </relocation>
+                            </relocations>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Multi-Release>true</Multi-Release>
+                                    </manifestEntries>
+                                </transformer>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                            </transformers>
+                            <createDependencyReducedPom>true</createDependencyReducedPom>
+                            <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

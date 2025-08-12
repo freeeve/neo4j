@@ -20,37 +20,37 @@
 package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.TRIGRAM_VALUE_KEY;
+import static org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Utils.loadAnalyzer;
 
 import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.CharacterUtils;
-import org.apache.lucene.index.FilteredTermsEnum;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.queryparser.classic.QueryParserBase;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.ConstantScoreQuery;
-import org.apache.lucene.search.KnnFloatVectorQuery;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.MultiTermQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.QueryVisitor;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.WildcardQuery;
-import org.apache.lucene.util.AttributeSource;
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.StringHelper;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryParseException;
 import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
-import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
+import org.neo4j.shaded.lucene9.analysis.CharacterUtils;
+import org.neo4j.shaded.lucene9.index.FilteredTermsEnum;
+import org.neo4j.shaded.lucene9.index.Term;
+import org.neo4j.shaded.lucene9.index.Terms;
+import org.neo4j.shaded.lucene9.index.TermsEnum;
+import org.neo4j.shaded.lucene9.queryparser.classic.MultiFieldQueryParser;
+import org.neo4j.shaded.lucene9.queryparser.classic.ParseException;
+import org.neo4j.shaded.lucene9.queryparser.classic.QueryParserBase;
+import org.neo4j.shaded.lucene9.search.BooleanClause;
+import org.neo4j.shaded.lucene9.search.BooleanQuery;
+import org.neo4j.shaded.lucene9.search.ConstantScoreQuery;
+import org.neo4j.shaded.lucene9.search.KnnFloatVectorQuery;
+import org.neo4j.shaded.lucene9.search.MatchAllDocsQuery;
+import org.neo4j.shaded.lucene9.search.MultiTermQuery;
+import org.neo4j.shaded.lucene9.search.Query;
+import org.neo4j.shaded.lucene9.search.QueryVisitor;
+import org.neo4j.shaded.lucene9.search.TermQuery;
+import org.neo4j.shaded.lucene9.search.WildcardQuery;
+import org.neo4j.shaded.lucene9.util.AttributeSource;
+import org.neo4j.shaded.lucene9.util.BytesRef;
+import org.neo4j.shaded.lucene9.util.StringHelper;
 import org.neo4j.values.storable.Value;
 
 public class Lucene9QueryContext implements LuceneQueryContext {
@@ -187,7 +187,7 @@ public class Lucene9QueryContext implements LuceneQueryContext {
     }
 
     private Query parseFulltextQuery(String query, String[] propertyNames, Analyzer analyzer) throws ParseException {
-        MultiFieldQueryParser multiFieldQueryParser = new MultiFieldQueryParser(propertyNames, analyzer);
+        MultiFieldQueryParser multiFieldQueryParser = new MultiFieldQueryParser(propertyNames, loadAnalyzer(analyzer));
         multiFieldQueryParser.setAllowLeadingWildcard(true);
         return multiFieldQueryParser.parse(query);
     }
@@ -197,7 +197,7 @@ public class Lucene9QueryContext implements LuceneQueryContext {
             return new MatchAllDocsQuery();
         }
 
-        var codePointBuffer = TrigramTokenStream.getCodePoints(searchString);
+        var codePointBuffer = Lucene9TrigramTokenStream.getCodePoints(searchString);
 
         if (codePointBuffer.codePointCount() < 3) {
             String searchTerm = QueryParserBase.escape(searchString);
@@ -217,7 +217,7 @@ public class Lucene9QueryContext implements LuceneQueryContext {
         return builder.build();
     }
 
-    private static String getNgram(TrigramTokenStream.CodePointBuffer codePointBuffer, int ngramIndex, int n) {
+    private static String getNgram(Lucene9TrigramTokenStream.CodePointBuffer codePointBuffer, int ngramIndex, int n) {
         char[] termCharBuffer = new char[2 * n];
         int length = CharacterUtils.toChars(codePointBuffer.codePoints(), ngramIndex, n, termCharBuffer, 0);
         return new String(termCharBuffer, 0, length);

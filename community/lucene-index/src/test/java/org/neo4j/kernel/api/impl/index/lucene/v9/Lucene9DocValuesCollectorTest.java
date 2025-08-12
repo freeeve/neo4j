@@ -29,20 +29,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.search.ConstantScoreScorer;
-import org.apache.lucene.search.ConstantScoreWeight;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.Weight;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.kernel.api.impl.index.IndexReaderStub;
 import org.neo4j.kernel.api.index.IndexProgressor;
+import org.neo4j.shaded.lucene9.index.LeafReaderContext;
+import org.neo4j.shaded.lucene9.index.NumericDocValues;
+import org.neo4j.shaded.lucene9.search.ConstantScoreScorer;
+import org.neo4j.shaded.lucene9.search.ConstantScoreWeight;
+import org.neo4j.shaded.lucene9.search.DocIdSetIterator;
+import org.neo4j.shaded.lucene9.search.ScoreMode;
+import org.neo4j.shaded.lucene9.search.Scorer;
+import org.neo4j.shaded.lucene9.search.Weight;
 import org.neo4j.values.storable.Value;
 
 final class Lucene9DocValuesCollectorTest {
@@ -60,7 +59,7 @@ final class Lucene9DocValuesCollectorTest {
     void shouldCollectAllHitsPerSegment() throws Exception {
         // given
         Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector();
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
+        Lucene9IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
         collector.doSetNextReader(readerStub.getContext());
@@ -88,7 +87,7 @@ final class Lucene9DocValuesCollectorTest {
     void shouldCollectOneMatchingDocsPerSegment() throws Exception {
         // given
         Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector();
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
+        Lucene9IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
         collector.doSetNextReader(readerStub.getContext());
@@ -124,7 +123,7 @@ final class Lucene9DocValuesCollectorTest {
     void shouldNotSaveScoresForIndexProgressorWhenNotRequired() throws Exception {
         // given
         Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector();
-        IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
+        Lucene9IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
         collector.doSetNextReader(readerStub.getContext());
@@ -142,7 +141,7 @@ final class Lucene9DocValuesCollectorTest {
         assertTrue(Float.isNaN(entity.score));
     }
 
-    private static IndexReaderStub indexReaderWithMaxDocs(int maxDocs) {
+    private static Lucene9IndexReaderStub indexReaderWithMaxDocs(int maxDocs) {
         NumericDocValues identityValues = new NumericDocValues() {
             @Override
             public boolean advanceExact(int target) {
@@ -177,7 +176,7 @@ final class Lucene9DocValuesCollectorTest {
                 return next;
             }
         };
-        IndexReaderStub stub = new IndexReaderStub(identityValues);
+        Lucene9IndexReaderStub stub = new Lucene9IndexReaderStub(identityValues);
         stub.setElements(new String[maxDocs]);
         return stub;
     }

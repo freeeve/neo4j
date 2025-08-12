@@ -44,6 +44,13 @@ class TextIndexPopulationStressTest {
         }
     }
 
+    @Nested
+    class Lucene10 extends TextIndexPopulationStressTestBase {
+        Lucene10() {
+            super(LuceneContext.LUCENE_10);
+        }
+    }
+
     abstract static class TextIndexPopulationStressTestBase extends IndexPopulationStressTest {
         TextIndexPopulationStressTestBase(LuceneContext luceneContext) {
             super(

@@ -17,13 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.trigram;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
-import org.apache.lucene.analysis.CharacterUtils;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
+import org.neo4j.shaded.lucene9.analysis.CharacterUtils;
+import org.neo4j.shaded.lucene9.analysis.TokenStream;
+import org.neo4j.shaded.lucene9.analysis.tokenattributes.CharTermAttribute;
 
-public final class TrigramTokenStream extends TokenStream {
+final class Lucene9TrigramTokenStream extends TokenStream {
     // 'n' value in 'ngram'
     private static final int N = 3;
     private static final int MAX_CHARS = N * Character.charCount(Character.MAX_CODE_POINT);
@@ -31,7 +31,7 @@ public final class TrigramTokenStream extends TokenStream {
     private final CharTermAttribute termAtt = addAttribute(CharTermAttribute.class);
     private int offset = -1;
 
-    public TrigramTokenStream(String text) {
+    public Lucene9TrigramTokenStream(String text) {
         codePointBuffer = getCodePoints(text);
         termAtt.resizeBuffer(MAX_CHARS);
     }
@@ -60,8 +60,8 @@ public final class TrigramTokenStream extends TokenStream {
         return true;
     }
 
-    public static CodePointBuffer getCodePoints(String text) {
-        var codePointBuffer = new int[text.length()];
+    static CodePointBuffer getCodePoints(String text) {
+        int[] codePointBuffer = new int[text.length()];
         int codePointCount = 0;
         for (int i = 0; i < text.length(); ) {
             int cp = text.codePointAt(i);

@@ -23,12 +23,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.util.BytesRef;
 import org.neo4j.internal.helpers.CancellationRequest;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -39,6 +33,12 @@ import org.neo4j.kernel.api.impl.schema.populator.DefaultNonUniqueIndexSampler;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.NonUniqueIndexSampler;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.shaded.lucene9.index.IndexReader;
+import org.neo4j.shaded.lucene9.index.LeafReader;
+import org.neo4j.shaded.lucene9.index.LeafReaderContext;
+import org.neo4j.shaded.lucene9.index.Terms;
+import org.neo4j.shaded.lucene9.index.TermsEnum;
+import org.neo4j.shaded.lucene9.util.BytesRef;
 
 /**
  * Sampler for non-unique Lucene schema index.

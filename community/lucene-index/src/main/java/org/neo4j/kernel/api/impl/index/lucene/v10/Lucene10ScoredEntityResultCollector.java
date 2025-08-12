@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.collector;
+package org.neo4j.kernel.api.impl.index.lucene.v10;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -29,9 +29,11 @@ import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.LeafCollector;
 import org.apache.lucene.search.Scorable;
 import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TopScoreDocCollector;
 import org.eclipse.collections.api.block.procedure.primitive.LongFloatProcedure;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
+import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 
 /**
  * Collects hits from lucene search and stores them in priority queue comparing by scores.
@@ -41,14 +43,14 @@ import org.neo4j.internal.kernel.api.IndexQueryConstraints;
  *
  * This collector doesn't track total number of hits.
  */
-public abstract class ScoredEntityResultCollector implements Collector {
+abstract class Lucene10ScoredEntityResultCollector implements Collector {
     private static final int NO_LIMIT = -1;
 
     private final long limit;
     private final ScoredEntityPriorityQueue pq;
     private final LongPredicate exclusionFilter;
 
-    protected ScoredEntityResultCollector(IndexQueryConstraints constraints, LongPredicate exclusionFilter) {
+    protected Lucene10ScoredEntityResultCollector(IndexQueryConstraints constraints, LongPredicate exclusionFilter) {
         this.exclusionFilter = exclusionFilter;
         this.limit = getLimit(constraints);
         // Use a max-queue for no-limit otherwise a min-queue to continuously drop the entry with the lowest score.
@@ -112,7 +114,7 @@ public abstract class ScoredEntityResultCollector implements Collector {
 
         @Override
         public void collect(int doc) throws IOException {
-            assert scorer.docID() == doc;
+            assert !(scorer instanceof final Scorer s && s.docID() != doc);
             if (values.advanceExact(doc)) {
                 long entityId = values.longValue();
                 float score = scorer.score();

@@ -20,10 +20,13 @@
 package org.neo4j.kernel.api.impl.index.lucene;
 
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10DirectoryFactory;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10DocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DirectoryFactory;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DocumentsFactory;
 
 public enum LuceneContext {
+    LUCENE_10(Lucene10DirectoryFactory.INSTANCE, Lucene10DocumentsFactory.INSTANCE),
     LUCENE_9(Lucene9DirectoryFactory.INSTANCE, Lucene9DocumentsFactory.INSTANCE);
 
     public static LuceneContext getDefault() {
@@ -31,6 +34,9 @@ public enum LuceneContext {
     }
 
     public static LuceneContext getDefault(KernelVersion version) {
+        if (version.isAtLeast(KernelVersion.VERSION_LUCENE_10_INTRODUCED)) {
+            return LUCENE_10;
+        }
         return LUCENE_9;
     }
 

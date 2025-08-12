@@ -23,27 +23,30 @@ import static java.lang.Math.toIntExact;
 
 import java.io.IOException;
 import java.util.Collection;
-import org.apache.lucene.codecs.CodecUtil;
-import org.apache.lucene.index.CheckIndex;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
-import org.apache.lucene.index.LogByteSizeMergePolicy;
-import org.apache.lucene.index.MergePolicy;
-import org.apache.lucene.index.MergeScheduler;
-import org.apache.lucene.index.MergeTrigger;
-import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.index.SnapshotDeletionPolicy;
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexInput;
-import org.apache.lucene.util.Version;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
+import org.neo4j.kernel.api.impl.index.lucene.v9.codec.VectorCodecV1;
+import org.neo4j.kernel.api.impl.index.lucene.v9.codec.VectorCodecV2;
+import org.neo4j.shaded.lucene9.codecs.Codec;
+import org.neo4j.shaded.lucene9.codecs.CodecUtil;
+import org.neo4j.shaded.lucene9.index.CheckIndex;
+import org.neo4j.shaded.lucene9.index.DirectoryReader;
+import org.neo4j.shaded.lucene9.index.IndexWriter;
+import org.neo4j.shaded.lucene9.index.IndexWriterConfig;
+import org.neo4j.shaded.lucene9.index.KeepOnlyLastCommitDeletionPolicy;
+import org.neo4j.shaded.lucene9.index.LogByteSizeMergePolicy;
+import org.neo4j.shaded.lucene9.index.MergePolicy;
+import org.neo4j.shaded.lucene9.index.MergeScheduler;
+import org.neo4j.shaded.lucene9.index.MergeTrigger;
+import org.neo4j.shaded.lucene9.index.SegmentInfos;
+import org.neo4j.shaded.lucene9.index.SnapshotDeletionPolicy;
+import org.neo4j.shaded.lucene9.store.Directory;
+import org.neo4j.shaded.lucene9.store.IOContext;
+import org.neo4j.shaded.lucene9.store.IndexInput;
+import org.neo4j.shaded.lucene9.util.Version;
 
 public class Lucene9Directory implements LuceneDirectory {
     final Directory directory;
@@ -139,10 +142,10 @@ public class Lucene9Directory implements LuceneDirectory {
 
     private static IndexWriterConfig convertConfig(LuceneIndexWriterConfig config) {
         if (config.analyzerOnly) {
-            return new IndexWriterConfig(config.analyzer);
+            return new IndexWriterConfig(Lucene9Utils.loadAnalyzer(config.analyzer));
         }
 
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(config.analyzer);
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(Lucene9Utils.loadAnalyzer(config.analyzer));
         if (config.RAMBufferSizeMB != null) {
             indexWriterConfig.setRAMBufferSizeMB(config.RAMBufferSizeMB);
         }
@@ -156,7 +159,7 @@ public class Lucene9Directory implements LuceneDirectory {
         indexWriterConfig.setIndexDeletionPolicy(new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy()));
 
         if (config.codec != null) {
-            indexWriterConfig.setCodec(config.codec);
+            indexWriterConfig.setCodec(loadCodec(config));
         }
         if (config.useOnThreadConcurrentMergeScheduler) {
             indexWriterConfig.setMergeScheduler(new OnThreadConcurrentMergeScheduler());
@@ -170,6 +173,19 @@ public class Lucene9Directory implements LuceneDirectory {
         indexWriterConfig.setMergePolicy(mergePolicy);
 
         return indexWriterConfig;
+    }
+
+    private static Codec loadCodec(LuceneIndexWriterConfig config) {
+        org.apache.lucene.codecs.Codec oldCodec = config.codec;
+        String codecClassName = oldCodec.getClass().getName();
+        return switch (codecClassName) {
+            case "org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV1" ->
+                new VectorCodecV1(oldCodec.knnVectorsFormat().getMaxDimensions(""));
+            case "org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV2" ->
+                new VectorCodecV2(
+                        ((org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV2) oldCodec).getConfig());
+            default -> Codec.forName(config.codec.getName());
+        };
     }
 
     /**

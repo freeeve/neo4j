@@ -19,15 +19,15 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v9;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.KnnFloatVectorField;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.VectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
+import org.neo4j.shaded.lucene9.document.Document;
+import org.neo4j.shaded.lucene9.document.Field;
+import org.neo4j.shaded.lucene9.document.KnnFloatVectorField;
+import org.neo4j.shaded.lucene9.document.NumericDocValuesField;
+import org.neo4j.shaded.lucene9.document.StringField;
+import org.neo4j.shaded.lucene9.document.TextField;
+import org.neo4j.shaded.lucene9.index.VectorSimilarityFunction;
 
 class Lucene9Document implements LuceneDocument {
     final Document document;

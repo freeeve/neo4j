@@ -1,0 +1,53 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.kernel.api.impl.index.lucene.v10;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+
+import java.util.HashSet;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.QueryVisitor;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.neo4j.kernel.impl.api.LuceneIndexValueValidator;
+import org.neo4j.test.RandomSupport;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomExtension;
+
+@ExtendWith(RandomExtension.class)
+class Lucene10TrigramQueryTest {
+    @Inject
+    private RandomSupport random;
+
+    @Test
+    void shouldHandleLargeSearchStrings() {
+        // Given
+        var size = LuceneIndexValueValidator.MAX_TERM_LENGTH;
+
+        // When
+        var query = new Lucene10QueryContext().trigramSearch(random.nextAlphaNumericString(size, size));
+
+        // Then
+        var terms = new HashSet<Term>();
+        query.build().visit(QueryVisitor.termCollector(terms));
+        assertThat(terms.size()).isGreaterThanOrEqualTo(1).isLessThanOrEqualTo(IndexSearcher.getMaxClauseCount());
+    }
+}

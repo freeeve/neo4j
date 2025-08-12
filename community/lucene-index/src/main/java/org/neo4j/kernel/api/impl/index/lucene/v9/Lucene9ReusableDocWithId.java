@@ -19,18 +19,18 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v9;
 
-import static org.apache.lucene.document.Field.Store.NO;
-import static org.apache.lucene.document.Field.Store.YES;
 import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.ENTITY_ID_KEY;
 import static org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure.FIELD_ENTITY_ID;
+import static org.neo4j.shaded.lucene9.document.Field.Store.NO;
+import static org.neo4j.shaded.lucene9.document.Field.Store.YES;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.shaded.lucene9.document.Document;
+import org.neo4j.shaded.lucene9.document.Field;
+import org.neo4j.shaded.lucene9.document.NumericDocValuesField;
+import org.neo4j.shaded.lucene9.document.StringField;
+import org.neo4j.shaded.lucene9.document.TextField;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;

@@ -17,32 +17,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.vector.codec;
+package org.neo4j.kernel.api.impl.index.lucene.v10.codec;
 
 import java.io.IOException;
 import org.apache.lucene.codecs.KnnVectorsFormat;
 import org.apache.lucene.codecs.KnnVectorsReader;
 import org.apache.lucene.codecs.KnnVectorsWriter;
-import org.apache.lucene.codecs.lucene99.Lucene99HnswScalarQuantizedVectorsFormat;
+import org.apache.lucene.codecs.lucene99.Lucene99HnswVectorsFormat;
 import org.apache.lucene.index.SegmentReadState;
 import org.apache.lucene.index.SegmentWriteState;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig.HnswConfig;
 
-public class LuceneKnnScalarQuantizedVectorFormatV2 extends KnnVectorsFormat {
-    private static final String LUCENE_SCALAR_QUANTIZED_VECTOR_FORMAT_V2_NAME =
-            "LuceneKnnScalarQuantizedVectorFormatV2";
+public class LuceneKnnVectorFormatV2 extends KnnVectorsFormat {
+    private static final String LUCENE_VECTOR_FORMAT_V2_NAME = "LuceneKnnVectorFormatV2";
     private final KnnVectorsFormat vectorsFormat;
     private final int maxDimensions;
 
     // This constructor is only needed for Lucene Service Loader
-    public LuceneKnnScalarQuantizedVectorFormatV2() {
+    public LuceneKnnVectorFormatV2() {
         this(Integer.MAX_VALUE, HnswConfig.DUMMY);
     }
 
-    public LuceneKnnScalarQuantizedVectorFormatV2(int maxDimensions, HnswConfig hnswConfig) {
-        super(LUCENE_SCALAR_QUANTIZED_VECTOR_FORMAT_V2_NAME);
+    public LuceneKnnVectorFormatV2(int maxDimensions, HnswConfig hnswConfig) {
+        super(LUCENE_VECTOR_FORMAT_V2_NAME);
         this.maxDimensions = maxDimensions;
-        this.vectorsFormat = new Lucene99HnswScalarQuantizedVectorsFormat(hnswConfig.M(), hnswConfig.efConstruction());
+        this.vectorsFormat = new Lucene99HnswVectorsFormat(hnswConfig.M(), hnswConfig.efConstruction());
     }
 
     @Override

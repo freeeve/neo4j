@@ -20,14 +20,14 @@
 package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.SearcherFactory;
-import org.apache.lucene.search.SearcherManager;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSearcherManager;
+import org.neo4j.shaded.lucene9.index.DirectoryReader;
+import org.neo4j.shaded.lucene9.index.IndexReader;
+import org.neo4j.shaded.lucene9.search.IndexSearcher;
+import org.neo4j.shaded.lucene9.search.SearcherFactory;
+import org.neo4j.shaded.lucene9.search.SearcherManager;
 
 public class Lucene9DirectoryReader implements LuceneDirectoryReader {
     private final DirectoryReader reader;

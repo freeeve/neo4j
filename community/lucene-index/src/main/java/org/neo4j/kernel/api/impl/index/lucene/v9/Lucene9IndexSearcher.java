@@ -26,13 +26,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.CollectorManager;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ReferenceManager;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
@@ -42,10 +35,16 @@ import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSearcherManager;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
-import org.neo4j.kernel.api.impl.schema.vector.VectorResultCollector;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.IndexSampler;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
+import org.neo4j.shaded.lucene9.index.IndexReader;
+import org.neo4j.shaded.lucene9.search.CollectorManager;
+import org.neo4j.shaded.lucene9.search.IndexSearcher;
+import org.neo4j.shaded.lucene9.search.Query;
+import org.neo4j.shaded.lucene9.search.ReferenceManager;
+import org.neo4j.shaded.lucene9.search.ScoreDoc;
+import org.neo4j.shaded.lucene9.search.TopDocs;
 
 class Lucene9IndexSearcher implements LuceneIndexSearcher {
     final IndexSearcher indexSearcher;
@@ -179,7 +178,7 @@ class Lucene9IndexSearcher implements LuceneIndexSearcher {
     }
 
     private static class VectorValuesCollectorManager
-            implements CollectorManager<VectorResultCollector, ValuesIterator> {
+            implements CollectorManager<Lucene9VectorResultCollector, ValuesIterator> {
 
         private final IndexQueryConstraints constraints;
 
@@ -188,14 +187,15 @@ class Lucene9IndexSearcher implements LuceneIndexSearcher {
         }
 
         @Override
-        public VectorResultCollector newCollector() {
-            return new VectorResultCollector(constraints);
+        public Lucene9VectorResultCollector newCollector() {
+            return new Lucene9VectorResultCollector(constraints);
         }
 
         @Override
-        public ValuesIterator reduce(Collection<VectorResultCollector> collectors) {
-            return mergeIterators(
-                    collectors.stream().map(VectorResultCollector::iterator).toList());
+        public ValuesIterator reduce(Collection<Lucene9VectorResultCollector> collectors) {
+            return mergeIterators(collectors.stream()
+                    .map(Lucene9VectorResultCollector::iterator)
+                    .toList());
         }
     }
 }

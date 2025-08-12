@@ -25,17 +25,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.lucene.store.ByteBuffersDirectory;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.NIOFSDirectory;
-import org.apache.lucene.store.NRTCachingDirectory;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryFactory;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
+import org.neo4j.shaded.lucene9.store.ByteBuffersDirectory;
+import org.neo4j.shaded.lucene9.store.FSDirectory;
+import org.neo4j.shaded.lucene9.store.IOContext;
+import org.neo4j.shaded.lucene9.store.NIOFSDirectory;
+import org.neo4j.shaded.lucene9.store.NRTCachingDirectory;
 
 public class Lucene9DirectoryFactory implements LuceneDirectoryFactory {
     public static final LuceneDirectoryFactory INSTANCE = new Lucene9DirectoryFactory();

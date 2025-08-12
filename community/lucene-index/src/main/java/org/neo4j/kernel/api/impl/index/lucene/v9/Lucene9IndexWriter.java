@@ -24,15 +24,6 @@ import static org.neo4j.internal.helpers.collection.Iterators.emptyResourceItera
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Iterator;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexCommit;
-import org.apache.lucene.index.IndexDeletionPolicy;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.SegmentInfos;
-import org.apache.lucene.index.SnapshotDeletionPolicy;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.store.Directory;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.kernel.api.impl.index.backup.ReadOnlyIndexSnapshotFileIterator;
 import org.neo4j.kernel.api.impl.index.backup.SnapshotReleaseException;
@@ -42,6 +33,15 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.shaded.lucene9.document.Document;
+import org.neo4j.shaded.lucene9.index.DirectoryReader;
+import org.neo4j.shaded.lucene9.index.IndexCommit;
+import org.neo4j.shaded.lucene9.index.IndexDeletionPolicy;
+import org.neo4j.shaded.lucene9.index.IndexWriter;
+import org.neo4j.shaded.lucene9.index.SegmentInfos;
+import org.neo4j.shaded.lucene9.index.SnapshotDeletionPolicy;
+import org.neo4j.shaded.lucene9.index.Term;
+import org.neo4j.shaded.lucene9.store.Directory;
 
 class Lucene9IndexWriter implements LuceneIndexWriter {
     private final IndexWriter indexWriter;
