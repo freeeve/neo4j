@@ -523,7 +523,15 @@
           <executions>
             <execution>
               <id>list-all-licenses</id>
-              <phase>compile</phase>
+              <!--
+                The licensing-maven-plugin's check goal is annotated with `@requiresDependencyResolution test`, which
+                forces Maven to resolve all project dependencies, including those with test scope.
+                By binding the plugin's execution to the prepare-package phase, we align the license check with the
+                point in the lifecycle where test classes are guaranteed to be compiled.
+                This is key in the presence of test-jar dependencies.
+                This phase is also semantically correct, as its purpose is to prepare files for the final package.
+              -->
+              <phase>prepare-package</phase>
               <goals>
                 <goal>check</goal>
               </goals>
