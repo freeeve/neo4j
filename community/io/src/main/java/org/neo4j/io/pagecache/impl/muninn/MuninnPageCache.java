@@ -25,6 +25,8 @@ import static java.util.Objects.requireNonNull;
 import static org.neo4j.internal.helpers.Numbers.isPowerOfTwo;
 import static org.neo4j.internal.helpers.VarHandleUtils.getVarHandle;
 import static org.neo4j.io.pagecache.buffer.IOBufferFactory.DISABLED_BUFFER_FACTORY;
+import static org.neo4j.io.pagecache.impl.muninn.AsyncEvictionStatus.EVICTED;
+import static org.neo4j.io.pagecache.impl.muninn.AsyncEvictionStatus.NOT_EVICTED;
 import static org.neo4j.io.pagecache.impl.muninn.PageList.getPageHorizon;
 import static org.neo4j.scheduler.Group.FILE_IO_HELPER;
 import static org.neo4j.scheduler.JobMonitoringParams.systemJob;
@@ -64,6 +66,7 @@ import org.neo4j.io.pagecache.impl.muninn.swapper.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.EvictionRunEvent;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
+import org.neo4j.io.pagecache.tracing.FreeListSizeTrackerEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageFaultEvent;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -140,6 +143,9 @@ public class MuninnPageCache implements PageCache {
     private static final int cooperativeEvictionLiveLockThreshold =
             getInteger(MuninnPageCache.class, "cooperativeEvictionLiveLockThreshold", 100);
 
+    private static final boolean ASYNC_EVICTION_ENABLED = flag(MuninnPageCache.class, "asyncEviction", false);
+    private static final int ASYNC_EVICTOR_QUEUE_SIZE = getInteger(MuninnPageCache.class, "asyncEvictorQueueSize", 128);
+
     // This is a pre-allocated constant, so we can throw it without allocating any objects:
     @SuppressWarnings("ThrowableInstanceNeverThrown")
     private static final IOException oomException =
@@ -178,6 +184,7 @@ public class MuninnPageCache implements PageCache {
     private final MemoryAllocator memoryAllocator;
     private final MemoryTracker memoryTracker;
     private final boolean closeAllocatorOnShutdown;
+    private final boolean asyncIO;
     final PageList pages;
     // All PageCursors are initialised with their pointers pointing to the victim page. This way, we don't have to throw
     // exceptions on bounds checking failures; we can instead return the victim page pointer, and permit the page
@@ -238,6 +245,7 @@ public class MuninnPageCache implements PageCache {
         private boolean preallocateStoreFiles;
         private int reservedPageSize;
         private boolean closeAllocatorOnShutdown;
+        private boolean asyncIO = ASYNC_EVICTION_ENABLED;
         private PageSwapperFactory swapperFactory;
 
         private Configuration(
@@ -263,6 +271,11 @@ public class MuninnPageCache implements PageCache {
             this.enableEvictionThread = enableEvictionThread;
             this.preallocateStoreFiles = preallocateStoreFiles;
             this.closeAllocatorOnShutdown = closeAllocatorOnShutdown;
+        }
+
+        public Configuration withAsyncIO(boolean asyncIO) {
+            this.asyncIO = asyncIO;
+            return this;
         }
 
         /**
@@ -415,6 +428,7 @@ public class MuninnPageCache implements PageCache {
         this.preallocateStoreFiles = configuration.preallocateStoreFiles;
         this.memoryAllocator = configuration.memoryAllocator;
         this.closeAllocatorOnShutdown = configuration.closeAllocatorOnShutdown;
+        this.asyncIO = configuration.asyncIO;
         setFreelistHead(new AtomicInteger());
 
         // Expose the total number of pages
@@ -963,7 +977,12 @@ public class MuninnPageCache implements PageCache {
         setFreelistHead(shutdownSignal);
     }
 
-    private AsyncBlockAccessor createAsyncBlockAccessor(AsyncIOProvider asyncIOProvider, MemoryTracker memoryTracker) {
+    @VisibleForTesting
+    AsyncBlockAccessor createAsyncBlockAccessor(AsyncIOProvider asyncIOProvider, MemoryTracker memoryTracker) {
+        if (asyncIO) {
+            return asyncIOProvider.createAsyncBlockAccessor(
+                    ASYNC_EVICTOR_QUEUE_SIZE, this::onPageEvictionComplete, this::onPageEvictionFailure, memoryTracker);
+        }
         return AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
     }
 
@@ -1014,7 +1033,7 @@ public class MuninnPageCache implements PageCache {
             return;
         }
 
-        if (blockAccessor.isAvailable() && pagesToEvict > 1) {
+        if (blockAccessor.isAvailable()) {
             asyncEvict(blockAccessor, pagesToEvict, evictionClockArm, evictionRunEvent);
         } else {
             syncEvict(pagesToEvict, evictionClockArm, evictionRunEvent);
@@ -1050,7 +1069,50 @@ public class MuninnPageCache implements PageCache {
             int pageEvictionAttempts,
             EvictionClockArm clockArm,
             EvictionRunEvent evictionRunEvent) {
-        throw new IllegalStateException("Async eviction should be unreachable.");
+        while (pageEvictionAttempts > 0) {
+            if (closed) {
+                return;
+            }
+            long pageRef = pages.deref(clockArm.nextPage());
+            if (PageList.isLoaded(pageRef) && PageList.decrementUsage(pageRef)) {
+                AsyncEvictionStatus evictionStatus = null;
+                try {
+                    evictionStatus = pages.tryEvictAsync(blockAccessor, pageRef, evictionRunEvent);
+                    if (evictionStatus == EVICTED) {
+                        clearEvictorException();
+                        addFreePageToFreelist(pageRef, evictionRunEvent);
+                    }
+                } catch (IOException e) {
+                    evictorException = e;
+                } catch (OutOfMemoryError oom) {
+                    evictorException = oomException;
+                } catch (Throwable th) {
+                    evictorException = new IOException("Eviction thread encountered a problem", th);
+                }
+                if (evictionStatus != NOT_EVICTED) {
+                    // here we only decrement this if we actually evicted something or
+                    // failed with exception to do so (attempt happened)
+                    pageEvictionAttempts--;
+                }
+            }
+        }
+        blockAccessor.completeSubmitted();
+    }
+
+    private void onPageEvictionComplete(long pageRef, int resultBytes) {
+        try (var evictionCompletion = pageCacheTracer.asyncEvictionCompletion()) {
+            // in write completed case result is the number of written bytes
+            pages.onPageEvictionCompletion(pageRef, resultBytes, evictionCompletion);
+            clearEvictorException();
+            addFreePageToFreelist(pageRef, evictionCompletion);
+        }
+    }
+
+    private void onPageEvictionFailure(long pageRef, int result, String message) {
+        try (var evictionFailure = pageCacheTracer.asyncEvictionFailure()) {
+            pages.onPageEvictionFailure(pageRef);
+            evictorException = new IOException(message);
+        }
     }
 
     @VisibleForTesting
@@ -1077,7 +1139,7 @@ public class MuninnPageCache implements PageCache {
         return result.toString();
     }
 
-    void addFreePageToFreelist(long pageRef, EvictionRunEvent evictions) {
+    void addFreePageToFreelist(long pageRef, FreeListSizeTrackerEvent freeListSizeTrackerEvent) {
         Object current;
         assert getPageHorizon(pageRef) == 0;
         FreePage freePage = new FreePage(pageRef);
@@ -1089,7 +1151,7 @@ public class MuninnPageCache implements PageCache {
             }
             freePage.setNext(pageCount, current);
         } while (!compareAndSetFreelistHead(current, freePage));
-        evictions.freeListSize(freePage.count);
+        freeListSizeTrackerEvent.freeListSize(freePage.count);
     }
 
     void clearEvictorException() {

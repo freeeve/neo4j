@@ -31,6 +31,10 @@ import org.neo4j.io.pagecache.tracing.FlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageFileSwapperTracer;
 import org.neo4j.io.pagecache.tracing.PageReferenceTranslator;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionCompletion;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionFailure;
+import org.neo4j.io.pagecache.tracing.async.SubmitEvent;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 
 public class RecordingPageCacheTracer extends RecordingTracer implements PageCacheTracer {
@@ -72,6 +76,16 @@ public class RecordingPageCacheTracer extends RecordingTracer implements PageCac
         return getEvictionRunEvent();
     }
 
+    @Override
+    public AsyncEvictionCompletion asyncEvictionCompletion() {
+        return AsyncEvictionCompletion.NULL;
+    }
+
+    @Override
+    public AsyncEvictionFailure asyncEvictionFailure() {
+        return AsyncEvictionFailure.NULL;
+    }
+
     private EvictionRunEvent getEvictionRunEvent() {
         return new EvictionRunEvent() {
             @Override
@@ -82,6 +96,11 @@ public class RecordingPageCacheTracer extends RecordingTracer implements PageCac
             @Override
             public EvictionEvent beginEviction(long cachePageId) {
                 return new RecordingEvictionEvent();
+            }
+
+            @Override
+            public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+                return new RecordingAsyncEvictionEvent();
             }
 
             @Override
@@ -260,6 +279,21 @@ public class RecordingPageCacheTracer extends RecordingTracer implements PageCac
     }
 
     @Override
+    public long asyncIoSubmitted() {
+        return 0;
+    }
+
+    @Override
+    public long asyncIoCompleted() {
+        return 0;
+    }
+
+    @Override
+    public long asyncIoFailed() {
+        return 0;
+    }
+
+    @Override
     public void pins(long pins) {
         this.pins.getAndAdd(pins);
     }
@@ -308,6 +342,15 @@ public class RecordingPageCacheTracer extends RecordingTracer implements PageCac
     public void evictionExceptions(long evictionExceptions) {}
 
     @Override
+    public void asyncIoSubmitted(long asyncIoSubmitted) {}
+
+    @Override
+    public void asyncIoCompleted(long asyncIoCompleted) {}
+
+    @Override
+    public void asyncIoFailed(long asyncIoFailed) {}
+
+    @Override
     public void bytesWritten(long bytesWritten) {}
 
     @Override
@@ -346,7 +389,7 @@ public class RecordingPageCacheTracer extends RecordingTracer implements PageCac
     @Override
     public void failedUnmap(String reason) {}
 
-    private void evicted(long filePageId, PageSwapper swapper) {
+    private void recordEviction(long filePageId, PageSwapper swapper) {
         record(new Evict(swapper, filePageId));
     }
 
@@ -381,7 +424,39 @@ public class RecordingPageCacheTracer extends RecordingTracer implements PageCac
 
         @Override
         public void close() {
-            evicted(filePageId, swapper);
+            recordEviction(filePageId, swapper);
+        }
+    }
+
+    private class RecordingAsyncEvictionEvent implements AsyncEvictionEvent {
+        private long filePageId;
+        private PageSwapper swapper;
+
+        @Override
+        public void setFilePageId(long filePageId) {
+            this.filePageId = filePageId;
+        }
+
+        @Override
+        public void setSwapper(PageSwapper swapper) {
+            this.swapper = swapper;
+        }
+
+        @Override
+        public SubmitEvent beginAsyncSubmit(
+                long pageRef, PageSwapper swapper, PageReferenceTranslator pageReferenceTranslator) {
+            return SubmitEvent.NULL;
+        }
+
+        @Override
+        public void evicted() {}
+
+        @Override
+        public void setException(Exception exception) {}
+
+        @Override
+        public void close() {
+            recordEviction(filePageId, swapper);
         }
     }
 }

@@ -54,10 +54,12 @@ import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.DummyPageSwapper;
 import org.neo4j.io.pagecache.tracing.EvictionEvent;
+import org.neo4j.io.pagecache.tracing.EvictionEventOpportunity;
 import org.neo4j.io.pagecache.tracing.EvictionRunEvent;
 import org.neo4j.io.pagecache.tracing.FlushEvent;
 import org.neo4j.io.pagecache.tracing.PageReferenceTranslator;
 import org.neo4j.io.pagecache.tracing.PinPageFaultEvent;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.scheduler.DaemonThreadFactory;
 import org.neo4j.util.concurrent.Futures;
@@ -2087,7 +2089,7 @@ public class AbstractPageListTest {
         doFault(swapperId, 42);
         PageList.unlockExclusive(pageRef);
         EvictionRecorderEvent recorder = new EvictionRecorderEvent(pageRef);
-        assertTrue(pageList.tryEvict(pageRef, any -> recorder));
+        assertTrue(pageList.tryEvict(pageRef, new RecorderEvictionEventOpportunity(recorder)));
         assertThat(recorder.evictionClosed).isEqualTo(true);
         assertThat(recorder.filePageId).isEqualTo(42L);
         assertThat(recorder.swapper).isSameAs(swapper);
@@ -2113,7 +2115,7 @@ public class AbstractPageListTest {
         PageList.unlockWrite(pageRef); // page is now modified
         assertTrue(PageList.isModified(pageRef));
         EvictionRecorderEvent recorder = new EvictionRecorderEvent(pageRef);
-        assertTrue(pageList.tryEvict(pageRef, any -> recorder));
+        assertTrue(pageList.tryEvict(pageRef, new RecorderEvictionEventOpportunity(recorder)));
         assertThat(recorder.evictionClosed).isEqualTo(true);
         assertThat(recorder.filePageId).isEqualTo(42L);
         assertThat(recorder.swapper).isSameAs(swapper);
@@ -2144,7 +2146,8 @@ public class AbstractPageListTest {
         PageList.unlockWrite(pageRef); // page is now modified
         assertTrue(PageList.isModified(pageRef));
         EvictionRecorderEvent recorder = new EvictionRecorderEvent(pageRef);
-        assertThrows(IOException.class, () -> pageList.tryEvict(pageRef, any -> recorder));
+        assertThrows(
+                IOException.class, () -> pageList.tryEvict(pageRef, new RecorderEvictionEventOpportunity(recorder)));
 
         assertThat(recorder.evictionClosed).isEqualTo(true);
         assertThat(recorder.filePageId).isEqualTo(42L);
@@ -2245,6 +2248,24 @@ public class AbstractPageListTest {
         PageList.validatePageRefAndSetFilePageId(pageRef, DUMMY_SWAPPER, swapperId, filePageId);
         pageList.initBuffer(pageRef);
         PageList.fault(pageRef, DUMMY_SWAPPER, swapperId, filePageId, PinPageFaultEvent.NULL);
+    }
+
+    private static class RecorderEvictionEventOpportunity implements EvictionEventOpportunity {
+        private final EvictionRecorderEvent recorder;
+
+        public RecorderEvictionEventOpportunity(EvictionRecorderEvent recorder) {
+            this.recorder = recorder;
+        }
+
+        @Override
+        public EvictionEvent beginEviction(long cachePageId) {
+            return recorder;
+        }
+
+        @Override
+        public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+            return AsyncEvictionEvent.NULL;
+        }
     }
 
     // todo freelist? (entries chained via file page ids in a linked list? should work as free pages are always

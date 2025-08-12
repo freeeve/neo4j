@@ -19,6 +19,8 @@
  */
 package org.neo4j.io.pagecache.tracing;
 
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
+
 /**
  * Begin a page fault as part of a pin event.
  */
@@ -39,6 +41,11 @@ public interface PinPageFaultEvent extends PageFaultEvent {
         @Override
         public EvictionEvent beginEviction(long cachePageId) {
             return EvictionEvent.NULL;
+        }
+
+        @Override
+        public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+            return AsyncEvictionEvent.NULL;
         }
 
         @Override

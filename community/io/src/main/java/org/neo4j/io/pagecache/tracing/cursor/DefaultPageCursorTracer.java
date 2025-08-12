@@ -39,6 +39,8 @@ import org.neo4j.io.pagecache.tracing.PinEvent;
 import org.neo4j.io.pagecache.tracing.PinPageFaultEvent;
 import org.neo4j.io.pagecache.tracing.PrefetchEvent;
 import org.neo4j.io.pagecache.tracing.VectoredPageFaultEvent;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
+import org.neo4j.io.pagecache.tracing.async.SubmitEvent;
 
 public class DefaultPageCursorTracer implements PageCursorTracer {
     /**
@@ -80,6 +82,8 @@ public class DefaultPageCursorTracer implements PageCursorTracer {
     private final PageFaultEvictionEvent evictionEvent = new PageFaultEvictionEvent();
     private final DefaultPinPageFaultEvent pageFaultEvent = new DefaultPinPageFaultEvent();
     private final DefaultVectoredPageFaultEvent vectoredPageFaultEvent = new DefaultVectoredPageFaultEvent();
+    private final AsyncPageEvictionEvent asyncEvictionEvent = new AsyncPageEvictionEvent();
+    private final AsyncSubmitEvent submitEvent = new AsyncSubmitEvent();
     private final DefaultFlushEvent flushEvent = new DefaultFlushEvent();
     private final DefaultPrefetchEvent prefetchEvent = new DefaultPrefetchEvent();
 
@@ -475,6 +479,11 @@ public class DefaultPageCursorTracer implements PageCursorTracer {
         }
 
         @Override
+        public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+            return asyncEvictionEvent;
+        }
+
+        @Override
         public void setCachePageId(long cachePageId) {}
     }
 
@@ -505,6 +514,11 @@ public class DefaultPageCursorTracer implements PageCursorTracer {
         @Override
         public EvictionEvent beginEviction(long cachePageId) {
             return evictionEvent;
+        }
+
+        @Override
+        public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+            return asyncEvictionEvent;
         }
 
         @Override
@@ -585,6 +599,49 @@ public class DefaultPageCursorTracer implements PageCursorTracer {
                 swapperTracer.evictions(1);
             }
         }
+    }
+
+    private class AsyncSubmitEvent implements SubmitEvent {
+        @Override
+        public void addSubmittedPages(int pageCount) {}
+
+        @Override
+        public void setException(Exception e) {}
+
+        @Override
+        public void close() {}
+    }
+
+    private class AsyncPageEvictionEvent implements AsyncEvictionEvent {
+        private PageFileSwapperTracer swapperTracer;
+
+        @Override
+        public void setFilePageId(long filePageId) {}
+
+        @Override
+        public void setSwapper(PageSwapper swapper) {
+            swapperTracer = swapper.fileSwapperTracer();
+        }
+
+        @Override
+        public void setException(Exception exception) {
+            evictionExceptions++;
+            swapperTracer.evictionExceptions(1);
+        }
+
+        @Override
+        public SubmitEvent beginAsyncSubmit(
+                long pageRef, PageSwapper swapper, PageReferenceTranslator pageReferenceTranslator) {
+            return submitEvent;
+        }
+
+        @Override
+        public void evicted() {
+            evictions++;
+        }
+
+        @Override
+        public void close() {}
     }
 
     private class DefaultPrefetchEvent implements PrefetchEvent {

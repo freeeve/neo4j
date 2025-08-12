@@ -17,21 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.pagecache.tracing;
+package org.neo4j.io.pagecache.tracing.async;
 
-import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
+import org.neo4j.io.pagecache.tracing.AutoCloseablePageCacheTracerEvent;
 
-/**
- * Interface for any event that in turn presents the opportunity to evict a page.
- */
-public interface EvictionEventOpportunity {
-    /**
-     * Begin an eviction event.
-     */
-    EvictionEvent beginEviction(long cachePageId);
+public interface AsyncEvictionFailure extends AutoCloseablePageCacheTracerEvent {
+    AsyncEvictionFailure NULL = new AsyncEvictionFailure() {
 
-    /**
-     * Begin asynchronous page eviction
-     */
-    AsyncEvictionEvent beginAsyncEviction(long cachePageId);
+        @Override
+        public void close() {}
+    };
 }

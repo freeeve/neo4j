@@ -175,6 +175,21 @@ public interface PageCacheCounters {
 
     long snapshotsLoaded();
 
+    /**
+     * Total number of async io submits
+     */
+    long asyncIoSubmitted();
+
+    /**
+     * Total number of successfully completed async io requests
+     */
+    long asyncIoCompleted();
+
+    /**
+     * Total number of failed async io requests
+     */
+    long asyncIoFailed();
+
     default long prefetchedPages() {
         return 0L;
     }

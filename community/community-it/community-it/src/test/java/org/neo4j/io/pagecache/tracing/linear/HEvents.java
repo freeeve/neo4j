@@ -36,6 +36,8 @@ import org.neo4j.io.pagecache.tracing.FlushEvent;
 import org.neo4j.io.pagecache.tracing.PageReferenceTranslator;
 import org.neo4j.io.pagecache.tracing.PinEvent;
 import org.neo4j.io.pagecache.tracing.PinPageFaultEvent;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
+import org.neo4j.io.pagecache.tracing.async.SubmitEvent;
 
 /**
  * Container of events for page cache tracers that are used to build linear historical representation of page cache
@@ -111,6 +113,11 @@ class HEvents {
         @Override
         public EvictionEvent beginEviction(long cachePageId) {
             return tracer.add(new EvictionHEvent(tracer, cachePageId));
+        }
+
+        @Override
+        public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+            return tracer.add(new AsyncEvictionHEvent(tracer, cachePageId));
         }
 
         @Override
@@ -352,6 +359,12 @@ class HEvents {
         }
 
         @Override
+        public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+            pageEvictedByFaulter = true;
+            return tracer.add(new AsyncEvictionHEvent(tracer, cachePageId));
+        }
+
+        @Override
         void printBody(PrintStream out, String exceptionLinePrefix) {
             out.print(", cachePageId:");
             out.print(cachePageId);
@@ -404,6 +417,25 @@ class HEvents {
             print(out, path);
             print(out, exception, exceptionLinePrefix);
         }
+    }
+
+    public static class AsyncEvictionHEvent extends EvictionHEvent implements AsyncEvictionEvent {
+
+        AsyncEvictionHEvent(LinearHistoryTracer linearHistoryTracer, long cachePageId) {
+            super(linearHistoryTracer, cachePageId);
+        }
+
+        @Override
+        public void setException(Exception exception) {}
+
+        @Override
+        public SubmitEvent beginAsyncSubmit(
+                long pageRef, PageSwapper swapper, PageReferenceTranslator pageReferenceTranslator) {
+            return SubmitEvent.NULL;
+        }
+
+        @Override
+        public void evicted() {}
     }
 
     public abstract static class HEvent {

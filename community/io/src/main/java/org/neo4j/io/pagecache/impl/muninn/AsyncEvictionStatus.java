@@ -17,21 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.pagecache.tracing;
+package org.neo4j.io.pagecache.impl.muninn;
 
-import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
-
-/**
- * Interface for any event that in turn presents the opportunity to evict a page.
- */
-public interface EvictionEventOpportunity {
-    /**
-     * Begin an eviction event.
-     */
-    EvictionEvent beginEviction(long cachePageId);
-
-    /**
-     * Begin asynchronous page eviction
-     */
-    AsyncEvictionEvent beginAsyncEviction(long cachePageId);
+enum AsyncEvictionStatus {
+    SUBMITTED,
+    EVICTED,
+    NOT_EVICTED
 }

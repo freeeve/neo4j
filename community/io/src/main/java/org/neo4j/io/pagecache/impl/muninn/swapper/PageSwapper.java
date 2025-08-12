@@ -22,6 +22,7 @@ package org.neo4j.io.pagecache.impl.muninn.swapper;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.tracing.PageFileSwapperTracer;
 
 /**
@@ -125,6 +126,19 @@ public interface PageSwapper extends Closeable {
      */
     long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length, int totalAffectedPages)
             throws IOException;
+
+    /**
+     * Asynchronously write the contents of the page given by the bufferAddress and the default length of the page buffer,
+     * to the concrete file on the file system, at the located indicated by the given
+     * filePageId.
+     * <p>
+     * Please note that as a result of async submit, writes may reorder, so no guarantee can be made about what has
+     * been written and what has not until operation completion or failure notification is received.
+     * <p>
+     * Exceptions thrown by this method are only related to the moment of submit and do not have correlations
+     * wit actual result of IOs. Results are handled on the accessor side.
+     */
+    void asyncWrite(AsyncBlockAccessor accessor, long pageRef, long filePageId, long bufferAddress) throws IOException;
 
     /**
      * Notification that a page has been evicted, used to clean up state in structures

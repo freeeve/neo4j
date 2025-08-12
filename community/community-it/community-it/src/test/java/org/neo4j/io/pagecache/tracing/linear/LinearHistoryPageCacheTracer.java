@@ -31,6 +31,8 @@ import org.neo4j.io.pagecache.tracing.EvictionRunEvent;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageFileSwapperTracer;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionCompletion;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionFailure;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 
 /**
@@ -76,6 +78,16 @@ public final class LinearHistoryPageCacheTracer implements PageCacheTracer {
     @Override
     public EvictionRunEvent beginEviction() {
         return tracer.add(new EvictionRunHEvent(tracer, 0));
+    }
+
+    @Override
+    public AsyncEvictionCompletion asyncEvictionCompletion() {
+        return AsyncEvictionCompletion.NULL;
+    }
+
+    @Override
+    public AsyncEvictionFailure asyncEvictionFailure() {
+        return AsyncEvictionFailure.NULL;
     }
 
     @Override
@@ -249,6 +261,21 @@ public final class LinearHistoryPageCacheTracer implements PageCacheTracer {
     }
 
     @Override
+    public long asyncIoSubmitted() {
+        return 0;
+    }
+
+    @Override
+    public long asyncIoCompleted() {
+        return 0;
+    }
+
+    @Override
+    public long asyncIoFailed() {
+        return 0;
+    }
+
+    @Override
     public void pins(long pins) {}
 
     @Override
@@ -289,6 +316,15 @@ public final class LinearHistoryPageCacheTracer implements PageCacheTracer {
 
     @Override
     public void evictionExceptions(long evictionExceptions) {}
+
+    @Override
+    public void asyncIoSubmitted(long asyncIoSubmitted) {}
+
+    @Override
+    public void asyncIoCompleted(long asyncIoCompleted) {}
+
+    @Override
+    public void asyncIoFailed(long asyncIoFailed) {}
 
     @Override
     public void bytesWritten(long bytesWritten) {}

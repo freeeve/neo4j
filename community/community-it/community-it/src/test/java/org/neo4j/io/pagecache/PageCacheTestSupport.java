@@ -362,6 +362,14 @@ public abstract class PageCacheTestSupport<T extends PageCache> {
             return reservedBytes;
         }
 
+        public boolean asyncIO() {
+            return false;
+        }
+
+        public boolean backgroundEvictionEnabled() {
+            return true;
+        }
+
         public final Fixture<T> withFileSystemAbstraction(
                 Supplier<FileSystemAbstraction> fileSystemAbstractionSupplier) {
             this.fileSystemAbstractionSupplier = fileSystemAbstractionSupplier;

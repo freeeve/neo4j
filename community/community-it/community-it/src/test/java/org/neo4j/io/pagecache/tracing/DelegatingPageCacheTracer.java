@@ -21,6 +21,8 @@ package org.neo4j.io.pagecache.tracing;
 
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionCompletion;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionFailure;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 
 /**
@@ -67,6 +69,16 @@ public class DelegatingPageCacheTracer implements PageCacheTracer {
     @Override
     public EvictionRunEvent beginEviction() {
         return delegate.beginEviction();
+    }
+
+    @Override
+    public AsyncEvictionCompletion asyncEvictionCompletion() {
+        return delegate.asyncEvictionCompletion();
+    }
+
+    @Override
+    public AsyncEvictionFailure asyncEvictionFailure() {
+        return delegate.asyncEvictionFailure();
     }
 
     @Override
@@ -172,6 +184,36 @@ public class DelegatingPageCacheTracer implements PageCacheTracer {
     @Override
     public long snapshotsLoaded() {
         return delegate.snapshotsLoaded();
+    }
+
+    @Override
+    public long asyncIoSubmitted() {
+        return delegate.asyncIoSubmitted();
+    }
+
+    @Override
+    public long asyncIoCompleted() {
+        return delegate.asyncIoCompleted();
+    }
+
+    @Override
+    public long asyncIoFailed() {
+        return delegate.asyncIoFailed();
+    }
+
+    @Override
+    public void asyncIoSubmitted(long asyncIoSubmitted) {
+        delegate.asyncIoSubmitted(asyncIoSubmitted);
+    }
+
+    @Override
+    public void asyncIoCompleted(long asyncIoCompleted) {
+        delegate.asyncIoCompleted(asyncIoCompleted);
+    }
+
+    @Override
+    public void asyncIoFailed(long asyncIoFailed) {
+        delegate.asyncIoFailed(asyncIoFailed);
     }
 
     @Override

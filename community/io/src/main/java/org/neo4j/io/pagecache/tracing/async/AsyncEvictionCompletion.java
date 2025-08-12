@@ -17,38 +17,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.pagecache.tracing;
+package org.neo4j.io.pagecache.tracing.async;
 
-import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
+import org.neo4j.io.pagecache.tracing.AutoCloseablePageCacheTracerEvent;
+import org.neo4j.io.pagecache.tracing.FreeListSizeTrackerEvent;
+import org.neo4j.io.pagecache.tracing.PageFileSwapperTracer;
 
-/**
- * An eviction run is started when the page cache has determined that it
- * needs to evict a batch of pages. The dedicated eviction thread is
- * mostly sleeping when it is not performing an eviction run.
- */
-public interface EvictionRunEvent
-        extends AutoCloseablePageCacheTracerEvent, EvictionEventOpportunity, FreeListSizeTrackerEvent {
-    /**
-     * An EvictionRunEvent that does nothing other than return the EvictionEvent.NULL.
-     */
-    EvictionRunEvent NULL = new EvictionRunEvent() {
+public interface AsyncEvictionCompletion extends AutoCloseablePageCacheTracerEvent, FreeListSizeTrackerEvent {
+    AsyncEvictionCompletion NULL = new AsyncEvictionCompletion() {
         @Override
         public void freeListSize(int size) {}
 
         @Override
-        public EvictionEvent beginEviction(long cachePageId) {
-            return EvictionEvent.NULL;
-        }
+        public void addBytesWritten(int bytes, PageFileSwapperTracer swapperTracer) {}
 
         @Override
-        public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
-            return AsyncEvictionEvent.NULL;
-        }
+        public void addPagesCompleted(int pageCount, PageFileSwapperTracer swapperTracer) {}
 
         @Override
         public void close() {}
     };
 
-    @Override
-    void freeListSize(int size);
+    void addBytesWritten(int bytes, PageFileSwapperTracer swapperTracer);
+
+    void addPagesCompleted(int pageCount, PageFileSwapperTracer swapperTracer);
 }

@@ -41,6 +41,7 @@ import org.neo4j.internal.nativeimpl.NativeAccess;
 import org.neo4j.internal.nativeimpl.NativeAccessFactory;
 import org.neo4j.internal.nativeimpl.NativeCallResult;
 import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.pagecache.IOController;
@@ -360,6 +361,15 @@ class SingleFilePageSwapper implements PageSwapper {
             } while (retry.shouldRetry());
         }
         return -1;
+    }
+
+    @Override
+    public void asyncWrite(AsyncBlockAccessor accessor, long pageRef, long filePageId, long bufferAddress)
+            throws IOException {
+        long fileOffset = pageIdToPosition(filePageId);
+        increaseFileSizeTo(fileOffset + filePageSize);
+        accessor.asyncWrite(channel.getFileDescriptor(), pageRef, fileOffset, bufferAddress, filePageSize);
+        ioController.reportIO(1, 1);
     }
 
     private long writePositionedVectoredToFileChannel(

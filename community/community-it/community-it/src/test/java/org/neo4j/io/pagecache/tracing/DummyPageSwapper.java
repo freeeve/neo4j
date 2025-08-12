@@ -21,6 +21,7 @@ package org.neo4j.io.pagecache.tracing;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 
 public class DummyPageSwapper implements PageSwapper {
@@ -57,6 +58,9 @@ public class DummyPageSwapper implements PageSwapper {
     public long write(long filePageId, long bufferAddress, int bufferLength) {
         return bufferAddress;
     }
+
+    @Override
+    public void asyncWrite(AsyncBlockAccessor accessor, long pageRef, long filePageId, long bufferAddress) {}
 
     @Override
     public void evicted(long pageRef, long filePageId) {}

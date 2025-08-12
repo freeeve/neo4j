@@ -25,6 +25,10 @@ import java.util.concurrent.atomic.LongAdder;
 import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionCompletion;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionFailure;
+import org.neo4j.io.pagecache.tracing.async.SubmitEvent;
 import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 
@@ -55,6 +59,10 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
     protected final LongAdder filesUnmapped = new LongAdder();
     protected final LongAdder fileTruncations = new LongAdder();
 
+    protected final LongAdder asyncIoSubmit = new LongAdder();
+    protected final LongAdder asyncIoCompleted = new LongAdder();
+    protected final LongAdder asyncIoFailed = new LongAdder();
+
     protected final LongAdder evictionExceptions = new LongAdder();
     protected final LongAdder iopqPerformed = new LongAdder();
     protected final LongAdder globalLimitTimes = new LongAdder();
@@ -71,6 +79,10 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
 
     private final EvictionEvent evictionEvent = new PageCacheEvictionEvent();
     private final EvictionRunEvent evictionRunEvent = new DefaultEvictionRunEvent();
+    private final AsyncEvictionEvent asyncEvictionEvent = new AsyncPageCacheEvictionEvent();
+    private final AsyncEvictionCompletionEvent asyncEvictionCompletion = new AsyncEvictionCompletionEvent();
+    private final AsyncEvictionFailure asyncEvictionFailure = new AsyncEvictionFailureEvent();
+    private final AsyncPageCacheSubmitEvent asyncPageCacheSubmitEvent = new AsyncPageCacheSubmitEvent();
     private final DatabaseFlushEvent databaseFlushEvent = new DatabaseFlushEvent(new DefaultPageCacheFileFlushEvent());
 
     public DefaultPageCacheTracer() {
@@ -109,6 +121,16 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
     @Override
     public EvictionRunEvent beginEviction() {
         return evictionRunEvent;
+    }
+
+    @Override
+    public AsyncEvictionCompletion asyncEvictionCompletion() {
+        return asyncEvictionCompletion;
+    }
+
+    @Override
+    public AsyncEvictionFailure asyncEvictionFailure() {
+        return asyncEvictionFailure;
     }
 
     @Override
@@ -159,6 +181,21 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
     @Override
     public long evictions() {
         return evictions.sum();
+    }
+
+    @Override
+    public long asyncIoSubmitted() {
+        return asyncIoSubmit.sum();
+    }
+
+    @Override
+    public long asyncIoCompleted() {
+        return asyncIoCompleted.sum();
+    }
+
+    @Override
+    public long asyncIoFailed() {
+        return asyncIoFailed.sum();
     }
 
     @Override
@@ -303,6 +340,21 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
     }
 
     @Override
+    public void asyncIoSubmitted(long asyncIoSubmitted) {
+        asyncIoSubmit.add(asyncIoSubmitted);
+    }
+
+    @Override
+    public void asyncIoCompleted(long asyncIoCompleted) {
+        this.asyncIoCompleted.add(asyncIoCompleted);
+    }
+
+    @Override
+    public void asyncIoFailed(long asyncIoFailed) {
+        this.asyncIoFailed.add(asyncIoFailed);
+    }
+
+    @Override
     public void pagesCopied(long copiesCreated) {
         copiedPages.add(copiesCreated);
     }
@@ -435,6 +487,40 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
         this.maxPages.set(maxPages);
     }
 
+    private class AsyncEvictionCompletionEvent implements AsyncEvictionCompletion {
+
+        @Override
+        public void addBytesWritten(int bytes, PageFileSwapperTracer swapperTracer) {
+            bytesWritten.add(bytes);
+            swapperTracer.bytesWritten(bytes);
+        }
+
+        @Override
+        public void addPagesCompleted(int pageCount, PageFileSwapperTracer swapperTracer) {
+            asyncIoCompleted.add(pageCount);
+            flushes.add(pageCount);
+            swapperTracer.flushes(pageCount);
+            evictions.add(pageCount);
+            evictionFlushes.add(pageCount);
+        }
+
+        @Override
+        public void close() {}
+
+        @Override
+        public void freeListSize(int size) {}
+    }
+
+    private class AsyncEvictionFailureEvent implements AsyncEvictionFailure {
+
+        @Override
+        public void close() {
+            evictions.increment();
+            asyncIoFailed.increment();
+            evictionExceptions.increment();
+        }
+    }
+
     private class PageCacheFlushEvent implements FlushEvent {
         private PageFileSwapperTracer swapperTracer;
         private long pagesFlushed;
@@ -493,6 +579,11 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
         @Override
         public EvictionEvent beginEviction(long cachePageId) {
             return evictionEvent;
+        }
+
+        @Override
+        public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+            return asyncEvictionEvent;
         }
 
         @Override
@@ -616,5 +707,50 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
                 swapperTracer.evictions(1);
             }
         }
+    }
+
+    private class AsyncPageCacheSubmitEvent implements SubmitEvent {
+        @Override
+        public void addSubmittedPages(int pageCount) {
+            asyncIoSubmit.add(pageCount);
+        }
+
+        @Override
+        public void setException(Exception e) {}
+
+        @Override
+        public void close() {}
+    }
+
+    private class AsyncPageCacheEvictionEvent implements AsyncEvictionEvent {
+        private PageFileSwapperTracer swapperTracer;
+
+        @Override
+        public void setFilePageId(long filePageId) {}
+
+        @Override
+        public void setSwapper(PageSwapper swapper) {
+            this.swapperTracer = swapper.fileSwapperTracer();
+        }
+
+        @Override
+        public void setException(Exception exception) {
+            evictionExceptions.increment();
+            swapperTracer.evictionExceptions(1);
+        }
+
+        @Override
+        public SubmitEvent beginAsyncSubmit(
+                long pageRef, PageSwapper swapper, PageReferenceTranslator pageReferenceTranslator) {
+            return asyncPageCacheSubmitEvent;
+        }
+
+        @Override
+        public void evicted() {
+            evictions.increment();
+        }
+
+        @Override
+        public void close() {}
     }
 }

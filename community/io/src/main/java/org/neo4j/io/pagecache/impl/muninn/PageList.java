@@ -20,18 +20,25 @@
 package org.neo4j.io.pagecache.impl.muninn;
 
 import static java.lang.String.format;
+import static org.neo4j.io.pagecache.impl.muninn.AsyncEvictionStatus.EVICTED;
+import static org.neo4j.io.pagecache.impl.muninn.AsyncEvictionStatus.NOT_EVICTED;
+import static org.neo4j.io.pagecache.impl.muninn.AsyncEvictionStatus.SUBMITTED;
 import static org.neo4j.util.FeatureToggles.flag;
 
 import java.io.IOException;
 import java.lang.invoke.VarHandle;
 import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.EvictionEvent;
 import org.neo4j.io.pagecache.tracing.EvictionEventOpportunity;
+import org.neo4j.io.pagecache.tracing.PageFileSwapperTracer;
 import org.neo4j.io.pagecache.tracing.PageReferenceTranslator;
 import org.neo4j.io.pagecache.tracing.PinPageFaultEvent;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionCompletion;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
 
 /**
  * The PageList maintains the off-heap meta-data for the individual memory pages.
@@ -494,6 +501,97 @@ class PageList implements PageReferenceTranslator {
             } catch (IOException e) {
                 unlockExclusive(pageRef);
                 flushEvent.setException(e);
+                evictionEvent.setException(e);
+                throw e;
+            }
+        }
+    }
+
+    AsyncEvictionStatus tryEvictAsync(
+            AsyncBlockAccessor blockAccessor, long pageRef, EvictionEventOpportunity evictionOpportunity)
+            throws IOException {
+        if (tryExclusiveLock(pageRef)) {
+            if (isLoaded(pageRef)) {
+                try (var evictionEvent = evictionOpportunity.beginAsyncEviction(toId(pageRef))) {
+                    return evictAsync(blockAccessor, pageRef, evictionEvent);
+                }
+            }
+            unlockExclusive(pageRef);
+        }
+        return NOT_EVICTED;
+    }
+
+    private AsyncEvictionStatus evictAsync(
+            AsyncBlockAccessor blockAccessor, long pageRef, AsyncEvictionEvent asyncEvictionEvent) throws IOException {
+        long filePageId = getFilePageId(pageRef);
+        asyncEvictionEvent.setFilePageId(filePageId);
+        int swapperId = getSwapperId(pageRef);
+        if (swapperId != 0) {
+            // If the swapper id is non-zero, then the page was not only loaded, but also bound, and possibly modified.
+            SwapperSet.SwapperMapping swapperMapping = swappers.getAllocation(swapperId);
+            if (swapperMapping != null) {
+                // The allocation can be null if the file has been unmapped, but there are still pages
+                // lingering in the cache that were bound to file page in that file.
+                PageSwapper swapper = swapperMapping.swapper;
+                asyncEvictionEvent.setSwapper(swapper);
+
+                if (isModified(pageRef)) {
+                    if (swapper.isPageFlushable(pageRef)) {
+                        // flush modified page
+                        flushModifiedPageAsync(blockAccessor, pageRef, asyncEvictionEvent, filePageId, swapper, this);
+                        return SUBMITTED;
+                    } else {
+                        explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+                    }
+                }
+                swapper.evicted(pageRef, filePageId);
+            }
+        }
+        asyncEvictionEvent.evicted();
+        clearBinding(pageRef);
+        return EVICTED;
+    }
+
+    public void onPageEvictionCompletion(long pageRef, long writtenBytes, AsyncEvictionCompletion evictionCompletion) {
+        int swapperId = getSwapperId(pageRef);
+        long filePageId = getFilePageId(pageRef);
+
+        explicitlyMarkPageUnmodifiedUnderExclusiveLock(pageRef);
+        PageFileSwapperTracer swapperTracer = PageFileSwapperTracer.NULL;
+        if (swapperId != 0) {
+            SwapperSet.SwapperMapping swapperMapping = swappers.getAllocation(swapperId);
+            if (swapperMapping != null) {
+                var swapper = swapperMapping.swapper;
+                swapper.evicted(pageRef, filePageId);
+                swapperTracer = swapper.fileSwapperTracer();
+            }
+        }
+        evictionCompletion.addBytesWritten((int) writtenBytes, swapperTracer);
+        evictionCompletion.addPagesCompleted(1, swapperTracer);
+
+        clearBinding(pageRef);
+    }
+
+    public void onPageEvictionFailure(long pageRef) {
+        unlockExclusive(pageRef);
+    }
+
+    private static void flushModifiedPageAsync(
+            AsyncBlockAccessor blockAccessor,
+            long pageRef,
+            AsyncEvictionEvent evictionEvent,
+            long filePageId,
+            PageSwapper swapper,
+            PageList pageReferenceTranslator)
+            throws IOException {
+        try (var asyncSubmit = evictionEvent.beginAsyncSubmit(pageRef, swapper, pageReferenceTranslator)) {
+            try {
+                long address = getAddress(pageRef);
+                swapper.asyncWrite(blockAccessor, pageRef, filePageId, address);
+                asyncSubmit.addSubmittedPages(1);
+            } catch (Exception e) {
+                unlockExclusive(pageRef);
+                asyncSubmit.setException(e);
                 evictionEvent.setException(e);
                 throw e;
             }

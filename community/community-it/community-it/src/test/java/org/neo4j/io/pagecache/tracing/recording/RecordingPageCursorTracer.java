@@ -25,6 +25,7 @@ import org.neo4j.io.pagecache.tracing.EvictionEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PinEvent;
 import org.neo4j.io.pagecache.tracing.PinPageFaultEvent;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
 import org.neo4j.io.pagecache.tracing.cursor.CursorStatisticSnapshot;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 
@@ -176,6 +177,11 @@ public class RecordingPageCursorTracer extends RecordingTracer implements PageCu
                     @Override
                     public EvictionEvent beginEviction(long cachePageId) {
                         return EvictionEvent.NULL;
+                    }
+
+                    @Override
+                    public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+                        return AsyncEvictionEvent.NULL;
                     }
 
                     @Override

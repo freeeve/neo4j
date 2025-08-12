@@ -21,6 +21,7 @@ package org.neo4j.io.pagecache.impl.muninn;
 
 import org.neo4j.io.pagecache.tracing.EvictionEvent;
 import org.neo4j.io.pagecache.tracing.PinPageFaultEvent;
+import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
 
 class StubPinPageFaultEvent implements PinPageFaultEvent {
     long bytesRead;
@@ -45,5 +46,10 @@ class StubPinPageFaultEvent implements PinPageFaultEvent {
     @Override
     public EvictionEvent beginEviction(long cachePageId) {
         return EvictionEvent.NULL;
+    }
+
+    @Override
+    public AsyncEvictionEvent beginAsyncEviction(long cachePageId) {
+        return AsyncEvictionEvent.NULL;
     }
 }

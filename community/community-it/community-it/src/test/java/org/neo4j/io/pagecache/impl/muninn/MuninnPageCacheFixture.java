@@ -51,7 +51,11 @@ public class MuninnPageCacheFixture extends PageCacheTestSupport.Fixture<MuninnP
                 .pageCacheTracer(tracer)
                 .bufferFactory(selectBufferFactory(bufferFactory, memoryTracker))
                 .swapperFactory(swapperFactory)
-                .reservedPageBytes(reservedBytes);
+                .reservedPageBytes(reservedBytes)
+                .withAsyncIO(asyncIO());
+        if (!backgroundEvictionEnabled()) {
+            configuration.disableEvictionThread();
+        }
         return new MuninnPageCache(fs, jobScheduler, configuration);
     }
 
