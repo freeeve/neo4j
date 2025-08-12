@@ -170,13 +170,15 @@ class CallInTransactionsExecutor extends SingleQueryFragmentExecutor {
 
         // Parameter types are checked by semantic analysis, so this is here
         // only in case a wrong param can somehow sneak past the semantic analysis.
-        throw new FabricException(
+        throw FabricException.internalError(
                 // The semantic analysis check uses this status code,
                 // so let's do the same even thought SyntaxError is a bit weird
                 // for this case.
+                CallInTransactionsExecutor.class.getSimpleName(),
                 Status.Statement.SyntaxError,
-                "Type mismatch for parameter '%s': expected Integer but was %s"
-                        .formatted(parameter.name(), paramValue.getTypeName()));
+                "Type mismatch for parameter '%s': expected Integer but was %s",
+                parameter.name(),
+                paramValue.getTypeName());
     }
 
     private FragmentResult processInputRecord(Record argument) {
