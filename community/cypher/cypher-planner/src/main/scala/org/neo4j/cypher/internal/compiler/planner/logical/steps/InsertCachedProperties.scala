@@ -137,12 +137,7 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
   override def postConditions: Set[StepSequencer.Condition] = InsertCachedProperties.postConditions
 
   override def process(from: LogicalPlanState, context: PlannerContext): LogicalPlanState = {
-    if (
-      context.materializedEntitiesMode || (
-        context.planContext.databaseMode == DatabaseMode.SHARDED &&
-          !containsLockingMerge(from, context)
-      )
-    ) {
+    if (context.materializedEntitiesMode || context.planContext.databaseMode == DatabaseMode.SHARDED) {
       // When working with materialized entities only, caching properties is not useful.
       // Moreover, the runtime implementation of CachedProperty does not work with virtual entities.
       return from
@@ -189,12 +184,6 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
     from
       .withMaybeLogicalPlan(Some(rewrittenPlan))
       .withSemanticTable(newSemanticTable)
-  }
-
-  private def containsLockingMerge(from: LogicalPlanState, context: PlannerContext) = {
-    from.logicalPlan.folder(context.cancellationChecker).treeExists {
-      case Merge(_, _, _, _, _, nodesToLock) if nodesToLock.nonEmpty => true
-    }
   }
 
   override def name: String = "insertCachedProperties"

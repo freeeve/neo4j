@@ -84,6 +84,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.LetSemiApplyTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.LimitTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.LoadCsvTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.LoadCsvWithCallInTransactionsAndMerge
+import org.neo4j.cypher.internal.runtime.spec.tests.LockNodesTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MemoryDeallocationTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MemoryLeakTestBase
 import org.neo4j.cypher.internal.runtime.spec.tests.MemoryManagementDisabledTestBase
@@ -586,6 +587,7 @@ class InterpretedSetNodePropertiesFromMapTest
 
 class InterpretedSetRelationshipPropertiesFromMapTest
     extends SetRelationshipPropertiesFromMapTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
+class InterpretedLockNodesTest extends LockNodesTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 class InterpretedMergeTest extends MergeTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)
 class InterpretedMergeStressTest extends MergeStressTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime)
 class InterpretedSetLabelsTest extends SetLabelsTestBase(COMMUNITY.EDITION, CommunityInterpretedRuntime, SIZE_HINT)

@@ -678,6 +678,8 @@ object LogicalPlanToPlanBuilderString {
           spread(argumentIds)
         )
 
+      case LockNodes(_, nodesToLock) =>
+        spread(nodesToLock)
       case Optional(_, protectedSymbols) =>
         spread(protectedSymbols)
       case OptionalExpand(_, from, dir, types, to, relName, _, predicate) =>

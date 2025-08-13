@@ -66,6 +66,7 @@ import org.neo4j.kernel.api.query.CompilerInfo
 import org.neo4j.kernel.api.security.AuthManager
 import org.neo4j.kernel.api.security.AuthToken
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
+import org.neo4j.kernel.impl.factory.KernelTransactionFactory
 import org.neo4j.kernel.impl.locking.LockManager
 import org.neo4j.kernel.impl.query.ChainableQuerySubscriberProbe
 import org.neo4j.kernel.impl.query.Neo4jTransactionalContextFactory
@@ -110,8 +111,11 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
     edition.newRuntimeContextManager(resolver, lifeSupport, logProvider)
   private val monitors = resolver.resolveDependency(classOf[Monitors])
 
+  private val kernelTransactionFactory =
+    resolver.resolveDependency(classOf[KernelTransactionFactory])
+
   private val contextFactory = new WrappingTransactionalContextFactory(
-    Neo4jTransactionalContextFactory.create(cypherGraphDb),
+    Neo4jTransactionalContextFactory.create(() => cypherGraphDb, kernelTransactionFactory, edition.databaseMode),
     wrapTransactionContext
   )
   private lazy val txIdStore = resolver.resolveDependency(classOf[TransactionIdStore])

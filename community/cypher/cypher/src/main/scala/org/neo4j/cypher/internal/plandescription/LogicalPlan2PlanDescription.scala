@@ -2841,6 +2841,17 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
+      case plans.LockNodes(_, nodesToLock) =>
+        PlanDescriptionImpl(
+          id,
+          "LockNodes",
+          children,
+          Seq(Details(keyNamesInfo(nodesToLock.toSeq))),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
       case x => throw InternalException.internalError(
           this.getClass.getSimpleName,
           s"Unknown plan type: ${x.getClass.getSimpleName}. Missing a case?"

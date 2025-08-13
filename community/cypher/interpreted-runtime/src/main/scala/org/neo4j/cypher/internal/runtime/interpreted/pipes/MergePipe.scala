@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SideEffect
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.LockingMergePipe.getNodes
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.VirtualNodeValue
@@ -92,7 +93,11 @@ class LockingMergePipe(
     }
   }
 
-  private def getNodes(ctx: CypherRow, varNames: Array[String]): Array[Long] =
+}
+
+object LockingMergePipe {
+
+  def getNodes(ctx: CypherRow, varNames: Array[String]): Array[Long] =
     varNames.flatMap(varName =>
       ctx.getByName(varName) match {
         case n: VirtualNodeValue => Some(n.id())

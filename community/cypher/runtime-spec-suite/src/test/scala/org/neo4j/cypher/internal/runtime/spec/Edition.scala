@@ -45,6 +45,7 @@ import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction
 import org.neo4j.kernel.impl.query.TransactionalContext
+import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.kernel.lifecycle.LifeSupport
 import org.neo4j.logging.InternalLogProvider
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
@@ -90,14 +91,16 @@ class Edition[CONTEXT <: RuntimeContext](
   val configs: (Setting[_], Object)*
 ) {
 
+  def databaseMode: DatabaseMode = spd.map(_ => DatabaseMode.SHARDED).getOrElse(DatabaseMode.SINGLE)
+
   def newGraphManagementService(logProvider: InternalLogProvider, additionalConfigs: (Setting[_], Object)*): Dbms = {
     val fileSystem = new EphemeralFileSystemAbstraction
     val graphBuilder = graphBuilderFactory().setFileSystem(fileSystem).setInternalLogProvider(logProvider)
     configs.foreach {
-      case (setting, value) => graphBuilder.setConfig(setting.asInstanceOf[Setting[Object]], value.asInstanceOf[Object])
+      case (setting, value) => graphBuilder.setConfig(setting.asInstanceOf[Setting[Object]], value)
     }
     additionalConfigs.foreach {
-      case (setting, value) => graphBuilder.setConfig(setting.asInstanceOf[Setting[Object]], value.asInstanceOf[Object])
+      case (setting, value) => graphBuilder.setConfig(setting.asInstanceOf[Setting[Object]], value)
     }
     Dbms(graphBuilder.build(), fileSystem)
   }

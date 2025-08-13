@@ -287,7 +287,7 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
         .build()
   }
 
-  test("should not fetch properties on locking merge queries") { // locking merge is not supported yet
+  test("should fetch properties on locking merge queries") {
     val query =
       """
         |MATCH  (andy:Person {name: 'Andy'}),
@@ -302,25 +302,25 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("`r.name`", "`r.existed`")
         .projection("cacheR[r.name] AS `r.name`", "cacheR[r.existed] AS `r.existed`")
+        .remoteBatchProperties("cacheRFromStore[r.name]", "cacheRFromStore[r.existed]")
         .apply()
         .|.merge(
-          Seq.empty,
+          Seq(),
           Seq(createRelationship("r", "andy", "KNOWS", "lou", OUTGOING, Some("{from: 'Factory'}"))),
-          Seq.empty,
-          Seq.empty,
+          Seq(),
+          Seq(),
           Set("andy", "lou")
         )
-        .|.cacheProperties(
-          "cacheRFromStore[r.name]",
-          "cacheRFromStore[r.existed]"
-        ) // insert cache properties invoked because RemoteBatchProperties is not supported for locking merge
-        .|.filter("r.from = 'Factory'")
+        .|.filter("cacheR[r.from] = 'Factory'")
+        .|.remoteBatchProperties("cacheRFromStore[r.from]", "cacheRFromStore[r.name]", "cacheRFromStore[r.existed]")
         .|.expandInto("(andy)-[r:KNOWS]->(lou)")
         .|.argument("andy", "lou")
         .cartesianProduct()
-        .|.filter("lou.name = 'Lou'")
+        .|.filter("cacheN[lou.name] = 'Lou'")
+        .|.remoteBatchProperties("cacheNFromStore[lou.name]")
         .|.nodeByLabelScan("lou", "Person")
-        .filter("andy.name = 'Andy'")
+        .filter("cacheN[andy.name] = 'Andy'")
+        .remoteBatchProperties("cacheNFromStore[andy.name]")
         .nodeByLabelScan("andy", "Person")
         .build()
   }

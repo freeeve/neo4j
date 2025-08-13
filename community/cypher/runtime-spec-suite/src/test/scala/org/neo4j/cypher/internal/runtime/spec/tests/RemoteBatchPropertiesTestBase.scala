@@ -1004,4 +1004,41 @@ trait UpdatingRemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext] extends R
     val result = execute(query, runtime)
     result should beColumns("prop").withSingleRow(20).withStatistics(nodesCreated = 1, propertiesSet = 1)
   }
+
+  test("merge handle deeply nested merge and RemoteBatchProperties") {
+    // given no nodes
+    tx
+    // when
+    // query with 21 merges
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("n")
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .merge(nodes = Seq(createNodeWithProperties("n", Seq.empty, "{prop: 1}")))
+      .remoteBatchProperties("cache[n.prop]")
+      .allNodeScan("n")
+      .build(readOnly = false)
+
+    // then
+    val result = execute(logicalQuery, runtime)
+    result should beColumns("n").withRows(rowCount(1)).withStatistics(nodesCreated = 1, propertiesSet = 1)
+  }
 }

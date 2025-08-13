@@ -1414,7 +1414,6 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should lock nodes if no matches") {
-    assume(!isPipelined || canFuse) // TODO: remove when this is working for non-fused
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint)
@@ -1438,11 +1437,10 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("x")
       .withRows(nodes.map(Array(_)))
       .withStatistics(nodesCreated = sizeHint, relationshipsCreated = sizeHint)
-      .withLockedNodes(nodes.map(_.getId).toSet, true)
+      .withLockedNodes(nodes.map(_.getId).toSet, onlyCheckContains = true)
   }
 
   test("should not lock nodes if on matches") {
-    assume(!isPipelined || canFuse) // TODO: remove when this is working for non-fused
     // given
     val (nodes, _) = givenGraph {
       circleGraph(sizeHint)
@@ -1470,7 +1468,6 @@ abstract class MergeTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should lock refslot nodes") {
-    assume(!isPipelined || canFuse) // TODO: remove when this is working for non-fused
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint)

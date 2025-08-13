@@ -91,6 +91,7 @@ import org.neo4j.cypher.internal.logical.plans.InjectCompilationError
 import org.neo4j.cypher.internal.logical.plans.IntersectionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
+import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
@@ -285,6 +286,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.ForeachSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.GroupSlot
 import org.neo4j.cypher.internal.runtime.slotted.pipes.IntersectionNodesByLabelsScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.LoadCSVSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.LockNodesSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.LockingMergeSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.NodeHashJoinSlottedPipe.KeyOffsets
@@ -1464,6 +1466,9 @@ class SlottedPipeMapper(
               )
           }.toIndexedSeq
         )(id)
+
+      case LockNodes(_, nodesToLock) =>
+        new LockNodesSlottedPipe(source, nodesToLock.map(n => slots(n).slot).toArray)(id)
 
       case Merge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
         val creates = createNodes.map {

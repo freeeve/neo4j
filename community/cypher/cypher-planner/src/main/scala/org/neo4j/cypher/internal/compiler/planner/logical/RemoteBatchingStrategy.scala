@@ -38,7 +38,6 @@ import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
-import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
@@ -123,25 +122,14 @@ case class RemoteBatchingSubQueryResult(
 
 object RemoteBatchingStrategy {
 
-  def fromConfig(query: PlannerQuery, context: PlannerContext): RemoteBatchingStrategy = {
+  def fromConfig(context: PlannerContext): RemoteBatchingStrategy = {
     if (
       context.planContext.databaseMode == SHARDED
       && context.config.remoteBatchPropertiesImplementation() == RemoteBatchPropertiesImplementation.PLANNER
-      && !queryContainsLockingMergePatterns(query)
     ) {
       InPlannerRemoteBatching
     } else
       SkipRemoteBatching
-  }
-
-  private def queryContainsLockingMergePatterns(query: PlannerQuery): Boolean = {
-    !query.readOnly &&
-    query.flattenForeach.allQGsWithLeafInfo.exists(qgWithLeafInfo =>
-      // This is a temporary check that should go away when we fully support locking merges in pipelined runtime
-      qgWithLeafInfo.queryGraph.mergeRelationshipPatterns.exists(r => {
-        (r.matchGraph.patternNodes intersect r.matchGraph.argumentIds).nonEmpty
-      })
-    )
   }
 
   def defaultValue(): RemoteBatchingStrategy = SkipRemoteBatching

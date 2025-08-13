@@ -105,6 +105,7 @@ import org.neo4j.cypher.internal.logical.plans.LetSelectOrSemiApply
 import org.neo4j.cypher.internal.logical.plans.LetSemiApply
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
+import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
@@ -287,6 +288,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LetSelectOrSemiApplyP
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LetSemiApplyPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LimitPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LoadCSVPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.LockNodesPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LockingMergePipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.MergePipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeByIdSeekPipe
@@ -1778,6 +1780,9 @@ case class InterpretedPipeMapper(
               )
           }.toArray
         )(id = id)
+
+      case LockNodes(_, nodesToLock) =>
+        new LockNodesPipe(source, nodesToLock.map(n => n.name).toArray)(id)
 
       case Merge(_, createNodes, createRelationships, onMatch, onCreate, nodesToLock) =>
         val creates = createNodes.map {

@@ -3201,6 +3201,16 @@ object FusedMerge {
   }
 }
 
+case class LockNodes(override val source: LogicalPlan, nodesToLock: Set[LogicalVariable])(implicit idGen: IdGen)
+    extends LogicalUnaryPlan(idGen)
+    with PhysicalPlanningPlan {
+  override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
+
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ nodesToLock
+
+  override val distinctness: Distinctness = source.distinctness
+}
+
 /**
  * Produces one or zero rows containing the nodes per given labels and property value combination.
  *

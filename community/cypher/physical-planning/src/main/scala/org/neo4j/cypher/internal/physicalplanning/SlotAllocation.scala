@@ -84,6 +84,7 @@ import org.neo4j.cypher.internal.logical.plans.LetSelectOrSemiApply
 import org.neo4j.cypher.internal.logical.plans.LetSemiApply
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
+import org.neo4j.cypher.internal.logical.plans.LockNodes
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.MultiNodeIndexSeek
@@ -847,7 +848,8 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         _: TriadicFilter |
         _: PreserveOrder |
         _: EmptyResult |
-        _: ArgumentTracker =>
+        _: ArgumentTracker |
+        _: LockNodes =>
 
       case p: ProjectingPlan =>
         /**
