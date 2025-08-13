@@ -351,7 +351,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         return new HeapScopedBuffer(writerBufferedBlocks * segmentBlockSize, ByteOrder.LITTLE_ENDIAN, memoryTracker);
     }
 
-    EnvelopeReadChannel envelopedReadChannel(LogChannelContext<StoreChannel> logChannelCtx, long version)
+    public EnvelopeReadChannel envelopedReadChannel(LogChannelContext<StoreChannel> logChannelCtx, long version)
             throws IOException {
         var logVersionedChannel = logVersionedChannel(logChannelCtx, version);
         return new EnvelopeReadChannel(

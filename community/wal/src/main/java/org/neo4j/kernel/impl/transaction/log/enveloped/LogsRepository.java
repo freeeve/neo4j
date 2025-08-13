@@ -33,7 +33,7 @@ import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 
-class LogsRepository {
+public class LogsRepository {
     static final long BASE_VERSION = 0;
     private final FileSystemAbstraction fs;
     private final Path directory;
@@ -41,7 +41,7 @@ class LogsRepository {
 
     private final Pattern pattern;
 
-    LogsRepository(FileSystemAbstraction fs, Path directory, String baseName) {
+    public LogsRepository(FileSystemAbstraction fs, Path directory, String baseName) {
         if (fs.fileExists(directory) && !fs.isDirectory(directory)) {
             throw new IllegalArgumentException("Not a directory: " + directory);
         }
@@ -51,15 +51,15 @@ class LogsRepository {
         this.pattern = EnvelopedFilePattern.envelopedFilePattern(baseName);
     }
 
-    LogChannelContext<StoreChannel> openReadChannel(long version) throws IOException {
+    public LogChannelContext<StoreChannel> openReadChannel(long version) throws IOException {
         return openLogChannel(version, Set.of(StandardOpenOption.READ));
     }
 
-    LogChannelContext<StoreChannel> createWriteChannel(long version) throws IOException {
+    public LogChannelContext<StoreChannel> createWriteChannel(long version) throws IOException {
         return openLogChannel(version, Set.of(StandardOpenOption.WRITE, StandardOpenOption.CREATE));
     }
 
-    LogChannelContext<StoreChannel> openWriteChannel(long version) throws IOException {
+    public LogChannelContext<StoreChannel> openWriteChannel(long version) throws IOException {
         return openLogChannel(version, Set.of(StandardOpenOption.WRITE));
     }
 
@@ -105,7 +105,11 @@ class LogsRepository {
         return LongRange.range(versions[0], versions[versions.length - 1]);
     }
 
-    boolean isEmpty() throws IOException {
+    public long latestVersion() throws IOException {
+        return logVersionsRange().to();
+    }
+
+    public boolean isEmpty() throws IOException {
         return listLogFiles(false).length == 0;
     }
 

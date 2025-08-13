@@ -110,6 +110,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     // In some situations we're not able to enforce the checksum chain, like when we reposition
     // the channel position as we don't know the checksum of the envelope before it.
     private boolean enforceChecksumChain;
+    protected int currentChecksum;
     protected int previousChecksum;
     protected long currentSegment;
     protected EnvelopeType payloadType;
@@ -350,7 +351,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         checkState(newBufferOffset == 0 || newBufferOffset <= payloadEndOffset, "Invalid end of payload.");
 
         buffer.position(Math.max(newBufferOffset, payloadStartOffset));
-        return previousChecksum;
+        return currentChecksum;
     }
 
     @Override
@@ -395,11 +396,15 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
     @Override
     public int endChecksumAndValidate() {
-        return previousChecksum;
+        return currentChecksum;
     }
 
     @Override
     public int getChecksum() {
+        return currentChecksum;
+    }
+
+    public int getPreviousChecksum() {
         return previousChecksum;
     }
 
@@ -571,6 +576,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             // header.
             if (logHeader != null) {
                 previousChecksum = logHeader.getPreviousLogFileChecksum();
+                currentChecksum = previousChecksum;
                 enforceChecksumChain = true;
             }
 
@@ -723,7 +729,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 } else {
                     enforceTerminalZeros();
                 }
-                nextSegment();
+                nextSegment(true);
             }
 
             // Optimistically read the beginning of the header
@@ -784,17 +790,19 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
 
         if (enforceChecksumChain) {
-            if (previousChecksum != previousEnvelopeChecksumFromHeader) {
+            if (currentChecksum != previousEnvelopeChecksumFromHeader) {
                 throw new ChecksumMismatchException(
                         "Envelope checksum chain is broken. Previous checksum '%d', expected: '%d'.",
-                        previousChecksum, previousEnvelopeChecksumFromHeader);
+                        currentChecksum, previousEnvelopeChecksumFromHeader);
             }
         } else {
             // If we skipped the checksum chain check because we're missing the previous checksum then
             // we can enable it again now that we'll have it again.
             enforceChecksumChain = true;
         }
-        previousChecksum = nextEnvelopeChecksum;
+
+        currentChecksum = nextEnvelopeChecksum;
+        previousChecksum = previousEnvelopeChecksumFromHeader;
 
         checksumView.limit(payloadEndOffset).position(payloadStartOffset - PAYLOAD_CHECKSUM_OFFSET_FROM_START);
         checksum.reset();
@@ -849,13 +857,13 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
     }
 
-    private void nextSegment() throws IOException {
+    private void nextSegment(boolean enforceChannelIntegrityForce) throws IOException {
         int read;
         if (channel.size() == channel.position()) {
             // We are at the end, don't try to load in the next segment because that will change the position and
             // it should be correct on calling getPosition if ReadPastEndException is thrown.
             do {
-                goToNextFileOrThrow();
+                goToNextFileOrThrow(enforceChannelIntegrityForce);
             } while (buffer.position() == buffer.limit()
                     && channel.size() == channel.position()); // Handle file with only header
             read = loadSegmentIntoBuffer(1);
@@ -865,7 +873,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                 // Correct the file position for getPosition by backing the segment again.
                 // Necessary if the below go-to-next throws a ReadPastEndException.
                 currentSegment--;
-                goToNextFileOrThrow();
+                goToNextFileOrThrow(enforceChannelIntegrityForce);
                 // Read the first data segment
                 read = loadSegmentIntoBuffer(1);
             }
@@ -883,7 +891,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
     }
 
-    private void goToNextFileOrThrow() throws IOException {
+    private void goToNextFileOrThrow(boolean enforceChannelIntegrityChecks) throws IOException {
         final var nextChannel = bridge.next(channel, raw);
         assert nextChannel != null;
         if (nextChannel == channel) {
@@ -895,7 +903,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             }
             throw ReadPastEndException.INSTANCE;
         }
-        setNextChannel(nextChannel, true);
+        setNextChannel(nextChannel, enforceChannelIntegrityChecks);
     }
 
     public void setNextChannel(LogVersionedStoreChannel nextChannel, boolean enforceChannelIntegrityChecks)
@@ -924,6 +932,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         if (!enforceChecksumChain) {
             checkState(payloadType == null, "Can not override checksum in the middle of a payload");
             previousChecksum = logHeader.getPreviousLogFileChecksum();
+            currentChecksum = previousChecksum;
         }
         enforceChecksumChain = true;
 
@@ -933,8 +942,8 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
                         >= logHeader.getLogFormatVersion().getVersionByte(),
                 "Envelopes are not supported in old versions");
         checkState(
-                previousChecksum == logHeader.getPreviousLogFileChecksum(),
-                "Checksum chain broken. " + previousChecksum + " " + logHeader.getPreviousLogFileChecksum());
+                currentChecksum == logHeader.getPreviousLogFileChecksum(),
+                "Checksum chain broken. " + currentChecksum + " " + logHeader.getPreviousLogFileChecksum());
 
         enforceZeros(segmentBlockSize - buffer.position());
     }
@@ -999,7 +1008,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             payloadType = EnvelopeType.ZERO;
             while (bytesRead < length) {
                 if (buffer.position() == buffer.limit()) {
-                    nextSegment();
+                    nextSegment(true);
                 }
                 final var chunkSize = min(buffer.remaining(), length - bytesRead);
                 dst.put(dst.position(), buffer, buffer.position(), chunkSize);
@@ -1018,6 +1027,18 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         var currentLogPosition = getCurrentLogPosition(logPositionMarker);
         currentSegment = -1;
         setLogPosition(currentLogPosition);
+    }
+
+    public void goToNextSegment() throws IOException {
+        enforceChecksumChain = false;
+        nextSegment(false);
+        var position = goToNextEnvelope();
+        enforceChecksumChain = true;
+        buffer.position(getSegmentOffset(position));
+    }
+
+    public ByteBuffer getBuffer() {
+        return buffer;
     }
 
     public int getSegmentOffset(long position) {
