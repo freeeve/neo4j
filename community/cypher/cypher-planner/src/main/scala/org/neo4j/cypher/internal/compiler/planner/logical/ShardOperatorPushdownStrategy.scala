@@ -443,6 +443,13 @@ object ShardOperatorPushdownStrategy {
       }
     }
 
+    val alreadyCachedProperties =
+      context.staticComponents
+        .planningAttributes.cachedPropertiesPerPlan.get(input.id)
+        .entries.get(variable)
+        .map(_.properties.map(_.name))
+        .getOrElse(Set.empty[String])
+
     val previouslySolvedPredicates = context.staticComponents
       .planningAttributes.solveds
       .get(input.id)
@@ -464,7 +471,9 @@ object ShardOperatorPushdownStrategy {
     // the properties for unsolved predicates and other expressions that are not yet cached need to fetched.
     // if there are none, i.e., we just want to run the filter on the shard,
     // we will fetch at least one property used in the predicates on the shard to match the signature of remoteBatchPropertiesWithFilter
-    val propertiesToFetch = propAccesses ++ propertiesFromUnsolvedPredicates
+    val propertiesToFetch = (propAccesses ++ propertiesFromUnsolvedPredicates).filterNot(propAccesses =>
+      alreadyCachedProperties.contains(propAccesses.propertyName)
+    )
     if (propertiesToFetch.isEmpty)
       predicatesSolvedByShard.collectFirst {
         case expr if interestingPropAccesses(expr).nonEmpty =>
@@ -546,16 +555,18 @@ object ShardOperatorPushdownStrategy {
     knownToCacheStore: Boolean = true
   ): Option[CachedProperty] = {
     alreadyCachedProperties.entries.get(logicalVariable) match {
-      case Some(entry) =>
-        Some(CachedProperty(
-          entry.originalEntity,
-          logicalVariable,
-          propertyKeyName,
-          entry.entityType,
-          knownToCacheStore
-        )(
-          position
-        ))
+      case Some(CachedProperties.Entry(originalEntity, entityType, properties)) =>
+        if (properties.contains(propertyKeyName))
+          Some(CachedProperty(
+            originalEntity,
+            logicalVariable,
+            propertyKeyName,
+            entityType,
+            knownToCacheStore
+          )(
+            position
+          ))
+        else None
       case None => None
     }
   }

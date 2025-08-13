@@ -2661,6 +2661,35 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .build()
   }
 
+  test("should SEEK from a selective index and filter by the rest of the predicates on the shard.") {
+    val query =
+      """
+        |MATCH (n: Person {firstName: "John"})
+        |WHERE n.lastName CONTAINS "Smith"
+        |RETURN n.firstName, n.lastName
+        |""".stripMargin
+
+    val customIndexPlanner = spdPlanner
+      .setAllNodesCardinality(10000)
+      .setLabelCardinality("Person", 10000)
+      .addNodeIndex(
+        "Person",
+        List("firstName"),
+        existsSelectivity = 1.0,
+        uniqueSelectivity = 0.1,
+        isUnique = false
+      )
+      .addNodeIndex("Person", List("firstName"), existsSelectivity = 1.0, uniqueSelectivity = 0.1, isUnique = false)
+      .build()
+
+    val plan = customIndexPlanner.plan(query).stripProduceResults
+    plan shouldEqual customIndexPlanner.subPlanBuilder()
+      .projection("cacheN[n.firstName] AS `n.firstName`", "cacheN[n.lastName] AS `n.lastName`")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n.lastName]")("n.lastName CONTAINS 'Smith'")
+      .nodeIndexOperator("n:Person(firstName = 'John')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
   def temporalRuntimeConstant(functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {
     RuntimeConstant(
       varFor("anon_0"),
