@@ -80,7 +80,7 @@ object CypherCucumberValueParser {
   def string[X: P]: P[java.lang.String] = P("\'" ~~/ (stringChars | escape).repX.! ~~ "\'")
     .map(_.replace("\\'", "'").replace("\\\\", "\\"))
   private def integer[X: P]: P[java.lang.Long] = P("-".? ~~ digits).!.map(_.toLong)
-  private def float[X: P]: P[java.lang.Double] = P("-".? ~ floatRepr).!.map(_.toDouble)
+  private def float[X: P]: P[java.lang.Double] = P("-".? ~ "Infinity" | "NaN" | "-".? ~ floatRepr).!.map(_.toDouble)
   private def boolean[X: P]: P[java.lang.Boolean] = P("true" | "false").!.map(_.toBoolean)
   private def nullValue[X: P]: P[AnyRef] = P("null").!.map(_ => null)
 
