@@ -30,7 +30,6 @@ import org.neo4j.driver.BaseSession;
 import org.neo4j.driver.BookmarkManager;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.ExecutableQuery;
-import org.neo4j.driver.Metrics;
 import org.neo4j.driver.Session;
 import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.exceptions.Neo4jException;
@@ -81,16 +80,6 @@ public class FakeDriver implements Driver {
     @Override
     public CompletionStage<Void> closeAsync() {
         return null;
-    }
-
-    @Override
-    public Metrics metrics() {
-        return null;
-    }
-
-    @Override
-    public boolean isMetricsEnabled() {
-        return false;
     }
 
     @Override

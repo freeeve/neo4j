@@ -31,6 +31,7 @@ import org.neo4j.bolt.connection.BoltProtocolVersion;
 import org.neo4j.bolt.connection.BoltServerAddress;
 import org.neo4j.bolt.connection.ResponseHandler;
 import org.neo4j.bolt.connection.message.Message;
+import org.neo4j.bolt.connection.observation.ImmutableObservation;
 
 /**
  * A delegating {@link BoltConnection} responsible for ensuring that read timeouts are not set.
@@ -58,8 +59,9 @@ record QueryApiBoltConnection(BoltConnection delegate) implements BoltConnection
     }
 
     @Override
-    public CompletionStage<Void> writeAndFlush(ResponseHandler responseHandler, List<Message> list) {
-        return delegate.writeAndFlush(responseHandler, list);
+    public CompletionStage<Void> writeAndFlush(
+            ResponseHandler responseHandler, List<Message> list, ImmutableObservation parentObservation) {
+        return delegate.writeAndFlush(responseHandler, list, parentObservation);
     }
 
     @Override

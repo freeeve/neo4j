@@ -37,12 +37,16 @@ import org.neo4j.bolt.connection.BoltProtocolVersion;
 import org.neo4j.bolt.connection.BoltServerAddress;
 import org.neo4j.bolt.connection.ResponseHandler;
 import org.neo4j.bolt.connection.message.Message;
+import org.neo4j.bolt.connection.observation.ImmutableObservation;
 
 @ExtendWith(MockitoExtension.class)
 class QueryApiBoltConnectionTest {
 
     @Mock
     private BoltConnection delegate;
+
+    @Mock
+    private ImmutableObservation observation;
 
     @InjectMocks
     private QueryApiBoltConnection boltConnection;
@@ -72,14 +76,14 @@ class QueryApiBoltConnectionTest {
         List<Message> messages = List.of();
         var completionStage = CompletableFuture.completedStage(null);
 
-        Mockito.doReturn(completionStage).when(delegate).writeAndFlush(handler, messages);
+        Mockito.doReturn(completionStage).when(delegate).writeAndFlush(handler, messages, observation);
 
         // Do
-        var result = boltConnection.writeAndFlush(handler, messages);
+        var result = boltConnection.writeAndFlush(handler, messages, observation);
 
         // Then
         Assertions.assertSame(completionStage, result);
-        Mockito.verify(delegate, Mockito.only()).writeAndFlush(handler, messages);
+        Mockito.verify(delegate, Mockito.only()).writeAndFlush(handler, messages, observation);
     }
 
     @Test

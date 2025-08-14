@@ -31,6 +31,7 @@ import org.neo4j.bolt.connection.BoltConnectionProvider;
 import org.neo4j.bolt.connection.BoltProtocolVersion;
 import org.neo4j.bolt.connection.NotificationConfig;
 import org.neo4j.bolt.connection.SecurityPlan;
+import org.neo4j.bolt.connection.observation.ImmutableObservation;
 
 /**
  * A delegating {@link BoltConnectionProvider} responsible for ensuring that 'neo4j' scheme is used, this makes sure
@@ -48,7 +49,8 @@ record QueryApiBoltConnectionProvider(BoltConnectionProvider delegate) implement
             SecurityPlan securityPlan,
             AuthToken authToken,
             BoltProtocolVersion minVersion,
-            NotificationConfig notificationConfig) {
+            NotificationConfig notificationConfig,
+            ImmutableObservation parentObservation) {
         try {
             uri = new URI(
                     "neo4j",
@@ -70,7 +72,8 @@ record QueryApiBoltConnectionProvider(BoltConnectionProvider delegate) implement
                         securityPlan,
                         authToken,
                         minVersion,
-                        notificationConfig)
+                        notificationConfig,
+                        parentObservation)
                 .thenApply(conn -> {
                     conn.setReadTimeout(Duration.ofDays(Integer.MAX_VALUE));
                     return conn;

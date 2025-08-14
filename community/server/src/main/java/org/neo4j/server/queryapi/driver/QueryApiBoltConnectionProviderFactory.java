@@ -23,8 +23,8 @@ import java.util.Map;
 import org.neo4j.bolt.connection.BoltConnectionProvider;
 import org.neo4j.bolt.connection.BoltConnectionProviderFactory;
 import org.neo4j.bolt.connection.LoggingProvider;
-import org.neo4j.bolt.connection.MetricsListener;
 import org.neo4j.bolt.connection.netty.NettyBoltConnectionProviderFactory;
+import org.neo4j.bolt.connection.observation.ObservationProvider;
 import org.neo4j.bolt.connection.values.ValueFactory;
 
 public final class QueryApiBoltConnectionProviderFactory implements BoltConnectionProviderFactory {
@@ -41,9 +41,9 @@ public final class QueryApiBoltConnectionProviderFactory implements BoltConnecti
     public BoltConnectionProvider create(
             LoggingProvider loggingProvider,
             ValueFactory valueFactory,
-            MetricsListener metricsListener,
+            ObservationProvider observationProvider,
             Map<String, ?> additionalConfig) {
-        var delegate = DELEGATE.create(loggingProvider, valueFactory, metricsListener, additionalConfig);
+        var delegate = DELEGATE.create(loggingProvider, valueFactory, observationProvider, additionalConfig);
         return new QueryApiBoltConnectionProvider(delegate);
     }
 }
