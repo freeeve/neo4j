@@ -202,11 +202,12 @@ class ImportCommandTest {
         Path dbConfig = defaultConfig();
 
         // Started neo4j db
-        getDatabaseApi();
+        var db = getDatabaseApi();
 
         var ctx = capturingCtx();
         assertThatThrownBy(() -> runImport(
                         ctx,
+                        db.databaseName(),
                         "--additional-config",
                         dbConfig.toAbsolutePath().toString(),
                         "--nodes",
@@ -226,7 +227,7 @@ class ImportCommandTest {
     @Test
     void shouldNotImportOnEmptyExistingDatabase() throws Exception {
         // Given a db with default token indexes
-        createDefaultDatabaseWithTokenIndexes();
+        var dbName = createDefaultDatabaseWithTokenIndexes();
         List<String> nodeIds = nodeIds();
         Configuration config = COMMAS;
         Path dbConfig = defaultConfig();
@@ -235,16 +236,17 @@ class ImportCommandTest {
         var e = assertThrows(
                 CommandFailedException.class,
                 () -> runImport(
-                        "--additional-config", dbConfig.toAbsolutePath().toString(),
+                        dbName,
+                        "--additional-config",
+                        dbConfig.toAbsolutePath().toString(),
                         "--nodes",
-                                nodeData(true, config, nodeIds, TRUE)
-                                        .toAbsolutePath()
-                                        .toString(),
-                        "--high-parallel-io", "off",
+                        nodeData(true, config, nodeIds, TRUE).toAbsolutePath().toString(),
+                        "--high-parallel-io",
+                        "off",
                         "--relationships",
-                                relationshipData(true, config, nodeIds, TRUE, true)
-                                        .toAbsolutePath()
-                                        .toString()));
+                        relationshipData(true, config, nodeIds, TRUE, true)
+                                .toAbsolutePath()
+                                .toString()));
         assertThat(e).hasCauseInstanceOf(CsvImportException.class);
         assertThat(e.getCause()).hasCauseInstanceOf(DirectoryNotEmptyException.class);
     }
@@ -3293,12 +3295,14 @@ class ImportCommandTest {
         return (GraphDatabaseAPI) managementService.database(defaultDatabaseName);
     }
 
-    private void createDefaultDatabaseWithTokenIndexes() {
+    private String createDefaultDatabaseWithTokenIndexes() {
         // Default token indexes are created on startup
         var managementService = dbmsService();
         assertThat(managementService.database(DEFAULT_DATABASE_NAME).isAvailable(TimeUnit.MINUTES.toMillis(5)))
                 .isTrue();
+        var dbName = managementService.database(DEFAULT_DATABASE_NAME).databaseName();
         managementService.shutdown();
+        return dbName;
     }
 
     private DatabaseManagementService dbmsService() {
