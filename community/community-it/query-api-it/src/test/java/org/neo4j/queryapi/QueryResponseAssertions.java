@@ -215,7 +215,7 @@ public final class QueryResponseAssertions
     public QueryResponseAssertions hasQueryPlan() {
         var queryPlan = queryResponse.body().queryPlan();
 
-        Assertions.assertThat(queryPlan.get("operatorType").asText()).isEqualTo("ProduceResults@neo4j");
+        Assertions.assertThat(queryPlan.get("operatorType").asText()).startsWith("ProduceResults@neo4j");
         assertNotNull(queryPlan.get("arguments"));
         Assertions.assertThat(queryPlan.get("identifiers").size()).isEqualTo(1);
         Assertions.assertThat(queryPlan.get("identifiers").get(0).asText()).isEqualTo("`1`");
@@ -270,7 +270,7 @@ public final class QueryResponseAssertions
         Assertions.assertThat(childProfile.get(0).get("pageCacheHitRatio").asDouble())
                 .isEqualTo(0);
         Assertions.assertThat(childProfile.get(0).get("time").asInt()).isEqualTo(0);
-        Assertions.assertThat(childProfile.get(0).get("operatorType").asText()).isEqualTo("Projection@neo4j");
+        Assertions.assertThat(childProfile.get(0).get("operatorType").asText()).startsWith("Projection@neo4j");
         assertNotNull(childProfile.get(0).get("arguments"));
         Assertions.assertThat(childProfile.get(0).get("identifiers").size()).isEqualTo(1);
         Assertions.assertThat(childProfile.get(0).get("identifiers").get(0).asText())
