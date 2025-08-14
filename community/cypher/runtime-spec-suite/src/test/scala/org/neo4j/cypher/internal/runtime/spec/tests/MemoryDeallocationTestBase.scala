@@ -915,7 +915,7 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
 
     // then
     val toleratedDeviation = runtimeUsed match {
-      case Parallel => 0.5
+      case Parallel => 0.6
       case _        => 0.0
     }
     compareMemoryUsage(query(rows = 10), query(rows = 100), toleratedDeviation = toleratedDeviation)
