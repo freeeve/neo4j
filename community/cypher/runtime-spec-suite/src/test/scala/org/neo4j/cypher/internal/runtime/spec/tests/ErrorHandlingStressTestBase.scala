@@ -85,13 +85,13 @@ abstract class ErrorHandlingStressTestBase[CONTEXT <: RuntimeContext](
     val errorMessage = "Simulated fatal error of type "
     val nRandomMessages = 10
     val orderedMessages = (1 to nRandomMessages).map(errorMessage + _)
-    val errorMessages = Random.shuffle(orderedMessages)
+    val errors = Random.shuffle(orderedMessages).map(e => new SuperFatalError(e))
     var errorCount = 0
 
     val fatalProbe = new Probe {
       override def onRow(row: AnyRef, state: AnyRef): Unit = {
         errorCount = (errorCount + 1) % nRandomMessages
-        throw new SuperFatalError(errorMessages(errorCount))
+        throw errors(errorCount)
       }
     }
 
