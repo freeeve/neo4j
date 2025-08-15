@@ -21,6 +21,7 @@ package org.neo4j.server.http;
 
 import static org.neo4j.configuration.ssl.SslPolicyScope.HTTPS;
 import static org.neo4j.server.helpers.CommunityWebContainerBuilder.serverOnRandomPorts;
+import static org.neo4j.test.assertion.Assert.assertEventually;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
@@ -49,12 +50,11 @@ import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.security.cert.X509Certificate;
-import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.ssl.SslPolicyConfig;
@@ -102,13 +102,15 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
         int retries = 3;
         long delayBeforeRetryMs = 500L;
 
-        X509Certificate cert1 = retry(testClientInvocation, retries, delayBeforeRetryMs);
+        X509Certificate originalCert = retry(testClientInvocation, retries, delayBeforeRetryMs);
 
         testWebContainer.replaceHTTPSCertificate();
 
-        X509Certificate cert2 = retry(testClientInvocation, retries, delayBeforeRetryMs);
-
-        Assertions.assertThat(cert1.getSerialNumber()).isNotEqualTo(cert2.getSerialNumber());
+        assertEventually(
+                () -> retry(testClientInvocation, retries, delayBeforeRetryMs),
+                currentCert -> !currentCert.getSerialNumber().equals(originalCert.getSerialNumber()),
+                5,
+                TimeUnit.SECONDS);
     }
 
     @AfterEach
@@ -175,7 +177,6 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
             // Wait until the connection is closed
             future.channel().closeFuture().sync();
 
-            Set<X509Certificate> result = Set.of();
             if (lastEngine[0] != null) {
                 var certs = lastEngine[0].getSession().getPeerCertificates();
                 if (certs.length > 0) {
