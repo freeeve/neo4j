@@ -261,7 +261,7 @@ class DatabaseListParameterTransformerFunction(
               case c: DatabaseReferenceImpl.Composite if c.alias().equals(namespace) =>
                 c.constituents().asScala
                   .filter(r => r.alias().equals(name))
-                  .flatMap(dr => primaryById(dr.id()))
+                  .flatMap(dr => primaryByNamedDatabaseId(dr.namedDatabaseId()))
             }.flatten
         }
       case _ =>
