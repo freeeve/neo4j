@@ -16,14 +16,21 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType.AlterOperation
 import org.neo4j.cypher.internal.ast.EdgeType
 import org.neo4j.cypher.internal.ast.EdgeTypeReference
 import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByIdentifyingLabel
 import org.neo4j.cypher.internal.ast.EdgeTypeReferenceByVariable
 import org.neo4j.cypher.internal.ast.GraphType
+import org.neo4j.cypher.internal.ast.GraphType.NotDefinedHere
+import org.neo4j.cypher.internal.ast.GraphType.Resolved
+import org.neo4j.cypher.internal.ast.GraphType.Unresolvable
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.ExistenceConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.GraphTypeConstraintBody
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.KeyConstraint
+import org.neo4j.cypher.internal.ast.GraphTypeConstraint.PropertyTypeConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.UniquenessConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraintDefinition
 import org.neo4j.cypher.internal.ast.GraphTypeConstraintKey
@@ -69,18 +76,25 @@ import scala.collection.mutable
 case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFactory) {
 
   private val instance: Rewriter = topDown(Rewriter.lift {
-    case gt @ GraphType(entries, constraints) =>
-      rewriteInlineConstraints(gt.copy(
-        types = rewriteEntries(gt, entries),
-        constraints = rewriteConstraints(gt, constraints)
-      )(gt.position))
+    case acgt @ AlterCurrentGraphType(gt @ GraphType(entries, constraints), operation, _) =>
+      acgt.copy(graphType =
+        rewriteInlineConstraints(gt.copy(
+          types = rewriteEntries(operation, gt, entries),
+          constraints = rewriteConstraints(operation, gt, constraints)
+        )(gt.position))
+      )(acgt.position)
   })
 
-  private def rewriteEntries(graphType: GraphType, entries: Set[GraphTypeEntry]): Set[GraphTypeEntry] = {
+  private def rewriteEntries(
+    operation: AlterOperation,
+    graphType: GraphType,
+    entries: Set[GraphTypeEntry]
+  ): Set[GraphTypeEntry] = {
+    val strict = operation == AlterCurrentGraphType.Set
     entries.map {
       case e: EdgeType => e.copy(
-          src = resolveNodeTypeReference(graphType, e.src),
-          dest = resolveNodeTypeReference(graphType, e.dest)
+          src = resolveNodeTypeReference(strict, graphType, e.src),
+          dest = resolveNodeTypeReference(strict, graphType, e.dest)
         )(e.position)
       case n: NodeType => n
     }
@@ -91,14 +105,16 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
    * @return
    */
   private def rewriteConstraints(
+    operation: AlterOperation,
     graphType: GraphType,
     constraints: Set[GraphTypeConstraint]
   ): Set[GraphTypeConstraint] = {
+    val strict = operation == AlterCurrentGraphType.Set
     constraints.map {
       case gtc @ GraphTypeConstraintDefinition(_, n: NodeTypeReference, _, _) =>
-        gtc.copy(reference = resolveNodeTypeReference(graphType, n))(gtc.position)
+        gtc.copy(reference = resolveNodeTypeReference(strict, graphType, n))(gtc.position)
       case gtc @ GraphTypeConstraintDefinition(_, e: EdgeTypeReference, _, _) =>
-        gtc.copy(reference = resolveEdgeTypeReference(graphType, e))(gtc.position)
+        gtc.copy(reference = resolveEdgeTypeReference(strict, graphType, e))(gtc.position)
       case constraintName: GraphTypeConstraintName => constraintName
     }
   }
@@ -107,11 +123,12 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
    * Lookup a node type reference in the graph type
    */
   private def resolveNodeTypeReference(
+    strict: Boolean,
     graphType: GraphType,
     nodeTypeReference: NodeTypeReference
   ): NodeTypeReference = {
     graphType.resolveEndpoint(nodeTypeReference) match {
-      case None => throw cypherExceptionFactory.syntaxException(
+      case Unresolvable => throw cypherExceptionFactory.syntaxException(
           GqlHelper.getGql42001_22NC5(
             referenceDescriptor(nodeTypeReference),
             "node",
@@ -122,7 +139,20 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
           s"graph type element referenced by '${referenceDescriptor(nodeTypeReference)}' not found",
           nodeTypeReference.position
         )
-      case Some(ntr) => ntr
+      case NotDefinedHere if strict =>
+        throw cypherExceptionFactory.syntaxException(
+          GqlHelper.getGql42001_22NC5(
+            referenceDescriptor(nodeTypeReference),
+            "node",
+            nodeTypeReference.position.offset,
+            nodeTypeReference.position.line,
+            nodeTypeReference.position.column
+          ),
+          s"graph type element referenced by '${referenceDescriptor(nodeTypeReference)}' not found",
+          nodeTypeReference.position
+        )
+      case NotDefinedHere => nodeTypeReference
+      case Resolved(ntr)  => ntr
     }
   }
 
@@ -130,11 +160,12 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
    * Lookup an edge type reference in the graph type
    */
   private def resolveEdgeTypeReference(
+    strict: Boolean,
     graphType: GraphType,
     edgeTypeReference: EdgeTypeReference
   ): EdgeTypeReference = {
     graphType.resolveEndpoint(edgeTypeReference) match {
-      case None => throw cypherExceptionFactory.syntaxException(
+      case Unresolvable => throw cypherExceptionFactory.syntaxException(
           GqlHelper.getGql42001_22NC5(
             referenceDescriptor(edgeTypeReference),
             "relationship",
@@ -145,7 +176,20 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
           s"graph type element referenced by '${referenceDescriptor(edgeTypeReference)}' not found",
           edgeTypeReference.position
         )
-      case Some(etr) => etr
+      case NotDefinedHere if strict =>
+        throw cypherExceptionFactory.syntaxException(
+          GqlHelper.getGql42001_22NC5(
+            referenceDescriptor(edgeTypeReference),
+            "relationship",
+            edgeTypeReference.position.offset,
+            edgeTypeReference.position.line,
+            edgeTypeReference.position.column
+          ),
+          s"graph type element referenced by '${referenceDescriptor(edgeTypeReference)}' not found",
+          edgeTypeReference.position
+        )
+      case NotDefinedHere => edgeTypeReference
+      case Resolved(etr)  => etr
     }
   }
 
@@ -190,18 +234,11 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
       graphType.constraints.toList.partition(_.isInstanceOf[GraphTypeConstraintDefinition])
     (oldConstraints ++ constraints.toList.flatten).foreach {
       case c: GraphTypeConstraintDefinition =>
-        val existingConstraint = newConstraints.put(c.key, c)
+        val existingConstraint = newConstraints.get(c.key)
         if (existingConstraint.isDefined) {
-          throw throw cypherExceptionFactory.syntaxException(
-            GqlHelper.getGql42001_22N66(
-              c.kernelesqueConstraintDescriptor,
-              c.position.offset,
-              c.position.line,
-              c.position.column
-            ),
-            s"Clashing constraints: '${c.kernelesqueConstraintDescriptor}'",
-            c.position
-          )
+          throwExistingConstraintException(c, existingConstraint.get)
+        } else {
+          newConstraints.put(c.key, c)
         }
       case _ => ()
     }
@@ -211,6 +248,7 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
 
   /**
    *  Take constraint bodies attached to a graph type element and convert it into a top level constraint
+   *
    * @param elementVariable the element type alias of the element
    * @param name label / relationship type
    * @param bodies the constraint bodies to convert
@@ -282,6 +320,50 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
         )(body.position)
     }
   }
+
+  private def throwExistingConstraintException(
+    newConstraint: GraphTypeConstraintDefinition,
+    existingConstraint: GraphTypeConstraintDefinition
+  ): Unit = {
+
+    def areEquivalent(
+      newConstraint: GraphTypeConstraintDefinition,
+      existingConstraint: GraphTypeConstraintDefinition
+    ): Boolean = {
+      (newConstraint.body, existingConstraint.body) match {
+        case (_: KeyConstraint, _: KeyConstraint)               => true
+        case (_: UniquenessConstraint, _: UniquenessConstraint) => true
+        case (PropertyTypeConstraint(_, cypherType1), PropertyTypeConstraint(_, cypherType2))
+          if cypherType1 == cypherType2 => true
+        case (_: ExistenceConstraint, _: ExistenceConstraint) => true
+        case _                                                => false
+      }
+    }
+
+    if (areEquivalent(newConstraint, existingConstraint)) {
+      throw throw cypherExceptionFactory.syntaxException(
+        GqlHelper.getGql42001_22N65(
+          newConstraint.kernelesqueConstraintDescriptor,
+          newConstraint.position.offset,
+          newConstraint.position.line,
+          newConstraint.position.column
+        ),
+        s"An equivalent constraint already exists, '${newConstraint.kernelesqueConstraintDescriptor}'",
+        newConstraint.position
+      )
+    } else {
+      throw throw cypherExceptionFactory.syntaxException(
+        GqlHelper.getGql42001_22N66(
+          newConstraint.kernelesqueConstraintDescriptor,
+          newConstraint.position.offset,
+          newConstraint.position.line,
+          newConstraint.position.column
+        ),
+        s"Conflicting constraint already exists: '${newConstraint.kernelesqueConstraintDescriptor}'",
+        newConstraint.position
+      )
+    }
+  }
 }
 
 object RewriteGraphTypeReferences extends Step with DefaultPostCondition with PreparatoryRewritingRewriterFactory {
@@ -297,7 +379,7 @@ object RewriteGraphTypeReferences extends Step with DefaultPostCondition with Pr
   override def postConditions: Set[StepSequencer.Condition] = Set(NoInlineConstraints)
 
   /**
-   * @return the conditions that this step invalidates as a side-effect of its work.
+   * @return the conditions that this step invalidates as a side effect of its work.
    */
   override def invalidatedConditions: Set[Condition] = Set.empty
 

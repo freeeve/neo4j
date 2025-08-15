@@ -391,7 +391,28 @@ case class GraphTypeCreateConstraint(
   properties: ArraySeq[PropertyKeyName],
   constraintType: GraphTypeConstraintType,
   options: ast.Options
-)
+) {
+
+  def isEquivalent(that: GraphTypeCreateConstraint): Boolean =
+    this.reference == that.reference && this.properties.sameElements(
+      that.properties
+    ) && this.constraintType == that.constraintType
+
+  def kernelesqueConstraintDescriptor: String = {
+    val propertiesString = properties.map(_.name).mkString(", ")
+    val cypherType = constraintType match {
+      case PropertyTypeConstraint(ct) => s", propertyType=${ct.normalizedCypherTypeString()}"
+      case _                          => ""
+    }
+    val (cst, schema) = reference match {
+      case nr: NodeElementTypeReferenceForConstraint =>
+        ("NODE " + constraintType.description, s"(:${nr.labelName.name} {$propertiesString})")
+      case rr: RelationshipElementTypeReferenceForConstraint =>
+        ("RELATIONSHIP " + constraintType.description, s"()-[:${rr.relTypeName.name} {$propertiesString}]-()")
+    }
+    s"Constraint( type='$cst', schema=$schema$cypherType )"
+  }
+}
 
 sealed trait GraphTypeConstraintType {
   def description: String
@@ -399,22 +420,22 @@ sealed trait GraphTypeConstraintType {
 }
 
 case object ExistenceConstraint extends GraphTypeConstraintType {
-  override val description: String = "property existence"
+  override val description: String = "PROPERTY EXISTENCE"
   override val predicate: String = "IS NOT NULL"
 }
 
 case class PropertyTypeConstraint(propertyType: CypherType) extends GraphTypeConstraintType {
-  override val description: String = "property type"
+  override val description: String = "PROPERTY TYPE"
   override val predicate: String = s"IS :: ${propertyType.description}"
 }
 
 case object KeyConstraint extends GraphTypeConstraintType {
-  override val description: String = "key"
+  override val description: String = "KEY"
   override val predicate: String = "IS KEY"
 }
 
 case object UniquenessConstraint extends GraphTypeConstraintType {
-  override val description: String = "property uniqueness"
+  override val description: String = "PROPERTY UNIQUENESS"
   override val predicate: String = "IS UNIQUE"
 }
 

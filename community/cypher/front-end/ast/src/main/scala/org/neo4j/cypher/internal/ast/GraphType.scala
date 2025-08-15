@@ -16,6 +16,10 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.ast.GraphType.NotDefinedHere
+import org.neo4j.cypher.internal.ast.GraphType.ResolutionStatus
+import org.neo4j.cypher.internal.ast.GraphType.Resolved
+import org.neo4j.cypher.internal.ast.GraphType.Unresolvable
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.ExistenceConstraint
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.GraphTypeConstraintBody
 import org.neo4j.cypher.internal.ast.GraphTypeConstraint.PropertyTypeConstraint
@@ -64,40 +68,44 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
     case e @ EdgeType(_, _, rt, _, _, _) => (rt, e)
   }.toMap
 
-  def resolveEndpoint(nodeTypeReference: NodeTypeReference): Option[NodeTypeReference] = nodeTypeReference match {
-    case NodeTypeReferenceByVariable(variable) =>
-      nodesByVar.get(variable).map(nt =>
-        NodeTypeReferenceByIdentifyingLabel(nt.identifyingLabel, Some(variable))(nodeTypeReference.position)
-      )
-    case ntrl @ NodeTypeReferenceByLabel(label, typeRef) =>
-      nodesByLabel.get(label).map(node =>
-        Some(
-          NodeTypeReferenceByIdentifyingLabel(
-            node.identifyingLabel,
-            typeRef.orElse(node.variable.map(_.copyId))
-          )(nodeTypeReference.position)
-        )
-      ).getOrElse(Some(ntrl))
-    case e: EmptyNodeTypeReference                       => Some(EmptyNodeTypeReference()(e.position))
-    case n @ NodeTypeReferenceByIdentifyingLabel(lab, _) => if (nodesByLabel.contains(lab)) Some(n) else None
-  }
+  def resolveEndpoint(nodeTypeReference: NodeTypeReference): ResolutionStatus[NodeTypeReference] =
+    nodeTypeReference match {
+      case NodeTypeReferenceByVariable(variable) =>
+        nodesByVar.get(variable).map(nt =>
+          Resolved(NodeTypeReferenceByIdentifyingLabel(nt.identifyingLabel, Some(variable))(nodeTypeReference.position))
+        ).getOrElse(Unresolvable)
+      case ntrl @ NodeTypeReferenceByLabel(label, typeRef) =>
+        nodesByLabel.get(label).map(node =>
+          Resolved(
+            NodeTypeReferenceByIdentifyingLabel(
+              node.identifyingLabel,
+              typeRef.orElse(node.variable.map(_.copyId))
+            )(nodeTypeReference.position)
+          )
+        ).getOrElse(Resolved(ntrl))
+      case e: EmptyNodeTypeReference => Resolved(EmptyNodeTypeReference()(e.position))
+      case n @ NodeTypeReferenceByIdentifyingLabel(lab, _) =>
+        if (nodesByLabel.contains(lab)) Resolved(n) else NotDefinedHere
+    }
 
-  def resolveEndpoint(edgeTypeReference: EdgeTypeReference): Option[EdgeTypeReference] = edgeTypeReference match {
-    case EdgeTypeReferenceByVariable(variable) =>
-      edgesByVar.get(variable).map(et =>
-        EdgeTypeReferenceByIdentifyingLabel(et.identifyingLabel, Some(variable))(edgeTypeReference.position)
-      )
-    case e @ EdgeTypeReferenceByIdentifyingLabel(rtn, _) => if (edgesByType.contains(rtn)) Some(e) else None
-    case e @ EdgeTypeReferenceByLabel(relType, typeRef) =>
-      edgesByType.get(relType).map(rel =>
-        Some(
-          EdgeTypeReferenceByIdentifyingLabel(
-            rel.identifyingLabel,
-            typeRef.orElse(rel.variable)
-          )(edgeTypeReference.position)
-        )
-      ).getOrElse(Some(e))
-  }
+  def resolveEndpoint(edgeTypeReference: EdgeTypeReference): ResolutionStatus[EdgeTypeReference] =
+    edgeTypeReference match {
+      case EdgeTypeReferenceByVariable(variable) =>
+        edgesByVar.get(variable).map(et =>
+          Resolved(EdgeTypeReferenceByIdentifyingLabel(et.identifyingLabel, Some(variable))(edgeTypeReference.position))
+        ).getOrElse(Unresolvable)
+      case e @ EdgeTypeReferenceByIdentifyingLabel(rtn, _) =>
+        if (edgesByType.contains(rtn)) Resolved(e) else NotDefinedHere
+      case e @ EdgeTypeReferenceByLabel(relType, typeRef) =>
+        edgesByType.get(relType).map(rel =>
+          Resolved(
+            EdgeTypeReferenceByIdentifyingLabel(
+              rel.identifyingLabel,
+              typeRef.orElse(rel.variable)
+            )(edgeTypeReference.position)
+          )
+        ).getOrElse(Resolved(e))
+    }
 
   /* Implied labels should not contain any identifying labels */
   private def checkImpliedLabels(elem: GraphTypeEntry): SemanticCheck = {
@@ -158,7 +166,7 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
                 .atPosition(position.offset, position.line, position.column)
                 .build()
             ).build(),
-          s"duplicated constraint name `$name`",
+          s"There already exists a constraint called `$name`.",
           position
         ))
       }
@@ -176,30 +184,34 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
     /* We should not have independent constraints on define node / edge types which should be dependent */
     def checkForIndependentConstraintsOnDependentLabels(c: GraphTypeConstraint): SemanticCheck = {
       c match {
-        case cd @ GraphTypeConstraintDefinition(_, n: NodeTypeReference, _: PropertyTypeConstraint, _) =>
-          resolveEndpoint(n) match {
-            case Some(NodeTypeReferenceByIdentifyingLabel(l, _)) =>
-              SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, l, n.position)
-            case _ => success
-          }
-        case cd @ GraphTypeConstraintDefinition(_, n: NodeTypeReference, _: ExistenceConstraint, _) =>
-          resolveEndpoint(n) match {
-            case Some(NodeTypeReferenceByIdentifyingLabel(l, _)) =>
-              SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, l, n.position)
-            case _ => success
-          }
-        case cd @ GraphTypeConstraintDefinition(_, e: EdgeTypeReference, _: PropertyTypeConstraint, _) =>
-          resolveEndpoint(e) match {
-            case Some(EdgeTypeReferenceByIdentifyingLabel(rt, _)) =>
-              SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, rt, e.position)
-            case _ => success
-          }
-        case cd @ GraphTypeConstraintDefinition(_, e: EdgeTypeReference, _: ExistenceConstraint, _) =>
-          resolveEndpoint(e) match {
-            case Some(EdgeTypeReferenceByIdentifyingLabel(rt, _)) =>
-              SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, rt, e.position)
-            case _ => success
-          }
+        case cd @ GraphTypeConstraintDefinition(
+            _,
+            n @ NodeTypeReferenceByIdentifyingLabel(l, _),
+            _: PropertyTypeConstraint,
+            _
+          ) =>
+          SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, l, n.position)
+        case cd @ GraphTypeConstraintDefinition(
+            _,
+            n @ NodeTypeReferenceByIdentifyingLabel(l, _),
+            _: ExistenceConstraint,
+            _
+          ) =>
+          SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, l, n.position)
+        case cd @ GraphTypeConstraintDefinition(
+            _,
+            e @ EdgeTypeReferenceByIdentifyingLabel(rt, _),
+            _: PropertyTypeConstraint,
+            _
+          ) =>
+          SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, rt, e.position)
+        case cd @ GraphTypeConstraintDefinition(
+            _,
+            e @ EdgeTypeReferenceByIdentifyingLabel(rt, _),
+            _: ExistenceConstraint,
+            _
+          ) =>
+          SemanticError.independentConstraintOnDependentElement(cd.kernelesqueConstraintDescriptor, rt, e.position)
         case _ => success
       }
     }
@@ -212,6 +224,13 @@ case class GraphType(types: Set[GraphTypeEntry], constraints: Set[GraphTypeConst
 
   override def semanticCheck: SemanticCheck =
     semanticCheck(types) chain semanticCheck(constraints) chain checkElements chain checkConstraints
+}
+
+object GraphType {
+  sealed trait ResolutionStatus[+T <: GraphTypeElementReference] {}
+  case object Unresolvable extends ResolutionStatus[Nothing]
+  case object NotDefinedHere extends ResolutionStatus[Nothing]
+  case class Resolved[T <: GraphTypeElementReference](elementReference: T) extends ResolutionStatus[T]
 }
 
 sealed trait GraphTypeEntry extends ASTNode with SemanticCheckable
@@ -437,8 +456,8 @@ case class GraphTypeConstraintDefinition(
   def kernelesqueConstraintDescriptor: String = {
     val namePart = name.map(n => s"name='$n', ").getOrElse("")
     val constraintTypePart = "type='" + (reference match {
-      case _: NodeTypeReference => "NODE_" + body.typeDescriptor
-      case _: EdgeTypeReference => "RELATIONSHIP_" + body.typeDescriptor
+      case _: NodeTypeReference => "NODE " + body.typeDescriptor
+      case _: EdgeTypeReference => "RELATIONSHIP " + body.typeDescriptor
     }) + "'"
     val typePart = body match {
       case PropertyTypeConstraint(_, propertyType) => s", propertyType=${propertyType.toCypherTypeString}"
@@ -449,14 +468,14 @@ case class GraphTypeConstraintDefinition(
   }
 
   private def constraintSchema: String = {
-    val props = body.properties.map(prop => s"`${prop.propertyKey.name}`").mkString(", ")
+    val props = body.properties.map(prop => s"${prop.propertyKey.name}").mkString(", ")
     reference match {
-      case NodeTypeReferenceByVariable(v)             => s"(`${v.name}` {$props})"
-      case NodeTypeReferenceByLabel(l, _)             => s"(:`${l.name}` {$props})"
-      case NodeTypeReferenceByIdentifyingLabel(l, _)  => s"(:`${l.name}` {$props})"
-      case EdgeTypeReferenceByVariable(v)             => s"()-[`${v.name}` {$props}]-()"
-      case EdgeTypeReferenceByLabel(rt, _)            => s"()-[:`${rt.name}` {$props}])-()"
-      case EdgeTypeReferenceByIdentifyingLabel(rt, _) => s"()-[:`${rt.name}` {$props}]-()"
+      case NodeTypeReferenceByVariable(v)             => s"(${v.name} {$props})"
+      case NodeTypeReferenceByLabel(l, _)             => s"(:${l.name} {$props})"
+      case NodeTypeReferenceByIdentifyingLabel(l, _)  => s"(:${l.name} {$props})"
+      case EdgeTypeReferenceByVariable(v)             => s"()-[${v.name} {$props}]-()"
+      case EdgeTypeReferenceByLabel(rt, _)            => s"()-[:${rt.name} {$props}])-()"
+      case EdgeTypeReferenceByIdentifyingLabel(rt, _) => s"()-[:${rt.name} {$props}]-()"
       case EmptyNodeTypeReference()                   => ""
     }
   }
@@ -477,7 +496,7 @@ object GraphTypeConstraint {
       extends GraphTypeConstraintBody {
     override def semanticCheck: SemanticCheck = success
 
-    override def typeDescriptor: String = "PROPERTY_EXISTENCE"
+    override def typeDescriptor: String = "PROPERTY EXISTENCE"
 
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)
@@ -495,7 +514,7 @@ object GraphTypeConstraint {
         SemanticError.propertyTypeUnsupportedInConstraint("graph type", _, _, _)
       )
 
-    override def typeDescriptor: String = "PROPERTY_TYPE"
+    override def typeDescriptor: String = "PROPERTY TYPE"
 
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)
@@ -515,7 +534,7 @@ object GraphTypeConstraint {
       extends GraphTypeConstraintBody {
     override def semanticCheck: SemanticCheck = success
 
-    override def typeDescriptor: String = "PROPERTY_UNIQUENESS"
+    override def typeDescriptor: String = "PROPERTY UNIQUENESS"
 
     override def withProperties(newProperties: ArraySeq[Property]): GraphTypeConstraintBody =
       this.copy(properties = newProperties)(position)

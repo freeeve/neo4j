@@ -813,9 +813,6 @@ case class AlterCurrentGraphType(
   override val commandDescription: String = "ALTER CURRENT GRAPH TYPE " + operation.name
 
   private def checkForAllowedAlterCommand: SemanticCheck = operation match {
-    case AlterCurrentGraphType.Add =>
-      val gql = GqlHelper.get51N31("ADD", "ALTER CURRENT GRAPH TYPE", position.offset, position.line, position.column)
-      error(gql, GqlHelper.getCompleteMessage(gql), position)
     case AlterCurrentGraphType.Drop =>
       val gql = GqlHelper.get51N31("DROP", "ALTER CURRENT GRAPH TYPE", position.offset, position.line, position.column)
       error(gql, GqlHelper.getCompleteMessage(gql), position)

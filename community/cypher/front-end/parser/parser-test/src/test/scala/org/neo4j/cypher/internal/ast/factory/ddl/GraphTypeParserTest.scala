@@ -940,6 +940,8 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     }
   }
 
+  // SET generated examples
+
   // negative example SNT-NE-NEIL-1-1
   test("ALTER CURRENT GRAPH TYPE SET { (:Person {name :: STRING}) }") {
     parsesIn[Statements] {
@@ -1081,6 +1083,141 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
         )
     }
   }
+
+  // ADD generated examples
+
+  // negative example ADD-NE-NEIL-1-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:City {name :: STRING}) }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-NEIL-2-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:Person => )-[:LIVES_IN {since :: DATE}]->()}""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-MIL-1-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:City&City => :Named)}""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '&', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-MIL-2-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:City&Town => {name :: STRING})}""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '&', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-MIL-3-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:City&Town&Habitat => :Named {name :: STRING}) }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '&', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-AEML-1-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:Person => )-[:LIVES_IN => {since :: DATE}]->(:City&Habitat) }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '&', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-AEML-2-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:Person&Student)-[:LIVES_IN => {since :: DATE}]->(:City =>) }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '&', expected: ')', '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-ETNOL-1-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:Person => )-[{since :: DATE}]->() }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '{', expected: ':'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-ETNOL-2-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:Person => )-[:LIVES_IN&WORKS_IN {since :: DATE}]->()}""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '&', expected: '=' or 'IMPLIES'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-CWOS-1-1
+  test(s"""ALTER CURRENT GRAPH TYPE ADD {  CONSTRAINT myConstraint }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '}', expected: 'FOR'."
+        )
+    }
+  }
+
+  // negative example ADD-NE-CWOS-2-1
+  test("""ALTER CURRENT GRAPH TYPE ADD { (:City => {name :: STRING}), CONSTRAINT myConstraint, CONSTRAINT xyz123 }""") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input ',', expected: 'FOR'."
+        )
+    }
+  }
+
 }
 
 object GraphTypeParserTest {

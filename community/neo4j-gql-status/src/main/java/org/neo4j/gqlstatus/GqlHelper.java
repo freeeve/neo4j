@@ -407,6 +407,16 @@ public class GqlHelper {
         return getGql42001_22N04(input, variable, validTypes, -1, -1, -1);
     }
 
+    public static ErrorGqlStatusObject getGql42001_22N65(String constraintDescr, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N65)
+                        .withParam(GqlParams.StringParam.constrDescrOrName, constraintDescr)
+                        .atPosition(offset, line, column)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_22N66(String constraintDescr, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)

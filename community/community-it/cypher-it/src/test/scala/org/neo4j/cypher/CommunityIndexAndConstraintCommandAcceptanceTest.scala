@@ -589,9 +589,9 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
       Seq("enforcedLabel", "classification").foreach(column =>
         withClue(cypherVersionString + column) {
           if (usesCypher5) {
-            val exception = (the[SyntaxException] thrownBy {
+            val exception = the[SyntaxException] thrownBy {
               execute(cypherVersionString + "SHOW CONSTRAINTS YIELD " + column)
-            })
+            }
             exception.getMessage should startWith(s"Trying to YIELD non-existing column: `$column`")
             exception should be(InvalidSyntaxStatus.withCause(gqlStatus(
               GqlStatusInfoCodes.STATUS_22N04,
@@ -610,7 +610,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   // Graph type commands
 
   test("Alter current graph type with empty graph type") {
-    Seq("SET").foreach(operation =>
+    Seq("SET", "ADD").foreach(operation =>
       withClue(operation) {
         // WHEN
         val exception = the[CantCompileQueryException] thrownBy {
@@ -619,7 +619,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
 
         // THEN
         exception should be(gqlException(
-          "51N27: 'ALTER CURRENT GRAPH TYPE SET' is not supported in community edition.",
+          s"51N27: 'ALTER CURRENT GRAPH TYPE $operation' is not supported in community edition.",
           gqlStatus(
             GqlStatusInfoCodes.STATUS_51N27,
             "error: system configuration or operation exception - not supported in this edition. " +
@@ -630,7 +630,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     )
 
     // Move up to loop above when implemented
-    Seq("DROP", "ADD", "ALTER").foreach(operation =>
+    Seq("DROP", "ALTER").foreach(operation =>
       withClue(operation) {
         // WHEN
         val exception = the[SyntaxException] thrownBy {

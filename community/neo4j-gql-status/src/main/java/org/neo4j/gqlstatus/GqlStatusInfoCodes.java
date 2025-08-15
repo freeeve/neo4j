@@ -2064,6 +2064,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "invalid element type constraints in graph type",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NCA(
+            new GqlStatus("22NCA"),
+            "A node element type identified by the label { %s } already exists in the graph type.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.label},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "node element type already exists",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_22NCB(
+            new GqlStatus("22NCB"),
+            "A relationship element type identified by the relationship type { %s } already exists in the graph type.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.relType},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "relationship element type already exists",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             "",

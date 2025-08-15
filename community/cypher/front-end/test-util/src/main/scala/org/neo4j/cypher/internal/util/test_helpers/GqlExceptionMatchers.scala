@@ -24,6 +24,8 @@ import org.scalatest.matchers.Matcher
 import org.scalatest.matchers.should.Matchers.a
 import org.scalatest.matchers.should.Matchers.be
 
+import java.util.regex.Pattern
+
 import scala.annotation.nowarn
 import scala.jdk.OptionConverters.RichOptional
 
@@ -250,6 +252,13 @@ trait GqlExceptionMatchers {
     regexDescr: Boolean = false
   ): GqlExceptionMatcher = {
     GqlExceptionMatcher(code, statusDescription, fuzzyMatch = fuzzyStatusDescr, regexMatch = regexDescr)
+  }
+
+  def gqlStatus(
+    code: GqlStatusInfoCodes,
+    statusDescription: Seq[String]
+  ): GqlExceptionMatcher = {
+    GqlExceptionMatcher(code, statusDescription.map(Pattern.quote).mkString(".*", ".*", ".*"), regexMatch = true)
   }
 
   def gqlException(
