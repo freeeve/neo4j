@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
 import org.neo4j.cypher.internal.compiler.planner.ProcedureTestSupport
 import org.neo4j.cypher.internal.expressions.Expression
@@ -28,6 +29,7 @@ import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.symbols
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -438,6 +440,36 @@ class extractRuntimeConstantsTest extends CypherFunSuite with LogicalPlanningTes
       v"  UNNAMED1",
       datetime(mapOf(("date", RuntimeConstant(v"  UNNAMED0", date(mapOf(("year", literalInt(1980))))))))
     )
+  }
+
+  test("should rewrite vector([1,2,3], 3, INT8)") {
+    val expr = VectorValueConstructor(
+      listOf(literalInt(1), literalInt(2), literalInt(3)),
+      literalInt(1),
+      symbols.CTInteger8
+    )(pos)
+    rewrite(expr) shouldBe RuntimeConstant(v"  UNNAMED0", expr)
+  }
+
+  test("should rewrite vector('[1,2,3]', 3, INT8)") {
+    val expr = VectorValueConstructor(
+      literalString("[1]"),
+      literalInt(1),
+      symbols.CTInteger8
+    )(pos)
+    rewrite(expr) shouldBe RuntimeConstant(v"  UNNAMED0", expr)
+  }
+
+  test("should not rewrite vector([1,randomUDF(),3], 3, INT8)") {
+    val expr =
+      VectorValueConstructor(listOf(literalInt(1), randomUDF(), literalInt(3)), literalInt(1), symbols.CTInteger8)(pos)
+    rewrite(expr) shouldBe expr
+  }
+
+  test("should not rewrite vector([1,2,3], randomUDF(), INT8)") {
+    val expr =
+      VectorValueConstructor(listOf(literalInt(1), literalInt(2), literalInt(3)), randomUDF(), symbols.CTInteger8)(pos)
+    rewrite(expr) shouldBe expr
   }
 
   private def rewrite(e: Expression): Expression =

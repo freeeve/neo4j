@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
+import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extractRuntimeConstants.STOPPER
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extractRuntimeConstants.isConstant
 import org.neo4j.cypher.internal.expressions.Expression
@@ -54,7 +55,8 @@ case class extractRuntimeConstants(anonymousVariableNameGenerator: AnonymousVari
   override def apply(input: AnyRef): AnyRef = {
     val rewriter = bottomUp(
       Rewriter.lift {
-        case ConstantTemporalFunction(expr) => constant(expr)
+        case ConstantTemporalFunction(expr)                    => constant(expr)
+        case v: VectorValueConstructor if v.isConstantForQuery => constant(v)
       },
       stopper = STOPPER
     )
