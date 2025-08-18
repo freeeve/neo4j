@@ -37,9 +37,9 @@ class IndexDirectoryStructureTest {
     void shouldSeeCorrectDirectoriesForProvider() {
         assertCorrectDirectories(
                 directoriesByProvider(databaseStoreDir).forProvider(provider),
-                baseIndexDirectory.resolve(provider.getKey() + "-" + provider.getVersion()),
+                baseIndexDirectory.resolve(provider.key() + "-" + provider.version()),
                 baseIndexDirectory
-                        .resolve(provider.getKey() + "-" + provider.getVersion())
+                        .resolve(provider.key() + "-" + provider.version())
                         .resolve(String.valueOf(indexId)));
     }
 

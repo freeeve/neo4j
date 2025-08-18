@@ -53,7 +53,7 @@ class LuceneMinimalIndexAccessorTest {
     @EnumSource
     void shouldSnapshotFailureFileOnFailedIndex(LuceneContext luceneContext) throws IOException {
         var indexDescriptor = IndexPrototype.forSchema(
-                        SchemaDescriptors.forLabel(1, 2), AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR)
+                        SchemaDescriptors.forLabel(1, 2), AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR)
                 .withName("failure")
                 .materialise(5);
         var storage = new PartitionedIndexStorage(
@@ -79,7 +79,7 @@ class LuceneMinimalIndexAccessorTest {
     @EnumSource
     void shouldSnapshotIndexFileOnOnline(LuceneContext luceneContext) throws IOException {
         var indexDescriptor = IndexPrototype.forSchema(
-                        SchemaDescriptors.forLabel(1, 2), AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR)
+                        SchemaDescriptors.forLabel(1, 2), AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR)
                 .withName("failure")
                 .materialise(5);
         var storage = new PartitionedIndexStorage(

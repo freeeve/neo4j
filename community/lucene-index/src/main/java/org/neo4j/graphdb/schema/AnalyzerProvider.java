@@ -89,12 +89,13 @@ public abstract class AnalyzerProvider implements NamedService {
     }
 
     public List<String> stopwords() {
-        Analyzer analyzer = createAnalyzer();
-        if (analyzer instanceof StopwordAnalyzerBase stopwordAnalyzer) {
+        try (Analyzer analyzer = createAnalyzer()) {
+            if (!(analyzer instanceof StopwordAnalyzerBase stopwordAnalyzer)) {
+                return List.of();
+            }
             CharArraySet stopwords = stopwordAnalyzer.getStopwordSet();
             return stopwords.stream().map(obj -> new String((char[]) obj)).collect(Collectors.toList());
         }
-        return List.of();
     }
 
     /**

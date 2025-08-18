@@ -31,12 +31,14 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
-import org.neo4j.kernel.impl.index.schema.FulltextIndexProviderFactory;
+import org.neo4j.kernel.impl.index.schema.FulltextIndexProviderFactoryV1;
+import org.neo4j.kernel.impl.index.schema.FulltextIndexProviderFactoryV2;
 import org.neo4j.kernel.impl.index.schema.PointIndexProviderFactory;
 import org.neo4j.kernel.impl.index.schema.RangeIndexProviderFactory;
 import org.neo4j.kernel.impl.index.schema.TextIndexProviderFactory;
 import org.neo4j.kernel.impl.index.schema.TokenIndexProviderFactory;
-import org.neo4j.kernel.impl.index.schema.TrigramIndexProviderFactory;
+import org.neo4j.kernel.impl.index.schema.TrigramV2IndexProviderFactory;
+import org.neo4j.kernel.impl.index.schema.TrigramV3IndexProviderFactory;
 import org.neo4j.kernel.impl.index.schema.VectorIndexProviderFactory;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.internal.LogService;
@@ -129,7 +131,24 @@ public class StaticIndexProviderMapFactory {
                         pageCacheTracer,
                         dependencies));
 
-        var fulltextIndexProvider = life.add(new FulltextIndexProviderFactory()
+        var fulltextV1IndexProvider = life.add(new FulltextIndexProviderFactoryV1()
+                .create(
+                        pageCache,
+                        fs,
+                        logService,
+                        monitors,
+                        databaseConfig,
+                        readOnlyChecker,
+                        mode,
+                        recoveryCleanupWorkCollector,
+                        databaseLayout,
+                        tokenHolders,
+                        scheduler,
+                        contextFactory,
+                        pageCacheTracer,
+                        dependencies));
+
+        var fulltextV2IndexProvider = life.add(new FulltextIndexProviderFactoryV2()
                 .create(
                         pageCache,
                         fs,
@@ -180,7 +199,24 @@ public class StaticIndexProviderMapFactory {
                         pageCacheTracer,
                         dependencies));
 
-        var trigramIndexProvider = life.add(new TrigramIndexProviderFactory()
+        var trigramV2IndexProvider = life.add(new TrigramV2IndexProviderFactory()
+                .create(
+                        pageCache,
+                        fs,
+                        logService,
+                        monitors,
+                        databaseConfig,
+                        readOnlyChecker,
+                        mode,
+                        recoveryCleanupWorkCollector,
+                        databaseLayout,
+                        tokenHolders,
+                        scheduler,
+                        contextFactory,
+                        pageCacheTracer,
+                        dependencies));
+
+        var trigramV3IndexProvider = life.add(new TrigramV3IndexProviderFactory()
                 .create(
                         pageCache,
                         fs,
@@ -231,15 +267,35 @@ public class StaticIndexProviderMapFactory {
                         pageCacheTracer,
                         dependencies));
 
+        var vectorV3IndexProvider = life.add(new VectorIndexProviderFactory(VectorIndexVersion.V3_0)
+                .create(
+                        pageCache,
+                        fs,
+                        logService,
+                        monitors,
+                        databaseConfig,
+                        readOnlyChecker,
+                        mode,
+                        recoveryCleanupWorkCollector,
+                        databaseLayout,
+                        tokenHolders,
+                        scheduler,
+                        contextFactory,
+                        pageCacheTracer,
+                        dependencies));
+
         return new StaticIndexProviderMap(
                 dependencies,
                 tokenIndexProvider,
                 rangeIndexProvider,
                 pointIndexProvider,
                 textIndexProvider,
-                trigramIndexProvider,
-                fulltextIndexProvider,
+                trigramV2IndexProvider,
+                trigramV3IndexProvider,
+                fulltextV1IndexProvider,
+                fulltextV2IndexProvider,
                 vectorV1IndexProvider,
-                vectorV2IndexProvider);
+                vectorV2IndexProvider,
+                vectorV3IndexProvider);
     }
 }

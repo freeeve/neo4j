@@ -23,7 +23,7 @@ import org.apache.lucene.analysis.CharacterUtils;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
-class Lucene10TrigramTokenStream extends TokenStream {
+final class Lucene10TrigramTokenStream extends TokenStream {
     // 'n' value in 'ngram'
     private static final int N = 3;
     private static final int MAX_CHARS = N * Character.charCount(Character.MAX_CODE_POINT);

@@ -27,6 +27,7 @@ import static org.neo4j.test.UpgradeTestUtil.upgradeDbms;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 import org.eclipse.collections.impl.tuple.Tuples;
 import org.junit.jupiter.api.AfterEach;
@@ -43,8 +44,10 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.graphdb.schema.IndexSettingUtil;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptors;
@@ -87,7 +90,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
     }
 
     @ParameterizedTest
-    @MethodSource("indexVersions")
+    @MethodSource("indexVersionsWithoutRelationshipIndex")
     void shouldBeBlockedFromCreatingVectorIndexOnOlderVersion(EntityType entityType, VectorIndexVersion indexVersion) {
         final var previousVersion = previousFrom(indexVersion.minimumRequiredKernelVersion());
         setup(previousVersion);
@@ -121,7 +124,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
         }
 
         try (final var tx = database.beginTx()) {
-            assertThat(tx.schema().getIndexes()).hasSize(1);
+            assertThat(getVectorIndexes(tx)).hasSize(1);
         }
     }
 
@@ -141,11 +144,20 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
 
         assertKernelVersion(database, LATEST_KERNEL_VERSION);
         try (final var tx = database.beginTx()) {
-            assertThat(tx.schema().getIndexes()).hasSize(1);
+            assertThat(getVectorIndexes(tx)).hasSize(1);
         }
     }
 
     private static Stream<Arguments> indexVersions() {
+        return Stream.of(
+                Arguments.of(EntityType.NODE, VectorIndexVersion.V1_0),
+                Arguments.of(EntityType.NODE, VectorIndexVersion.V2_0),
+                Arguments.of(EntityType.NODE, VectorIndexVersion.V3_0),
+                Arguments.of(EntityType.RELATIONSHIP, VectorIndexVersion.V2_0),
+                Arguments.of(EntityType.RELATIONSHIP, VectorIndexVersion.V3_0));
+    }
+
+    private static Stream<Arguments> indexVersionsWithoutRelationshipIndex() {
         return Stream.of(
                 Arguments.of(EntityType.NODE, VectorIndexVersion.V1_0),
                 Arguments.of(EntityType.NODE, VectorIndexVersion.V2_0),
@@ -156,7 +168,7 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
     @MethodSource("introducedSettings")
     void shouldBeBlockedFromCreatingVectorIndexWithNewSettingsOnOlderVersion(
             EntityType entityType, IndexSetting setting, Object validValue) {
-        final var indexVersion = VectorIndexVersion.V2_0;
+        final var indexVersion = VectorIndexVersion.V3_0;
         final var introducedKernelVersion = VectorIndexConfigUtils.INDEX_SETTING_INTRODUCED_VERSIONS.get(setting);
         final var previousVersion = previousFrom(introducedKernelVersion);
         setup(previousVersion);
@@ -169,11 +181,10 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                 })
                 .isInstanceOf(UnsupportedOperationException.class)
                 .hasMessageContainingAll(
-                        "Failed to create vector index with provided settings.",
+                        "Failed to create",
                         "Version was",
                         previousVersion.name(),
                         "but required version for operation is",
-                        introducedKernelVersion.name(),
                         "Please upgrade dbms using",
                         "dbms.upgrade()");
     }
@@ -230,6 +241,29 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                         .map(entityType -> Arguments.of(entityType, pair.getOne(), pair.getTwo())));
     }
 
+    @ParameterizedTest
+    @MethodSource("introducedSettings")
+    void createVectorIndexWithNewSettingsShouldTriggerUpgradeV3(
+            EntityType entityType, IndexSetting setting, Object validValue) {
+        final var indexVersion = VectorIndexVersion.V3_0;
+        final var introducedKernelVersion = VectorIndexConfigUtils.INDEX_SETTING_INTRODUCED_VERSIONS.get(setting);
+        final var previousVersion = previousFrom(introducedKernelVersion);
+        setup(previousVersion);
+        // No exception should be thrown since we expect the upgrade of version to happen before applying the
+        // create transaction.
+        upgradeDbms(dbms);
+        assertKernelVersion(database, previousVersion);
+        try (final var tx = database.beginTx()) {
+            createIndex(tx, entityType, indexVersion, defaultSettings().set(setting, validValue));
+            tx.commit();
+        }
+
+        assertKernelVersion(database, LATEST_KERNEL_VERSION);
+        try (final var tx = database.beginTx()) {
+            assertThat(tx.schema().getIndexes()).hasSize(1);
+        }
+    }
+
     private void createIndex(
             Transaction tx, EntityType entityType, VectorIndexVersion indexVersion, VectorIndexSettings settings) {
         try {
@@ -265,12 +299,19 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
         return KernelVersion.getForVersion(previous);
     }
 
+    private static List<IndexDefinition> getVectorIndexes(Transaction tx) {
+        return Iterables.stream(tx.schema().getIndexes())
+                .filter(id -> id.getIndexType() == org.neo4j.graphdb.schema.IndexType.VECTOR)
+                .toList();
+    }
+
     private void setup(KernelVersion kernelVersion) {
         final var store =
                 switch (kernelVersion) {
                     case V5_10 -> ZippedStoreCommunity.REC_AF11_V510_EMPTY;
                     case V5_15 -> ZippedStoreCommunity.REC_AF11_V515_EMPTY;
                     case V5_22 -> ZippedStoreCommunity.REC_AF11_V522_EMPTY;
+                    case V2025_08 -> ZippedStoreCommunity.REC_AF11_V5202508_EMPTY;
                     default ->
                         throw InvalidArgumentException.internalError(
                                 this.getClass().getSimpleName(),

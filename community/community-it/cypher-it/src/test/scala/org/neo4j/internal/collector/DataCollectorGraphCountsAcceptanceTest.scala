@@ -88,7 +88,7 @@ class DataCollectorGraphCountsAcceptanceTest extends ExecutionEngineFunSuite wit
       "labels" -> Seq("Label"),
       "updatesSinceEstimation" -> 0,
       "estimatedUniqueSize" -> 0,
-      "indexProvider" -> "text-2.0"
+      "indexProvider" -> "text-3.0"
     )
     val entry3: Map[String, Any] = Map(
       "totalSize" -> 0,
@@ -124,7 +124,7 @@ class DataCollectorGraphCountsAcceptanceTest extends ExecutionEngineFunSuite wit
       "relationshipTypes" -> Seq("RelationshipType"),
       "updatesSinceEstimation" -> 0,
       "estimatedUniqueSize" -> 0,
-      "indexProvider" -> "text-2.0"
+      "indexProvider" -> "text-3.0"
     )
     val entry8: Map[String, Any] = Map(
       "totalSize" -> 0,

@@ -42,8 +42,11 @@ public class LuceneIndexFileFilter extends IndexFileFilter {
         final var provider = provider(path);
         return provider.equals(AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR.name())
                 || provider.equals(AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR.name())
-                || provider.equals(AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR.name())
+                || provider.equals(AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR.name())
+                || provider.equals(AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR.name())
+                || provider.equals(AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR.name())
                 || provider.equals(AllIndexProviderDescriptors.VECTOR_V1_DESCRIPTOR.name())
-                || provider.equals(AllIndexProviderDescriptors.VECTOR_V2_DESCRIPTOR.name());
+                || provider.equals(AllIndexProviderDescriptors.VECTOR_V2_DESCRIPTOR.name())
+                || provider.equals(AllIndexProviderDescriptors.VECTOR_V3_DESCRIPTOR.name());
     }
 }

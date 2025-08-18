@@ -275,7 +275,7 @@ public class VectorIndexCreationTest {
             OptionalDimensions() {
                 super(
                         Entity.this.factory,
-                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V2_0)));
+                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V3_0)));
             }
 
             @ParameterizedTest
@@ -439,7 +439,7 @@ public class VectorIndexCreationTest {
             DefaultedSimilarityFunction() {
                 super(
                         Entity.this.factory,
-                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V2_0)));
+                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V3_0)));
             }
 
             @ParameterizedTest
@@ -482,7 +482,7 @@ public class VectorIndexCreationTest {
             Quantization() {
                 super(
                         Entity.this.factory,
-                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V2_0)));
+                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V3_0)));
             }
 
             @ParameterizedTest
@@ -572,7 +572,7 @@ public class VectorIndexCreationTest {
             HnswM() {
                 super(
                         Entity.this.factory,
-                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V2_0)));
+                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V3_0)));
             }
 
             @ParameterizedTest
@@ -697,7 +697,7 @@ public class VectorIndexCreationTest {
             HnswEfConstruction() {
                 super(
                         Entity.this.factory,
-                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V2_0)));
+                        inclusiveVersionRangeFrom(max(minimumVersionForEntity, VectorIndexVersion.V3_0)));
             }
 
             @ParameterizedTest

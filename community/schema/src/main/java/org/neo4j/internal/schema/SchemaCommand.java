@@ -19,9 +19,9 @@
  */
 package org.neo4j.internal.schema;
 
+import static org.neo4j.internal.schema.AllIndexProviderDescriptors.DEFAULT_FULLTEXT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.DEFAULT_TEXT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.DEFAULT_VECTOR_DESCRIPTOR;
-import static org.neo4j.internal.schema.AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.POINT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.RANGE_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.TOKEN_DESCRIPTOR;
@@ -288,7 +288,7 @@ public sealed interface SchemaCommand {
                                                     EntityType.NODE,
                                                     tokenHolders.labelsForNames(labels),
                                                     tokenHolders.propertiesForName(properties)),
-                                            FULLTEXT_DESCRIPTOR)
+                                            DEFAULT_FULLTEXT_DESCRIPTOR)
                                     .withIndexConfig(config),
                             tokenHolders);
                 }
@@ -318,7 +318,7 @@ public sealed interface SchemaCommand {
                                                     EntityType.RELATIONSHIP,
                                                     tokenHolders.relationshipsForNames(types),
                                                     tokenHolders.propertiesForName(properties)),
-                                            FULLTEXT_DESCRIPTOR)
+                                            DEFAULT_FULLTEXT_DESCRIPTOR)
                                     .withIndexConfig(config),
                             tokenHolders);
                 }

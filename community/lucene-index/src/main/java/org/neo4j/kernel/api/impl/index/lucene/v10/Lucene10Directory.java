@@ -104,7 +104,7 @@ public class Lucene10Directory implements LuceneDirectory {
 
     @Override
     public LuceneContext getLuceneContext() {
-        return LuceneContext.LUCENE_9;
+        return LuceneContext.LUCENE_10;
     }
 
     @Override

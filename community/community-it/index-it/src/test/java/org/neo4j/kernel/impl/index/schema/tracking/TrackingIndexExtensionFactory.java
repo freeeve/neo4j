@@ -37,7 +37,7 @@ public class TrackingIndexExtensionFactory extends ExtensionFactory<TrackingInde
     public static final IndexProviderDescriptor DESCRIPTOR = new IndexProviderDescriptor("tracking-index", "0.5");
 
     public TrackingIndexExtensionFactory(AbstractIndexProviderFactory<?> delegate) {
-        super(ExtensionType.DATABASE, DESCRIPTOR.getKey());
+        super(ExtensionType.DATABASE, DESCRIPTOR.key());
         this.delegate = new BuiltInDelegatingIndexProviderFactory(delegate, DESCRIPTOR);
     }
 

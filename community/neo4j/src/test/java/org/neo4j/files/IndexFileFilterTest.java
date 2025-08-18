@@ -54,9 +54,12 @@ class IndexFileFilterTest {
     private static final List<IndexProviderDescriptor> LUCENE = List.of(
             AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR,
             AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR,
-            AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR,
+            AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR,
+            AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR,
+            AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR,
             AllIndexProviderDescriptors.VECTOR_V1_DESCRIPTOR,
-            AllIndexProviderDescriptors.VECTOR_V2_DESCRIPTOR);
+            AllIndexProviderDescriptors.VECTOR_V2_DESCRIPTOR,
+            AllIndexProviderDescriptors.VECTOR_V3_DESCRIPTOR);
 
     @TestDirectoryExtension
     @ExtendWith(RandomExtension.class)

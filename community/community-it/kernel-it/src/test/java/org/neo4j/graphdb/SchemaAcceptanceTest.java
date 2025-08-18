@@ -1527,7 +1527,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
 
             IndexProviderDescriptor provider =
                     ((IndexDefinitionImpl) definition).getIndexReference().getIndexProvider();
-            assertThat(AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR).isEqualTo(provider);
+            assertThat(AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR).isEqualTo(provider);
             tx.commit();
         }
     }

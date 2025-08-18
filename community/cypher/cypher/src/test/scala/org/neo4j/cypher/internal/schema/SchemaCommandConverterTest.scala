@@ -98,6 +98,11 @@ class SchemaCommandConverterTest extends CypherFunSuite {
   private val converterForCypher5 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V2_0)
   private val converterForCypher25 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V2_0)
 
+  private val converterForDefaultCypherVersionV3 =
+    new SchemaCommandConverter(CypherVersion.Legacy.legacyVersion(), VectorIndexVersion.V3_0)
+  private val converterForCypher5V3 = new SchemaCommandConverter(CypherVersion.Cypher5, VectorIndexVersion.V3_0)
+  private val converterForCypher25V3 = new SchemaCommandConverter(CypherVersion.Cypher25, VectorIndexVersion.V3_0)
+
   private val VECTOR_CONFIG_V1 = IndexConfig.`with`(util.Map.of(
     "vector.dimensions",
     Values.intValue(768),
@@ -123,6 +128,17 @@ class SchemaCommandConverterTest extends CypherFunSuite {
     Values.intValue(100),
     "vector.hnsw.m",
     Values.intValue(8),
+    "vector.quantization.enabled",
+    Values.booleanValue(true),
+    "vector.similarity_function",
+    Values.stringValue("COSINE")
+  ))
+
+  private val VECTOR_CONFIG_V3 = IndexConfig.`with`(util.Map.of(
+    "vector.hnsw.ef_construction",
+    Values.intValue(100),
+    "vector.hnsw.m",
+    Values.intValue(16),
     "vector.quantization.enabled",
     Values.booleanValue(true),
     "vector.similarity_function",
@@ -271,6 +287,16 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
+      test(s"CYPHER 5 CREATE TEXT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexProvider : 'text-3.0'}") {
+        // Note: This test is only relevant for cypher5. This is because indexProvider is removed in cypher25
+        assert(converterForCypher5.apply(textNodeIndex(
+          List(prop("name")),
+          indexName(ixName),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map("indexProvider" -> literalString("text-3.0")))(InputPosition.NONE)
+        )) == new NodeText(commandName(ixName), label.name, "name", false))
+      }
+
       test(s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name)") {
         assert(converterForDefaultCypherVersion.apply(pointNodeIndex(
           List(prop("name")),
@@ -385,6 +411,24 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         )) == new NodeVector(commandName(ixName), label.name, "name", true, VECTOR_CONFIG_V2))
       }
 
+      test(s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) V3") {
+        assert(converterForDefaultCypherVersionV3.apply(vectorNodeIndex(
+          List(prop("name")),
+          indexName(ixName),
+          ast.IfExistsThrowError,
+          ast.NoOptions
+        )) == new NodeVector(commandName(ixName), label.name, "name", false, VECTOR_CONFIG_V3))
+      }
+
+      test(s"CREATE VECTOR INDEX $ixName IF NOT EXISTS FOR (v:L) ON (v.name) V3") {
+        assert(converterForDefaultCypherVersionV3.apply(vectorNodeIndex(
+          List(prop("name")),
+          indexName(ixName),
+          ast.IfExistsDoNothing,
+          ast.NoOptions
+        )) == new NodeVector(commandName(ixName), label.name, "name", true, VECTOR_CONFIG_V3))
+      }
+
       test(s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {}") {
         assert(converterForDefaultCypherVersion.apply(vectorNodeIndex(
           List(prop("name")),
@@ -408,6 +452,25 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           "name",
           false,
           VECTOR_CONFIG_V2.withIfAbsent("vector.dimensions", Values.intValue(1536))
+        ))
+      }
+
+      test(
+        s"CREATE VECTOR INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexConfig : {`vector.dimensions`: 1536}} V3"
+      ) {
+        assert(converterForDefaultCypherVersionV3.apply(vectorNodeIndex(
+          List(prop("name")),
+          indexName(ixName),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map("indexConfig" -> mapOf(
+            "vector.dimensions" -> literalInt(1536)
+          )))(InputPosition.NONE)
+        )) == new NodeVector(
+          commandName(ixName),
+          label.name,
+          "name",
+          false,
+          VECTOR_CONFIG_V3.withIfAbsent("vector.dimensions", Values.intValue(1536))
         ))
       }
 
@@ -638,6 +701,16 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         (
           converterForCypher25,
           s"CYPHER 25 CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name] OPTIONS {indexConfig : {`fulltext.eventually_consistent`: true}}",
+          None
+        ),
+        (
+          converterForCypher5V3,
+          s"CYPHER 5 CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name] OPTIONS {indexProvider : 'fulltext-2.0', indexConfig : {`fulltext.eventually_consistent`: true}}",
+          Some("fulltext-2.0")
+        ),
+        (
+          converterForCypher25V3,
+          s"CYPHER 25 CREATE FULLTEXT INDEX $ixName FOR (v:L) ON EACH [v.name] OPTIONS {indexConfig : {`fulltext.eventually_consistent`: false}}",
           None
         )
       ).foreach { case (conv, query, ixProvider) =>

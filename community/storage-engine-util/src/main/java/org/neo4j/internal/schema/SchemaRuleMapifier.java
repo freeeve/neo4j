@@ -166,8 +166,8 @@ public class SchemaRuleMapifier {
 
     private static void indexProviderToMap(IndexDescriptor rule, Map<String, Value> map) {
         IndexProviderDescriptor provider = rule.getIndexProvider();
-        String name = provider.getKey();
-        String version = provider.getVersion();
+        String name = provider.key();
+        String version = provider.version();
         putStringProperty(map, PROP_INDEX_PROVIDER_NAME, name);
         putStringProperty(map, PROP_INDEX_PROVIDER_VERSION, version);
     }

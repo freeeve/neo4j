@@ -27,6 +27,8 @@ import static org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfigUtils.SIM
 
 import java.util.Objects;
 import java.util.OptionalInt;
+import org.eclipse.collections.api.factory.SortedMaps;
+import org.eclipse.collections.api.factory.SortedSets;
 import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
 import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
 import org.neo4j.graphdb.schema.IndexSetting;
@@ -35,6 +37,8 @@ import org.neo4j.internal.schema.IndexConfigValidationWrapper;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 
 public class VectorIndexConfig extends IndexConfigValidationWrapper {
+    public static final VectorIndexConfig EMPTY = new VectorIndexConfig();
+
     private final VectorIndexVersion version;
     private final OptionalInt dimensions;
     private final VectorSimilarityFunction similarityFunction;
@@ -53,6 +57,20 @@ public class VectorIndexConfig extends IndexConfigValidationWrapper {
         this.similarityFunction = get(SIMILARITY_FUNCTION);
         this.quantizationEnabled = get(QUANTIZATION_ENABLED);
         this.hnswConfig = new HnswConfig(get(HNSW_M), get(HNSW_EF_CONSTRUCTION));
+    }
+
+    private VectorIndexConfig() {
+        super(
+                VectorIndexVersion.UNKNOWN.descriptor(),
+                IndexConfig.empty(),
+                SortedMaps.immutable.empty(),
+                SortedSets.immutable.empty(),
+                SortedSets.immutable.empty());
+        this.version = VectorIndexVersion.UNKNOWN;
+        this.dimensions = OptionalInt.empty();
+        this.similarityFunction = null;
+        this.quantizationEnabled = false;
+        this.hnswConfig = HnswConfig.DUMMY;
     }
 
     public VectorIndexVersion version() {

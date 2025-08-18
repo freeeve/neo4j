@@ -19,14 +19,14 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene;
 
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10DocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.Value;
 
 public interface LuceneDocumentsFactory {
-    LuceneDocumentsFactory CURRENT = Lucene9DocumentsFactory.INSTANCE;
+    LuceneDocumentsFactory CURRENT = Lucene10DocumentsFactory.INSTANCE;
 
     String ENTITY_ID_KEY = "id";
     String TEXT_VALUE_KEY_SUFFIX = "string";

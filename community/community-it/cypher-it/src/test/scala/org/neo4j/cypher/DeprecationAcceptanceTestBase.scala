@@ -554,7 +554,7 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
       cypherVersions = Set(CypherVersionOption.cypher5)
     )
 
-    val validProvider = AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR.name()
+    val validProvider = AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR.name()
     val validProviderQueries = Seq(
       s"CREATE TEXT INDEX FOR (n:Label) ON (n.prop) OPTIONS {indexProvider : '$validProvider'}",
       s"CREATE TEXT INDEX FOR ()-[r:TYPE]-() ON (r.prop) OPTIONS {indexProvider : '$validProvider'}"

@@ -54,7 +54,7 @@ public class BuiltInDelegatingIndexProviderFactory
 
     public BuiltInDelegatingIndexProviderFactory(
             AbstractIndexProviderFactory<?> delegate, IndexProviderDescriptor descriptorOverride) {
-        super(ExtensionType.DATABASE, descriptorOverride.getKey());
+        super(ExtensionType.DATABASE, descriptorOverride.key());
         this.delegate = delegate;
         this.descriptorOverride = descriptorOverride;
     }

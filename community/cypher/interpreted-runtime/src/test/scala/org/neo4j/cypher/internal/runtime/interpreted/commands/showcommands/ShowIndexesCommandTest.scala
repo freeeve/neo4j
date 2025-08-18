@@ -105,11 +105,14 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
   private val rangeProvider = AllIndexProviderDescriptors.RANGE_DESCRIPTOR.name()
   private val lookupProvider = AllIndexProviderDescriptors.TOKEN_DESCRIPTOR.name()
   private val pointProvider = AllIndexProviderDescriptors.POINT_DESCRIPTOR.name()
+  private val textV3Provider = AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR.name()
   private val textV2Provider = AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR.name()
   private val textV1Provider = AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR.name()
-  private val fulltextProvider = AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR.name()
+  private val fulltextV1Provider = AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR.name()
+  private val fulltextV2Provider = AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR.name()
   private val vectorV1Provider = AllIndexProviderDescriptors.VECTOR_V1_DESCRIPTOR.name()
   private val vectorV2Provider = AllIndexProviderDescriptors.VECTOR_V2_DESCRIPTOR.name()
+  private val vectorV3Provider = AllIndexProviderDescriptors.VECTOR_V3_DESCRIPTOR.name()
 
   private val cartesianMin = SPATIAL_CARTESIAN_MIN.getSettingName
   private val cartesianMax = SPATIAL_CARTESIAN_MAX.getSettingName
@@ -294,7 +297,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
   private val fulltextNodeIndexDescriptor =
     IndexPrototype.forSchema(
       SchemaDescriptors.fulltext(EntityType.NODE, Array(0), Array(0)),
-      AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR
+      AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR
     )
       .withIndexType(IndexType.FULLTEXT)
       .withName("index08")
@@ -307,7 +310,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
   private val fulltextRelIndexDescriptor =
     IndexPrototype.forSchema(
       SchemaDescriptors.fulltext(EntityType.RELATIONSHIP, Array(0), Array(0)),
-      AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR
+      AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR
     )
       .withIndexType(IndexType.FULLTEXT)
       .withName("index09")
@@ -330,6 +333,19 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       .withName("index11")
       .withIndexConfig(vectorConfig(VectorIndexVersion.V2_0)) // emulating the actual config
       .materialise(10)
+
+  private val vectorRelV3IndexDescriptor =
+    IndexPrototype.forSchema(relTypeDescriptor, VectorIndexVersion.V3_0.descriptor())
+      .withIndexType(IndexType.VECTOR)
+      .withName("index12")
+      .withIndexConfig(vectorConfig(VectorIndexVersion.V3_0)) // emulating the actual config
+      .materialise(10)
+
+  private val textRelV3IndexDescriptor =
+    IndexPrototype.forSchema(relTypeDescriptor, AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR)
+      .withIndexType(IndexType.TEXT)
+      .withName("index13")
+      .materialise(7)
 
   private val config = Config.defaults()
 
@@ -886,7 +902,9 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       fulltextNodeIndexDescriptor -> nodeIndexInfo,
       fulltextRelIndexDescriptor -> relIndexInfo,
       vectorNodeIndexDescriptor -> nodeIndexInfo,
-      vectorRelIndexDescriptor -> relIndexInfo
+      vectorRelIndexDescriptor -> relIndexInfo,
+      vectorRelV3IndexDescriptor -> relIndexInfo,
+      textRelV3IndexDescriptor -> relIndexInfo
     ))
 
     // When
@@ -894,7 +912,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 12
+    result should have size 14
     checkResult(
       result.head,
       name = "index00",
@@ -992,7 +1010,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
-      provider = fulltextProvider,
+      provider = fulltextV1Provider,
       options = Map("indexConfig" -> nodeFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index08` FOR (n:`$label`) ON EACH [n.`$prop`] " +
         s"OPTIONS {indexConfig: $nodeFulltextConfigMapString}"
@@ -1004,7 +1022,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
-      provider = fulltextProvider,
+      provider = fulltextV2Provider,
       options = Map("indexConfig" -> relFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index09` FOR ()-[r:`$relType`]-() ON EACH [r.`$prop`] " +
         s"OPTIONS {indexConfig: $relFulltextConfigMapString}"
@@ -1037,6 +1055,31 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       createStatement = s"CREATE VECTOR INDEX `index11` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
         s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}}"
     )
+    checkResult(
+      result(12),
+      name = "index12",
+      indexType = "VECTOR",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = vectorV3Provider,
+      options = Map(
+        "indexConfig" -> vectorConfigMap(VectorIndexVersion.V3_0)
+      ),
+      createStatement = s"CREATE VECTOR INDEX `index12` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V3_0)}}"
+    )
+    checkResult(
+      result(13),
+      name = "index13",
+      indexType = "TEXT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = textV3Provider,
+      options = Map("indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE TEXT INDEX `index13` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
+    )
   }
 
   test("show indexes should show all index types - Cypher 5") {
@@ -1053,7 +1096,9 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       fulltextNodeIndexDescriptor -> nodeIndexInfo,
       fulltextRelIndexDescriptor -> relIndexInfo,
       vectorNodeIndexDescriptor -> nodeIndexInfo,
-      vectorRelIndexDescriptor -> relIndexInfo
+      vectorRelIndexDescriptor -> relIndexInfo,
+      vectorRelV3IndexDescriptor -> relIndexInfo,
+      textRelV3IndexDescriptor -> relIndexInfo
     ))
 
     // When
@@ -1061,7 +1106,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 12
+    result should have size 14
     checkResult(
       result.head,
       name = "index00",
@@ -1159,8 +1204,8 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
-      provider = fulltextProvider,
-      options = Map("indexProvider" -> Values.stringValue(fulltextProvider), "indexConfig" -> nodeFulltextConfigMap),
+      provider = fulltextV1Provider,
+      options = Map("indexProvider" -> Values.stringValue(fulltextV1Provider), "indexConfig" -> nodeFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index08` FOR (n:`$label`) ON EACH [n.`$prop`] " +
         s"OPTIONS {indexConfig: $nodeFulltextConfigMapString}"
     )
@@ -1171,8 +1216,8 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
-      provider = fulltextProvider,
-      options = Map("indexProvider" -> Values.stringValue(fulltextProvider), "indexConfig" -> relFulltextConfigMap),
+      provider = fulltextV2Provider,
+      options = Map("indexProvider" -> Values.stringValue(fulltextV2Provider), "indexConfig" -> relFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index09` FOR ()-[r:`$relType`]-() ON EACH [r.`$prop`] " +
         s"OPTIONS {indexConfig: $relFulltextConfigMapString}"
     )
@@ -1205,6 +1250,32 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       ),
       createStatement = s"CREATE VECTOR INDEX `index11` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
         s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}}"
+    )
+    checkResult(
+      result(12),
+      name = "index12",
+      indexType = "VECTOR",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = vectorV3Provider,
+      options = Map(
+        "indexProvider" -> Values.stringValue(vectorV3Provider),
+        "indexConfig" -> vectorConfigMap(VectorIndexVersion.V3_0)
+      ),
+      createStatement = s"CREATE VECTOR INDEX `index12` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V3_0)}}"
+    )
+    checkResult(
+      result(13),
+      name = "index13",
+      indexType = "TEXT",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = textV3Provider,
+      options = Map("indexProvider" -> Values.stringValue(textV3Provider), "indexConfig" -> VirtualValues.EMPTY_MAP),
+      createStatement = s"CREATE TEXT INDEX `index13` FOR ()-[r:`$relType`]-() ON (r.`$prop`)"
     )
   }
 
@@ -1602,7 +1673,9 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       fulltextNodeIndexDescriptor -> nodeIndexInfo,
       fulltextRelIndexDescriptor -> relIndexInfo,
       vectorNodeIndexDescriptor -> nodeIndexInfo,
-      vectorRelIndexDescriptor -> relIndexInfo
+      vectorRelIndexDescriptor -> relIndexInfo,
+      vectorRelV3IndexDescriptor -> relIndexInfo,
+      textRelV3IndexDescriptor -> relIndexInfo
     ))
 
     // When
@@ -1618,7 +1691,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
-      provider = fulltextProvider,
+      provider = fulltextV1Provider,
       options = Map("indexConfig" -> nodeFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index08` FOR (n:`$label`) ON EACH [n.`$prop`] " +
         s"OPTIONS {indexConfig: $nodeFulltextConfigMapString}"
@@ -1630,7 +1703,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
-      provider = fulltextProvider,
+      provider = fulltextV2Provider,
       options = Map("indexConfig" -> relFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index09` FOR ()-[r:`$relType`]-() ON EACH [r.`$prop`] " +
         s"OPTIONS {indexConfig: $relFulltextConfigMapString}"
@@ -1651,7 +1724,9 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       fulltextNodeIndexDescriptor -> nodeIndexInfo,
       fulltextRelIndexDescriptor -> relIndexInfo,
       vectorNodeIndexDescriptor -> nodeIndexInfo,
-      vectorRelIndexDescriptor -> relIndexInfo
+      vectorRelIndexDescriptor -> relIndexInfo,
+      vectorRelV3IndexDescriptor -> relIndexInfo,
+      textRelV3IndexDescriptor -> relIndexInfo
     ))
 
     // When
@@ -1667,8 +1742,8 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       entityType = "NODE",
       labelsOrTypes = List(label),
       properties = List(prop),
-      provider = fulltextProvider,
-      options = Map("indexProvider" -> Values.stringValue(fulltextProvider), "indexConfig" -> nodeFulltextConfigMap),
+      provider = fulltextV1Provider,
+      options = Map("indexProvider" -> Values.stringValue(fulltextV1Provider), "indexConfig" -> nodeFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index08` FOR (n:`$label`) ON EACH [n.`$prop`] " +
         s"OPTIONS {indexConfig: $nodeFulltextConfigMapString}"
     )
@@ -1679,8 +1754,8 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       entityType = "RELATIONSHIP",
       labelsOrTypes = List(relType),
       properties = List(prop),
-      provider = fulltextProvider,
-      options = Map("indexProvider" -> Values.stringValue(fulltextProvider), "indexConfig" -> relFulltextConfigMap),
+      provider = fulltextV2Provider,
+      options = Map("indexProvider" -> Values.stringValue(fulltextV2Provider), "indexConfig" -> relFulltextConfigMap),
       createStatement = s"CREATE FULLTEXT INDEX `index09` FOR ()-[r:`$relType`]-() ON EACH [r.`$prop`] " +
         s"OPTIONS {indexConfig: $relFulltextConfigMapString}"
     )
@@ -1700,7 +1775,9 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       fulltextNodeIndexDescriptor -> nodeIndexInfo,
       fulltextRelIndexDescriptor -> relIndexInfo,
       vectorNodeIndexDescriptor -> nodeIndexInfo,
-      vectorRelIndexDescriptor -> relIndexInfo
+      vectorRelIndexDescriptor -> relIndexInfo,
+      vectorRelV3IndexDescriptor -> relIndexInfo,
+      textRelV3IndexDescriptor -> relIndexInfo
     ))
 
     // When
@@ -1708,7 +1785,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 2
+    result should have size 3
     checkResult(
       result.head,
       name = "index10",
@@ -1722,7 +1799,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
         s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V1_0)}}"
     )
     checkResult(
-      result.last,
+      result(1),
       name = "index11",
       indexType = "VECTOR",
       entityType = "RELATIONSHIP",
@@ -1732,6 +1809,18 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       options = Map("indexConfig" -> vectorConfigMap(VectorIndexVersion.V2_0)),
       createStatement = s"CREATE VECTOR INDEX `index11` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
         s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}}"
+    )
+    checkResult(
+      result.last,
+      name = "index12",
+      indexType = "VECTOR",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = vectorV3Provider,
+      options = Map("indexConfig" -> vectorConfigMap(VectorIndexVersion.V2_0)),
+      createStatement = s"CREATE VECTOR INDEX `index12` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V3_0)}}"
     )
   }
 
@@ -1749,7 +1838,9 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       fulltextNodeIndexDescriptor -> nodeIndexInfo,
       fulltextRelIndexDescriptor -> relIndexInfo,
       vectorNodeIndexDescriptor -> nodeIndexInfo,
-      vectorRelIndexDescriptor -> relIndexInfo
+      vectorRelIndexDescriptor -> relIndexInfo,
+      vectorRelV3IndexDescriptor -> relIndexInfo,
+      textRelV3IndexDescriptor -> relIndexInfo
     ))
 
     // When
@@ -1757,7 +1848,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
     val result = showIndexes.originalNameRows(queryState, initialCypherRow).toList
 
     // Then
-    result should have size 2
+    result should have size 3
     checkResult(
       result.head,
       name = "index10",
@@ -1774,7 +1865,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
         s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V1_0)}}"
     )
     checkResult(
-      result.last,
+      result(1),
       name = "index11",
       indexType = "VECTOR",
       entityType = "RELATIONSHIP",
@@ -1787,6 +1878,21 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
       ),
       createStatement = s"CREATE VECTOR INDEX `index11` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
         s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V2_0)}}"
+    )
+    checkResult(
+      result.last,
+      name = "index12",
+      indexType = "VECTOR",
+      entityType = "RELATIONSHIP",
+      labelsOrTypes = List(relType),
+      properties = List(prop),
+      provider = vectorV3Provider,
+      options = Map(
+        "indexProvider" -> Values.stringValue(vectorV3Provider),
+        "indexConfig" -> vectorConfigMap(VectorIndexVersion.V3_0)
+      ),
+      createStatement = s"CREATE VECTOR INDEX `index12` FOR ()-[r:`$relType`]-() ON (r.`$prop`) " +
+        s"OPTIONS {indexConfig: ${vectorConfigMapString(VectorIndexVersion.V3_0)}}"
     )
   }
 

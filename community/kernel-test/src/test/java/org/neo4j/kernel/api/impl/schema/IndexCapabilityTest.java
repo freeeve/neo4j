@@ -78,6 +78,8 @@ class IndexCapabilityTest {
             VectorIndexVersion.V1_0, IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR));
     private static final IndexCapability VECTOR_V2 = VectorIndexProvider.capability(
             VectorIndexVersion.V2_0, IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR));
+    private static final IndexCapability VECTOR_V3 = VectorIndexProvider.capability(
+            VectorIndexVersion.V3_0, IndexSettingUtil.defaultConfigForTest(IndexType.VECTOR));
     private static final IndexCapability[] NONE = of();
     private static final IndexCapability[] ALL_PROPERTY =
             of(RANGE, POINT, TEXT, TRIGRAM, FULLTEXT, VECTOR_V1, VECTOR_V2);
@@ -94,6 +96,7 @@ class IndexCapabilityTest {
         assertThat(FULLTEXT.supportsOrdering()).isFalse();
         assertThat(VECTOR_V1.supportsOrdering()).isFalse();
         assertThat(VECTOR_V2.supportsOrdering()).isFalse();
+        assertThat(VECTOR_V3.supportsOrdering()).isFalse();
     }
 
     @Test
@@ -106,6 +109,7 @@ class IndexCapabilityTest {
         assertThat(FULLTEXT.supportsReturningValues()).isFalse();
         assertThat(VECTOR_V1.supportsReturningValues()).isFalse();
         assertThat(VECTOR_V2.supportsReturningValues()).isFalse();
+        assertThat(VECTOR_V3.supportsReturningValues()).isFalse();
     }
 
     @ParameterizedTest
@@ -302,7 +306,7 @@ class IndexCapabilityTest {
                 Arguments.of(FULLTEXT_SEARCH, ANYTHING, NONE),
                 // NEAREST_NEIGHBORS
                 Arguments.of(NEAREST_NEIGHBORS, NUMBER, NONE),
-                Arguments.of(NEAREST_NEIGHBORS, NUMBER_ARRAY, of(VECTOR_V1, VECTOR_V2)),
+                Arguments.of(NEAREST_NEIGHBORS, NUMBER_ARRAY, of(VECTOR_V1, VECTOR_V2, VECTOR_V3)),
                 Arguments.of(NEAREST_NEIGHBORS, ValueCategory.TEXT, NONE),
                 Arguments.of(NEAREST_NEIGHBORS, TEXT_ARRAY, NONE),
                 Arguments.of(NEAREST_NEIGHBORS, GEOMETRY, NONE),
@@ -325,7 +329,8 @@ class IndexCapabilityTest {
                 Arguments.of(TRIGRAM, new ValueCategory[] {ValueCategory.TEXT}),
                 Arguments.of(FULLTEXT, new ValueCategory[] {ValueCategory.TEXT, TEXT_ARRAY}),
                 Arguments.of(VECTOR_V1, new ValueCategory[] {NUMBER_ARRAY}),
-                Arguments.of(VECTOR_V2, new ValueCategory[] {NUMBER_ARRAY}));
+                Arguments.of(VECTOR_V2, new ValueCategory[] {NUMBER_ARRAY}),
+                Arguments.of(VECTOR_V3, new ValueCategory[] {NUMBER_ARRAY}));
     }
 
     private static IndexCapability[] of(IndexCapability... capabilities) {

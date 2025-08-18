@@ -56,6 +56,7 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
     indexProviderDescriptor match {
       case AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR => IndexCapabilities.text_1_0
       case AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR => IndexCapabilities.text_2_0
+      case AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR => IndexCapabilities.text_3_0
       case AllIndexProviderDescriptors.RANGE_DESCRIPTOR   => IndexCapabilities.range
       case AllIndexProviderDescriptors.POINT_DESCRIPTOR   => IndexCapabilities.point
       case _ => throw new IllegalArgumentException(s"Unexpected descriptor: $indexProviderDescriptor")
@@ -63,7 +64,11 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
 
   private def indexProviders(indexType: IndexType): Seq[IndexProviderDescriptor] = indexType match {
     case IndexType.TEXT =>
-      Seq(AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR, AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR)
+      Seq(
+        AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR,
+        AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR,
+        AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR
+      )
     case IndexType.RANGE => Seq(AllIndexProviderDescriptors.RANGE_DESCRIPTOR)
     case IndexType.POINT => Seq(AllIndexProviderDescriptors.POINT_DESCRIPTOR)
     case _               => throw new IllegalArgumentException(s"Unexpected index type: $indexType")

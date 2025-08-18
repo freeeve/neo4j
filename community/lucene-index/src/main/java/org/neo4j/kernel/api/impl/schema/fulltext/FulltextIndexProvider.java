@@ -114,6 +114,7 @@ public class FulltextIndexProvider extends IndexProvider {
 
     public FulltextIndexProvider(
             IndexProviderDescriptor descriptor,
+            KernelVersion kernelVersion,
             IndexDirectoryStructure.Factory directoryStructureFactory,
             FileSystemAbstraction fileSystem,
             Config config,
@@ -122,7 +123,7 @@ public class FulltextIndexProvider extends IndexProvider {
             DatabaseReadOnlyChecker readOnlyChecker,
             JobScheduler scheduler,
             InternalLogProvider logProvider) {
-        super(KernelVersion.EARLIEST, descriptor, directoryStructureFactory);
+        super(kernelVersion, descriptor, directoryStructureFactory);
         this.fileSystem = fileSystem;
         this.config = config;
         this.tokenHolders = tokenHolders;
@@ -307,7 +308,7 @@ public class FulltextIndexProvider extends IndexProvider {
             StorageEngineFactory storageEngineFactory,
             CursorContextFactory contextFactory) {
         return new SchemaIndexMigrator(
-                "Fulltext indexes",
+                getProviderDescriptor().name(),
                 fs,
                 pageCache,
                 pageCacheTracer,
@@ -347,8 +348,15 @@ public class FulltextIndexProvider extends IndexProvider {
                         .findFirst();
                 if (analyzerProvider.isPresent()) {
                     // Verify that the analyzer provider works.
-                    Analyzer analyzer = analyzerProvider.get().createAnalyzer();
-                    Objects.requireNonNull(analyzer, "The '" + analyzerName + "' analyzer returned a 'null' analyzer.");
+                    try (Analyzer analyzer = analyzerProvider.get().createAnalyzer()) {
+                        Objects.requireNonNull(
+                                analyzer, "The '" + analyzerName + "' analyzer returned a 'null' analyzer.");
+                    } catch (Throwable t) {
+                        throw new IllegalArgumentException(
+                                "Fail to create full-text analyzer: '" + analyzerName
+                                        + "'. Please make sure its compatible with underlying version of Neo4j.",
+                                t);
+                    }
                 } else {
                     throw new IllegalArgumentException("No such full-text analyzer: '" + analyzerName + "'.");
                 }

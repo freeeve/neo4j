@@ -241,7 +241,8 @@ class FulltextIndexProviderTest {
                     EntityType.RELATIONSHIP,
                     new int[] {labelIdHej, labelIdHa, labelIdHe},
                     new int[] {propIdHej, propIdHa, propIdHe, propIdHo});
-            IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR)
+            IndexPrototype prototype = IndexPrototype.forSchema(
+                            schema, AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR)
                     .withIndexType(FULLTEXT)
                     .withName("fulltext");
             indexReference = transaction.schemaWrite().indexCreate(prototype);
@@ -272,7 +273,8 @@ class FulltextIndexProviderTest {
                     EntityType.RELATIONSHIP,
                     new int[] {labelIdHej, labelIdHa, labelIdHe},
                     new int[] {propIdHej, propIdHa, propIdHe, propIdHo});
-            IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR)
+            IndexPrototype prototype = IndexPrototype.forSchema(
+                            schema, AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR)
                     .withIndexType(FULLTEXT)
                     .withName("fulltext");
             indexReference = transaction.schemaWrite().indexCreate(prototype);
@@ -620,6 +622,7 @@ class FulltextIndexProviderTest {
 
             // Validation must initially prevent this index from being created.
             assertThatThrownBy(creator::create)
+                    .rootCause()
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("boom");
 
@@ -683,6 +686,7 @@ class FulltextIndexProviderTest {
 
             // Validation must initially prevent this index from being created.
             assertThatThrownBy(creator::create)
+                    .rootCause()
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("null");
 
@@ -848,7 +852,8 @@ class FulltextIndexProviderTest {
             SchemaDescriptor schema = SchemaDescriptors.fulltext(entityType, entityTokens, propertyIds);
             IndexConfig config = IndexConfig.with(FulltextIndexSettingsKeys.ANALYZER, Values.stringValue(analyzer))
                     .withIfAbsent(FulltextIndexSettingsKeys.EVENTUALLY_CONSISTENT, Values.of(eventuallyConsistent));
-            IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR)
+            IndexPrototype prototype = IndexPrototype.forSchema(
+                            schema, AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR)
                     .withIndexType(IndexType.FULLTEXT)
                     .withName(NAME)
                     .withIndexConfig(config);

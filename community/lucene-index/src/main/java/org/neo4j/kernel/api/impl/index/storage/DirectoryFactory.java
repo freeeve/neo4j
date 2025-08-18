@@ -25,17 +25,17 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryFactory;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DirectoryFactory;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10DirectoryFactory;
 
 public interface DirectoryFactory extends AutoCloseable {
-    LuceneDirectoryFactory CURRENT = Lucene9DirectoryFactory.INSTANCE;
+    LuceneDirectoryFactory CURRENT = Lucene10DirectoryFactory.INSTANCE;
 
     LuceneDirectory open(Path dir) throws IOException;
 
     LuceneContext getContext();
 
     static DirectoryFactory directoryFactory(LuceneContext luceneContext, FileSystemAbstraction fs) {
-        return fs.isPersistent() ? persistent(luceneContext) : CURRENT.newInMemoryDirectoryFactory(fs);
+        return fs.isPersistent() ? persistent(luceneContext) : inMemory(luceneContext, fs);
     }
 
     static DirectoryFactory persistent(LuceneContext luceneContext) {

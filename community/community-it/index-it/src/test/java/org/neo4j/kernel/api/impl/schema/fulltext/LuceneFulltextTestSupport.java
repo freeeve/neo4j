@@ -114,7 +114,7 @@ public class LuceneFulltextTestSupport {
     }
 
     private FulltextIndexProvider getAdapter() {
-        return (FulltextIndexProvider) indexProviderMap.lookup(AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR);
+        return (FulltextIndexProvider) indexProviderMap.lookup(AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR);
     }
 
     static long createNodeIndexableByPropertyValue(Transaction tx, Label label, Object propertyValue) {

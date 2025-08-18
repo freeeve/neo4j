@@ -2054,12 +2054,18 @@ public class FullCheckIntegrationTest {
                 AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR,
                 entityTokenId,
                 propertyKeyId);
+        createIndexRule(
+                entityType,
+                IndexType.TEXT,
+                AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR,
+                entityTokenId,
+                propertyKeyId);
 
         // When
         ConsistencySummaryStatistics stats = check();
 
         // Then
-        on(stats).verify(RecordType.SCHEMA, 1).andThatsAllFolks();
+        on(stats).verify(RecordType.SCHEMA, 2).andThatsAllFolks();
     }
 
     @ParameterizedTest

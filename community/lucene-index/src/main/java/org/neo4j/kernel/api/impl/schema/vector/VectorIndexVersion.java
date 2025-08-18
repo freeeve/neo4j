@@ -166,6 +166,49 @@ public enum VectorIndexVersion {
         public boolean acceptsValueInstanceType(Value candidate) {
             return candidate instanceof VectorCandidate;
         }
+    },
+    V3_0(
+            AllIndexProviderDescriptors.VECTOR_V3_DESCRIPTOR,
+            KernelVersion.VERSION_LUCENE_10_INTRODUCED,
+            4096,
+            512,
+            3200,
+            Sets.mutable.of(EUCLIDEAN, L2_NORM_COSINE),
+            BooleanSets.immutable.of(false, true)) {
+        @Override
+        protected RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators() {
+            return Lists.mutable.of(
+                    Tuples.pair(
+                            KernelVersion.VERSION_LUCENE_10_INTRODUCED,
+                            new Validators(
+                                    this,
+                                    new OptionalIntSettingValidator(
+                                            IndexSetting.vector_Dimensions(), new Range<>(1, maxDimensions())),
+                                    new SimilarityFunctionValidator(nameToSimilarityFunction()),
+                                    new ReadDefaultOnly<>(IndexSetting.vector_Quantization_Enabled(), false),
+                                    new ReadDefaultOnly<>(IndexSetting.vector_Hnsw_M(), 16),
+                                    new ReadDefaultOnly<>(IndexSetting.vector_Hnsw_Ef_Construction(), 100))),
+                    Tuples.pair(
+                            KernelVersion.VERSION_LUCENE_10_INTRODUCED,
+                            new Validators(
+                                    this,
+                                    new OptionalIntSettingValidator(
+                                            IndexSetting.vector_Dimensions(),
+                                            new Range<>(1, maxDimensions()),
+                                            OptionalInt.empty()),
+                                    new SimilarityFunctionValidator(nameToSimilarityFunction(), L2_NORM_COSINE),
+                                    new QuantizationEnabledValidator(supportedQuantizationBooleans(), false, true),
+                                    new IntegerValidator(IndexSetting.vector_Hnsw_M(), 16, new Range<>(1, maxHnswM())),
+                                    new IntegerValidator(
+                                            IndexSetting.vector_Hnsw_Ef_Construction(),
+                                            100,
+                                            new Range<>(1, maxHnswEfConstruction())))));
+        }
+
+        @Override
+        public boolean acceptsValueInstanceType(Value candidate) {
+            return candidate instanceof VectorCandidate;
+        }
     };
 
     public static final ImmutableList<VectorIndexVersion> KNOWN_VERSIONS =

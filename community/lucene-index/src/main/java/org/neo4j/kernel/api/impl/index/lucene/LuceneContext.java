@@ -30,7 +30,7 @@ public enum LuceneContext {
     LUCENE_9(Lucene9DirectoryFactory.INSTANCE, Lucene9DocumentsFactory.INSTANCE);
 
     public static LuceneContext getDefault() {
-        return LUCENE_9;
+        return LUCENE_10;
     }
 
     public static LuceneContext getDefault(KernelVersion version) {

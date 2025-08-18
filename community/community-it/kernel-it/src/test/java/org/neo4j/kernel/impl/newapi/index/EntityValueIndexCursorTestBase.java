@@ -1114,8 +1114,8 @@ public abstract class EntityValueIndexCursorTestBase<ENTITY_VALUE_INDEX_CURSOR e
         // Given
         IndexDescriptor index = schemaRead.indexGetForName(PROP_INDEX_NAME);
 
-        assertEquals(indexParams.providerKey(), index.getIndexProvider().getKey());
-        assertEquals(indexParams.providerVersion(), index.getIndexProvider().getVersion());
+        assertEquals(indexParams.providerKey(), index.getIndexProvider().key());
+        assertEquals(indexParams.providerVersion(), index.getIndexProvider().version());
     }
 
     @Test

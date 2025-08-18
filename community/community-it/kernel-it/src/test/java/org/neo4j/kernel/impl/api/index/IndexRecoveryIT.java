@@ -115,7 +115,7 @@ class IndexRecoveryIT {
     private GraphDatabaseAPI db;
     private final IndexProvider mockedIndexProvider = mock(IndexProvider.class);
     private final ExtensionFactory<?> mockedIndexProviderFactory =
-            singleInstanceIndexProviderFactory(PROVIDER_DESCRIPTOR.getKey(), mockedIndexProvider);
+            singleInstanceIndexProviderFactory(PROVIDER_DESCRIPTOR.key(), mockedIndexProvider);
     private final String key = "number_of_bananas_owned";
     private final Label myLabel = label("MyLabel");
     private final Monitors monitors = new Monitors();

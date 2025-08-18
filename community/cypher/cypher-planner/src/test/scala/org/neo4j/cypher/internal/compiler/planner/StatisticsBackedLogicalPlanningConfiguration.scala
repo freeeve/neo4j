@@ -309,6 +309,7 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
   object IndexCapabilities {
     val text_1_0: IndexCapability = org.neo4j.kernel.api.impl.schema.TextIndexCapability.text()
     val text_2_0: IndexCapability = org.neo4j.kernel.api.impl.schema.TextIndexCapability.trigram()
+    val text_3_0: IndexCapability = org.neo4j.kernel.api.impl.schema.TextIndexCapability.trigram()
     val point: IndexCapability = org.neo4j.kernel.impl.index.schema.PointIndexProvider.CAPABILITY
     val range: IndexCapability = org.neo4j.kernel.impl.index.schema.RangeIndexProvider.CAPABILITY
   }
@@ -487,7 +488,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     maybeIndexCapability match {
       case Some(value) => value
       case None => indexType match {
-          case graphdb.schema.IndexType.TEXT  => IndexCapabilities.text_2_0
+          case graphdb.schema.IndexType.TEXT  => IndexCapabilities.text_3_0
           case graphdb.schema.IndexType.RANGE => IndexCapabilities.range
           case graphdb.schema.IndexType.POINT => IndexCapabilities.point
           case graphdb.schema.IndexType.LOOKUP =>
@@ -1112,6 +1113,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
           val maybeIndexCapability = indexProvider.name() match {
             case "text-1.0" => Some(IndexCapabilities.text_1_0)
             case "text-2.0" => Some(IndexCapabilities.text_2_0)
+            case "text-3.0" => Some(IndexCapabilities.text_3_0)
             case _          => None
           }
           builder.addNodeIndex(
@@ -1133,6 +1135,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
           val maybeIndexCapability = indexProvider.name() match {
             case "text-1.0" => Some(IndexCapabilities.text_1_0)
             case "text-2.0" => Some(IndexCapabilities.text_2_0)
+            case "text-3.0" => Some(IndexCapabilities.text_3_0)
             case _          => None
           }
           builder.addRelationshipIndex(

@@ -71,7 +71,7 @@ public class TextIndexProviderFactory extends AbstractIndexProviderFactory<TextI
         IndexDirectoryStructure.Factory directoryStructure = directoriesByProvider(databaseLayout.databaseDirectory());
         return new TextIndexProvider(
                 fs,
-                directoryFactory(LuceneContext.getDefault(), fs),
+                directoryFactory(LuceneContext.LUCENE_9, fs),
                 directoryStructure,
                 monitors,
                 config,

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import java.util.function.Supplier;
+import org.apache.lucene.codecs.Codec;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.function.Factory;
@@ -31,7 +32,6 @@ import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
-import org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV2;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
 import org.neo4j.logging.LogProvider;
 
@@ -46,6 +46,7 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
             IndexDescriptor descriptor,
             VectorIndexConfig vectorIndexConfig,
             VectorDocumentStructure documentStructure,
+            Codec codec,
             DatabaseReadOnlyChecker readOnlyChecker,
             Config config,
             LogProvider logProvider) {
@@ -55,7 +56,6 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
         this.documentStructure = documentStructure;
         this.config = config;
 
-        final var codec = new VectorCodecV2(vectorIndexConfig);
         final var writerConfigBuilder =
                 new IndexWriterConfigBuilder(IndexWriterConfigMode.VECTOR, config).withCodec(codec);
         this.writerConfigFactory = writerConfigBuilder::build;
@@ -72,11 +72,12 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
             IndexDescriptor descriptor,
             VectorIndexConfig vectorIndexConfig,
             VectorDocumentStructure documentStructure,
+            Codec codec,
             DatabaseReadOnlyChecker readOnlyChecker,
             Config config,
             LogProvider logProvider) {
         return new VectorIndexBuilder(
-                descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config, logProvider);
+                descriptor, vectorIndexConfig, documentStructure, codec, readOnlyChecker, config, logProvider);
     }
 
     /**

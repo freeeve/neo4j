@@ -220,7 +220,7 @@ abstract class OperationsTest {
         creationContext = mock(CommandCreationContext.class);
 
         IndexProvider fulltextProvider = mock(IndexProvider.class);
-        when(fulltextProvider.getProviderDescriptor()).thenReturn(AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR);
+        when(fulltextProvider.getProviderDescriptor()).thenReturn(AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR);
         when(fulltextProvider.getMinimumRequiredVersion()).thenReturn(KernelVersion.EARLIEST);
         IndexProvider rangeProvider = mock(IndexProvider.class);
         when(rangeProvider.getProviderDescriptor()).thenReturn(AllIndexProviderDescriptors.RANGE_DESCRIPTOR);

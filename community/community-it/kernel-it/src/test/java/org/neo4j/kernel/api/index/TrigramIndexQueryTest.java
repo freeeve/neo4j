@@ -33,7 +33,7 @@ public class TrigramIndexQueryTest extends TextIndexQueryTestBase {
 
     @Override
     protected IndexProviderDescriptor getIndexProviderDescriptor() {
-        return AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR;
+        return AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR;
     }
 
     @Test

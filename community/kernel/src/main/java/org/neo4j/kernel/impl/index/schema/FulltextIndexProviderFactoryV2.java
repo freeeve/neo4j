@@ -19,47 +19,45 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
-import static org.neo4j.kernel.KernelVersion.VERSION_LUCENE_10_INTRODUCED;
 import static org.neo4j.kernel.api.impl.index.storage.DirectoryFactory.directoryFactory;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 
+import java.nio.file.Path;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
+import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexProvider;
-import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
+import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexProvider;
+import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.token.TokenHolders;
 
-public class VectorIndexProviderFactory extends AbstractIndexProviderFactory<VectorIndexProvider> {
-    private final VectorIndexVersion version;
-
-    public VectorIndexProviderFactory(VectorIndexVersion version) {
-        this.version = version;
-    }
+public class FulltextIndexProviderFactoryV2 extends AbstractIndexProviderFactory<FulltextIndexProvider> {
 
     @Override
     protected Class<?> loggingClass() {
-        return VectorIndexProvider.class;
+        return FulltextIndexProvider.class;
     }
 
     @Override
     public IndexProviderDescriptor descriptor() {
-        return version.descriptor();
+        return AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR;
     }
 
     @Override
-    protected VectorIndexProvider internalCreate(
+    protected FulltextIndexProvider internalCreate(
             PageCache pageCache,
             FileSystemAbstraction fs,
             Monitors monitors,
@@ -74,21 +72,23 @@ public class VectorIndexProviderFactory extends AbstractIndexProviderFactory<Vec
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             DependencyResolver dependencyResolver) {
-        return new VectorIndexProvider(
-                version,
+        DirectoryFactory directoryFactory = directoryFactory(LuceneContext.getDefault(), fs);
+        IndexDirectoryStructure.Factory directoryStructureFactory =
+                subProviderDirectoryStructure(databaseLayout.databaseDirectory());
+        return new FulltextIndexProvider(
+                AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR,
+                KernelVersion.VERSION_LUCENE_10_INTRODUCED,
+                directoryStructureFactory,
                 fs,
-                directoryFactory(selectLuceneContextVersion(), fs),
-                directoriesByProvider(databaseLayout.databaseDirectory()),
-                monitors,
                 config,
+                tokenHolders,
+                directoryFactory,
                 readOnlyDatabaseChecker,
                 scheduler,
                 logProvider);
     }
 
-    private LuceneContext selectLuceneContextVersion() {
-        return version.minimumRequiredKernelVersion().isLessThan(VERSION_LUCENE_10_INTRODUCED)
-                ? LuceneContext.LUCENE_9
-                : LuceneContext.LUCENE_10;
+    private static IndexDirectoryStructure.Factory subProviderDirectoryStructure(Path storeDir) {
+        return directoriesByProvider(storeDir);
     }
 }

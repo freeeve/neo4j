@@ -22,7 +22,7 @@ package org.neo4j.internal.schema;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.DEFAULT_TEXT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.DEFAULT_VECTOR_DESCRIPTOR;
-import static org.neo4j.internal.schema.AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR;
+import static org.neo4j.internal.schema.AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.POINT_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.RANGE_DESCRIPTOR;
 import static org.neo4j.internal.schema.AllIndexProviderDescriptors.TOKEN_DESCRIPTOR;
@@ -328,7 +328,25 @@ class SchemaCommandTest {
         assertThat(new NodeFulltext(name, labels, properties, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), FULLTEXT_DESCRIPTOR);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), FULLTEXT_V2_DESCRIPTOR);
+                    assertThat(p.getIndexType())
+                            .as("should have the correct index type")
+                            .isEqualTo(IndexType.FULLTEXT);
+                    assertSchema(p.schema(), EntityType.NODE, labels, properties);
+                });
+    }
+
+    @ParameterizedTest
+    @MethodSource("names")
+    void createFulltextNodeV2(String name) {
+        final var labels = listFrom(LABELS, random.nextInt(1, 3));
+        final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
+        final var config = random.among(FULLTEXT_CONFIGS);
+
+        assertThat(new NodeFulltext(name, labels, properties, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
+                .satisfies(p -> {
+                    assertIndexName(p.getName(), name);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), FULLTEXT_V2_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.FULLTEXT);
@@ -346,7 +364,25 @@ class SchemaCommandTest {
         assertThat(new RelationshipFulltext(name, types, properties, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
                 .satisfies(p -> {
                     assertIndexName(p.getName(), name);
-                    assertIndexProviderDescriptor(p.getIndexProvider(), FULLTEXT_DESCRIPTOR);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), FULLTEXT_V2_DESCRIPTOR);
+                    assertThat(p.getIndexType())
+                            .as("should have the correct index type")
+                            .isEqualTo(IndexType.FULLTEXT);
+                    assertSchema(p.schema(), EntityType.RELATIONSHIP, types, properties);
+                });
+    }
+
+    @ParameterizedTest
+    @MethodSource("names")
+    void createFulltextRelationshipV2(String name) {
+        final var types = listFrom(TYPES, random.nextInt(1, 3));
+        final var properties = listFrom(PROPERTIES, random.nextInt(1, 5));
+        final var config = random.among(FULLTEXT_CONFIGS);
+
+        assertThat(new RelationshipFulltext(name, types, properties, IF_NOT_EXISTS, config).toPrototype(tokenHolders))
+                .satisfies(p -> {
+                    assertIndexName(p.getName(), name);
+                    assertIndexProviderDescriptor(p.getIndexProvider(), FULLTEXT_V2_DESCRIPTOR);
                     assertThat(p.getIndexType())
                             .as("should have the correct index type")
                             .isEqualTo(IndexType.FULLTEXT);

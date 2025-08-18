@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.index.schema;
 import static org.neo4j.kernel.api.impl.index.storage.DirectoryFactory.directoryFactory;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
 
+import java.nio.file.Path;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
@@ -33,28 +34,30 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneContext;
-import org.neo4j.kernel.api.impl.schema.trigram.TrigramIndexProvider;
+import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexProvider;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.token.TokenHolders;
 
-public class TrigramIndexProviderFactory extends AbstractIndexProviderFactory<TrigramIndexProvider> {
+public class FulltextIndexProviderFactoryV1 extends AbstractIndexProviderFactory<FulltextIndexProvider> {
 
     @Override
     protected Class<?> loggingClass() {
-        return TrigramIndexProvider.class;
+        return FulltextIndexProvider.class;
     }
 
     @Override
     public IndexProviderDescriptor descriptor() {
-        return AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR;
+        return AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR;
     }
 
     @Override
-    protected TrigramIndexProvider internalCreate(
+    protected FulltextIndexProvider internalCreate(
             PageCache pageCache,
             FileSystemAbstraction fs,
             Monitors monitors,
@@ -69,14 +72,23 @@ public class TrigramIndexProviderFactory extends AbstractIndexProviderFactory<Tr
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             DependencyResolver dependencyResolver) {
-        IndexDirectoryStructure.Factory directoryStructure = directoriesByProvider(databaseLayout.databaseDirectory());
-        return new TrigramIndexProvider(
+        DirectoryFactory directoryFactory = directoryFactory(LuceneContext.LUCENE_9, fs);
+        IndexDirectoryStructure.Factory directoryStructureFactory =
+                subProviderDirectoryStructure(databaseLayout.databaseDirectory());
+        return new FulltextIndexProvider(
+                AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR,
+                KernelVersion.EARLIEST,
+                directoryStructureFactory,
                 fs,
-                directoryFactory(LuceneContext.getDefault(), fs),
-                directoryStructure,
-                monitors,
                 config,
+                tokenHolders,
+                directoryFactory,
                 readOnlyDatabaseChecker,
+                scheduler,
                 logProvider);
+    }
+
+    private static IndexDirectoryStructure.Factory subProviderDirectoryStructure(Path storeDir) {
+        return directoriesByProvider(storeDir);
     }
 }

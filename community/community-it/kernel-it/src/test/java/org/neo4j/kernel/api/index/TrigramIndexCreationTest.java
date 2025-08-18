@@ -26,6 +26,6 @@ public class TrigramIndexCreationTest extends TextIndexCreationTest {
 
     @Override
     protected IndexProviderDescriptor getIndexProviderDescriptor() {
-        return AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR;
+        return AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR;
     }
 }

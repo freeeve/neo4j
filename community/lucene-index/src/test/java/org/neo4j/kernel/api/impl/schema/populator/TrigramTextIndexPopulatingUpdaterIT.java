@@ -25,6 +25,6 @@ import org.neo4j.internal.schema.IndexProviderDescriptor;
 class TrigramTextIndexPopulatingUpdaterIT extends TextIndexPopulatingUpdaterIT {
     @Override
     protected IndexProviderDescriptor getIndexProviderDescriptor() {
-        return AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR;
+        return AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR;
     }
 }

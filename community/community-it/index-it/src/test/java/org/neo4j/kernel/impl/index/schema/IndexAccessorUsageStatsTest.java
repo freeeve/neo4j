@@ -273,7 +273,11 @@ public class IndexAccessorUsageStatsTest {
                                 Values.pointValue(CoordinateReferenceSystem.CARTESIAN, 4, 5))),
                 Arguments.of(AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR, allEntries()),
                 Arguments.of(AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR, allEntries()),
-                Arguments.of(AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR, PropertyIndexQuery.fulltextSearch("*")));
+                Arguments.of(AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR, allEntries()),
+                Arguments.of(
+                        AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR, PropertyIndexQuery.fulltextSearch("*")),
+                Arguments.of(
+                        AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR, PropertyIndexQuery.fulltextSearch("*")));
     }
 
     private static Stream<IndexProviderDescriptor> tokenIndexAccessors() {

@@ -126,9 +126,10 @@ public enum NotificationCodeWithDescription {
     DEPRECATED_TEXT_INDEX_PROVIDER(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N01,
-            "The `" + AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR.name()
-                    + "` provider for text indexes is deprecated and will be removed in a future version. "
-                    + "Please use `" + AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR.name() + "` instead."),
+            "`" + AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR.name()
+                    + "`, `" + AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR.name()
+                    + "` providers for text indexes are deprecated and will be removed in a future version. "
+                    + "Please use `" + AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR.name() + "` instead."),
 
     DEPRECATED_INDEX_PROVIDER_OPTION(
             Status.Statement.FeatureDeprecationWarning,

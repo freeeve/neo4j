@@ -19,6 +19,8 @@
  */
 package org.neo4j.internal.schema;
 
+import static java.util.Map.entry;
+
 import java.util.Map;
 import java.util.Optional;
 
@@ -35,39 +37,46 @@ public interface AllIndexProviderDescriptors {
 
     IndexProviderDescriptor RANGE_DESCRIPTOR = new IndexProviderDescriptor("range", "1.0");
 
-    IndexProviderDescriptor FULLTEXT_DESCRIPTOR = new IndexProviderDescriptor("fulltext", "1.0");
+    IndexProviderDescriptor FULLTEXT_V1_DESCRIPTOR = new IndexProviderDescriptor("fulltext", "1.0");
+    IndexProviderDescriptor FULLTEXT_V2_DESCRIPTOR = new IndexProviderDescriptor("fulltext", "2.0");
+    IndexProviderDescriptor DEFAULT_FULLTEXT_DESCRIPTOR = FULLTEXT_V2_DESCRIPTOR;
 
     IndexProviderDescriptor TEXT_V1_DESCRIPTOR = new IndexProviderDescriptor("text", "1.0");
     IndexProviderDescriptor TEXT_V2_DESCRIPTOR = new IndexProviderDescriptor("text", "2.0");
-    IndexProviderDescriptor DEFAULT_TEXT_DESCRIPTOR = TEXT_V2_DESCRIPTOR;
+    IndexProviderDescriptor TEXT_V3_DESCRIPTOR = new IndexProviderDescriptor("text", "3.0");
+    IndexProviderDescriptor DEFAULT_TEXT_DESCRIPTOR = TEXT_V3_DESCRIPTOR;
 
     IndexProviderDescriptor VECTOR_V1_DESCRIPTOR = new IndexProviderDescriptor("vector", "1.0");
     IndexProviderDescriptor VECTOR_V2_DESCRIPTOR = new IndexProviderDescriptor("vector", "2.0");
-    IndexProviderDescriptor DEFAULT_VECTOR_DESCRIPTOR = VECTOR_V2_DESCRIPTOR;
+    IndexProviderDescriptor VECTOR_V3_DESCRIPTOR = new IndexProviderDescriptor("vector", "3.0");
+    IndexProviderDescriptor DEFAULT_VECTOR_DESCRIPTOR = VECTOR_V3_DESCRIPTOR;
 
     /**
      * Mapping of {@link IndexProviderDescriptor} to the {@link IndexType}s they describe.
      */
-    Map<IndexProviderDescriptor, IndexType> INDEX_TYPES = Map.of(
-            FULLTEXT_DESCRIPTOR, IndexType.FULLTEXT,
-            TOKEN_DESCRIPTOR, IndexType.LOOKUP,
-            TEXT_V1_DESCRIPTOR, IndexType.TEXT,
-            TEXT_V2_DESCRIPTOR, IndexType.TEXT,
-            RANGE_DESCRIPTOR, IndexType.RANGE,
-            POINT_DESCRIPTOR, IndexType.POINT,
-            VECTOR_V1_DESCRIPTOR, IndexType.VECTOR,
-            VECTOR_V2_DESCRIPTOR, IndexType.VECTOR);
+    Map<IndexProviderDescriptor, IndexType> INDEX_TYPES = Map.ofEntries(
+            entry(FULLTEXT_V1_DESCRIPTOR, IndexType.FULLTEXT),
+            entry(FULLTEXT_V2_DESCRIPTOR, IndexType.FULLTEXT),
+            entry(TOKEN_DESCRIPTOR, IndexType.LOOKUP),
+            entry(TEXT_V1_DESCRIPTOR, IndexType.TEXT),
+            entry(TEXT_V2_DESCRIPTOR, IndexType.TEXT),
+            entry(TEXT_V3_DESCRIPTOR, IndexType.TEXT),
+            entry(RANGE_DESCRIPTOR, IndexType.RANGE),
+            entry(POINT_DESCRIPTOR, IndexType.POINT),
+            entry(VECTOR_V1_DESCRIPTOR, IndexType.VECTOR),
+            entry(VECTOR_V2_DESCRIPTOR, IndexType.VECTOR),
+            entry(VECTOR_V3_DESCRIPTOR, IndexType.VECTOR));
 
     /**
      * Mapping of {@link IndexType} to the latest {@link IndexProviderDescriptor} it can use.
      */
     Map<IndexType, IndexProviderDescriptor> LATEST_INDEX_PROVIDERS = Map.of(
-            IndexType.FULLTEXT, FULLTEXT_DESCRIPTOR,
+            IndexType.FULLTEXT, FULLTEXT_V2_DESCRIPTOR,
             IndexType.LOOKUP, TOKEN_DESCRIPTOR,
-            IndexType.TEXT, TEXT_V2_DESCRIPTOR,
+            IndexType.TEXT, TEXT_V3_DESCRIPTOR,
             IndexType.RANGE, RANGE_DESCRIPTOR,
             IndexType.POINT, POINT_DESCRIPTOR,
-            IndexType.VECTOR, VECTOR_V2_DESCRIPTOR);
+            IndexType.VECTOR, VECTOR_V3_DESCRIPTOR);
 
     /**
      * @param providerName the name of the provider to find

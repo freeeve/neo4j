@@ -51,7 +51,7 @@ public class PartitionedIndexStorage {
     private final FileSystemAbstraction fileSystem;
     private final FolderLayout folderLayout;
     private final FailureStorage failureStorage;
-    private LuceneContext luceneContext;
+    private final LuceneContext luceneContext;
 
     public PartitionedIndexStorage(
             LuceneContext luceneContext,

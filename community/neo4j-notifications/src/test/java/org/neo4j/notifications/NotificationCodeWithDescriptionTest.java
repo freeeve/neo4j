@@ -605,7 +605,7 @@ class NotificationCodeWithDescriptionTest {
                 "This feature is deprecated and will be removed in future versions.",
                 SeverityLevel.WARNING,
                 "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
-                "The `text-1.0` provider for text indexes is deprecated and will be removed in a future version. Please use `text-2.0` instead.",
+                "`text-1.0`, `text-2.0` providers for text indexes are deprecated and will be removed in a future version. Please use `text-3.0` instead.",
                 NotificationCategory.DEPRECATION,
                 NotificationClassification.DEPRECATION,
                 "01N01",
@@ -2154,8 +2154,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            -72, 109, 72, 66, 95, -7, -98, -74, 50, 123, -93, -65, -44, -115, 42, 115, -79, 108, 77, 9, 125, -106, 69,
-            45, -79, -23, 16, -38, 65, -125, -2, -33
+            -35, 5, 67, -5, 59, 27, 91, -67, -24, -62, 4, 47, -16, -44, -128, -61, -66, 121, 77, 41, -1, -4, -101, 76,
+            -122, -22, -29, -35, -32, -125, 53, -70
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

@@ -46,7 +46,7 @@ public class TrigramIndexStringLengthIndexValidationIT extends StringLengthIndex
 
     @Override
     protected IndexProviderDescriptor getIndexProvider() {
-        return AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR;
+        return AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR;
     }
 
     @Override
@@ -54,7 +54,7 @@ public class TrigramIndexStringLengthIndexValidationIT extends StringLengthIndex
         return String.format(
                 "Property value is too large to index, please see index documentation for limitations. "
                         + "Index: Index( id=%d, name='coolName', type='TEXT', "
-                        + "schema=(:LABEL_ONE {largeString}), indexProvider='text-2.0' ), element id: %s",
+                        + "schema=(:LABEL_ONE {largeString}), indexProvider='text-3.0' ), element id: %s",
                 indexId, elementId);
     }
 }

@@ -28,7 +28,7 @@ public enum VectorSimilarity {
     private final VectorSimilarityFunction latestImplementation;
 
     VectorSimilarity() {
-        this.latestImplementation = VectorIndexVersion.V2_0.similarityFunction(name());
+        this.latestImplementation = VectorIndexVersion.V3_0.similarityFunction(name());
     }
 
     public VectorSimilarityFunction latestImplementation() {

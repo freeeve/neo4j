@@ -47,7 +47,6 @@ import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
-// TODO VECTOR: using ephemeral fs, indexes are weird on restart
 @TestDirectoryExtension
 class DatabaseIndexStatsIT {
     private final Label NODE_LABEL = Label.label("Label");

@@ -25,6 +25,7 @@ class VectorDocumentStructures {
             case UNKNOWN -> null;
             case V1_0 -> V1;
             case V2_0 -> V2;
+            case V3_0 -> V3;
         };
     }
 
@@ -38,6 +39,15 @@ class VectorDocumentStructures {
     };
 
     private static final VectorDocumentStructure V2 = new VectorDocumentStructure() {
+        static final String VECTOR_VALUE_KEY_SUFFIX = "d-vector";
+
+        @Override
+        public String vectorValueKeyFor(int dimensions) {
+            return dimensions + VECTOR_VALUE_KEY_SUFFIX;
+        }
+    };
+
+    private static final VectorDocumentStructure V3 = new VectorDocumentStructure() {
         static final String VECTOR_VALUE_KEY_SUFFIX = "d-vector";
 
         @Override

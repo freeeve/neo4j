@@ -477,6 +477,13 @@ class SpecialisedIndexFullCheckTest {
     }
 
     @Nested
+    class TrigramTextIndexV3 extends TextIndexBase {
+        TrigramTextIndexV3() {
+            super(AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR);
+        }
+    }
+
+    @Nested
     class FullTextIndex extends TestBase {
         @Override
         SchemaDescriptor nodeIndexSchema(int labelId, int propKeyId) {
@@ -591,6 +598,13 @@ class SpecialisedIndexFullCheckTest {
     class VectorV2Index extends VectorIndexBase {
         VectorV2Index() {
             super(VectorIndexVersion.V2_0);
+        }
+    }
+
+    @Nested
+    class VectorV3Index extends VectorIndexBase {
+        VectorV3Index() {
+            super(VectorIndexVersion.V3_0);
         }
     }
 

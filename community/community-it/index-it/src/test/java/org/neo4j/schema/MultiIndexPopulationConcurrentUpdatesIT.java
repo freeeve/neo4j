@@ -169,7 +169,8 @@ public class MultiIndexPopulationConcurrentUpdatesIT {
         return Stream.of(
                 Arguments.of(AllIndexProviderDescriptors.RANGE_DESCRIPTOR, IndexType.RANGE),
                 Arguments.of(AllIndexProviderDescriptors.TEXT_V1_DESCRIPTOR, IndexType.TEXT),
-                Arguments.of(AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR, IndexType.TEXT));
+                Arguments.of(AllIndexProviderDescriptors.TEXT_V2_DESCRIPTOR, IndexType.TEXT),
+                Arguments.of(AllIndexProviderDescriptors.TEXT_V3_DESCRIPTOR, IndexType.TEXT));
     }
 
     @ParameterizedTest

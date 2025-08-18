@@ -275,7 +275,8 @@ public abstract class DefaultPooledCursorsTestBase<G extends KernelAPIReadTestSu
         try (KernelTransaction tx = beginTransaction()) {
             SchemaDescriptor schema =
                     SchemaDescriptors.fulltext(EntityType.RELATIONSHIP, array(connection), array(name));
-            IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR)
+            IndexPrototype prototype = IndexPrototype.forSchema(
+                            schema, AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR)
                     .withName(indexName)
                     .withIndexType(IndexType.FULLTEXT);
             index = tx.schemaWrite().indexCreate(prototype);

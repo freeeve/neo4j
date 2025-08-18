@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.impl.schema.vector;
 import java.io.IOException;
 import java.nio.file.OpenOption;
 import java.util.OptionalInt;
+import org.apache.lucene.codecs.Codec;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
@@ -36,11 +37,13 @@ import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV2;
+import org.neo4j.kernel.api.impl.index.lucene.v10.codec.VectorCodecV3;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractLuceneIndexProvider;
 import org.neo4j.kernel.api.index.IndexAccessor;
@@ -117,11 +120,11 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
                 settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(descriptor.getIndexConfig()));
         final var dimensions = vectorIndexConfig.dimensions();
 
-        final var codec = new VectorCodecV2(vectorIndexConfig);
+        final var codec = selectCodec(vectorIndexConfig);
         final var writerConfigBuilder =
                 new IndexWriterConfigBuilder(IndexWriterConfigMode.VECTOR_POPULATION, config).withCodec(codec);
         final var luceneIndex = VectorIndexBuilder.create(
-                        descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config, logProvider)
+                        descriptor, vectorIndexConfig, documentStructure, codec, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)
                 .withIndexStorage(getIndexStorage(descriptor.getId()))
                 .withWriterConfig(writerConfigBuilder::build)
@@ -136,6 +139,12 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
         return new VectorIndexPopulator(luceneIndex, ignoreStrategy, documentStructure, similarityFunction);
     }
 
+    private Codec selectCodec(VectorIndexConfig vectorIndexConfig) {
+        return version.minimumRequiredKernelVersion().isAtLeast(KernelVersion.VERSION_LUCENE_10_INTRODUCED)
+                ? new VectorCodecV3(vectorIndexConfig)
+                : new VectorCodecV2(vectorIndexConfig);
+    }
+
     @Override
     public IndexAccessor getOnlineAccessor(
             IndexDescriptor descriptor,
@@ -148,9 +157,9 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
             throws IOException {
         final var vectorIndexConfig =
                 settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(descriptor.getIndexConfig()));
-
+        final var codec = selectCodec(vectorIndexConfig);
         var builder = VectorIndexBuilder.create(
-                        descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config, logProvider)
+                        descriptor, vectorIndexConfig, documentStructure, codec, readOnlyChecker, config, logProvider)
                 .withIndexStorage(getIndexStorage(descriptor.getId()));
         if (readOnly) {
             builder = builder.permanentlyReadOnly();

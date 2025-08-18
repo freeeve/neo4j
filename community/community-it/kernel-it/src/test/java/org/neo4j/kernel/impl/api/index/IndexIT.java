@@ -392,7 +392,7 @@ class IndexIT extends KernelIntegrationTest {
         long initialIndexCount = Iterators.count(transaction.schemaRead().indexesGetAll());
         SchemaDescriptor schema =
                 SchemaDescriptors.fulltext(EntityType.NODE, new int[] {labelId, labelId2}, new int[] {propertyKeyId});
-        IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR)
+        IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR)
                 .withIndexType(IndexType.FULLTEXT)
                 .withName("multi token index");
         transaction.schemaWrite().indexCreate(prototype);
@@ -471,7 +471,7 @@ class IndexIT extends KernelIntegrationTest {
         long initialIndexCount = Iterators.count(transaction.schemaRead().indexesGetAll());
         SchemaDescriptor schema = SchemaDescriptors.fulltext(
                 EntityType.RELATIONSHIP, new int[] {relType, relType2}, new int[] {propertyKeyId, propertyKeyId2});
-        IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_DESCRIPTOR)
+        IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR)
                 .withIndexType(IndexType.FULLTEXT)
                 .withName("index name");
         transaction.schemaWrite().indexCreate(prototype);

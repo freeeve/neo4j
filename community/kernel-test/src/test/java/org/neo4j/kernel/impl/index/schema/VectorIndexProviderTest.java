@@ -74,6 +74,13 @@ class VectorIndexProviderTest {
         }
     }
 
+    @Nested
+    class V3Lucene10 extends V3 {
+        V3Lucene10() {
+            super(LuceneContext.LUCENE_10);
+        }
+    }
+
     abstract static class V1 extends VectorIndexProviderTestBase {
         V1(LuceneContext luceneContext) {
             super(luceneContext, VectorIndexVersion.V1_0);
@@ -145,6 +152,49 @@ class VectorIndexProviderTest {
     abstract static class V2 extends VectorIndexProviderTestBase {
         V2(LuceneContext luceneContext) {
             super(luceneContext, VectorIndexVersion.V2_0);
+        }
+
+        @Override
+        List<IndexPrototype> invalidPrototypes() {
+            return List.of(
+                    // Bad configurations
+                    //   invalid dimension
+                    vectorPrototype()
+                            .withIndexConfig(VectorIndexSettings.create()
+                                    .withDimensions(-1)
+                                    .toIndexConfig())
+                            .withName("unsupported"),
+
+                    //   unsupported similarity function
+                    vectorPrototype()
+                            .withIndexConfig(VectorIndexSettings.create()
+                                    .withSimilarityFunction("malmo")
+                                    .toIndexConfig())
+                            .withName("unsupported"),
+
+                    //   unrecognised vector index setting
+                    validPrototype()
+                            .withIndexConfig(VectorIndexSettings.create()
+                                    .set(IndexSetting.fulltext_Analyzer(), "swedish")
+                                    .toIndexConfig())
+                            .withName("unsupported"),
+
+                    // Unsupported index types
+                    forSchema(SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR)
+                            .withName("unsupported"),
+                    forSchema(fulltext(EntityType.NODE, new int[] {labelId}, new int[] {propId}))
+                            .withName("unsupported"),
+                    forSchema(schemaDescriptor()).withIndexType(IndexType.POINT).withName("unsupported"),
+                    forSchema(schemaDescriptor()).withIndexType(IndexType.TEXT).withName("unsupported"),
+                    forSchema(schemaDescriptor(), PROVIDER_DESCRIPTOR)
+                            .withIndexType(IndexType.LOOKUP)
+                            .withName("unsupported"));
+        }
+    }
+
+    abstract static class V3 extends VectorIndexProviderTestBase {
+        V3(LuceneContext luceneContext) {
+            super(luceneContext, VectorIndexVersion.V3_0);
         }
 
         @Override
