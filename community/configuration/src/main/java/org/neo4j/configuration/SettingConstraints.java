@@ -540,4 +540,22 @@ public final class SettingConstraints {
             }
         };
     }
+
+    public static <T, U> SettingConstraint<T> mutuallyExclusiveWith(Setting<U> other) {
+        return new SettingConstraint<>() {
+            @Override
+            public void validate(T value, Configuration config) {
+                U otherValue = config.get(other);
+
+                if (value != null && otherValue != null) {
+                    throw new IllegalArgumentException(getDescription());
+                }
+            }
+
+            @Override
+            public String getDescription() {
+                return String.format("Cannot be set in combination with %s", other.name());
+            }
+        };
+    }
 }

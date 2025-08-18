@@ -40,6 +40,7 @@ import static org.neo4j.configuration.SettingConstraints.lessThanOrEqual;
 import static org.neo4j.configuration.SettingConstraints.matches;
 import static org.neo4j.configuration.SettingConstraints.max;
 import static org.neo4j.configuration.SettingConstraints.min;
+import static org.neo4j.configuration.SettingConstraints.mutuallyExclusiveWith;
 import static org.neo4j.configuration.SettingConstraints.noDuplicates;
 import static org.neo4j.configuration.SettingConstraints.range;
 import static org.neo4j.configuration.SettingConstraints.resolution;
@@ -959,6 +960,34 @@ class SettingTest {
                 settingBuilder("resolution." + resolution.name().toLowerCase(Locale.ROOT), DURATION)
                         .addConstraint(resolution(resolution))
                         .build();
+    }
+
+    @Test
+    void testMutuallyExclusiveConstraint() {
+        // given
+        var setting1 = (SettingImpl<String>) settingBuilder("setting1", STRING).build();
+        var name1 = "foo";
+        var setting2 = (SettingImpl<String>) settingBuilder("setting2", STRING)
+                .addConstraint(mutuallyExclusiveWith(setting1))
+                .build();
+        var name2 = "bar";
+
+        // when
+        var settings = new HashMap<Setting<?>, Object>();
+        var simpleConfig = new Configuration() {
+            @Override
+            public <T> T get(Setting<T> setting) {
+                return (T) settings.get(setting);
+            }
+        };
+        settings.put(setting1, name1);
+        settings.put(setting2, name2);
+
+        // then
+        assertDoesNotThrow(() -> setting1.validate(name1, simpleConfig));
+        assertThatThrownBy(() -> setting2.validate(name2, simpleConfig))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Cannot be set in combination with");
     }
 
     private static void assertValidResolution(SettingImpl<Duration> resolutionSetting, long value, ChronoUnit unit) {
