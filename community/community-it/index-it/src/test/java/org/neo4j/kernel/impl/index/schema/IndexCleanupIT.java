@@ -183,7 +183,7 @@ public class IndexCleanupIT {
                 .resolveDependency(StorageEngine.class)
                 .getOpenOptions();
         managementService.shutdown();
-        action.run(fs, databaseLayout, openOptions);
+        action.run(fs, db.databaseLayout(), openOptions);
         configureDb();
     }
 

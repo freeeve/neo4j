@@ -59,6 +59,7 @@ import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.time.SystemNanoClock;
 
 @EphemeralNeo4jLayoutExtension
@@ -86,6 +87,7 @@ class DatabaseShutdownTest {
     }
 
     @Test
+    @SkipOnSpd(reason = "Database shutdown count will be more in spd")
     void invokeDatabaseShutdownListenersOnShutdown() {
         DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setFileSystem(fs)

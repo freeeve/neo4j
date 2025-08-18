@@ -37,6 +37,7 @@ import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
@@ -80,6 +81,7 @@ class DefaultDatabaseContextProviderIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "Number of default databases in spd is more than two")
     void listDatabases() {
         var databases = databaseContextProvider.registeredDatabases();
         assertEquals(2, databases.size());

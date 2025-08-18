@@ -35,6 +35,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.format.FormatOverrideMigrator;
 import org.neo4j.test.utils.TestDirectory;
@@ -45,6 +46,7 @@ public class DbFormatIT {
     TestDirectory directory;
 
     @Test
+    @SkipOnSpd(reason = "Format will be spd_block instead of aligned")
     void defaultCommunityFormat() throws IOException {
         // The default format for community is aligned, but our test format migrator can be in play and override it.
         String property = System.getProperty(FormatOverrideMigrator.OVERRIDE_STORE_FORMAT_KEY);

@@ -51,6 +51,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.assertion.Assert;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.MapValue;
@@ -195,6 +196,7 @@ public class LegacyAuthenticationIT {
     }
 
     @ProtocolTest
+    @SkipOnSpd(reason = "Message for unsupported authentication token is different in enterprise and spd")
     protected void shouldFailIfMalformedAuthTokenUnknownScheme(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(

@@ -164,6 +164,7 @@ public abstract class StringLengthIndexValidationIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "nodeId in error message differs since it's from the property shard and not graph shard")
     void indexPopulationMustFailIfExceedingIndexKeySizeLimit() throws KernelException {
         // Write
         String propValue = getString(random, singleKeySizeLimit + 1);

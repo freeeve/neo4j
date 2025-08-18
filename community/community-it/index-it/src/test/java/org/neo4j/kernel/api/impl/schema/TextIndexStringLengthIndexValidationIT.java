@@ -26,7 +26,9 @@ import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.kernel.impl.api.LuceneIndexValueValidator;
 import org.neo4j.test.RandomSupport;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(reason = "Legacy text_V1 index is not available in a sharded database")
 public class TextIndexStringLengthIndexValidationIT extends StringLengthIndexValidationIT {
     @Override
     protected int getSingleKeySizeLimit(int payloadSize) {

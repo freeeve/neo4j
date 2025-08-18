@@ -44,6 +44,7 @@ import javax.ws.rs.core.Response;
 import org.junit.jupiter.api.Test;
 import org.neo4j.server.rest.domain.JsonHelper;
 import org.neo4j.server.rest.domain.JsonParseException;
+import org.neo4j.test.extension.SkipOnSpd;
 
 public class DiscoveryServiceIT extends AbstractRestFunctionalTestBase {
     @Test
@@ -65,6 +66,7 @@ public class DiscoveryServiceIT extends AbstractRestFunctionalTestBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "JSON response will have neo4j_edition enterprise not community")
     public void shouldHaveJsonDataInResponse() throws Exception {
         var response = requestDiscovery();
 
@@ -72,6 +74,7 @@ public class DiscoveryServiceIT extends AbstractRestFunctionalTestBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "JSON response will have neo4j_edition enterprise not community")
     public void shouldFigureOutMatchingFormatFromVariousAcceptHeaders() throws Exception {
 
         var request = HttpRequest.newBuilder(container().getBaseUri())

@@ -48,6 +48,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @Neo4jLayoutExtension
 class IndexSamplingIntegrationTest {
@@ -62,6 +63,7 @@ class IndexSamplingIntegrationTest {
 
     @ParameterizedTest
     @EnumSource(Entity.class)
+    @SkipOnSpd(reason = "We fetch index data only from the graph shard")
     void shouldSampleNotUniqueIndex(Entity entity) throws Throwable {
         // Given / When
         final var deletions = new MutableInt();
@@ -109,6 +111,7 @@ class IndexSamplingIntegrationTest {
 
     @ParameterizedTest
     @EnumSource(value = Entity.class)
+    @SkipOnSpd(reason = "We fetch index data only from the graph shard")
     void shouldSampleUniqueIndex(Entity entity) throws Throwable {
         // Given / When
         final var deletions = new MutableInt();
