@@ -77,6 +77,7 @@ import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
@@ -1663,7 +1664,9 @@ case class LogicalPlanProducer(
     labels: Expression,
     operator: DynamicElement.SetOperator,
     argumentIds: Set[LogicalVariable],
-    context: LogicalPlanningContext
+    context: LogicalPlanningContext,
+    solvedPropertyPredicates: Set[Expression],
+    propertyPredicates: Map[PropertyKeyToken, Expression]
   ): LogicalPlan = {
     val predicate =
       operator match {
@@ -1676,6 +1679,7 @@ case class LogicalPlanProducer(
         QueryGraph.empty
           .addPatternNodes(variable)
           .addPredicates(predicate)
+          .addPredicates(solvedPropertyPredicates)
           .addArgumentIds(argumentIds.toIndexedSeq),
       horizon = RegularQueryProjection(
         importedExposedSymbols = context.plannerState.importedSubqueryVariables
@@ -1690,7 +1694,7 @@ case class LogicalPlanProducer(
       idName = variable,
       labelExpr = DynamicElement.Simple(rewrittenLabels, operator),
       argumentIds = argumentIds.union(newArguments),
-      propertyPredicates = Map.empty
+      propertyPredicates = propertyPredicates
     )
 
     val annotatedPlan =

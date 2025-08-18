@@ -23,15 +23,21 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner.DynamicLabelExpression
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicLabelLookupLeafPlanner.PropertyPredicatesHelper
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.SingleExactPredicate
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProvider
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicLabel
 import org.neo4j.cypher.internal.expressions.HasDynamicLabels
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.Predicate
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
 
 /**
  * Plans dynamic label scans for nodes with dynamic labels.
@@ -45,6 +51,7 @@ case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
     context: LogicalPlanningContext
   ): Set[LogicalPlan] =
     if (context.settings.dynamicLabelScansEnabled) {
+      val propertyPredicatesHelper = new PropertyPredicatesHelper(queryGraph, context)
       val logicalPlans = for {
         predicate <- queryGraph.selections.predicates.view
         expression <- extractDynamicLabelExpression(predicate)
@@ -52,7 +59,8 @@ case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
           queryGraph.patternNodes,
           queryGraph.argumentIds,
           context,
-          expression
+          expression,
+          propertyPredicatesHelper
         )
       } yield plan
 
@@ -73,7 +81,8 @@ case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
     patternNodes: Set[LogicalVariable],
     argumentIds: Set[LogicalVariable],
     context: LogicalPlanningContext,
-    expression: DynamicLabelExpression
+    expression: DynamicLabelExpression,
+    propertiesHelper: PropertyPredicatesHelper
   ): Option[LogicalPlan] =
     if (
       !patternNodes.contains(expression.variable) ||
@@ -83,12 +92,16 @@ case class DynamicLabelLookupLeafPlanner(skipIDs: Set[LogicalVariable]) extends 
     ) {
       None
     } else {
+      val propertyPredicates = propertiesHelper.predicatesForVariable(expression.variable)
+
       Some(context.staticComponents.logicalPlanProducer.planDynamicLabelNodeLookup(
         variable = expression.variable,
         labels = expression.labels,
         operator = expression.operator,
         argumentIds = argumentIds,
-        context = context
+        context = context,
+        solvedPropertyPredicates = propertyPredicates.values.map(_.solvedPredicate).toSet,
+        propertyPredicates = propertyPredicates.view.mapValues(_.indexSeekArgument).toMap
       ))
     }
 }
@@ -100,4 +113,47 @@ object DynamicLabelLookupLeafPlanner {
     labels: Expression,
     operator: DynamicElement.SetOperator
   )
+
+  private case class PropertyPredicate(solvedPredicate: Expression, indexSeekArgument: Expression)
+
+  private class PropertyPredicatesHelper(queryGraph: QueryGraph, context: LogicalPlanningContext) {
+
+    def predicatesForVariable(v: LogicalVariable): Map[PropertyKeyToken, PropertyPredicate] = {
+      if (context.settings.dynamicLabelIndexUseEnabled)
+        predicates.getOrElse(v, Map.empty)
+      else
+        Map.empty
+    }
+
+    private lazy val predicates: Map[LogicalVariable, Map[PropertyKeyToken, PropertyPredicate]] = {
+      IndexCompatiblePredicatesProvider.findExplicitCompatiblePredicates(
+        queryGraph.argumentIds,
+        queryGraph.selections.flatPredicatesSet,
+        context.semanticTable
+      ).groupBy(_.variable).view.mapValues(icps =>
+        icps.collect {
+          case IndexCompatiblePredicate(
+              _,
+              property,
+              originalPredicate,
+              SingleQueryExpression(indexSeekArgument),
+              SingleExactPredicate,
+              solvedPredicate,
+              _,
+              isImplicit,
+              _,
+              _
+            )
+            if !isImplicit && context.semanticTable.id(property.propertyKey).isDefined =>
+
+            val key = PropertyKeyToken(property.propertyKey, context.semanticTable.id(property.propertyKey).get)
+            val value = PropertyPredicate(
+              solvedPredicate = solvedPredicate.getOrElse(originalPredicate),
+              indexSeekArgument = indexSeekArgument
+            )
+            key -> value
+        }.groupMapReduce(_._1)(_._2)((v1, v2) => Seq(v1, v2).minBy(_.solvedPredicate.position))
+      ).filter(_._2.nonEmpty).toMap
+    }
+  }
 }

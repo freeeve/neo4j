@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class DynamicLabelScanPlanningIntegrationTest
+class DynamicLabelNodeLookupPlanningIntegrationTest
     extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
@@ -285,5 +285,181 @@ class DynamicLabelScanPlanningIntegrationTest
         .|.argument()
         .argument()
         .build()
+  }
+
+  test("should not plan index usage when setting is disabled") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .enablePlanningDynamicLabelIndexUse(false)
+      .build()
+
+    val query = "MATCH (n:$('A')) WHERE n.prop = 123 RETURN n"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("n.prop = 123")
+      .dynamicLabelNodeLookup("n", literalString("A"), DynamicElement.All)
+      .build()
+  }
+
+  test("should plan index usage for equality predicate") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query = "MATCH (n:$('A')) WHERE n.prop = 123 RETURN n"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .dynamicLabelNodeLookup("n", "'A'", DynamicElement.All, Map("prop" -> "123"))
+      .build()
+  }
+
+  test("should plan index for multiple equality predicates on different properties") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query =
+      """MATCH (n:$('A') {name: 'hello', version: 123})
+        |WHERE n.location = point({x:22.0, y:44.0})
+        |RETURN n
+        |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .dynamicLabelNodeLookup(
+        "n",
+        "'A'",
+        DynamicElement.All,
+        Map("name" -> "'hello'", "version" -> "123", "location" -> "point({x:22.0, y:44.0})")
+      )
+      .build()
+  }
+
+  test("should only plan index usage for known properties") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .addProperty("name")
+      .addProperty("version")
+      .addProperty("location")
+      .setAutoResolvePropertiesDuringPlanning(false)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query =
+      """MATCH (n:$('A') {name: 'hello', version: 123})
+        |WHERE
+        |  n.location = point({x:22.0, y:44.0}) AND
+        |  n.unknown = 321
+        |RETURN n
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("n.unknown = 321")
+      .dynamicLabelNodeLookup(
+        "n",
+        "'A'",
+        DynamicElement.All,
+        Map("name" -> "'hello'", "version" -> "123", "location" -> "point({x:22.0, y:44.0})")
+      )
+      .build()
+  }
+
+  test("should plan index usage for equality predicate with argument dependencies") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query =
+      """MATCH (x)
+        |CALL (x) {
+        |  MATCH (n:$('A'))
+        |  WHERE n.prop = x.name
+        |  RETURN n
+        |}
+        |RETURN x, n
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .apply()
+      .|.dynamicLabelNodeLookup("n", "'A'", DynamicElement.All, Map("prop" -> "x.name"), "x")
+      .allNodeScan("x")
+      .build()
+  }
+
+  test("should not plan index usage for predicate on unrelated variable") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query =
+      """MATCH (x)
+        |CALL (x) {
+        |  MATCH (n:$('A'))
+        |  WHERE n.prop = x.name AND x.other = 123
+        |  RETURN n
+        |}
+        |RETURN x, n
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("cacheN[x.other] = 123")
+      .apply()
+      .|.dynamicLabelNodeLookup("n", "'A'", DynamicElement.All, Map("prop" -> "x.name"), "x")
+      .cacheProperties("cacheNFromStore[x.other]")
+      .allNodeScan("x")
+      .build()
+  }
+
+  test("should not plan index usage for non-equality predicates") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val unsupportedPredicates = Seq(
+      "n.prop IS NOT NULL",
+      "n.prop STARTS WITH 'hello'",
+      "n.prop ENDS WITH 'hello'",
+      "n.prop CONTAINS 'hello'",
+      "n.prop > 123"
+    )
+
+    for (pred <- unsupportedPredicates) {
+
+      val query = s"MATCH (n:$$('A')) WHERE n.x = 123 AND $pred RETURN n"
+      val plan = planner.plan(query).stripProduceResults
+      plan shouldEqual planner.subPlanBuilder()
+        .filter(pred)
+        .dynamicLabelNodeLookup("n", "'A'", DynamicElement.All, Map("x" -> "123"))
+        .build()
+    }
+  }
+
+  test("should plan index usage for one equality predicate if there are multiple predicates on the same property") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query = "MATCH (n:$('A')) WHERE n.x = 123 AND n.x = 321 RETURN n"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("n.x = 321")
+      .dynamicLabelNodeLookup("n", "'A'", DynamicElement.All, Map("x" -> "123"))
+      .build()
   }
 }

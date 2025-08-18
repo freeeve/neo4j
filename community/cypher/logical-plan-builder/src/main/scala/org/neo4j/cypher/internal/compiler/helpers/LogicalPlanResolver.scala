@@ -35,12 +35,22 @@ case class TokenContainer(
   def addRelType(relType: String): TokenContainer = this.copy(relTypes = relTypes + relType)
   def addProperty(property: String): TokenContainer = this.copy(properties = properties + property)
 
-  def getResolver(procedures: Set[ProcedureSignature]): LogicalPlanResolver = new LogicalPlanResolver(
-    labels.to(ArrayBuffer),
-    properties.to(ArrayBuffer),
-    relTypes.to(ArrayBuffer),
-    procedures
-  )
+  def getResolver(procedures: Set[ProcedureSignature], autoResolveProperties: Boolean): LogicalPlanResolver =
+    new LogicalPlanResolver(
+      labels.to(ArrayBuffer),
+      properties.to(ArrayBuffer),
+      relTypes.to(ArrayBuffer),
+      procedures
+    ) { self =>
+      override def getOptPropertyKeyId(propertyKeyName: String): Option[Int] = {
+        if (autoResolveProperties) {
+          super.getOptPropertyKeyId(propertyKeyName)
+        } else {
+          val id = self.properties.indexOf(propertyKeyName)
+          Option.unless(id == -1)(id)
+        }
+      }
+    }
 }
 
 class LogicalPlanResolver(

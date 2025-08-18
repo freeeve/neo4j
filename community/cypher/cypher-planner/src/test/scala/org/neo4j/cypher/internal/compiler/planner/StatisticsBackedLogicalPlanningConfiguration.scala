@@ -325,6 +325,11 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
   }
 }
 
+/**
+ * @param autoResolvePropertiesDuringPlanning When true, every property encountered during planning will have an ID assigned to it.
+ *                                            When false, only properties added by [[addProperty]] will have an ID.
+ *
+ */
 case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   options: Options = Options(),
   cardinalities: Cardinalities = Cardinalities(),
@@ -338,7 +343,8 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   procedures: Set[ProcedureSignature] = Set.empty,
   functions: Set[UserFunctionSignature] = Set.empty,
   settings: Map[Setting[_], AnyRef] = Map.empty,
-  dbMode: DatabaseMode = DatabaseMode.SINGLE
+  dbMode: DatabaseMode = DatabaseMode.SINGLE,
+  autoResolvePropertiesDuringPlanning: Boolean = true
 ) {
 
   def withSetting[T <: AnyRef](setting: Setting[T], value: T): StatisticsBackedLogicalPlanningConfigurationBuilder = {
@@ -1192,6 +1198,10 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     withSetting(GraphDatabaseSettings.db_format, dbFormat.settingValue)
   }
 
+  def setAutoResolvePropertiesDuringPlanning(enabled: Boolean): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    copy(autoResolvePropertiesDuringPlanning = enabled)
+  }
+
   def build(): StatisticsBackedLogicalPlanningConfiguration = {
     require(cardinalities.allNodes.isDefined, "Please specify allNodesCardinality using `setAllNodesCardinality`.")
     cardinalities.allNodes.foreach(anc =>
@@ -1206,7 +1216,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       )
     )
 
-    val resolver = tokens.getResolver(procedures)
+    val resolver = tokens.getResolver(procedures, autoResolvePropertiesDuringPlanning)
 
     // Get the parsed histograms from the config
     val plannerConfiguration = CypherPlannerConfiguration.withSettings(settings)
@@ -1280,7 +1290,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       }
 
       override def getHistograms(labels: Set[LabelId], propertyKey: PropertyKeyId): Set[Histogram] = {
-        val resolver = tokens.getResolver(procedures)
+        val resolver = tokens.getResolver(procedures, autoResolvePropertiesDuringPlanning)
         histograms.filter(histogram =>
           histogram.nodeOrRelationship == NODE_TYPE &&
             resolver.getOptPropertyKeyId(
@@ -1296,7 +1306,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       }
 
       override def getHistograms(typeId: RelTypeId, propertyKey: PropertyKeyId): Set[Histogram] = {
-        val resolver = tokens.getResolver(procedures)
+        val resolver = tokens.getResolver(procedures, autoResolvePropertiesDuringPlanning)
 
         histograms.filter(histogram =>
           histogram.nodeOrRelationship == RELATIONSHIP_TYPE &&
