@@ -1189,6 +1189,10 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   def enablePlanningDynamicLabelIndexUse(enabled: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder =
     withSetting(GraphDatabaseInternalSettings.cypher_enable_dynamic_label_index_use, Boolean.box(enabled))
 
+  def enableGraphSchemaOptimizations(enabled: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    withSetting(GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled, Boolean.box(enabled))
+  }
+
   def setDatabaseReferenceRepository(
     databaseReferenceRepository: DatabaseReferenceRepository
   ): StatisticsBackedLogicalPlanningConfigurationBuilder =
@@ -1218,6 +1222,44 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         require(arc >= rc, s"Relationship cardinality ($rc) was greater than all relationships cardinality ($arc)")
       )
     )
+
+    nodeLabelConstraints.foreach { case (constrainedLabel, impliedLabels) =>
+      impliedLabels.foreach { impliedLabel =>
+        cardinalities.labels.get(impliedLabel).foreach { impliedLabelCardinality =>
+          cardinalities.labels.get(constrainedLabel).foreach { constrainedLabelCardinality =>
+            require(
+              impliedLabelCardinality >= constrainedLabelCardinality,
+              s"""---------
+                 |Inconsistent cardinality for node label constraint:
+                 |$impliedLabelCardinality (`$impliedLabel`) < $constrainedLabelCardinality (`$constrainedLabel`)
+                 |---------
+                 |""".stripMargin
+            )
+          }
+        }
+      }
+    }
+
+    relationshipEndpointLabelConstraints.foreach { constraint =>
+      val specificString =
+        if (constraint.endPoint == EndpointType.START) s"(:${constraint.label})-[:${constraint.relType}]->()"
+        else s"()-[:${constraint.relType}]->(:${constraint.label})"
+      cardinalities.relationships.get(RelDef.fromString(specificString).head).foreach { specificCardinality =>
+        val genericString = s"()-[:${constraint.relType}]->()"
+        cardinalities.relationships.get(RelDef.fromString(genericString).head).foreach { generalCardinality =>
+          require(
+            // Generally, we know that the specific cardinality should be less than or equal to the general one.
+            // With the constraint, we know that all general relationship are of the specific kind.
+            // Thus, from <= and >= we can conclude ==.
+            specificCardinality == generalCardinality,
+            s"""---------
+               |Inconsistent cardinality for relationship with endpoint label constraint:
+               |$specificCardinality (`$specificString`) != $generalCardinality (`$genericString`)
+               |---------""".stripMargin
+          )
+        }
+      }
+    }
 
     val resolver = tokens.getResolver(procedures, autoResolvePropertiesDuringPlanning)
 

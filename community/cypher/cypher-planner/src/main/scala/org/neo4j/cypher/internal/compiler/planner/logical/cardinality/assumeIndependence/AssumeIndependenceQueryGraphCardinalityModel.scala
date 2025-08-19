@@ -92,7 +92,7 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
   ): (LabelInfo, Cardinality) = {
 
     val impliedEndpointLabelsMap =
-      context.graphSchemaOptimizations.impliedEndpointLabelsMap(queryGraph)
+      context.graphSchemaOptimizations.impliedEndpointLabelsMap(queryGraph.patternRelationships)
 
     val predicates =
       QueryGraphPredicates.partitionSelections(

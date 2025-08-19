@@ -133,11 +133,16 @@ final case class PatternRelationship(
   override val right: LogicalVariable = boundaryNodes._2
   override val nodes: Set[LogicalVariable] = Set(left, right)
   override val relationships: Set[LogicalVariable] = Set(variable)
+  val selfLoop: Boolean = left == right
 
   override def withLeft(left: LogicalVariable): PatternRelationship = copy(boundaryNodes = (left, right))
 
   override def withRight(right: LogicalVariable): PatternRelationship = copy(boundaryNodes = (left, right))
 
+  /**
+   * If the relationship is directed, the order of the nodes is determined by the direction.
+   * If the relationship is undirected, the nodes are returned (left, right)
+   */
   def inOrder: (LogicalVariable, LogicalVariable) = dir match {
     case SemanticDirection.INCOMING => (right, left)
     case _                          => (left, right)

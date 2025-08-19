@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.semantics.TokenTable
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
+import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicPropertyNotifier
@@ -41,7 +42,6 @@ import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.PartialPredicate.PartialPredicateWrapper
-import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
@@ -50,8 +50,8 @@ import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
-import org.neo4j.internal.schema.EndpointType
 import org.neo4j.notifications.NodeIndexLookupUnfulfillableNotification
 
 case class NodeIndexLeafPlanner(planProviders: Seq[NodeIndexPlanProvider], restrictions: LeafPlanRestrictions)
@@ -172,38 +172,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
     val predicates = qg.selections.flatPredicates.toSet
     val allLabelPredicatesMap: Map[LogicalVariable, Set[HasLabels]] = qg.selections.labelPredicates
 
-    def labelIsAlreadyExplicitOnNode(label: String, variable: LogicalVariable): Boolean = {
-      allLabelPredicatesMap.get(variable)
-        .exists(
-          _.exists(
-            _.labels.exists(
-              _.name == label
-            )
-          )
-        )
-    }
-    val impliedEndpointLabelsMap = qg.patternRelationships.filter(_.dir != BOTH)
-      .flatMap { patRel =>
-        patRel.types
-          .flatMap(typ => planContext.getRelationshipEndpointLabelConstraints(typ.name))
-          .flatMap { case (endPointType, impliedLabel) =>
-            val variable = endPointType match {
-              case EndpointType.START => patRel.inOrder._1
-              case EndpointType.END   => patRel.inOrder._2
-            }
-
-            if (labelIsAlreadyExplicitOnNode(impliedLabel, variable))
-              None
-            else
-              Some(variable -> ImpliedLabel(
-                HasLabels(
-                  variable,
-                  Seq(LabelName(impliedLabel)(variable.position))
-                )(variable.position)
-              )(variable.position))
-          }
-      }
-      .toMap
+    val impliedEndpointLabelsMap = graphSchemaOptimizations.impliedEndpointLabelsMap(qg.patternRelationships)
 
     if (allLabelPredicatesMap.isEmpty && impliedEndpointLabelsMap.isEmpty) {
       Set.empty[NodeIndexMatch]
@@ -219,12 +188,11 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
       val matches = for {
         propertyPredicates <- compatiblePropertyPredicates.groupBy(_.variable)
         variable = propertyPredicates._1
-        labelPredicates =
-          impliedEndpointLabelsMap.get(variable).toSeq ++ allLabelPredicatesMap.getOrElse(variable, Set.empty)
+
         indexMatch <- findIndexMatches(
           variable,
           propertyPredicates._2,
-          labelPredicates.toSet,
+          labelPredicates(variable, allLabelPredicatesMap, impliedEndpointLabelsMap),
           interestingOrderConfig,
           semanticTable,
           planContext,
@@ -237,6 +205,22 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
       } yield indexMatch
       matches.toSet
     }
+  }
+
+  private def labelPredicates(
+    variable: LogicalVariable,
+    allLabelPredicatesMap: Map[LogicalVariable, Set[HasLabels]],
+    impliedEndpointLabelsMap: LabelInfo
+  ): Set[HasLabelsExpression] = {
+    val explicitLabelPredicates = allLabelPredicatesMap.getOrElse(variable, Set.empty)
+    val explicitLabelNames = explicitLabelPredicates.flatMap(_.hasLabels.labels)
+    val impliedLabelPredicates =
+      impliedEndpointLabelsMap.getOrElse(variable, Set.empty)
+        .diff(explicitLabelNames)
+        .map { label =>
+          ImpliedLabel(HasLabels(variable, Seq(label))(InputPosition.NONE))(InputPosition.NONE)
+        }
+    impliedLabelPredicates ++ explicitLabelPredicates
   }
 
   private def findIndexMatches(

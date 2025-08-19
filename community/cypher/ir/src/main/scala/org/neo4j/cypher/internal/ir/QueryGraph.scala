@@ -498,6 +498,10 @@ final case class QueryGraph private (
 
   def hasOptionalPatterns: Boolean = optionalMatches.nonEmpty
 
+  /**
+   * For the nodes in the pattern, what labels can be inferred about these?
+   * Also takes selective path patterns into account.
+   */
   def patternNodeLabels: Map[LogicalVariable, Set[LabelName]] = {
     // Node label predicates are extracted from the pattern nodes to predicates in LabelPredicateNormalizer.
     // Therefore, we only need to look in selections.

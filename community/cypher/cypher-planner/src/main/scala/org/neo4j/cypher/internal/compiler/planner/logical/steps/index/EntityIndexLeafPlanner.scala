@@ -213,7 +213,7 @@ object EntityIndexLeafPlanner {
    * @param predicateExactness   Determines seek possibility
    * @param solvedPredicate      If a plan is created, this is what to register as solved predicate
    * @param dependencies         Predicate dependencies
-   * @param isImplicit           if `true` than the predicate is not explicitly stated in the query
+   * @param isImplicit           if `true` then the predicate is not explicitly stated in the query
    * @param indexRequirements    Requirements an index must satisfy to be considered a match for this predicate
    * @param cypherType           the type of the property
    */

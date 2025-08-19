@@ -25,9 +25,10 @@ import org.neo4j.cypher.internal.expressions.HasLabel
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.ir.PatternRelationship
-import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.InputPosition
@@ -73,17 +74,26 @@ sealed trait GraphSchemaOptimizations {
    * @param labelToCheck Is this label implied by one of its adjacent relationships
    * @param outRelTypes The set of all disjunctive types of each outgoing relationship. For example ()<-[:A|B|C]-(v:X)-[B]->() gives for variable v: {{A,B,C}, {B}}.
    * @param inRelTypes The set of all disjunctive types of each incoming relationship. For example ()-[:A|B|C]->(v:X)<-[B]-() gives for variable v: {{A,B,C}, {B}}.
+   * @param undirectedRelTypes The set of all disjunctive types of each undirected relationship. For example ()-[:A|B|C]-(v:X)-[B]->() gives for variable v: {{A,B,C}}.
    * @return true if the presence of `labelToCheck` is implied by a type on at least one of its outgoing or incoming relationships
    */
   def isLabelImplied(
     labelToCheck: String,
     outRelTypes: Set[DisjunctiveTypes],
-    inRelTypes: Set[DisjunctiveTypes]
+    inRelTypes: Set[DisjunctiveTypes],
+    undirectedRelTypes: Set[DisjunctiveTypes]
   ): Boolean
 
   def partitionImpliedHasLabelsPredicates(unsolvedPredicates: Set[Expression]): (Set[Expression], Set[Expression])
 
-  def impliedEndpointLabelsMap(queryGraph: QueryGraph): Map[LogicalVariable, Set[LabelName]]
+  def impliedEndpointLabelsMap(patternRelationships: Set[PatternRelationship]): LabelInfo
+
+  def implicationsFromRelationship(
+    fromNode: LogicalVariable,
+    toNode: LogicalVariable,
+    relationshipTypes: Seq[RelTypeName],
+    relationshipDirection: SemanticDirection
+  ): Set[(LogicalVariable, LabelName)]
 }
 
 object GraphSchemaOptimizations {
@@ -109,14 +119,25 @@ object GraphSchemaOptimizations {
     override def isLabelImplied(
       labelToCheck: String,
       outRelTypes: Set[DisjunctiveTypes],
-      inRelTypes: Set[DisjunctiveTypes]
+      inRelTypes: Set[DisjunctiveTypes],
+      undirectedRelTypes: Set[DisjunctiveTypes]
     ): Boolean =
       false
 
-    override def impliedEndpointLabelsMap(queryGraph: QueryGraph): Map[LogicalVariable, Set[LabelName]] = Map.empty
+    override def impliedEndpointLabelsMap(patternRelationships: Set[PatternRelationship]): LabelInfo =
+      LabelInfo.empty
 
-    def partitionImpliedHasLabelsPredicates(unsolvedPredicates: Set[Expression]): (Set[Expression], Set[Expression]) =
+    override def partitionImpliedHasLabelsPredicates(unsolvedPredicates: Set[Expression])
+      : (Set[Expression], Set[Expression]) =
       (Set.empty, unsolvedPredicates)
+
+    override def implicationsFromRelationship(
+      fromNode: LogicalVariable,
+      toNode: LogicalVariable,
+      relationshipTypes: Seq[RelTypeName],
+      relationshipDirection: SemanticDirection
+    ): Set[(LogicalVariable, LabelName)] =
+      Set.empty
   }
 
   final class Enabled(planContext: PlanContext) extends GraphSchemaOptimizations {
@@ -158,7 +179,8 @@ object GraphSchemaOptimizations {
     override def isLabelImplied(
       labelToCheck: String,
       outRelsTypes: Set[DisjunctiveTypes],
-      inRelsTypes: Set[DisjunctiveTypes]
+      inRelsTypes: Set[DisjunctiveTypes],
+      undirectedRelsTypes: Set[DisjunctiveTypes]
     ): Boolean = {
       def impliedByRels(endpoint: EndpointType, relsTypes: Set[DisjunctiveTypes]) =
         relsTypes.exists(relTypes =>
@@ -167,9 +189,18 @@ object GraphSchemaOptimizations {
           )
         )
 
-      val isImpliedByOutgoingRel = () => impliedByRels(EndpointType.START, outRelsTypes)
-      val isImpliedByIncomingRel = () => impliedByRels(EndpointType.END, inRelsTypes)
-      isImpliedByOutgoingRel() || isImpliedByIncomingRel()
+      lazy val isImpliedByOutgoingRel = impliedByRels(EndpointType.START, outRelsTypes)
+      lazy val isImpliedByIncomingRel = impliedByRels(EndpointType.END, inRelsTypes)
+      lazy val isImpliedByUndirectedRel =
+        undirectedRelsTypes.exists(relTypes =>
+          relTypes.nonEmpty && relTypes.forall(relType =>
+            // If the relationship pattern has no direction indicated, it could be matched in either direction.
+            // That means, to be able to infer any label information on the end-points, they need to be present on both ends.
+            planContext.hasRelationshipEndpointLabelConstraint(relType, labelToCheck, EndpointType.START)
+              && planContext.hasRelationshipEndpointLabelConstraint(relType, labelToCheck, EndpointType.END)
+          )
+        )
+      isImpliedByOutgoingRel || isImpliedByIncomingRel || isImpliedByUndirectedRel
     }
 
     /**
@@ -199,36 +230,86 @@ object GraphSchemaOptimizations {
       }
     }
 
-    private case class impliedFromEndNodeConstraint(variable: LogicalVariable, labelName: LabelName)
+    private def labelName(variable: LogicalVariable, impliedLabel: String) =
+      variable -> LabelName(impliedLabel)(variable.position)
 
-    private def implicationsFromRelationship(
-      patRel: PatternRelationship,
-      queryGraph: QueryGraph
-    ): List[impliedFromEndNodeConstraint] = {
-      planContext.getRelationshipEndpointLabelConstraints(patRel.types.head.name).toList
-        .flatMap { case (endPointType, impliedLabel) =>
-          val variable = endPointType match {
-            case EndpointType.START => patRel.inOrder._1
-            case EndpointType.END   => patRel.inOrder._2
-          }
-          if (queryGraph.patternNodeLabels.get(variable).exists(_.exists(_.name == impliedLabel))) {
-            None
-          } else {
-            Some(impliedFromEndNodeConstraint(variable, LabelName(impliedLabel)(variable.position)))
-          }
+    override def implicationsFromRelationship(
+      fromNode: LogicalVariable,
+      toNode: LogicalVariable,
+      relationshipTypes: Seq[RelTypeName],
+      relationshipDirection: SemanticDirection
+    ): Set[(LogicalVariable, LabelName)] =
+      cachedImplicationsFromRelationship(fromNode, toNode, relationshipTypes, relationshipDirection)
+
+    private val cachedImplicationsFromRelationship =
+      CachedFunction {
+        (fromNode: LogicalVariable, toNode: LogicalVariable, types: Seq[RelTypeName], dir: SemanticDirection) =>
+          internalImplicationsFromRelationship(fromNode, toNode, types, dir)
+      }
+
+    private def implicationsFromRelationship(patternRelationship: PatternRelationship)
+      : Set[(LogicalVariable, LabelName)] = {
+      val fromNode = patternRelationship.inOrder._1
+      val toNode = patternRelationship.inOrder._2
+      val relationshipTypes = patternRelationship.types
+      val relationshipDirection = patternRelationship.dir
+
+      implicationsFromRelationship(fromNode, toNode, relationshipTypes, relationshipDirection)
+    }
+
+    private def internalImplicationsFromRelationship(
+      fromNode: LogicalVariable,
+      toNode: LogicalVariable,
+      types: Seq[RelTypeName],
+      dir: SemanticDirection
+    ): Set[(LogicalVariable, LabelName)] =
+      types
+        .map(relTypeName => implicationsFromRelationshipType(dir, fromNode, toNode, relTypeName.name))
+        .reduceOption(_ intersect _)
+        .getOrElse(Set.empty)
+
+    private def implicationsFromRelationshipType(
+      dir: SemanticDirection,
+      fromNode: LogicalVariable,
+      toNode: LogicalVariable,
+      relTypeName: String
+    ): Set[(LogicalVariable, LabelName)] = {
+      val constraintsOnRelType = planContext.getRelationshipEndpointLabelConstraints(relTypeName)
+      if (fromNode == toNode) {
+        constraintsOnRelType
+          .values
+          .toSet
+          .map(labelName(fromNode, _))
+      } else {
+        dir match {
+          case BOTH =>
+            (constraintsOnRelType.get(EndpointType.START), constraintsOnRelType.get(EndpointType.END)) match {
+              case (Some(impliedStartLabel), Some(impliedEndLabel))
+                // If the relationship pattern has no direction indicated, it could be matched in either direction.
+                // That means, to be able to infer any label information on the end-points, they need to be present on both ends.
+                if impliedStartLabel == impliedEndLabel =>
+                Set(fromNode, toNode).map(labelName(_, impliedStartLabel))
+              case _ => Set.empty
+            }
+          case _ =>
+            constraintsOnRelType.toSet[(EndpointType, String)]
+              .collect {
+                case (EndpointType.START, impliedLabel) => labelName(fromNode, impliedLabel)
+                case (EndpointType.END, impliedLabel)   => labelName(toNode, impliedLabel)
+              }
         }
+      }
     }
 
     /**
      * Returns a map of variables to the set of labels that are implied by the relationship constraints.
      * This is used to infer labels that can be added to the query graph based on the relationship constraints.
      */
-    def impliedEndpointLabelsMap(queryGraph: QueryGraph): Map[LogicalVariable, Set[LabelName]] = {
-      val implications = queryGraph.patternRelationships.filter(p => p.dir != BOTH && p.types.size == 1)
-        .flatMap { patRel =>
-          implicationsFromRelationship(patRel, queryGraph)
-        }
-      LabelInfo.from(implications.groupMap(_.variable)(_.labelName))
+    override def impliedEndpointLabelsMap(patternRelationships: Set[PatternRelationship]): LabelInfo = {
+      val implications =
+        patternRelationships
+          .flatMap(implicationsFromRelationship)
+      LabelInfo.from(implications.groupMap(_._1)(_._2))
     }
   }
 }

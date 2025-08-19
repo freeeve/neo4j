@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Property
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
@@ -172,19 +173,28 @@ case object resolveImplicitlySolvedPredicates extends SelectionCandidateGenerato
         .queryGraph
         .patternRelationships
 
-    def getTypesOfAdjacentRels(endNodeFilter: PatternRelationship => Boolean) =
-      qgPatternRels
-        .filter(endNodeFilter)
+    def getTypesOfAdjacentRels(rels: Set[PatternRelationship], filter: PatternRelationship => Boolean) =
+      rels
+        .filter(filter)
         .map(_.types.map(_.name).toSet)
 
     for {
       (nodeVar, unsolvedLabel, predExpr) <- unsolvedHasLabels
+      // Undirected relationship patterns usually require us to enforce a label on both sides to be able to infer that label
+      // If the relationship is a self-loop, however, that is not necessary as the direction of how the relationship is bound does not matter.
+      (undirected, directedOrSelfLoops) = qgPatternRels.partition(rel => !rel.selfLoop && rel.dir == BOTH)
       // Get all types on the outgoing relationships from the variable of the hasLabel predicate
-      outRelTypes = getTypesOfAdjacentRels(_.inOrder._1 == nodeVar)
+      outRelTypes = getTypesOfAdjacentRels(directedOrSelfLoops, _.inOrder._1 == nodeVar)
       // Get all types on the incoming relationships to the variable of the hasLabel predicate
-      inRelTypes = getTypesOfAdjacentRels(_.inOrder._2 == nodeVar)
+      inRelTypes = getTypesOfAdjacentRels(directedOrSelfLoops, _.inOrder._2 == nodeVar)
+      undirectedRelTypes = getTypesOfAdjacentRels(undirected, _.nodes.contains(nodeVar))
       // Check if the label in the hasLabel predicate can be implied from one of its adjacent relationship types
-      if context.staticComponents.graphSchemaOptimizations.isLabelImplied(unsolvedLabel.name, outRelTypes, inRelTypes)
+      if context.staticComponents.graphSchemaOptimizations.isLabelImplied(
+        unsolvedLabel.name,
+        outRelTypes,
+        inRelTypes,
+        undirectedRelTypes
+      )
     } yield predExpr
   }
 

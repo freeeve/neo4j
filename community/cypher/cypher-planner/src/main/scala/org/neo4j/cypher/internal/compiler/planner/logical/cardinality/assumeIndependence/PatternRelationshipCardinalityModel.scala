@@ -115,10 +115,8 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
                 // Use labelInfo, but set the inferred labels of relationship.left (middle node) to inferredLabelsForMiddleNodes
                 val lastRelationshipMultiplier = {
                   getLastRelationshipMultiplier(
-                    labelInfoAndContextForEndPoints = (
-                      labelInfo.updated(relationship.left, inferredLabelsForMiddleNodes),
-                      updatedContext
-                    ),
+                    updatedContext,
+                    labelInfo.updated(relationship.left, inferredLabelsForMiddleNodes),
                     relationship
                   )
                 }
@@ -145,6 +143,33 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
           }.sum(NumericCardinality)
     }
 
+  /**
+   * When we know that all relationships with type R end in label A, then we can
+   * replace the approximation for [:R]->(:A:B) with the exact value for [:R]->(:B).
+   *
+   * Thus, when estimating the cardinality of a relationship, we can remove the implied labels
+   * from relationship endpoint constraints.
+   */
+  private def reduceLabelInfoByImplied(
+    context: QueryGraphCardinalityContext,
+    labelInfo: LabelInfo,
+    fromNode: LogicalVariable,
+    toNode: LogicalVariable,
+    relationshipTypes: Seq[RelTypeName],
+    relationshipDirection: SemanticDirection
+  ): LabelInfo =
+    context.graphSchemaOptimizations
+      .implicationsFromRelationship(fromNode, toNode, relationshipTypes, relationshipDirection)
+      .foldLeft(labelInfo) {
+        case (labelInfo, (variable, labelName)) =>
+          labelInfo.get(variable) match {
+            case Some(knownLabels) if knownLabels.contains(labelName) =>
+              labelInfo.updated(variable, knownLabels - labelName)
+            case _ =>
+              labelInfo
+          }
+      }
+
   def getEmptyPathPatternCardinality(
     context: QueryGraphCardinalityContext,
     labelInfo: LabelInfo,
@@ -166,10 +191,16 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
     relationshipTypes: Seq[RelTypeName],
     relationshipDirection: SemanticDirection
   ): Cardinality = {
+    val (fromNode, toNode) = relationshipDirection match {
+      case SemanticDirection.INCOMING => (rightNode, leftNode)
+      case _                          => (leftNode, rightNode)
+    }
+    val reducedLabelInfo =
+      reduceLabelInfoByImplied(context, labelInfo, fromNode, toNode, relationshipTypes, relationshipDirection)
     val cardinality =
       for {
-        labelsOnLeft <- getResolvedNodeLabels(context, labelInfo, leftNode)
-        labelsOnRight <- getResolvedNodeLabels(context, labelInfo, rightNode)
+        labelsOnLeft <- getResolvedNodeLabels(context, reducedLabelInfo, leftNode)
+        labelsOnRight <- getResolvedNodeLabels(context, reducedLabelInfo, rightNode)
       } yield relationshipTypes match {
         case Seq() =>
           getDissectedRelationshipCardinality(
@@ -216,13 +247,14 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
   }
 
   private def getLastRelationshipMultiplier(
-    labelInfoAndContextForEndPoints: (LabelInfo, QueryGraphCardinalityContext),
+    context: QueryGraphCardinalityContext,
+    labelInfo: LabelInfo,
     relationship: PatternRelationship
   ): Multiplier = {
     val relCardinality =
       getSimpleRelationshipCardinality(
-        context = labelInfoAndContextForEndPoints._2,
-        labelInfo = labelInfoAndContextForEndPoints._1,
+        context = context,
+        labelInfo = labelInfo,
         leftNode = relationship.left,
         rightNode = relationship.right,
         relationshipTypes = relationship.types,
@@ -231,11 +263,11 @@ trait PatternRelationshipCardinalityModel extends NodeCardinalityModel {
 
     val nodeCardinality =
       getNodeCardinality(
-        labelInfoAndContextForEndPoints._2,
-        labelInfoAndContextForEndPoints._1,
+        context,
+        labelInfo,
         relationship.left
       )
-        .getOrElse(labelInfoAndContextForEndPoints._2.allNodesCardinality)
+        .getOrElse(context.allNodesCardinality)
 
     Multiplier.ofDivision(relCardinality, nodeCardinality)
       .getOrElse(Multiplier.ZERO)
