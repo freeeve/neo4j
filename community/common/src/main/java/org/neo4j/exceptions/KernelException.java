@@ -28,12 +28,6 @@ import org.neo4j.kernel.api.exceptions.Status;
 public abstract class KernelException extends GqlException implements Status.HasStatus {
     private final Status statusCode;
 
-    @Deprecated
-    protected KernelException(Status statusCode, Throwable cause, String message, Object... parameters) {
-        super(toMessage(message, parameters), cause);
-        this.statusCode = statusCode;
-    }
-
     protected KernelException(
             ErrorGqlStatusObject gqlStatusObject,
             Status statusCode,

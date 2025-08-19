@@ -35,11 +35,6 @@ public class CypherTypeException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
-    @Deprecated
-    public CypherTypeException(String message) {
-        super(message);
-    }
-
     protected CypherTypeException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }

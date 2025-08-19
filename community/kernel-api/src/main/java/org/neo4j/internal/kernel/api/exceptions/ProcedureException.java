@@ -48,10 +48,6 @@ import org.neo4j.procedure.UserAggregationResult;
 import org.neo4j.procedure.UserAggregationUpdate;
 
 public class ProcedureException extends KernelException {
-    @Deprecated
-    public ProcedureException(Status statusCode, Throwable cause, String message, Object... parameters) {
-        super(statusCode, cause, message, parameters);
-    }
 
     private ProcedureException(
             ErrorGqlStatusObject gqlStatusObject,
