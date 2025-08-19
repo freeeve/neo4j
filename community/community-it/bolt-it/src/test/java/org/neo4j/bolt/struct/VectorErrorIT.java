@@ -26,7 +26,6 @@ import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertT
 
 import io.netty.buffer.Unpooled;
 import java.util.Map;
-import java.util.Set;
 import org.neo4j.bolt.protocol.io.StructType;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
@@ -53,7 +52,7 @@ public class VectorErrorIT extends AbstractStructArgumentIT {
 
     @SettingsFunction
     static void customizeSettings(Map<Setting<?>, Object> settings) {
-        settings.put(GraphDatabaseInternalSettings.cypher_enable_extra_semantic_features, Set.of("VectorType"));
+        settings.put(GraphDatabaseInternalSettings.cypher_enable_vector_type, Boolean.TRUE);
         settings.put(GraphDatabaseSettings.default_language, GraphDatabaseSettings.CypherVersion.Cypher25);
     }
 
