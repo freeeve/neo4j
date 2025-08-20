@@ -45,6 +45,7 @@
                    </execution>
                 </executions>
                 <configuration>
+                    <skip>false</skip>
                     <artifactItems>
                         <artifactItem>
                             <groupId>org.neo4j.build</groupId>
