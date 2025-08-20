@@ -24,10 +24,10 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CommunityInterpretedRuntime
 import org.neo4j.cypher.internal.CommunitySchemaCommandRuntime
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
-import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext

@@ -16,9 +16,9 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.ast.DummyExpression
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions.Add
-import org.neo4j.cypher.internal.expressions.DummyExpression
 import org.neo4j.cypher.internal.expressions.ReduceExpression
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.DummyPosition

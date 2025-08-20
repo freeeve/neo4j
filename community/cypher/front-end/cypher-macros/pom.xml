@@ -25,7 +25,8 @@
 
     <properties>
         <moduleName>org.neo4j.cypher.internal.macros</moduleName>
-    </properties>
+    	<dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+	</properties>
 
     <dependencies>
 
@@ -63,8 +64,33 @@
             <artifactId>junit-jupiter</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.scalatestplus</groupId>
-            <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-core_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-compatible</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
         </dependency>
 
         <dependency>

@@ -572,7 +572,7 @@ object ObfuscatorSanity extends Matcher[ParseResult] with AstParsing {
       .obfuscationMetadata())
 
     // Obfuscate query
-    val obfQuery = obfMetadata.toOption.map(CypherQueryObfuscator(_).obfuscateText(query, 0))
+    val obfQuery = obfMetadata.toOption.map(new CypherQueryObfuscator(_).obfuscateText(query, 0))
 
     // Replace obfuscation chars with literals
     val paramQuery = obfQuery.map { obfQ =>

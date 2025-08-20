@@ -212,6 +212,7 @@
     <s3mock.version>4.7.0</s3mock.version>
     <shiro.version>2.0.5</shiro.version>
     <cypherdsl.version>2024.7.2</cypherdsl.version>
+    <json4s.version>3.6.11</json4s.version>
     <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
   </properties>
 
@@ -888,11 +889,19 @@
         <artifactId>maven-failsafe-plugin</artifactId>
       </plugin>
 
-      <!-- Dependency analysis, fail on warnings if `dependency.analyze.failOnWarning` is true -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
+          <!--
+            Dependency analysis, fail on warnings if `dependency.analyze.failOnWarning` is true.
+            WARNING! Be careful, the analysis is sometimes wrong, you might need to add ignores in the configuration.
+
+            Some reasons why the analysis can be incorrect:
+              - Dependency is only used through reflection.
+              - Compiler inlines away the thing you're importing (if you just read a constant for example).
+              - Scala magic like macros and implicits.
+          -->
           <execution>
             <id>analyze</id>
             <goals>
@@ -900,20 +909,30 @@
             </goals>
             <configuration>
               <failOnWarning>${dependency.analyze.failOnWarning}</failOnWarning>
+
+              <!--
+                Add global ignores here.
+                Note, specific ignores for a single sub-project can override these setting using <configuration combine.self="override">
+              -->
               <ignoredUnusedDeclaredDependencies>
-                <!-- Ignore test dependencies that are needed to run tests but not used directly. -->
+                <!-- Ignore test dependencies to not risk tests stop running and for convenience. -->
                 <ignoredUnusedDeclaredDependency>org.junit.jupiter:*</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>org.scalatest:*</ignoredUnusedDeclaredDependency>
                 <ignoredUnusedDeclaredDependency>co.helmethair:scalatest-junit-runner</ignoredUnusedDeclaredDependency>
 
-                <!-- Dependency analysis fails to find usage of this dependency. -->
                 <ignoredUnusedDeclaredDependency>com.lihaoyi:pprint_${scala.binary.version}</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.scala-lang:scala-reflect</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-macros</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-gql-status</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-rendering</ignoredUnusedDeclaredDependency>
               </ignoredUnusedDeclaredDependencies>
+              <ignoredUsedUndeclaredDependencies>
+                <ignoredUsedUndeclaredDependency>org.apiguardian:apiguardian-api</ignoredUsedUndeclaredDependency>
+              </ignoredUsedUndeclaredDependencies>
               <ignoredNonTestScopedDependencies>
-                <!-- TODO Not sure why this is needed. -->
-                <ignoredNonTestScopedDependency>org.neo4j:neo4j-gql-status</ignoredNonTestScopedDependency>
-                <!-- TODO Not sure why this is needed. -->
-                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-cypher-logical-plan-builder</ignoredUnusedDeclaredDependency>
+                <ignoredUnusedDeclaredDependency>org.neo4j:neo4j-gql-status</ignoredUnusedDeclaredDependency>
+                <ignoredNonTestScopedDependency>org.json4s:json4s-native_${scala.binary.version}</ignoredNonTestScopedDependency>
               </ignoredNonTestScopedDependencies>
             </configuration>
           </execution>
@@ -1625,6 +1644,12 @@
       </dependency>
       <dependency>
         <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-mustmatchers_${scala.binary.version}</artifactId>
+        <version>${scala.test.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.scalatest</groupId>
         <artifactId>scalatest-compatible</artifactId>
         <version>${scala.test.version}</version>
         <scope>test</scope>
@@ -1678,7 +1703,7 @@
       <dependency>
         <groupId>org.json4s</groupId>
         <artifactId>json4s-native_${scala.binary.version}</artifactId>
-        <version>3.6.11</version>
+        <version>${json4s.version}</version>
         <scope>test</scope>
       </dependency>
       <dependency>

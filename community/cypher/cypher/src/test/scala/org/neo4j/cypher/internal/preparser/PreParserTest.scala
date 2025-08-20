@@ -24,8 +24,8 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.cache.LFUCache
-import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.options.CypherRuntimeOption.slotted
 import org.neo4j.cypher.internal.options.CypherVersionOption.cypher5

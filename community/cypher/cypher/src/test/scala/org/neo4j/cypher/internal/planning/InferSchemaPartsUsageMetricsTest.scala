@@ -27,8 +27,8 @@ import org.neo4j.cypher.internal.CommunityInterpretedRuntime
 import org.neo4j.cypher.internal.CommunitySchemaCommandRuntime
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionTestSupport
+import org.neo4j.cypher.internal.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
-import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.NotImplementedPlanContext

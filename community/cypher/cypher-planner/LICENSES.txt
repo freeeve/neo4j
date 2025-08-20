@@ -10,10 +10,6 @@ Apache Software License, Version 2.0
   Apache Log4j API
   Apache Log4j Core
   Apache Log4j JSON Template Layout
-  Apache Lucene (module: backward-codecs)
-  Apache Lucene (module: common)
-  Apache Lucene (module: core)
-  Apache Lucene (module: queryparser)
   Apache Parquet Column
   Apache Parquet Common
   Apache Parquet Encodings
@@ -281,6 +277,10 @@ SUCH DAMAGE.
 ------------------------------------------------------------------------------
 BSD License
   ANTLR 4 Runtime
+  asm
+  asm-analysis
+  asm-tree
+  asm-util
 ------------------------------------------------------------------------------
 
 Copyright (c) <year>, <copyright holder>

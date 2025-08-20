@@ -26,7 +26,6 @@ Apache Software License, Version 2.0
   Java Native Access
   Javassist
   Reflections
-  scalacheck-1.16
 
 BSD - Scala License
   Scala Library

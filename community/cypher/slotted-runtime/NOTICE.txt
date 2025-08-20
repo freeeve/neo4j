@@ -57,6 +57,10 @@ BSD - Scala License
 
 BSD License
   ANTLR 4 Runtime
+  asm
+  asm-analysis
+  asm-tree
+  asm-util
 
 BSD License 2-clause
   zstd-jni

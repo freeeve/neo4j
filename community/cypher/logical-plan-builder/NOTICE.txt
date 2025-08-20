@@ -34,19 +34,15 @@ Apache Software License, Version 2.0
   Caffeine cache
   IPAddress
   Java Native Access
-  java-diff-utils
   Jettison
-  Scala Compiler
   Scala Reflect
   scala-collection-contrib
-  Scalap
 
 BSD - Scala License
   Scala Library
 
 BSD License
   ANTLR 4 Runtime
-  JLine Bundle
 
 Eclipse Distribution License - v 1.0
   Eclipse Collections API

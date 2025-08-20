@@ -23,7 +23,8 @@
 
     <properties>
         <moduleName>org.neo4j.cypher.internal.expressions</moduleName>
-    </properties>
+    	<dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+	</properties>
 
     <dependencies>
         <dependency>
@@ -31,10 +32,14 @@
             <artifactId>neo4j-util</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-values</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -42,7 +47,7 @@
 
         <dependency>
             <groupId>org.scala-lang</groupId>
-            <artifactId>scala-reflect</artifactId>
+            <artifactId>scala-library</artifactId>
         </dependency>
 
         <!-- scala test dependencies -->
@@ -60,8 +65,47 @@
             <artifactId>junit-jupiter</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-core_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-mustmatchers_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-compatible</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.scalatestplus</groupId>
             <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalacheck</groupId>
+            <artifactId>scalacheck_${scala.binary.version}</artifactId>
         </dependency>
 
         <!-- test dependencies -->

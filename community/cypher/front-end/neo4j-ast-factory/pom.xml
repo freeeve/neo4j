@@ -1,31 +1,32 @@
 <?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <parent>
-        <groupId>org.neo4j</groupId>
-        <artifactId>neo4j-front-end-parent</artifactId>
-        <version>2025.09.0-SNAPSHOT</version>
-        <relativePath>../pom.xml</relativePath>
-    </parent>
+  <parent>
+    <groupId>org.neo4j</groupId>
+    <artifactId>neo4j-front-end-parent</artifactId>
+    <version>2025.09.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
 
-    <!-- NOTE!! -->
-    <!-- This project will be deleted once builds are updated!!! -->
+  <!-- NOTE!! -->
+  <!-- This project will be deleted once builds are updated!!! -->
 
-    <modelVersion>4.0.0</modelVersion>
-    <artifactId>neo4j-cypher-ast-factory-tests</artifactId>
-    <packaging>jar</packaging>
-    <name>Cypher Parser Tests</name>
+  <modelVersion>4.0.0</modelVersion>
+  <artifactId>neo4j-cypher-ast-factory-tests</artifactId>
+  <packaging>jar</packaging>
+  <name>Cypher Parser Tests</name>
 
-    <description>Cypher Parser Tests</description>
-    <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
+  <description>Cypher Parser Tests</description>
+  <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
 
-    <scm>
-        <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
-        <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
-        <url>https://github.com/neo4j/neo4j</url>
-    </scm>
+  <scm>
+    <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
+    <developerConnection>scm:git:git@github.com:neo4j/neo4j.git</developerConnection>
+    <url>https://github.com/neo4j/neo4j</url>
+  </scm>
 
-    <properties>
-        <moduleName>org.neo4j.cypher.internal.ast.factory.neo4j</moduleName>
-    </properties>
+  <properties>
+    <moduleName>org.neo4j.cypher.internal.ast.factory.neo4j</moduleName>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+  </properties>
 </project>

@@ -22,8 +22,8 @@ package org.neo4j.cypher.internal.preparser
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.cache.LFUCache
-import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.ParsingConfig
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper

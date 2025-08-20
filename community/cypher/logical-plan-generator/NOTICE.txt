@@ -49,12 +49,9 @@ Apache Software License, Version 2.0
   Javassist
   Jettison
   magnolia
-  org.apiguardian:apiguardian-api
-  org.opentest4j:opentest4j
   Reflections
   Scala Reflect
   scala-collection-contrib
-  scalacheck-1.16
   snappy-java
   Strategic Blue Parquet Floor
 
@@ -63,6 +60,10 @@ BSD - Scala License
 
 BSD License
   ANTLR 4 Runtime
+  asm
+  asm-analysis
+  asm-tree
+  asm-util
   scalacheck
   test-interface
 
@@ -79,12 +80,6 @@ Eclipse Distribution License - v 1.0
 Eclipse Public License - v 1.0
   Eclipse Collections API
   Eclipse Collections Main Library
-
-Eclipse Public License v2.0
-  JUnit Jupiter API
-  JUnit Jupiter Engine
-  JUnit Platform Commons
-  JUnit Platform Engine API
 
 GNU General Public License, version 2 with the Classpath Exception
   javax.annotation API

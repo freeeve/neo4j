@@ -17,6 +17,7 @@
 
     <properties>
         <moduleName>org.neo4j.cypher.internal.compiler</moduleName>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <scm>
@@ -62,6 +63,52 @@
             <groupId>org.scalatestplus</groupId>
             <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-compatible</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalacheck</groupId>
+            <artifactId>scalacheck_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-core_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatestplus</groupId>
+            <artifactId>mockito-4-6_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+
 
         <!-- neo4j -->
         <dependency>
@@ -69,54 +116,160 @@
             <artifactId>neo4j-exceptions</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-notifications</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-ir</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-logical-plans</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-planner-spi</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-expression-evaluator</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-config</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-cache</artifactId>
             <version>${project.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-procedure-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-rewriting</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>cypher-v5-antlr-parser</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-kernel</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-kernel-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-logging</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>cypher-parser-factory</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-front-end</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>cypher-v25-antlr-parser</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-lucene-index</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-configuration</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-schema</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-expressions</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-values</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-graphdb-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-interpreted-runtime</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-ast</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-cypher-runtime-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-gql-status</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-rendering</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>cypher-parser-ast-common</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+
 
         <!-- neo4j testing -->
 
@@ -126,14 +279,12 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-test-util</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-ast</artifactId>
@@ -141,7 +292,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-logical-plans</artifactId>
@@ -149,15 +299,6 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-expressions</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-front-end</artifactId>
@@ -165,14 +306,12 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-graph-counts</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-kernel-test-utils</artifactId>
@@ -186,18 +325,21 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.reflections</groupId>
             <artifactId>reflections</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
 
     </dependencies>
 
@@ -210,7 +352,9 @@
                     <scala>
                         <excludes>
                             <!-- Bug in Scalafmt prevents us from formatting this file -->
-                            <exclude>src/test/scala/org/neo4j/cypher/internal/compiler/planner/logical/cardinality/ABCDECardinalityData.scala</exclude>
+                            <exclude>
+                                src/test/scala/org/neo4j/cypher/internal/compiler/planner/logical/cardinality/ABCDECardinalityData.scala
+                            </exclude>
                         </excludes>
                     </scala>
                 </configuration>

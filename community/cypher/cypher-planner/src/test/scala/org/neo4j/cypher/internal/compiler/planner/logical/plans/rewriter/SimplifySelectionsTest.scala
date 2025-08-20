@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.compiler.helpers.FakeLeafPlan
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
-import org.neo4j.cypher.internal.expressions.DummyExpression
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.plans.Create
@@ -29,8 +29,10 @@ import org.neo4j.cypher.internal.logical.plans.ExhaustiveLimit
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Selection
+import org.neo4j.cypher.internal.util.DummyPosition
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.TypeSpec
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class SimplifySelectionsTest extends CypherFunSuite with LogicalPlanningTestSupport {
@@ -66,4 +68,8 @@ class SimplifySelectionsTest extends CypherFunSuite with LogicalPlanningTestSupp
 
     selection.endoRewrite(simplifySelections) should equal(selection)
   }
+}
+
+case class DummyExpression(possibleTypes: TypeSpec, position: InputPosition = DummyPosition(0)) extends Expression {
+  override def isConstantForQuery: Boolean = false
 }

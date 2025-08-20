@@ -26,24 +26,25 @@
 
   <properties>
     <moduleName>org.neo4j.cypher.internal.logical.generator</moduleName>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
   </properties>
 
-    <build>
-        <plugins>
-            <plugin>
-                <!-- disable only the ban-test-dependencies-in-compile enforcer rule
-                since this project creates test utilities -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>ban-test-dependencies-in-compile</id>
-                        <phase></phase>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+  <build>
+    <plugins>
+      <plugin>
+        <!-- disable only the ban-test-dependencies-in-compile enforcer rule
+        since this project creates test utilities -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>ban-test-dependencies-in-compile</id>
+            <phase></phase>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
   <dependencies>
 
@@ -60,18 +61,35 @@
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-test-util</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
-
-    <dependency>
-      <groupId>org.scalatestplus</groupId>
-      <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
-      <scope>compile</scope>
-    </dependency>
-
     <dependency>
       <groupId>org.scalacheck</groupId>
       <scope>compile</scope>
       <artifactId>scalacheck_${scala.binary.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest-core_${scala.binary.version}</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.scalactic</groupId>
+      <artifactId>scalactic_${scala.binary.version}</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest-compatible</artifactId>
     </dependency>
 
     <!-- neo4j -->
@@ -83,6 +101,47 @@
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-cypher-planner</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-schema</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-cypher-planner-spi</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-expressions</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-cypher-ir</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-graphdb-api</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-util</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-ast</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -107,7 +166,7 @@
       <artifactId>neo4j-cypher-planner</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
-      <scope>compile</scope>
+      <scope>test</scope>
     </dependency>
 
     <!-- neo4j-cypher test -->

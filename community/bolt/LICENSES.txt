@@ -24,14 +24,6 @@ Apache Software License, Version 2.0
   Apache Parquet Encodings
   Apache Parquet Format Structures
   Apache Parquet Hadoop
-  Apache Shiro :: Cache
-  Apache Shiro :: Configuration :: Core
-  Apache Shiro :: Core
-  Apache Shiro :: Cryptography :: Ciphers
-  Apache Shiro :: Cryptography :: Core
-  Apache Shiro :: Cryptography :: Hashing
-  Apache Shiro :: Event
-  Apache Shiro :: Lang
   Caffeine cache
   IPAddress
   Java Concurrency Tools Core Library

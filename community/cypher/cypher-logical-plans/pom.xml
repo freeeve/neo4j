@@ -18,7 +18,8 @@
 
     <properties>
         <moduleName>org.neo4j.cypher.internal.logical.plans</moduleName>
-    </properties>
+    	<dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+	</properties>
 
     <scm>
         <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
@@ -35,22 +36,49 @@
             <artifactId>neo4j-ast</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-exceptions</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-ir</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-values</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-graphdb-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-front-end</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-expressions</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-gql-status</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 
@@ -98,6 +126,31 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-matchers-core_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-core_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-shouldmatchers_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.binary.version}</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest-compatible</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <!-- other -->

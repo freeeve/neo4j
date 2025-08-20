@@ -37,10 +37,10 @@ import org.neo4j.cypher.internal.QueryCacheTest.neverStale
 import org.neo4j.cypher.internal.QueryCacheTest.newKey
 import org.neo4j.cypher.internal.QueryCacheTest.newTracer
 import org.neo4j.cypher.internal.QueryCacheTest.staleAfterNTimes
+import org.neo4j.cypher.internal.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.cache.CacheSize
 import org.neo4j.cypher.internal.cache.CacheTracer
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
-import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite

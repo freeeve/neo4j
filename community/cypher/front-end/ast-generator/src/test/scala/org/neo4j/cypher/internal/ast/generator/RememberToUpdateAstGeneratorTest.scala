@@ -174,6 +174,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.expressions.RepeatPathStep",
     "org.neo4j.cypher.internal.ast.semantics.MapExtendedType",
     "org.neo4j.cypher.internal.expressions.RepeatPathStep",
-    "org.neo4j.cypher.internal.expressions.ImpliedLabel"
+    "org.neo4j.cypher.internal.expressions.ImpliedLabel",
+    "org.neo4j.cypher.internal.expressions.DummyExpression"
   )
 }

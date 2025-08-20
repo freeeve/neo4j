@@ -17,7 +17,8 @@
 
     <properties>
         <moduleName>org.neo4j.cypher.rendering</moduleName>
-    </properties>
+    	<dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+	</properties>
 
     <scm>
         <connection>scm:git:git://github.com/neo4j/neo4j.git</connection>
@@ -38,28 +39,24 @@
             <artifactId>neo4j-ast</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-expressions</artifactId>
             <version>${project.version}</version>
         </dependency>
-
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-cypher-logical-plans</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-runtime-util</artifactId>
             <version>${project.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-front-end</artifactId>
             <version>${project.version}</version>
         </dependency>
 

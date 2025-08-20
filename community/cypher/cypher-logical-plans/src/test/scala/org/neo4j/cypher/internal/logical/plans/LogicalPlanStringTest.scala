@@ -19,60 +19,12 @@
  */
 package org.neo4j.cypher.internal.logical.plans
 
-import org.neo4j.cypher.internal.ast.ActionResource
-import org.neo4j.cypher.internal.ast.CatalogName
-import org.neo4j.cypher.internal.ast.Clause
-import org.neo4j.cypher.internal.ast.CollectExpression
-import org.neo4j.cypher.internal.ast.DatabaseName
-import org.neo4j.cypher.internal.ast.DatabaseScope
-import org.neo4j.cypher.internal.ast.DbmsAction
-import org.neo4j.cypher.internal.ast.DropDatabaseAdditionalAction
-import org.neo4j.cypher.internal.ast.DropDatabaseAliasAction
-import org.neo4j.cypher.internal.ast.GraphDirectReference
-import org.neo4j.cypher.internal.ast.GraphFunctionReference
-import org.neo4j.cypher.internal.ast.IsNormalized
-import org.neo4j.cypher.internal.ast.IsNotNormalized
-import org.neo4j.cypher.internal.ast.IsNotTyped
-import org.neo4j.cypher.internal.ast.IsTyped
-import org.neo4j.cypher.internal.ast.Options
-import org.neo4j.cypher.internal.ast.PrivilegeQualifier
-import org.neo4j.cypher.internal.ast.PropertyResource
-import org.neo4j.cypher.internal.ast.WaitUntilComplete
-import org.neo4j.cypher.internal.ast.semantics.CustomExpression
-import org.neo4j.cypher.internal.ast.semantics.ErrorExpression
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
-import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
-import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
-import org.neo4j.cypher.internal.expressions.ExplicitParameter
-import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.FilteringExpression
-import org.neo4j.cypher.internal.expressions.FunctionInvocation
-import org.neo4j.cypher.internal.expressions.HasMappableExpressions
-import org.neo4j.cypher.internal.expressions.ImplicitProcedureArgument
-import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.LabelToken
-import org.neo4j.cypher.internal.expressions.ListComprehension
-import org.neo4j.cypher.internal.expressions.LogicalProperty
-import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.NonPrefixedPatternPart
-import org.neo4j.cypher.internal.expressions.NoneIterablePredicate
-import org.neo4j.cypher.internal.expressions.Parameter
-import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
-import org.neo4j.cypher.internal.expressions.PathStep
-import org.neo4j.cypher.internal.expressions.PatternElement
-import org.neo4j.cypher.internal.expressions.PropertyKeyName
-import org.neo4j.cypher.internal.expressions.PropertyKeyToken
-import org.neo4j.cypher.internal.expressions.RelTypeName
-import org.neo4j.cypher.internal.expressions.RelationshipPattern
-import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
-import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
-import org.neo4j.cypher.internal.expressions.SingleIterablePredicate
-import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
-import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
-import org.neo4j.cypher.internal.ir.PatternRelationship
-import org.neo4j.cypher.internal.ir.PlannerQuery
-import org.neo4j.cypher.internal.ir.RunQueryAtProjection
+import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.expressions
+import org.neo4j.cypher.internal.frontend.phases
+import org.neo4j.cypher.internal.ir
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
+import org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanStringTest.WhiteList
 import org.neo4j.cypher.internal.util.IdentityMap
 import org.neo4j.cypher.internal.util.InputPosition
@@ -97,7 +49,7 @@ class LogicalPlanStringTest extends CypherFunSuite {
 
   test("expressions are not allowed to refer to variables by string") {
     val seen = mutable.Set.empty[Class[_]]
-    subTypes(classOf[Expression]).foreach { expressionClass =>
+    subTypes(classOf[expressions.Expression]).foreach { expressionClass =>
       if (!Modifier.isAbstract(expressionClass.getModifiers)) {
         checkStringFields(expressionClass, expressionClass.getName, seen)
       }
@@ -106,7 +58,7 @@ class LogicalPlanStringTest extends CypherFunSuite {
 
   test("IR is not allowed to refer to variables by string") {
     val seen = mutable.Set.empty[Class[_]]
-    subTypes(classOf[PlannerQuery]).foreach { irClass =>
+    subTypes(classOf[ir.PlannerQuery]).foreach { irClass =>
       if (!Modifier.isAbstract(irClass.getModifiers)) {
         checkStringFields(irClass, irClass.getName, seen)
       }
@@ -115,7 +67,7 @@ class LogicalPlanStringTest extends CypherFunSuite {
 
   test("logical plans are not allowed to refer to variables by string") {
     val seen = mutable.Set.empty[Class[_]]
-    subTypes(classOf[LogicalPlan]).foreach { planClass =>
+    subTypes(classOf[plans.LogicalPlan]).foreach { planClass =>
       if (!Modifier.isAbstract(planClass.getModifiers)) {
         checkStringFields(planClass, planClass.getName, seen)
       }
@@ -193,14 +145,14 @@ class LogicalPlanStringTest extends CypherFunSuite {
     method.getParameterCount == 0 &&
     method.getDeclaringClass.getName.startsWith("org.neo4j") &&
     !Modifier.isStatic(method.getModifiers) &&
-    !classOf[LogicalPlan].isAssignableFrom(method.getReturnType) &&
-    !classOf[Expression].isAssignableFrom(method.getReturnType) &&
+    !classOf[plans.LogicalPlan].isAssignableFrom(method.getReturnType) &&
+    !classOf[expressions.Expression].isAssignableFrom(method.getReturnType) &&
     !isWhiteListedAccessor(method.getDeclaringClass, method.getReturnType, method.getName)
   }
 
   private def lookInside(field: Field): Boolean = {
-    !classOf[LogicalPlan].isAssignableFrom(field.getType) &&
-    !classOf[Expression].isAssignableFrom(field.getType) &&
+    !classOf[plans.LogicalPlan].isAssignableFrom(field.getType) &&
+    !classOf[expressions.Expression].isAssignableFrom(field.getType) &&
     !isWhiteListedAccessor(field.getDeclaringClass, field.getType, field.getName)
   }
 
@@ -235,111 +187,112 @@ object LogicalPlanStringTest {
   object WhiteList {
 
     val whiteListedAccessors: Set[(Class[_], String)] = Set[(Class[_], String)](
-      classOf[AndedPropertyInequalities] -> "inequalities",
-      classOf[PatternRelationship] -> "boundaryNodes",
-      classOf[PatternRelationship] -> "inOrder",
-      classOf[MultiNodeIndexSeek] -> "copyWithoutGettingValues",
-      classOf[AssertingMultiNodeIndexSeek] -> "copyWithoutGettingValues",
-      classOf[ProjectingPlan] -> "projectExpressions",
-      classOf[AggregatingPlan] -> "groupingExpressions",
-      classOf[AggregatingPlan] -> "aggregationExpressions",
-      classOf[FilteringExpression] -> "name",
-      classOf[ShortestPathsPatternPart] -> "name",
-      classOf[CopyRolePrivileges] -> "grantDeny",
-      classOf[DoNothingIfDatabaseNotExists] -> "operation",
-      classOf[DoNothingIfNotExists] -> "operation",
-      classOf[AdministrationCommandLogicalPlan] -> "command",
-      classOf[SecurityAdministrationLogicalPlan] -> "valueMapper",
-      classOf[AdministrationCommandLogicalPlan] -> "action",
-      classOf[EnsureNodeExists] -> "extraFilter",
-      classOf[EnsureNodeExists] -> "labelDescription",
-      classOf[EnsureDatabaseNodeExists] -> "extraFilter",
-      classOf[AllowedNonAdministrationCommands] -> "statement",
-      classOf[AdministrationCommandLogicalPlan] -> "revokeType",
-      classOf[Expression] -> "dependencies",
-      classOf[PathStep] -> "dependencies",
-      classOf[TriadicBuild] -> "triadicSelectionId",
-      classOf[NullifyMetadata] -> "key",
-      classOf[CollectExpression] -> "query",
-      classOf[PatternElement] -> "identity",
-      classOf[RelationshipPattern] -> "identity",
-      classOf[NonPrefixedPatternPart] -> "identity",
-      classOf[HasMappableExpressions[_]] -> "identity",
-      classOf[RunQueryAt] -> "query",
-      classOf[RunQueryAt] -> "graphReference",
-      classOf[RunQueryAt] -> "parameters",
-      classOf[RunQueryAtProjection] -> "graphReference",
-      classOf[RunQueryAtProjection] -> "queryString",
-      classOf[GraphFunctionReference] -> "print",
-      classOf[GraphDirectReference] -> "print",
-      classOf[DynamicElement.SetOperator] -> "name"
+      classOf[expressions.AndedPropertyInequalities] -> "inequalities",
+      classOf[ir.PatternRelationship] -> "boundaryNodes",
+      classOf[ir.PatternRelationship] -> "inOrder",
+      classOf[plans.MultiNodeIndexSeek] -> "copyWithoutGettingValues",
+      classOf[plans.AssertingMultiNodeIndexSeek] -> "copyWithoutGettingValues",
+      classOf[plans.ProjectingPlan] -> "projectExpressions",
+      classOf[plans.AggregatingPlan] -> "groupingExpressions",
+      classOf[plans.AggregatingPlan] -> "aggregationExpressions",
+      classOf[expressions.FilteringExpression] -> "name",
+      classOf[expressions.ShortestPathsPatternPart] -> "name",
+      classOf[plans.CopyRolePrivileges] -> "grantDeny",
+      classOf[plans.DoNothingIfDatabaseNotExists] -> "operation",
+      classOf[plans.DoNothingIfNotExists] -> "operation",
+      classOf[plans.AdministrationCommandLogicalPlan] -> "command",
+      classOf[plans.SecurityAdministrationLogicalPlan] -> "valueMapper",
+      classOf[plans.AdministrationCommandLogicalPlan] -> "action",
+      classOf[plans.EnsureNodeExists] -> "extraFilter",
+      classOf[plans.EnsureNodeExists] -> "labelDescription",
+      classOf[plans.EnsureDatabaseNodeExists] -> "extraFilter",
+      classOf[plans.AllowedNonAdministrationCommands] -> "statement",
+      classOf[plans.AdministrationCommandLogicalPlan] -> "revokeType",
+      classOf[expressions.Expression] -> "dependencies",
+      classOf[expressions.PathStep] -> "dependencies",
+      classOf[plans.TriadicBuild] -> "triadicSelectionId",
+      classOf[plans.NullifyMetadata] -> "key",
+      classOf[ast.CollectExpression] -> "query",
+      classOf[expressions.PatternElement] -> "identity",
+      classOf[expressions.RelationshipPattern] -> "identity",
+      classOf[expressions.NonPrefixedPatternPart] -> "identity",
+      classOf[expressions.HasMappableExpressions[_]] -> "identity",
+      classOf[plans.RunQueryAt] -> "query",
+      classOf[plans.RunQueryAt] -> "graphReference",
+      classOf[plans.RunQueryAt] -> "parameters",
+      classOf[ir.RunQueryAtProjection] -> "graphReference",
+      classOf[ir.RunQueryAtProjection] -> "queryString",
+      classOf[ast.GraphFunctionReference] -> "print",
+      classOf[ast.GraphDirectReference] -> "print",
+      classOf[plans.DynamicElement.SetOperator] -> "name"
     )
 
     val whiteListedClasses: Set[Class[_]] = Set[Class[_]](
-      classOf[LogicalVariable],
-      classOf[PathLengthQuantifier],
-      classOf[FunctionInvocation],
-      classOf[SemanticCheck],
-      classOf[PointBoundingBoxSeekRangeWrapper],
-      classOf[DatabaseName],
-      classOf[ErrorPlan],
-      classOf[Prober],
-      classOf[SystemProcedureCall],
-      classOf[SchemaLogicalPlan],
-      classOf[RelationshipTypeToken],
-      classOf[PropertyKeyToken],
-      classOf[LabelToken],
-      classOf[org.neo4j.cypher.internal.expressions.Literal],
-      classOf[ImplicitProcedureArgument],
-      classOf[ExplicitParameter],
-      classOf[LogicalProperty],
+      classOf[expressions.LogicalVariable],
+      classOf[expressions.PathLengthQuantifier],
+      classOf[expressions.FunctionInvocation],
+      classOf[ast.semantics.SemanticCheck],
+      classOf[plans.PointBoundingBoxSeekRangeWrapper],
+      classOf[ast.DatabaseName],
+      classOf[plans.ErrorPlan],
+      classOf[plans.Prober],
+      classOf[plans.SystemProcedureCall],
+      classOf[plans.SchemaLogicalPlan],
+      classOf[expressions.RelationshipTypeToken],
+      classOf[expressions.PropertyKeyToken],
+      classOf[expressions.LabelToken],
+      classOf[expressions.Literal],
+      classOf[expressions.ImplicitProcedureArgument],
+      classOf[expressions.ExplicitParameter],
+      classOf[expressions.LogicalProperty],
       classOf[CypherType],
       classOf[LabelExpression],
-      classOf[NoneIterablePredicate],
-      classOf[AnyIterablePredicate],
-      classOf[SingleIterablePredicate],
-      classOf[ListComprehension],
-      classOf[PropertyKeyName],
-      classOf[Parameter],
-      classOf[InequalitySeekRangeWrapper],
-      classOf[ResolvedFunctionInvocation],
-      classOf[CommandLogicalPlan],
-      classOf[RelTypeName],
-      classOf[LabelName],
-      classOf[ResolvedCall],
-      classOf[PointDistanceRange[_]],
-      classOf[PrefixRange[_]],
-      classOf[QueryExpression[_]],
-      classOf[Options],
-      classOf[DatabaseScope],
-      classOf[DropDatabaseAdditionalAction],
-      classOf[DropDatabaseAliasAction],
-      classOf[WaitUntilComplete],
-      classOf[PrivilegeQualifier],
-      classOf[PropertyResource],
-      classOf[ActionResource],
-      classOf[DbmsAction],
-      classOf[AssertNotCurrentUser],
-      classOf[IsTyped],
-      classOf[IsNotTyped],
-      classOf[IsNormalized],
-      classOf[IsNotNormalized],
-      classOf[NFA],
+      classOf[expressions.NoneIterablePredicate],
+      classOf[expressions.AnyIterablePredicate],
+      classOf[expressions.SingleIterablePredicate],
+      classOf[expressions.ListComprehension],
+      classOf[expressions.PropertyKeyName],
+      classOf[expressions.Parameter],
+      classOf[plans.InequalitySeekRangeWrapper],
+      classOf[phases.ResolvedFunctionInvocation],
+      classOf[plans.CommandLogicalPlan],
+      classOf[expressions.RelTypeName],
+      classOf[expressions.LabelName],
+      classOf[phases.ResolvedCall],
+      classOf[plans.PointDistanceRange[_]],
+      classOf[plans.PrefixRange[_]],
+      classOf[plans.QueryExpression[_]],
+      classOf[ast.Options],
+      classOf[ast.DatabaseScope],
+      classOf[ast.DropDatabaseAdditionalAction],
+      classOf[ast.DropDatabaseAliasAction],
+      classOf[ast.WaitUntilComplete],
+      classOf[ast.PrivilegeQualifier],
+      classOf[ast.PropertyResource],
+      classOf[ast.ActionResource],
+      classOf[ast.DbmsAction],
+      classOf[plans.AssertNotCurrentUser],
+      classOf[ast.IsTyped],
+      classOf[ast.IsNotTyped],
+      classOf[ast.IsNormalized],
+      classOf[ast.IsNotNormalized],
+      classOf[plans.NFA],
       classOf[Exception],
       classOf[IdentityMap[_, _]],
-      classOf[Clause],
-      classOf[CustomExpression],
-      classOf[ErrorExpression],
-      classOf[CatalogName],
+      classOf[ast.Clause],
+      classOf[ast.semantics.CustomExpression],
+      classOf[ast.semantics.ErrorExpression],
+      classOf[ast.CatalogName],
       classOf[ListSet[_]],
-      classOf[AssertSecurityDisabled],
-      classOf[AssertNotInvalidActionOnShard],
-      classOf[AssertNotShardedDatabase],
-      classOf[AssertNotStandard],
-      classOf[AssertNotVirtualSpd],
-      classOf[AssertNotGraphShard],
-      classOf[AssertNotPropertyShard],
-      classOf[InputPosition]
+      classOf[plans.AssertSecurityDisabled],
+      classOf[plans.AssertNotInvalidActionOnShard],
+      classOf[plans.AssertNotShardedDatabase],
+      classOf[plans.AssertNotStandard],
+      classOf[plans.AssertNotVirtualSpd],
+      classOf[plans.AssertNotGraphShard],
+      classOf[plans.AssertNotPropertyShard],
+      classOf[InputPosition],
+      classOf[ast.DummyExpression]
     )
 
     val whiteListedMethodNames: Set[String] = Set(

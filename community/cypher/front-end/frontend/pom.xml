@@ -37,7 +37,8 @@
     <properties>
         <moduleName>org.neo4j.cypher.internal.frontend</moduleName>
         <dependency.analyse.strict>true</dependency.analyse.strict>
-    </properties>
+    	<dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+	</properties>
 
     <dependencies>
 

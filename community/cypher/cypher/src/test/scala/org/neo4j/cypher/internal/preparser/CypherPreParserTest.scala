@@ -23,8 +23,8 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.PreParser
+import org.neo4j.cypher.internal.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.cache.LFUCache
-import org.neo4j.cypher.internal.cache.TestExecutorCaffeineCacheFactory
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite

@@ -86,7 +86,7 @@ trait SaveGeneratedSource extends BeforeAndAfterEach {
 
   override protected def afterEach(): Unit = {
     if (saveGeneratedSourceEnabled) {
-      System.clearProperty(GENERATED_SOURCE_LOCATION_PROPERTY)
+      System.clearProperty("org.neo4j.cypher.DEBUG.generated_source_location")
       if (!keepSourceFilesAfterTestFinishes) {
         generatedSources.foreach { location =>
           Files.walkFileTree(

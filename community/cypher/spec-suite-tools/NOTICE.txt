@@ -116,6 +116,9 @@ Apache Software License, Version 2.0
   Jetty :: Servlet API and Schemas for JPMS and OSGi
   jPowerShell
   jProcesses
+  json4s-ast
+  json4s-core
+  json4s-scalap
   magnolia
   Neo4j Java Driver
   Netty/Buffer
@@ -150,6 +153,7 @@ BSD License
   asm-analysis
   asm-tree
   asm-util
+  ParaNamer Core
   Protocol Buffers [Core]
   Protocol Buffers [Util]
   Zstandard

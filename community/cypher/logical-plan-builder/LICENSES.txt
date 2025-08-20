@@ -12,12 +12,9 @@ Apache Software License, Version 2.0
   Caffeine cache
   IPAddress
   Java Native Access
-  java-diff-utils
   Jettison
-  Scala Compiler
   Scala Reflect
   scala-collection-contrib
-  Scalap
 ------------------------------------------------------------------------------
 
                                  Apache License
@@ -270,7 +267,6 @@ SUCH DAMAGE.
 ------------------------------------------------------------------------------
 BSD License
   ANTLR 4 Runtime
-  JLine Bundle
 ------------------------------------------------------------------------------
 
 Copyright (c) <year>, <copyright holder>

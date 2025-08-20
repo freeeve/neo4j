@@ -17,10 +17,10 @@
 package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.CypherVersionHelpers.arbitrarySemanticContext
+import org.neo4j.cypher.internal.ast.DummyExpression
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
-import org.neo4j.cypher.internal.expressions.DummyExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.TypeSignature
 import org.neo4j.cypher.internal.util.InputPosition

@@ -16,9 +16,9 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.ast.DummyExpression
 import org.neo4j.cypher.internal.ast.SemanticCheckInTest.SemanticCheckWithDefaultContext
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
-import org.neo4j.cypher.internal.expressions.DummyExpression
 import org.neo4j.cypher.internal.expressions.ListSlice
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.util.DummyPosition
