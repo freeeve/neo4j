@@ -44,7 +44,7 @@ case class Property(mapExpr: Expression, propertyKey: KeyToken)
       propertyKey.getOptId(state.query) match {
         case None => Values.NO_VALUE
         case Some(propId) => state.query.nodeReadOps.getProperty(
-            n.id(),
+            n,
             propId,
             state.cursors.nodeCursor,
             state.cursors.propertyCursor,

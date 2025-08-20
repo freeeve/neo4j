@@ -54,6 +54,8 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
+import org.neo4j.values.virtual.NodeValue;
+import org.neo4j.values.virtual.RelationshipValue;
 import org.neo4j.values.virtual.RelationshipVisitor;
 import org.neo4j.values.virtual.VirtualNodeValue;
 import org.neo4j.values.virtual.VirtualRelationshipValue;
@@ -605,8 +607,12 @@ public final class CursorUtils {
             PropertyCursor propertyCursor) {
         if (container == NO_VALUE) {
             return NO_VALUE;
+        } else if (container instanceof NodeValue node && node.id() < 0) {
+            return node.properties().get(key);
         } else if (container instanceof VirtualNodeValue node) {
             return nodeGetProperty(read, nodeCursor, node.id(), propertyCursor, dbAccess.propertyKey(key));
+        } else if (container instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.properties().get(key);
         } else if (container instanceof VirtualRelationshipValue rel) {
             return relationshipGetProperty(
                     read, relationshipScanCursor, rel, propertyCursor, dbAccess.propertyKey(key), true);
@@ -635,8 +641,30 @@ public final class CursorUtils {
             PropertyCursor propertyCursor) {
         if (container == NO_VALUE) {
             return emptyPropertyArray(keys.length);
+        } else if (container instanceof NodeValue node && node.id() < 0) {
+            AnyValue[] values = new AnyValue[keys.length];
+            for (int i = 0; i < keys.length; i++) {
+                MapValue nodeProps = node.properties();
+                if (nodeProps.containsKey(keys[i])) {
+                    values[i] = nodeProps.get(keys[i]);
+                } else {
+                    values[i] = NO_VALUE;
+                }
+            }
+            return values;
         } else if (container instanceof VirtualNodeValue node) {
             return propertiesGet(propertyKeys(keys, dbAccess), node.id(), read, nodeCursor, propertyCursor);
+        } else if (container instanceof RelationshipValue rel && rel.id() < 0) {
+            AnyValue[] values = new AnyValue[keys.length];
+            for (int i = 0; i < keys.length; i++) {
+                MapValue nodeProps = rel.properties();
+                if (nodeProps.containsKey(keys[i])) {
+                    values[i] = nodeProps.get(keys[i]);
+                } else {
+                    values[i] = NO_VALUE;
+                }
+            }
+            return values;
         } else if (container instanceof VirtualRelationshipValue rel) {
             return propertiesGet(propertyKeys(keys, dbAccess), rel, read, relationshipScanCursor, propertyCursor);
         } else {

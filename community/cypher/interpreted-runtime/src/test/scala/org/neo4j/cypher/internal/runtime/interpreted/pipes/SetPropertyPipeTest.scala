@@ -23,6 +23,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyBoolean
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyLong
+import org.mockito.ArgumentMatchers.isNull
 import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.when
@@ -52,6 +53,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.Node
 import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.Values.longValue
+import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
 class SetPropertyPipeTest extends CypherFunSuite with PipeTestSupport {
@@ -118,7 +120,13 @@ class SetPropertyPipeTest extends CypherFunSuite with PipeTestSupport {
 
     val nodeReadOps = mock[NodeReadOperations]
     val nodeWriteOps = mock[NodeOperations]
-    when(nodeReadOps.getProperty(10L, 1, null, null, throwOnDeleted = true)).thenReturn(longValue(13L))
+    when(nodeReadOps.getProperty(
+      any[VirtualNodeValue],
+      anyInt(),
+      isNull,
+      isNull,
+      throwOnDeleted = anyBoolean()
+    )).thenReturn(longValue(13L))
     when(qtx.nodeReadOps).thenReturn(nodeReadOps)
     when(qtx.nodeWriteOps).thenReturn(nodeWriteOps)
 
@@ -175,7 +183,13 @@ class SetPropertyPipeTest extends CypherFunSuite with PipeTestSupport {
 
     val nodeReadOps = mock[NodeReadOperations]
     val nodeWriteOps = mock[NodeOperations]
-    when(nodeReadOps.getProperty(10L, 1, null, null, throwOnDeleted = true)).thenReturn(longValue(13L))
+    when(nodeReadOps.getProperty(
+      any[VirtualNodeValue],
+      anyInt(),
+      isNull,
+      isNull,
+      throwOnDeleted = anyBoolean()
+    )).thenReturn(longValue(13L))
     when(qtx.nodeReadOps).thenReturn(nodeReadOps)
     when(qtx.nodeWriteOps).thenReturn(nodeWriteOps)
 
@@ -233,7 +247,13 @@ class SetPropertyPipeTest extends CypherFunSuite with PipeTestSupport {
 
     val nodeReadOps = mock[NodeReadOperations]
     val nodeWriteOps = mock[NodeOperations]
-    when(nodeReadOps.getProperty(10L, 1, null, null, throwOnDeleted = true)).thenReturn(longValue(13L))
+    when(nodeReadOps.getProperty(
+      any[VirtualNodeValue],
+      anyInt(),
+      isNull,
+      isNull,
+      throwOnDeleted = anyBoolean()
+    )).thenReturn(longValue(13L))
     when(qtx.nodeReadOps).thenReturn(nodeReadOps)
     when(qtx.nodeWriteOps).thenReturn(nodeWriteOps)
 
@@ -301,7 +321,13 @@ class SetPropertyPipeTest extends CypherFunSuite with PipeTestSupport {
 
     val nodeReadOps = mock[NodeReadOperations]
     val nodeWriteOps = mock[NodeOperations]
-    when(nodeReadOps.getProperty(10L, 1, null, null, throwOnDeleted = true)).thenReturn(longValue(13L))
+    when(nodeReadOps.getProperty(
+      any[VirtualNodeValue],
+      anyInt(),
+      isNull,
+      isNull,
+      throwOnDeleted = anyBoolean()
+    )).thenReturn(longValue(13L))
     when(qtx.nodeReadOps).thenReturn(nodeReadOps)
     when(qtx.nodeWriteOps).thenReturn(nodeWriteOps)
     when(qtx.getOptPropertyKeyId(property1)).thenReturn(None)
@@ -434,7 +460,13 @@ class SetPropertyPipeTest extends CypherFunSuite with PipeTestSupport {
 
     val nodeReadOps = mock[NodeReadOperations]
     val nodeWriteOps = mock[NodeOperations]
-    when(nodeReadOps.getProperty(10L, 2, null, null, throwOnDeleted = true)).thenReturn(longValue(13L))
+    when(nodeReadOps.getProperty(
+      any[VirtualNodeValue],
+      anyInt(),
+      isNull,
+      isNull,
+      throwOnDeleted = anyBoolean()
+    )).thenReturn(longValue(13L))
     when(qtx.nodeReadOps).thenReturn(nodeReadOps)
     when(qtx.nodeWriteOps).thenReturn(nodeWriteOps)
     when(qtx.getOptPropertyKeyId(property1)).thenReturn(None)

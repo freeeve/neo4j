@@ -112,7 +112,6 @@ import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarity;
 import org.neo4j.kernel.api.vector.GQLVectorDistanceFunction;
 import org.neo4j.kernel.api.vector.GQLVectorNorm;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
-import org.neo4j.kernel.impl.util.NodeEntityWrappingNodeValue;
 import org.neo4j.storageengine.api.LongReference;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.token.api.TokenType;
@@ -748,6 +747,8 @@ public final class CypherFunctions {
     public static AnyValue startNode(AnyValue anyValue, DbAccess access, RelationshipScanCursor cursor) {
         if (anyValue == NO_VALUE) {
             return NO_VALUE;
+        } else if (anyValue instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.startNode();
         } else if (anyValue instanceof VirtualRelationshipValue rel) {
             return startNode(rel, access, cursor);
         } else {
@@ -762,12 +763,17 @@ public final class CypherFunctions {
 
     public static VirtualNodeValue startNode(
             VirtualRelationshipValue relationship, DbAccess access, RelationshipScanCursor cursor) {
+        if (relationship instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.startNode();
+        }
         return VirtualValues.node(relationship.startNodeId(consumer(access, cursor)));
     }
 
     public static AnyValue endNode(AnyValue anyValue, DbAccess access, RelationshipScanCursor cursor) {
         if (anyValue == NO_VALUE) {
             return NO_VALUE;
+        } else if (anyValue instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.endNode();
         } else if (anyValue instanceof VirtualRelationshipValue rel) {
             return endNode(rel, access, cursor);
         } else {
@@ -782,6 +788,9 @@ public final class CypherFunctions {
 
     public static VirtualNodeValue endNode(
             VirtualRelationshipValue relationship, DbAccess access, RelationshipScanCursor cursor) {
+        if (relationship instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.startNode();
+        }
         return VirtualValues.node(relationship.endNodeId(consumer(access, cursor)));
     }
 
@@ -790,7 +799,9 @@ public final class CypherFunctions {
             AnyValue anyValue, DbAccess access, VirtualNodeValue node, RelationshipScanCursor cursor) {
         // This is not a function exposed to the user
         assert anyValue != NO_VALUE : "NO_VALUE checks need to happen outside this call";
-        if (anyValue instanceof VirtualRelationshipValue rel) {
+        if (anyValue instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.otherNode(node);
+        } else if (anyValue instanceof VirtualRelationshipValue rel) {
             return otherNode(rel, access, node, cursor);
         } else {
             throw CypherTypeException.expectedRelValue(
@@ -803,6 +814,9 @@ public final class CypherFunctions {
             DbAccess access,
             VirtualNodeValue node,
             RelationshipScanCursor cursor) {
+        if (relationship instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.otherNode(node);
+        }
         return VirtualValues.node(relationship.otherNodeId(node.id(), consumer(access, cursor)));
     }
 
@@ -816,8 +830,12 @@ public final class CypherFunctions {
             PropertyCursor propertyCursor) {
         if (container == NO_VALUE) {
             return NO_VALUE;
+        } else if (container instanceof NodeValue node && node.id() < 0) {
+            return node.properties().get(key);
         } else if (container instanceof VirtualNodeValue node) {
             return dbAccess.nodeProperty(node.id(), dbAccess.propertyKey(key), nodeCursor, propertyCursor, true);
+        } else if (container instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.properties().get(key);
         } else if (container instanceof VirtualRelationshipValue rel) {
             return dbAccess.relationshipProperty(
                     rel, dbAccess.propertyKey(key), relationshipScanCursor, propertyCursor, true);
@@ -843,8 +861,30 @@ public final class CypherFunctions {
             NodeCursor nodeCursor,
             RelationshipScanCursor relationshipScanCursor,
             PropertyCursor propertyCursor) {
-        if (container instanceof VirtualNodeValue node) {
+        if (container instanceof NodeValue node && node.id() < 0) {
+            AnyValue[] values = new AnyValue[keys.length];
+            for (int i = 0; i < keys.length; i++) {
+                MapValue nodeProps = node.properties();
+                if (nodeProps.containsKey(keys[i])) {
+                    values[i] = nodeProps.get(keys[i]);
+                } else {
+                    values[i] = NO_VALUE;
+                }
+            }
+            return values;
+        } else if (container instanceof VirtualNodeValue node) {
             return dbAccess.nodeProperties(node.id(), propertyKeys(keys, dbAccess), nodeCursor, propertyCursor);
+        } else if (container instanceof RelationshipValue rel && rel.id() < 0) {
+            AnyValue[] values = new AnyValue[keys.length];
+            for (int i = 0; i < keys.length; i++) {
+                MapValue nodeProps = rel.properties();
+                if (nodeProps.containsKey(keys[i])) {
+                    values[i] = nodeProps.get(keys[i]);
+                } else {
+                    values[i] = NO_VALUE;
+                }
+            }
+            return values;
         } else if (container instanceof VirtualRelationshipValue rel) {
             return dbAccess.relationshipProperties(
                     rel, propertyKeys(keys, dbAccess), relationshipScanCursor, propertyCursor);
@@ -863,8 +903,12 @@ public final class CypherFunctions {
             PropertyCursor propertyCursor) {
         if (container == NO_VALUE || index == NO_VALUE) {
             return NO_VALUE;
+        } else if (container instanceof NodeValue node && node.id() < 0 && index instanceof TextValue) {
+            return node.properties().get(propertyKeyName(index));
         } else if (container instanceof VirtualNodeValue node) {
             return dbAccess.nodeProperty(node.id(), propertyKeyId(dbAccess, index), nodeCursor, propertyCursor, true);
+        } else if (container instanceof RelationshipValue rel && rel.id() < 0 && index instanceof TextValue) {
+            return rel.properties().get(propertyKeyName(index));
         } else if (container instanceof VirtualRelationshipValue rel) {
             return dbAccess.relationshipProperty(
                     rel, propertyKeyId(dbAccess, index), relationshipScanCursor, propertyCursor, true);
@@ -889,9 +933,13 @@ public final class CypherFunctions {
             PropertyCursor propertyCursor) {
         if (container == NO_VALUE || index == NO_VALUE) {
             return NO_VALUE;
+        } else if (container instanceof NodeValue node && node.id() < 0 && index instanceof TextValue) {
+            return booleanValue(node.properties().containsKey(propertyKeyName(index)));
         } else if (container instanceof VirtualNodeValue node) {
             return booleanValue(
                     dbAccess.nodeHasProperty(node.id(), propertyKeyId(dbAccess, index), nodeCursor, propertyCursor));
+        } else if (container instanceof RelationshipValue rel && rel.id() < 0 && index instanceof TextValue) {
+            return booleanValue(rel.properties().containsKey(propertyKeyName(index)));
         } else if (container instanceof VirtualRelationshipValue rel) {
             return booleanValue(dbAccess.relationshipHasProperty(
                     rel, propertyKeyId(dbAccess, index), relationshipScanCursor, propertyCursor));
@@ -1398,7 +1446,7 @@ public final class CypherFunctions {
     public static AnyValue labels(AnyValue item, DbAccess access, NodeCursor nodeCursor) {
         if (item == NO_VALUE) {
             return NO_VALUE;
-        } else if (item instanceof NodeEntityWrappingNodeValue node && node.id() < 0) {
+        } else if (item instanceof NodeValue node && node.id() < 0) {
             // Labels for entities with negative id, such as db schema visualization, are already populated since
             // the entity isn't a node in storage
             var builder = ListValueBuilder.newListBuilder(node.labels().intSize());
@@ -2027,8 +2075,12 @@ public final class CypherFunctions {
             PropertyCursor propertyCursor) {
         if (in == NO_VALUE) {
             return NO_VALUE;
+        } else if (in instanceof NodeValue node && node.id() < 0) {
+            return node.properties().keys();
         } else if (in instanceof VirtualNodeValue node) {
             return extractKeys(access, access.nodePropertyIds(node.id(), nodeCursor, propertyCursor));
+        } else if (in instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.properties().keys();
         } else if (in instanceof VirtualRelationshipValue rel) {
             return extractKeys(access, access.relationshipPropertyIds(rel, relationshipScanCursor, propertyCursor));
         } else if (in instanceof MapValue) {
@@ -2053,9 +2105,13 @@ public final class CypherFunctions {
             PropertyCursor propertyCursor) {
         if (in == NO_VALUE) {
             return NO_VALUE;
+        } else if (in instanceof NodeValue node && node.id() < 0) {
+            return node.properties();
         } else if (in instanceof VirtualNodeValue node) {
             return access.nodeAsMap(
                     node.id(), nodeCursor, propertyCursor, new MapValueBuilder(), IntSets.immutable.empty());
+        } else if (in instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.properties();
         } else if (in instanceof VirtualRelationshipValue rel) {
             return access.relationshipAsMap(
                     rel, relationshipCursor, propertyCursor, new MapValueBuilder(), IntSets.immutable.empty());
@@ -2083,9 +2139,13 @@ public final class CypherFunctions {
             IntSet alreadyReadPropertyTokens) {
         if (in == NO_VALUE) {
             return NO_VALUE;
+        } else if (in instanceof NodeValue node && node.id() < 0) {
+            return node.properties();
         } else if (in instanceof VirtualNodeValue node) {
             return access.nodeAsMap(
                     node.id(), nodeCursor, propertyCursor, alreadyReadProperties, alreadyReadPropertyTokens);
+        } else if (in instanceof RelationshipValue rel && rel.id() < 0) {
+            return rel.properties();
         } else if (in instanceof VirtualRelationshipValue rel) {
             return access.relationshipAsMap(
                     rel.id(), relationshipCursor, propertyCursor, alreadyReadProperties, alreadyReadPropertyTokens);
@@ -2602,12 +2662,16 @@ public final class CypherFunctions {
     }
 
     private static int propertyKeyId(DbAccess dbAccess, AnyValue index) {
-        return dbAccess.propertyKey(asString(
+        return dbAccess.propertyKey(propertyKeyName(index));
+    }
+
+    private static String propertyKeyName(AnyValue index) {
+        return asString(
                 index,
                 () ->
                         // this string assumes that the asString method fails and gives context which operation went
                         // wrong
-                        "Cannot use a property key with non string name. It was " + index.toString()));
+                        "Cannot use a property key with non string name. It was " + index.toString());
     }
 
     private static AnyValue mapAccess(MapValue container, AnyValue index) {

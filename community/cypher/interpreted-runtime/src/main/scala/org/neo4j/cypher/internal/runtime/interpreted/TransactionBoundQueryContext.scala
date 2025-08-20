@@ -112,6 +112,7 @@ import org.neo4j.internal.schema.SchemaNameUtil
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.StatementConstants
+import org.neo4j.kernel.api.StatementConstants.NO_SUCH_PROPERTY_KEY
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.kernel.api.exceptions.schema.EquivalentSchemaRuleAlreadyExistsException
 import org.neo4j.kernel.api.index.IndexUsageStats
@@ -140,6 +141,8 @@ import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.ListValueBuilder
 import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.MapValueBuilder
+import org.neo4j.values.virtual.NodeValue
+import org.neo4j.values.virtual.RelationshipValue
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 import org.neo4j.values.virtual.VirtualValues
@@ -1349,8 +1352,18 @@ private[internal] class TransactionBoundReadQueryContext(
       cursor: NodeCursor,
       propertyCursor: PropertyCursor,
       throwOnDeleted: Boolean
-    ): Value =
-      CursorUtils.nodeGetProperty(reads(), cursor, obj.id(), propertyCursor, propertyKeyId, throwOnDeleted)
+    ): Value = {
+      obj match {
+        case virtualNode: NodeValue
+          if virtualNode.id() < 0 && propertyKeyId != NO_SUCH_PROPERTY_KEY =>
+          val prop = virtualNode.properties().get(getPropertyKeyName(propertyKeyId))
+          prop match {
+            case v: Value => v
+            case _        => Values.NO_VALUE
+          }
+        case _ => CursorUtils.nodeGetProperty(reads(), cursor, obj.id(), propertyCursor, propertyKeyId, throwOnDeleted)
+      }
+    }
 
     override def getProperties(
       node: Long,
@@ -1469,8 +1482,17 @@ private[internal] class TransactionBoundReadQueryContext(
       propertyCursor: PropertyCursor,
       throwOnDeleted: Boolean
     ): Value = {
-      CursorUtils
-        .relationshipGetProperty(reads(), cursor, obj, propertyCursor, propertyKeyId, throwOnDeleted)
+      obj match {
+        case virtualRel: RelationshipValue
+          if virtualRel.id() < 0 && propertyKeyId != NO_SUCH_PROPERTY_KEY =>
+          val prop = virtualRel.properties().get(getPropertyKeyName(propertyKeyId))
+          prop match {
+            case v: Value => v
+            case _        => Values.NO_VALUE
+          }
+        case _ => CursorUtils
+            .relationshipGetProperty(reads(), cursor, obj, propertyCursor, propertyKeyId, throwOnDeleted)
+      }
     }
 
     override def getProperties(
