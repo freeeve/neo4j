@@ -283,6 +283,13 @@
             </execution>
           </executions>
           <configuration>
+              <additionalDependencies>
+                  <additionalDependency>
+                      <groupId>org.neo4j</groupId>
+                      <artifactId>lucene9-shaded</artifactId>
+                      <version>${project.version}</version>
+                  </additionalDependency>
+              </additionalDependencies>
             <additionalJOptions>
               <additionalJOption>-J--add-exports=jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED</additionalJOption>
               <additionalJOption>--allow-script-in-comments</additionalJOption>
