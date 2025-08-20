@@ -214,6 +214,7 @@
     <cypherdsl.version>2024.7.2</cypherdsl.version>
     <json4s.version>3.6.11</json4s.version>
     <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
+    <dependency.analyze.skip>false</dependency.analyze.skip>
   </properties>
 
   <modules>
@@ -892,6 +893,9 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
+        <configuration>
+            <skip>${dependency.analyze.skip}</skip>
+        </configuration>
         <executions>
           <!--
             Dependency analysis, fail on warnings if `dependency.analyze.failOnWarning` is true.
@@ -1030,6 +1034,15 @@
   </build>
 
   <profiles>
+    <profile>
+      <id>jdk-24</id>
+      <activation>
+          <jdk>24</jdk>
+      </activation>
+        <properties>
+            <dependency.analyze.skip>true</dependency.analyze.skip>
+        </properties>
+    </profile>
     <profile>
       <id>errorprone</id>
       <activation>
