@@ -294,7 +294,6 @@ case class ExecutableQuery(
             subscriber,
             monitor.getOrElse(eengine.defaultQueryExecutionMonitor)
           ),
-          context,
           tbqc,
           subscriber
         )
@@ -312,7 +311,6 @@ case class ExecutableQuery(
             queryMonitor = monitor.getOrElse(eengine.defaultQueryExecutionMonitor),
             subscriber = subscriber
           ),
-          context,
           tbqc,
           subscriber
         )
