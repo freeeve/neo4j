@@ -93,6 +93,7 @@ import org.neo4j.cypher.internal.planner.spi.CostBasedPlannerName
 import org.neo4j.cypher.internal.planner.spi.DPPlannerName
 import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
+import org.neo4j.cypher.internal.planner.spi.IndexStatisticsCachingGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planning.CypherPlanner.createQueryGraphSolver
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
@@ -410,13 +411,20 @@ case class CypherPlanner(
         .view.mapValues(_.map(_._2))
         .toMap
 
+    val graphStatisticsDecorator: GraphStatistics => GraphStatistics = {
+      cacheIndexStatisticsForSpdDecorator(
+        transactionalContextWrapper,
+        graphStatisticsDecoratorWithHistogramsFromConfig(histogramsFromConfigWithIdsGrouped)
+      )
+    }
+
     val planContext =
       new ExceptionTranslatingPlanContext(createPlanContext(
         transactionalContextWrapper,
         notificationLogger,
         log,
         options.resolvedLanguage,
-        graphStatisticsDecoratorWithHistogramsFromConfig(histogramsFromConfigWithIdsGrouped)
+        graphStatisticsDecorator
       ))
 
     val inferredRuntime: CypherRuntimeOption = options.queryOptions.runtime match {
@@ -694,6 +702,19 @@ case class CypherPlanner(
         names += name
     }
     (names.distinct, mapBuilder.build())
+  }
+
+  private def cacheIndexStatisticsForSpdDecorator(
+    transactionalContextWrapper: TransactionalContextWrapper,
+    statisticsDecorator: GraphStatistics => GraphStatistics
+  ): GraphStatistics => GraphStatistics = {
+    if (
+      transactionalContextWrapper.kernelTransactionalContext.databaseMode() == TransactionalContext.DatabaseMode.SHARDED
+    ) {
+      statisticsDecorator andThen (new IndexStatisticsCachingGraphStatistics(_))
+    } else {
+      statisticsDecorator
+    }
   }
 }
 
