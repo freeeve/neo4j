@@ -505,6 +505,13 @@ final case class UseGraph(graphReference: GraphReference)(val position: InputPos
         case Some(workingGraph) =>
           if (workingGraph.semanticallyEqual(graphReference)) SemanticCheckResult.success(state)
           else SemanticCheckResult.error(
+            GqlHelper.getGql42001_42N74(
+              graphReference.position.offset,
+              graphReference.position.line,
+              graphReference.position.column,
+              graphReference.print,
+              workingGraph.print
+            ),
             state,
             "Nested subqueries must use the same graph as their parent query",
             graphReference.position

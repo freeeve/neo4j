@@ -412,6 +412,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN n""".stripMargin
     run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
       .hasError(
+        GqlHelper.getGql42001_42N74(47, 5, 9, "comp.c2", "comp.c1"),
         "Nested subqueries must use the same graph as their parent query",
         p(47, 5, 9)
       )
@@ -447,6 +448,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
     val query = "USE comp.c1 CALL { USE comp.c1.c2 RETURN 1 as n } return n"
     run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
       .hasError(
+        GqlHelper.getGql42001_42N74(23, 1, 24, "comp.c1.c2", "comp.c1"),
         "Nested subqueries must use the same graph as their parent query",
         p(23, 1, 24)
       )
@@ -456,6 +458,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
     val query = "USE graph.byName('comp.c1') CALL { USE graph.byName('comp.c2') RETURN 1 as n } return n"
     run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
       .hasError(
+        GqlHelper.getGql42001_42N74(39, 1, 40, "graph.byName(\"comp.c2\")", "graph.byName(\"comp.c1\")"),
         "Nested subqueries must use the same graph as their parent query",
         p(39, 1, 40)
       )
@@ -479,6 +482,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN prop""".stripMargin
     run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
       .hasError(
+        GqlHelper.getGql42001_42N74(145, 8, 16, "graph.byName(\"comp.\" + i)", "graph.byName(\"comp.\" + i)"),
         "Nested subqueries must use the same graph as their parent query",
         p(145, 8, 16)
       )
@@ -500,6 +504,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
         |RETURN prop""".stripMargin
     run(query, pipelineWithUseAsMultipleGraphsSelector, isComposite = true, "comp")
       .hasError(
+        GqlHelper.getGql42001_42N74(122, 6, 16, "graph.byName(\"comp.\" + j)", "graph.byName(\"comp.\" + i)"),
         "Nested subqueries must use the same graph as their parent query",
         p(122, 6, 16)
       )
