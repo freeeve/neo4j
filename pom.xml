@@ -212,6 +212,7 @@
     <s3mock.version>4.7.0</s3mock.version>
     <shiro.version>2.0.5</shiro.version>
     <cypherdsl.version>2024.7.2</cypherdsl.version>
+    <jsr305.version>3.0.2</jsr305.version>
     <json4s.version>3.6.11</json4s.version>
     <dependency.analyze.failOnWarning>false</dependency.analyze.failOnWarning>
     <dependency.analyze.skip>false</dependency.analyze.skip>
