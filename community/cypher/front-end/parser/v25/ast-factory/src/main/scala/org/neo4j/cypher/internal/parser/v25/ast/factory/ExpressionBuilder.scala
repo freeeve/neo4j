@@ -128,6 +128,7 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableSelector
 import org.neo4j.cypher.internal.expressions.VectorDistanceMetric
 import org.neo4j.cypher.internal.expressions.Xor
+import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.expressions.functions.Trim
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
 import org.neo4j.cypher.internal.macros.AssertMacros
@@ -710,23 +711,42 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   final override def exitAllReduceExpression(
     ctx: Cypher25Parser.AllReduceExpressionContext
   ): Unit = {
+    ctx.ast = ctxChild(ctx, 0).ast
+  }
+
+  final override def exitAllReduceExpressionValidArguments(
+    ctx: Cypher25Parser.AllReduceExpressionValidArgumentsContext
+  ): Unit = {
     val accumulator = ctxChild(ctx, 2).ast[LogicalVariable]()
     val init = ctxChild(ctx, 4).ast[Expression]()
     val reductionStepVariable = ctxChild(ctx, 6).ast[LogicalVariable]()
     val list = ctxChild(ctx, 8).ast[Expression]()
     val reductionStep = ctxChild(ctx, 10).ast[Expression]()
     val predicate = ctxChild(ctx, 12).ast[Expression]()
-    val position = pos(ctx)
     ctx.ast = AllReducePredicate(
       AllReduceScope(
         accumulator,
-        ReductionStepScope(reductionStepVariable, reductionStep)(position),
+        ReductionStepScope(reductionStepVariable, reductionStep)(pos(ctx)),
         predicate
-      )(position),
+      )(pos(ctx)),
       init,
       list
-    )(position)
+    )(pos(ctx))
+  }
 
+  // Capture an invalid syntax for the all reduce expression
+  // and return a FunctionInvocation.
+  // This FunctionInvocation will return a meaningful error message during semantic analysis.
+  final override def exitAllReduceExpressionInvalidArguments(
+    ctx: Cypher25Parser.AllReduceExpressionInvalidArgumentsContext
+  ): Unit = {
+    val functionName = FunctionName(AllReduce.name)(pos(ctx))
+    ctx.ast = FunctionInvocation(
+      functionName,
+      distinct = false,
+      astSeq[Expression](ctx.expression()),
+      ArgumentUnordered
+    )(functionName.namespace.position)
   }
 
   final override def exitListItemsPredicate(ctx: Cypher25Parser.ListItemsPredicateContext): Unit = {

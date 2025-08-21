@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AmbiguousAgg
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
-import org.neo4j.gqlstatus.GqlParams.NumberParam
+import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlParams.StringParam
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -595,14 +595,8 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
           ).atPosition(37, 2, 18).build(),
           "Variable `acc` not defined",
           InputPosition(line = 2, column = 18, offset = 37)
-        )) // No errors in Cypher5. It could be an unresolved function
-      case _ => Seq((
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001).withCause(
-            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N41).atPosition(27, 2, 8).build()
-          ).atPosition(27, 2, 8).build(),
-          "allReduce(...) requires '| expression' (an accumulation expression)",
-          InputPosition(line = 2, column = 8, offset = 27)
-        ))
+        )) // No errors in Cypher5 except for the unknown variable. It could be an unresolved function
+      case _ => invalidAllReduceSyntax(line = 2, column = 8, offset = 27)
     }
   }
 
@@ -613,19 +607,36 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
         |""".stripMargin
     ).hasGQLErrorsIn {
       case CypherVersion.Cypher5 => Seq() // No errors in Cypher5. It could be an unresolved function
-      case _ => Seq((
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001).withCause(
-            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I13).withParam(
-              NumberParam.count1,
-              3
-            ).withParam(NumberParam.count2, 0).withParam(
-              StringParam.procFun,
-              AllReduce.name
-            ).withParam(StringParam.sig, AllReduce.signatures.head.getSignatureAsString).atPosition(27, 2, 8).build()
-          ).atPosition(27, 2, 8).build(),
-          "Insufficient parameters for function 'allReduce'",
-          InputPosition(line = 2, column = 8, offset = 27)
-        ))
+      case _                     => invalidAllReduceSyntax(line = 2, column = 8, offset = 27)
     }
   }
+
+  test("should return a meaningful error when allReduce is without an initializer") {
+    run25(
+      """MATCH (a)-[r]->+(b)
+        |RETURN allReduce(step IN r | acc + 1, acc <= 5)
+        |""".stripMargin
+    ).hasGQLErrorsIn(_ => invalidAllReduceSyntax(line = 2, column = 8, offset = 27))
+  }
+
+  test("should return a meaningful error when allReduce is with multiple reduction steps") {
+    run25(
+      """MATCH (a)-[r]->+(b)
+        |RETURN allReduce(acc = 0, step IN r | acc + 1, stepA in a | acc + 1, acc <= 5)
+        |""".stripMargin
+    ).hasGQLErrorsIn(_ => invalidAllReduceSyntax(offset = 27, column = 8, line = 2))
+  }
+
+  private def invalidAllReduceSyntax(offset: Int, column: Int, line: Int) = Seq((
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001).withCause(
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I51).atPosition(
+        offset,
+        line,
+        column
+      ).withParam(GqlParams.StringParam.procFun, AllReduce.name)
+        .withParam(GqlParams.StringParam.sig, AllReduce.signatures.head.getSignatureAsString).build()
+    ).atPosition(offset, line, column).build(),
+    s"Invalid syntax for the `allReduce` function. The function allReduce must have the signature ${AllReduce.signatures.head.getSignatureAsString}",
+    InputPosition(line = line, column = column, offset = offset)
+  ))
 }

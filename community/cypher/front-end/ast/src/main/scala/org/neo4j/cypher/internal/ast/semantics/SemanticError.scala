@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.StaticElementTypeName
+import org.neo4j.cypher.internal.expressions.functions.AllReduce
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -1749,9 +1750,21 @@ object SemanticError {
       .build()
   }
 
-  def invalidAllReduceAccumulator(position: InputPosition): SemanticError = {
-    val gql = missingPipeExpression(position)
-    SemanticError(gql, "allReduce(...) requires '| expression' (an accumulation expression)", position)
+  def invalidAllReduceSyntax(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation
+        .from(GqlStatusInfoCodes.STATUS_42I51)
+        .withParam(GqlParams.StringParam.procFun, AllReduce.name)
+        .withParam(GqlParams.StringParam.sig, AllReduce.signatures.head.getSignatureAsString)
+        .atPosition(position.offset, position.line, position.column)
+        .build)
+      .build
+    SemanticError(
+      gql,
+      s"Invalid syntax for the `allReduce` function. The function allReduce must have the signature ${AllReduce.signatures.head.getSignatureAsString}",
+      position
+    )
   }
 
   def invalidDistinct(fun: String, position: InputPosition): SemanticError = {

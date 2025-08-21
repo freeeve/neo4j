@@ -99,8 +99,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
           error(SemanticError.invalidReduceAccumulator(invocation.position))
 
         case AllReduce =>
-          checkArgs(invocation, 3, AllReduce.signatures) ifOkChain
-            error(SemanticError.invalidAllReduceAccumulator(invocation.position))
+          error(SemanticError.invalidAllReduceSyntax(invocation.position))
 
         case _: Function
           if invocation.name.equalsIgnoreCase("graph.names") || invocation.name.equalsIgnoreCase(

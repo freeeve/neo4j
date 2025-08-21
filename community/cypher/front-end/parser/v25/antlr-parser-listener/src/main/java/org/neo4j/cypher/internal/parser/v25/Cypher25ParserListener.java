@@ -267,6 +267,10 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitAllReduceExpression(Cypher25Parser.AllReduceExpressionContext ctx);
 
+    void exitAllReduceExpressionValidArguments(Cypher25Parser.AllReduceExpressionValidArgumentsContext ctx);
+
+    void exitAllReduceExpressionInvalidArguments(Cypher25Parser.AllReduceExpressionInvalidArgumentsContext ctx);
+
     void exitListItemsPredicate(Cypher25Parser.ListItemsPredicateContext ctx);
 
     void exitNormalizeFunction(Cypher25Parser.NormalizeFunctionContext ctx);

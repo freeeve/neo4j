@@ -91,24 +91,80 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
   }
 
   test("allReduce(iter IN r | acc + 1, acc < nestedAcc)") {
-    parsesIn[Expression](_ => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','"))
+    parsesIn[Expression] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
+      case _ => _.toAstPositioned(function(
+          "allReduce",
+          in(v"iter", v"r"),
+          add(v"acc", literalInt(1)),
+          lessThan(v"acc", v"nestedAcc")
+        ))
+    }
   }
 
   test("allReduce(acc =0, iter IN r | acc + 1)") {
     parsesIn[Expression] {
       case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
-      case _       => _.withSyntaxErrorContaining("Invalid input ')': expected an expression or ','")
+      case _ => _.toAstPositioned(function(
+          "allReduce",
+          equals(v"acc", literalInt(0)),
+          in(v"iter", v"r"),
+          add(v"acc", literalInt(1))
+        ))
     }
   }
 
   test("allReduce(acc =0, acc + 5, iter IN r | acc + 1)") {
-    parsesIn[Expression](_ => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','"))
+    parsesIn[Expression] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
+      case _ => _.toAstPositioned(function(
+          "allReduce",
+          equals(v"acc", literalInt(0)),
+          add(v"acc", literalInt(5)),
+          in(v"iter", v"r"),
+          add(v"acc", literalInt(1))
+        ))
+    }
   }
 
   test("allReduce(acc =0, iter IN r | acc + 1, acc < 5, acc > 10)") {
     parsesIn[Expression] {
       case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
-      case _       => _.withSyntaxErrorContaining("Invalid input ',': expected an expression or ')'")
+      case _ => _.toAstPositioned(function(
+          "allReduce",
+          equals(v"acc", literalInt(0)),
+          in(v"iter", v"r"),
+          add(v"acc", literalInt(1)),
+          lessThan(v"acc", literalInt(5)),
+          greaterThan(v"acc", literalInt(10))
+        ))
+    }
+  }
+
+  test("allReduce(acc =0, iter IN r | acc + 1, iter IN rA | acc + 2)") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
+      case _ => _.toAstPositioned(function(
+          "allReduce",
+          equals(v"acc", literalInt(0)),
+          in(v"iter", v"r"),
+          add(v"acc", literalInt(1)),
+          in(v"iter", v"rA"),
+          add(v"acc", literalInt(2))
+        ))
+    }
+  }
+
+  test("allReduce(iter IN r | acc + 1, iter IN rA | acc + 2)") {
+    parsesIn[Expression] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
+      case _ => _.toAstPositioned(function(
+          "allReduce",
+          in(v"iter", v"r"),
+          add(v"acc", literalInt(1)),
+          in(v"iter", v"rA"),
+          add(v"acc", literalInt(2))
+        ))
     }
   }
 }

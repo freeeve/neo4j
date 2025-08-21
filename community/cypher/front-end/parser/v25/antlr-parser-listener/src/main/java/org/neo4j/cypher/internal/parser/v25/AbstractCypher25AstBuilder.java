@@ -207,6 +207,11 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                 exitReduceExpression((Cypher25Parser.ReduceExpressionContext) ctx);
             case Cypher25Parser.RULE_allReduceExpression ->
                 exitAllReduceExpression((Cypher25Parser.AllReduceExpressionContext) ctx);
+            case Cypher25Parser.RULE_allReduceExpressionValidArguments ->
+                exitAllReduceExpressionValidArguments((Cypher25Parser.AllReduceExpressionValidArgumentsContext) ctx);
+            case Cypher25Parser.RULE_allReduceExpressionInvalidArguments ->
+                exitAllReduceExpressionInvalidArguments(
+                        (Cypher25Parser.AllReduceExpressionInvalidArgumentsContext) ctx);
             case Cypher25Parser.RULE_listItemsPredicate ->
                 exitListItemsPredicate((Cypher25Parser.ListItemsPredicateContext) ctx);
             case Cypher25Parser.RULE_normalizeFunction ->
