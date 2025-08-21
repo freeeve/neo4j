@@ -55,68 +55,67 @@ public final class CypherMath {
             return NO_VALUE;
         }
 
-        if (lhs instanceof NumberValue && rhs instanceof NumberValue) {
+        if (lhs instanceof NumberValue l && rhs instanceof NumberValue r) {
             try {
-                return ((NumberValue) lhs).plus((NumberValue) rhs);
+                return l.plus(r);
             } catch (java.lang.ArithmeticException e) {
                 throw ArithmeticException.wrappedArithmeticException(lhs.prettify() + " + " + rhs.prettify(), "+", e);
             }
         }
         // List addition
         // arrays are same as lists when it comes to addition
-        if (lhs instanceof ArrayValue) {
-            lhs = VirtualValues.fromArray((ArrayValue) lhs);
+        if (lhs instanceof ArrayValue array) {
+            lhs = VirtualValues.fromArray(array);
         }
-        if (rhs instanceof ArrayValue) {
-            rhs = VirtualValues.fromArray((ArrayValue) rhs);
+        if (rhs instanceof ArrayValue array) {
+            rhs = VirtualValues.fromArray(array);
         }
 
-        boolean lhsIsListValue = lhs instanceof ListValue;
-        if (lhsIsListValue && rhs instanceof ListValue) {
-            return ((ListValue) lhs).appendAll((ListValue) rhs);
-        } else if (lhsIsListValue) {
-            return ((ListValue) lhs).append(rhs);
-        } else if (rhs instanceof ListValue) {
-            return ((ListValue) rhs).prepend(lhs);
+        if (lhs instanceof ListValue lhsList && rhs instanceof ListValue rhsList) {
+            return lhsList.appendAll(rhsList);
+        } else if (lhs instanceof ListValue lhsList) {
+            return lhsList.append(rhs);
+        } else if (rhs instanceof ListValue rhsList) {
+            return rhsList.prepend(lhs);
         }
 
         // String addition
-        if (lhs instanceof TextValue && rhs instanceof TextValue) {
-            return ((TextValue) lhs).plus((TextValue) rhs);
-        } else if (lhs instanceof TextValue) {
+        if (lhs instanceof TextValue lhsText && rhs instanceof TextValue rhsText) {
+            return lhsText.plus(rhsText);
+        } else if (lhs instanceof TextValue lhsText) {
             if (rhs instanceof Value) {
                 // Unfortunately string concatenation is not defined for temporal and spatial types, so we need to
                 // exclude them
                 if (!(rhs instanceof TemporalValue || rhs instanceof DurationValue || rhs instanceof PointValue)) {
-                    return stringValue(((TextValue) lhs).stringValue() + ((Value) rhs).prettyPrint());
+                    return stringValue((lhsText).stringValue() + rhs.prettyPrint());
                 } else {
-                    return stringValue(((TextValue) lhs).stringValue() + rhs);
+                    return stringValue((lhsText).stringValue() + rhs);
                 }
             }
-        } else if (rhs instanceof TextValue) {
+        } else if (rhs instanceof TextValue rhsText) {
             if (lhs instanceof Value) {
                 // Unfortunately string concatenation is not defined for temporal and spatial types, so we need to
                 // exclude them
                 if (!(lhs instanceof TemporalValue || lhs instanceof DurationValue || lhs instanceof PointValue)) {
-                    return stringValue(((Value) lhs).prettyPrint() + ((TextValue) rhs).stringValue());
+                    return stringValue(lhs.prettyPrint() + (rhsText).stringValue());
                 } else {
-                    return stringValue(lhs + ((TextValue) rhs).stringValue());
+                    return stringValue(lhs + rhsText.stringValue());
                 }
             }
         }
 
         // Temporal values
-        if (lhs instanceof TemporalValue) {
-            if (rhs instanceof DurationValue) {
-                return ((TemporalValue) lhs).plus((DurationValue) rhs);
+        if (lhs instanceof TemporalValue<?, ?> lhsTemporal) {
+            if (rhs instanceof DurationValue rhsDuration) {
+                return lhsTemporal.plus(rhsDuration);
             }
         }
-        if (lhs instanceof DurationValue) {
-            if (rhs instanceof TemporalValue) {
-                return ((TemporalValue) rhs).plus((DurationValue) lhs);
+        if (lhs instanceof DurationValue lhsDuration) {
+            if (rhs instanceof TemporalValue<?, ?> rhsTemporal) {
+                return rhsTemporal.plus(lhsDuration);
             }
-            if (rhs instanceof DurationValue) {
-                return ((DurationValue) lhs).add((DurationValue) rhs);
+            if (rhs instanceof DurationValue rhsDuration) {
+                return lhsDuration.add(rhsDuration);
             }
         }
 
@@ -140,22 +139,22 @@ public final class CypherMath {
 
         // numbers
 
-        if (lhs instanceof NumberValue && rhs instanceof NumberValue) {
+        if (lhs instanceof NumberValue lhsNumber && rhs instanceof NumberValue rhsNumber) {
             try {
-                return ((NumberValue) lhs).minus((NumberValue) rhs);
+                return lhsNumber.minus(rhsNumber);
             } catch (java.lang.ArithmeticException e) {
                 throw ArithmeticException.wrappedArithmeticException(lhs.prettify() + " - " + rhs.prettify(), "-", e);
             }
         }
         // Temporal values
-        if (lhs instanceof TemporalValue) {
-            if (rhs instanceof DurationValue) {
-                return ((TemporalValue) lhs).minus((DurationValue) rhs);
+        if (lhs instanceof TemporalValue<?, ?> lhsTemporal) {
+            if (rhs instanceof DurationValue rhsDuration) {
+                return lhsTemporal.minus(rhsDuration);
             }
         }
-        if (lhs instanceof DurationValue) {
-            if (rhs instanceof DurationValue) {
-                return ((DurationValue) lhs).sub((DurationValue) rhs);
+        if (lhs instanceof DurationValue lhsDuration) {
+            if (rhs instanceof DurationValue rhsDuration) {
+                return lhsDuration.sub(rhsDuration);
             }
         }
 
@@ -177,22 +176,22 @@ public final class CypherMath {
             return NO_VALUE;
         }
 
-        if (lhs instanceof NumberValue && rhs instanceof NumberValue) {
+        if (lhs instanceof NumberValue lhsNumber && rhs instanceof NumberValue rhsNumber) {
             try {
-                return ((NumberValue) lhs).times((NumberValue) rhs);
+                return lhsNumber.times(rhsNumber);
             } catch (java.lang.ArithmeticException e) {
                 throw ArithmeticException.wrappedArithmeticException(lhs.prettify() + " * " + rhs.prettify(), "*", e);
             }
         }
         // Temporal values
-        if (lhs instanceof DurationValue) {
-            if (rhs instanceof NumberValue) {
-                return ((DurationValue) lhs).mul((NumberValue) rhs);
+        if (lhs instanceof DurationValue lhsDuration) {
+            if (rhs instanceof NumberValue rhsNumber) {
+                return lhsDuration.mul(rhsNumber);
             }
         }
-        if (rhs instanceof DurationValue) {
-            if (lhs instanceof NumberValue) {
-                return ((DurationValue) rhs).mul((NumberValue) lhs);
+        if (rhs instanceof DurationValue rhsDuration) {
+            if (lhs instanceof NumberValue lhsNumber) {
+                return rhsDuration.mul(lhsNumber);
             }
         }
 
@@ -222,13 +221,13 @@ public final class CypherMath {
             return NO_VALUE;
         }
 
-        if (lhs instanceof NumberValue && rhs instanceof NumberValue) {
-            return ((NumberValue) lhs).divideBy((NumberValue) rhs);
+        if (lhs instanceof NumberValue lhsNumber && rhs instanceof NumberValue rhsNumber) {
+            return lhsNumber.divideBy(rhsNumber);
         }
         // Temporal values
-        if (lhs instanceof DurationValue) {
-            if (rhs instanceof NumberValue) {
-                return ((DurationValue) lhs).div((NumberValue) rhs);
+        if (lhs instanceof DurationValue lhsDuration) {
+            if (rhs instanceof NumberValue rhsNumber) {
+                return lhsDuration.div(rhsNumber);
             }
         }
 
@@ -248,12 +247,12 @@ public final class CypherMath {
     public static AnyValue modulo(AnyValue lhs, AnyValue rhs) {
         if (lhs == NO_VALUE || rhs == NO_VALUE) {
             return NO_VALUE;
-        } else if (lhs instanceof NumberValue && rhs instanceof NumberValue) {
+        } else if (lhs instanceof NumberValue lhsNumber && rhs instanceof NumberValue rhsNumber) {
             try {
-                if (lhs instanceof FloatingPointValue || rhs instanceof FloatingPointValue) {
-                    return doubleValue(((NumberValue) lhs).doubleValue() % ((NumberValue) rhs).doubleValue());
+                if (lhsNumber instanceof FloatingPointValue || rhsNumber instanceof FloatingPointValue) {
+                    return doubleValue(lhsNumber.doubleValue() % rhsNumber.doubleValue());
                 } else {
-                    return longValue(((NumberValue) lhs).longValue() % ((NumberValue) rhs).longValue());
+                    return longValue(lhsNumber.longValue() % rhsNumber.longValue());
                 }
             } catch (java.lang.ArithmeticException e) {
                 throw ArithmeticException.wrappedArithmeticException(lhs.prettify() + " % " + rhs.prettify(), "%", e);
@@ -276,8 +275,8 @@ public final class CypherMath {
     public static AnyValue pow(AnyValue lhs, AnyValue rhs) {
         if (lhs == NO_VALUE || rhs == NO_VALUE) {
             return NO_VALUE;
-        } else if (lhs instanceof NumberValue && rhs instanceof NumberValue) {
-            return doubleValue(Math.pow(((NumberValue) lhs).doubleValue(), ((NumberValue) rhs).doubleValue()));
+        } else if (lhs instanceof NumberValue lhsNumber && rhs instanceof NumberValue rhsNumber) {
+            return doubleValue(Math.pow(lhsNumber.doubleValue(), rhsNumber.doubleValue()));
         }
 
         if (lhs == null) {

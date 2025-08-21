@@ -20,6 +20,8 @@
 package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
+import static org.neo4j.exceptions.ArithmeticException.floatOverflow;
+import static org.neo4j.exceptions.ArithmeticException.numericValueOutOfRange;
 import static org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS;
 import static org.neo4j.values.storable.VectorValue.MIN_VECTOR_DIMENSIONS;
 
@@ -28,10 +30,8 @@ import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.SequenceValue;
-import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.ByteArray;
-import org.neo4j.values.storable.DoubleArray;
-import org.neo4j.values.storable.FloatArray;
+import org.neo4j.values.storable.FloatingPointValue;
 import org.neo4j.values.storable.IntArray;
 import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.LongArray;
@@ -40,36 +40,10 @@ import org.neo4j.values.storable.ShortArray;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
-import org.neo4j.values.virtual.ListValue;
 
 final class VectorUtils {
     private VectorUtils() {
         throw new UnsupportedOperationException("Do not instantiate");
-    }
-
-    static VectorValue vectorFromListValue(ListValue listValue) {
-        try {
-            return vectorFromArrayValue(listValue.toStorableArray());
-        } catch (CypherTypeException e) {
-            throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'vector()': Expected a List of Numbers but got %s", listValue),
-                    "vector",
-                    listValue.toString(),
-                    List.of("LIST<INTEGER | FLOAT>"),
-                    listValue.getTypeName());
-        }
-    }
-
-    private static VectorValue vectorFromArrayValue(ArrayValue arrayValue) {
-        return switch (arrayValue) {
-            case ByteArray byteArray -> Values.int8Vector(byteArray.asObject());
-            case ShortArray shortArray -> Values.int16Vector(shortArray.asObject());
-            case IntArray intArray -> Values.int32Vector(intArray.asObject());
-            case LongArray longArray -> Values.int64Vector(longArray.asObject());
-            case FloatArray floatArray -> Values.float32Vector(floatArray.asObject());
-            case DoubleArray doubleArray -> Values.float64Vector(doubleArray.asObject());
-            default -> throw invalidVectorType(arrayValue);
-        };
     }
 
     static VectorValue int8Vector(SequenceValue vectorSequence) {
@@ -81,7 +55,7 @@ final class VectorUtils {
             byte[] values = new byte[length];
             for (AnyValue value : vectorSequence) {
                 if (value instanceof NumberValue number) {
-                    values[index++] = (byte) number.longValue();
+                    values[index++] = safeCastToByte(number.longValue());
                 } else {
                     throw invalidVectorType(value);
                 }
@@ -99,7 +73,7 @@ final class VectorUtils {
             short[] values = new short[length];
             for (AnyValue value : vectorSequence) {
                 if (value instanceof NumberValue number) {
-                    values[index++] = (short) number.longValue();
+                    values[index++] = safeCastToShort(number.longValue());
                 } else {
                     throw invalidVectorType(value);
                 }
@@ -117,7 +91,7 @@ final class VectorUtils {
             int[] values = new int[length];
             for (AnyValue value : vectorSequence) {
                 if (value instanceof NumberValue number) {
-                    values[index++] = (int) number.longValue();
+                    values[index++] = safeCastToInt(number.longValue());
                 } else {
                     throw invalidVectorType(value);
                 }
@@ -134,7 +108,9 @@ final class VectorUtils {
             int length = vectorSequence.intSize();
             long[] values = new long[length];
             for (AnyValue value : vectorSequence) {
-                if (value instanceof NumberValue number) {
+                if (value instanceof FloatingPointValue fp) {
+                    values[index++] = safeCastToLong(fp.doubleValue());
+                } else if (value instanceof NumberValue number) {
                     values[index++] = number.longValue();
                 } else {
                     throw invalidVectorType(value);
@@ -145,53 +121,77 @@ final class VectorUtils {
     }
 
     static VectorValue float32Vector(SequenceValue vectorSequence) {
-        if (vectorSequence instanceof FloatArray floats) {
-            return Values.float32Vector(floats.asObjectCopy());
-        } else {
-            int index = 0;
-            int length = vectorSequence.intSize();
-            float[] values = new float[length];
-            for (AnyValue value : vectorSequence) {
-                if (value instanceof NumberValue number) {
-                    values[index++] = assertNoOverflow((float) number.doubleValue());
-                } else {
-                    throw invalidVectorType(value);
-                }
+        // NOTE that even if the incoming vectorSequence is an instance of FloatArray
+        //     we still need to verify the contents is finite so there is no point of
+        //     short-circuiting here.
+        int index = 0;
+        int length = vectorSequence.intSize();
+        float[] values = new float[length];
+        for (AnyValue value : vectorSequence) {
+            if (value instanceof NumberValue numberValue) {
+                values[index++] = safeCastToFloat(numberValue.floatValue());
+            } else {
+                throw invalidVectorType(value);
             }
-            return Values.float32Vector(values);
         }
+        return Values.float32Vector(values);
     }
 
     static VectorValue float64Vector(SequenceValue vectorSequence) {
-        if (vectorSequence instanceof DoubleArray doubles) {
-            return Values.float64Vector(doubles.asObjectCopy());
-        } else {
-            int index = 0;
-            int length = vectorSequence.intSize();
-            double[] values = new double[length];
-            for (AnyValue value : vectorSequence) {
-                if (value instanceof NumberValue number) {
-                    values[index++] = assertNoOverflow(number.doubleValue());
-                } else {
-                    throw invalidVectorType(value);
-                }
+        // NOTE that even if the incoming vectorSequence is an instance of DoubleArray
+        //     we still need to verify the contents is finite so there is no point of
+        //     short-circuiting here.
+        int index = 0;
+        int length = vectorSequence.intSize();
+        double[] values = new double[length];
+        for (AnyValue value : vectorSequence) {
+            if (value instanceof NumberValue numberValue) {
+                values[index++] = safeCastToDouble(numberValue.doubleValue());
+            } else {
+                throw invalidVectorType(value);
             }
-            return Values.float64Vector(values);
         }
+        return Values.float64Vector(values);
     }
 
-    static float assertNoOverflow(float value) {
+    static byte safeCastToByte(long value) {
+        if (value < Byte.MIN_VALUE || value > Byte.MAX_VALUE) {
+            throw numericValueOutOfRange(String.valueOf(value), "vector()");
+        }
+        return (byte) value;
+    }
+
+    static short safeCastToShort(long value) {
+        if (value < Short.MIN_VALUE || value > Short.MAX_VALUE) {
+            throw numericValueOutOfRange(String.valueOf(value), "vector()");
+        }
+        return (short) value;
+    }
+
+    static int safeCastToInt(long value) {
+        if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+            throw numericValueOutOfRange(String.valueOf(value), "vector()");
+        }
+        return (int) value;
+    }
+
+    static long safeCastToLong(double value) {
+        if (value < Integer.MIN_VALUE || value > Integer.MAX_VALUE) {
+            throw numericValueOutOfRange(String.valueOf(value), "vector()");
+        }
+        return (long) value;
+    }
+
+    static float safeCastToFloat(float value) {
         if (!Float.isFinite(value)) {
-            throw org.neo4j.exceptions.ArithmeticException.floatOverflow(
-                    Float.toString(value), "Coercing to a 32 bit Float");
+            throw floatOverflow(Float.toString(value), "Coercing to a 32 bit Float");
         }
         return value;
     }
 
-    static double assertNoOverflow(double value) {
+    static double safeCastToDouble(double value) {
         if (!Double.isFinite(value)) {
-            throw org.neo4j.exceptions.ArithmeticException.floatOverflow(
-                    Double.toString(value), "Coercing to a 64 bit Float");
+            throw floatOverflow(Double.toString(value), "Coercing to a 64 bit Float");
         }
         return value;
     }

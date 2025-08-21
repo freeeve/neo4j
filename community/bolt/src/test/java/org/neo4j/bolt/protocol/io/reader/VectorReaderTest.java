@@ -19,9 +19,18 @@
  */
 package org.neo4j.bolt.protocol.io.reader;
 
+import static io.netty.buffer.Unpooled.EMPTY_BUFFER;
+import static io.netty.buffer.Unpooled.buffer;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.InstanceOfAssertFactories.type;
+import static org.neo4j.packstream.io.TypeMarker.FLOAT32;
+import static org.neo4j.packstream.io.TypeMarker.FLOAT64;
+import static org.neo4j.packstream.io.TypeMarker.INT16;
+import static org.neo4j.packstream.io.TypeMarker.INT32;
+import static org.neo4j.packstream.io.TypeMarker.INT8;
+
 import io.netty.buffer.Unpooled;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.io.PackstreamBuf;
@@ -39,104 +48,112 @@ public class VectorReaderTest {
 
     private <V extends VectorValue> void assertValue(PackstreamBuf buf, Class<V> type, V expected)
             throws PackstreamReaderException {
-        var value = VectorReader.getInstance().read(null, buf, new StructHeader(2, (short) 'V'));
+        var value = read(buf);
 
-        Assertions.assertThat(value)
-                .asInstanceOf(InstanceOfAssertFactories.type(type))
-                .satisfies(expected::equals);
+        assertThat(value).asInstanceOf(type(type)).satisfies(input -> assertThat(input)
+                .isEqualTo(expected));
+    }
+
+    private VectorValue read(PackstreamBuf buf) throws PackstreamReaderException {
+        return VectorReader.getInstance().read(null, buf, new StructHeader(2, (short) 'V'));
+    }
+
+    private PackstreamBuf bufferFor(TypeMarker marker) {
+        return PackstreamBuf.allocUnpooled().writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) marker.getValue()}));
     }
 
     @Test
     void shouldReadEmpty8Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.INT8.getValue()}))
-                .writeBytes(Unpooled.EMPTY_BUFFER);
+        var buffer = bufferFor(INT8).writeBytes(EMPTY_BUFFER);
 
-        this.assertValue(buffer, Int8Vector.class, Values.int8Vector());
+        assertValue(buffer, Int8Vector.class, Values.int8Vector());
     }
 
     @Test
     void shouldRead8Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.INT8.getValue()}))
-                .writeBytes(Unpooled.buffer().writeByte(0).writeByte(42).writeByte(21));
+        var buffer =
+                bufferFor(INT8).writeBytes(buffer().writeByte(0).writeByte(42).writeByte(21));
 
-        this.assertValue(buffer, Int8Vector.class, Values.int8Vector((byte) 0, (byte) 42, (byte) 21));
+        assertValue(buffer, Int8Vector.class, Values.int8Vector((byte) 0, (byte) 42, (byte) 21));
     }
 
     @Test
     void shouldReadEmpty16Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.INT16.getValue()}))
-                .writeBytes(Unpooled.EMPTY_BUFFER);
+        var buffer = bufferFor(INT16).writeBytes(EMPTY_BUFFER);
 
-        this.assertValue(buffer, Int16Vector.class, Values.int16Vector());
+        assertValue(buffer, Int16Vector.class, Values.int16Vector());
     }
 
     @Test
     void shouldRead16Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.INT16.getValue()}))
-                .writeBytes(Unpooled.buffer().writeShort(0).writeShort(42).writeShort(21));
+        var buffer = bufferFor(INT16)
+                .writeBytes(buffer().writeShort(0).writeShort(42).writeShort(21));
 
-        this.assertValue(buffer, Int16Vector.class, Values.int16Vector((short) 0, (short) 42, (short) 21));
+        assertValue(buffer, Int16Vector.class, Values.int16Vector((short) 0, (short) 42, (short) 21));
     }
 
     @Test
     void shouldReadEmpty32Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.INT32.getValue()}))
-                .writeBytes(Unpooled.EMPTY_BUFFER);
+        var buffer = bufferFor(INT32).writeBytes(EMPTY_BUFFER);
 
-        this.assertValue(buffer, Int32Vector.class, Values.int32Vector());
+        assertValue(buffer, Int32Vector.class, Values.int32Vector());
     }
 
     @Test
     void shouldRead32Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.INT32.getValue()}))
-                .writeBytes(Unpooled.buffer().writeInt(0).writeInt(42).writeInt(21));
+        var buffer =
+                bufferFor(INT32).writeBytes(buffer().writeInt(0).writeInt(42).writeInt(21));
 
-        this.assertValue(buffer, Int32Vector.class, Values.int32Vector(0, 42, 21));
+        assertValue(buffer, Int32Vector.class, Values.int32Vector(0, 42, 21));
     }
 
     @Test
     void shouldReadEmptyFloat32Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.FLOAT32.getValue()}))
-                .writeBytes(Unpooled.EMPTY_BUFFER);
+        var buffer = bufferFor(FLOAT32).writeBytes(EMPTY_BUFFER);
 
-        this.assertValue(buffer, Float32Vector.class, Values.float32Vector());
+        assertValue(buffer, Float32Vector.class, Values.float32Vector());
     }
 
     @Test
     void shouldReadFloat32Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.FLOAT32.getValue()}))
-                .writeBytes(
-                        Unpooled.buffer().writeFloat(0.125f).writeFloat(42.25f).writeFloat(21.5f));
+        var buffer = bufferFor(FLOAT32)
+                .writeBytes(buffer().writeFloat(0.125f).writeFloat(42.25f).writeFloat(21.5f));
 
-        this.assertValue(buffer, Float32Vector.class, Values.float32Vector(0.125f, 42.25f, 21.5f));
+        assertValue(buffer, Float32Vector.class, Values.float32Vector(0.125f, 42.25f, 21.5f));
+    }
+
+    @Test
+    void shouldFailIfFloat32VectorContainsNonFiniteValues() throws PackstreamReaderException {
+        assertThatThrownBy(() -> read(bufferFor(FLOAT32).writeBytes(buffer().writeFloat(Float.NEGATIVE_INFINITY))))
+                .isInstanceOf(PackstreamReaderException.class);
+        assertThatThrownBy(() -> read(bufferFor(FLOAT32).writeBytes(buffer().writeFloat(Float.POSITIVE_INFINITY))))
+                .isInstanceOf(PackstreamReaderException.class);
+        assertThatThrownBy(() -> read(bufferFor(FLOAT32).writeBytes(buffer().writeFloat(Float.NaN))))
+                .isInstanceOf(PackstreamReaderException.class);
     }
 
     @Test
     void shouldReadEmptyFloat64Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.FLOAT64.getValue()}))
-                .writeBytes(Unpooled.EMPTY_BUFFER);
+        var buffer = bufferFor(FLOAT64).writeBytes(EMPTY_BUFFER);
 
-        this.assertValue(buffer, Float64Vector.class, Values.float64Vector());
+        assertValue(buffer, Float64Vector.class, Values.float64Vector());
     }
 
     @Test
     void shouldReadFloat64Vector() throws PackstreamReaderException {
-        var buffer = PackstreamBuf.allocUnpooled()
-                .writeBytes(Unpooled.wrappedBuffer(new byte[] {(byte) TypeMarker.FLOAT64.getValue()}))
-                .writeBytes(Unpooled.buffer()
-                        .writeDouble(0.125f)
-                        .writeDouble(42.25f)
-                        .writeDouble(21.5f));
+        var buffer = bufferFor(FLOAT64)
+                .writeBytes(buffer().writeDouble(0.125f).writeDouble(42.25f).writeDouble(21.5f));
 
-        this.assertValue(buffer, Float64Vector.class, Values.float64Vector(0.125f, 42.25f, 21.5f));
+        assertValue(buffer, Float64Vector.class, Values.float64Vector(0.125f, 42.25f, 21.5f));
+    }
+
+    @Test
+    void shouldFailIfFloat64VectorContainsNonFiniteValues() throws PackstreamReaderException {
+        assertThatThrownBy(() -> read(bufferFor(FLOAT64).writeBytes(buffer().writeDouble(Double.NEGATIVE_INFINITY))))
+                .isInstanceOf(PackstreamReaderException.class);
+        assertThatThrownBy(() -> read(bufferFor(FLOAT64).writeBytes(buffer().writeDouble(Double.POSITIVE_INFINITY))))
+                .isInstanceOf(PackstreamReaderException.class);
+        assertThatThrownBy(() -> read(bufferFor(FLOAT64).writeBytes(buffer().writeDouble(Double.NaN))))
+                .isInstanceOf(PackstreamReaderException.class);
     }
 }

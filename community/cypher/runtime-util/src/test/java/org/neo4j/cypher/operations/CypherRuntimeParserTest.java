@@ -43,8 +43,9 @@ class CypherRuntimeParserTest {
     @Test
     void shouldParseInt8Vector() {
         assertThat(parseInt8Vector("[1, 2, 3, 4]")).isEqualTo(int8Vector((byte) 1, (byte) 2, (byte) 3, (byte) 4));
-        assertThat(parseInt8Vector("[-129, -128, 127, 128]"))
-                .isEqualTo(int8Vector(Byte.MAX_VALUE, Byte.MIN_VALUE, Byte.MAX_VALUE, Byte.MIN_VALUE));
+        assertThat(parseInt8Vector("[-128, 127]")).isEqualTo(int8Vector(Byte.MIN_VALUE, Byte.MAX_VALUE));
+        assertThatThrownBy(() -> parseInt8Vector("[-129]")).isInstanceOf(ArithmeticException.class);
+        assertThatThrownBy(() -> parseInt8Vector("[128]")).isInstanceOf(ArithmeticException.class);
         assertThat(parseInt8Vector("[1, 2.0, 3.0, 4.0]")).isEqualTo(int8Vector((byte) 1, (byte) 2, (byte) 3, (byte) 4));
         assertThatThrownBy(() -> parseInt8Vector("[1, 2, NULL, 4]")).isInstanceOf(CypherTypeException.class);
         assertThatThrownBy(() -> parseInt8Vector("NULL")).isInstanceOf(CypherTypeException.class);
@@ -53,8 +54,9 @@ class CypherRuntimeParserTest {
     @Test
     void shouldParseInt16Vector() {
         assertThat(parseInt16Vector("[1, 2, 3, 4]")).isEqualTo(int16Vector((short) 1, (short) 2, (short) 3, (short) 4));
-        assertThat(parseInt16Vector("[-32769, -32768, 32767, 32768]"))
-                .isEqualTo(int16Vector(Short.MAX_VALUE, Short.MIN_VALUE, Short.MAX_VALUE, Short.MIN_VALUE));
+        assertThat(parseInt16Vector("[-32768, 32767]")).isEqualTo(int16Vector(Short.MIN_VALUE, Short.MAX_VALUE));
+        assertThatThrownBy(() -> parseInt16Vector("[-32769]")).isInstanceOf(ArithmeticException.class);
+        assertThatThrownBy(() -> parseInt16Vector("[32768]")).isInstanceOf(ArithmeticException.class);
         assertThat(parseInt16Vector("[1, 2.0, 3.0, 4.0]"))
                 .isEqualTo(int16Vector((short) 1, (short) 2, (short) 3, (short) 4));
         assertThatThrownBy(() -> parseInt16Vector("[1, 2, NULL, 4]")).isInstanceOf(CypherTypeException.class);
@@ -64,8 +66,10 @@ class CypherRuntimeParserTest {
     @Test
     void shouldParseInt32Vector() {
         assertThat(parseInt32Vector("[1, 2, 3, 4]")).isEqualTo(int32Vector(1, 2, 3, 4));
-        assertThat(parseInt32Vector("[-2147483649,  -2147483648,  2147483647,  2147483648]"))
-                .isEqualTo(int32Vector(Integer.MAX_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE));
+        assertThat(parseInt32Vector("[-2147483648,  2147483647]"))
+                .isEqualTo(int32Vector(Integer.MIN_VALUE, Integer.MAX_VALUE));
+        assertThatThrownBy(() -> parseInt32Vector("[-2147483649]")).isInstanceOf(ArithmeticException.class);
+        assertThatThrownBy(() -> parseInt32Vector("[2147483648]")).isInstanceOf(ArithmeticException.class);
         assertThat(parseInt32Vector("[1, 2.0, 3.0, 4.0]")).isEqualTo(int32Vector(1, 2, 3, 4));
         assertThatThrownBy(() -> parseInt32Vector("[1, 2, NULL, 4]")).isInstanceOf(CypherTypeException.class);
         assertThatThrownBy(() -> parseInt32Vector("NULL")).isInstanceOf(CypherTypeException.class);

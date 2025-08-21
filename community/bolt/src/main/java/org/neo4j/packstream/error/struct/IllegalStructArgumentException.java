@@ -200,6 +200,16 @@ public class IllegalStructArgumentException extends PackstreamStructException {
                 "Expected value to be non-null");
     }
 
+    public static IllegalStructArgumentException floatOverflow(String value, String operation, String fieldName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, value)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)
+                        .withParam(GqlParams.StringParam.operation, operation)
+                        .build())
+                .build();
+        return new IllegalStructArgumentException(gql, fieldName, value + " caused an overflow.");
+    }
+
     public String getFieldName() {
         return this.fieldName;
     }

@@ -19,7 +19,12 @@
  */
 package org.neo4j.cypher.operations;
 
-import static org.neo4j.cypher.operations.VectorUtils.assertNoOverflow;
+import static org.neo4j.cypher.operations.VectorUtils.safeCastToByte;
+import static org.neo4j.cypher.operations.VectorUtils.safeCastToDouble;
+import static org.neo4j.cypher.operations.VectorUtils.safeCastToFloat;
+import static org.neo4j.cypher.operations.VectorUtils.safeCastToInt;
+import static org.neo4j.cypher.operations.VectorUtils.safeCastToLong;
+import static org.neo4j.cypher.operations.VectorUtils.safeCastToShort;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.longValue;
@@ -71,7 +76,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            bytes[i++] = asByte(iterator.next());
+            bytes[i++] = safeCastToByte(asLong(iterator.next()));
         }
         return Values.int8Vector(bytes);
     }
@@ -83,7 +88,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            shorts[i++] = asShort(iterator.next());
+            shorts[i++] = safeCastToShort(asLong(iterator.next()));
         }
         return Values.int16Vector(shorts);
     }
@@ -95,7 +100,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            ints[i++] = asInt(iterator.next());
+            ints[i++] = safeCastToInt(asLong(iterator.next()));
         }
         return Values.int32Vector(ints);
     }
@@ -119,7 +124,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            floats[i++] = assertNoOverflow(asNumber(iterator.next()).floatValue());
+            floats[i++] = safeCastToFloat(asNumber(iterator.next()).floatValue());
         }
         return Values.float32Vector(floats);
     }
@@ -131,7 +136,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            doubles[i++] = assertNoOverflow(asNumber(iterator.next()).doubleValue());
+            doubles[i++] = safeCastToDouble(asNumber(iterator.next()).doubleValue());
         }
         return Values.float64Vector(doubles);
     }
@@ -198,20 +203,13 @@ abstract class CypherRuntimeParser {
         }
     }
 
-    private static byte asByte(Expression expression) {
-        return asNumber(expression).byteValue();
-    }
-
-    private static short asShort(Expression expression) {
-        return asNumber(expression).shortValue();
-    }
-
-    private static int asInt(Expression expression) {
-        return asNumber(expression).intValue();
-    }
-
     private static long asLong(Expression expression) {
-        return asNumber(expression).longValue();
+        Number number = asNumber(expression);
+        if (number instanceof Float || number instanceof Double) {
+            return safeCastToLong(number.doubleValue());
+        } else {
+            return number.longValue();
+        }
     }
 
     private static Number asNumber(Expression expression) {
