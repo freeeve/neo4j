@@ -143,7 +143,8 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
           } else {
             // using index with a parent (implied) label
             PartialPredicateWrapper(
-              coveredPredicate = labelPredicate.copy(labels = Seq(symbolicName))(labelPredicate.position),
+              coveredPredicate =
+                labelPredicate.copy(labels = Seq(symbolicName))(labelPredicate.position, labelPredicate.isPostfix),
               coveringPredicate = labelPredicate
             )
           }

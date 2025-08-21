@@ -40,7 +40,7 @@ case object RemoveSyntaxTracking extends Step with DefaultPostCondition with Pre
     case v: Variable if v.isIsolated           => v.copy()(v.position, Variable.isIsolatedDefault)
     case it: IsTyped if it.withDoubleColonOnly => it.copy()(it.position, IsTyped.withDoubleColonOnlyDefault)
     case lep: LabelExpressionPredicate if lep.isParenthesized =>
-      lep.copy()(lep.position, LabelExpressionPredicate.isParenthesizedDefault)
+      lep.copy()(lep.position, LabelExpressionPredicate.isParenthesizedDefault, lep.isPostfix)
   }
 
   val instance: Rewriter = bottomUp(rewriter)

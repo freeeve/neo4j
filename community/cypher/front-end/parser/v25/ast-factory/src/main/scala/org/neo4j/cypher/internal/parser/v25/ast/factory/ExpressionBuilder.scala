@@ -437,7 +437,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   ): Expression = {
     LabelExpressionPredicate(lhs, ctxChild(labelCtx, 0).ast())(
       pos(labelCtx),
-      isParenthesized = LabelExpressionPredicate.isParenthesizedDefault
+      isParenthesized = LabelExpressionPredicate.isParenthesizedDefault,
+      isPostfix = LabelExpressionPredicate.isPostfixDefault
     )
   }
 
@@ -749,7 +750,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.ParenthesizedExpressionContext
   ): Unit = {
     ctx.ast = ctxChild(ctx, 1).ast match {
-      case lep: LabelExpressionPredicate => lep.copy()(lep.position, isParenthesized = true)
+      case lep: LabelExpressionPredicate => lep.copy()(lep.position, isParenthesized = true, lep.isPostfix)
       case v: Variable if !v.isIsolated  => v.copy()(v.position, isIsolated = true)
       case x                             => x
     }

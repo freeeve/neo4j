@@ -45,7 +45,7 @@ object ExpressionConverters {
         // n:Label
         case p @ HasLabels(v: Variable, labels) =>
           builder ++= labels.map { label =>
-            Predicate(Set(v), p.copy(labels = Seq(label))(p.position))
+            Predicate(Set(v), p.copy(labels = Seq(label))(p.position, p.isPostfix))
           }
           SkipChildren(_)
         // r:T

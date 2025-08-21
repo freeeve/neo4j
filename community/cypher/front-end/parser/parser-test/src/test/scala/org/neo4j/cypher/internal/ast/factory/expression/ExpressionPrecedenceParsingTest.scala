@@ -16,11 +16,15 @@
  */
 package org.neo4j.cypher.internal.ast.factory.expression
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.PrecedenceLevelsTestBase
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.ParserInTest
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
 import org.neo4j.cypher.internal.expressions.Expression
@@ -33,7 +37,7 @@ import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.StringType
 
-class ExpressionPrecedenceParsingTest extends AstParsingTestBase {
+class ExpressionPrecedenceParsingTest extends AstParsingTestBase with PrecedenceLevelsTestBase {
 
   /**
    * Precedence in Cypher:
@@ -209,9 +213,9 @@ class ExpressionPrecedenceParsingTest extends AstParsingTestBase {
     )
 
     // (2 + 3) IN [(2 - 1)]
-    "2 + 3 IN [2 - 1]" should parse[Expression].toAsts {
-      case _ => in(add(literalInt(2), literalInt(3)), listOf(subtract(literalInt(2), literalInt(1))))
-    }
+    "2 + 3 IN [2 - 1]" should parseTo[Expression](
+      in(add(literalInt(2), literalInt(3)), listOf(subtract(literalInt(2), literalInt(1))))
+    )
     // (1 + 2) IS NOT NULL
     "1 + 2 IS NOT NULL" should parseTo[Expression](isNotNull(add(literalInt(1), literalInt(2))))
 
@@ -472,6 +476,40 @@ class ExpressionPrecedenceParsingTest extends AstParsingTestBase {
         ),
         varFor("y", isIsolated = true)
       )
+    }
+  }
+
+  def parserOfVersion(parserInTest: ParserInTest, cypherVersion: CypherVersion): Boolean =
+    (parserInTest, cypherVersion) match {
+      case (Cypher25, CypherVersion.Cypher25) => true
+      case (Cypher5, CypherVersion.Cypher5)   => true
+      case (_, _)                             => false
+    }
+
+  {
+    val cases: Seq[(Expression, String, Set[CypherVersion])] =
+      all2LevelCombinationsWithRandomBase(
+        innerFilter = IsParseable,
+        outerFilter = IsParseable
+      ) ++
+        sampledNLevelCombinationsWithRandomBase(500, 5, IsParseable)
+
+    val casesPerVersion = cases.flatMap {
+      case (expectedAst, cypher, versions) =>
+        versions.map(v => (expectedAst, cypher, v))
+    }
+
+    for {
+      ((expectedAst, cypher, version), idx) <- casesPerVersion.zipWithIndex
+    } {
+      test(s"[$idx] ${version.description} should parse ```$cypher``` to expected AST") {
+        withClue(expectedAst) {
+          cypher should parseIn[Expression] {
+            case p if parserOfVersion(p, version) => _.toAst(expectedAst)
+            case _                                => _.ignored
+          }
+        }
+      }
     }
   }
 }

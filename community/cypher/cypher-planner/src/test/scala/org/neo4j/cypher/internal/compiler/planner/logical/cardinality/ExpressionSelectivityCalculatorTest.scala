@@ -107,8 +107,8 @@ abstract class ExpressionSelectivityCalculatorTest extends CypherFunSuite with A
   protected val nProp: Property = prop("n", nodePropName)
 
   protected val personLabelName: LabelName = labelName("Person")
-  protected val nIsPerson: Predicate = nPredicate(HasLabels(v"n", Seq(personLabelName)) _)
-  protected val nIsAnimal: Predicate = nPredicate(HasLabels(v"n", Seq(labelName("Animal"))) _)
+  protected val nIsPerson: Predicate = nPredicate(hasLabels(v"n", personLabelName))
+  protected val nIsAnimal: Predicate = nPredicate(hasLabels(v"n", labelName("Animal")))
 
   protected val nIsPersonLabelInfo: Map[LogicalVariable, Set[LabelName]] = Map(v"n" -> Set(personLabelName))
 
@@ -1422,8 +1422,8 @@ abstract class ExpressionSelectivityCalculatorTest extends CypherFunSuite with A
       resolvedLabelNames = Map("Page" -> LabelId(0))
     )
 
-    val hasLabels = HasLabels(v"n", Seq(labelName("Page"))) _
-    val labelInfo: LabelInfo = Selections(Set(nPredicate(hasLabels))).labelInfo
+    val hasLabelsPred = hasLabels(v"n", labelName("Page"))
+    val labelInfo: LabelInfo = Selections(Set(nPredicate(hasLabelsPred))).labelInfo
 
     val stats = mock[GraphStatistics]
     when(stats.nodesAllCardinality()).thenReturn(2000.0)
@@ -1434,7 +1434,7 @@ abstract class ExpressionSelectivityCalculatorTest extends CypherFunSuite with A
       semanticTable = semanticTable
     )
 
-    val result = calculator(PartialPredicate[HasLabels](hasLabels, hasLabels))
+    val result = calculator(PartialPredicate[HasLabels](hasLabelsPred, hasLabelsPred))
 
     result.factor should equal(0.5)
   }

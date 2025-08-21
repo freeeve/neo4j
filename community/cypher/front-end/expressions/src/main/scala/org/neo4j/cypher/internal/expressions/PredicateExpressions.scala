@@ -160,7 +160,12 @@ case class Not(rhs: Expression)(val position: InputPosition) extends BooleanExpr
   )
 }
 
-case class Equals(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
+/**
+ * predicate that is built up like `<lhs> <OPERATOR> <rhs>` with a part 2 form like `<OPERATOR> <rhs>`
+ */
+trait BinaryPredicateExpression extends BooleanExpression with BinaryOperatorExpression with Part2OperatorExpression
+
+case class Equals(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression
     with ChainableBinaryOperatorExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] = Vector(
@@ -172,7 +177,7 @@ case class Equals(lhs: Expression, rhs: Expression)(val position: InputPosition)
   def switchSides: Equals = copy(rhs, lhs)(position)
 }
 
-case class NotEquals(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
+case class NotEquals(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression
     with ChainableBinaryOperatorExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] = Vector(
@@ -184,13 +189,13 @@ case class NotEquals(lhs: Expression, rhs: Expression)(val position: InputPositi
   def switchSides: NotEquals = copy(rhs, lhs)(position)
 }
 
-case class InvalidNotEquals(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
+case class InvalidNotEquals(lhs: Expression, rhs: Expression)(val position: InputPosition)
+    extends BinaryPredicateExpression
     with ChainableBinaryOperatorExpression {
   override def canonicalOperatorSymbol = "!="
 }
 
-case class RegexMatch(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
-    with BinaryOperatorExpression {
+case class RegexMatch(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTString, CTString), outputType = CTBoolean)
@@ -199,8 +204,11 @@ case class RegexMatch(lhs: Expression, rhs: Expression)(val position: InputPosit
   override def canonicalOperatorSymbol = "=~"
 }
 
-case class In(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
-    with BinaryOperatorExpression
+case class In(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression
+    with BinaryOperatorExpression {
+
+  override def canonicalOperatorSymbol = "IN"
+}
 
 // Partial predicates are predicates that are covered by a larger predicate which is going to be solved later during planning
 // (and then will replace this predicate).
@@ -233,8 +241,7 @@ object PartialPredicate {
   }
 }
 
-case class StartsWith(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
-    with BinaryOperatorExpression {
+case class StartsWith(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
@@ -243,8 +250,7 @@ case class StartsWith(lhs: Expression, rhs: Expression)(val position: InputPosit
   override def canonicalOperatorSymbol = "STARTS WITH"
 }
 
-case class EndsWith(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
-    with BinaryOperatorExpression {
+case class EndsWith(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
@@ -253,16 +259,17 @@ case class EndsWith(lhs: Expression, rhs: Expression)(val position: InputPositio
   override def canonicalOperatorSymbol = "ENDS WITH"
 }
 
-case class Contains(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BooleanExpression
-    with BinaryOperatorExpression {
+case class Contains(lhs: Expression, rhs: Expression)(val position: InputPosition) extends BinaryPredicateExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
   )
+
+  override def canonicalOperatorSymbol = "CONTAINS"
 }
 
 case class IsNull(lhs: Expression)(val position: InputPosition) extends BooleanExpression
-    with RightUnaryOperatorExpression {
+    with RightUnaryOperatorExpression with Part2OperatorExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny), outputType = CTBoolean)
@@ -272,7 +279,7 @@ case class IsNull(lhs: Expression)(val position: InputPosition) extends BooleanE
 }
 
 case class IsNotNull(lhs: Expression)(val position: InputPosition) extends BooleanExpression
-    with RightUnaryOperatorExpression {
+    with RightUnaryOperatorExpression with Part2OperatorExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] = Vector(
     TypeSignature(argumentTypes = Vector(CTAny), outputType = CTBoolean)
@@ -285,7 +292,7 @@ object InequalityExpression {
   def unapply(arg: InequalityExpression): Option[(Expression, Expression)] = Some((arg.lhs, arg.rhs))
 }
 
-sealed trait InequalityExpression extends BooleanExpression with ChainableBinaryOperatorExpression {
+sealed trait InequalityExpression extends BinaryPredicateExpression with ChainableBinaryOperatorExpression {
 
   override val signatures: Seq[ExpressionTypeSignature] =
     Vector(TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean))

@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.Part2OperatorExpression
 import org.neo4j.cypher.internal.expressions.RightUnaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.TypeSignature
 import org.neo4j.cypher.internal.util.InputPosition
@@ -29,7 +30,7 @@ case class IsTyped(lhs: Expression, typeName: CypherType)(
   val position: InputPosition,
   val withDoubleColonOnly: Boolean
 ) extends BooleanExpression
-    with RightUnaryOperatorExpression {
+    with RightUnaryOperatorExpression with Part2OperatorExpression {
 
   override val signatures = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
@@ -74,7 +75,7 @@ object IsTyped {
 
 case class IsNotTyped(lhs: Expression, typeName: CypherType)(val position: InputPosition)
     extends BooleanExpression
-    with RightUnaryOperatorExpression {
+    with RightUnaryOperatorExpression with Part2OperatorExpression {
 
   override val signatures = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)

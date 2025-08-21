@@ -53,13 +53,45 @@ case class ImpliedLabel(hasLabels: HasLabels)(val position: InputPosition) exten
 /**
  * Checks if expression has all labels
  */
-case class HasLabels(expression: Expression, labels: Seq[LabelName])(val position: InputPosition)
-    extends HasLabelsExpression {
+case class HasLabels(expression: Expression, labels: Seq[LabelName])(
+  val position: InputPosition,
+  val isPostfix: Boolean = HasLabels.isPostfixDefault
+) extends HasLabelsExpression {
 
   override def asCanonicalStringVal =
     s"${expression.asCanonicalStringVal}${labels.map(_.asCanonicalStringVal).mkString(":", ":", "")}"
 
   override def hasLabels: HasLabels = this
+
+  override def dup(children: Seq[AnyRef]): this.type =
+    children.size match {
+      case 2 =>
+        HasLabels(
+          children.head.asInstanceOf[Expression],
+          children(1).asInstanceOf[Seq[LabelName]]
+        )(position, isPostfix).asInstanceOf[this.type]
+      case 3 =>
+        HasLabels(
+          children.head.asInstanceOf[Expression],
+          children(1).asInstanceOf[Seq[LabelName]]
+        )(
+          children(2).asInstanceOf[InputPosition],
+          isPostfix
+        ).asInstanceOf[this.type]
+      case 4 =>
+        HasLabels(
+          children.head.asInstanceOf[Expression],
+          children(1).asInstanceOf[Seq[LabelName]]
+        )(
+          children(2).asInstanceOf[InputPosition],
+          children(3).asInstanceOf[Boolean]
+        ).asInstanceOf[this.type]
+      case _ => throw new IllegalStateException("HasLabels has at least 2 and at most 4 children.")
+    }
+}
+
+object HasLabels {
+  val isPostfixDefault: Boolean = false
 }
 
 /**

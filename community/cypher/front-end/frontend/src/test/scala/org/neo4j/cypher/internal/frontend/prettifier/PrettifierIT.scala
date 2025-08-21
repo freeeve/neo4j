@@ -342,13 +342,13 @@ class PrettifierIT extends CypherFunSuite {
         |REMOVE n IS Label""".stripMargin,
     "match (n) REMOVE n iS Label:Label1, m : Label2 : LaBeL3,    n[\"prop\" +     \"2\"]" ->
       """MATCH (n)
-        |REMOVE n IS Label:Label1, m:Label2:LaBeL3, n[("prop" + "2")]""".stripMargin,
+        |REMOVE n IS Label:Label1, m:Label2:LaBeL3, n["prop" + "2"]""".stripMargin,
     "match (n) SET n[\"prop\"]    =    2" ->
       """MATCH (n)
         |SET n["prop"] = 2""".stripMargin,
     "match (n) SET n[\"prop\" +     \"2\"]    =    2" ->
       """MATCH (n)
-        |SET n[("prop" + "2")] = 2""".stripMargin,
+        |SET n["prop" + "2"] = 2""".stripMargin,
     "match (n) DELETE n" ->
       """MATCH (n)
         |DELETE n""".stripMargin,

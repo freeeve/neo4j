@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.NormalForm
+import org.neo4j.cypher.internal.expressions.Part2OperatorExpression
 import org.neo4j.cypher.internal.expressions.RightUnaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.TypeSignature
 import org.neo4j.cypher.internal.util.InputPosition
@@ -27,7 +28,7 @@ import org.neo4j.cypher.internal.util.symbols.CTBoolean
 
 case class IsNormalized(lhs: Expression, normalForm: NormalForm)(val position: InputPosition)
     extends BooleanExpression
-    with RightUnaryOperatorExpression {
+    with RightUnaryOperatorExpression with Part2OperatorExpression {
 
   override val signatures = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)
@@ -38,7 +39,7 @@ case class IsNormalized(lhs: Expression, normalForm: NormalForm)(val position: I
 
 case class IsNotNormalized(lhs: Expression, normalForm: NormalForm)(val position: InputPosition)
     extends BooleanExpression
-    with RightUnaryOperatorExpression {
+    with RightUnaryOperatorExpression with Part2OperatorExpression {
 
   override val signatures = Vector(
     TypeSignature(argumentTypes = Vector(CTAny, CTAny), outputType = CTBoolean)

@@ -801,21 +801,24 @@ class ExpressionLabelExpressionsParserTest extends AstParsingTestBase {
   }
 
   test("[x IN [1,2,3] WHERE n:(A | x)]") {
-    parsesTo[Expression] {
-      listComprehension(
-        varFor("x"),
-        listOfInt(1, 2, 3),
-        Some(
-          labelExpressionPredicate(
-            varFor("n", position = (1, 21, 20)),
-            labelDisjunction(
-              labelOrRelTypeLeaf("A", (1, 24, 23)),
-              labelOrRelTypeLeaf("x", (1, 28, 27)),
-              (1, 26, 25)
+    parsesIn[Expression] { _ =>
+      _.toAstWith(
+        listComprehension(
+          varFor("x"),
+          listOfInt(1, 2, 3),
+          Some(
+            labelExpressionPredicate(
+              varFor("n", position = (1, 21, 20)),
+              labelDisjunction(
+                labelOrRelTypeLeaf("A", (1, 24, 23)),
+                labelOrRelTypeLeaf("x", (1, 28, 27)),
+                (1, 26, 25)
+              )
             )
-          )
+          ),
+          None
         ),
-        None
+        prettifierRoundTrip = false
       )
     }
   }
@@ -875,35 +878,40 @@ class ExpressionLabelExpressionsParserTest extends AstParsingTestBase {
   }
 
   test("RETURN [x IN [1,2,3] WHERE n:A | (b | x)]") {
-    parsesTo[Statements](Statements(Seq(SingleQuery(Seq(Return(
-      distinct = false,
-      ReturnItems(
-        FreeProjection,
-        Seq(UnaliasedReturnItem(
-          ListComprehension(
-            ExtractScope(
-              varFor("x"),
-              Some(labelExpressionPredicate(
-                varFor("n"),
-                Disjunctions(Seq(
-                  Leaf(LabelOrRelTypeName("A")(pos)),
-                  Leaf(LabelOrRelTypeName("b")(pos)),
-                  Leaf(LabelOrRelTypeName("x")(pos))
-                ))(pos)
-              )),
-              None
-            )(pos),
-            ListLiteral(Seq(literal(1), literal(2), literal(3)))(pos)
+    parsesIn[Statements] { _ =>
+      _.toAstWith(
+        Statements(Seq(SingleQuery(Seq(Return(
+          distinct = false,
+          ReturnItems(
+            FreeProjection,
+            Seq(UnaliasedReturnItem(
+              ListComprehension(
+                ExtractScope(
+                  varFor("x"),
+                  Some(labelExpressionPredicate(
+                    varFor("n"),
+                    Disjunctions(Seq(
+                      Leaf(LabelOrRelTypeName("A")(pos)),
+                      Leaf(LabelOrRelTypeName("b")(pos)),
+                      Leaf(LabelOrRelTypeName("x")(pos))
+                    ))(pos)
+                  )),
+                  None
+                )(pos),
+                ListLiteral(Seq(literal(1), literal(2), literal(3)))(pos)
+              )(pos),
+              "[x IN [1,2,3] WHERE n:A | (b | x)]"
+            )(pos)),
+            None
           )(pos),
-          "[x IN [1,2,3] WHERE n:A | (b | x)]"
-        )(pos)),
-        None
-      )(pos),
-      None,
-      None,
-      None,
-      Set()
-    )(pos)))(pos))))
+          None,
+          None,
+          None,
+          Set()
+        )(pos)))(pos))),
+        prettifierRoundTrip = false
+      )
+    }
   }
 
   test("RETURN [x IN [1,2,3] WHERE n:A|B AND n:C|D | x]") {

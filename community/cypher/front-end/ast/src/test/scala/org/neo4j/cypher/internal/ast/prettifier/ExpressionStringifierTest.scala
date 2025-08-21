@@ -16,10 +16,11 @@
  */
 package org.neo4j.cypher.internal.ast.prettifier
 
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.PrecedenceLevelsTestBase
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.RelationshipChain
@@ -28,16 +29,25 @@ import org.neo4j.cypher.internal.expressions.RelationshipsPattern
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestSupport {
+class ExpressionStringifierTest extends CypherFunSuite with PrecedenceLevelsTestBase {
 
-  private val tests: Seq[(Expression, String)] = Seq(
+  test("Meta: On level 1 all expression arguments should be syntactically delimited") {
+    precedenceLevel.last.foreach(op =>
+      op.syntacticallyDelimited.map(_._1) should contain theSameElementsAs (0 until op.numArgs)
+    )
+  }
+
+  private val allVersions = CypherVersion.values().toSet
+
+  private val tests: Seq[(Expression, String, Set[CypherVersion])] = Seq(
     (
       ExistsExpression(
         singleQuery(
           return_(aliasedReturnItem(literalInt(1), "one"))
         )
       )(pos, Some(Set.empty), Some(Set.empty)),
-      """EXISTS { RETURN 1 AS one }""".stripMargin
+      """EXISTS { RETURN 1 AS one }""".stripMargin,
+      allVersions
     ),
     (
       ExistsExpression(
@@ -56,7 +66,8 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
         |    WHEN true THEN 1
         |    WHEN false THEN 0
         |  END AS one
-        |}""".stripMargin
+        |}""".stripMargin,
+      allVersions
     ),
     (
       ExistsExpression(
@@ -68,7 +79,8 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
       """EXISTS {
         |  MATCH ()
         |  RETURN 1 AS one
-        |}""".stripMargin
+        |}""".stripMargin,
+      allVersions
     ),
     (
       CollectExpression(
@@ -76,7 +88,8 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
           return_(aliasedReturnItem(literalInt(1), "one"))
         )
       )(pos, Some(Set.empty), Some(Set.empty)),
-      """COLLECT { RETURN 1 AS one }""".stripMargin
+      """COLLECT { RETURN 1 AS one }""".stripMargin,
+      allVersions
     ),
     (
       CollectExpression(
@@ -95,7 +108,8 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
         |    WHEN true THEN 1
         |    WHEN false THEN 0
         |  END AS one
-        |}""".stripMargin
+        |}""".stripMargin,
+      allVersions
     ),
     (
       CollectExpression(
@@ -107,7 +121,8 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
       """COLLECT {
         |  MATCH ()
         |  RETURN 1 AS one
-        |}""".stripMargin
+        |}""".stripMargin,
+      allVersions
     ),
     (
       CountExpression(
@@ -115,7 +130,8 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
           return_(aliasedReturnItem(literalInt(1), "one"))
         )
       )(pos, Some(Set.empty), Some(Set.empty)),
-      """COUNT { RETURN 1 AS one }""".stripMargin
+      """COUNT { RETURN 1 AS one }""".stripMargin,
+      allVersions
     ),
     (
       CountExpression(
@@ -134,7 +150,8 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
         |    WHEN true THEN 1
         |    WHEN false THEN 0
         |  END AS one
-        |}""".stripMargin
+        |}""".stripMargin,
+      allVersions
     ),
     (
       CountExpression(
@@ -146,7 +163,8 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
       """COUNT {
         |  MATCH ()
         |  RETURN 1 AS one
-        |}""".stripMargin
+        |}""".stripMargin,
+      allVersions
     ),
     (
       PatternComprehension(
@@ -163,7 +181,26 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
         computedIntroducedVariables = Some(Set(varFor("u"), varFor("u2"))),
         computedScopeDependencies = Some(Set(varFor("r")))
       ),
-      "[(u)-[r:FOLLOWS]->(u2) WHERE u2:User | u2.id]"
+      "[(u)-[r:FOLLOWS]->(u2) WHERE u2:User | u2.id]",
+      allVersions
+    ),
+    (
+      PatternComprehension(
+        namedPath = None,
+        pattern = RelationshipsPattern(RelationshipChain(
+          nodePat(Some("u")),
+          RelationshipPattern(Some(varFor("r")), Some(labelRelTypeLeaf("FOLLOWS")), None, None, None, OUTGOING)(pos),
+          nodePat(Some("u2"))
+        )(pos))(pos),
+        predicate = Some(labelExpressionPredicate("u2", labelDisjunction(labelLeaf("UserA"), labelLeaf("UserB")))),
+        projection = prop("u2", "id")
+      )(
+        pos,
+        computedIntroducedVariables = Some(Set(varFor("u"), varFor("u2"))),
+        computedScopeDependencies = Some(Set(varFor("r")))
+      ),
+      "[(u)-[r:FOLLOWS]->(u2) WHERE (u2:UserA|UserB) | u2.id]",
+      allVersions
     ),
     (
       PatternComprehension(
@@ -180,35 +217,45 @@ class ExpressionStringifierTest extends CypherFunSuite with AstConstructionTestS
         computedIntroducedVariables = Some(Set(varFor("u"), varFor("u2"))),
         computedScopeDependencies = Some(Set(varFor("r")))
       ),
-      "[(u)-[r:FOLLOWS]->(u2:User) | u2.id]"
+      "[(u)-[r:FOLLOWS]->(u2:User) | u2.id]",
+      allVersions
     ),
     (
       varFor(
         "yo\u005c\u0075\u0030\u0030\u0036\u0030 union all match (yo) return \u005c\u0075\u0030\u0030\u0036\u0030yo"
       ),
-      "`yo\\\\u0060 union all match (yo) return \\\\u0060yo`"
+      "`yo\\\\u0060 union all match (yo) return \\\\u0060yo`",
+      allVersions
     ),
     (
       varFor("\u005c\u0074 \u005c\u006e \u005c\u0066 \u005c\u0072 \u005c\u0062"),
-      "`\\t \\n \\f \\r \\b`"
+      "`\\t \\n \\f \\r \\b`",
+      allVersions
     ),
     (
       varFor("\\cantbeescaped"),
-      "`\\cantbeescaped`"
+      "`\\cantbeescaped`",
+      allVersions
     ),
     (
       varFor("a\\u"),
-      "`a\\u`"
+      "`a\\u`",
+      allVersions
     ),
     (
       varFor("a\\\\u0041"),
-      "`a\\\\u0041`"
+      "`a\\\\u0041`",
+      allVersions
     )
-  )
+  ) ++
+    all2LevelCombinationsWithRandomBase() ++
+    sampledNLevelCombinationsWithRandomBase(500, 5)
 
   private val stringifier = ExpressionStringifier()
 
-  for (((expr, expectedResult), idx) <- tests.zipWithIndex) {
+  for {
+    ((expr, expectedResult, _), idx) <- tests.zipWithIndex
+  } {
     test(s"[$idx] should produce $expectedResult") {
       withClue(expr) {
         lazy val stringifiedExpr = stringifier(expr)

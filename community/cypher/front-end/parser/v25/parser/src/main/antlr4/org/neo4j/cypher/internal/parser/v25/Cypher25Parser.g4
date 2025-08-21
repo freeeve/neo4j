@@ -656,6 +656,7 @@ normalizeFunction
    : NORMALIZE LPAREN expression (COMMA normalForm)? RPAREN
    ;
 
+
 vectorFunction
    : VECTOR LPAREN vectorValue = expression COMMA dimension = expression COMMA vectorCoordinateType RPAREN
    ;

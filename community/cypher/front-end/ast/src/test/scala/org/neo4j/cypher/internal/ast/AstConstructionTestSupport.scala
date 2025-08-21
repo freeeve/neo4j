@@ -232,9 +232,6 @@ trait AstConstructionTestSupport {
 
   def propName(s: String, position: InputPosition = pos): PropertyKeyName = PropertyKeyName(s)(position)
 
-  def hasLabels(v: String, label: String): HasLabels =
-    hasLabels(varFor(v), label)
-
   def andsReorderableAst(exprs: Expression*): AndsReorderable = {
     AndsReorderable(ListSet.from(exprs))(pos)
   }
@@ -248,8 +245,17 @@ trait AstConstructionTestSupport {
   def hasAnyDynamicType(v: Expression, types: Expression*): HasAnyDynamicType =
     HasAnyDynamicType(v, types)(pos)
 
+  def hasLabels(v: String, label: String): HasLabels =
+    hasLabels(varFor(v), label)
+
+  def hasLabels(v: Expression, labels: LabelName): HasLabels =
+    hasLabels(v, Seq(labels), HasLabels.isPostfixDefault)
+
   def hasLabels(v: Expression, labels: String*): HasLabels =
-    HasLabels(v, labels.map(labelName(_)))(pos)
+    hasLabels(v, labels.map(labelName(_)), HasLabels.isPostfixDefault)
+
+  def hasLabels(v: Expression, labels: Seq[LabelName], isPostfix: Boolean): HasLabels =
+    HasLabels(v, labels)(pos, isPostfix)
 
   def hasDynamicLabels(v: Expression, labels: Expression*): HasDynamicLabels =
     HasDynamicLabels(v, labels)(pos)
@@ -924,24 +930,32 @@ trait AstConstructionTestSupport {
     Leaf(LabelOrRelTypeName(name)(position), containsIs)
 
   def labelExpressionPredicate(v: String, labelExpression: LabelExpression): LabelExpressionPredicate =
-    labelExpressionPredicate(varFor(v), labelExpression, isParenthesized = false)
+    labelExpressionPredicate(varFor(v), labelExpression, isParenthesized = false, isPostfix = false)
 
   def labelExpressionPredicate(
     v: String,
     labelExpression: LabelExpression,
     isParenthesized: Boolean
   ): LabelExpressionPredicate =
-    labelExpressionPredicate(varFor(v), labelExpression, isParenthesized)
+    labelExpressionPredicate(varFor(v), labelExpression, isParenthesized, isPostfix = false)
 
   def labelExpressionPredicate(subject: Expression, labelExpression: LabelExpression): LabelExpressionPredicate =
-    labelExpressionPredicate(subject, labelExpression, isParenthesized = false)
+    labelExpressionPredicate(subject, labelExpression, isParenthesized = false, isPostfix = false)
 
   def labelExpressionPredicate(
     subject: Expression,
     labelExpression: LabelExpression,
     isParenthesized: Boolean
   ): LabelExpressionPredicate =
-    LabelExpressionPredicate(subject, labelExpression)(pos, isParenthesized)
+    labelExpressionPredicate(subject, labelExpression, isParenthesized, isPostfix = false)
+
+  def labelExpressionPredicate(
+    subject: Expression,
+    labelExpression: LabelExpression,
+    isParenthesized: Boolean,
+    isPostfix: Boolean
+  ): LabelExpressionPredicate =
+    LabelExpressionPredicate(subject, labelExpression)(pos, isParenthesized, isPostfix)
 
   def ands(expressions: Expression*): Ands = Ands(expressions)(pos)
 

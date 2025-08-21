@@ -240,9 +240,9 @@ object LogicalPlanningTestSupport2 extends MockitoSugar {
         // This is rewrite removes the difference.
         it.copy()(it.position, IsTyped.withDoubleColonOnlyDefault)
       case lep: LabelExpressionPredicate if lep.isParenthesized =>
-        // Label expression predicates that are parenthesized e.g. "(n:L)" are tracked in the AST by the Cypher5 parser.
+        // Label expression predicates that are parenthesized, e.g. "(n:L)", are tracked in the AST by the Cypher5 parser.
         // This is rewrite removes the difference.
-        lep.copy()(lep.position, LabelExpressionPredicate.isParenthesizedDefault)
+        lep.copy()(lep.position, LabelExpressionPredicate.isParenthesizedDefault, lep.isPostfix)
     }))
   }
 }

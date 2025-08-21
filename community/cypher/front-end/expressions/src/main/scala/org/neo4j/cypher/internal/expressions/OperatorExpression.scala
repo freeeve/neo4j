@@ -86,3 +86,12 @@ trait MultiOperatorExpression extends OperatorExpression {
 
   override def isConstantForQuery: Boolean = exprs.forall(_.isConstantForQuery)
 }
+
+/**
+ * Marker trait for expression that is built up like `<lhs> <OPERATOR> [ <rhs> ]` but can appear as `<OPERATOR> [ <rhs> ]`
+ *
+ * <lhs> is required to be the first children
+ */
+trait Part2OperatorExpression {
+  def lhs: Expression
+}

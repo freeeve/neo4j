@@ -220,6 +220,8 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
     )
   }
 
+  def ignored: Self = and(beIgnored)
+
   final private def and(matcher: Matcher[ParseResult]): Self =
     addAll(supportedParsers.map(asResultsMatcher(_, matcher)))
 
@@ -254,6 +256,12 @@ trait AstMatchers {
 
   val beSuccess: Matcher[ParseResult] = be.a(Symbol("success")).compose(_.toTry)
   val beFailure: Matcher[ParseResult] = be.a(Symbol("failure")).compose(_.toTry)
+
+  def beIgnored: Matcher[ParseResult] = new Matcher[ParseResult] {
+    override def apply(left: ParseResult): MatchResult = left match {
+      case _ => MatchResult(matches = true, s"Ignored", s"Ignored")
+    }
+  }
 
   def beFailure[T <: Throwable](implicit ct: ClassTag[T]): Matcher[ParseResult] =
     beFailure(ct.runtimeClass.asInstanceOf[Class[T]])
@@ -429,7 +437,7 @@ object MatchResults {
   }
 }
 
-/** Asserts that the query can be prettified and the prettifed query is parsed to the same AST. */
+/** Asserts that the query can be prettified and the prettified query is parsed to the same AST. */
 object PrettifyToTheSameAst extends Matcher[ParseResult] with AstParsing {
   private val expressionStringifier = ExpressionStringifier(alwaysParens = true, alwaysBacktick = true)
   private val prettifier = Prettifier(expressionStringifier)
