@@ -20,10 +20,9 @@
 package org.neo4j.util;
 
 import java.util.regex.Pattern;
-import org.neo4j.cypher.internal.CypherVersion;
-import org.neo4j.internal.helpers.Strings;
 
 public final class Stringifier {
+    private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("([^\\\\])(\\\\u[0-9]{4})");
 
     /*
      * Some strings (identifiers) were escaped with back-ticks to allow non-identifier characters
@@ -31,41 +30,27 @@ public final class Stringifier {
      * non-identifier characters can be used to recover that knowledge.
      */
     public static String backtick(String txt) {
-        return backtick(txt, false, false);
+        return backtick(txt, false, false, false);
     }
 
     public static String backtick(String txt, boolean alwaysBacktick) {
-        return backtick(txt, alwaysBacktick, false);
+        return backtick(txt, alwaysBacktick, false, false);
     }
 
     public static String backtick(String txt, boolean alwaysBacktick, boolean globbing) {
-        if (alwaysBacktick) {
-            return "`" + escaped(txt) + "`";
-        } else {
-            boolean isJavaIdentifier = Strings.codePoints(txt)
-                            .limit(1)
-                            .allMatch(p -> UnicodeHelper.isIdentifierStart(p, CypherVersion.Cypher25)
-                                    || orGlobbedCharacter(globbing, p))
-                    && Strings.codePoints(txt)
-                            .skip(1)
-                            .allMatch(p -> UnicodeHelper.isIdentifierPart(p, CypherVersion.Cypher25)
-                                    || orGlobbedCharacter(globbing, p));
-            if (!isJavaIdentifier) {
-                return "`" + escaped(txt) + "`";
-            } else {
-                return txt;
-            }
-        }
+        return backtick(txt, alwaysBacktick, globbing, false);
     }
 
-    private static final Pattern UNICODE_ESCAPE_PATTERN = Pattern.compile("([^\\\\])(\\\\u[0-9]{4})");
+    public static String backtick(String txt, boolean alwaysBacktick, boolean globbing, boolean backtickEmpty) {
+        final var withoutGlobbing = globbing ? txt.replace('*', 'x').replace('?', 'x') : txt;
+        final var needsBackticks = alwaysBacktick
+                || (!txt.isEmpty() && !UnicodeHelper.isIdentifierInAllVersions(withoutGlobbing))
+                || (backtickEmpty && txt.isEmpty());
+        return needsBackticks ? addBackticks(txt) : txt;
+    }
 
-    private static String escaped(String txt) {
+    private static String addBackticks(String txt) {
         String bt = txt.replace("`", "``");
-        return UNICODE_ESCAPE_PATTERN.matcher(bt).replaceAll("$1\\\\$2");
-    }
-
-    private static boolean orGlobbedCharacter(boolean globbing, int p) {
-        return globbing && ((p == (int) '*') || (p == (int) '?'));
+        return "`" + UNICODE_ESCAPE_PATTERN.matcher(bt).replaceAll("$1\\\\$2") + "`";
     }
 }

@@ -2526,7 +2526,7 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE DATABASE foo TOPOLOGY 2 PRIMARIES 1 SECONDARY",
     "create database `graph.db`" ->
       "CREATE DATABASE `graph.db`",
-    "create database graph.db" -> "CREATE DATABASE `graph.db`",
+    ChangedBetween5And25("create database graph.db", "CREATE DATABASE graph.db", "CREATE DATABASE `graph.db`"),
     "create database foo wait" -> "CREATE DATABASE foo WAIT",
     "create database foo nowait" -> "CREATE DATABASE foo",
     "create database foo if not exists wait" ->
@@ -3735,7 +3735,14 @@ class PrettifierIT extends CypherFunSuite {
       test(inputString) {
         CypherVersion.values().foreach { version =>
           val statement = parseAntlr(version, inputString)
-          prettifier.asString(statement) should equal(expected)
+          val prettified = prettifier.asString(statement)
+          withClue(
+            s"""   Version: $version
+               |     Query: $inputString
+               |Prettified: $prettified
+               |
+               |""".stripMargin
+          )(prettified shouldBe expected)
         }
       }
     case ChangedBetween5And25(inputString, expectedCypher5, expectedCypher25AndLater) =>

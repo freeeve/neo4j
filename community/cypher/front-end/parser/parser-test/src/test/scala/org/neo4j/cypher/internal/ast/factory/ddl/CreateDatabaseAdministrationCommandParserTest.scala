@@ -41,8 +41,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
-  override protected def ignorePrettifier: Boolean = true
-
   test("CREATE DATABASE foo SET PROPERTY SHARDS { COUNT 2 }") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(

@@ -24,16 +24,18 @@ import org.neo4j.cypher.internal.CypherVersion;
 
 public final class UnicodeHelper {
 
-    public static boolean isIdentifier(String string, CypherVersion version) {
-        if (string == null || string.isEmpty()) return false;
+    /** Return true if the specified string is a valid identifier in all Cypher versions. */
+    // Note, this works because Cypher 25 is a subset of Cypher 5. If you add a new version, make sure this holds.
+    public static boolean isIdentifierInAllVersions(String s) {
+        if (s == null || s.isEmpty()) return false;
 
-        int codepoint = string.codePointAt(0);
-        if (!isIdentifierStart(codepoint, version)) return false;
+        int codepoint = s.codePointAt(0);
+        if (!Cypher25.isLetter(codepoint)) return false;
 
-        final int length = string.length();
+        final int length = s.length();
         for (int offset = Character.charCount(codepoint); offset < length; ) {
-            codepoint = string.codePointAt(offset);
-            if (!isIdentifierPart(codepoint, version)) return false;
+            codepoint = s.codePointAt(offset);
+            if (!Cypher25.isLetterPart(codepoint)) return false;
             offset += Character.charCount(codepoint);
         }
         return true;

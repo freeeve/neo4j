@@ -737,18 +737,14 @@ case class Prettifier(
           shardDef
         ) =>
         val formattedOptions = stringifyOptions(options)(expr)
-        val withoutNamespace = dbName match {
-          case n: NamespacedName => Left(n.toString)
-          case ParameterName(p)  => Right(p)
-        }
         val maybeTopologyString = topology.map(Prettifier.extractTopology).getOrElse("")
         val maybeShardString = shardDef.map(Prettifier.extractShardDefinition).getOrElse("")
         val maybeCypherVersion = defaultCypherVersion.map(cv => s" DEFAULT LANGUAGE ${cv.description}").getOrElse("")
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
-            s"${x.name} ${Prettifier.escapeName(withoutNamespace)} IF NOT EXISTS$maybeCypherVersion$maybeTopologyString$formattedOptions${waitUntilComplete.name}"
+            s"${x.name} ${Prettifier.escapeName(dbName)} IF NOT EXISTS$maybeCypherVersion$maybeTopologyString$formattedOptions${waitUntilComplete.name}"
           case _ =>
-            s"${x.name} ${Prettifier.escapeName(withoutNamespace)}$maybeCypherVersion$maybeTopologyString$maybeShardString$formattedOptions${waitUntilComplete.name}"
+            s"${x.name} ${Prettifier.escapeName(dbName)}$maybeCypherVersion$maybeTopologyString$maybeShardString$formattedOptions${waitUntilComplete.name}"
         }
 
       case x @ CreateCompositeDatabase(name, ifExistsDo, options, waitUntilComplete, defaultCypherVersion) =>
@@ -1664,14 +1660,14 @@ object Prettifier {
   }
 
   def escapeName(name: Either[String, Parameter]): String = name match {
-    case Left(s)  => backtick(s)
+    case Left(s)  => backtick(s, false, false, true)
     case Right(p) => s"$$${backtick(p.name)}"
   }
 
-  def escapeName(name: DatabaseName)(implicit d: DummyImplicit): String = name match {
+  def escapeName(name: DatabaseName): String = name match {
     case NamespacedName(names, Some(namespace)) =>
-      backtick(namespace) + "." + backtick(names.mkString("."))
-    case NamespacedName(names, None) => backtick(names.mkString("."))
+      backtick(namespace, false, false, true) + "." + backtick(names.mkString("."), false, false, true)
+    case NamespacedName(names, None) => backtick(names.mkString("."), false, false, true)
     case ParameterName(p)            => "$" + backtick(p.name)
   }
 

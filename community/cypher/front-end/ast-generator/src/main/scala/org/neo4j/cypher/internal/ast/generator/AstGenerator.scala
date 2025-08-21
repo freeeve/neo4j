@@ -635,7 +635,7 @@ object AstGenerator {
     alphaLowerChar.map(_.toString),
     nonEmptyListOf(char).map(_.mkString).suchThat { chars =>
       // Is isIdentifier really neeed, isn't that handled by the prettifier?
-      !chars.contains("\\u") && UnicodeHelper.isIdentifier(chars, CypherVersion.Cypher25)
+      !chars.contains("\\u") && UnicodeHelper.isIdentifierInAllVersions(chars)
     }
   )
 
