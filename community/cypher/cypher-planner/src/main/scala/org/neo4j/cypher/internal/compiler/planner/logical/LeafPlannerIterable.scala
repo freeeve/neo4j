@@ -23,11 +23,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOr
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
-/**
- * @param groupedPlans for each unique combination of available symbols, all plans that solve these symbols.
- */
-case class PlansPerAvailableSymbols(groupedPlans: Iterable[Seq[LogicalPlan]])
-
 trait LeafPlannerIterable {
 
   def candidates(
