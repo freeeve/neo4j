@@ -70,8 +70,6 @@ import org.neo4j.storageengine.migration.TokenIndexMigrator;
  * All tokens aren't necessarily migrated, only the ones referenced in the data will be included.
  */
 public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationParticipant {
-    public static final String NAME = "Store files";
-
     private final Config config;
     private final LogService logService;
     private final FileSystemAbstraction fileSystem;
@@ -104,7 +102,7 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
             long maxOffHeapMemory,
             PrintStream verboseProgressOutput,
             boolean verboseOutput) {
-        super(NAME);
+        super(STORE_FILES_MIGRATOR_NAME);
         this.fileSystem = fileSystem;
         this.pageCache = pageCache;
         this.config = config;

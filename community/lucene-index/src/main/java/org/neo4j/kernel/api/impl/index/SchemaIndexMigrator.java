@@ -65,7 +65,7 @@ public class SchemaIndexMigrator extends AbstractStoreMigrationParticipant {
             IndexDirectoryStructure indexDirectoryStructure,
             StorageEngineFactory storageEngineFactory,
             CursorContextFactory contextFactory) {
-        super(name);
+        super(name + INDEX_MIGRATOR_SUFFIX);
         this.fileSystem = fileSystem;
         this.pageCache = pageCache;
         this.pageCacheTracer = pageCacheTracer;

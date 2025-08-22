@@ -27,14 +27,12 @@ class BasicTextualIndicator extends Indicator {
     static final int DEFAULT_DISPLAY_STEP = 10;
     static final String DEFAULT_DISPLAY_TEXT = " %3d%% completed";
 
-    private final String process;
     private final PrintWriter out;
     private final int step;
     private final String displayText;
 
-    BasicTextualIndicator(String process, PrintWriter out, int resolution, int step, String displayText) {
+    BasicTextualIndicator(PrintWriter out, int resolution, int step, String displayText) {
         super(resolution);
-        this.process = process;
         this.out = out;
         this.step = step;
         this.displayText = displayText;
@@ -42,7 +40,6 @@ class BasicTextualIndicator extends Indicator {
 
     @Override
     public void startProcess(long totalCount) {
-        out.println(process);
         out.flush();
     }
 

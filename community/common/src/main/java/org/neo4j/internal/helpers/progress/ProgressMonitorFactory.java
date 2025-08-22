@@ -176,7 +176,7 @@ public abstract class ProgressMonitorFactory {
         return new ProgressMonitorFactory() {
             @Override
             protected Indicator newIndicator(String process) {
-                return new BasicTextualIndicator(process, writer(), resolution, step, displayText);
+                return new BasicTextualIndicator(writer(), resolution, step, displayText);
             }
 
             private PrintWriter writer() {

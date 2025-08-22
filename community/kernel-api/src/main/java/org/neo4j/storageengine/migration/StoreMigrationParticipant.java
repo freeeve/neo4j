@@ -31,6 +31,8 @@ import org.neo4j.storageengine.api.StoreVersion;
 
 public interface StoreMigrationParticipant {
     long UNSPECIFIED_MAX_OFF_HEAP_MEMORY = -1;
+    String INDEX_MIGRATOR_SUFFIX = " indexes";
+    String STORE_FILES_MIGRATOR_NAME = "store files";
 
     /**
      * Default empty implementation of StoreMigrationParticipant

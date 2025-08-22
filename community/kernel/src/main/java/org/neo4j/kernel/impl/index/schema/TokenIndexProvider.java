@@ -64,6 +64,7 @@ import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.ValueCategory;
 
 public class TokenIndexProvider extends IndexProvider {
+    private static final String TOKEN_MIGRATOR_PREFIX = "token";
     private final DatabaseIndexContext databaseIndexContext;
     private final RecoveryCleanupWorkCollector recoveryCleanupWorkCollector;
     private final Monitor monitor;
@@ -179,7 +180,7 @@ public class TokenIndexProvider extends IndexProvider {
             StorageEngineFactory storageEngineFactory,
             CursorContextFactory contextFactory) {
         return new TokenIndexMigrator(
-                "Token indexes",
+                TOKEN_MIGRATOR_PREFIX,
                 fs,
                 pageCache,
                 pageCacheTracer,

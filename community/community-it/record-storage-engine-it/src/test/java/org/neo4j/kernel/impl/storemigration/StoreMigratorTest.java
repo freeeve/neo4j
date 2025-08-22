@@ -38,6 +38,7 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
+import static org.neo4j.storageengine.migration.StoreMigrationParticipant.STORE_FILES_MIGRATOR_NAME;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -122,7 +123,7 @@ class StoreMigratorTest {
     @Test
     void shouldForbidRegistrationOfParticipantsWithSameName() throws IOException {
         var participant = mock(StoreMigrationParticipant.class);
-        when(participant.getName()).thenReturn(RecordStorageMigrator.NAME);
+        when(participant.getName()).thenReturn(STORE_FILES_MIGRATOR_NAME);
 
         mockParticipantAddition(participant);
         var storeMigrator = createDefaultMigrator();
@@ -132,7 +133,7 @@ class StoreMigratorTest {
                 () -> storeMigrator.migrateIfNeeded(PageAligned.LATEST_NAME, false, false));
         assertThat(exception)
                 .hasMessage(
-                        "Migration participants should have unique names. Participant with name: 'Store files' is already registered.");
+                        "Migration participants should have unique names. Participant with name: 'store files' is already registered.");
     }
 
     @Test
@@ -387,7 +388,7 @@ class StoreMigratorTest {
     @Test
     void shouldHandleUnknownFormatWithoutCrashing() throws IOException {
         var participant = mock(StoreMigrationParticipant.class);
-        when(participant.getName()).thenReturn(RecordStorageMigrator.NAME);
+        when(participant.getName()).thenReturn(STORE_FILES_MIGRATOR_NAME);
 
         mockParticipantAddition(participant);
         var storeMigrator = createDefaultMigrator();
@@ -436,7 +437,7 @@ class StoreMigratorTest {
         assertThat(logProvider)
                 .containsMessages(
                         // a couple of randomly selected expected log entries:
-                        "Migrating Store files",
+                        "Migrating store files",
                         "10% completed",
                         "40% completed",
                         "70% completed",

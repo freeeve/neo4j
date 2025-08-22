@@ -205,7 +205,7 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
             StorageEngineFactory storageEngineFactory,
             CursorContextFactory contextFactory) {
         return new SchemaIndexMigrator(
-                getProviderDescriptor().name() + " indexes",
+                getProviderDescriptor().name(),
                 fs,
                 pageCache,
                 pageCacheTracer,

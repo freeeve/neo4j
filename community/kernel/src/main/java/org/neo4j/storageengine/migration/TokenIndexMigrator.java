@@ -69,7 +69,7 @@ public class TokenIndexMigrator extends AbstractStoreMigrationParticipant {
             DatabaseLayout layout,
             Function<SchemaRule, Path> storeFileProvider,
             CursorContextFactory contextFactory) {
-        super(name);
+        super(name + INDEX_MIGRATOR_SUFFIX);
         this.fileSystem = fileSystem;
         this.pageCache = pageCache;
         this.pageCacheTracer = pageCacheTracer;

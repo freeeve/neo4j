@@ -137,8 +137,6 @@ import org.neo4j.token.api.TokenHolder;
  * Just one out of many potential participants in a migration.
  */
 public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
-    public static final String NAME = "Store files";
-
     private static final String RECORD_STORAGE_MIGRATION_TAG = "recordStorageMigration";
     private static final String NODE_CHUNK_MIGRATION_TAG = "nodeChunkMigration";
     private static final String RELATIONSHIP_CHUNK_MIGRATION_TAG = "relationshipChunkMigration";
@@ -168,7 +166,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
             MemoryTracker memoryTracker,
             boolean forceBtreeIndexesToRange,
             long maxOffHeapMemory) {
-        super(NAME);
+        super(STORE_FILES_MIGRATOR_NAME);
         this.fileSystem = fileSystem;
         this.pageCache = pageCache;
         this.config = config;
