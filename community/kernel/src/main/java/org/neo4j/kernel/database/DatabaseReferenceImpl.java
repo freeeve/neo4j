@@ -434,8 +434,10 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
     }
 
     public static final class GraphShard extends DatabaseReferenceImpl.Internal {
+        public static String GRAPH_SHARD_NAME_POSTFIX = "-g000";
+
         public static String graphShardName(String databaseName) {
-            return String.format("%s-g000", databaseName);
+            return databaseName + GRAPH_SHARD_NAME_POSTFIX;
         }
 
         private static final Pattern graphShardPattern = Pattern.compile("(.)+(-g)([0-9]{3})");
