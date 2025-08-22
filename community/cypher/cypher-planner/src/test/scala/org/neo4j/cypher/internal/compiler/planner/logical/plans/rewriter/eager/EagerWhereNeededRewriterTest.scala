@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager
 
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanTestOps
 import org.neo4j.cypher.internal.expressions.HasDegree
@@ -71,6 +72,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NestedPlanCollectExpression
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
+import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
@@ -78,6 +80,7 @@ import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTDateTime
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
@@ -100,7 +103,8 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
   private def eagerizePlan(
     planBuilder: LogicalPlanBuilder,
     plan: LogicalPlan,
-    shouldCompressReasons: Boolean = false
+    shouldCompressReasons: Boolean = false,
+    extraSemanticInfo: SemanticTable => SemanticTable = identity
   ): LogicalPlan =
     EagerWhereNeededRewriter(
       planBuilder.cardinalities,
@@ -109,7 +113,7 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
       CancellationChecker.neverCancelled()
     ).eagerize(
       plan,
-      planBuilder.getSemanticTable,
+      extraSemanticInfo(planBuilder.getSemanticTable),
       new AnonymousVariableNameGenerator
     )
 
@@ -8762,6 +8766,58 @@ class EagerWhereNeededRewriterTest extends CypherFunSuite with LogicalPlanTestOp
       .filter("secretN.prop IS NOT NULL")
       .projection("head([n, 123]) AS secretN")
       .allNodeScan("n")
+      .build()
+
+    result shouldEqual expectedPlan
+  }
+
+  test("should not find conflicts between DETACH DELETE and a datetime() runtime constant") {
+    val datetimeExpr = function("datetime", literal("2025-08-20"))
+
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults()
+      .emptyResult()
+      .transactionForeach()
+      .|.detachDeleteNode("n")
+      .|.argument("n")
+      .nodeIndexOperator("n:A(prop=???)", paramExpr = Some(RuntimeConstant(v"x", datetimeExpr)))
+
+    val originalPlan = planBuilder.build()
+    val result = eagerizePlan(
+      planBuilder,
+      originalPlan,
+      extraSemanticInfo = _.addTypeInfo(datetimeExpr, CTDateTime)
+    )
+
+    result shouldEqual originalPlan
+  }
+
+  test("should find conflict between DETACH DELETE and a runtime constant that could be a relationship") {
+    val someFunctionExpr = function("someFunction", literal(123))
+
+    val planBuilder = new LogicalPlanBuilder()
+      .produceResults()
+      .emptyResult()
+      .transactionForeach()
+      .|.detachDeleteNode("n")
+      .|.argument("n")
+      .nodeIndexOperator("n:A(prop=???)", paramExpr = Some(RuntimeConstant(v"x", someFunctionExpr)))
+
+    val plan = planBuilder.build()
+    val result = eagerizePlan(
+      planBuilder,
+      plan,
+      extraSemanticInfo = _.addTypeInfo(someFunctionExpr, CTAny.covariant)
+    )
+
+    val expectedPlan = new LogicalPlanBuilder()
+      .produceResults()
+      .emptyResult()
+      .transactionForeach()
+      .|.detachDeleteNode("n")
+      .|.argument("n")
+      .eager(ListSet(ReadDeleteConflict("x").withConflict(Conflict(Id(3), Id(5)))))
+      .nodeIndexOperator("n:A(prop=???)", paramExpr = Some(RuntimeConstant(v"x", someFunctionExpr)))
       .build()
 
     result shouldEqual expectedPlan

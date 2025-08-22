@@ -204,6 +204,7 @@ import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
@@ -1013,15 +1014,15 @@ object ReadFinder {
 
       case Optional(_, _) => acc => SkipChildren(acc)
 
+      case RuntimeConstant(v, expr) => acc =>
+          SkipChildren(
+            checkForNodeAndRelationshipReferences(variable = v, expressionToCheck = expr, acc, semanticTable)
+          )
+
       case v: Variable => acc =>
-          var res = acc
-          if (semanticTable.typeFor(v).couldBe(CTNode)) {
-            res = res.withReferencedNodeVariable(v)
-          }
-          if (semanticTable.typeFor(v).couldBe(CTRelationship)) {
-            res = res.withReferencedRelationshipVariable(v)
-          }
-          SkipChildren(res)
+          SkipChildren(
+            checkForNodeAndRelationshipReferences(variable = v, expressionToCheck = v, acc, semanticTable)
+          )
 
       case Property(expr, propertyName) =>
         acc =>
@@ -1449,5 +1450,22 @@ object ReadFinder {
         "Relationship variable must exist for eager analysis to work correctly."
       )
     )
+  }
+
+  private def checkForNodeAndRelationshipReferences(
+    variable: LogicalVariable,
+    expressionToCheck: Expression,
+    planReads: PlanReads,
+    semanticTable: SemanticTable
+  ): PlanReads = {
+    var res = planReads
+    val exprType = semanticTable.typeFor(expressionToCheck)
+    if (exprType.couldBe(CTNode)) {
+      res = res.withReferencedNodeVariable(variable)
+    }
+    if (exprType.couldBe(CTRelationship)) {
+      res = res.withReferencedRelationshipVariable(variable)
+    }
+    res
   }
 }
