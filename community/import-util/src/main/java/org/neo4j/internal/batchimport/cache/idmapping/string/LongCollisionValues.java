@@ -39,7 +39,7 @@ public class LongCollisionValues implements CollisionValues {
     @Override
     public long add(Object id) {
         long collisionIndex = nextOffset.getAndIncrement();
-        cache.set(collisionIndex, ((Number) id).longValue());
+        cache.set(collisionIndex, LongEncoder.convertToLong(id));
         return collisionIndex;
     }
 

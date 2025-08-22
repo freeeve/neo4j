@@ -97,6 +97,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.CommandTestUtils;
 import org.neo4j.cli.ExecutionContext;
@@ -2810,6 +2811,29 @@ class ImportCommandTest {
                 tempDirectory.toAbsolutePath().toString());
 
         // then not sure how to verify that the temp directory was actually used?
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldBoomCorrectlyWhenOverridingIdType(boolean defaultIntegerIdType) throws Exception {
+        // given
+        var overriddenIdType = defaultIntegerIdType ? "string" : "int";
+        var nodeData1 = createAndWriteFile("persons.csv", Charset.defaultCharset(), writer -> {
+            writer.println("id:ID(GroupOne){id-type:" + overriddenIdType + "},name,:LABEL");
+            writer.println("1,P1,Person");
+            writer.println("1,P2,Person");
+        });
+
+        // when
+        assertThatThrownBy(() -> runImport(
+                        "--nodes",
+                        nodeData1.toAbsolutePath().toString(),
+                        "--id-type",
+                        defaultIntegerIdType ? IdType.INTEGER.name() : IdType.STRING.name()))
+                // then
+                .rootCause()
+                .isInstanceOf(DuplicateInputIdException.class)
+                .hasMessageContaining("Id '1' is defined more than once in group 'GroupOne'");
     }
 
     private static void assertContains(String linesType, List<String> lines, String string) {

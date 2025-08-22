@@ -43,7 +43,7 @@ public class StringCollisionValues implements CollisionValues {
 
     @Override
     public long add(Object id) {
-        String string = (String) id;
+        String string = StringEncoder.convertToString(id);
         byte[] bytes = UTF8.encode(string);
         int length = bytes.length;
         if (length > 0xFFFF) {
