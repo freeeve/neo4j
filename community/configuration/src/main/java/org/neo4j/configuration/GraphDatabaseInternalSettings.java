@@ -374,7 +374,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("Set this to enable using non-fused pipelined MERGE.")
     public static final Setting<Boolean> cypher_enable_non_fused_merge =
-            newBuilder("internal.cypher.enable_non_fused_merge", BOOL, false).build();
+            newBuilder("internal.cypher.enable_non_fused_merge", BOOL, true).build();
 
     @Internal
     @Description("Set this to enable the use of the new Vector Type.")
