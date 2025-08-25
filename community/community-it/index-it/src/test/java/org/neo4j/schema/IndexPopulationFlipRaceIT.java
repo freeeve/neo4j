@@ -43,6 +43,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.storable.Values;
 
 @DbmsExtension
@@ -60,6 +61,7 @@ class IndexPopulationFlipRaceIT {
     private RandomSupport random;
 
     @Test
+    @SkipOnSpd(reason = "We verify one indexed entity per node but direct store read on entity without props give 0")
     void shouldAtomicallyFlipMultipleIndexes() throws Exception {
         // A couple of times since this is probabilistic, but also because there seems to be a difference
         // in timings between the first time and all others... which is perhaps super obvious to some, but not to me.

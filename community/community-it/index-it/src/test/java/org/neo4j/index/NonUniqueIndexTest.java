@@ -98,7 +98,7 @@ class NonUniqueIndexTest {
                                     indexSession,
                                     cursor,
                                     unconstrained(),
-                                    PropertyIndexQuery.exact(1, VALUE));
+                                    PropertyIndexQuery.exact(0, VALUE));
                     assertTrue(cursor.next());
                     assertEquals(node.getId(), cursor.nodeReference());
                     assertFalse(cursor.next());

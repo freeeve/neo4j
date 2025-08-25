@@ -60,6 +60,7 @@ import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import picocli.CommandLine;
@@ -380,6 +381,7 @@ class DiagnosticsReportCommandIT {
     }
 
     @Test
+    @SkipOnSpd(reason = "We serviceload providers of classifires, in enterprise there are more than community")
     void listShouldDisplayAllClassifiers() {
         String[] args = {"--list"};
 

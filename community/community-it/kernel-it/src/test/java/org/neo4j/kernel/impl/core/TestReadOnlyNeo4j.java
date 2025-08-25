@@ -95,8 +95,8 @@ class TestReadOnlyNeo4j {
 
     @Test
     void databaseNotStartInReadOnlyModeWithMissingIndex() throws IOException {
-        createIndex();
-        deleteIndexFolder();
+        String dbName = createIndex();
+        deleteIndexFolder(dbName);
 
         AssertableLogProvider logProvider = new AssertableLogProvider();
         managementService = dbmsReadOnly(logProvider);
@@ -149,11 +149,12 @@ class TestReadOnlyNeo4j {
         }
     }
 
-    private void createIndex() {
+    private String createIndex() {
         DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDirectory.homePath())
                 .setFileSystem(new UncloseableDelegatingFileSystemAbstraction(fs))
                 .build();
         GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+        String dbName = db.databaseName();
         try (Transaction tx = db.beginTx()) {
             tx.schema().indexFor(Label.label("label")).on("prop").create();
             tx.commit();
@@ -163,12 +164,12 @@ class TestReadOnlyNeo4j {
             tx.commit();
         }
         managementService.shutdown();
+        return dbName;
     }
 
-    private void deleteIndexFolder() throws IOException {
-        Path databaseDir = Neo4jLayout.of(testDirectory.homePath())
-                .databaseLayout(DEFAULT_DATABASE_NAME)
-                .databaseDirectory();
+    private void deleteIndexFolder(String dbName) throws IOException {
+        Path databaseDir =
+                Neo4jLayout.of(testDirectory.homePath()).databaseLayout(dbName).databaseDirectory();
         fs.deleteRecursively(IndexDirectoryStructure.baseSchemaIndexFolder(databaseDir));
     }
 
