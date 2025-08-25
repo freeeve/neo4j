@@ -1989,6 +1989,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "unsupported struct tag",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NBF(
+            new GqlStatus("22NBF"),
+            "Property value of type { %s } too big (more than { %s } bytes): { %s }",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.typeDescription, GqlParams.NumberParam.bytes, GqlParams.StringParam.value
+            },
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "property value too big",
+            ErrorClassification.CLIENT_ERROR),
     // Graph Type Errors
     STATUS_22NC1(
             new GqlStatus("22NC1"),

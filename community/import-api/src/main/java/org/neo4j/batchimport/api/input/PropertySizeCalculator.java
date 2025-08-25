@@ -24,5 +24,5 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.values.storable.Value;
 
 public interface PropertySizeCalculator {
-    int calculateSize(Value[] values, CursorContext cursorContext, MemoryTracker memoryTracker);
+    long calculateSize(Value[] values, CursorContext cursorContext, MemoryTracker memoryTracker);
 }

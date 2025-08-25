@@ -1268,4 +1268,14 @@ public class InvalidArgumentException extends Neo4jException {
         }
         return new InvalidArgumentException(gql, operation, e);
     }
+
+    public static InvalidArgumentException propertyValueTooBig(
+            String typeDescription, long maxBytes, String propertyValue) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBF)
+                .withParam(GqlParams.StringParam.typeDescription, typeDescription)
+                .withParam(GqlParams.NumberParam.bytes, maxBytes)
+                .withParam(GqlParams.StringParam.value, propertyValue)
+                .build();
+        return new InvalidArgumentException(gql, gql.getMessage());
+    }
 }

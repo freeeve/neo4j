@@ -19,7 +19,6 @@
  */
 package org.neo4j.internal.batchimport.input;
 
-import java.util.ArrayList;
 import org.neo4j.batchimport.api.input.PropertySizeCalculator;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.memory.MemoryTracker;
@@ -28,15 +27,15 @@ import org.neo4j.values.storable.Value;
 public class Inputs {
     private Inputs() {}
 
-    public static int calculatePropertySize(
+    public static long calculatePropertySize(
             InputEntity entity,
             PropertySizeCalculator valueSizeCalculator,
             CursorContext cursorContext,
             MemoryTracker memoryTracker) {
-        int size = 0;
-        var values = new ArrayList<>(entity.propertiesAsValueMap().values());
+        long size = 0;
+        var values = entity.propertiesAsValueMap().values();
         if (!values.isEmpty()) {
-            size += valueSizeCalculator.calculateSize(values.toArray(new Value[0]), cursorContext, memoryTracker);
+            size += valueSizeCalculator.calculateSize(values.toArray(Value[]::new), cursorContext, memoryTracker);
         }
         return size;
     }

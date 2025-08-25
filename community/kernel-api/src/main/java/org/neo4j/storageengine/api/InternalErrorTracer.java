@@ -20,6 +20,7 @@
 package org.neo4j.storageengine.api;
 
 import java.util.concurrent.atomic.LongAdder;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.TransientFailureException;
 import org.neo4j.internal.kernel.api.exceptions.ConstraintViolationTransactionFailureException;
 import org.neo4j.internal.kernel.api.exceptions.schema.TokenLengthLimitExceededException;
@@ -101,7 +102,8 @@ public interface InternalErrorTracer {
                     && !isConstraintViolation(throwable)
                     && !isLockClientTermination(throwable)
                     && !isLeaseException(throwable)
-                    && !isTokenLengthLimit(throwable);
+                    && !isTokenLengthLimit(throwable)
+                    && !isPropertyValueTooBig(throwable);
         }
 
         private static boolean isLeaseException(Throwable throwable) {
@@ -124,6 +126,11 @@ public interface InternalErrorTracer {
             return throwable instanceof TransientFailureException
                     || throwable instanceof Status.HasStatus hasStatus
                             && hasStatus.status().code().classification() == Status.Classification.TransientError;
+        }
+
+        private static boolean isPropertyValueTooBig(Throwable throwable) {
+            return throwable instanceof InvalidArgumentException iae
+                    && iae.gqlStatus().equals("22NBF");
         }
     }
 }

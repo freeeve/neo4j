@@ -19,8 +19,6 @@
  */
 package org.neo4j.kernel.impl.store;
 
-import static java.lang.Math.toIntExact;
-
 import org.neo4j.batchimport.api.input.PropertySizeCalculator;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.id.BatchingIdSequence;
@@ -41,9 +39,9 @@ public class PropertyValueRecordSizeCalculator implements PropertySizeCalculator
     private final DynamicRecordAllocator arrayRecordCounter;
     private String storeFormat;
 
-    private final int propertyRecordSize;
-    private final int stringRecordSize;
-    private final int arrayRecordSize;
+    private final long propertyRecordSize;
+    private final long stringRecordSize;
+    private final long arrayRecordSize;
 
     public PropertyValueRecordSizeCalculator(PropertyStore propertyStore) {
         this(
@@ -71,12 +69,12 @@ public class PropertyValueRecordSizeCalculator implements PropertySizeCalculator
     }
 
     @Override
-    public int calculateSize(Value[] values, CursorContext cursorContext, MemoryTracker memoryTracker) {
+    public long calculateSize(Value[] values, CursorContext cursorContext, MemoryTracker memoryTracker) {
         stringRecordIds.reset();
         arrayRecordIds.reset();
 
-        int propertyRecordsUsed = 0;
-        int freeBlocksInCurrentRecord = 0;
+        long propertyRecordsUsed = 0;
+        long freeBlocksInCurrentRecord = 0;
         for (Value value : values) {
             PropertyBlock block = new PropertyBlock();
             PropertyStore.encodeValue(
@@ -95,9 +93,9 @@ public class PropertyValueRecordSizeCalculator implements PropertySizeCalculator
             freeBlocksInCurrentRecord -= block.getValueBlocks().length;
         }
 
-        int size = propertyRecordsUsed * propertyRecordSize;
-        size += toIntExact(stringRecordIds.peek()) * stringRecordSize;
-        size += toIntExact(arrayRecordIds.peek()) * arrayRecordSize;
+        long size = propertyRecordsUsed * propertyRecordSize;
+        size += stringRecordIds.peek() * stringRecordSize;
+        size += arrayRecordIds.peek() * arrayRecordSize;
         return size;
     }
 }

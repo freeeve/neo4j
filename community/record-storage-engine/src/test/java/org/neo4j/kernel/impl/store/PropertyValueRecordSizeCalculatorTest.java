@@ -46,7 +46,7 @@ class PropertyValueRecordSizeCalculatorTest {
         PropertyValueRecordSizeCalculator calculator = newCalculator();
 
         // when
-        int size = calculator.calculateSize(new Value[] {Values.of(10)}, NULL_CONTEXT, INSTANCE);
+        long size = calculator.calculateSize(new Value[] {Values.of(10)}, NULL_CONTEXT, INSTANCE);
 
         // then
         assertEquals(PropertyRecordFormat.RECORD_SIZE, size);
@@ -58,7 +58,7 @@ class PropertyValueRecordSizeCalculatorTest {
         PropertyValueRecordSizeCalculator calculator = newCalculator();
 
         // when
-        int size = calculator.calculateSize(
+        long size = calculator.calculateSize(
                 new Value[] {Values.of(string(80)), Values.of(new String[] {string(150)})}, NULL_CONTEXT, INSTANCE);
 
         // then
@@ -71,7 +71,7 @@ class PropertyValueRecordSizeCalculatorTest {
         PropertyValueRecordSizeCalculator calculator = newCalculator();
 
         // when
-        int size = calculator.calculateSize(
+        long size = calculator.calculateSize(
                 new Value[] {
                     Values.of(10), // 1 block  go to record 1
                     Values.of("test"), // 1 block
