@@ -71,6 +71,7 @@
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-graphdb-api</artifactId>
       <version>${project.version}</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
