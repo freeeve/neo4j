@@ -145,13 +145,22 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.util.Stringifier
 
 trait ExpressionStringifier {
-  def apply(ast: Expression): String
-  def apply(expressions: Seq[Expression], separator: String): String = expressions.map(apply).mkString(separator)
-  def apply(s: SymbolicName): String
-  def apply(ns: Namespace): String
+  def apply(ast: Expression): String = apply(ast, shouldBacktickEmpty = false)
+  def apply(ast: Expression, shouldBacktickEmpty: Boolean): String
+
+  def apply(expressions: Seq[Expression], separator: String): String =
+    apply(expressions, separator, shouldBacktickEmpty = false)
+
+  def apply(expressions: Seq[Expression], separator: String, shouldBacktickEmpty: Boolean): String =
+    expressions.map(apply(_, shouldBacktickEmpty)).mkString(separator)
+  def apply(s: SymbolicName): String = apply(s, shouldBacktickEmpty = false)
+  def apply(s: SymbolicName, shouldBacktickEmpty: Boolean): String
+  def apply(ns: Namespace): String = apply(ns, shouldBacktickEmpty = false)
+  def apply(ns: Namespace, shouldBacktickEmpty: Boolean): String
   def patterns: PatternStringifier
   def pathSteps: PathStepStringifier
   def backtick(in: String): String
+  def backtick(in: String, shouldBacktickEmpty: Boolean): String
   def quote(txt: String): String
   def escapePassword(password: Expression): String
   def stringifyLabelExpression(le: LabelExpression): String
@@ -182,39 +191,42 @@ private class DefaultExpressionStringifier(
 
   private val prettifier: Prettifier = Prettifier(this)
 
-  override def apply(ast: Expression): String =
-    stringify(ast)._1
+  override def apply(ast: Expression, shouldBacktickEmpty: Boolean): String =
+    stringify(ast, shouldBacktickEmpty)._1
 
-  override def apply(s: SymbolicName): String =
-    backtick(s.name)
+  override def apply(s: SymbolicName, shouldBacktickEmpty: Boolean): String =
+    backtick(s.name, shouldBacktickEmpty)
 
-  override def apply(ns: Namespace): String =
-    ns.parts.map(backtick).mkString(".")
+  override def apply(ns: Namespace, shouldBacktickEmpty: Boolean): String =
+    ns.parts.map(backtick(_, shouldBacktickEmpty)).mkString(".")
 
   @inline
   private def delimitedInner(
     outer: Expression,
+    shouldBacktickEmpty: Boolean,
     isCaseExpression: Boolean = false,
     symbolicDelimiter: String = ""
   )(innerExp: Expression): String =
-    inner(outer, isCaseExpression, isSyntactic = true, symbolicDelimiter)(innerExp)._1
+    inner(outer, shouldBacktickEmpty, isCaseExpression, isSyntactic = true, symbolicDelimiter)(innerExp)._1
 
   @inline
   private def nonLastInner(
     outer: Expression,
+    shouldBacktickEmpty: Boolean,
     isCaseExpression: Boolean = false,
     isSyntactic: Boolean = false,
     symbolicDelimiter: String = ""
   )(innerExp: Expression): String =
-    inner(outer, isCaseExpression, isSyntactic, symbolicDelimiter)(innerExp)._1
+    inner(outer, shouldBacktickEmpty, isCaseExpression, isSyntactic, symbolicDelimiter)(innerExp)._1
 
   private def inner(
     outer: Expression,
+    shouldBacktickEmpty: Boolean,
     isCaseExpression: Boolean = false,
     isSyntactic: Boolean = false,
     symbolicDelimiter: String = ""
   )(inner: Expression): (String, EagerConsumption) = {
-    val (str, eagerConsumption) = stringify(inner, isCaseExpression)
+    val (str, eagerConsumption) = stringify(inner, shouldBacktickEmpty, isCaseExpression)
 
     def parens = (binding(outer), binding(inner)) match {
       case (_, Syntactic)                 => false
@@ -231,6 +243,7 @@ private class DefaultExpressionStringifier(
   }
 
   private def prettifySubqueryInBraces(q: Query): String = {
+    // TODO: does this need shouldBacktickEmpty?
     val p = prettifier.asString(q)
     if (p.contains(prettifier.NL)) {
       val indented = p.split(prettifier.NL).map(l => s"${prettifier.BASE_INDENT}$l").mkString(
@@ -273,7 +286,11 @@ private class DefaultExpressionStringifier(
 
   // withLHS is for stringifying simple CASE expressions where the LHS has been
   // inferred from the case expression
-  private def stringify(ast: Expression, isCaseExpression: Boolean = false): (String, EagerConsumption) = {
+  private def stringify(
+    ast: Expression,
+    shouldBacktickEmpty: Boolean,
+    isCaseExpression: Boolean = false
+  ): (String, EagerConsumption) = {
     ast match {
 
       case StringLiteral(txt) =>
@@ -290,21 +307,25 @@ private class DefaultExpressionStringifier(
         })
 
       // Special case for SIMPLE CASE, when it is an equals, remove the LHS and =
-      case e: Equals if isCaseExpression => noEagerConsumption(delimitedInner(ast)(e.rhs))
+      case e: Equals if isCaseExpression =>
+        noEagerConsumption(delimitedInner(ast, shouldBacktickEmpty)(e.rhs))
 
       case e: BinaryPredicateExpression if isCaseExpression =>
-        val (rhs, eagerConsumption) = inner(ast)(e.rhs)
+        val (rhs, eagerConsumption) = inner(ast, shouldBacktickEmpty)(e.rhs)
         (s"${e.canonicalOperatorSymbol} $rhs", eagerConsumption)
 
       case e: BinaryOperatorExpression =>
-        val (rhs, eagerConsumption) = inner(ast)(e.rhs)
-        (s"${nonLastInner(ast)(e.lhs)} ${e.canonicalOperatorSymbol} $rhs", eagerConsumption)
+        val (rhs, eagerConsumption) = inner(ast, shouldBacktickEmpty)(e.rhs)
+        (
+          s"${nonLastInner(ast, shouldBacktickEmpty)(e.lhs)} ${e.canonicalOperatorSymbol} $rhs",
+          eagerConsumption
+        )
 
       case Variable(v) =>
-        noEagerConsumption(backtick(v))
+        noEagerConsumption(backtick(v, shouldBacktickEmpty))
 
       case ListLiteral(expressions) =>
-        noEagerConsumption(expressions.map(apply).mkString("[", ", ", "]"))
+        noEagerConsumption(expressions.map(apply(_, shouldBacktickEmpty)).mkString("[", ", ", "]"))
 
       // This hack is needed because the following GQL functions do not have their own AST
       case FunctionInvocation(
@@ -315,7 +336,8 @@ private class DefaultExpressionStringifier(
           _
         ) =>
         val fn = "normalize" // Can't have backticks because that does not parse as a normalizeFunction
-        val as = Seq(delimitedInner(ast)(value), form.formName).mkString(", ")
+        val as =
+          Seq(delimitedInner(ast, shouldBacktickEmpty)(value), form.formName).mkString(", ")
         noEagerConsumption(s"$fn($as)")
 
       case FunctionInvocation(
@@ -326,7 +348,11 @@ private class DefaultExpressionStringifier(
           _
         ) =>
         val fn = "vector_distance" // Can't have backticks because that does not parse as a vectorDistanceFunction
-        val as = Seq(delimitedInner(ast)(vector1), delimitedInner(ast)(vector2), metric.metricName).mkString(", ")
+        val as = Seq(
+          delimitedInner(ast, shouldBacktickEmpty)(vector1),
+          delimitedInner(ast, shouldBacktickEmpty)(vector2),
+          metric.metricName
+        ).mkString(", ")
         noEagerConsumption(s"$fn($as)")
 
       case FunctionInvocation(
@@ -337,15 +363,16 @@ private class DefaultExpressionStringifier(
           _
         ) =>
         val fn = "vector_norm" // Can't have backticks because that does not parse as a vectorNormFunction
-        val as = Seq(delimitedInner(ast)(vector), metric.metricName).mkString(", ")
+        val as =
+          Seq(delimitedInner(ast, shouldBacktickEmpty)(vector), metric.metricName).mkString(", ")
         noEagerConsumption(s"$fn($as)")
 
       case FunctionInvocation(FunctionName(namespace, functionName), distinct, args, order, _) =>
-        val ns = apply(namespace)
-        val fn = backtick(functionName)
+        val ns = apply(namespace, shouldBacktickEmpty)
+        val fn = backtick(functionName, shouldBacktickEmpty)
         val np = if (namespace.parts.isEmpty) "" else "."
         val ds = if (distinct) "DISTINCT " else ""
-        val as = args.map(delimitedInner(ast)).mkString(", ")
+        val as = args.map(delimitedInner(ast, shouldBacktickEmpty)).mkString(", ")
         // NOTE: because order is rendered this will produce Cypher that cannot be parsed
         val o = order match {
           case ArgumentAsc       => " ASC"
@@ -355,191 +382,219 @@ private class DefaultExpressionStringifier(
         noEagerConsumption(s"$ns$np$fn($ds$as)$o")
 
       case functionInvocation: UserDefinedFunctionInvocation =>
-        stringify(functionInvocation.asUnresolvedFunction, isCaseExpression = false)
+        // noinspection RedundantDefaultArgument
+        stringify(functionInvocation.asUnresolvedFunction, shouldBacktickEmpty, isCaseExpression = false)
 
       case Property(m, k) =>
-        noEagerConsumption(s"${nonLastInner(ast)(m)}.${apply(k)}")
+        noEagerConsumption(
+          s"${nonLastInner(ast, shouldBacktickEmpty)(m)}.${apply(k, shouldBacktickEmpty)}"
+        )
 
       case MapExpression(items) =>
         noEagerConsumption(items.map({
-          case (k, i) => s"${apply(k)}: ${apply(i)}"
+          case (k, i) => s"${apply(k, shouldBacktickEmpty)}: ${apply(i, shouldBacktickEmpty)}"
         }).mkString("{", ", ", "}"))
 
       case Parameter(name, _, _) =>
-        noEagerConsumption(s"$$${backtick(name)}")
+        noEagerConsumption(s"$$${backtick(name, shouldBacktickEmpty = true)}")
 
       case cs: CountStar =>
         noEagerConsumption(cs.asCanonicalStringVal)
 
       case e @ IsNull(arg) if !isCaseExpression =>
-        noEagerConsumption(s"${nonLastInner(ast)(arg)} ${e.canonicalOperatorSymbol}")
+        noEagerConsumption(
+          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} ${e.canonicalOperatorSymbol}"
+        )
 
       case e @ IsNull(_) =>
         noEagerConsumption(e.canonicalOperatorSymbol)
 
       case e @ IsNotNull(arg) if !isCaseExpression =>
-        noEagerConsumption(s"${nonLastInner(ast)(arg)} ${e.canonicalOperatorSymbol}")
+        noEagerConsumption(
+          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} ${e.canonicalOperatorSymbol}"
+        )
 
       case e @ IsNotNull(_) =>
         noEagerConsumption(e.canonicalOperatorSymbol)
 
       case e @ IsTyped(arg, predicateType) if !isCaseExpression =>
-        noEagerConsumption(s"${nonLastInner(ast)(arg)} ${e.canonicalOperatorSymbol} ${predicateType.description}")
+        noEagerConsumption(
+          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} ${e.canonicalOperatorSymbol} ${predicateType.description}"
+        )
 
       // For the 5.x series it is breaking to use `IS ::` alone in a Case Expression
-      case e @ IsTyped(_, predicateType) =>
+      case _ @IsTyped(_, predicateType) =>
         noEagerConsumption(s"IS TYPED ${predicateType.description}")
 
       case e @ IsNotTyped(arg, predicateType) if !isCaseExpression =>
-        noEagerConsumption(s"${nonLastInner(ast)(arg)} ${e.canonicalOperatorSymbol} ${predicateType.description}")
+        noEagerConsumption(
+          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} ${e.canonicalOperatorSymbol} ${predicateType.description}"
+        )
 
       // For the 5.x series it is breaking to use `IS ::` alone in a Case Expression
-      case e @ IsNotTyped(_, predicateType) =>
+      case _ @IsNotTyped(_, predicateType) =>
         noEagerConsumption(s"IS NOT TYPED ${predicateType.description}")
 
       case IsNormalized(arg, normalForm) if !isCaseExpression =>
-        noEagerConsumption(s"${nonLastInner(ast)(arg)} IS ${normalForm.description} NORMALIZED")
+        noEagerConsumption(
+          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} IS ${normalForm.description} NORMALIZED"
+        )
 
       case IsNormalized(_, normalForm) =>
         noEagerConsumption(s"IS ${normalForm.description} NORMALIZED")
 
       case IsNotNormalized(arg, normalForm) if !isCaseExpression =>
-        noEagerConsumption(s"${nonLastInner(ast)(arg)} IS NOT ${normalForm.description} NORMALIZED")
+        noEagerConsumption(
+          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} IS NOT ${normalForm.description} NORMALIZED"
+        )
 
       case IsNotNormalized(_, normalForm) =>
         noEagerConsumption(s"IS NOT ${normalForm.description} NORMALIZED")
 
       case VectorValueConstructor(vectorCandidateType, dimension, candidateType) =>
         noEagerConsumption(
-          s"vector(${delimitedInner(ast)(vectorCandidateType)}, ${delimitedInner(ast)(dimension)}, ${candidateType.description})"
+          s"vector(${delimitedInner(ast, shouldBacktickEmpty)(vectorCandidateType)}, ${delimitedInner(ast, shouldBacktickEmpty)(dimension)}, ${candidateType.description})"
         )
 
       case lep: LabelExpressionPredicate if !isCaseExpression =>
-        (s"${nonLastInner(ast)(lep.entity)}:${stringifyLabelExpression(lep.labelExpression)}", EagerlyConsuming("|"))
+        (
+          s"${nonLastInner(ast, shouldBacktickEmpty)(lep.entity)}:${stringifyLabelExpression(lep.labelExpression)}",
+          EagerlyConsuming("|")
+        )
 
       case lep: LabelExpressionPredicate =>
         (s":${stringifyLabelExpression(lep.labelExpression)}", EagerlyConsuming("|"))
 
       case ContainerIndex(exp, idx) =>
-        noEagerConsumption(s"${nonLastInner(ast)(exp)}[${delimitedInner(ast)(idx)}]")
+        noEagerConsumption(
+          s"${nonLastInner(ast, shouldBacktickEmpty)(exp)}[${delimitedInner(ast, shouldBacktickEmpty)(idx)}]"
+        )
 
       case ListSlice(list, start, end) =>
-        val l = start.map(delimitedInner(ast)).getOrElse("")
-        val r = end.map(delimitedInner(ast)).getOrElse("")
-        noEagerConsumption(s"${nonLastInner(ast)(list)}[$l..$r]")
+        val l = start.map(delimitedInner(ast, shouldBacktickEmpty)).getOrElse("")
+        val r = end.map(delimitedInner(ast, shouldBacktickEmpty)).getOrElse("")
+        noEagerConsumption(s"${nonLastInner(ast, shouldBacktickEmpty)(list)}[$l..$r]")
 
       case PatternExpression(RelationshipsPattern(relChain)) =>
         noEagerConsumption(patterns.apply(relChain))
 
       case Not(arg) =>
-        val (argCypher, eagerConsumption) = inner(ast)(arg)
+        val (argCypher, eagerConsumption) = inner(ast, shouldBacktickEmpty)(arg)
         (s"NOT $argCypher", eagerConsumption)
 
       case ListComprehension(s, expression) =>
-        val v = apply(s.variable)
+        val v = apply(s.variable, shouldBacktickEmpty)
         val p = s.innerPredicate.map(pr =>
           " WHERE " + (s.extractExpression match {
             // if there is an extractExpression, then innerPredicate is delimited by a vertical bar (|)
-            case Some(_) => delimitedInner(ast, symbolicDelimiter = "|")(pr)
+            case Some(_) => delimitedInner(ast, shouldBacktickEmpty, symbolicDelimiter = "|")(pr)
             // otherwise, it is not delimited by a vertical bar (|)
-            case None => delimitedInner(ast)(pr)
+            case None => delimitedInner(ast, shouldBacktickEmpty)(pr)
           })
         ).getOrElse("")
-        val e = s.extractExpression.map(ex => " | " + delimitedInner(ast)(ex)).getOrElse("")
+        val e = s.extractExpression.map(ex =>
+          " | " + delimitedInner(ast, shouldBacktickEmpty)(ex)
+        ).getOrElse("")
         val expr = (s.innerPredicate, s.extractExpression) match {
           // if there is no innerPredicate but an extractExpression, then expression is delimited by a vertical bar (|)
-          case (None, Some(_)) => delimitedInner(ast, symbolicDelimiter = "|")(expression)
+          case (None, Some(_)) =>
+            delimitedInner(ast, shouldBacktickEmpty, symbolicDelimiter = "|")(expression)
           // otherwise, it is not delimited by a vertical bar (|)
-          case (_, _) => delimitedInner(ast)(expression)
+          case (_, _) => delimitedInner(ast, shouldBacktickEmpty)(expression)
         }
         noEagerConsumption(s"[$v IN $expr$p$e]")
 
       case PatternComprehension(variable, RelationshipsPattern(relChain), predicate, proj) =>
-        val v = variable.map(apply).map(_ + " = ").getOrElse("")
+        val v = variable.map(apply(_, shouldBacktickEmpty)).map(_ + " = ").getOrElse("")
         val p = patterns.apply(relChain)
-        val w = predicate.map(delimitedInner(ast, symbolicDelimiter = "|")).map(" WHERE " + _).getOrElse("")
-        val b = delimitedInner(ast)(proj)
+        val w = predicate.map(delimitedInner(
+          ast,
+          shouldBacktickEmpty,
+          symbolicDelimiter = "|"
+        )).map(" WHERE " + _).getOrElse("")
+        val b = delimitedInner(ast, shouldBacktickEmpty)(proj)
         noEagerConsumption(s"[$v$p$w | $b]")
 
       case HasLabelsOrTypes(arg, labels) =>
-        val l = labels.map(apply).mkString(":", ":", "")
-        noEagerConsumption(s"${nonLastInner(ast)(arg)}$l")
+        val l = labels.map(apply(_, shouldBacktickEmpty)).mkString(":", ":", "")
+        noEagerConsumption(s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$l")
 
       case HasLabels(arg, labels) =>
-        val l = labels.map(apply).mkString(":", ":", "")
-        noEagerConsumption(s"${nonLastInner(ast)(arg)}$l")
+        val l = labels.map(apply(_, shouldBacktickEmpty)).mkString(":", ":", "")
+        noEagerConsumption(s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$l")
 
       case HasDynamicLabels(arg, labels) =>
-        val l = labels.map(apply).map(l => s":$$all($l)").mkString
-        noEagerConsumption(s"${nonLastInner(ast)(arg)}$l")
+        val l = labels.map(apply(_, shouldBacktickEmpty)).map(l => s":$$all($l)").mkString
+        noEagerConsumption(s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$l")
 
       case HasAnyLabel(arg, labels) =>
-        val l = labels.map(apply).mkString(":", "|", "")
-        (s"${nonLastInner(ast)(arg)}$l", EagerlyConsuming("|"))
+        val l = labels.map(apply(_, shouldBacktickEmpty)).mkString(":", "|", "")
+        (s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$l", EagerlyConsuming("|"))
 
       case HasAnyDynamicLabel(arg, labels) =>
-        val l = labels.map(apply).map(l => s"$$any($l)").mkString(":", "|", "")
-        (s"${nonLastInner(ast)(arg)}$l", EagerlyConsuming("|"))
+        val l = labels.map(apply(_, shouldBacktickEmpty)).map(l => s"$$any($l)").mkString(":", "|", "")
+        (s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$l", EagerlyConsuming("|"))
 
       case HasALabel(arg) =>
-        noEagerConsumption(s"${nonLastInner(ast)(arg)}:%")
+        noEagerConsumption(s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}:%")
 
       case HasALabelOrType(arg) =>
-        noEagerConsumption(s"${nonLastInner(ast)(arg)}:%")
+        noEagerConsumption(s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}:%")
 
       case HasTypes(arg, types) =>
-        val t = types.map(apply).mkString(":", ":", "")
-        noEagerConsumption(s"${nonLastInner(ast)(arg)}$t")
+        val t = types.map(apply(_, shouldBacktickEmpty)).mkString(":", ":", "")
+        noEagerConsumption(s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$t")
 
       case HasDynamicType(arg, types) =>
-        val t = types.map(t => s"$$all(${apply(t)})").mkString(":", "&", "")
+        val t = types.map(t => s"$$all(${apply(t, shouldBacktickEmpty)})").mkString(":", "&", "")
         // this is parsers as a label expression predicate which eagerly consume vertical bar (|)
-        (s"${nonLastInner(ast)(arg)}$t", EagerlyConsuming("|"))
+        (s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$t", EagerlyConsuming("|"))
 
       case HasAnyDynamicType(arg, types) =>
-        val t = types.map(t => s"$$any(${apply(t)})").mkString(":", "|", "")
-        (s"${nonLastInner(ast)(arg)}$t", EagerlyConsuming("|"))
+        val t = types.map(t => s"$$any(${apply(t, shouldBacktickEmpty)})").mkString(":", "|", "")
+        (s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$t", EagerlyConsuming("|"))
 
       case HasDynamicLabelsOrTypes(arg, labelsOrTypes) =>
-        val t = labelsOrTypes.map(t => s"$$all(${apply(t)})").mkString(":", "&", "")
+        val t = labelsOrTypes.map(t => s"$$all(${apply(t, shouldBacktickEmpty)})").mkString(":", "&", "")
         // this is parsers as a label expression predicate which eagerly consume vertical bar (|)
-        (s"${nonLastInner(ast)(arg)}$t", EagerlyConsuming("|"))
+        (s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$t", EagerlyConsuming("|"))
 
       case HasAnyDynamicLabelsOrTypes(arg, labelsOrTypes) =>
-        val t = labelsOrTypes.map(t => s"$$any(${apply(t)})").mkString(":", "|", "")
-        (s"${nonLastInner(ast)(arg)}$t", EagerlyConsuming("|"))
+        val t = labelsOrTypes.map(t => s"$$any(${apply(t, shouldBacktickEmpty)})").mkString(":", "|", "")
+        (s"${nonLastInner(ast, shouldBacktickEmpty)(arg)}$t", EagerlyConsuming("|"))
 
       case AllIterablePredicate(scope, e) =>
-        noEagerConsumption(s"all${prettyScope(scope, e)}")
+        noEagerConsumption(s"all${prettyScope(scope, e, shouldBacktickEmpty)}")
 
       case AnyIterablePredicate(scope, expression) =>
-        noEagerConsumption(s"any${prettyScope(scope, expression)}")
+        noEagerConsumption(s"any${prettyScope(scope, expression, shouldBacktickEmpty)}")
 
       case SingleIterablePredicate(scope, e) =>
-        noEagerConsumption(s"single${prettyScope(scope, e)}")
+        noEagerConsumption(s"single${prettyScope(scope, e, shouldBacktickEmpty)}")
 
       case NoneIterablePredicate(scope, e) =>
-        noEagerConsumption(s"none${prettyScope(scope, e)}")
+        noEagerConsumption(s"none${prettyScope(scope, e, shouldBacktickEmpty)}")
 
       case MapProjection(variable, items) =>
-        val itemsText = items.map(apply).mkString(", ")
-        noEagerConsumption(s"${apply(variable)}{$itemsText}")
+        val itemsText = items.map(apply(_, shouldBacktickEmpty)).mkString(", ")
+        noEagerConsumption(s"${apply(variable, shouldBacktickEmpty)}{$itemsText}")
 
       case DesugaredMapProjection(entity, items, includeAllProps) =>
         val itemsText = {
           val allItems = if (!includeAllProps) items else items :+ AllPropertiesSelector()(InputPosition.NONE)
-          allItems.map(apply).mkString(", ")
+          allItems.map(apply(_, shouldBacktickEmpty)).mkString(", ")
         }
-        noEagerConsumption(s"${apply(entity)}{$itemsText}")
+        noEagerConsumption(s"${apply(entity, shouldBacktickEmpty)}{$itemsText}")
 
       case LiteralEntry(k, e) =>
-        noEagerConsumption(s"${apply(k)}: ${delimitedInner(ast)(e)}")
+        noEagerConsumption(s"${apply(k)}: ${delimitedInner(ast, shouldBacktickEmpty)(e)}")
 
       case VariableSelector(v) =>
-        stringify(v, isCaseExpression = false)
+        // noinspection RedundantDefaultArgument
+        stringify(v, shouldBacktickEmpty, isCaseExpression = false)
 
       case PropertySelector(v) =>
-        noEagerConsumption(s".${apply(v)}")
+        noEagerConsumption(s".${apply(v, shouldBacktickEmpty)}")
 
       case AllPropertiesSelector() => noEagerConsumption(".*")
 
@@ -550,26 +605,30 @@ private class DefaultExpressionStringifier(
           for {
             (e1, e2) <- alternatives
             i <- Seq(
-              s"${prettifier.BASE_INDENT}WHEN ${delimitedInner(ast)(e1)} THEN ${delimitedInner(ast)(e2)}"
+              s"${prettifier.BASE_INDENT}WHEN ${delimitedInner(ast, shouldBacktickEmpty)(e1)} THEN ${delimitedInner(ast, shouldBacktickEmpty)(e2)}"
             )
           } yield i,
           for {
-            e <- default.toSeq; i <- Seq(s"${prettifier.BASE_INDENT}ELSE ${delimitedInner(ast)(e)}")
+            e <- default.toSeq
+            i <-
+              Seq(s"${prettifier.BASE_INDENT}ELSE ${delimitedInner(ast, shouldBacktickEmpty)(e)}")
           } yield i,
           Seq("END")
         ).flatten.mkString(prettifier.NL))
 
       case CaseExpression(Some(expression), alternatives, default) =>
         noEagerConsumption(Seq(
-          Seq(s"CASE ${delimitedInner(ast)(expression)}"),
+          Seq(s"CASE ${delimitedInner(ast, shouldBacktickEmpty)(expression)}"),
           for {
             (e1, e2) <- alternatives
             i <- Seq(
-              s"${prettifier.BASE_INDENT}WHEN ${delimitedInner(ast, isCaseExpression = true)(e1)} THEN ${delimitedInner(ast)(e2)}"
+              s"${prettifier.BASE_INDENT}WHEN ${delimitedInner(ast, shouldBacktickEmpty, isCaseExpression = true)(e1)} THEN ${delimitedInner(ast, shouldBacktickEmpty)(e2)}"
             )
           } yield i,
           for {
-            e <- default.toSeq; i <- Seq(s"${prettifier.BASE_INDENT}ELSE ${delimitedInner(ast)(e)}")
+            e <- default.toSeq
+            i <-
+              Seq(s"${prettifier.BASE_INDENT}ELSE ${delimitedInner(ast, shouldBacktickEmpty)(e)}")
           } yield i,
           Seq("END")
         ).flatten.mkString(prettifier.NL))
@@ -586,27 +645,31 @@ private class DefaultExpressionStringifier(
 
         findChain match {
           case Some(chain) =>
-            val head = apply(chain.head)
+            val head = apply(chain.head, shouldBacktickEmpty)
             val (tailUnflattened, eagerConsumptions) = chain.tail.map(o => {
-              val (rhs, eagerConsumption) = inner(ast)(o.rhs)
+              val (rhs, eagerConsumption) = inner(ast, shouldBacktickEmpty)(o.rhs)
               (List(o.canonicalOperatorSymbol, rhs), eagerConsumption)
             }).unzip
             ((head :: tailUnflattened.flatten).mkString(" "), eagerConsumptions.last)
           case None =>
-            val (operands, eagerConsumptions) = expressions.map(x => inner(ast)(x)).unzip
+            val (operands, eagerConsumptions) =
+              expressions.map(x => inner(ast, shouldBacktickEmpty)(x)).unzip
             (operands.mkString(" AND "), eagerConsumptions.last)
         }
 
       case AndsReorderable(expressions) =>
         val ands = Ands(expressions)(InputPosition.NONE)
-        noEagerConsumption(s"(${apply(ands)})")
+        noEagerConsumption(s"(${apply(ands, shouldBacktickEmpty)})")
 
       case AndedPropertyInequalities(_, _, exprs) =>
-        val (operands, eagerConsumptions) = exprs.map(x => stringify(x, isCaseExpression = false)).toIndexedSeq.unzip
+        val (operands, eagerConsumptions) =
+          // noinspection RedundantDefaultArgument
+          exprs.map(x => stringify(x, shouldBacktickEmpty, isCaseExpression = false)).toIndexedSeq.unzip
         (operands.mkString(" AND "), eagerConsumptions.last)
 
       case Ors(expressions) =>
-        val (operands, eagerConsumptions) = expressions.map(x => inner(ast)(x)).unzip
+        val (operands, eagerConsumptions) =
+          expressions.map(x => inner(ast, shouldBacktickEmpty)(x)).unzip
         (operands.mkString(" OR "), eagerConsumptions.last)
 
       case ShortestPathExpression(pattern) =>
@@ -616,20 +679,20 @@ private class DefaultExpressionStringifier(
         noEagerConsumption(pathSteps(pathStep))
 
       case x: AllReducePredicate =>
-        val a = backtick(x.accumulator.name)
-        val i = delimitedInner(ast)(x.init)
-        val rVar = backtick(x.reductionStepVariable.name)
-        val rGroup = delimitedInner(ast, symbolicDelimiter = "|")(x.list)
-        val r = delimitedInner(ast)(x.reductionStep)
-        val p = delimitedInner(ast)(x.predicate)
+        val a = backtick(x.accumulator.name, shouldBacktickEmpty)
+        val i = delimitedInner(ast, shouldBacktickEmpty)(x.init)
+        val rVar = backtick(x.reductionStepVariable.name, shouldBacktickEmpty)
+        val rGroup = delimitedInner(ast, shouldBacktickEmpty, symbolicDelimiter = "|")(x.list)
+        val r = delimitedInner(ast, shouldBacktickEmpty)(x.reductionStep)
+        val p = delimitedInner(ast, shouldBacktickEmpty)(x.predicate)
         noEagerConsumption(s"allReduce($a = $i, $rVar IN $rGroup | $r, $p)")
 
       case ReduceExpression(ReduceScope(Variable(acc), Variable(identifier), expression), init, list) =>
-        val a = backtick(acc)
-        val v = backtick(identifier)
-        val i = delimitedInner(ast)(init)
-        val l = delimitedInner(ast, symbolicDelimiter = "|")(list)
-        val e = delimitedInner(ast)(expression)
+        val a = backtick(acc, shouldBacktickEmpty)
+        val v = backtick(identifier, shouldBacktickEmpty)
+        val i = delimitedInner(ast, shouldBacktickEmpty)(init)
+        val l = delimitedInner(ast, shouldBacktickEmpty, symbolicDelimiter = "|")(list)
+        val e = delimitedInner(ast, shouldBacktickEmpty)(expression)
         noEagerConsumption(s"reduce($a = $i, $v IN $l | $e)")
 
       case _: ExtractScope | _: FilterScope | _: ReduceScope =>
@@ -646,22 +709,23 @@ private class DefaultExpressionStringifier(
         noEagerConsumption(s"COUNT ${prettifySubqueryInBraces(q)}")
 
       case UnaryAdd(r) =>
-        val (i, eagerConsumption) = inner(ast)(r)
+        val (i, eagerConsumption) = inner(ast, shouldBacktickEmpty)(r)
         (s"+$i", eagerConsumption)
 
       case UnarySubtract(r) =>
-        val (i, eagerConsumption) = inner(ast)(r)
+        val (i, eagerConsumption) = inner(ast, shouldBacktickEmpty)(r)
         (s"-$i", eagerConsumption)
 
-      case CoerceTo(expr, typ) =>
-        stringify(expr, isCaseExpression = false)
+      case CoerceTo(expr, _) =>
+        // noinspection RedundantDefaultArgument
+        stringify(expr, shouldBacktickEmpty, isCaseExpression = false)
 
       case CoerceToPredicate(expr) =>
-        val inner = apply(expr)
+        val inner = apply(expr, shouldBacktickEmpty)
         noEagerConsumption(s"CoerceToPredicate($inner)")
 
       case AssertIsNode(argument) =>
-        noEagerConsumption(s"assertIsNode(${apply(argument)})")
+        noEagerConsumption(s"assertIsNode(${apply(argument, shouldBacktickEmpty)})")
 
       case e @ ElementIdToLongId(_, _, elementIdExpr) =>
         val prefix = e match {
@@ -674,43 +738,51 @@ private class DefaultExpressionStringifier(
           case ElementIdToLongId(RELATIONSHIP_TYPE, ElementIdToLongId.Mode.Many, _) =>
             "elementIdListToRelationshipIdList"
         }
-        noEagerConsumption(s"$prefix(${apply(elementIdExpr)})")
+        noEagerConsumption(s"$prefix(${apply(elementIdExpr, shouldBacktickEmpty)})")
 
       case NoneOfRelationships(rel, relList) =>
-        noEagerConsumption(s"NOT ${apply(rel)} IN ${apply(relList)}")
+        noEagerConsumption(s"NOT ${apply(rel, shouldBacktickEmpty)} IN ${apply(relList, shouldBacktickEmpty)}")
 
       case DifferentRelationships(rel1, rel2) =>
-        noEagerConsumption(s"NOT ${apply(rel1)} = ${apply(rel2)}")
+        noEagerConsumption(s"NOT ${apply(rel1, shouldBacktickEmpty)} = ${apply(rel2, shouldBacktickEmpty)}")
 
       case Disjoint(rel1, rel2) =>
-        noEagerConsumption(s"disjoint(${apply(rel1)}, ${apply(rel2)})")
+        noEagerConsumption(s"disjoint(${apply(rel1, shouldBacktickEmpty)}, ${apply(rel2, shouldBacktickEmpty)})")
 
       case Unique(rel) =>
-        noEagerConsumption(s"unique(${apply(rel)})")
+        noEagerConsumption(s"unique(${apply(rel, shouldBacktickEmpty)})")
 
       case VarLengthLowerBound(relName, bound) =>
-        noEagerConsumption(s"size(${apply(relName)}) >= $bound")
+        noEagerConsumption(s"size(${apply(relName, shouldBacktickEmpty)}) >= $bound")
       case VarLengthUpperBound(relName, bound) =>
-        noEagerConsumption(s"size(${apply(relName)}) <= $bound")
+        noEagerConsumption(s"size(${apply(relName, shouldBacktickEmpty)}) <= $bound")
 
       case IsRepeatTrailUnique(argument) =>
-        noEagerConsumption(s"isRepeatTrailUnique(${apply(argument)})")
+        noEagerConsumption(s"isRepeatTrailUnique(${apply(argument, shouldBacktickEmpty)})")
 
       case _ =>
         noEagerConsumption(extensionStringifier(this)(ast))
     }
   }
 
-  private def prettyScope(s: FilterScope, expression: Expression) = {
+  private def prettyScope(s: FilterScope, expression: Expression, shouldBacktickEmpty: Boolean) = {
     Seq(
-      for { i <- Seq(apply(s.variable), "IN", delimitedInner(s)(expression)) } yield i,
-      for { p <- s.innerPredicate.toSeq; i <- Seq("WHERE", delimitedInner(s)(p)) } yield i
+      for {
+        i <- Seq(
+          apply(s.variable, shouldBacktickEmpty),
+          "IN",
+          delimitedInner(s, shouldBacktickEmpty)(expression)
+        )
+      } yield i,
+      for {
+        p <- s.innerPredicate.toSeq; i <- Seq("WHERE", delimitedInner(s, shouldBacktickEmpty)(p))
+      } yield i
     ).flatten.mkString("(", " ", ")")
   }
 
-  sealed trait Binding
-  case object Syntactic extends Binding
-  case class Precedence(level: Int) extends Binding
+  sealed private trait Binding
+  private case object Syntactic extends Binding
+  private case class Precedence(level: Int) extends Binding
 
   private def binding(in: Expression): Binding = in match {
     case _: Or |
@@ -790,6 +862,10 @@ private class DefaultExpressionStringifier(
     Stringifier.backtick(txt, alwaysBacktick)
   }
 
+  override def backtick(txt: String, shouldBacktickEmpty: Boolean): String = {
+    Stringifier.backtick(txt, alwaysBacktick, false, shouldBacktickEmpty)
+  }
+
   override def quote(txt: String): String = {
     val str = txt.replaceAll("\\\\", "\\\\\\\\")
     val containsSingle = str.contains('\'')
@@ -805,10 +881,11 @@ private class DefaultExpressionStringifier(
   override def escapePassword(password: Expression): String = password match {
     case _: SensitiveAutoParameter if !sensitiveParamsAsParams => "'******'"
     case _: SensitiveLiteral                                   => "'******'"
-    case param: Parameter                                      => s"$$${Stringifier.backtick(param.name)}"
+    case param: Parameter                                      => s"$$${Stringifier.backtickEmpty(param.name)}"
     case _                                                     => throw new InternalError("illegal password expression")
   }
 
+  // TODO: pass the shouldBacktickEmpty along here as well
   override def stringifyLabelExpression(labelExpression: LabelExpression): String = labelExpression match {
     case le: Disjunctions =>
       le.children.map(stringifyLabelExpressionHalfAtom).mkString("|")

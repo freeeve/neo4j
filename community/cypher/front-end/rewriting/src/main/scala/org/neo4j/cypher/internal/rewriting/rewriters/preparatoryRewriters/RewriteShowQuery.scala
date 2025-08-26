@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.ReturnAddedInRewrite
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Where
@@ -136,7 +137,7 @@ case object RewriteShowQuery extends Step with DefaultPostCondition with Prepara
 
   private def returnClause(position: InputPosition, defaultOrderOnColumns: List[String]): Return =
     Return(ReturnItems(AdditiveProjection, Seq(), Some(defaultOrderOnColumns))(position))(position)
-      .copy(addedInRewrite = true)(position)
+      .copy(returnType = ReturnAddedInRewrite)(position)
 
   private def lastPosition(c: ProjectionClause): InputPosition = {
     val noPosition: InputPosition = InputPosition.NONE

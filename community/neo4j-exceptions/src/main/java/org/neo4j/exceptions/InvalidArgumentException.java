@@ -365,9 +365,14 @@ public class InvalidArgumentException extends Neo4jException {
 
     public static InvalidArgumentException failedActionEntityNotFound(
             String action, PrivilegeGqlCodeEntity entity, String name, String paramName) {
+        return failedActionEntityNotFound(action, entity, name, paramName, null);
+    }
+
+    public static InvalidArgumentException failedActionEntityNotFound(
+            String action, PrivilegeGqlCodeEntity entity, String name, String paramName, String command) {
         // e.g. Failed to <delete the specified role 'myRole'>: <Role> does not exist.
         return new InvalidArgumentException(
-                entityNotFound(entity, name, paramName),
+                entityNotFound(entity, name, paramName, command),
                 "Failed to %s: %s does not exist.".formatted(action, entity.description));
     }
 
@@ -500,12 +505,14 @@ public class InvalidArgumentException extends Neo4jException {
                 "alter the specified user '%s'".formatted(username), PrivilegeGqlCodeEntity.USER, username, paramName);
     }
 
-    public static InvalidArgumentException roleMissingUser(String role, String username, String paramName) {
+    public static InvalidArgumentException roleMissingUser(
+            String role, String username, String paramName, String command) {
         return failedActionEntityNotFound(
                 "grant role '%s' to user '%s'".formatted(role, username),
                 PrivilegeGqlCodeEntity.USER,
                 username,
-                paramName);
+                paramName,
+                command);
     }
 
     public static InvalidArgumentException invalidCommandMissingUser(

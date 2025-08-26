@@ -37,7 +37,8 @@ class PrettifierIT extends CypherFunSuite {
   val prettifier: Prettifier = Prettifier(ExpressionStringifier())
 
   val tests: Seq[Test] =
-    queryTests() ++ indexCommandTests() ++ constraintCommandTests() ++ showCommandTests() ++ administrationTests()
+    queryTests() ++ indexCommandTests() ++ constraintCommandTests() ++ showCommandTests() ++ administrationTests() ++
+      emptyIdentifierTests()
 
   def queryTests(): Seq[Test] = Seq[Test](
     "return 42" -> "RETURN 42",
@@ -3729,6 +3730,237 @@ class PrettifierIT extends CypherFunSuite {
         )
     }
   }
+
+  def emptyIdentifierTests(): Seq[Test] = Seq[Test](
+    // general Cypher
+    // TODO: only parameters have been fixed to escape empty strings
+    "return $`` as ``" -> "RETURN $`` AS ",
+    "MATCH (``:`` {``: $``}) RETURN *" ->
+      """MATCH (: {: $``})
+        |RETURN *""".stripMargin,
+    // Don't strip trailing spaces on the lines
+    // \u0020 to not have intellij or similar remove the space and
+    // '|' for the strip margin to only strip the start of each line and not both start and end
+    "USE `` WITH $`` AS `` RETURN ``" ->
+      s"""USE ``
+         |WITH $$`` AS\u0020
+         |RETURN """.stripMargin('|'),
+
+    // index
+    "CREATE INDEX `` FOR (``:``) ON (``.``)" -> "CREATE INDEX `` FOR (``:``) ON (``.``)",
+    "CREATE INDEX $`` FOR ()-[``:``]->() ON (``.``)" -> "CREATE INDEX $`` FOR ()-[``:``]-() ON (``.``)",
+    "CREATE FULLTEXT INDEX `` FOR (``:``) ON EACH [``.``] OPTIONS {indexConfig: {``: ''}}" ->
+      """CREATE FULLTEXT INDEX `` FOR (``:``) ON EACH [``.``] OPTIONS {indexConfig: {``: ""}}""",
+    "CREATE FULLTEXT INDEX `` FOR ()-[``:``]->() ON EACH [``.``] OPTIONS $``" ->
+      "CREATE FULLTEXT INDEX `` FOR ()-[``:``]-() ON EACH [``.``] OPTIONS $``",
+    "CREATE LOOKUP INDEX $`` FOR (``) ON EACH labels(``)" -> "CREATE LOOKUP INDEX $`` FOR (``) ON EACH labels(``)",
+    "CREATE LOOKUP INDEX `` FOR ()-[``]->() ON EACH type(``)" ->
+      "CREATE LOOKUP INDEX `` FOR ()-[``]-() ON EACH type(``)",
+    "DROP INDEX ``" -> "DROP INDEX ``",
+    "DROP INDEX $``" -> "DROP INDEX $``",
+
+    // constraints
+    "CREATE CONSTRAINT $`` FOR (``:``) REQUIRE (``.``) IS UNIQUE OPTIONS {indexConfig: {``: $``}}" ->
+      "CREATE CONSTRAINT $`` FOR (``:``) REQUIRE (``.``) IS UNIQUE OPTIONS {indexConfig: {``: $``}}",
+    "CREATE CONSTRAINT `` FOR (``:``) REQUIRE (``.``) IS  :: STRING" ->
+      "CREATE CONSTRAINT `` FOR (``:``) REQUIRE (``.``) IS :: STRING",
+    ChangedBetween5And25(
+      "CREATE CONSTRAINT `` FOR ()-[``:``]->() REQUIRE (``.``) IS KEY OPTIONS $``",
+      "CREATE CONSTRAINT `` FOR ()-[``:``]-() REQUIRE (``.``) IS RELATIONSHIP KEY OPTIONS $``",
+      "CREATE CONSTRAINT `` FOR ()-[``:``]-() REQUIRE (``.``) IS KEY OPTIONS $``"
+    ),
+    "CREATE CONSTRAINT $`` FOR ()-[``:``]->() REQUIRE (``.``) IS NOT NULL" ->
+      "CREATE CONSTRAINT $`` FOR ()-[``:``]-() REQUIRE (``.``) IS NOT NULL",
+    "DROP CONSTRAINT ``" -> "DROP CONSTRAINT ``",
+    "DROP CONSTRAINT $``" -> "DROP CONSTRAINT $``",
+
+    // graph type
+    FailsInCypher5(
+      "ALTER CURRENT GRAPH TYPE SET { (``:`` => {`` :: STRING}), (:``)-[``:`` =>]->(:``), CONSTRAINT `` FOR (``:``) REQUIRE (``.``) IS KEY, CONSTRAINT `` FOR ()-[``:``]->() REQUIRE (``.``) IS NOT NULL }",
+      """ALTER CURRENT GRAPH TYPE SET {
+        | (``:`` => {`` :: STRING}),
+        | (:``)-[``:`` =>]->(:``),
+        | CONSTRAINT `` FOR (``:``) REQUIRE (``.``) IS KEY,
+        | CONSTRAINT `` FOR ()-[``:``]->() REQUIRE (``.``) IS NOT NULL
+        |}""".stripMargin
+    ),
+
+    // non-admin show and terminate
+    "SHOW INDEXES WHERE `` = $``" ->
+      """SHOW ALL INDEXES
+        |  WHERE `` = $``""".stripMargin,
+    "SHOW CONSTRAINTS YIELD `` AS `` ORDER BY ``" ->
+      """SHOW ALL CONSTRAINTS
+        |YIELD ``
+        |  ORDER BY `` ASCENDING""".stripMargin,
+    "SHOW PROCEDURES EXECUTABLE BY `` YIELD name AS `` RETURN `` AS ``" ->
+      """SHOW PROCEDURES EXECUTABLE BY ``
+        |YIELD name AS ``
+        |RETURN `` AS ``""".stripMargin,
+    "SHOW FUNCTIONS EXECUTABLE BY ``" -> "SHOW ALL FUNCTIONS EXECUTABLE BY ``",
+    "SHOW SETTINGS ``+``" -> "SHOW SETTINGS `` + ``",
+    "SHOW TRANSACTIONS `` WHERE `` IS NOT NULL" ->
+      """SHOW TRANSACTIONS ``
+        |  WHERE `` IS NOT NULL""".stripMargin,
+    "TERMINATE TRANSACTIONS $``" -> "TERMINATE TRANSACTIONS $``",
+
+    // user
+    "SHOW USERS WHERE `` = $``" ->
+      """SHOW USERS
+        |  WHERE `` = $``""".stripMargin,
+    "SHOW CURRENT USER YIELD `` AS ``" ->
+      """SHOW CURRENT USER
+        |  YIELD `` AS ``""".stripMargin,
+    "USE `` CREATE USER `` SET PASSWORD $`` SET HOME DATABASE ``" ->
+      """USE ``
+        |CREATE USER `` SET PASSWORD $`` CHANGE REQUIRED SET HOME DATABASE ``""".stripMargin,
+    "CREATE USER `` SET AUTH '' { SET ID $`` } SET HOME DATABASE $``" ->
+      """CREATE USER `` SET HOME DATABASE $``
+        |  SET AUTH PROVIDER "" {
+        |    SET ID $``
+        |  }""".stripMargin,
+    "CREATE USER $`` SET AUTH 'native' { SET PASSWORD $`` }" ->
+      """CREATE USER $``
+        |  SET AUTH PROVIDER "native" {
+        |    SET PASSWORD $``
+        |    SET PASSWORD CHANGE REQUIRED
+        |  }""".stripMargin,
+    "RENAME USER `` TO ``" -> "RENAME USER `` TO ``",
+    "RENAME USER $`` TO $``" -> "RENAME USER $`` TO $``",
+    "ALTER USER `` REMOVE AUTH PROVIDER $`` SET PASSWORD $``" ->
+      "ALTER USER `` REMOVE AUTH PROVIDERS $`` SET PASSWORD $``",
+    "ALTER USER `` SET AUTH '' { SET ID $`` } SET HOME DATABASE ``" ->
+      """ALTER USER `` SET HOME DATABASE ``
+        |  SET AUTH PROVIDER "" {
+        |    SET ID $``
+        |  }""".stripMargin,
+    "ALTER USER $`` SET AUTH 'native' { SET PASSWORD $`` }" ->
+      """ALTER USER $``
+        |  SET AUTH PROVIDER "native" {
+        |    SET PASSWORD $``
+        |  }""".stripMargin,
+    "ALTER CURRENT USER SET PASSWORD FROM $`` TO $``" -> "ALTER CURRENT USER SET PASSWORD FROM $`` TO $``",
+    "DROP USER ``" -> "DROP USER ``",
+    "DROP USER $``" -> "DROP USER $``",
+
+    // role
+    "SHOW ROLES YIELD * ORDER BY `` WHERE `` IN [$``] RETURN `` AS ``" ->
+      """SHOW ALL ROLES
+        |  YIELD *
+        |    ORDER BY `` ASCENDING
+        |    WHERE `` IN [$``]
+        |  RETURN `` AS ``""".stripMargin,
+    "CREATE ROLE `` AS COPY OF ``" -> "CREATE ROLE `` AS COPY OF ``",
+    "CREATE ROLE $`` AS COPY OF $``" -> "CREATE ROLE $`` AS COPY OF $``",
+    "RENAME ROLE `` TO ``" -> "RENAME ROLE `` TO ``",
+    "RENAME ROLE $`` TO $``" -> "RENAME ROLE $`` TO $``",
+    "USE `` DROP ROLE ``" ->
+      """USE ``
+        |DROP ROLE ``""".stripMargin,
+    "DROP ROLE $``" -> "DROP ROLE $``",
+    "GRANT ROLE `` TO ``" -> "GRANT ROLE `` TO ``",
+    "GRANT ROLE $`` TO $``" -> "GRANT ROLE $`` TO $``",
+    "REVOKE ROLE `` FROM ``" -> "REVOKE ROLE `` FROM ``",
+    "REVOKE ROLE $`` FROM $``" -> "REVOKE ROLE $`` FROM $``",
+
+    // show privileges
+    "SHOW USER `` PRIVILEGES" -> "SHOW USER `` PRIVILEGES",
+    "SHOW USER $`` PRIVILEGES YIELD `` AS `` RETURN `` AS `` ORDER BY ``" ->
+      """SHOW USER $`` PRIVILEGES
+        |  YIELD `` AS ``
+        |  RETURN `` AS ``
+        |    ORDER BY `` ASCENDING""".stripMargin,
+    "SHOW ROLE `` PRIVILEGES" -> "SHOW ROLE `` PRIVILEGES",
+    "USE `` SHOW ROLE $`` PRIVILEGES" ->
+      """USE ``
+        |SHOW ROLE $`` PRIVILEGES""".stripMargin,
+
+    // grant/deny/revoke privileges
+    "GRANT READ {``} ON GRAPH `` NODES `` TO ``" -> "GRANT READ {``} ON GRAPH `` NODE `` TO ``",
+    "GRANT MATCH {``} ON GRAPH $`` FOR (``:`` {``: $``}) TO $``" ->
+      "GRANT MATCH {``} ON GRAPH $`` FOR (``:``) WHERE ``.`` = $`` TO $``",
+    "DENY TRAVERSE ON GRAPH `` FOR ()-[``]-() WHERE ``.`` IN $`` TO $``" ->
+      "DENY TRAVERSE ON GRAPH `` FOR ()-[``]-() WHERE ``.`` IN $`` TO $``",
+    "REVOKE GRANT SET PROPERTY {``} ON GRAPH $`` RELATIONSHIPS `` FROM ``" ->
+      "REVOKE GRANT SET PROPERTY {``} ON GRAPH $`` RELATIONSHIP `` FROM ``",
+    "REVOKE REMOVE LABEL `` ON GRAPHS ``, $`` FROM ``, $``" -> "REVOKE REMOVE LABEL `` ON GRAPHS ``, $`` FROM ``, $``",
+    "GRANT ACCESS ON DATABASE `` TO ``" -> "GRANT ACCESS ON DATABASE `` TO ``",
+    "DENY SHOW TRANSACTION (``) ON DATABASE $`` TO $``" -> "DENY SHOW TRANSACTION (``) ON DATABASE $`` TO $``",
+    "REVOKE DENY TRANSACTION ($``) ON DATABASE ``, $`` FROM ``, $``" ->
+      "REVOKE DENY TRANSACTION MANAGEMENT ($``) ON DATABASES ``, $`` FROM ``, $``",
+    "GRANT IMPERSONATE ($``) ON DBMS TO ``" -> "GRANT IMPERSONATE ($``) ON DBMS TO ``",
+    "DENY IMPERSONATE (``) ON DBMS TO $``" -> "DENY IMPERSONATE (``) ON DBMS TO $``",
+    "DENY SHOW SETTINGS ``.``.* ON DBMS TO $``" -> "DENY SHOW SETTING `..*` ON DBMS TO $``",
+    "REVOKE EXECUTE PROCEDURE ``, ``.``.? ON DBMS FROM ``" -> "REVOKE EXECUTE PROCEDURE ``, `..?` ON DBMS FROM ``",
+    "REVOKE EXECUTE BOOSTED FUNCTION `` ON DBMS FROM $``" ->
+      "REVOKE EXECUTE BOOSTED USER DEFINED FUNCTION `` ON DBMS FROM $``",
+    ChangedBetween5And25(
+      "GRANT ALTER DATABASE ON DBMS TO ``",
+      "GRANT ALTER DATABASE ON DBMS TO ``",
+      "GRANT ALTER DATABASE ON DATABASE * TO ``"
+    ),
+    ChangedBetween5And25(
+      "DENY SET DATABASE ACCESS ON DBMS TO $``",
+      "DENY SET DATABASE ACCESS ON DBMS TO $``",
+      "DENY SET DATABASE ACCESS ON DATABASE * TO $``"
+    ),
+    FailsInCypher5(
+      "REVOKE ALTER COMPOSITE DATABASE ON DATABASE `` FROM ``",
+      "REVOKE ALTER COMPOSITE DATABASE ON DATABASE `` FROM ``"
+    ),
+    "GRANT LOAD ON CIDR '' TO ``" -> """GRANT LOAD ON CIDR "" TO ``""",
+    "DENY LOAD ON CIDR $`` TO $``" -> "DENY LOAD ON CIDR $`` TO $``",
+    "REVOKE LOAD ON ALL DATA FROM ``" -> "REVOKE LOAD ON ALL DATA FROM ``",
+
+    // database
+    "SHOW DATABASE ``" -> "SHOW DATABASE ``",
+    "SHOW DATABASE $``" -> "SHOW DATABASE $``",
+    "CREATE DATABASE `` OPTIONS {``: ``}" -> "CREATE DATABASE `` OPTIONS {``: ``}",
+    "CREATE DATABASE $`` OPTIONS {``: $`` + ``}" -> "CREATE DATABASE $`` OPTIONS {``: $`` + ``}",
+    "CREATE COMPOSITE DATABASE ``" -> "CREATE COMPOSITE DATABASE ``",
+    "CREATE COMPOSITE DATABASE $`` OPTIONS $``" -> "CREATE COMPOSITE DATABASE $`` OPTIONS $``",
+    "ALTER DATABASE `` REMOVE OPTION ``" -> "ALTER DATABASE `` REMOVE OPTION ``",
+    "USE `` ALTER DATABASE $`` SET OPTION `` ``" ->
+      """USE ``
+        |ALTER DATABASE $`` SET OPTION `` ``""".stripMargin,
+    "START DATABASE ``" -> "START DATABASE ``",
+    "START DATABASE $``" -> "START DATABASE $``",
+    "STOP DATABASE ``" -> "STOP DATABASE ``",
+    "STOP DATABASE $``" -> "STOP DATABASE $``",
+    "DROP DATABASE ``" -> "DROP DATABASE `` RESTRICT DESTROY DATA",
+    "DROP DATABASE $``" -> "DROP DATABASE $`` RESTRICT DESTROY DATA",
+
+    // alias
+    "SHOW ALIAS `` FOR DATABASES" -> "SHOW ALIAS `` FOR DATABASE",
+    "SHOW ALIAS $`` FOR DATABASES" -> "SHOW ALIAS $`` FOR DATABASE",
+    "CREATE ALIAS `` FOR DATABASE `` PROPERTIES {``: $``}" -> "CREATE ALIAS `` FOR DATABASE `` PROPERTIES {``: $``}",
+    "CREATE ALIAS $`` FOR DATABASE $``" -> "CREATE ALIAS $`` FOR DATABASE $``",
+    "CREATE ALIAS $`` FOR DATABASE `` AT '' USER `` PASSWORD $`` DRIVER {``: `` + ``} PROPERTIES {``: $``}" ->
+      """CREATE ALIAS $`` FOR DATABASE `` AT "" USER `` PASSWORD $`` DRIVER {``: `` + ``} PROPERTIES {``: $``}""",
+    "CREATE ALIAS `` FOR DATABASE $`` AT '' USER $`` PASSWORD $``" ->
+      """CREATE ALIAS `` FOR DATABASE $`` AT "" USER $`` PASSWORD $``""",
+    "ALTER ALIAS `` SET DATABASE TARGET ``" -> "ALTER ALIAS `` SET DATABASE TARGET ``",
+    "ALTER ALIAS $`` SET DATABASE TARGET $`` PROPERTIES $``" ->
+      "ALTER ALIAS $`` SET DATABASE TARGET $`` PROPERTIES $``",
+    "ALTER ALIAS `` SET DATABASE TARGET `` AT '' USER `` PASSWORD $`` DRIVER $`` PROPERTIES {``: [``]}" ->
+      """ALTER ALIAS `` SET DATABASE TARGET `` AT "" USER `` PASSWORD $`` DRIVER $`` PROPERTIES {``: [``]}""",
+    "ALTER ALIAS $`` SET DATABASE TARGET $`` AT '' USER $``" ->
+      """ALTER ALIAS $`` SET DATABASE TARGET $`` AT "" USER $``""",
+    "DROP ALIAS `` FOR DATABASE" -> "DROP ALIAS `` FOR DATABASE",
+    "DROP ALIAS $`` FOR DATABASE" -> "DROP ALIAS $`` FOR DATABASE",
+
+    // server
+    "SHOW SERVERS WHERE $`` = {``: [`` + $``]}" ->
+      """SHOW SERVERS
+        |  WHERE $`` = {``: [`` + $``]}""".stripMargin,
+    "ENABLE SERVER $`` OPTIONS $``" -> "ENABLE SERVER $`` OPTIONS $``",
+    "ENABLE SERVER $`` OPTIONS {``: ``}" -> "ENABLE SERVER $`` OPTIONS {``: ``}",
+    "ALTER SERVER $`` SET OPTIONS $``" -> "ALTER SERVER $`` SET OPTIONS $``",
+    "ALTER SERVER $`` SET OPTIONS {``: $``}" -> "ALTER SERVER $`` SET OPTIONS {``: $``}",
+    "RENAME SERVER $`` TO $``" -> "RENAME SERVER $`` TO $``",
+    "DEALLOCATE DATABASES FROM SERVER $``" -> "DEALLOCATE DATABASES FROM SERVER $``",
+    "DROP SERVER $``" -> "DROP SERVER $``"
+  )
 
   tests foreach {
     case SameAcrossVersions(inputString, expected) =>

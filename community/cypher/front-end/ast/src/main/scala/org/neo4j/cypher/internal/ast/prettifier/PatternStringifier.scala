@@ -49,6 +49,7 @@ trait PatternStringifier {
   def apply(concatenation: PathConcatenation): String
   def apply(quantified: QuantifiedPath): String
   def apply(path: ParenthesizedPath): String
+  // TODO: pass in shouldBacktickEmpty
 }
 
 object PatternStringifier {

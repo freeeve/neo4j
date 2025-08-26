@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.ast.RelUniqueConstraints
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
+import org.neo4j.cypher.internal.ast.ReturnPartOfShowCommand
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
 import org.neo4j.cypher.internal.ast.ShowConstraintType
@@ -212,7 +213,8 @@ trait DdlShowBuilder extends Cypher5ParserListener {
       yieldedItems = yieldedItems,
       yieldAll = yieldAll,
       yieldClause = y,
-      returnClause = astOpt[Return](ctx.returnClause())
+      returnClause =
+        astOpt[Return](ctx.returnClause()).map(r => r.copy(returnType = ReturnPartOfShowCommand)(r.position))
     )
   }
 
@@ -224,7 +226,7 @@ trait DdlShowBuilder extends Cypher5ParserListener {
     ctx.ast = if (yieldClause != null) {
       Left[(Yield, Option[Return]), Where]((
         yieldClause.ast[Yield](),
-        astOpt[Return](ctx.returnClause())
+        astOpt[Return](ctx.returnClause()).map(r => r.copy(returnType = ReturnPartOfShowCommand)(r.position))
       ))
     } else
       Right[(Yield, Option[Return]), Where](whereClause.ast[Where]())

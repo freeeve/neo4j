@@ -51,6 +51,11 @@ public enum PrivilegeGqlCodeEntity {
     }
 
     public static ErrorGqlStatusObject entityNotFound(PrivilegeGqlCodeEntity entity, String name, String paramName) {
+        return entityNotFound(entity, name, paramName, null);
+    }
+
+    public static ErrorGqlStatusObject entityNotFound(
+            PrivilegeGqlCodeEntity entity, String name, String paramName, String command) {
         var cause =
                 switch (entity) {
                     case USER -> userNotFound(name);
@@ -58,11 +63,18 @@ public enum PrivilegeGqlCodeEntity {
                     case DATABASE, DATABASE_ALIAS -> databaseNotFound(name);
                 };
 
-        return paramName == null
-                ? invalidReference(cause)
-                : invalidReference(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
+        var paramCause = paramName == null
+                ? cause
+                : ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
                         .withParam(GqlParams.StringParam.param, paramName)
                         .withCause(cause)
+                        .build();
+
+        return command == null
+                ? invalidReference(paramCause)
+                : invalidReference(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA8)
+                        .withParam(GqlParams.StringParam.cmd, command)
+                        .withCause(paramCause)
                         .build());
     }
 

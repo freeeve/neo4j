@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.expressions.SingleRelationshipPathStep
 
 trait PathStepStringifier {
   def apply(pathStep: PathStep): String
+  // TODO: pass in shouldBacktickEmpty
 }
 
 object PathStepStringifier {

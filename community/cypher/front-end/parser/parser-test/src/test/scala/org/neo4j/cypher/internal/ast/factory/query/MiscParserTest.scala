@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast.factory.query
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.DefaultReturn
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.Match
@@ -452,7 +453,7 @@ class MiscParserTest extends AstParsingTestBase {
           None,
           None,
           Set(),
-          addedInRewrite = false
+          returnType = DefaultReturn
         )(pos)
       ))(pos)))
     }

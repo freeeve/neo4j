@@ -474,7 +474,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
             }
 
             val missingReturn = clauses.last match {
-              case clause: Return if !clause.addedInRewrite => None
+              case clause: Return if clause.returnType != ReturnAddedInRewrite => None
               case clause =>
                 Some(SemanticError.missingReturn(
                   clause.position

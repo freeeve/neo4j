@@ -41,6 +41,16 @@ public final class Stringifier {
         return backtick(txt, alwaysBacktick, globbing, false);
     }
 
+    // Needs new name as I can't have two methods with same signature except
+    // for the name of the boolean parameter `backtick(String txt, boolean name)`
+    public static String backtickEmpty(String txt) {
+        return backtick(txt, false, false, true);
+    }
+
+    public static String backtickEmpty(String txt, boolean globbing) {
+        return backtick(txt, false, globbing, true);
+    }
+
     public static String backtick(String txt, boolean alwaysBacktick, boolean globbing, boolean backtickEmpty) {
         final var withoutGlobbing = globbing ? txt.replace('*', 'x').replace('?', 'x') : txt;
         final var needsBackticks = alwaysBacktick

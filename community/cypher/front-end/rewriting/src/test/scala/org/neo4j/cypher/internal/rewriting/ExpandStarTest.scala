@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.ReturnAddedInRewrite
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexesClause
@@ -322,7 +323,7 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
           clauses => {
             // update `addedInRewrite` flag on the return
             val ret = clauses.last.asInstanceOf[Return]
-            val newRet = ret.copy(addedInRewrite = true)(ret.position)
+            val newRet = ret.copy(returnType = ReturnAddedInRewrite)(ret.position)
             clauses.dropRight(1) :+ newRet
           }
         )

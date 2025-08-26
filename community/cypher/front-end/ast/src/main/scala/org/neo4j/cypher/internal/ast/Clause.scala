@@ -1888,6 +1888,10 @@ case object ParsedAsYield extends NotImportingWithType
 case object AddedInRewriteShowCommands extends MayBeImportingWithType
 case object AddedInRewriteProcCall extends MayBeImportingWithType
 case object AddedInRewriteGeneral extends MayBeImportingWithType
+sealed trait ReturnType
+case object DefaultReturn extends ReturnType
+case object ReturnPartOfShowCommand extends ReturnType
+case object ReturnAddedInRewrite extends ReturnType
 
 object With {
 
@@ -1961,7 +1965,7 @@ case class Return(
   skip: Option[Skip],
   limit: Option[Limit],
   excludedNames: Set[String] = Set.empty,
-  addedInRewrite: Boolean = false, // used for SHOW/TERMINATE commands
+  returnType: ReturnType = DefaultReturn, // used for SHOW/TERMINATE commands
   context: UnaliasedNotAllowed = ImportingWithSubqueryCall
 )(val position: InputPosition) extends ProjectionClause with ClauseAllowedOnSystem {
 

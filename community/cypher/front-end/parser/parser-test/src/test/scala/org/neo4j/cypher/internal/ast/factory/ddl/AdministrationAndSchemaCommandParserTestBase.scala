@@ -17,9 +17,6 @@
 package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast
-import org.neo4j.cypher.internal.ast.AllDatabasesScope
-import org.neo4j.cypher.internal.ast.DatabaseAndDbmsAction
-import org.neo4j.cypher.internal.ast.DbmsAction
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
@@ -279,10 +276,10 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
   ): InputPosition => ast.Statement = {
 
     val (privilege, qualifier) = a match {
-      case dbmsAction: DbmsAction =>
+      case dbmsAction: ast.DbmsAction =>
         (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
-      case databaseAction: DatabaseAndDbmsAction =>
-        (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
+      case databaseAction: ast.DatabaseAndDbmsAction =>
+        (ast.DatabasePrivilege(databaseAction, ast.AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
       case _ => throw new IllegalStateException(a.toString)
     }
     ast.GrantPrivilege(
@@ -372,10 +369,10 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     i: Immutable
   ): InputPosition => ast.Statement = {
     val (privilege, qualifier) = a match {
-      case dbmsAction: DbmsAction =>
+      case dbmsAction: ast.DbmsAction =>
         (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
-      case databaseAction: DatabaseAndDbmsAction =>
-        (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
+      case databaseAction: ast.DatabaseAndDbmsAction =>
+        (ast.DatabasePrivilege(databaseAction, ast.AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
       case _ => throw new IllegalStateException(a.toString)
     }
     ast.DenyPrivilege(
@@ -647,10 +644,10 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     i: Immutable
   ): InputPosition => ast.Statement = {
     val (privilege, qualifier) = a match {
-      case dbmsAction: DbmsAction =>
+      case dbmsAction: ast.DbmsAction =>
         (ast.DbmsPrivilege(dbmsAction)(pos), ast.AllQualifier()(pos))
-      case databaseAction: DatabaseAndDbmsAction =>
-        (ast.DatabasePrivilege(databaseAction, AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
+      case databaseAction: ast.DatabaseAndDbmsAction =>
+        (ast.DatabasePrivilege(databaseAction, ast.AllDatabasesScope()(pos))(pos), ast.AllDatabasesQualifier()(pos))
       case _ => throw new IllegalStateException(a.toString)
     }
 
@@ -680,5 +677,16 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     distinct: Boolean = false,
     skip: Option[ast.Skip] = None
   ): ast.Return =
-    ast.Return(distinct, returnItems, orderBy, skip, limit)(pos)
+    ast.Return(distinct, returnItems, orderBy, skip, limit, returnType = ast.ReturnPartOfShowCommand)(pos)
+
+  // Override the help methods in AstConstructionTestSupport to get correct return types for show commands
+
+  override def returnAll: ast.Return = super.returnAll.copy(returnType = ast.ReturnPartOfShowCommand)(pos)
+
+  override def return_(items: ast.ReturnItem*): ast.Return =
+    super.return_(items: _*).copy(returnType = ast.ReturnPartOfShowCommand)(pos)
+
+  // And add a new help method to not override one of them
+  // for the few show tests that have returns in subqueries that should have the default
+  def return__(items: ast.ReturnItem*): ast.Return = super.return_(items: _*)
 }
