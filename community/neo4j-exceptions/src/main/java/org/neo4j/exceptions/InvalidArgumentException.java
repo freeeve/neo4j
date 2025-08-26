@@ -1270,6 +1270,16 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, operation, e);
     }
 
+    public static InvalidArgumentException invalidVectorDimensions(
+            int minDimensions, int maxDimensions, int givenDimensions) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBE)
+                .withParam(GqlParams.NumberParam.count, minDimensions)
+                .withParam(GqlParams.NumberParam.count1, maxDimensions)
+                .withParam(GqlParams.NumberParam.count2, givenDimensions)
+                .build();
+        return new InvalidArgumentException(gql, gql.getMessage());
+    }
+
     public static InvalidArgumentException propertyValueTooBig(
             String typeDescription, long maxBytes, String propertyValue) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBF)

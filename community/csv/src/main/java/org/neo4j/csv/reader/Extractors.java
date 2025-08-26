@@ -753,7 +753,7 @@ public final class Extractors {
 
         @Override
         protected Int8Vector emptyElement() {
-            return Values.int8Vector();
+            return null;
         }
 
         @Override
@@ -800,7 +800,7 @@ public final class Extractors {
 
         @Override
         protected Int16Vector emptyElement() {
-            return Values.int16Vector();
+            return null;
         }
 
         @Override
@@ -847,7 +847,7 @@ public final class Extractors {
 
         @Override
         protected Int32Vector emptyElement() {
-            return Values.int32Vector();
+            return null;
         }
 
         @Override
@@ -894,7 +894,7 @@ public final class Extractors {
 
         @Override
         protected Int64Vector emptyElement() {
-            return Values.int64Vector();
+            return null;
         }
 
         @Override
@@ -941,7 +941,7 @@ public final class Extractors {
 
         @Override
         protected Float32Vector emptyElement() {
-            return Values.float32Vector();
+            return null;
         }
 
         @Override
@@ -988,7 +988,7 @@ public final class Extractors {
 
         @Override
         protected Float64Vector emptyElement() {
-            return Values.float64Vector();
+            return null;
         }
 
         @Override

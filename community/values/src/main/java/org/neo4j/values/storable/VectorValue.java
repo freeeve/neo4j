@@ -19,6 +19,7 @@
  */
 package org.neo4j.values.storable;
 
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.hashing.HashFunction;
 import org.neo4j.values.Comparison;
 import org.neo4j.values.VectorCandidate;
@@ -82,8 +83,8 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
 
     public static void ensureValidDimensions(int dimensions) {
         if (dimensions < VectorValue.MIN_VECTOR_DIMENSIONS || dimensions > VectorValue.MAX_VECTOR_DIMENSIONS) {
-            throw new IllegalArgumentException("Expected vector dimension in [%d, %d], but was %d"
-                    .formatted(VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS, dimensions));
+            throw InvalidArgumentException.invalidVectorDimensions(
+                    VectorValue.MIN_VECTOR_DIMENSIONS, VectorValue.MAX_VECTOR_DIMENSIONS, dimensions);
         }
     }
 }

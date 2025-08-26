@@ -1989,6 +1989,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "unsupported struct tag",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NBE(
+            new GqlStatus("22NBE"),
+            "Invalid vector dimensions. The number of vector dimensions needs to be between { %s } and { %s }, but was { %s }.",
+            new GqlParams.GqlParam[] {
+                GqlParams.NumberParam.count, GqlParams.NumberParam.count1, GqlParams.NumberParam.count2
+            },
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "invalid vector dimensions",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22NBF(
             new GqlStatus("22NBF"),
             "Property value of type { %s } too big (more than { %s } bytes): { %s }",

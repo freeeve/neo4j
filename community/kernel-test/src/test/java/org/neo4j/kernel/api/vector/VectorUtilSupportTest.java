@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Random;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.assertj.core.data.Percentage;
 import org.junit.jupiter.api.Nested;
@@ -34,9 +35,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.values.AnyValue;
 import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
+import org.neo4j.values.virtual.VirtualValues;
 
 class VectorUtilSupportTest {
 
@@ -270,6 +273,12 @@ class VectorUtilSupportTest {
             vector[axis] = element;
         }
         return vector;
+    }
+
+    static VectorCandidate vectorCandidate(float... elements) {
+        return VectorCandidate.maybeFrom(VirtualValues.list(IntStream.range(0, elements.length)
+                .mapToObj(i -> Values.floatValue(elements[i]))
+                .toArray(AnyValue[]::new)));
     }
 
     static VectorCandidate vector(float... elements) {

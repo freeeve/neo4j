@@ -30,6 +30,7 @@ import static org.neo4j.kernel.api.vector.VectorUtilSupportTest.origin;
 import static org.neo4j.kernel.api.vector.VectorUtilSupportTest.randomDimensions;
 import static org.neo4j.kernel.api.vector.VectorUtilSupportTest.randomVector;
 import static org.neo4j.kernel.api.vector.VectorUtilSupportTest.vector;
+import static org.neo4j.kernel.api.vector.VectorUtilSupportTest.vectorCandidate;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -226,7 +227,7 @@ class VectorUtilTest {
     @ParameterizedTest
     @MethodSource("unaryFunctions")
     void nonPositiveDimensions(Consumer<VectorCandidate> function) {
-        final VectorCandidate dimensionless = vector();
+        final VectorCandidate dimensionless = vectorCandidate();
         assertThrowsNonPositiveDimensions(() -> function.accept(dimensionless));
 
         final VectorCandidate negative = mock(VectorCandidate.class);
@@ -237,7 +238,7 @@ class VectorUtilTest {
     @ParameterizedTest
     @MethodSource("binaryFunctions")
     void nonPositiveDimensions(BiConsumer<VectorCandidate, VectorCandidate> function) {
-        final VectorCandidate dimensionless = vector();
+        final VectorCandidate dimensionless = vectorCandidate();
         assertThrowsNonPositiveDimensions(() -> function.accept(dimensionless, dimensionless));
 
         final VectorCandidate negative = mock(VectorCandidate.class);
@@ -331,7 +332,7 @@ class VectorUtilTest {
         when(negative.dimensions()).thenReturn(-1);
         return Stream.of(
                 Named.of("null", null),
-                Named.of("dimensionless", vector()),
+                Named.of("dimensionless", vectorCandidate()),
                 Named.of("negative dimensions", negative),
                 Named.of("NaN element", vector(1.f, Float.NaN, 3.f)),
                 Named.of("-Inf element", vector(1.f, Float.NEGATIVE_INFINITY, 3.f)),

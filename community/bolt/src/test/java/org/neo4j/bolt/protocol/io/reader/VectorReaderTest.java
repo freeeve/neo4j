@@ -19,7 +19,6 @@
  */
 package org.neo4j.bolt.protocol.io.reader;
 
-import static io.netty.buffer.Unpooled.EMPTY_BUFFER;
 import static io.netty.buffer.Unpooled.buffer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -63,25 +62,11 @@ public class VectorReaderTest {
     }
 
     @Test
-    void shouldReadEmpty8Vector() throws PackstreamReaderException {
-        var buffer = bufferFor(INT8).writeBytes(EMPTY_BUFFER);
-
-        assertValue(buffer, Int8Vector.class, Values.int8Vector());
-    }
-
-    @Test
     void shouldRead8Vector() throws PackstreamReaderException {
         var buffer =
                 bufferFor(INT8).writeBytes(buffer().writeByte(0).writeByte(42).writeByte(21));
 
         assertValue(buffer, Int8Vector.class, Values.int8Vector((byte) 0, (byte) 42, (byte) 21));
-    }
-
-    @Test
-    void shouldReadEmpty16Vector() throws PackstreamReaderException {
-        var buffer = bufferFor(INT16).writeBytes(EMPTY_BUFFER);
-
-        assertValue(buffer, Int16Vector.class, Values.int16Vector());
     }
 
     @Test
@@ -93,25 +78,11 @@ public class VectorReaderTest {
     }
 
     @Test
-    void shouldReadEmpty32Vector() throws PackstreamReaderException {
-        var buffer = bufferFor(INT32).writeBytes(EMPTY_BUFFER);
-
-        assertValue(buffer, Int32Vector.class, Values.int32Vector());
-    }
-
-    @Test
     void shouldRead32Vector() throws PackstreamReaderException {
         var buffer =
                 bufferFor(INT32).writeBytes(buffer().writeInt(0).writeInt(42).writeInt(21));
 
         assertValue(buffer, Int32Vector.class, Values.int32Vector(0, 42, 21));
-    }
-
-    @Test
-    void shouldReadEmptyFloat32Vector() throws PackstreamReaderException {
-        var buffer = bufferFor(FLOAT32).writeBytes(EMPTY_BUFFER);
-
-        assertValue(buffer, Float32Vector.class, Values.float32Vector());
     }
 
     @Test
@@ -130,13 +101,6 @@ public class VectorReaderTest {
                 .isInstanceOf(PackstreamReaderException.class);
         assertThatThrownBy(() -> read(bufferFor(FLOAT32).writeBytes(buffer().writeFloat(Float.NaN))))
                 .isInstanceOf(PackstreamReaderException.class);
-    }
-
-    @Test
-    void shouldReadEmptyFloat64Vector() throws PackstreamReaderException {
-        var buffer = bufferFor(FLOAT64).writeBytes(EMPTY_BUFFER);
-
-        assertValue(buffer, Float64Vector.class, Values.float64Vector());
     }
 
     @Test

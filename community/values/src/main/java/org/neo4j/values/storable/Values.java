@@ -366,26 +366,32 @@ public final class Values {
     }
 
     public static Int64Vector int64Vector(long... coordinates) {
+        VectorValue.ensureValidDimensions(coordinates.length);
         return new Int64Vector(coordinates);
     }
 
     public static Int32Vector int32Vector(int... coordinates) {
+        VectorValue.ensureValidDimensions(coordinates.length);
         return new Int32Vector(coordinates);
     }
 
     public static Int16Vector int16Vector(short... coordinates) {
+        VectorValue.ensureValidDimensions(coordinates.length);
         return new Int16Vector(coordinates);
     }
 
     public static Int8Vector int8Vector(byte... coordinates) {
+        VectorValue.ensureValidDimensions(coordinates.length);
         return new Int8Vector(coordinates);
     }
 
     public static Float64Vector float64Vector(double... coordinates) {
+        VectorValue.ensureValidDimensions(coordinates.length);
         return new Float64Vector(coordinates);
     }
 
     public static Float32Vector float32Vector(float... coordinates) {
+        VectorValue.ensureValidDimensions(coordinates.length);
         return new Float32Vector(coordinates);
     }
 

@@ -238,21 +238,12 @@ public class VectorTestUtils {
         // non-finite values
 
         final var nonFloatEmptyIntegralArrays = Lists.mutable
-                .of(
-                        Values.EMPTY_BYTE_ARRAY,
-                        Values.EMPTY_SHORT_ARRAY,
-                        Values.EMPTY_INT_ARRAY,
-                        Values.EMPTY_LONG_ARRAY,
-                        Values.int8Vector(),
-                        Values.int16Vector(),
-                        Values.int32Vector(),
-                        Values.int64Vector())
+                .of(Values.EMPTY_BYTE_ARRAY, Values.EMPTY_SHORT_ARRAY, Values.EMPTY_INT_ARRAY, Values.EMPTY_LONG_ARRAY)
                 .asLazy();
 
         final var nonFloatFinitePrimitiveFloatArrays = Lists.mutable
                 .of(Float.NaN, Float.NEGATIVE_INFINITY, Float.POSITIVE_INFINITY)
                 .flatCollect(VectorTestUtils::signPermutations)
-                .with(ArrayUtils.EMPTY_FLOAT_ARRAY)
                 .asLazy();
 
         final var nonDoubleFiniteNonZeroPositiveExtremePrimitiveDoubles = Lists.mutable
@@ -271,7 +262,6 @@ public class VectorTestUtils {
         final var nonDoubleFiniteDoubleArrays = Lists.mutable
                 .withAll(nonDoubleFiniteNonZeroPositiveExtremePrimitiveDoubles)
                 .flatCollect(VectorTestUtils::signPermutations)
-                .with(ArrayUtils.EMPTY_DOUBLE_ARRAY)
                 .asLazy()
                 .flatCollect(VectorTestUtils::toArrayAndVectorValues);
 
