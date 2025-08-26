@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.authentication;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -177,7 +178,8 @@ public abstract class AbstractHelloMessageDecoderTest<D extends MessageDecoder<H
 
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal value for field \"extra\": Something went kaput :(")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"extra\": Something went kaput :("))
                 .withCause(ex);
     }
 
@@ -198,7 +200,8 @@ public abstract class AbstractHelloMessageDecoderTest<D extends MessageDecoder<H
 
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal value for field \"user_agent\": Expected string");
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"user_agent\": Expected string"));
     }
 
     @Test
@@ -217,7 +220,8 @@ public abstract class AbstractHelloMessageDecoderTest<D extends MessageDecoder<H
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"user_agent\": Expected value to be non-null")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"user_agent\": Expected value to be non-null"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
                 .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")

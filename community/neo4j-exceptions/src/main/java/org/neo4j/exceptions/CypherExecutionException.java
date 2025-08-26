@@ -42,7 +42,7 @@ public class CypherExecutionException extends Neo4jException {
     }
 
     private <EX extends Throwable & ErrorGqlStatusObject> CypherExecutionException(EX cause) {
-        super(cause, cause.getMessage(), cause);
+        super(cause, cause.legacyMessage(), cause);
     }
 
     public static <EX extends Throwable & ErrorGqlStatusObject> CypherExecutionException wrapError(EX e) {

@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.transition.ready;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -150,7 +152,9 @@ class RouteStateTransitionTest extends AbstractStateTransitionTest<RouteMessage,
 
         Assertions.assertThatExceptionOfType(AuthenticationStateTransitionException.class)
                 .isThrownBy(() -> this.transition.process(this.context, request, this.responseHandler))
-                .withMessage("Something went wrong")
+                .withMessage(
+                        useNewMessage("50N00: Internal exception raised RouteStateTransitionTest: Something went wrong")
+                                .whenLegacyFallbackTo("Something went wrong"))
                 .withCauseInstanceOf(AuthenticationException.class);
     }
 

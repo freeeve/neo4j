@@ -21,6 +21,7 @@ package org.neo4j.bolt.protocol.io.reader;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.time.temporal.ChronoField;
 import org.assertj.core.api.Assertions;
@@ -50,7 +51,8 @@ class TimeReaderTest {
 
         assertThatThrownBy(() -> TimeReader.getInstance().read(null, buf, new StructHeader(2, (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"tz_offset_seconds\": Value is out of bounds")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"tz_offset_seconds\": Value is out of bounds"))
                 .hasNoCause();
     }
 
@@ -60,7 +62,8 @@ class TimeReaderTest {
 
         assertThatThrownBy(() -> TimeReader.getInstance().read(null, buf, new StructHeader(2, (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"tz_offset_seconds\": Value is out of bounds")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"tz_offset_seconds\": Value is out of bounds"))
                 .hasNoCause();
     }
 
@@ -70,7 +73,9 @@ class TimeReaderTest {
 
         assertThatExceptionOfType(IllegalStructSizeException.class)
                 .isThrownBy(() -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(0, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 2 fields but got 0")
+                .withMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 2 fields but got 0"))
                 .withNoCause();
     }
 
@@ -80,7 +85,9 @@ class TimeReaderTest {
 
         assertThatExceptionOfType(IllegalStructSizeException.class)
                 .isThrownBy(() -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 2 fields but got 1")
+                .withMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 2 fields but got 1"))
                 .withNoCause();
     }
 
@@ -90,7 +97,9 @@ class TimeReaderTest {
 
         assertThatExceptionOfType(IllegalStructSizeException.class)
                 .isThrownBy(() -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(3, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 2 fields but got 3")
+                .withMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 2 fields but got 3"))
                 .withNoCause();
     }
 }

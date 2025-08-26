@@ -22,6 +22,7 @@ package org.neo4j.packstream.error.reader;
 import java.util.Set;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.ErrorMessageHolder;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
@@ -31,20 +32,26 @@ public class PackstreamReaderException extends PackstreamException {
 
     @Deprecated
     public PackstreamReaderException(String message) {
-        super(message);
+        this(message, message);
     }
 
-    protected PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message) {
-        super(gqlStatusObject, message);
+    @Deprecated
+    public PackstreamReaderException(String message, String legacyMessage) {
+        super(message, legacyMessage);
     }
 
-    protected PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
-        super(gqlStatusObject, message, cause);
+    protected PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message, String legacyMessage) {
+        super(gqlStatusObject, message, legacyMessage);
+    }
+
+    protected PackstreamReaderException(
+            ErrorGqlStatusObject gqlStatusObject, String message, String legacyMessage, Throwable cause) {
+        super(gqlStatusObject, message, legacyMessage, cause);
     }
 
     public static PackstreamReaderException internalError(String msgTitle, String message) {
         var gql = GqlHelper.get50N00(msgTitle, message);
-        return new PackstreamReaderException(gql, message);
+        return new PackstreamReaderException(gql, ErrorMessageHolder.getMessage(gql, message), message);
     }
 
     public static PackstreamReaderException duplicateMapKey(String key) {
@@ -53,7 +60,8 @@ public class PackstreamReaderException extends PackstreamException {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N54)
                 .withParam(GqlParams.StringParam.mapKey, key)
                 .build();
-        return new PackstreamReaderException(gql, "Duplicate map key: \"" + key + "\"");
+        var legacyMessage = "Duplicate map key: \"" + key + "\"";
+        return new PackstreamReaderException(gql, ErrorMessageHolder.getMessage(gql, legacyMessage), legacyMessage);
     }
 
     public static PackstreamReaderException unknownDriverInterfaceType(long type, Set<Long> expectedType) {
@@ -66,6 +74,7 @@ public class PackstreamReaderException extends PackstreamException {
                         .withParam(GqlParams.StringParam.valueType, String.valueOf(type))
                         .build())
                 .build();
-        return new PackstreamReaderException(gql, "Unknown driver interface type " + type);
+        var legacyMessage = "Unknown driver interface type " + type;
+        return new PackstreamReaderException(gql, ErrorMessageHolder.getMessage(gql, legacyMessage), legacyMessage);
     }
 }

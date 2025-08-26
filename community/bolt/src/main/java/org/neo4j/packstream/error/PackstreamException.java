@@ -25,30 +25,31 @@ import org.neo4j.gqlstatus.GqlHelper;
 
 public abstract class PackstreamException extends IOException implements ErrorGqlStatusObject {
     private final ErrorGqlStatusObject innerGqlStatusObject;
-    private final String oldMessage;
+    private final String legacyMessage;
 
     @Deprecated
-    protected PackstreamException(String message) {
+    protected PackstreamException(String message, String legacyMessage) {
         super(message);
         this.innerGqlStatusObject = null;
-        this.oldMessage = message;
+        this.legacyMessage = legacyMessage;
     }
 
-    protected PackstreamException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    protected PackstreamException(ErrorGqlStatusObject gqlStatusObject, String message, String legacyMessage) {
         super(message);
         this.innerGqlStatusObject = gqlStatusObject;
-        this.oldMessage = message;
+        this.legacyMessage = legacyMessage;
     }
 
-    protected PackstreamException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    protected PackstreamException(
+            ErrorGqlStatusObject gqlStatusObject, String message, String legacyMessage, Throwable cause) {
         super(message, cause);
         this.innerGqlStatusObject = GqlHelper.getInnerGqlStatusObject(gqlStatusObject, cause);
-        this.oldMessage = message;
+        this.legacyMessage = legacyMessage;
     }
 
     @Override
     public String legacyMessage() {
-        return oldMessage;
+        return legacyMessage;
     }
 
     @Override

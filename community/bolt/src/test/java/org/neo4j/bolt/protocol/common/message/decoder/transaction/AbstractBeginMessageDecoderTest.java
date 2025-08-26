@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.transaction;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +65,8 @@ public abstract class AbstractBeginMessageDecoderTest<D extends MessageDecoder<B
 
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessageContaining("Illegal value for field \"bookmarks\":");
+                .withMessageContaining(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"bookmarks\":"));
     }
 
     public static Stream<Arguments> invalidBookmarks() {
@@ -88,7 +90,8 @@ public abstract class AbstractBeginMessageDecoderTest<D extends MessageDecoder<B
 
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal value for field \"metadata\": Something went kaput :(")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"metadata\": Something went kaput :("))
                 .withCause(ex);
     }
 
@@ -109,7 +112,9 @@ public abstract class AbstractBeginMessageDecoderTest<D extends MessageDecoder<B
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
                 .withMessage(
-                        "Illegal value for field \"metadata\": Illegal value for field \"tx_timeout\": Expected long")
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"metadata\": Illegal value for field \"tx_timeout\": Expected long"))
                 .withCauseInstanceOf(IllegalStructArgumentException.class);
     }
 }

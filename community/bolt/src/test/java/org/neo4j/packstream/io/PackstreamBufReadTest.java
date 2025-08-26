@@ -34,6 +34,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -1421,7 +1422,9 @@ class PackstreamBufReadTest {
 
         var ex = assertThrows(PackstreamReaderException.class, () -> buf.readStruct(null, registry));
 
-        assertThat(ex.getMessage()).isEqualTo("Test Exception");
+        assertThat(ex.getMessage())
+                .isEqualTo(useNewMessage("50N00: Internal exception raised PackstreamBufReadTest: Test Exception")
+                        .whenLegacyFallbackTo("Test Exception"));
 
         verify(registry).getReader(notNull());
         verifyNoMoreInteractions(registry);

@@ -28,12 +28,12 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class QueryExecutionKernelException extends KernelException {
     private <EX extends Throwable & Status.HasStatus> QueryExecutionKernelException(
             ErrorGqlStatusObject gqlStatusObject, EX cause) {
-        super(gqlStatusObject, cause.status(), cause, cause.getMessage());
+        super(gqlStatusObject, cause.status(), cause);
     }
 
     public QueryExecutionException asUserException() {
         return new QueryExecutionException(
-                this, getMessage(), this, status().code().serialize());
+                this, legacyMessage(), this, status().code().serialize());
     }
 
     public static <EX extends Throwable & Status.HasStatus> QueryExecutionKernelException wrapError(EX cause) {

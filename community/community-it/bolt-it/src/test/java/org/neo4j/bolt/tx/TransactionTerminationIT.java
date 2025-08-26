@@ -20,6 +20,7 @@
 package org.neo4j.bolt.tx;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.bolt.test.util.ErrorUtil.useNewMessage;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertThat;
 
 import java.util.concurrent.TimeUnit;
@@ -140,8 +141,8 @@ public class TransactionTerminationIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void killTxThenTryToUseItTest(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void killTxThenTryToUseItTestV5x7(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
         connection
                 .send(wire.begin())
                 .send(wire.run("UNWIND range(1, 200) AS i RETURN i"))
@@ -175,6 +176,52 @@ public class TransactionTerminationIT {
                 .receivesFailure(
                         Status.Transaction.Terminated,
                         "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ",
+                        GqlStatusInfoCodes.STATUS_25N14.getGqlStatus(),
+                        "error: invalid transaction state - transaction termination client error. The transaction has been terminated. "
+                                + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void killTxThenTryToUseItTest(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
+        connection
+                .send(wire.begin())
+                .send(wire.run("UNWIND range(1, 200) AS i RETURN i"))
+                .send(wire.pull());
+
+        assertThat(connection).receivesSuccess(2);
+
+        assertThat(connection).receivesRecords();
+
+        awaitTransactionStart(); // Start but should go to sleep
+
+        // Find and cancel the transaction we started above.
+        try (var tx = server.graphDatabaseService().beginTx()) {
+            var result = tx.execute("SHOW TRANSACTIONS");
+            var unwindTransaction = result.stream().toList().stream()
+                    .filter(x -> !x.get("connectionId").equals("")
+                            && !x.get("clientAddress").equals(""));
+
+            var transactionId = (String) unwindTransaction.toList().get(0).get("transactionId");
+
+            var terminationResult = tx.execute(String.format("TERMINATE TRANSACTION \"%s\"", transactionId));
+
+            var termination = terminationResult.stream().toList().get(0); // should only ever be one.
+
+            assertEquals(termination.get("message"), "Transaction terminated.");
+        }
+
+        connection.send(wire.run("UNWIND range(1, 200) AS i RETURN i")); // send a run to a canceled transaction
+
+        assertThat(connection)
+                .receivesFailure(
+                        Status.Transaction.Terminated,
+                        useNewMessage(
+                                        "25N14: The transaction has been terminated. "
+                                                + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.")
+                                .whenLegacyFallbackTo(
+                                        "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. "),
                         GqlStatusInfoCodes.STATUS_25N14.getGqlStatus(),
                         "error: invalid transaction state - transaction termination client error. The transaction has been terminated. "
                                 + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.",
@@ -237,8 +284,8 @@ public class TransactionTerminationIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void killedTxShouldNotDestroyConnection(BoltWire wire, @Authenticated BoltTestConnection connection)
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void killedTxShouldNotDestroyConnectionV5x7(BoltWire wire, @Authenticated BoltTestConnection connection)
             throws Exception {
         connection
                 .send(wire.begin())
@@ -279,6 +326,70 @@ public class TransactionTerminationIT {
                             .receivesFailure(
                                     Status.Transaction.Terminated,
                                     "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ",
+                                    GqlStatusInfoCodes.STATUS_25N14.getGqlStatus(),
+                                    "error: invalid transaction state - transaction termination client error. The transaction has been terminated. "
+                                            + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.",
+                                    BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                            "CLIENT_ERROR"));
+                });
+
+        connection
+                .send(wire.reset())
+                .send(wire.begin())
+                .send(wire.run("RETURN 1 as n"))
+                .send(wire.pull(1))
+                .send(wire.commit());
+
+        assertThat(connection).receivesSuccess(3).receivesRecord().receivesSuccess(2);
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void killedTxShouldNotDestroyConnection(BoltWire wire, @Authenticated BoltTestConnection connection)
+            throws Exception {
+        connection
+                .send(wire.begin())
+                .send(wire.run("UNWIND range(1, 200) AS i RETURN i"))
+                .send(wire.pull());
+
+        assertThat(connection).receivesSuccess(2);
+        assertThat(connection).receivesRecords();
+
+        awaitTransactionStart(); // Start but should go to sleep
+
+        // Find and cancel the transaction we started above.
+        try (var tx = server.graphDatabaseService().beginTx()) {
+            var result = tx.execute("SHOW TRANSACTIONS");
+            var unwindTransaction = result.stream().toList().stream()
+                    .filter(x -> !x.get("connectionId").equals("")
+                            && !x.get("clientAddress").equals(""));
+
+            var transactionId = (String) unwindTransaction.toList().get(0).get("transactionId");
+
+            var terminationResult = tx.execute(String.format("TERMINATE TRANSACTION \"%s\"", transactionId));
+
+            var termination = terminationResult.stream().toList().get(0); // should only ever be one.
+
+            assertEquals(termination.get("message"), "Transaction terminated.");
+        }
+
+        Awaitility.await()
+                .atMost(2, TimeUnit.MINUTES)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .pollDelay(11, TimeUnit.SECONDS)
+                .pollInSameThread()
+                .untilAsserted(() -> {
+                    connection.send(
+                            wire.run("UNWIND range(1, 200) AS i RETURN i")); // send a run to a canceled transaction
+
+                    assertThat(connection)
+                            .receivesFailure(
+                                    Status.Transaction.Terminated,
+                                    useNewMessage(
+                                                    "25N14: The transaction has been terminated. "
+                                                            + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.")
+                                            .whenLegacyFallbackTo(
+                                                    "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. "),
                                     GqlStatusInfoCodes.STATUS_25N14.getGqlStatus(),
                                     "error: invalid transaction state - transaction termination client error. The transaction has been terminated. "
                                             + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.",

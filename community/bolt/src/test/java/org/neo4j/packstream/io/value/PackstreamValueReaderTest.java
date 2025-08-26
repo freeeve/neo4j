@@ -22,6 +22,7 @@ package org.neo4j.packstream.io.value;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.DynamicTest.dynamicTest;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 import static org.neo4j.values.storable.NoValue.NO_VALUE;
 
 import io.netty.buffer.Unpooled;
@@ -57,7 +58,8 @@ class PackstreamValueReaderTest {
         var reader = new PackstreamValueReader<>(null, buf, null);
         assertThatThrownBy(() -> reader.readPrimitiveValue(-1))
                 .isInstanceOf(UnexpectedTypeException.class)
-                .hasMessage("Unexpected type: STRUCT");
+                // TODO: Check with errors why no message here.
+                .hasMessage(useNewMessage("22G03").whenLegacyFallbackTo("Unexpected type: STRUCT"));
     }
 
     @Test
@@ -190,7 +192,8 @@ class PackstreamValueReaderTest {
         var reader = new PackstreamValueReader<>(null, buf, null);
         assertThatThrownBy(() -> reader.readPrimitiveList(-1))
                 .isInstanceOf(UnexpectedTypeException.class)
-                .hasMessage("Unexpected type: STRUCT");
+                // TODO: Check with errors why no message here.
+                .hasMessage(useNewMessage("22G03").whenLegacyFallbackTo("Unexpected type: STRUCT"));
     }
 
     @Test
@@ -257,6 +260,7 @@ class PackstreamValueReaderTest {
         var reader = new PackstreamValueReader<>(null, buf, null);
         assertThatThrownBy(() -> reader.readPrimitiveMap(-1))
                 .isInstanceOf(UnexpectedTypeException.class)
-                .hasMessage("Unexpected type: STRUCT");
+                // TODO: Check with errors why no message here.
+                .hasMessage(useNewMessage("22G03").whenLegacyFallbackTo("Unexpected type: STRUCT"));
     }
 }

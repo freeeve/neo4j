@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.io.reader;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.time.temporal.ChronoField;
 import org.assertj.core.api.Assertions;
@@ -48,7 +49,9 @@ class LocalTimeReaderTest {
 
         assertThatExceptionOfType(IllegalStructSizeException.class)
                 .isThrownBy(() -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(0, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 1 fields but got 0")
+                .withMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 1 fields but got 0"))
                 .withNoCause();
     }
 
@@ -58,7 +61,9 @@ class LocalTimeReaderTest {
 
         assertThatExceptionOfType(IllegalStructSizeException.class)
                 .isThrownBy(() -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(2, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 1 fields but got 2")
+                .withMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 1 fields but got 2"))
                 .withNoCause();
     }
 }

@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.authentication;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.util.List;
 import java.util.Map;
@@ -124,7 +125,9 @@ public class DefaultHelloMessageDecoderTest extends AbstractHelloMessageDecoderT
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
                 .withMessage(
-                        "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values.");
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values."));
     }
 
     @Test
@@ -147,7 +150,9 @@ public class DefaultHelloMessageDecoderTest extends AbstractHelloMessageDecoderT
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
                 .withMessage(
-                        "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values.");
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values."));
     }
 
     @Test
@@ -171,7 +176,9 @@ public class DefaultHelloMessageDecoderTest extends AbstractHelloMessageDecoderT
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"bolt_agent\": Expected map to contain key: 'product'.")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo(
+                                "Illegal value for field \"bolt_agent\": Expected map to contain key: 'product'."))
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
                 .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
                 .gqlCause()

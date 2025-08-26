@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 import static org.neo4j.gqlstatus.ErrorClassification.TRANSIENT_ERROR;
 
 import org.junit.jupiter.api.Nested;
@@ -108,7 +109,11 @@ class ErrorTest {
 
             // Then
             assertThat(metadata.status()).isEqualTo(Status.General.UnknownError);
-            assertThat(metadata.message()).isEqualTo(cause.getMessage());
+            assertThat(metadata.message())
+                    .isEqualTo(useNewMessage(
+                                    "50N00: Internal exception raised Throwable: This is not an error we know how to handle.")
+                            .whenLegacyFallbackTo("This is not an error we know how to handle."));
+            assertThat(metadata.legacyMessage()).isEqualTo(cause.getMessage());
             assertThat(metadata.gqlStatus()).isEqualTo("50N00");
             assertThat(metadata.description())
                     .isEqualTo(
@@ -157,6 +162,10 @@ class ErrorTest {
             // Then
             assertThat(metadata.status()).isEqualTo(Status.General.DatabaseUnavailable);
             assertThat(metadata.message())
+                    .isEqualTo(useNewMessage(
+                                    "08N09: The database `MyDb` is currently unavailable. Check the database status. Retry your request at a later time.")
+                            .whenLegacyFallbackTo(metadata.legacyMessage()));
+            assertThat(metadata.legacyMessage())
                     .isEqualTo(Status.General.DatabaseUnavailable.code().description());
             assertThat(metadata.cause()).isNull();
             assertThat(metadata.gqlStatus()).isEqualTo("08N09");
@@ -181,7 +190,8 @@ class ErrorTest {
 
             // Then
             assertThat(metadata.status()).isEqualTo(ex.status());
-            assertThat(metadata.message()).isEqualTo(ex.legacyMessage());
+            assertThat(metadata.message()).isEqualTo(ex.getMessage());
+            assertThat(metadata.legacyMessage()).isEqualTo(ex.legacyMessage());
             assertThat(metadata.gqlStatus()).isEqualTo(ex.gqlStatus());
             assertThat(metadata.description()).isEqualTo(ex.statusDescription());
             assertThat(metadata.diagnosticRecord()).isEqualTo(ex.diagnosticRecord());
@@ -200,7 +210,8 @@ class ErrorTest {
 
             // Then
             assertThat(metadata.status()).isEqualTo(gqlEx.status());
-            assertThat(metadata.message()).isEqualTo(gqlEx.legacyMessage());
+            assertThat(metadata.message()).isEqualTo(gqlEx.getMessage());
+            assertThat(metadata.legacyMessage()).isEqualTo(gqlEx.legacyMessage());
             assertThat(metadata.gqlStatus()).isEqualTo(gqlEx.gqlStatus());
             assertThat(metadata.description()).isEqualTo(gqlEx.statusDescription());
             assertThat(metadata.diagnosticRecord()).isEqualTo(gqlEx.diagnosticRecord());
@@ -219,7 +230,8 @@ class ErrorTest {
 
             // Then
             assertThat(metadata.status()).isEqualTo(ex.status());
-            assertThat(metadata.message()).isEqualTo(ex.legacyMessage());
+            assertThat(metadata.message()).isEqualTo(ex.getMessage());
+            assertThat(metadata.legacyMessage()).isEqualTo(ex.legacyMessage());
             assertThat(metadata.gqlStatus()).isEqualTo(ex.gqlStatus());
             assertThat(metadata.description()).isEqualTo(ex.statusDescription());
             assertThat(metadata.diagnosticRecord()).isEqualTo(ex.diagnosticRecord());
@@ -228,6 +240,7 @@ class ErrorTest {
             var causeMetadata = metadata.cause();
             assertThat(causeMetadata.status()).isEqualTo(cause.status());
             assertThat(causeMetadata.message()).isEqualTo(cause.getMessage());
+            assertThat(causeMetadata.legacyMessage()).isEqualTo(cause.getMessage());
             assertThat(causeMetadata.gqlStatus()).isEqualTo(cause.gqlStatus());
             assertThat(causeMetadata.description()).isEqualTo(cause.statusDescription());
             assertThat(causeMetadata.diagnosticRecord()).isEqualTo(cause.diagnosticRecord());
@@ -247,7 +260,8 @@ class ErrorTest {
 
             // Then
             assertThat(metadata.status()).isEqualTo(gqlEx.status());
-            assertThat(metadata.message()).isEqualTo(gqlEx.legacyMessage());
+            assertThat(metadata.message()).isEqualTo(gqlEx.getMessage());
+            assertThat(metadata.legacyMessage()).isEqualTo(gqlEx.legacyMessage());
             assertThat(metadata.gqlStatus()).isEqualTo(gqlEx.gqlStatus());
             assertThat(metadata.description()).isEqualTo(gqlEx.statusDescription());
             assertThat(metadata.diagnosticRecord()).isEqualTo(gqlEx.diagnosticRecord());

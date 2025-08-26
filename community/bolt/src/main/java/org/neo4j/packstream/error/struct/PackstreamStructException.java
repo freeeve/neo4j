@@ -28,11 +28,11 @@ public class PackstreamStructException extends PackstreamReaderException
         implements Status.HasStatus, ErrorGqlStatusObject {
 
     protected PackstreamStructException(ErrorGqlStatusObject gqlStatusObject, String message) {
-        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, message));
+        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, message), message);
     }
 
     protected PackstreamStructException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
-        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, message), cause);
+        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, message), message, cause);
     }
 
     @Override

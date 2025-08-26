@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.transition.authentication;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collections;
@@ -148,7 +150,9 @@ class AuthenticationStateTransitionTest
 
                     Assertions.assertThatExceptionOfType(AuthenticationStateTransitionException.class)
                             .isThrownBy(() -> this.transition.process(this.context, request, this.responseHandler))
-                            .withMessage("Something went wrong")
+                            .withMessage(useNewMessage(
+                                            "50N00: Internal exception raised AuthenticationStateTransitionTest: Something went wrong")
+                                    .whenLegacyFallbackTo("Something went wrong"))
                             .withCauseInstanceOf(AuthenticationException.class);
 
                     Mockito.verify(this.context).connection();

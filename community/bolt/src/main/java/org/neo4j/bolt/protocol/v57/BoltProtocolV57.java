@@ -31,6 +31,8 @@ import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateAutocommitState
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.CreateTransactionStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.RouteStateTransition;
 import org.neo4j.bolt.protocol.common.fsm.transition.ready.TelemetryStateTransition;
+import org.neo4j.bolt.protocol.common.message.encoder.FailureMessageEncoder;
+import org.neo4j.bolt.protocol.common.message.response.ResponseMessage;
 import org.neo4j.bolt.protocol.io.pipeline.WriterPipeline;
 import org.neo4j.bolt.protocol.io.reader.DateReader;
 import org.neo4j.bolt.protocol.io.reader.DateTimeReader;
@@ -43,6 +45,7 @@ import org.neo4j.bolt.protocol.io.reader.Point3dReader;
 import org.neo4j.bolt.protocol.io.reader.TimeReader;
 import org.neo4j.bolt.protocol.io.writer.VectorBarrierStructWriter;
 import org.neo4j.bolt.protocol.v56.metadata.MetadataHandlerV56;
+import org.neo4j.bolt.protocol.v57.message.encoder.FailureMessageEncoderV57;
 import org.neo4j.packstream.struct.StructRegistry;
 import org.neo4j.values.storable.Value;
 
@@ -60,6 +63,13 @@ public final class BoltProtocolV57 extends AbstractBoltProtocol {
     @Override
     public ProtocolVersion version() {
         return VERSION;
+    }
+
+    @Override
+    protected StructRegistry.Builder<Connection, ResponseMessage> createResponseMessageRegistry() {
+        return super.createResponseMessageRegistry()
+                .unregister(FailureMessageEncoder.getInstance())
+                .register(FailureMessageEncoderV57.getInstance());
     }
 
     @Override

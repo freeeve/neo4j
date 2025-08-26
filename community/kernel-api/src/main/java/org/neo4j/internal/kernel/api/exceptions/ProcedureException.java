@@ -629,7 +629,11 @@ public class ProcedureException extends KernelException {
         ErrorGqlStatusObject gql = getInvocationFailedGqlStatus(cause, rootCause, type, name);
 
         if (cause instanceof Status.HasStatus statusException) {
-            return new ProcedureException(gql, statusException.status(), cause, cause.getMessage());
+            var message = cause.getMessage();
+            if (cause instanceof ErrorGqlStatusObject gqlStatusObject) {
+                message = gqlStatusObject.legacyMessage();
+            }
+            return new ProcedureException(gql, statusException.status(), cause, message);
         } else {
             return new ProcedureException(
                     gql,

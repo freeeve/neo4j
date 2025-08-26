@@ -25,12 +25,12 @@ import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 class UnstableSnapshotException extends KernelException {
-    private UnstableSnapshotException(ErrorGqlStatusObject gqlStatusObject, String message, Object... parameters) {
-        super(gqlStatusObject, Status.Transaction.Outdated, message, parameters);
+    private UnstableSnapshotException(ErrorGqlStatusObject gqlStatusObject, String message) {
+        super(gqlStatusObject, Status.Transaction.Outdated, message);
     }
 
-    public static UnstableSnapshotException internalError(String msgTitle, String message, Object... parameters) {
+    public static UnstableSnapshotException internalError(String msgTitle, String message) {
         var gql = GqlHelper.get50N00(msgTitle, message);
-        return new UnstableSnapshotException(gql, message, parameters);
+        return new UnstableSnapshotException(gql, message);
     }
 }

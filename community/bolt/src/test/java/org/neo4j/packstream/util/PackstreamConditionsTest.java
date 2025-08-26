@@ -19,6 +19,8 @@
  */
 package org.neo4j.packstream.util;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
@@ -51,8 +53,10 @@ class PackstreamConditionsTest {
                                         () -> PackstreamConditions.requireLength(
                                                 new StructHeader(expected + 1, (short) (expected * 2)), expected))
                                 .isInstanceOf(IllegalStructSizeException.class)
-                                .hasMessage("Illegal struct size: Expected struct to be " + expected
-                                        + " fields but got " + (expected + 1))
+                                .hasMessage(useNewMessage(
+                                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be " + expected
+                                                + " fields but got " + (expected + 1)))
                                 .hasNoCause()
                                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                                 .hasStatusDescription(
@@ -80,8 +84,11 @@ class PackstreamConditionsTest {
                         DynamicTest.dynamicTest(header.length() + " fields", () -> Assertions.assertThatExceptionOfType(
                                         IllegalStructSizeException.class)
                                 .isThrownBy(() -> PackstreamConditions.requireEmpty(header))
-                                .withMessage("Illegal struct size: Expected struct to be 0 fields but got "
-                                        + header.length())
+                                .withMessage(useNewMessage(
+                                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                                        .whenLegacyFallbackTo(
+                                                "Illegal struct size: Expected struct to be 0 fields but got "
+                                                        + header.length()))
                                 .withNoCause()));
     }
 
@@ -109,8 +116,9 @@ class PackstreamConditionsTest {
                         fieldName + " = null", () -> ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                                         () -> PackstreamConditions.requireNonNull(fieldName, null))
                                 .isInstanceOf(IllegalStructArgumentException.class)
-                                .hasMessage(
-                                        "Illegal value for field \"" + fieldName + "\": Expected value to be non-null")
+                                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                                        .whenLegacyFallbackTo("Illegal value for field \"" + fieldName
+                                                + "\": Expected value to be non-null"))
                                 .hasNoCause()
                                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
                                 .hasStatusDescription(
@@ -132,8 +140,9 @@ class PackstreamConditionsTest {
                         fieldName + " = null", () -> ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                                         () -> PackstreamConditions.requireNonNullValue(fieldName, Values.NO_VALUE))
                                 .isInstanceOf(IllegalStructArgumentException.class)
-                                .hasMessage(
-                                        "Illegal value for field \"" + fieldName + "\": Expected value to be non-null")
+                                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                                        .whenLegacyFallbackTo("Illegal value for field \"" + fieldName
+                                                + "\": Expected value to be non-null"))
                                 .hasNoCause()
                                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
                                 .hasStatusDescription(

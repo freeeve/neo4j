@@ -20,6 +20,7 @@
 package org.neo4j.bolt.authentication;
 
 import static java.time.Duration.ofSeconds;
+import static org.neo4j.bolt.test.util.ErrorUtil.useNewMessage;
 
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -99,14 +100,30 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailDueToMessageBeingTooLargeInUnauthenticatedState(@VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailDueToMessageBeingTooLargeInUnauthenticatedStateV5x7(@VersionSelected BoltTestConnection connection) {
         connection.send(createValidBufferOf1023bytes(BoltV51Wire.MESSAGE_TAG_HELLO));
 
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailureFuzzy(
                         Status.Request.Invalid,
                         EXCEEDED_LIMIT_MESSAGE,
+                        GqlStatusInfoCodes.STATUS_22N56.getGqlStatus(),
+                        "error: data exception - protocol message length limit overflow. Protocol message length limit exceeded (limit: 1000).",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .isEventuallyTerminated();
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailDueToMessageBeingTooLargeInUnauthenticatedState(@VersionSelected BoltTestConnection connection) {
+        connection.send(createValidBufferOf1023bytes(BoltV51Wire.MESSAGE_TAG_HELLO));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureFuzzy(
+                        Status.Request.Invalid,
+                        useNewMessage("22N56: Protocol message length limit exceeded (limit: 1000).")
+                                .whenLegacyFallbackTo(EXCEEDED_LIMIT_MESSAGE),
                         GqlStatusInfoCodes.STATUS_22N56.getGqlStatus(),
                         "error: data exception - protocol message length limit overflow. Protocol message length limit exceeded (limit: 1000).",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
@@ -127,8 +144,8 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailDueToMessageBeingTooLargeInAuthenticationState(
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailDueToMessageBeingTooLargeInAuthenticationStateV5x7(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
@@ -138,6 +155,25 @@ public class PreAuthLimitIT {
                 .receivesFailureFuzzy(
                         Status.Request.Invalid,
                         EXCEEDED_LIMIT_MESSAGE,
+                        GqlStatusInfoCodes.STATUS_22N56.getGqlStatus(),
+                        "error: data exception - protocol message length limit overflow. Protocol message length limit exceeded (limit: 1000).",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .isEventuallyTerminated();
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailDueToMessageBeingTooLargeInAuthenticationState(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello());
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess();
+
+        connection.send(createValidBufferOf1023bytes(BoltV51Wire.MESSAGE_TAG_HELLO));
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureFuzzy(
+                        Status.Request.Invalid,
+                        useNewMessage("22N56: Protocol message length limit exceeded (limit: 1000).")
+                                .whenLegacyFallbackTo(EXCEEDED_LIMIT_MESSAGE),
                         GqlStatusInfoCodes.STATUS_22N56.getGqlStatus(),
                         "error: data exception - protocol message length limit overflow. Protocol message length limit exceeded (limit: 1000).",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
@@ -159,8 +195,8 @@ public class PreAuthLimitIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailDueToMessageBeingTooLargeInAuthenticationStateAfterLoggingOut(
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailDueToMessageBeingTooLargeInAuthenticationStateAfterLoggingOutV5x7(
             BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.logoff());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
@@ -170,6 +206,26 @@ public class PreAuthLimitIT {
                 .receivesFailureFuzzy(
                         Status.Request.Invalid,
                         EXCEEDED_LIMIT_MESSAGE,
+                        GqlStatusInfoCodes.STATUS_22N56.getGqlStatus(),
+                        "error: data exception - protocol message length limit overflow. Protocol message length limit exceeded (limit: 1000).",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .isEventuallyTerminated();
+        ;
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailDueToMessageBeingTooLargeInAuthenticationStateAfterLoggingOut(
+            BoltWire wire, @Authenticated BoltTestConnection connection) {
+        connection.send(wire.logoff());
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess();
+
+        connection.send(createValidBufferOf1023bytes(BoltV51Wire.MESSAGE_TAG_HELLO));
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureFuzzy(
+                        Status.Request.Invalid,
+                        useNewMessage("22N56: Protocol message length limit exceeded (limit: 1000).")
+                                .whenLegacyFallbackTo(EXCEEDED_LIMIT_MESSAGE),
                         GqlStatusInfoCodes.STATUS_22N56.getGqlStatus(),
                         "error: data exception - protocol message length limit overflow. Protocol message length limit exceeded (limit: 1000).",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))

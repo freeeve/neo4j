@@ -56,6 +56,6 @@ public final class FailureMessageEncoderV40 implements StructWriter<Connection, 
         buffer.writeString(payload.status().code().serialize());
 
         buffer.writeString("message");
-        buffer.writeString(payload.message());
+        buffer.writeString(payload.metadata().legacyMessage());
     }
 }

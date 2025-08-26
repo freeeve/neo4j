@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.transaction;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -47,7 +48,9 @@ public abstract class AbstractRunMessageDecoderTest<D extends MessageDecoder<Run
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder()
                         .read(ConnectionMockFactory.newInstance(), buf, new StructHeader(3, (short) 0x42)))
-                .withMessage("Illegal value for field \"statement\": Unexpected type: Expected STRING but got INT")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo(
+                                "Illegal value for field \"statement\": Unexpected type: Expected STRING but got INT"))
                 .withCauseInstanceOf(UnexpectedTypeException.class);
     }
 
@@ -64,7 +67,8 @@ public abstract class AbstractRunMessageDecoderTest<D extends MessageDecoder<Run
 
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(3, (short) 0x42)))
-                .withMessage("Illegal value for field \"params\": Something went kaput :(")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"params\": Something went kaput :("))
                 .withCause(ex);
     }
 
@@ -86,7 +90,9 @@ public abstract class AbstractRunMessageDecoderTest<D extends MessageDecoder<Run
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(3, (short) 0x42)))
                 .withMessage(
-                        "Illegal value for field \"metadata\": Illegal value for field \"tx_timeout\": Expected long")
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"metadata\": Illegal value for field \"tx_timeout\": Expected long"))
                 .withCauseInstanceOf(IllegalStructArgumentException.class);
     }
 }

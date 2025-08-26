@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.eclipse.collections.impl.factory.Maps;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorMessageHolder;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -38,7 +39,7 @@ public class StatusWrapCypherException extends Neo4jException {
     private final Map<ExtraInformation, String> extraInfoMap = Maps.mutable.of();
 
     private <EX extends Throwable & ErrorGqlStatusObject> StatusWrapCypherException(EX cause) {
-        super(cause, cause.getMessage(), cause);
+        super(cause, cause.legacyMessage(), cause);
     }
 
     private StatusWrapCypherException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
@@ -64,9 +65,18 @@ public class StatusWrapCypherException extends Neo4jException {
 
     @Override
     public String getMessage() {
+        return formatMessage(getCause().getMessage());
+    }
+
+    @Override
+    public String legacyMessage() {
+        return formatMessage(ErrorMessageHolder.getOldCauseMessage(getCause()));
+    }
+
+    private String formatMessage(String message) {
         return String.format(
                 "%s (%s)",
-                getCause().getMessage(),
+                message,
                 extraInfoMap.entrySet().stream()
                         .sorted(Map.Entry.comparingByKey())
                         .map(Map.Entry::getValue)

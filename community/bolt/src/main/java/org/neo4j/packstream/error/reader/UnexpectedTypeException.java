@@ -36,14 +36,18 @@ public class UnexpectedTypeException extends PackstreamReaderException
         super(
                 gqlStatusObject,
                 ErrorMessageHolder.getMessage(
-                        gqlStatusObject, "Unexpected type: Expected " + expected + " but got " + actual));
+                        gqlStatusObject, "Unexpected type: Expected " + expected + " but got " + actual),
+                "Unexpected type: Expected " + expected + " but got " + actual);
 
         this.expected = expected;
         this.actual = actual;
     }
 
     private UnexpectedTypeException(ErrorGqlStatusObject gqlStatusObject, Type actual) {
-        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, "Unexpected type: " + actual));
+        super(
+                gqlStatusObject,
+                ErrorMessageHolder.getMessage(gqlStatusObject, "Unexpected type: " + actual),
+                "Unexpected type: " + actual);
 
         this.expected = null;
         this.actual = actual;
@@ -55,7 +59,7 @@ public class UnexpectedTypeException extends PackstreamReaderException
 
     protected UnexpectedTypeException(
             ErrorGqlStatusObject gqlStatusObject, String message, Type expected, Type actual) {
-        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, message));
+        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, message), message);
 
         this.expected = expected;
         this.actual = actual;

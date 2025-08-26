@@ -21,6 +21,7 @@ package org.neo4j.bolt.protocol.io.reader.legacy;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.time.temporal.ChronoField;
 import org.assertj.core.api.Assertions;
@@ -62,7 +63,8 @@ class LegacyDateTimeReaderTest {
 
         assertThatThrownBy(() -> LegacyDateTimeReader.getInstance().read(null, buf, new StructHeader(3, (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"nanoseconds\": Value is out of bounds")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"nanoseconds\": Value is out of bounds"))
                 .hasNoCause()
                 .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
                         .isEqualTo("nanoseconds"));
@@ -77,7 +79,8 @@ class LegacyDateTimeReaderTest {
 
         assertThatThrownBy(() -> LegacyDateTimeReader.getInstance().read(null, buf, new StructHeader(3, (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"nanoseconds\": Value is out of bounds")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"nanoseconds\": Value is out of bounds"))
                 .hasNoCause()
                 .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
                         .isEqualTo("nanoseconds"));
@@ -89,7 +92,8 @@ class LegacyDateTimeReaderTest {
 
         assertThatThrownBy(() -> LegacyDateTimeReader.getInstance().read(null, buf, new StructHeader(3, (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"tz_offset_seconds\": Value is out of bounds")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"tz_offset_seconds\": Value is out of bounds"))
                 .hasNoCause()
                 .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
                         .isEqualTo("tz_offset_seconds"));
@@ -101,7 +105,8 @@ class LegacyDateTimeReaderTest {
 
         assertThatThrownBy(() -> LegacyDateTimeReader.getInstance().read(null, buf, new StructHeader(3, (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"tz_offset_seconds\": Value is out of bounds")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"tz_offset_seconds\": Value is out of bounds"))
                 .hasNoCause()
                 .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
                         .isEqualTo("tz_offset_seconds"));
@@ -114,7 +119,9 @@ class LegacyDateTimeReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(0, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 0")
+                .hasMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 3 fields but got 0"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(
@@ -132,7 +139,9 @@ class LegacyDateTimeReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(2, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 2")
+                .hasMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 3 fields but got 2"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(
@@ -150,7 +159,9 @@ class LegacyDateTimeReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(4, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 4")
+                .hasMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 3 fields but got 4"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(

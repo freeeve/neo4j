@@ -41,7 +41,7 @@ class FailureMessageEncoderV40Test {
         encoder.write(
                 null,
                 buf,
-                Error.from(Status.Request.InvalidFormat, "Something went wrong! :(")
+                Error.from(Status.Request.InvalidFormat, "Something went wrong! :(", "Something went wrong! :(")
                         .asBoltMessage());
 
         PackstreamBufAssertions.assertThat(buf).containsMap(meta -> assertThat(meta)

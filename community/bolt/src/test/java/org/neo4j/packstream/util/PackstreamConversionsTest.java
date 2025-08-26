@@ -19,6 +19,8 @@
  */
 package org.neo4j.packstream.util;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.LongStream;
@@ -68,7 +70,8 @@ class PackstreamConversionsTest {
                 .map(value -> DynamicTest.dynamicTest(value.toString(), () -> Assertions.assertThatExceptionOfType(
                                 IllegalStructArgumentException.class)
                         .isThrownBy(() -> PackstreamConversions.asNullableListValue("someField", value))
-                        .withMessage("Illegal value for field \"someField\": Expected list")
+                        .withMessage(useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected list"))
                         .withNoCause()));
     }
 
@@ -76,7 +79,8 @@ class PackstreamConversionsTest {
     void asLongShouldRejectNullValues() {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> PackstreamConversions.asLong("someField", null))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"someField\": Expected value to be non-null")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected value to be non-null"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
                 .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
@@ -107,7 +111,8 @@ class PackstreamConversionsTest {
                 .map(value -> DynamicTest.dynamicTest(value.toString(), () -> Assertions.assertThatExceptionOfType(
                                 IllegalStructArgumentException.class)
                         .isThrownBy(() -> PackstreamConversions.asLong("someField", value))
-                        .withMessage("Illegal value for field \"someField\": Expected long")
+                        .withMessage(useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected long"))
                         .withNoCause()));
     }
 
@@ -136,7 +141,8 @@ class PackstreamConversionsTest {
                 .map(value -> DynamicTest.dynamicTest(value.toString(), () -> Assertions.assertThatExceptionOfType(
                                 IllegalStructArgumentException.class)
                         .isThrownBy(() -> PackstreamConversions.asNullableLong("someField", value))
-                        .withMessage("Illegal value for field \"someField\": Expected long")
+                        .withMessage(useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected long"))
                         .withNoCause()));
     }
 
@@ -145,7 +151,8 @@ class PackstreamConversionsTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> PackstreamConversions.asLongValue("someField", Values.NO_VALUE))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"someField\": Expected value to be non-null")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected value to be non-null"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
                 .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
@@ -181,7 +188,8 @@ class PackstreamConversionsTest {
                 .map(value -> DynamicTest.dynamicTest(value.toString(), () -> Assertions.assertThatExceptionOfType(
                                 IllegalStructArgumentException.class)
                         .isThrownBy(() -> PackstreamConversions.asLong("someField", value))
-                        .withMessage("Illegal value for field \"someField\": Expected long")
+                        .withMessage(useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected long"))
                         .withNoCause()));
     }
 
@@ -215,7 +223,8 @@ class PackstreamConversionsTest {
                 .map(value -> DynamicTest.dynamicTest(value.toString(), () -> Assertions.assertThatExceptionOfType(
                                 IllegalStructArgumentException.class)
                         .isThrownBy(() -> PackstreamConversions.asNullableLongValue("someField", value))
-                        .withMessage("Illegal value for field \"someField\": Expected long")
+                        .withMessage(useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected long"))
                         .withNoCause()));
     }
 
@@ -248,7 +257,8 @@ class PackstreamConversionsTest {
                 .map(value -> DynamicTest.dynamicTest(value.toString(), () -> Assertions.assertThatExceptionOfType(
                                 IllegalStructArgumentException.class)
                         .isThrownBy(() -> PackstreamConversions.asNullableMapValue("someField", value))
-                        .withMessage("Illegal value for field \"someField\": Expected dictionary")
+                        .withMessage(useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected dictionary"))
                         .withNoCause()));
     }
 
@@ -275,7 +285,8 @@ class PackstreamConversionsTest {
                 .map(value -> DynamicTest.dynamicTest(value.toString(), () -> Assertions.assertThatExceptionOfType(
                                 IllegalStructArgumentException.class)
                         .isThrownBy(() -> PackstreamConversions.asNullableString("someField", value))
-                        .withMessage("Illegal value for field \"someField\": Expected string")
+                        .withMessage(useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected string"))
                         .withNoCause()));
     }
 
@@ -308,7 +319,8 @@ class PackstreamConversionsTest {
                 .map(value -> DynamicTest.dynamicTest(value.toString(), () -> Assertions.assertThatExceptionOfType(
                                 IllegalStructArgumentException.class)
                         .isThrownBy(() -> PackstreamConversions.asNullableStringValue("someField", value))
-                        .withMessage("Illegal value for field \"someField\": Expected string")
+                        .withMessage(useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo("Illegal value for field \"someField\": Expected string"))
                         .withNoCause()));
     }
 }

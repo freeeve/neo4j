@@ -20,6 +20,8 @@
 
 package org.neo4j.bolt;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import java.util.Map;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
@@ -97,8 +99,8 @@ public class TelemetryIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenTelemetryIsReceivedPriorToNegotiation(
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenTelemetryIsReceivedPriorToNegotiationV5x7(
             @VersionSelected BoltTestConnection connection, BoltWire wire) {
         connection.send(wire.telemetry(TelemetryMessageBuilder::withExecute));
 
@@ -106,6 +108,28 @@ public class TelemetryIT {
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Message of type TelemetryMessage cannot be handled by a session in the NEGOTIATION state.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "08N10: Message TelemetryMessage cannot be handled by session in the 'NEGOTIATION' state.",
+                                GqlStatusInfoCodes.STATUS_08N10.getGqlStatus(),
+                                "error: connection exception - invalid server state. Message TelemetryMessage cannot be handled by session in the 'NEGOTIATION' state.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenTelemetryIsReceivedPriorToNegotiation(
+            @VersionSelected BoltTestConnection connection, BoltWire wire) {
+        connection.send(wire.telemetry(TelemetryMessageBuilder::withExecute));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Message of type TelemetryMessage cannot be handled by a session in the NEGOTIATION state."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
@@ -129,8 +153,8 @@ public class TelemetryIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenTelemetryIsReceivedPriorToAuthentication(
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenTelemetryIsReceivedPriorToAuthenticationV5x7(
             @Negotiated BoltTestConnection connection, BoltWire wire) {
         connection.send(wire.telemetry(TelemetryMessageBuilder::withExecute));
 
@@ -138,6 +162,28 @@ public class TelemetryIT {
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Message of type TelemetryMessage cannot be handled by a session in the AUTHENTICATION state.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "08N10: Message TelemetryMessage cannot be handled by session in the 'AUTHENTICATION' state.",
+                                GqlStatusInfoCodes.STATUS_08N10.getGqlStatus(),
+                                "error: connection exception - invalid server state. Message TelemetryMessage cannot be handled by session in the 'AUTHENTICATION' state.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenTelemetryIsReceivedPriorToAuthentication(
+            @Negotiated BoltTestConnection connection, BoltWire wire) {
+        connection.send(wire.telemetry(TelemetryMessageBuilder::withExecute));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Message of type TelemetryMessage cannot be handled by a session in the AUTHENTICATION state."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
@@ -163,8 +209,8 @@ public class TelemetryIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenTelemetryIsInTxReady(@Authenticated BoltTestConnection connection, BoltWire wire) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenTelemetryIsInTxReadyV5x7(@Authenticated BoltTestConnection connection, BoltWire wire) {
         connection.send(wire.begin());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
@@ -174,6 +220,30 @@ public class TelemetryIT {
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Message of type TelemetryMessage cannot be handled by a session in the IN_TRANSACTION state.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "08N10: Message TelemetryMessage cannot be handled by session in the 'IN_TRANSACTION' state.",
+                                GqlStatusInfoCodes.STATUS_08N10.getGqlStatus(),
+                                "error: connection exception - invalid server state. Message TelemetryMessage cannot be handled by session in the 'IN_TRANSACTION' state.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenTelemetryIsInTxReady(@Authenticated BoltTestConnection connection, BoltWire wire) {
+        connection.send(wire.begin());
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess();
+
+        connection.send(wire.telemetry(TelemetryMessageBuilder::withExecute));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Message of type TelemetryMessage cannot be handled by a session in the IN_TRANSACTION state."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
@@ -200,8 +270,8 @@ public class TelemetryIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenTelemetryIsReceivedAfterLogoff(@Authenticated BoltTestConnection connection, BoltWire wire) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenTelemetryIsReceivedAfterLogoffV5x7(@Authenticated BoltTestConnection connection, BoltWire wire) {
         connection
                 .send(wire.telemetry(TelemetryMessageBuilder::withExecute))
                 .send(wire.logoff())
@@ -212,6 +282,31 @@ public class TelemetryIT {
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Message of type TelemetryMessage cannot be handled by a session in the AUTHENTICATION state.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "08N10: Message TelemetryMessage cannot be handled by session in the 'AUTHENTICATION' state.",
+                                GqlStatusInfoCodes.STATUS_08N10.getGqlStatus(),
+                                "error: connection exception - invalid server state. Message TelemetryMessage cannot be handled by session in the 'AUTHENTICATION' state.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenTelemetryIsReceivedAfterLogoff(@Authenticated BoltTestConnection connection, BoltWire wire) {
+        connection
+                .send(wire.telemetry(TelemetryMessageBuilder::withExecute))
+                .send(wire.logoff())
+                .send(wire.telemetry(TelemetryMessageBuilder::withExecute));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(2)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Message of type TelemetryMessage cannot be handled by a session in the AUTHENTICATION state."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),

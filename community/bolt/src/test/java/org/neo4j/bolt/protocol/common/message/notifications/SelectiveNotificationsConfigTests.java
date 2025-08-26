@@ -21,6 +21,7 @@ package org.neo4j.bolt.protocol.common.message.notifications;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +59,8 @@ public class SelectiveNotificationsConfigTests {
                     new SelectiveNotificationsConfig("made up", null);
                 })
                 .isInstanceOf(PackstreamReaderException.class)
-                .hasMessageContaining("severity");
+                .hasMessageContaining(
+                        useNewMessage("08N06: General network protocol error.").whenLegacyFallbackTo("severity"));
     }
 
     @Test
@@ -67,7 +69,8 @@ public class SelectiveNotificationsConfigTests {
                     new SelectiveNotificationsConfig(null, List.of("made up"));
                 })
                 .isInstanceOf(PackstreamReaderException.class)
-                .hasMessageContaining("category");
+                .hasMessageContaining(
+                        useNewMessage("08N06: General network protocol error.").whenLegacyFallbackTo("category"));
     }
 
     private static Stream<Arguments> severities() {

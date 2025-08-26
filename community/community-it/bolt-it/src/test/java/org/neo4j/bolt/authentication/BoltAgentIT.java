@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.authentication;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import java.util.Map;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
@@ -67,8 +69,8 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenBoltAgentIsOmitted(@VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenBoltAgentIsOmittedV5x7(@VersionSelected BoltTestConnection connection) {
         connection.send(PackstreamBuf.allocUnpooled()
                 .writeStructHeader(new StructHeader(1, AbstractBoltWire.MESSAGE_TAG_HELLO))
                 .writeMap(Map.of("scheme", "none", "user_agent", "ignore"))
@@ -78,6 +80,39 @@ public class BoltAgentIT {
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22G03",
+                                GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
+                                "error: data exception - invalid value type",
+                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
+                                // record is sent over Bolt.
+                                // Instead a default diagnostic record is created on driver side.
+                                null,
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "",
+                                        GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
+                                        "error: data exception - invalid type. Expected the value null to be of type MAP<STRING, STRING>, but was of type null.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenBoltAgentIsOmitted(@VersionSelected BoltTestConnection connection) {
+        connection.send(PackstreamBuf.allocUnpooled()
+                .writeStructHeader(new StructHeader(1, AbstractBoltWire.MESSAGE_TAG_HELLO))
+                .writeMap(Map.of("scheme", "none", "user_agent", "ignore"))
+                .raw());
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
@@ -109,14 +144,44 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenInvalidBoltAgentIsGiven(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenInvalidBoltAgentIsGivenV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent("42L")));
 
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22G03",
+                                GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
+                                "error: data exception - invalid value type",
+                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
+                                // record is sent over Bolt.
+                                // Instead a default diagnostic record is created on driver side.
+                                null,
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "",
+                                        GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
+                                        "error: data exception - invalid type. Expected the value 42L to be of type MAP<STRING, STRING>, but was of type String.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenInvalidBoltAgentIsGiven(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent("42L")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
@@ -148,14 +213,44 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenBoltAgentInvalidValues(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenBoltAgentInvalidValuesV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("product", 1))));
 
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22G03",
+                                GqlStatusInfoCodes.STATUS_22G03.getGqlStatus(),
+                                "error: data exception - invalid value type",
+                                // 22G03 has UNKNOWN classification, no parameters and no position, so no diagnostic
+                                // record is sent over Bolt.
+                                // Instead a default diagnostic record is created on driver side.
+                                null,
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "",
+                                        GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
+                                        "error: data exception - invalid type. Expected the value product=1 to be of type MAP<STRING, STRING>, but was of type class java.util.HashMap$Node.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenBoltAgentInvalidValues(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("product", 1))));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"bolt_agent\": Must be a map with string keys and string values."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
@@ -187,14 +282,35 @@ public class BoltAgentIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenBoltAgentMissingProduct(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenBoltAgentMissingProductV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("invalid", "value"))));
 
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Illegal value for field \"bolt_agent\": Expected map to contain key: 'product'.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "22N55: Map requires key 'product' but was missing from field `bolt_agent`.",
+                                GqlStatusInfoCodes.STATUS_22N55.getGqlStatus(),
+                                "error: data exception - required key missing from map. Map requires key 'product' but was missing from field `bolt_agent`.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenBoltAgentMissingProduct(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("invalid", "value"))));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"bolt_agent\": Expected map to contain key: 'product'."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),

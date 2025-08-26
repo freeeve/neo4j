@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.response;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.List;
 import org.assertj.core.api.Assertions;
@@ -137,7 +139,8 @@ class NetworkResponseHandlerTest {
 
         FailureMessageAssertions.assertThat(response)
                 .hasStatus(Status.General.UnknownError)
-                .hasMessage("Something went wrong!")
+                .hasMessage(useNewMessage("50N00: Internal exception raised Exception: Something went wrong!")
+                        .whenLegacyFallbackTo("Something went wrong!"))
                 .isNotFatal();
     }
 
@@ -151,7 +154,8 @@ class NetworkResponseHandlerTest {
 
         FailureMessageAssertions.assertThat(response)
                 .hasStatus(Status.General.UnknownError)
-                .hasMessage("Something went wrong!")
+                .hasMessage(useNewMessage("50N00: Internal exception raised Exception: Something went wrong!")
+                        .whenLegacyFallbackTo("Something went wrong!"))
                 .isFatal();
 
         LogAssertions.assertThat(this.internalLog)

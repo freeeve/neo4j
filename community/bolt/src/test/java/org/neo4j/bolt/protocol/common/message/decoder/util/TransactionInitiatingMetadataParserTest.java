@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.protocol.common.message.decoder.util;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
@@ -76,7 +78,8 @@ class TransactionInitiatingMetadataParserTest {
 
         Assertions.assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> TransactionInitiatingMetadataParser.readDatabaseName(meta))
-                .withMessage("Illegal value for field \"db\": Expected string")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"db\": Expected string"))
                 .withNoCause();
     }
 
@@ -115,7 +118,8 @@ class TransactionInitiatingMetadataParserTest {
 
         Assertions.assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> TransactionInitiatingMetadataParser.readImpersonatedUser(meta))
-                .withMessage("Illegal value for field \"imp_user\": Expected string")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"imp_user\": Expected string"))
                 .withNoCause();
     }
 }

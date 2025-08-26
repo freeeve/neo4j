@@ -62,7 +62,7 @@ public abstract class KernelException extends GqlException implements Status.Has
     }
 
     public String getUserMessage(TokenNameLookup tokenNameLookup) {
-        return getMessage();
+        return legacyMessage();
     }
 
     private static String toMessage(String message, Object... parameters) {

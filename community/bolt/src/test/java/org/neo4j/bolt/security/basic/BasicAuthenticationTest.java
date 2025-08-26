@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 import static org.neo4j.internal.helpers.collection.MapUtil.map;
 import static org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo.EMBEDDED_CONNECTION;
 import static org.neo4j.server.security.auth.SecurityTestUtils.credentialFor;
@@ -72,7 +73,10 @@ class BasicAuthenticationTest {
                         map("scheme", "basic", "principal", "bob", "credentials", password("banana")),
                         EMBEDDED_CONNECTION));
         assertEquals(Status.Security.Unauthorized, e.status());
-        assertEquals("The client is unauthorized due to authentication failure.", e.getMessage());
+        assertEquals(
+                useNewMessage("42NFF: Access denied, see the security logs for details.")
+                        .whenLegacyFallbackTo("The client is unauthorized due to authentication failure."),
+                e.getMessage());
     }
 
     @Test
@@ -108,7 +112,10 @@ class BasicAuthenticationTest {
                         EMBEDDED_CONNECTION));
         assertEquals(Status.Security.AuthenticationRateLimit, e.status());
         assertEquals(
-                "The client has provided incorrect authentication details too many times in a row.", e.getMessage());
+                useNewMessage("42NFF: Access denied, see the security logs for details.")
+                        .whenLegacyFallbackTo(
+                                "The client has provided incorrect authentication details too many times in a row."),
+                e.getMessage());
         ErrorGqlStatusObjectAssertions.assertThat(e)
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_42NFF)
                 .hasStatusDescription(
@@ -154,8 +161,10 @@ class BasicAuthenticationTest {
                         EMBEDDED_CONNECTION));
         assertEquals(Status.Security.Unauthorized, e.status());
         assertEquals(
-                "Unsupported authentication token, the value associated with the key `principal` "
-                        + "must be a String but was: SingletonList",
+                useNewMessage("42NFF: Access denied, see the security logs for details.")
+                        .whenLegacyFallbackTo(
+                                "Unsupported authentication token, the value associated with the key `principal` "
+                                        + "must be a String but was: SingletonList"),
                 e.getMessage());
     }
 

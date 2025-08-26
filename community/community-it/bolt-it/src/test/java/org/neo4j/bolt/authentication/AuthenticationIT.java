@@ -20,6 +20,7 @@
 package org.neo4j.bolt.authentication;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.neo4j.bolt.test.util.ErrorUtil.useNewMessage;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
@@ -143,7 +144,9 @@ public class AuthenticationIT {
                         LogAssertions.assertThat(this.userLogProvider)
                                 .forClass(AtomicSchedulingConnection.class)
                                 .forLevel(WARN)
-                                .containsMessages("The client is unauthorized due to authentication failure.");
+                                .containsMessages(useNewMessage("Access denied, see the security logs for details.")
+                                        .whenLegacyFallbackTo(
+                                                "The client is unauthorized due to authentication failure."));
                         return true;
                     } catch (AssertionError e) {
                         return false;
@@ -155,8 +158,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailIfWrongCredentials(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailIfWrongCredentialsV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -183,7 +186,52 @@ public class AuthenticationIT {
                         LogAssertions.assertThat(this.userLogProvider)
                                 .forClass(AtomicSchedulingConnection.class)
                                 .forLevel(WARN)
-                                .containsMessages("The client is unauthorized due to authentication failure.");
+                                .containsMessages(useNewMessage("Access denied, see the security logs for details.")
+                                        .whenLegacyFallbackTo(
+                                                "The client is unauthorized due to authentication failure."));
+                        return true;
+                    } catch (AssertionError e) {
+                        return false;
+                    }
+                },
+                TRUE,
+                30,
+                SECONDS);
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailIfWrongCredentials(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", "neo4j",
+                "credentials", "wrong")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailure(
+                        Status.Security.Unauthorized,
+                        useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                .whenLegacyFallbackTo("The client is unauthorized due to authentication failure."),
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .isEventuallyTerminated();
+
+        Assert.assertEventually(
+                () -> "Matching log call not found in\n" + this.userLogProvider.serialize(),
+                () -> {
+                    try {
+                        LogAssertions.assertThat(this.userLogProvider)
+                                .forClass(AtomicSchedulingConnection.class)
+                                .forLevel(WARN)
+                                .containsMessages(useNewMessage("Access denied, see the security logs for details.")
+                                        .whenLegacyFallbackTo(
+                                                "The client is unauthorized due to authentication failure."));
                         return true;
                     } catch (AssertionError e) {
                         return false;
@@ -252,8 +300,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailIfWrongCredentialsFollowingSuccessfulLogin(
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailIfWrongCredentialsFollowingSuccessfulLoginV5x7(
             BoltWire wire, @VersionSelected ConnectionProvider connectionProvider) {
         try (var connection = connectionProvider.create()) {
             connection.send(wire.hello());
@@ -312,6 +360,67 @@ public class AuthenticationIT {
     }
 
     @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailIfWrongCredentialsFollowingSuccessfulLogin(
+            BoltWire wire, @VersionSelected ConnectionProvider connectionProvider) {
+        try (var connection = connectionProvider.create()) {
+            connection.send(wire.hello());
+            // ensure that the server returns the expected set of metadata
+            BoltConnectionAssertions.assertThat(connection)
+                    .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+            // authenticate normally using the preset credentials and update the password to a new value
+            connection.send(wire.logon(Map.of(
+                    "scheme", "basic",
+                    "principal", "neo4j",
+                    "credentials", "neo4j")));
+
+            BoltConnectionAssertions.assertThat(connection).receivesSuccess();
+
+            connection.send(wire.run("ALTER CURRENT USER SET PASSWORD FROM 'neo4j' TO $password", x -> x.withParameters(
+                            singletonMap("password", "secretPassword"))
+                    .withDatabase(SYSTEM_DATABASE_NAME)));
+            connection.send(wire.pull());
+
+            BoltConnectionAssertions.assertThat(connection).receivesSuccess(2);
+        }
+
+        // attempt to authenticate again with the new password
+        try (var connection = connectionProvider.create()) {
+            connection.send(wire.hello());
+            BoltConnectionAssertions.assertThat(connection).receivesSuccess();
+
+            connection.send(wire.logon(Map.of(
+                    "scheme", "basic",
+                    "principal", "neo4j",
+                    "credentials", "secretPassword")));
+
+            BoltConnectionAssertions.assertThat(connection).receivesSuccess();
+        }
+
+        // attempt to authenticate again with the old password
+        try (var connection = connectionProvider.create()) {
+            connection.send(wire.hello());
+            BoltConnectionAssertions.assertThat(connection).receivesSuccess();
+
+            connection.send(wire.logon(Map.of(
+                    "scheme", "basic",
+                    "principal", "neo4j",
+                    "credentials", "neo4j")));
+
+            BoltConnectionAssertions.assertThat(connection)
+                    .receivesFailure(
+                            Status.Security.Unauthorized,
+                            useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                    .whenLegacyFallbackTo("The client is unauthorized due to authentication failure."),
+                            GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                            "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                            assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                    .isEventuallyTerminated();
+        }
+    }
+
+    @BoltTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void shouldFailIfMalformedAuthTokenWrongTypeV40(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
@@ -332,8 +441,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailIfMalformedAuthTokenWrongType(BoltWire wire, @VersionSelected BoltTestConnection connection)
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailIfMalformedAuthTokenWrongTypeV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
@@ -349,6 +458,32 @@ public class AuthenticationIT {
                 .receivesFailureFuzzy(
                         Status.Security.Unauthorized,
                         "Unsupported authentication token, the value associated with the key `principal` must be a String but was: ArrayList",
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .isEventuallyTerminated();
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailIfMalformedAuthTokenWrongType(BoltWire wire, @VersionSelected BoltTestConnection connection)
+            throws IOException {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", List.of("neo4j"),
+                "credentials", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureFuzzy(
+                        Status.Security.Unauthorized,
+                        useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                .whenLegacyFallbackTo(
+                                        "Unsupported authentication token, the value associated with the key `principal` must be a String but was: ArrayList"),
                         GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
@@ -376,8 +511,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailIfMalformedAuthTokenMissingKey(BoltWire wire, @VersionSelected BoltTestConnection connection)
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailIfMalformedAuthTokenMissingKeyV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
@@ -393,6 +528,31 @@ public class AuthenticationIT {
                 .receivesFailureFuzzy(
                         Status.Security.Unauthorized,
                         "Unsupported authentication token, missing key `credentials`",
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .isEventuallyTerminated();
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailIfMalformedAuthTokenMissingKey(BoltWire wire, @VersionSelected BoltTestConnection connection)
+            throws IOException {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", "neo4j",
+                "this-should-have-been-credentials", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureFuzzy(
+                        Status.Security.Unauthorized,
+                        useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                .whenLegacyFallbackTo("Unsupported authentication token, missing key `credentials`"),
                         GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
@@ -419,8 +579,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailIfMalformedAuthTokenMissingScheme(BoltWire wire, @VersionSelected BoltTestConnection connection)
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailIfMalformedAuthTokenMissingSchemeV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws IOException {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
@@ -435,6 +595,30 @@ public class AuthenticationIT {
                 .receivesFailureFuzzy(
                         Status.Security.Unauthorized,
                         "Unsupported authentication token, missing key `scheme`",
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .isEventuallyTerminated();
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailIfMalformedAuthTokenMissingScheme(BoltWire wire, @VersionSelected BoltTestConnection connection)
+            throws IOException {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "principal", "neo4j",
+                "credentials", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureFuzzy(
+                        Status.Security.Unauthorized,
+                        useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                .whenLegacyFallbackTo("Unsupported authentication token, missing key `scheme`"),
                         GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
@@ -464,7 +648,32 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    @SkipOnSpd(reason = "Message for unsupported authentication token is different in enterprise and spd")
+    protected void shouldFailIfMalformedAuthTokenUnknownSchemeV5x7(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) throws InterruptedException {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "unknown",
+                "principal", "neo4j",
+                "credentials", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailure(
+                        Status.Security.Unauthorized,
+                        "Unsupported authentication token, scheme 'unknown' is not supported.",
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .isEventuallyTerminated();
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
     @SkipOnSpd(reason = "Message for unsupported authentication token is different in enterprise and spd")
     protected void shouldFailIfMalformedAuthTokenUnknownScheme(
             BoltWire wire, @VersionSelected BoltTestConnection connection) throws InterruptedException {
@@ -481,7 +690,9 @@ public class AuthenticationIT {
         BoltConnectionAssertions.assertThat(connection)
                 .receivesFailure(
                         Status.Security.Unauthorized,
-                        "Unsupported authentication token, scheme 'unknown' is not supported.",
+                        useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                .whenLegacyFallbackTo(
+                                        "Unsupported authentication token, scheme 'unknown' is not supported."),
                         GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
                         "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
@@ -517,8 +728,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailDifferentlyIfTooManyFailedAuthAttempts(
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailDifferentlyIfTooManyFailedAuthAttemptsV5x7(
             BoltWire wire, @Connected ConnectionProvider connectionProvider) {
         awaitUntilAsserted(() -> {
             try (var connection = connectionProvider.create()) {
@@ -538,6 +749,38 @@ public class AuthenticationIT {
                         .receivesFailure(
                                 Status.Security.AuthenticationRateLimit,
                                 "The client has provided incorrect authentication details too many times in a row.",
+                                GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                                "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                        .isEventuallyTerminated();
+            }
+        });
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailDifferentlyIfTooManyFailedAuthAttempts(
+            BoltWire wire, @Connected ConnectionProvider connectionProvider) {
+        awaitUntilAsserted(() -> {
+            try (var connection = connectionProvider.create()) {
+                wire.negotiate(connection);
+
+                connection.send(wire.hello());
+                // ensure that the server returns the expected set of metadata
+                BoltConnectionAssertions.assertThat(connection)
+                        .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+                connection.send(wire.logon(Map.of(
+                        "scheme", "basic",
+                        "principal", "neo4j",
+                        "credentials", "WHAT_WAS_THE_PASSWORD_AGAIN")));
+
+                BoltConnectionAssertions.assertThat(connection)
+                        .receivesFailure(
+                                Status.Security.AuthenticationRateLimit,
+                                useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                        .whenLegacyFallbackTo(
+                                                "The client has provided incorrect authentication details too many times in a row."),
                                 GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
                                 "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                                 BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
@@ -593,8 +836,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenReusingTheSamePassword(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenReusingTheSamePasswordV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -627,6 +870,63 @@ public class AuthenticationIT {
                 .receivesFailureFuzzyWithCause(
                         Status.Statement.ArgumentError,
                         "Old password and new password cannot be the same.",
+                        GqlStatusInfoCodes.STATUS_22N05.getGqlStatus(),
+                        "error: data exception - input failed validation. Invalid input '***' for neo4j password.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "2N89: Expected the new password to be different from the old password.",
+                                GqlStatusInfoCodes.STATUS_22N89.getGqlStatus(),
+                                "error: data exception - new password cannot be the same as the old password. Expected the new password to be different from the old password.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")))
+                .receivesIgnored();
+
+        connection
+                .send(wire.reset())
+                .send(wire.run("ALTER CURRENT USER SET PASSWORD FROM 'password' TO $password", x -> x.withParameters(
+                                singletonMap("password", "abcdefgh"))
+                        .withDatabase(SYSTEM_DATABASE_NAME)))
+                .send(wire.pull());
+
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenReusingTheSamePassword(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", "neo4j",
+                "credentials", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsEntry("credentials_expired", true));
+
+        connection
+                .send(wire.reset())
+                .send(wire.run("ALTER CURRENT USER SET PASSWORD FROM 'neo4j' TO $password", x -> x.withParameters(
+                                singletonMap("password", "password"))
+                        .withDatabase(SYSTEM_DATABASE_NAME)))
+                .send(wire.pull());
+
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
+
+        connection
+                .send(wire.run("ALTER CURRENT USER SET PASSWORD FROM 'password' TO $password", x -> x.withParameters(
+                                singletonMap("password", "password"))
+                        .withDatabase(SYSTEM_DATABASE_NAME)))
+                .send(wire.pull());
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureFuzzyWithCause(
+                        Status.Statement.ArgumentError,
+                        useNewMessage("22N05: Invalid input '***' for neo4j password.")
+                                .whenLegacyFallbackTo(
+                                        "User 'neo4j' failed to alter their own password: Old password and new password cannot be the same."),
                         GqlStatusInfoCodes.STATUS_22N05.getGqlStatus(),
                         "error: data exception - input failed validation. Invalid input '***' for neo4j password.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
@@ -684,8 +984,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailWhenSubmittingEmptyPassword(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailWhenSubmittingEmptyPasswordV5x7(BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
         BoltConnectionAssertions.assertThat(connection)
@@ -709,6 +1009,48 @@ public class AuthenticationIT {
                 .receivesFailure(
                         Status.Statement.ArgumentError,
                         "A password cannot be empty.",
+                        GqlStatusInfoCodes.STATUS_22NB6.getGqlStatus(),
+                        "error: data exception - input empty. Invalid input. Password is not allowed to be an empty string.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
+                .receivesIgnored();
+
+        connection
+                .send(wire.reset())
+                .send(wire.run("ALTER CURRENT USER SET PASSWORD FROM 'neo4j' TO $password", x -> x.withParameters(
+                                singletonMap("password", "abcdefgh"))
+                        .withDatabase(SYSTEM_DATABASE_NAME)))
+                .send(wire.pull());
+
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess(3);
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailWhenSubmittingEmptyPassword(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", "neo4j",
+                "credentials", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsEntry("credentials_expired", true));
+
+        connection
+                .send(wire.run(
+                        "ALTER CURRENT USER SET PASSWORD FROM 'neo4j' TO $password",
+                        x -> x.withParameters(singletonMap("password", "")).withDatabase(SYSTEM_DATABASE_NAME)))
+                .send(wire.pull());
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailure(
+                        Status.Statement.ArgumentError,
+                        useNewMessage("22NB6: Invalid input. Password is not allowed to be an empty string.")
+                                .whenLegacyFallbackTo("A password cannot be empty."),
                         GqlStatusInfoCodes.STATUS_22NB6.getGqlStatus(),
                         "error: data exception - input empty. Invalid input. Password is not allowed to be an empty string.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
@@ -763,8 +1105,8 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldNotBeAbleToReadWhenPasswordChangeRequired(
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldNotBeAbleToReadWhenPasswordChangeRequiredV5x7(
             BoltWire wire, @VersionSelected BoltTestConnection connection) {
         connection.send(wire.hello());
         // ensure that the server returns the expected set of metadata
@@ -793,8 +1135,7 @@ public class AuthenticationIT {
                             "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                             BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
                             BoltConnectionAssertions.assertErrorCause(
-                                    // New Status doesn't have message, so it is coming as ""
-                                    "",
+                                    "42NFD: Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
                                     GqlStatusInfoCodes.STATUS_42NFD.getGqlStatus(),
                                     "error: syntax error or access rule violation - credentials expired. Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
                                     BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
@@ -811,8 +1152,67 @@ public class AuthenticationIT {
                             "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
                             BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
                             BoltConnectionAssertions.assertErrorCause(
-                                    // New Status doesn't have message, so it is coming as ""
-                                    "",
+                                    "42NFD: Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
+                                    GqlStatusInfoCodes.STATUS_42NFD.getGqlStatus(),
+                                    "error: syntax error or access rule violation - credentials expired. Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
+                                    BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                            "CLIENT_ERROR")));
+        }
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldNotBeAbleToReadWhenPasswordChangeRequired(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        connection.send(wire.hello());
+        // ensure that the server returns the expected set of metadata
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsKeys("server", "connection_id"));
+
+        // authenticate with the default (expired) credentials
+        connection.send(wire.logon(Map.of(
+                "scheme", "basic",
+                "principal", "neo4j",
+                "credentials", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesSuccess(meta -> Assertions.assertThat(meta).containsEntry("credentials_expired", true));
+
+        // attempt to execute a query
+        connection.send(wire.run("MATCH (n) RETURN n")).send(wire.pull());
+
+        // which should fail with one of two possible errors
+        try {
+            BoltConnectionAssertions.assertThat(connection)
+                    .receivesFailureFuzzy(
+                            Status.Security.CredentialsExpired,
+                            useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                    .whenLegacyFallbackTo(
+                                            "The credentials you provided were valid, but must be changed before you can use this instance."),
+                            GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                            "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                            BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                            BoltConnectionAssertions.assertErrorCause(
+                                    "42NFD: Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
+                                    GqlStatusInfoCodes.STATUS_42NFD.getGqlStatus(),
+                                    "error: syntax error or access rule violation - credentials expired. Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
+                                    BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                            "CLIENT_ERROR")));
+        } catch (StackOverflowError ignore) {
+            // Compiled runtime triggers the AuthorizationViolation exception on the PULL_N message, which means the RUN
+            // message will
+            // give a Success response. This should not matter much since RUN + PULL_N are always sent together.
+            BoltConnectionAssertions.assertThat(connection)
+                    .receivesFailureFuzzy(
+                            Status.Security.CredentialsExpired,
+                            useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                    .whenLegacyFallbackTo(
+                                            "The credentials you provided were valid, but must be changed before you can use this instance."),
+                            GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                            "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                            BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                            BoltConnectionAssertions.assertErrorCause(
+                                    "42NFD: Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
                                     GqlStatusInfoCodes.STATUS_42NFD.getGqlStatus(),
                                     "error: syntax error or access rule violation - credentials expired. Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
                                     BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
@@ -865,8 +1265,9 @@ public class AuthenticationIT {
     }
 
     @BoltTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldNotBeAbleToAuthenticateOnHelloMessage(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldNotBeAbleToAuthenticateOnHelloMessageV5x7(
+            BoltWire wire, @VersionSelected BoltTestConnection connection) {
         // authenticate normally using the preset credentials and update the password to a new value
         connection.send(wire.hello(x -> x.withBasicAuth("neo4j", "neo4j")));
 
@@ -879,6 +1280,33 @@ public class AuthenticationIT {
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Message of type BeginMessage cannot be handled by a session in the AUTHENTICATION state.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "08N10: Message BeginMessage cannot be handled by session in the 'AUTHENTICATION' state.",
+                                GqlStatusInfoCodes.STATUS_08N10.getGqlStatus(),
+                                "error: connection exception - invalid server state. Message BeginMessage cannot be handled by session in the 'AUTHENTICATION' state.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
+    }
+
+    @BoltTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldNotBeAbleToAuthenticateOnHelloMessage(BoltWire wire, @VersionSelected BoltTestConnection connection) {
+        // authenticate normally using the preset credentials and update the password to a new value
+        connection.send(wire.hello(x -> x.withBasicAuth("neo4j", "neo4j")));
+
+        BoltConnectionAssertions.assertThat(connection).receivesSuccess();
+
+        // Attempt to start a transaction this will fail because you are in authentication state and not authenticated
+        connection.send(wire.begin());
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Message of type BeginMessage cannot be handled by a session in the AUTHENTICATION state."),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),

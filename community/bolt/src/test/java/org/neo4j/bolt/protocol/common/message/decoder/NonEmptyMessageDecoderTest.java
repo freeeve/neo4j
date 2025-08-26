@@ -21,6 +21,7 @@ package org.neo4j.bolt.protocol.common.message.decoder;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
+import org.neo4j.bolt.testing.util.ErrorUtil;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.struct.IllegalStructSizeException;
@@ -37,8 +38,10 @@ public interface NonEmptyMessageDecoderTest<D extends MessageDecoder<?>> extends
                                 PackstreamBuf.allocUnpooled(),
                                 new StructHeader(0, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be " + this.maximumNumberOfFields()
-                        + " fields but got 0")
+                .hasMessage(ErrorUtil.useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be "
+                                + this.maximumNumberOfFields() + " fields but got 0"))
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(
                         "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")

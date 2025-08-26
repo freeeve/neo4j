@@ -17,16 +17,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.bolt.protocol.common.message.response;
+package org.neo4j.bolt.testing.util;
 
-import java.util.Map;
-import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.gqlstatus.ErrorMessageHolder;
 
-public record FailureMetadata(
-        Status status,
-        String message,
-        String legacyMessage,
-        String description,
-        String gqlStatus,
-        Map<String, Object> diagnosticRecord,
-        FailureMetadata cause) {}
+public final class ErrorUtil {
+
+    public static ErrorMessageSelector useNewMessage(String newMessage) {
+        return new ErrorMessageSelector(newMessage);
+    }
+
+    /**
+     * Selects the message depending on the settings.
+     */
+    public record ErrorMessageSelector(String newMessage) {
+        public String whenLegacyFallbackTo(String oldMessage) {
+            if (ErrorMessageHolder.USE_NEW_ERROR_MESSAGES) {
+                return newMessage;
+            }
+            return oldMessage;
+        }
+    }
+}

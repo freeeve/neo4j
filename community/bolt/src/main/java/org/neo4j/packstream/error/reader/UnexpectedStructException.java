@@ -21,6 +21,7 @@ package org.neo4j.packstream.error.reader;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.ErrorMessageHolder;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.struct.StructHeader;
@@ -30,7 +31,10 @@ public class UnexpectedStructException extends PackstreamReaderException {
     private final long length;
 
     private UnexpectedStructException(ErrorGqlStatusObject gqlStatusObject, short tag, long length) {
-        super(gqlStatusObject, String.format("Unexpected struct tag: 0x%02X", tag));
+        super(
+                gqlStatusObject,
+                ErrorMessageHolder.getMessage(gqlStatusObject, String.format("Unexpected struct tag: 0x%02X", tag)),
+                String.format("Unexpected struct tag: 0x%02X", tag));
         this.tag = tag;
         this.length = length;
     }

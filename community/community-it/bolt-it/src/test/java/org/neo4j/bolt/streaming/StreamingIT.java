@@ -19,6 +19,7 @@
  */
 package org.neo4j.bolt.streaming;
 
+import static org.neo4j.bolt.test.util.ErrorUtil.useNewMessage;
 import static org.neo4j.values.storable.Values.longValue;
 
 import java.time.OffsetDateTime;
@@ -503,8 +504,8 @@ public class StreamingIT {
 
     @ProtocolTest
     @EnableFeature(Feature.UTC_DATETIME)
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldRejectLegacyOffsetDatesWhenUTCIsAvailable(@Authenticated BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldRejectLegacyOffsetDatesWhenUTCIsAvailable5x7(@Authenticated BoltTestConnection connection) {
         // switch back to a legacy wire revision in order to easily transmit an invalid struct to the server
         var wire = new BoltV44Wire();
 
@@ -520,6 +521,43 @@ public class StreamingIT {
                 .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Illegal value for field \"params\": Unexpected struct tag: 0x46",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22N00: The provided value is unsupported and cannot be processed.",
+                                GqlStatusInfoCodes.STATUS_22N00.getGqlStatus(),
+                                "error: data exception - unsupported value. The provided value is unsupported and cannot be processed.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "22N97: Unexpected struct tag: 0x46.",
+                                        GqlStatusInfoCodes.STATUS_22N97.getGqlStatus(),
+                                        "error: data exception - unexpected struct tag. Unexpected struct tag: 0x46.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
+    }
+
+    @ProtocolTest
+    @EnableFeature(Feature.UTC_DATETIME)
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldRejectLegacyOffsetDatesWhenUTCIsAvailable(@Authenticated BoltTestConnection connection) {
+        // switch back to a legacy wire revision in order to easily transmit an invalid struct to the server
+        var wire = new BoltV44Wire();
+
+        var input =
+                DateTimeValue.datetime(OffsetDateTime.of(1995, 6, 14, 12, 50, 35, 556000000, ZoneOffset.ofHours(1)));
+
+        var params = new MapValueBuilder();
+        params.add("input", input);
+
+        connection.send(wire.run("RETURN $input", params.build()));
+
+        BoltConnectionAssertions.assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Request.Invalid,
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"params\": Unexpected struct tag: 0x46"),
                         GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
                         "error: connection exception - protocol error. General network protocol error.",
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),

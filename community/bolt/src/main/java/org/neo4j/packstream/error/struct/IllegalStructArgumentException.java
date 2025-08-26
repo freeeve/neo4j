@@ -43,7 +43,7 @@ public class IllegalStructArgumentException extends PackstreamStructException {
         // information that could provide information about internal processes
         super(
                 gqlStatusObject,
-                String.format("Illegal value for field \"%s\": %s", fieldName, cause.getMessage()),
+                String.format("Illegal value for field \"%s\": %s", fieldName, cause.legacyMessage()),
                 cause);
         this.fieldName = fieldName;
     }

@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.protocol.common.fsm.transition.transaction.streaming;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import java.util.Optional;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -134,7 +136,8 @@ abstract class AbstractStreamingStateTransitionTest<
                     ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                                     () -> this.transition.process(this.context, request, this.responseHandler))
                             .isInstanceOf(IllegalRequestParameterException.class)
-                            .hasMessage("No such statement: " + parameters.statementId)
+                            .hasMessage(useNewMessage("08N06: General network protocol error.")
+                                    .whenLegacyFallbackTo("No such statement: " + parameters.statementId))
                             .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
                             .hasStatusDescription(
                                     "error: connection exception - protocol error. General network protocol error.")

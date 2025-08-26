@@ -21,6 +21,7 @@ package org.neo4j.bolt.fsm;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.bolt.testing.assertions.ResponseRecorderAssertions.assertThat;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import org.assertj.core.api.Assertions;
 import org.neo4j.bolt.fsm.error.StateMachineException;
@@ -55,7 +56,7 @@ public class AuthenticationStateIT {
     }
 
     @StateMachineTest(since = @Version(major = 5, minor = 1), until = @Version(major = 5, minor = 6))
-    public void shouldNotAcceptBeginMessage(StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
+    public void shouldNotAcceptBeginMessage5x1(StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
             throws StateMachineException {
         // Given
         fsm.process(messages.hello(), recorder);
@@ -64,7 +65,11 @@ public class AuthenticationStateIT {
 
         // Then
         var e = assertThrows(IllegalTransitionException.class, () -> fsm.process(messages.begin(), recorder));
-        Assertions.assertThat(e.getMessage()).contains("cannot be handled by a session in the AUTHENTICATION state.");
+        Assertions.assertThat(e.getMessage())
+                .contains(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("cannot be handled by a session in the AUTHENTICATION state."));
+        Assertions.assertThat(e.legacyMessage())
+                .contains("cannot be handled by a session in the AUTHENTICATION state.");
     }
 
     @StateMachineTest(since = @Version(major = 5, minor = 7))
@@ -78,7 +83,10 @@ public class AuthenticationStateIT {
         // Then
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> fsm.process(messages.begin(), recorder))
                 .isInstanceOf(IllegalTransitionException.class)
-                .hasMessage("Message of type BeginMessage cannot be handled by a session in the AUTHENTICATION state.")
+                .hasMessage(
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Message of type BeginMessage cannot be handled by a session in the AUTHENTICATION state."))
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
                 .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
                 .gqlCause()

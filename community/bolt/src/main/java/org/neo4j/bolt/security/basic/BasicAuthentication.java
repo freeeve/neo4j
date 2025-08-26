@@ -56,7 +56,7 @@ public class BasicAuthentication implements Authentication {
 
             return new BasicAuthenticationResult(loginContext);
         } catch (InvalidAuthTokenException e) {
-            throw new AuthenticationException(e.gqlStatusObject(), e.status(), e.getMessage());
+            throw new AuthenticationException(e.gqlStatusObject(), e.status(), e.legacyMessage());
         }
     }
 

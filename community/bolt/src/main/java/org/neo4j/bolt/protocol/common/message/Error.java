@@ -28,6 +28,7 @@ import org.neo4j.bolt.protocol.common.message.response.FailureMessage;
 import org.neo4j.bolt.protocol.common.message.response.FailureMetadata;
 import org.neo4j.gqlstatus.DiagnosticRecord;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorMessageHolder;
 import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.kernel.api.exceptions.HasQuery;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -45,6 +46,7 @@ public class Error {
 
     private final Status status;
     private final String message;
+    private final String legacyMessage;
     private final Throwable cause;
     private final Throwable wrappedThrowable;
     private final UUID reference;
@@ -52,9 +54,16 @@ public class Error {
     private final Long queryId;
 
     private Error(
-            Status status, String message, Throwable cause, boolean fatal, Long queryId, Throwable wrappedThrowable) {
+            Status status,
+            String message,
+            String legacyMessage,
+            Throwable cause,
+            boolean fatal,
+            Long queryId,
+            Throwable wrappedThrowable) {
         this.status = status;
         this.message = message;
+        this.legacyMessage = legacyMessage;
         this.cause = cause;
         this.fatal = fatal;
         this.reference = UUID.randomUUID();
@@ -62,8 +71,8 @@ public class Error {
         this.wrappedThrowable = wrappedThrowable;
     }
 
-    private Error(Status status, String message, boolean fatal) {
-        this(status, message, null, fatal, null, null);
+    private Error(Status status, String message, String legacyMessage, boolean fatal) {
+        this(status, message, legacyMessage, null, fatal, null, null);
     }
 
     public Status status() {
@@ -72,6 +81,10 @@ public class Error {
 
     public String message() {
         return message;
+    }
+
+    public String legacyMessage() {
+        return legacyMessage;
     }
 
     public Throwable cause() {
@@ -104,6 +117,7 @@ public class Error {
                     new FailureMetadata(
                             this.status(),
                             this.message(),
+                            this.legacyMessage(),
                             wrapped.statusDescription(),
                             wrapped.gqlStatus(),
                             wrapped.diagnosticRecord(),
@@ -114,6 +128,7 @@ public class Error {
                 new FailureMetadata(
                         this.status(),
                         this.message(),
+                        this.legacyMessage(),
                         ErrorGqlStatusObject.DEFAULT_STATUS_DESCRIPTION,
                         ErrorGqlStatusObject.DEFAULT_STATUS_CODE,
                         DEFAULT_DIAGNOSTIC_RECORD,
@@ -128,6 +143,7 @@ public class Error {
         }
         return new FailureMetadata(
                 status,
+                error.getMessage(),
                 error.getMessage(),
                 error.statusDescription(),
                 error.gqlStatus(),
@@ -165,8 +181,8 @@ public class Error {
      * Use the method that takes a Throwable instead.
      */
     @Deprecated
-    public static Error from(Status status, String message) {
-        return new Error(status, message, false);
+    public static Error from(Status status, String message, String legacyMessage) {
+        return new Error(status, message, legacyMessage, false);
     }
 
     public static Error from(Throwable any) {
@@ -174,7 +190,6 @@ public class Error {
     }
 
     public static Error from(Throwable any, boolean fatal) {
-
         for (Throwable cause = any; cause != null; cause = cause.getCause()) {
             Long queryId = null;
             if (cause instanceof ConnectionTerminating) {
@@ -183,14 +198,12 @@ public class Error {
             if (cause instanceof HasQuery) {
                 queryId = ((HasQuery) cause).query();
             }
-            if (cause instanceof DatabaseShutdownException) {
+            if (cause instanceof DatabaseShutdownException databaseShutdownException) {
                 return new Error(
                         Status.General.DatabaseUnavailable,
-                        // Change
-                        //   Status.General.DatabaseUnavailable.code().description()
-                        // to
-                        //   cause.getMessage()
-                        // once the GQL constructors of DatabaseShutdownException are used
+                        ErrorMessageHolder.getMessage(
+                                databaseShutdownException,
+                                Status.General.DatabaseUnavailable.code().description()),
                         Status.General.DatabaseUnavailable.code().description(),
                         any,
                         fatal,
@@ -198,21 +211,37 @@ public class Error {
                         cause);
             }
             if (cause instanceof Status.HasStatus) {
-                return new Error(((Status.HasStatus) cause).status(), cause.getMessage(), any, fatal, queryId, cause);
+                var legacyMessage = cause.getMessage();
+                if (cause instanceof ErrorGqlStatusObject errorWithStatus) {
+                    legacyMessage = errorWithStatus.legacyMessage();
+                }
+
+                return new Error(
+                        ((Status.HasStatus) cause).status(),
+                        cause.getMessage(),
+                        legacyMessage,
+                        any,
+                        fatal,
+                        queryId,
+                        cause);
             }
             if (cause instanceof OutOfMemoryError) {
+                var wrappedError = BoltException.outOfMemory(any);
                 return new Error(
                         Status.General.OutOfMemoryError,
-                        cause.getMessage(),
+                        wrappedError.getMessage(),
+                        wrappedError.legacyMessage(),
                         any,
                         fatal,
                         queryId,
                         BoltException.outOfMemory(any));
             }
             if (cause instanceof StackOverflowError) {
+                var wrappedError = BoltException.stackOverflow(any);
                 return new Error(
                         Status.General.StackOverFlowError,
-                        cause.getMessage(),
+                        wrappedError.getMessage(),
+                        wrappedError.legacyMessage(),
                         any,
                         fatal,
                         queryId,
@@ -220,15 +249,11 @@ public class Error {
             }
         }
 
+        var unknown = BoltException.unknownError(any);
         // In this case, an error has "slipped out", and we don't have a good way to handle it. This indicates
         // a buggy code path, and we need to try to convince whoever ends up here to tell us about it.
         return new Error(
-                Status.General.UnknownError,
-                any != null ? any.getMessage() : null,
-                any,
-                fatal,
-                null,
-                BoltException.unknownError(any));
+                Status.General.UnknownError, unknown.getMessage(), unknown.legacyMessage(), any, fatal, null, unknown);
     }
 
     public static Error fatalFrom(Throwable any) {

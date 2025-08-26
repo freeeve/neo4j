@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.io.reader.legacy;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.time.temporal.ChronoField;
 import org.junit.jupiter.api.Test;
@@ -61,7 +62,9 @@ class LegacyDateTimeZoneIdReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(0, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 0")
+                .hasMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 3 fields but got 0"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(
@@ -79,7 +82,9 @@ class LegacyDateTimeZoneIdReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(2, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 2")
+                .hasMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 3 fields but got 2"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(
@@ -97,7 +102,9 @@ class LegacyDateTimeZoneIdReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(4, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 4")
+                .hasMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 3 fields but got 4"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(

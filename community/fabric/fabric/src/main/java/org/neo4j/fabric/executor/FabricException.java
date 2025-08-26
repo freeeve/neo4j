@@ -66,7 +66,7 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
     }
 
     private <T extends Throwable & Status.HasStatus> FabricException(ErrorGqlStatusObject gqlStatusObject, T cause) {
-        super(gqlStatusObject, cause.getMessage(), cause);
+        super(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause), cause);
         this.statusCode = cause.status();
     }
 

@@ -20,6 +20,7 @@
 package org.neo4j.bolt.protocol.common.message.decoder.streaming;
 
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -106,7 +107,9 @@ public interface StreamingMessageDecoderTest<
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
                 .withMessage(
-                        "Illegal value for field \"meta\": Illegal value for field \"n\": Expecting size to be at least 1, but got: -2")
+                        useNewMessage("08N06: General network protocol error.")
+                                .whenLegacyFallbackTo(
+                                        "Illegal value for field \"meta\": Illegal value for field \"n\": Expecting size to be at least 1, but got: -2"))
                 .withCauseInstanceOf(IllegalStructArgumentException.class);
     }
 
@@ -123,7 +126,8 @@ public interface StreamingMessageDecoderTest<
 
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal value for field \"meta\": Something went kaput :(")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"meta\": Something went kaput :("))
                 .withCause(ex);
     }
 
@@ -143,7 +147,9 @@ public interface StreamingMessageDecoderTest<
 
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal value for field \"meta\": Illegal value for field \"n\": Expected long")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo(
+                                "Illegal value for field \"meta\": Illegal value for field \"n\": Expected long"))
                 .withCauseInstanceOf(IllegalStructArgumentException.class);
     }
 
@@ -160,7 +166,8 @@ public interface StreamingMessageDecoderTest<
 
         assertThatExceptionOfType(IllegalStructArgumentException.class)
                 .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal value for field \"meta\": Something went kaput :(")
+                .withMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"meta\": Something went kaput :("))
                 .withCause(ex);
     }
 }

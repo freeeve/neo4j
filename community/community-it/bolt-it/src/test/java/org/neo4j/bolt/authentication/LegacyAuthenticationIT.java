@@ -20,6 +20,7 @@
 package org.neo4j.bolt.authentication;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 import static org.neo4j.test.assertion.Assert.awaitUntilAsserted;
@@ -115,7 +116,10 @@ public class LegacyAuthenticationIT {
                         LogAssertions.assertThat(this.userLogProvider)
                                 .forClass(AtomicSchedulingConnection.class)
                                 .forLevel(WARN)
-                                .containsMessages("The client is unauthorized due to authentication failure.");
+                                .containsMessages(
+                                        useNewMessage("42NFF: Access denied, see the security logs for details.")
+                                                .whenLegacyFallbackTo(
+                                                        "The client is unauthorized due to authentication failure."));
                         return true;
                     } catch (AssertionError e) {
                         return false;

@@ -37,6 +37,13 @@ public class DiagnosticRecord implements Serializable {
     private static final String CURRENT_SCHEMA_DEFAULT = "/";
     private static final String OPERATION_DEFAULT = "";
     private static final String OPERATION_CODE_DEFAULT = "0";
+    /**
+     * Use by Bolt and Fabric/Composite for transfer the legacy message in
+     * the inter cluster communication for being able to serve old clients
+     * which relies on the legacy message.
+     */
+    public static final String LEGACY_MESSAGE_KEY = "__legacy_message";
+
     private final Map<String, Object> innerDiagnosticRecord;
 
     public static Builder from() {

@@ -21,6 +21,7 @@ package org.neo4j.bolt.protocol.io.reader;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -75,7 +76,9 @@ public abstract class AbstractPointReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(() ->
                         this.getReader().read(null, PackstreamBuf.allocUnpooled(), new StructHeader(0, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 0")
+                .hasMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be 3 fields but got 0"))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(
@@ -95,8 +98,10 @@ public abstract class AbstractPointReaderTest {
                                         .read(null, PackstreamBuf.allocUnpooled(), new StructHeader(size, (short)
                                                 0x42)))
                                 .isInstanceOf(IllegalStructSizeException.class)
-                                .hasMessage("Illegal struct size: Expected struct to be " + this.getStructSize()
-                                        + " fields but got " + size)
+                                .hasMessage(useNewMessage(
+                                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be "
+                                                + this.getStructSize() + " fields but got " + size))
                                 .hasNoCause()
                                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                                 .hasStatusDescription(
@@ -115,8 +120,10 @@ public abstract class AbstractPointReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> this.getReader()
                         .read(null, PackstreamBuf.allocUnpooled(), new StructHeader(invalidSize, (short) 0x42)))
                 .isInstanceOf(IllegalStructSizeException.class)
-                .hasMessage("Illegal struct size: Expected struct to be " + this.getStructSize() + " fields but got "
-                        + invalidSize)
+                .hasMessage(useNewMessage(
+                                "08N11: The request is invalid and could not be processed by the server. See cause for further details.")
+                        .whenLegacyFallbackTo("Illegal struct size: Expected struct to be " + this.getStructSize()
+                                + " fields but got " + invalidSize))
                 .hasNoCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
                 .hasStatusDescription(
@@ -173,7 +180,9 @@ public abstract class AbstractPointReaderTest {
         var assertion = ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"crs\": Illegal coordinate reference system: \"42\"");
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo(
+                                "Illegal value for field \"crs\": Illegal coordinate reference system: \"42\""));
 
         assertion
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
@@ -212,8 +221,9 @@ public abstract class AbstractPointReaderTest {
 
         assertThatThrownBy(() -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"coords\": Illegal CRS/coords combination (crs=" + crs.getName()
-                        + ", " + coordMsg + ")")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"coords\": Illegal CRS/coords combination (crs="
+                                + crs.getName() + ", " + coordMsg + ")"))
                 .hasCauseInstanceOf(InvalidSpatialArgumentException.class)
                 .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
                         .isEqualTo("coords"));
@@ -223,7 +233,8 @@ public abstract class AbstractPointReaderTest {
         ErrorGqlStatusObjectAssertions.assertThatThrownBy(
                         () -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"crs\": crs code exceeds valid bounds")
+                .hasMessage(useNewMessage("08N06: General network protocol error.")
+                        .whenLegacyFallbackTo("Illegal value for field \"crs\": crs code exceeds valid bounds"))
                 .hasNoCause()
                 .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
                         .isEqualTo("crs"))

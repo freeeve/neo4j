@@ -19,6 +19,8 @@
  */
 package org.neo4j.bolt.fsm;
 
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
+
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -211,7 +213,8 @@ class StateMachineImplTest {
 
         Assertions.assertThatExceptionOfType(NoSuchStateException.class)
                 .isThrownBy(() -> this.fsm.defaultState(DEFAULT_REFERENCE))
-                .withMessage("No such state: default")
+                .withMessage(useNewMessage("50N00: Internal exception raised No such statue: default")
+                        .whenLegacyFallbackTo("No such state: default"))
                 .isSameAs(ex);
 
         StateMachineAssertions.assertThat(this.fsm)
@@ -386,7 +389,8 @@ class StateMachineImplTest {
 
         ErrorAssertions.assertThat(captor.getValue())
                 .hasStatus(Request.InvalidFormat)
-                .hasMessage("Something went wrong!")
+                .hasMessage(useNewMessage("50N42: Unexpected error has occurred. See debug log for details.")
+                        .whenLegacyFallbackTo("Something went wrong!"))
                 .hasCauseInstanceOf(IllegalRequestParameterException.class);
 
         LogAssertions.assertThat(this.userLog).doesNotContainMessage("Client triggered an unexpected error");
@@ -404,7 +408,8 @@ class StateMachineImplTest {
 
         Assertions.assertThatExceptionOfType(NoSuchStateException.class)
                 .isThrownBy(() -> this.fsm.process(Mockito.mock(RequestMessage.class), responseHandler, null))
-                .withMessage("No such state: test")
+                .withMessage(useNewMessage("50N00: Internal exception raised No such statue: test")
+                        .whenLegacyFallbackTo("No such state: test"))
                 .withNoCause();
 
         var captor = ArgumentCaptor.forClass(Error.class);
@@ -412,7 +417,8 @@ class StateMachineImplTest {
 
         ErrorAssertions.assertThat(captor.getValue())
                 .hasStatus(General.UnknownError)
-                .hasMessage("No such state: test")
+                .hasMessage(useNewMessage("50N00: Internal exception raised No such statue: test")
+                        .whenLegacyFallbackTo("No such state: test"))
                 .hasCauseInstanceOf(NoSuchStateException.class);
     }
 

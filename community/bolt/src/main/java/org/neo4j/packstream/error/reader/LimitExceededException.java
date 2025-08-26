@@ -35,7 +35,8 @@ public class LimitExceededException extends PackstreamReaderException
         super(
                 gqlStatusObject,
                 ErrorMessageHolder.getMessage(
-                        gqlStatusObject, "Value of size " + actual + " exceeded limit of " + limit));
+                        gqlStatusObject, "Value of size " + actual + " exceeded limit of " + limit),
+                "Value of size " + actual + " exceeded limit of " + limit);
 
         this.limit = limit;
         this.actual = actual;

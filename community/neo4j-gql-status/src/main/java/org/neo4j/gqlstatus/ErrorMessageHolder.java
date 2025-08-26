@@ -27,7 +27,7 @@ public class ErrorMessageHolder {
 
     public static String getMessage(ErrorGqlStatusObject gqlStatusObject, String oldMessage) {
         if (gqlStatusObject instanceof ErrorGqlStatusObjectImplementation gso && gso.isCause()
-                || USE_NEW_ERROR_MESSAGES) {
+                || USE_NEW_ERROR_MESSAGES && gqlStatusObject != null) {
             return gqlStatusObject.getMessage();
         }
         // if this is a top-level error we need to send the old error message for backwards-compatibility

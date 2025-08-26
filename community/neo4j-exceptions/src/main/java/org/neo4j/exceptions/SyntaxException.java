@@ -211,14 +211,21 @@ public class SyntaxException extends Neo4jException {
 
     @Override
     public String getMessage() {
+        return formatMessageWithQueryAndOffset(super.getMessage());
+    }
+
+    @Override
+    public String legacyMessage() {
+        return formatMessageWithQueryAndOffset(super.legacyMessage());
+    }
+
+    private String formatMessageWithQueryAndOffset(String message) {
         if (nonNull(offset)) {
             // split can be empty if query = '\n'
             var split = query.split("\n");
-            return super.getMessage()
-                    + lineSeparator()
-                    + findErrorLine(offset, split.length != 0 ? split : new String[] {""});
+            return message + lineSeparator() + findErrorLine(offset, split.length != 0 ? split : new String[] {""});
         } else {
-            return super.getMessage();
+            return message;
         }
     }
 

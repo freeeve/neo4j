@@ -25,6 +25,7 @@ import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertE
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertThat;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.diagnosticRecordPosition;
+import static org.neo4j.bolt.testing.util.ErrorUtil.useNewMessage;
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.stringValue;
 
@@ -124,8 +125,8 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldBeAbleToRunQueryAfterAckFailure(BoltWire wire, @Authenticated BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldBeAbleToRunQueryAfterAckFailureV5x7(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // Given
         connection.send(wire.run("QINVALID")).send(wire.pull());
 
@@ -133,6 +134,39 @@ public class BasicOperationIT {
                 .receivesFailureFuzzyWithCause(
                         Status.Statement.SyntaxError,
                         "line 1, column 1",
+                        GqlStatusInfoCodes.STATUS_42001.getGqlStatus(),
+                        "error: syntax error or access rule violation - invalid syntax",
+                        assertErrorClassificationAndPositionOnDiagnosticRecord(
+                                "CLIENT_ERROR", diagnosticRecordPosition(1L, 1L, 0L)),
+                        assertErrorCause(
+                                "42I06: Invalid input 'QINVALID', expected:",
+                                GqlStatusInfoCodes.STATUS_42I06.getGqlStatus(),
+                                "error: syntax error or access rule violation - invalid input. Invalid input 'QINVALID', expected:",
+                                assertErrorClassificationAndPositionOnDiagnosticRecord(
+                                        "CLIENT_ERROR", diagnosticRecordPosition(1L, 1L, 0L))))
+                .receivesIgnored();
+
+        // When
+        connection.send(wire.reset()).send(wire.run("RETURN 1")).send(wire.pull());
+
+        // Then
+        assertThat(connection)
+                .receivesSuccess()
+                .receivesSuccess()
+                .receivesRecord(longValue(1))
+                .receivesSuccess();
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldBeAbleToRunQueryAfterAckFailure(BoltWire wire, @Authenticated BoltTestConnection connection) {
+        // Given
+        connection.send(wire.run("QINVALID")).send(wire.pull());
+
+        assertThat(connection)
+                .receivesFailureFuzzyWithCause(
+                        Status.Statement.SyntaxError,
+                        useNewMessage("42001").whenLegacyFallbackTo("line 1, column 1"),
                         GqlStatusInfoCodes.STATUS_42001.getGqlStatus(),
                         "error: syntax error or access rule violation - invalid syntax",
                         assertErrorClassificationAndPositionOnDiagnosticRecord(
@@ -368,8 +402,8 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailNicelyWhenDroppingUnknownIndex(BoltWire wire, @Authenticated BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailNicelyWhenDroppingUnknownIndexV5x7(BoltWire wire, @Authenticated BoltTestConnection connection) {
         // When
         connection.send(wire.run("DROP INDEX my_index")).send(wire.pull());
 
@@ -378,6 +412,30 @@ public class BasicOperationIT {
                 .receivesFailureWithCause(
                         Status.Schema.IndexDropFailed,
                         "Unable to drop index called `my_index`. There is no such index.",
+                        GqlStatusInfoCodes.STATUS_50N10.getGqlStatus(),
+                        "error: general processing exception - index drop failed. Unable to drop 'my_index'.",
+                        assertErrorClassificationOnDiagnosticRecord("DATABASE_ERROR"),
+                        assertErrorCause(
+                                "22N69: The index 'my_index' does not exist.",
+                                GqlStatusInfoCodes.STATUS_22N69.getGqlStatus(),
+                                "error: data exception - index does not exist. The index 'my_index' does not exist.",
+                                assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")))
+                .receivesIgnored();
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailNicelyWhenDroppingUnknownIndex(BoltWire wire, @Authenticated BoltTestConnection connection) {
+        // When
+        connection.send(wire.run("DROP INDEX my_index")).send(wire.pull());
+
+        // Then
+        assertThat(connection)
+                .receivesFailureWithCause(
+                        Status.Schema.IndexDropFailed,
+                        useNewMessage("50N10: Unable to drop 'my_index'.")
+                                .whenLegacyFallbackTo(
+                                        "Unable to drop index called `my_index`. There is no such index."),
                         GqlStatusInfoCodes.STATUS_50N10.getGqlStatus(),
                         "error: general processing exception - index drop failed. Unable to drop 'my_index'.",
                         assertErrorClassificationOnDiagnosticRecord("DATABASE_ERROR"),
@@ -399,14 +457,36 @@ public class BasicOperationIT {
     }
 
     @ProtocolTest
-    @IncludeWire(since = @Version(major = 5, minor = 7))
-    void shouldFailNicelyWhenSubmittingInvalidStatement(BoltWire wire, @Authenticated BoltTestConnection connection) {
+    @IncludeWire(since = @Version(major = 5, minor = 7), until = @Version(major = 5, minor = 8))
+    void shouldFailNicelyWhenSubmittingInvalidStatement5x7(
+            BoltWire wire, @Authenticated BoltTestConnection connection) {
         connection.send(wire.run("MATCH (:Movie{title:'"));
 
         assertThat(connection)
                 .receivesFailureFuzzyWithCause(
                         Status.Statement.SyntaxError,
                         "Failed to parse string literal",
+                        GqlStatusInfoCodes.STATUS_42001.getGqlStatus(),
+                        "error: syntax error or access rule violation - invalid syntax",
+                        assertErrorClassificationAndPositionOnDiagnosticRecord(
+                                "CLIENT_ERROR", diagnosticRecordPosition(21L, 1L, 20L)),
+                        assertErrorCause(
+                                "42I19: Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+                                GqlStatusInfoCodes.STATUS_42I19.getGqlStatus(),
+                                "error: syntax error or access rule violation - invalid string literal. Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
+                                assertErrorClassificationAndPositionOnDiagnosticRecord(
+                                        "CLIENT_ERROR", diagnosticRecordPosition(21L, 1L, 20L))));
+    }
+
+    @ProtocolTest
+    @IncludeWire(since = @Version(major = 6, minor = 0))
+    void shouldFailNicelyWhenSubmittingInvalidStatement(BoltWire wire, @Authenticated BoltTestConnection connection) {
+        connection.send(wire.run("MATCH (:Movie{title:'"));
+
+        assertThat(connection)
+                .receivesFailureFuzzyWithCause(
+                        Status.Statement.SyntaxError,
+                        useNewMessage("42001").whenLegacyFallbackTo("Failed to parse string literal"),
                         GqlStatusInfoCodes.STATUS_42001.getGqlStatus(),
                         "error: syntax error or access rule violation - invalid syntax",
                         assertErrorClassificationAndPositionOnDiagnosticRecord(
