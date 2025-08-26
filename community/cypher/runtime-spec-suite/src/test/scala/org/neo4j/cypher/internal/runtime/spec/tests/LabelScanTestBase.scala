@@ -57,9 +57,6 @@ abstract class LabelScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should scan all nodes of a label in ascending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
-
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint, "Butter")
@@ -70,7 +67,7 @@ abstract class LabelScanTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .nodeByLabelScan("x", "Honey", IndexOrderAscending)
+      .nodeByLabelScan("x", "Honey", IndexOrderAscending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -80,8 +77,6 @@ abstract class LabelScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should scan all nodes of a label in descending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint, "Butter")
@@ -92,7 +87,7 @@ abstract class LabelScanTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .nodeByLabelScan("x", "Honey", IndexOrderDescending)
+      .nodeByLabelScan("x", "Honey", IndexOrderDescending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)

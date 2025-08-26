@@ -1266,8 +1266,6 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderDesc(RANGE),
     "should seek nodes of an index with a property in ascending order"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderAscSupport(RANGE))
     val nodes = givenGraph(defaultRandomIndexedNodePropertyGraph(index.indexType, propertyType))
     val someProp = asValue(randomAmong(nodes).getProperty("prop"))
@@ -1281,7 +1279,7 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
         paramExpr = Some(toExpression(someProp)),
         indexOrder = IndexOrderAscending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1298,8 +1296,6 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderDesc(RANGE),
     "should seek nodes of an index with a property in descending order"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderDescSupport(RANGE))
     val nodes = givenGraph(defaultRandomIndexedNodePropertyGraph(index.indexType, propertyType))
     val someProp = asValue(randomAmong(nodes).getProperty("prop"))
@@ -1313,7 +1309,7 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
         paramExpr = Some(toExpression(someProp)),
         indexOrder = IndexOrderDescending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1328,9 +1324,6 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
   }
 
   testWithIndex(_.supportsOrderAsc(EXACT), "should handle order in multiple index seek, int ascending") { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
-
     val propertyType = randomAmong(index.orderAscSupport(EXACT))
     val nodes = givenGraph(defaultRandomIndexedNodePropertyGraph(index.indexType, propertyType))
     val someValues =
@@ -1345,7 +1338,7 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
         customQueryExpression = Some(ManyQueryExpression(listOf(someValues.map(toExpression): _*))),
         indexOrder = IndexOrderAscending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1359,9 +1352,6 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
   }
 
   testWithIndex(_.supportsOrderDesc(EXACT), "should handle order in multiple index seek, int descending") { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
-
     val propertyType = randomAmong(index.orderDescSupport(EXACT))
     val nodes = givenGraph(defaultRandomIndexedNodePropertyGraph(index.indexType, propertyType))
     val someProps =
@@ -1376,7 +1366,7 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderDescending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1393,9 +1383,6 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderDesc(EXACT, ValueType.STRING),
     "should handle order in multiple index seek, string descending"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
-
     val nodes = givenGraph {
       nodeGraph(5, "Milk")
       indexedNodeGraph(index.indexType, "Honey", "prop") {
@@ -1412,7 +1399,7 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
         customQueryExpression = Some(ManyQueryExpression(listOf(literal("7"), literal("2"), literal("3")))),
         indexOrder = IndexOrderDescending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)

@@ -60,8 +60,6 @@ abstract class IntersectionLabelScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should scan all nodes of a label in ascending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint, "Butter")
@@ -74,7 +72,7 @@ abstract class IntersectionLabelScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .filter("true")
-      .intersectionNodeByLabelsScan("x", Seq("Honey", "Almond", "Butter"), IndexOrderAscending)
+      .intersectionNodeByLabelsScan("x", Seq("Honey", "Almond", "Butter"), IndexOrderAscending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -84,8 +82,6 @@ abstract class IntersectionLabelScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should scan all nodes of a label in descending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint, "Butter")
@@ -98,7 +94,7 @@ abstract class IntersectionLabelScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .filter("true")
-      .intersectionNodeByLabelsScan("x", Seq("Honey", "Almond", "Butter"), IndexOrderDescending)
+      .intersectionNodeByLabelsScan("x", Seq("Honey", "Almond", "Butter"), IndexOrderDescending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)

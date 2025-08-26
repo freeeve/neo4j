@@ -1285,8 +1285,6 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderAsc(RANGE),
     "should directed seek relationships of an index with a property in ascending order"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderAscSupport(RANGE))
     val relationships = givenGraph(indexedRandomCircleGraph(index.indexType, propertyType))
     val someProp = asValue(randomAmong(relationships).getProperty("prop"))
@@ -1300,7 +1298,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
         indexOrder = IndexOrderAscending,
         paramExpr = Some(toExpression(someProp)),
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1317,8 +1315,6 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderAsc(RANGE),
     "should undirected seek relationships of an index with a property in ascending order"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderAscSupport(RANGE))
     val relationships = givenGraph(indexedRandomCircleGraph(index.indexType, propertyType))
     val someProp = asValue(randomAmong(relationships).getProperty("prop"))
@@ -1332,7 +1328,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
         indexOrder = IndexOrderAscending,
         paramExpr = Some(toExpression(someProp)),
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1350,9 +1346,6 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderDesc(RANGE),
     "should directed seek relationships of an index with a property in descending order"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
-
     val propertyType = randomAmong(index.orderDescSupport(RANGE))
     val relationships = givenGraph(indexedRandomCircleGraph(index.indexType, propertyType))
     val someProp = asValue(randomAmong(relationships).getProperty("prop"))
@@ -1366,7 +1359,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
         indexOrder = IndexOrderDescending,
         paramExpr = Some(toExpression(someProp)),
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1383,8 +1376,6 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderDesc(RANGE),
     "should undirected seek relationships of an index with a property in descending order"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderDescSupport(RANGE))
     val relationships = givenGraph(indexedRandomCircleGraph(index.indexType, propertyType))
     val someProp = asValue(randomAmong(relationships).getProperty("prop"))
@@ -1398,7 +1389,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
         indexOrder = IndexOrderDescending,
         paramExpr = Some(toExpression(someProp)),
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1416,8 +1407,6 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderAsc(EXACT),
     "should handle order in multiple directed index seek, ascending"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderAscSupport(EXACT))
     val relationships = givenGraph(indexedRandomCircleGraph(index.indexType, propertyType))
     val someProps = Seq(randomAmong(relationships), randomAmong(relationships), randomAmong(relationships))
@@ -1432,7 +1421,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderAscending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1449,8 +1438,6 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderAsc(EXACT),
     "should handle order in multiple undirected index seek, ascending"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderAscSupport(EXACT))
     val relationships = givenGraph(indexedRandomCircleGraph(index.indexType, propertyType))
     val someProps = Seq(randomAmong(relationships), randomAmong(relationships), randomAmong(relationships))
@@ -1465,7 +1452,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderAscending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1483,8 +1470,6 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderDesc(EXACT),
     "should handle order in multiple directed index seek, descending"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderDescSupport(EXACT))
     val relationships = givenGraph(indexedRandomCircleGraph(index.indexType, propertyType))
     val someProps = Seq(randomAmong(relationships), randomAmong(relationships), randomAmong(relationships))
@@ -1499,7 +1484,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderDescending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1516,8 +1501,6 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     _.supportsOrderDesc(EXACT),
     "should handle order in multiple undirected index seek, descending"
   ) { index =>
-    // parallel does not maintain order
-    assume(!isParallel)
     val propertyType = randomAmong(index.orderDescSupport(EXACT))
     val relationships = givenGraph(indexedRandomCircleGraph(index.indexType, propertyType))
     val someProps = Seq(randomAmong(relationships), randomAmong(relationships), randomAmong(relationships))
@@ -1532,7 +1515,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderDescending,
         indexType = index.indexType
-      )
+      ).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)

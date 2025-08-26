@@ -597,8 +597,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should do directed scan of all relationships of a label in ascending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
 
     // given
     val rels = givenGraph {
@@ -611,7 +609,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])", IndexOrderAscending)
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])", IndexOrderAscending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -621,8 +619,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should do undirected scan of all relationships of a label in ascending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
 
     // given
     val rels = givenGraph {
@@ -635,7 +631,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])", IndexOrderAscending)
+      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])", IndexOrderAscending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -645,8 +641,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should do directed scan of all relationships of a label in descending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
     // given
     val rels = givenGraph {
       val (_, aRels) = circleGraph(sizeHint / 3, "A", 1)
@@ -658,7 +652,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])", IndexOrderDescending)
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(['A','B','C'])", IndexOrderDescending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -668,8 +662,6 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should do undirected scan of all relationships of a label in descending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
 
     // given
     val rels = givenGraph {
@@ -682,7 +674,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])", IndexOrderDescending)
+      .dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$any(['A','B','C'])", IndexOrderDescending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)

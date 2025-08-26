@@ -57,8 +57,6 @@ abstract class SubtractionLabelScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should scan nodes in ascending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
 
     // given
     val justANodes = givenGraph {
@@ -70,7 +68,7 @@ abstract class SubtractionLabelScanTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .subtractionNodeByLabelsScan("x", "A", "B", IndexOrderAscending)
+      .subtractionNodeByLabelsScan("x", "A", "B", IndexOrderAscending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -80,8 +78,6 @@ abstract class SubtractionLabelScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should scan nodes in descending order") {
-    // parallel does not maintain order
-    assume(!isParallel)
 
     // given
     val justANodes = givenGraph {
@@ -93,7 +89,7 @@ abstract class SubtractionLabelScanTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .subtractionNodeByLabelsScan("x", "A", "B", IndexOrderDescending)
+      .subtractionNodeByLabelsScan("x", "A", "B", IndexOrderDescending).withLeveragedOrder()
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)

@@ -1204,8 +1204,6 @@ abstract class ProfileRowsTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should profile rows with shortest path") {
-    // TODO fails because of shortestPath, uses an ambient cursor via slotted pipe operator
-    assume(!isParallel) // Parallel does not yet support `FindShortestPaths`
     // given
     val nodesPerLabel = 100
     givenGraph {
