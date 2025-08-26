@@ -206,6 +206,7 @@ public interface TopologyGraphDbmsModel {
     String DATABASE_LOG_ENRICHMENT_PROPERTY = "txLogEnrichment";
     String DATABASE_BOOTSTRAP_KERNEL_VERSION_PROPERTY = "bootstrapKernelVersion";
     String DATABASE_DEFAULT_LANGUAGE_PROPERTY = "defaultLanguage";
+    String DATABASE_BACKPRESSURE_ENABLED_PROPERTY = "backpressureEnabled";
 
     Label DATABASE_NAME_LABEL = Label.label("DatabaseName");
     String DATABASE_NAME = DATABASE_NAME_LABEL.name();
