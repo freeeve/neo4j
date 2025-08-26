@@ -42,6 +42,7 @@ public interface VectorExtractor<T> extends Extractor<T> {
     /// its dimensionality is not equal to `expectedDimensions`.
     Extractor<T> getDimensionVerifyingExtractor(int expectedDimensions);
 
+    @Override
     default boolean isEmpty(Object value) {
         return value == null || value == Values.NO_VALUE || (value instanceof VectorValue v && v.dimensions() == 0);
     }

@@ -410,7 +410,7 @@ public abstract class SpaceFillingCurve {
 
         @Override
         public boolean equals(Object other) {
-            return other instanceof LongRange && this.equals((LongRange) other);
+            return other instanceof LongRange lr && this.equals(lr);
         }
 
         public boolean equals(LongRange other) {

@@ -67,6 +67,7 @@ public enum SchemaValueType implements ConstrainableType {
         return order;
     }
 
+    @Override
     public String serialize() {
         return this.name();
     }
@@ -107,6 +108,7 @@ public enum SchemaValueType implements ConstrainableType {
         };
     }
 
+    @Override
     public PropertyType toPublicApi() {
         return switch (this) {
             case BOOLEAN -> PropertyType.BOOLEAN;

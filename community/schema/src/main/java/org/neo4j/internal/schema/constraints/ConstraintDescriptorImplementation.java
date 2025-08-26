@@ -298,6 +298,7 @@ public class ConstraintDescriptorImplementation
         return equalsIgnoreName(that) && Objects.equals(this.name, that.getName());
     }
 
+    @Override
     public final boolean equalsIgnoreName(ConstraintDescriptor that) {
         if (this.type != that.type()) {
             return false;

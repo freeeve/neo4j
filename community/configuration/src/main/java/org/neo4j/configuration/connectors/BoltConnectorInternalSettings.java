@@ -294,8 +294,8 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
         RAW(true, false),
         BOTH(true, true);
 
-        private boolean loggingRawTraffic;
-        private boolean loggingDecodedTraffic;
+        private final boolean loggingRawTraffic;
+        private final boolean loggingDecodedTraffic;
 
         ProtocolLoggingMode(boolean loggingRawTraffic, boolean loggingDecodedTraffic) {
             this.loggingRawTraffic = loggingRawTraffic;
@@ -312,6 +312,7 @@ public final class BoltConnectorInternalSettings implements SettingsDeclaration 
     }
 
     public record ConfiguredProtocolVersion(Integer major, Integer minor) {
+        @Override
         public String toString() {
             return major + "." + minor;
         }

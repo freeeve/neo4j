@@ -328,8 +328,8 @@ public class LifeSupport implements Lifecycle, LifecycleStatusProvider {
                                 se);
                         e.addSuppressed(lifecycleException);
                     }
-                    if (e instanceof LifecycleException) {
-                        throw (LifecycleException) e;
+                    if (e instanceof LifecycleException le) {
+                        throw le;
                     }
                     throw new LifecycleException(instance, LifecycleStatus.NONE, LifecycleStatus.STOPPED, e);
                 }
@@ -358,8 +358,8 @@ public class LifeSupport implements Lifecycle, LifecycleStatusProvider {
                                 se);
                         e.addSuppressed(lifecycleException);
                     }
-                    if (e instanceof LifecycleException) {
-                        throw (LifecycleException) e;
+                    if (e instanceof LifecycleException le) {
+                        throw le;
                     }
                     throw new LifecycleException(instance, LifecycleStatus.STOPPED, LifecycleStatus.STARTED, e);
                 }

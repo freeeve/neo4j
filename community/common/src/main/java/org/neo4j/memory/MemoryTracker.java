@@ -96,16 +96,18 @@ public interface MemoryTracker extends AutoCloseable, HeapMemoryTracker, HeapEst
         return getHeapEstimatorCache();
     }
 
-    // HeapEstimatorCache
-
+    @Override
     default long estimatedHeapUsage(Measurable measurable, long estimate) {
         return estimate;
     }
 
+    @Override
     default void fastReset() {}
 
+    @Override
     default void fullReset() {}
 
+    @Override
     default HeapEstimatorCache newWithSameSettings() {
         return this;
     }

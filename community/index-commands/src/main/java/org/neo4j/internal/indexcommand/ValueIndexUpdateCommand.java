@@ -22,6 +22,7 @@ package org.neo4j.internal.indexcommand;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import java.util.Arrays;
+import java.util.Objects;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.string.Mask;
 import org.neo4j.values.storable.Value;
@@ -68,5 +69,10 @@ public final class ValueIndexUpdateCommand extends IndexUpdateCommand<Value[]> {
             return false;
         }
         return Arrays.equals(before, that.before) && Arrays.equals(values, that.values);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(Arrays.hashCode(before), Arrays.hashCode(values));
     }
 }

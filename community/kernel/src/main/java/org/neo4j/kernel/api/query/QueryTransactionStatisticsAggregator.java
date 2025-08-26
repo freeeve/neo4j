@@ -120,18 +120,22 @@ public interface QueryTransactionStatisticsAggregator {
                     transactionSequenceNumber);
         }
 
+        @Override
         public long pageHitsOfClosedTransactions() {
             return pageHitsOfClosedTransactionsExcludingCommits + pageHitsOfClosedTransactionCommits;
         }
 
+        @Override
         public long pageFaultsOfClosedTransactions() {
             return pageFaultsOfClosedTransactionsExcludingCommits + pageFaultsOfClosedTransactionCommits;
         }
 
+        @Override
         public long pageHitsOfClosedTransactionCommits() {
             return pageHitsOfClosedTransactionCommits;
         }
 
+        @Override
         public long pageFaultsOfClosedTransactionCommits() {
             return pageFaultsOfClosedTransactionCommits;
         }

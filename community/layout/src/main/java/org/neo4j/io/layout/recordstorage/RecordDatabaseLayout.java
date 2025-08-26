@@ -47,16 +47,14 @@ public class RecordDatabaseLayout extends PlainDatabaseLayout {
     }
 
     public static RecordDatabaseLayout cast(DatabaseLayout layout) {
-        if (layout instanceof RecordDatabaseLayout) {
-            return (RecordDatabaseLayout) layout;
+        if (layout instanceof RecordDatabaseLayout rdl) {
+            return rdl;
         }
         throw new IllegalArgumentException(layout.toString() + " does not describe a record storage database.");
     }
 
     public static RecordDatabaseLayout convert(DatabaseLayout layout) {
-        return layout instanceof RecordDatabaseLayout
-                ? (RecordDatabaseLayout) layout
-                : of(layout.getNeo4jLayout(), layout.getDatabaseName());
+        return layout instanceof RecordDatabaseLayout rdl ? rdl : of(layout.getNeo4jLayout(), layout.getDatabaseName());
     }
 
     public static RecordDatabaseLayout of(Config config) {

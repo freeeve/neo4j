@@ -101,8 +101,7 @@ class SegmentBinarySearchTest {
                 writeBufferedBlocks,
                 totalSegments,
                 EmptyMemoryTracker.INSTANCE,
-                (currentEntry, currentOffset, currentLogFile) ->
-                        pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
+                pruneStrategy::newConstraint,
                 new LogFilesPreAllocator(NullLogProvider.getInstance()));
     }
 
@@ -130,9 +129,8 @@ class SegmentBinarySearchTest {
         try (var readChannel = envelopedLogFiles.openReadChannel()) {
             for (int i = 0; i < 4; i++) {
                 var segmentBinarySearch = new SegmentBinarySearch(readChannel, totalSegments, segmentBlockSize);
-                var segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, (long) i);
+                long segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, (long) i);
 
-                assertThat(segmentPosition).isNotNull();
                 assertCorrectSegmentFound(readChannel, segmentPosition, i);
             }
         }
@@ -171,9 +169,8 @@ class SegmentBinarySearchTest {
         for (int i = 0; i < 2; i++) {
             try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
                 var segmentBinarySearch = new SegmentBinarySearch(readChannel, totalSegments, segmentBlockSize);
-                var segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, i);
+                long segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, i);
 
-                assertThat(segmentPosition).isNotNull();
                 assertCorrectSegmentFound(readChannel, segmentPosition, i);
             }
         }
@@ -209,9 +206,8 @@ class SegmentBinarySearchTest {
         for (int i = 0; i < 2; i++) {
             try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
                 var segmentBinarySearch = new SegmentBinarySearch(readChannel, totalSegments, segmentBlockSize);
-                var segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, i);
+                long segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, i);
 
-                assertThat(segmentPosition).isNotNull();
                 assertCorrectSegmentFound(readChannel, segmentPosition, i);
             }
         }
@@ -249,9 +245,8 @@ class SegmentBinarySearchTest {
         for (int i = 0; i < 2; i++) {
             try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
                 var segmentBinarySearch = new SegmentBinarySearch(readChannel, totalSegments, segmentBlockSize);
-                var segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, i);
+                long segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, i);
 
-                assertThat(segmentPosition).isNotNull();
                 assertCorrectSegmentFound(readChannel, segmentPosition, i);
             }
         }
@@ -295,9 +290,8 @@ class SegmentBinarySearchTest {
         for (int i = 0; i < 5; i++) {
             try (var readChannel = envelopedLogFiles.openReadChannel(i)) {
                 var segmentBinarySearch = new SegmentBinarySearch(readChannel, totalSegments, segmentBlockSize);
-                var segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, i);
+                long segmentPosition = LogBinarySearch.binarySearch(segmentBinarySearch, i);
 
-                assertThat(segmentPosition).isNotNull();
                 assertCorrectSegmentFound(readChannel, segmentPosition, i);
             }
         }

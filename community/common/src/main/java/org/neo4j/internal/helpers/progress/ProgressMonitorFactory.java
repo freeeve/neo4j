@@ -167,7 +167,7 @@ public abstract class ProgressMonitorFactory {
             }
 
             private PrintWriter writer() {
-                return out instanceof PrintWriter ? (PrintWriter) out : new PrintWriter(out);
+                return out instanceof PrintWriter pw ? pw : new PrintWriter(out);
             }
         };
     }
@@ -180,7 +180,7 @@ public abstract class ProgressMonitorFactory {
             }
 
             private PrintWriter writer() {
-                return out instanceof PrintWriter ? (PrintWriter) out : new PrintWriter(out);
+                return out instanceof PrintWriter pw ? pw : new PrintWriter(out);
             }
         };
     }

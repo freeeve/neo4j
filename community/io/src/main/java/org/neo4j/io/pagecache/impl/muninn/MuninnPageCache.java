@@ -875,10 +875,10 @@ public class MuninnPageCache implements PageCache {
     }
 
     private static int getFreeListSize(PageList pageList, Object next) {
-        if (next instanceof FreePage) {
-            return ((FreePage) next).count;
-        } else if (next instanceof AtomicInteger) {
-            return pageList.getPageCount() - ((AtomicInteger) next).get();
+        if (next instanceof FreePage fp) {
+            return fp.count;
+        } else if (next instanceof AtomicInteger nextInteger) {
+            return pageList.getPageCount() - nextInteger.get();
         } else {
             return 0;
         }

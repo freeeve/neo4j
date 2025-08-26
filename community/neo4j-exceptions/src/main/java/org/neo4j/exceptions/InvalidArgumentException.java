@@ -455,7 +455,7 @@ public class InvalidArgumentException extends Neo4jException {
                 .withParam(GqlParams.StringParam.item, capitalizedField)
                 .build();
         return new InvalidArgumentException(
-                gql, String.format("The provided %s is empty.", capitalizedField.toLowerCase()));
+                gql, String.format("The provided %s is empty.", capitalizedField.toLowerCase(Locale.ROOT)));
     }
 
     public static InvalidArgumentException providedStringEmpty(String capitalizedField, String legacyField) {
@@ -464,7 +464,8 @@ public class InvalidArgumentException extends Neo4jException {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
                 .withParam(GqlParams.StringParam.item, capitalizedField)
                 .build();
-        return new InvalidArgumentException(gql, String.format("The provided %s is empty.", legacyField.toLowerCase()));
+        return new InvalidArgumentException(
+                gql, String.format("The provided %s is empty.", legacyField.toLowerCase(Locale.ROOT)));
     }
 
     public static InvalidArgumentException providedPasswordEmpty() {

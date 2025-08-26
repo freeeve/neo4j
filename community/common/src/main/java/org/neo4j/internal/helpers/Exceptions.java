@@ -66,11 +66,11 @@ public final class Exceptions {
      */
     public static void throwIfUnchecked(Throwable exception) {
         Objects.requireNonNull(exception);
-        if (exception instanceof RuntimeException) {
-            throw (RuntimeException) exception;
+        if (exception instanceof RuntimeException re) {
+            throw re;
         }
-        if (exception instanceof Error) {
-            throw (Error) exception;
+        if (exception instanceof Error er) {
+            throw er;
         }
     }
 

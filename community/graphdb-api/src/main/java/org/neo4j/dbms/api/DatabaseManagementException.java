@@ -87,8 +87,8 @@ public class DatabaseManagementException extends GqlRuntimeException implements 
 
     @Deprecated(forRemoval = true, since = "2025.05")
     public static DatabaseManagementException wrap(Throwable toWrap) {
-        if (toWrap instanceof DatabaseManagementException) {
-            return (DatabaseManagementException) toWrap;
+        if (toWrap instanceof DatabaseManagementException dme) {
+            return dme;
         }
         return new DatabaseManagementException(toWrap.getMessage(), toWrap);
     }

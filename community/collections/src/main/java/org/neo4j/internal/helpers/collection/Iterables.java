@@ -482,7 +482,7 @@ public final class Iterables {
             @Override
             protected ResourceIterator<T> newIterator() {
                 Iterator<T> iterator = iterable.iterator();
-                Resource resource = (iterator instanceof Resource) ? (Resource) iterator : Resource.EMPTY;
+                Resource resource = iterator instanceof Resource r ? r : Resource.EMPTY;
                 return Iterators.resourceIterator(iterator, resource);
             }
 

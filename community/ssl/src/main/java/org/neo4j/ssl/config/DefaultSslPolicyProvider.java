@@ -44,6 +44,7 @@ public class DefaultSslPolicyProvider implements SslPolicyProvider {
         policyLoader = SslPolicyLoader.create(fileSystem, config, logProvider);
     }
 
+    @Override
     public void reloadPolicies() {
         if (enableReload) {
             policyLoader = SslPolicyLoader.create(fileSystem, config, logProvider);
