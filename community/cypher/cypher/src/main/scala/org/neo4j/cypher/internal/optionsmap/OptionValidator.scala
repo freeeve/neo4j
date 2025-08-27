@@ -267,3 +267,16 @@ object ExternalIdentityOption extends StringOptionValidator {
     // no content validation, any string is accepted
   }
 }
+
+object BackpressureEnabledOption extends StringOptionValidator {
+  val KEY = "backpressureEnabled"
+
+  // possible options:
+  val VALID_VALUE = "true"
+
+  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {
+    if (!value.equalsIgnoreCase(VALID_VALUE)) {
+      throw InvalidArgumentsException.unrecognisedOptionGivenValue(operation, KEY, value, VALID_VALUE, true)
+    }
+  }
+}
