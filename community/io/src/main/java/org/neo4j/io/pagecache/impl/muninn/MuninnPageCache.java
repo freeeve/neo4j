@@ -129,6 +129,7 @@ import org.neo4j.util.VisibleForTesting;
  */
 public class MuninnPageCache implements PageCache {
     public static final byte ZERO_BYTE = (byte) (flag(MuninnPageCache.class, "brandedZeroByte", false) ? 0x0f : 0);
+    private static final long EVICTOR_PARK_TIMEOUT = TimeUnit.MILLISECONDS.toNanos(10);
 
     // The amount of memory we need for every page, both its buffer and its meta-data.
     private static final int MEMORY_USE_PER_PAGE = PAGE_SIZE + PageList.META_DATA_BYTES_PER_PAGE;
@@ -987,11 +988,7 @@ public class MuninnPageCache implements PageCache {
     }
 
     private int parkUntilEvictionRequired(int keepFree) {
-        // Park until we're either interrupted, or the number of free pages drops
-        // bellow keepFree.
-        long parkNanos = TimeUnit.MILLISECONDS.toNanos(10);
         for (; ; ) {
-            parkEvictor(parkNanos);
             if (Thread.interrupted() || closed) {
                 return 0;
             }
@@ -1000,6 +997,7 @@ public class MuninnPageCache implements PageCache {
             if (numberOfPagesToEvict != UNKNOWN_PAGES_TO_EVICT) {
                 return numberOfPagesToEvict;
             }
+            parkEvictor(EVICTOR_PARK_TIMEOUT);
         }
     }
 
