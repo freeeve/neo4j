@@ -92,6 +92,11 @@ class StringFunctionsTest extends CypherFunSuite {
     left(null, 8) should equal(expectedNull)
     intercept[CypherTypeException](left(1042, 2))
     intercept[IndexOutOfBoundsException](left("hello", -4))
+    val e = intercept[IllegalArgumentException](left("hello", -98765432100L))
+    e.toString.shouldEqual(
+      "java.lang.IllegalArgumentException: Invalid input for length value in function 'left()': Expected an integer between 0 and 2147483647, but got: -98765432100"
+    )
+    intercept[IllegalArgumentException](left("hello", 98765432100L))
   }
 
   test("rightTests") {
@@ -129,6 +134,10 @@ class StringFunctionsTest extends CypherFunSuite {
     substring("\uD83D\uDE21\uD83D\uDE21\uD83D\uDE21", 1, 2) should equal(stringValue("\uD83D\uDE21\uD83D\uDE21"))
     intercept[CypherTypeException](substring(1024, 1, 2) should equal(expectedNull))
     intercept[IndexOutOfBoundsException](substring("hello", -4, 2) should equal(expectedNull))
+    val e = intercept[IllegalArgumentException](substring("hello", -98765432100L, 1) should equal(expectedNull))
+    e.toString.shouldEqual(
+      "java.lang.IllegalArgumentException: Invalid input for start value in function 'substring()': Expected an integer between 0 and 2147483647, but got: -98765432100"
+    )
   }
 
   test("lowerTests") {

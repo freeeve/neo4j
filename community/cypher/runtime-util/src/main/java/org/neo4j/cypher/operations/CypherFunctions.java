@@ -1007,8 +1007,9 @@ public final class CypherFunctions {
         if (in == NO_VALUE || endPos == NO_VALUE) {
             return NO_VALUE;
         } else if (in instanceof TextValue text) {
-            final long len = asLong(endPos, () -> "Invalid input for length value in function 'left()'", "left");
-            return text.substring(0, (int) Math.min(len, Integer.MAX_VALUE));
+            final int len =
+                    asIntExact(endPos, () -> "Invalid input for length value in function 'left()'", "left", true, 0);
+            return text.substring(0, len);
         } else {
             throw notAString("left", in);
         }
@@ -1289,8 +1290,8 @@ public final class CypherFunctions {
             return NO_VALUE;
         } else if (original instanceof TextValue asText) {
 
-            return asText.substring(
-                    asIntExact(start, () -> "Invalid input for start value in function 'substring()'", "substring"));
+            return asText.substring(asIntExact(
+                    start, () -> "Invalid input for start value in function 'substring()'", "substring", true, 0));
         } else {
             throw notAString("substring", original);
         }
@@ -1302,8 +1303,18 @@ public final class CypherFunctions {
         } else if (original instanceof TextValue asText) {
 
             return asText.substring(
-                    asIntExact(start, () -> "Invalid input for start value in function 'substring()'", "substring"),
-                    asIntExact(length, () -> "Invalid input for length value in function 'substring()'", "substring"));
+                    asIntExact(
+                            start,
+                            () -> "Invalid input for start value in function 'substring()'",
+                            "substring",
+                            true,
+                            0),
+                    asIntExact(
+                            length,
+                            () -> "Invalid input for length value in function 'substring()'",
+                            "substring",
+                            true,
+                            0));
         } else {
             throw notAString("substring", original);
         }
@@ -2778,12 +2789,20 @@ public final class CypherFunctions {
 
     public static int asIntExact(
             AnyValue value, Supplier<String> contextForErrorMessage, String functionName, Boolean allowFloats) {
+        return asIntExact(value, contextForErrorMessage, functionName, allowFloats, Integer.MIN_VALUE);
+    }
+
+    public static int asIntExact(
+            AnyValue value,
+            Supplier<String> contextForErrorMessage,
+            String functionName,
+            Boolean allowFloats,
+            Integer minValue) {
         final long longValue = asLong(value, contextForErrorMessage, functionName, allowFloats);
         final int intValue = (int) longValue;
         if (intValue != longValue) {
             String errorMsg = format(
-                    "Expected an integer between %d and %d, but got: %d",
-                    Integer.MIN_VALUE, Integer.MAX_VALUE, longValue);
+                    "Expected an integer between %d and %d, but got: %d", minValue, Integer.MAX_VALUE, longValue);
             if (contextForErrorMessage != null) {
                 errorMsg = contextForErrorMessage.get() + ": " + errorMsg;
             }
