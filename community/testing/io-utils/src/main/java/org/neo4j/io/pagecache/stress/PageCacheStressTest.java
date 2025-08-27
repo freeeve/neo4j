@@ -64,6 +64,7 @@ public class PageCacheStressTest {
     private final Path workingDirectory;
 
     private final ImmutableSet<OpenOption> openOptions;
+    private final boolean asyncIO;
 
     private PageCacheStressTest(Builder builder) {
         this.numberOfPages = builder.numberOfPages;
@@ -77,13 +78,16 @@ public class PageCacheStressTest {
         this.workingDirectory = builder.workingDirectory;
 
         this.openOptions = builder.openOptions;
+        this.asyncIO = builder.asyncIO;
     }
 
     public void run() throws Exception {
         try (FileSystemAbstraction fs = new DefaultFileSystemAbstraction();
                 JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
             try (PageCache pageCacheUnderTest = new MuninnPageCache(
-                    fs, jobScheduler, config(numberOfCachePages).pageCacheTracer(tracer))) {
+                    fs,
+                    jobScheduler,
+                    config(numberOfCachePages).pageCacheTracer(tracer).withAsyncIO(asyncIO))) {
                 PageCacheStresser pageCacheStresser =
                         new PageCacheStresser(numberOfPages, numberOfThreads, workingDirectory, openOptions);
                 pageCacheStresser.stress(pageCacheUnderTest, tracer, condition);
@@ -103,6 +107,7 @@ public class PageCacheStressTest {
         Path workingDirectory;
 
         ImmutableSet<OpenOption> openOptions = Sets.immutable.empty();
+        boolean asyncIO;
 
         public PageCacheStressTest build() {
             assertThat(numberOfPages)
@@ -138,6 +143,11 @@ public class PageCacheStressTest {
 
         public Builder withWorkingDirectory(Path workingDirectory) {
             this.workingDirectory = workingDirectory;
+            return this;
+        }
+
+        public Builder withAsyncIO(boolean asyncOperations) {
+            this.asyncIO = asyncOperations;
             return this;
         }
 
