@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.RelationshipsPattern
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class ExpressionStringifierTest extends CypherFunSuite with PrecedenceLevelsTestBase {
@@ -40,6 +41,97 @@ class ExpressionStringifierTest extends CypherFunSuite with PrecedenceLevelsTest
   private val allVersions = CypherVersion.values().toSet
 
   private val tests: Seq[(Expression, String, Set[CypherVersion])] = Seq(
+    (
+      listComprehension(
+        variable = varFor("x"),
+        collection = varFor("list"),
+        predicate = Some(labelExpressionPredicate(
+          varFor("x"),
+          labelDisjunctions(Seq(labelNegation(labelOrRelTypeLeaf("a")), labelOrRelTypeLeaf("m")))
+        )),
+        extractExpression = None
+      ),
+      """[x IN list WHERE (x:!a|m)]""".stripMargin,
+      allVersions
+    ),
+    (
+      listComprehension(
+        variable = varFor("x"),
+        collection = labelExpressionPredicate(
+          varFor("foo"),
+          labelDisjunctions(Seq(labelNegation(labelOrRelTypeLeaf("a")), labelOrRelTypeLeaf("m")))
+        ),
+        predicate = None,
+        extractExpression = None
+      ),
+      """[x IN (foo:!a|m)]""".stripMargin,
+      allVersions
+    ),
+    (
+      listComprehension(
+        variable = varFor("x"),
+        collection = labelExpressionPredicate(
+          varFor("foo"),
+          labelDisjunctions(Seq(labelNegation(labelOrRelTypeLeaf("a")), labelOrRelTypeLeaf("m")))
+        ),
+        predicate = None,
+        extractExpression = Some(varFor("bar"))
+      ),
+      """[x IN (foo:!a|m) | bar]""".stripMargin,
+      allVersions
+    ),
+    (
+      listComprehension(
+        variable = varFor("x"),
+        collection = varFor("list"),
+        predicate = Some(isTyped(
+          varFor("x"),
+          IntegerType(isNullable = true)(pos)
+        )),
+        extractExpression = Some(nullLiteral)
+      ),
+      """[x IN list WHERE (x IS :: INTEGER) | NULL]""".stripMargin,
+      allVersions
+    ),
+    (
+      listComprehension(
+        variable = varFor("x"),
+        collection = isTyped(
+          varFor("foo"),
+          IntegerType(isNullable = true)(pos)
+        ),
+        predicate = None,
+        extractExpression = Some(nullLiteral)
+      ),
+      """[x IN (foo IS :: INTEGER) | NULL]""".stripMargin,
+      allVersions
+    ),
+    (
+      listComprehension(
+        variable = varFor("x"),
+        collection = varFor("list"),
+        predicate = Some(isNotTyped(
+          varFor("x"),
+          IntegerType(isNullable = true)(pos)
+        )),
+        extractExpression = Some(nullLiteral)
+      ),
+      """[x IN list WHERE (x IS NOT :: INTEGER) | NULL]""".stripMargin,
+      allVersions
+    ),
+    (
+      listComprehension(
+        variable = varFor("x"),
+        collection = isNotTyped(
+          varFor("foo"),
+          IntegerType(isNullable = true)(pos)
+        ),
+        predicate = None,
+        extractExpression = Some(nullLiteral)
+      ),
+      """[x IN (foo IS NOT :: INTEGER) | NULL]""".stripMargin,
+      allVersions
+    ),
     (
       ExistsExpression(
         singleQuery(

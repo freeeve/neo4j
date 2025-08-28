@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.factory.expression
 
+import org.neo4j.cypher.internal.ast.IsNotTyped
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ExtractScope
@@ -23,6 +24,9 @@ import org.neo4j.cypher.internal.expressions.GreaterThan
 import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
+import org.neo4j.cypher.internal.util.symbols.IntegerType
+import org.neo4j.cypher.internal.util.symbols.NullType
 
 class ListComprehensionParserTest extends AstParsingTestBase {
 
@@ -63,6 +67,58 @@ class ListComprehensionParserTest extends AstParsingTestBase {
           Some(Property(varFor("a"), propName("foo"))(pos))
         )(pos),
         varFor("p")
+      )(pos)
+    }
+
+    "[a IN (true IS NOT :: INTEGER) | NULL]" should parseTo[Expression] {
+      ListComprehension(
+        ExtractScope(
+          varFor("a"),
+          None,
+          Some(nullLiteral)
+        )(pos),
+        IsNotTyped(
+          trueLiteral,
+          IntegerType(isNullable = true)(pos)
+        )(pos)
+      )(pos)
+    }
+
+    "[a IN (true IS NOT :: INTEGER | NULL)]" should parseTo[Expression] {
+      ListComprehension(
+        ExtractScope(
+          varFor("a"),
+          None,
+          None
+        )(pos),
+        IsNotTyped(
+          trueLiteral,
+          ClosedDynamicUnionType(
+            Set(
+              IntegerType(isNullable = true)(pos),
+              NullType()(pos)
+            )
+          )(pos)
+        )(pos)
+      )(pos)
+    }
+
+    "[a IN true IS NOT :: INTEGER | NULL]" should parseTo[Expression] {
+      ListComprehension(
+        ExtractScope(
+          varFor("a"),
+          None,
+          None
+        )(pos),
+        IsNotTyped(
+          trueLiteral,
+          ClosedDynamicUnionType(
+            Set(
+              IntegerType(isNullable = true)(pos),
+              NullType()(pos)
+            )
+          )(pos)
+        )(pos)
       )(pos)
     }
   }

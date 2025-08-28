@@ -179,13 +179,15 @@ trait PrecedenceLevelsTestBase extends AstConstructionTestSupport {
         1,
         a => isTyped(a(0), symbols.CTInteger),
         a => s"${a(0)} IS :: INTEGER",
-        Some(_ => s"IS TYPED INTEGER") // this is inconsistency with motivation in Cypher 5 but not in Cypher 25
+        Some(_ => s"IS TYPED INTEGER"), // this is inconsistency with motivation in Cypher 5 but not in Cypher 25
+        eagerlyConsumedOperatorSymbols = Set("|")
       ),
       NormalOperator(
         1,
         a => isNotTyped(a(0), symbols.CTInteger),
         a => s"${a(0)} IS NOT :: INTEGER",
-        Some(_ => s"IS NOT TYPED INTEGER") // this is inconsistency with motivation in Cypher 5 but not in Cypher 25
+        Some(_ => s"IS NOT TYPED INTEGER"), // this is inconsistency with motivation in Cypher 5 but not in Cypher 25
+        eagerlyConsumedOperatorSymbols = Set("|")
       ),
       NormalOperator(
         1,
@@ -414,7 +416,7 @@ trait PrecedenceLevelsTestBase extends AstConstructionTestSupport {
         1,
         a => listComprehension(varFor("x"), a(0), None, None),
         a => s"[x IN ${a(0)}]",
-        syntacticallyDelimited = Set(0 -> "]")
+        syntacticallyDelimited = Set(0 -> "|", 0 -> "]")
       ),
       NormalOperator(
         2,
@@ -579,7 +581,7 @@ trait PrecedenceLevelsTestBase extends AstConstructionTestSupport {
       def buildLevel(
         nestingLevel: Int = levels, // expression depth
         parentIndex: Int = -1,
-        syntaxDelimiterByParent: Option[String] = None,
+        syntaxDelimiterByParent: Set[String] = Set.empty,
         isPart2Argument: Boolean = false
       ): (Expression, String, Set[CypherVersion], Set[String]) = {
         if (nestingLevel == 0) {
@@ -589,10 +591,15 @@ trait PrecedenceLevelsTestBase extends AstConstructionTestSupport {
           val opLevel = pick(levelsToTestWithIndex)
           val op = pick(opLevel._1)
           val opIndex = opLevel._2
-          val syntacticallyDelimited = op.syntacticallyDelimited.toMap
+          val syntacticallyDelimited = op.syntacticallyDelimited.groupMap(_._1)(_._2)
           val args = {
             (0 until op.numArgs).map(i =>
-              buildLevel(nestingLevel - 1, opIndex, syntacticallyDelimited.get(i), op.part2Arguments contains i)
+              buildLevel(
+                nestingLevel - 1,
+                opIndex,
+                syntacticallyDelimited.getOrElse(i, Set.empty),
+                op.part2Arguments contains i
+              )
             )
           }
           val ast = op.astGen(args.map(_._1))

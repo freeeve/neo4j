@@ -50,6 +50,30 @@ class PrettifierIT extends CypherFunSuite {
         |  ORDER BY b.prop ASCENDING, b.foo DESCENDING
         |  SKIP 1
         |  LIMIT 2""".stripMargin,
+    """RETURN [`c` IN 0o5 WHERE false:A|B] AS x""" -> """RETURN [c IN 0o5 WHERE (false:A) | B] AS x""",
+    """RETURN [`c` IN 0o5 WHERE (false):A|B] AS x""" -> """RETURN [c IN 0o5 WHERE (false:A) | B] AS x""",
+    """RETURN [`c` IN 0o5 WHERE (false):!A|B] AS x""" -> """RETURN [c IN 0o5 WHERE (false:!A) | B] AS x""",
+    """RETURN [`c` IN false:A|B] AS x""" -> """RETURN [c IN (false:A|B)] AS x""",
+    """RETURN [`c` IN (false):A|B] AS x""" -> """RETURN [c IN (false:A|B)] AS x""",
+    """RETURN [`c` IN (false):!A|B] AS x""" -> """RETURN [c IN (false:!A|B)] AS x""",
+    """RETURN [`c` IN list WHERE foo IS :: INTEGER | 123] AS x""" -> """RETURN [c IN list WHERE (foo IS :: INTEGER) | 123] AS x""",
+    """RETURN [`c` IN list WHERE foo IS NOT :: INTEGER | 123] AS x""" -> """RETURN [c IN list WHERE (foo IS NOT :: INTEGER) | 123] AS x""",
+    """RETURN [`c` IN list WHERE foo IS :: INTEGER | NULL] AS x""" -> """RETURN [c IN list WHERE (foo IS :: INTEGER) | NULL] AS x""",
+    """RETURN [`c` IN list WHERE foo IS NOT :: INTEGER | NULL] AS x""" -> """RETURN [c IN list WHERE (foo IS NOT :: INTEGER) | NULL] AS x""",
+    """RETURN [`c` IN list WHERE (foo IS :: INTEGER) | NULL] AS x""" -> """RETURN [c IN list WHERE (foo IS :: INTEGER) | NULL] AS x""",
+    """RETURN [`c` IN list WHERE (foo IS NOT :: INTEGER) | NULL] AS x""" -> """RETURN [c IN list WHERE (foo IS NOT :: INTEGER) | NULL] AS x""",
+    """RETURN [`c` IN list WHERE (foo IS :: INTEGER | NULL)] AS x""" -> """RETURN [c IN list WHERE (foo IS :: NULL | INTEGER)] AS x""",
+    """RETURN [`c` IN list WHERE (foo IS NOT :: INTEGER | NULL)] AS x""" -> """RETURN [c IN list WHERE (foo IS NOT :: NULL | INTEGER)] AS x""",
+    """RETURN [`c` IN true IS :: INTEGER | 123] AS x""" -> """RETURN [c IN (true IS :: INTEGER) | 123] AS x""",
+    """RETURN [`c` IN true IS NOT :: INTEGER | 123] AS x""" -> """RETURN [c IN (true IS NOT :: INTEGER) | 123] AS x""",
+    """RETURN [`c` IN true IS :: INTEGER | NULL] AS x""" -> """RETURN [c IN (true IS :: NULL | INTEGER)] AS x""",
+    """RETURN [`c` IN true IS NOT :: INTEGER | NULL] AS x""" -> """RETURN [c IN (true IS NOT :: NULL | INTEGER)] AS x""",
+    """RETURN [`c` IN (true IS :: INTEGER) | 123] AS x""" -> """RETURN [c IN (true IS :: INTEGER) | 123] AS x""",
+    """RETURN [`c` IN (true IS NOT :: INTEGER) | 123] AS x""" -> """RETURN [c IN (true IS NOT :: INTEGER) | 123] AS x""",
+    """RETURN [`c` IN (true IS :: INTEGER) | NULL] AS x""" -> """RETURN [c IN (true IS :: INTEGER) | NULL] AS x""",
+    """RETURN [`c` IN (true IS NOT :: INTEGER) | NULL] AS x""" -> """RETURN [c IN (true IS NOT :: INTEGER) | NULL] AS x""",
+    """RETURN [`c` IN (true IS :: INTEGER | NULL)] AS x""" -> """RETURN [c IN (true IS :: NULL | INTEGER)] AS x""",
+    """RETURN [`c` IN (true IS NOT :: INTEGER | NULL)] AS x""" -> """RETURN [c IN (true IS NOT :: NULL | INTEGER)] AS x""",
     "fiNIsh" -> "FINISH",
     "match (a) return a" ->
       """MATCH (a)
@@ -3972,7 +3996,9 @@ class PrettifierIT extends CypherFunSuite {
             s"""   Version: $version
                |     Query: $inputString
                |Prettified: $prettified
-               |
+               |  Expected: $expected
+               |       AST:
+               |${pprint.apply(statement)}
                |""".stripMargin
           )(prettified shouldBe expected)
         }

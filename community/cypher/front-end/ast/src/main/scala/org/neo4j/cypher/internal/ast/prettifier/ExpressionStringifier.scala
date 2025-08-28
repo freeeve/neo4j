@@ -418,22 +418,30 @@ private class DefaultExpressionStringifier(
         noEagerConsumption(e.canonicalOperatorSymbol)
 
       case e @ IsTyped(arg, predicateType) if !isCaseExpression =>
-        noEagerConsumption(
-          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} ${e.canonicalOperatorSymbol} ${predicateType.description}"
+        (
+          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} ${e.canonicalOperatorSymbol} ${predicateType.description}",
+          EagerlyConsuming("|")
         )
 
       // For the 5.x series it is breaking to use `IS ::` alone in a Case Expression
       case _ @IsTyped(_, predicateType) =>
-        noEagerConsumption(s"IS TYPED ${predicateType.description}")
+        (
+          s"IS TYPED ${predicateType.description}",
+          EagerlyConsuming("|")
+        )
 
       case e @ IsNotTyped(arg, predicateType) if !isCaseExpression =>
-        noEagerConsumption(
-          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} ${e.canonicalOperatorSymbol} ${predicateType.description}"
+        (
+          s"${nonLastInner(ast, shouldBacktickEmpty)(arg)} ${e.canonicalOperatorSymbol} ${predicateType.description}",
+          EagerlyConsuming("|")
         )
 
       // For the 5.x series it is breaking to use `IS ::` alone in a Case Expression
       case _ @IsNotTyped(_, predicateType) =>
-        noEagerConsumption(s"IS NOT TYPED ${predicateType.description}")
+        (
+          s"IS NOT TYPED ${predicateType.description}",
+          EagerlyConsuming("|")
+        )
 
       case IsNormalized(arg, normalForm) if !isCaseExpression =>
         noEagerConsumption(
@@ -485,22 +493,17 @@ private class DefaultExpressionStringifier(
       case ListComprehension(s, expression) =>
         val v = apply(s.variable, shouldBacktickEmpty)
         val p = s.innerPredicate.map(pr =>
-          " WHERE " + (s.extractExpression match {
-            // if there is an extractExpression, then innerPredicate is delimited by a vertical bar (|)
-            case Some(_) => delimitedInner(ast, shouldBacktickEmpty, symbolicDelimiter = "|")(pr)
-            // otherwise, it is not delimited by a vertical bar (|)
-            case None => delimitedInner(ast, shouldBacktickEmpty)(pr)
-          })
+          // if there is an extractExpression, then innerPredicate is delimited by a vertical bar (|)
+          // otherwise, there is no extractExpression, but it is not delimited by a vertical bar (|)
+          // since the parser prioritizes parsing an extractExpression
+          " WHERE " + delimitedInner(ast, shouldBacktickEmpty, symbolicDelimiter = "|")(pr)
         ).getOrElse("")
-        val e = s.extractExpression.map(ex =>
-          " | " + delimitedInner(ast, shouldBacktickEmpty)(ex)
-        ).getOrElse("")
-        val expr = (s.innerPredicate, s.extractExpression) match {
-          // if there is no innerPredicate but an extractExpression, then expression is delimited by a vertical bar (|)
-          case (None, Some(_)) =>
-            delimitedInner(ast, shouldBacktickEmpty, symbolicDelimiter = "|")(expression)
+        val e = s.extractExpression.map(ex => " | " + delimitedInner(ast, shouldBacktickEmpty)(ex)).getOrElse("")
+        val expr = s.innerPredicate match {
+          // if there is no innerPredicate, then expression is delimited by a vertical bar (|)
+          case None => delimitedInner(ast, shouldBacktickEmpty, symbolicDelimiter = "|")(expression)
           // otherwise, it is not delimited by a vertical bar (|)
-          case (_, _) => delimitedInner(ast, shouldBacktickEmpty)(expression)
+          case _ => delimitedInner(ast, shouldBacktickEmpty)(expression)
         }
         noEagerConsumption(s"[$v IN $expr$p$e]")
 
