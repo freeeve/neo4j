@@ -49,7 +49,8 @@ import org.neo4j.values.storable.Value;
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
 class IndexKeyStorageTest {
-    private static final int BLOCK_SIZE = 2000;
+    private static final int BLOCK_SIZE = RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY;
+    private static final int MAX_KEYS = 100;
 
     @Inject
     protected TestDirectory directory;
@@ -63,8 +64,7 @@ class IndexKeyStorageTest {
     @BeforeEach
     void createLayout() {
         random.withConfiguration(RandomValues.newConfigurationBuilder()
-                        .maxVectorNumBytes(
-                                BLOCK_SIZE / 2 /* TODO: Adjust tests to make more sense in the context of vectors. */)
+                        .maxVectorNumBytes(BLOCK_SIZE / MAX_KEYS)
                         .build())
                 .reset();
         this.numberOfSlots = random.nextInt(1, 3);
@@ -99,8 +99,7 @@ class IndexKeyStorageTest {
     @Test
     void shouldAddAndReadMultipleKeys() throws IOException {
         List<RangeKey> keys = new ArrayList<>();
-        int numberOfKeys = 1000;
-        for (int i = 0; i < numberOfKeys; i++) {
+        for (int i = 0; i < MAX_KEYS; i++) {
             keys.add(randomKey(i));
         }
         try (IndexKeyStorage<RangeKey> keyStorage = keyStorage()) {
