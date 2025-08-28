@@ -32,6 +32,8 @@ import org.neo4j.values.storable.PointValue
 import org.neo4j.values.storable.TemporalValue
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
+import org.neo4j.values.virtual.NodeValue
+import org.neo4j.values.virtual.RelationshipValue
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
 
@@ -40,6 +42,8 @@ case class Property(mapExpr: Expression, propertyKey: KeyToken)
 
   def apply(row: ReadableRow, state: QueryState): AnyValue = mapExpr(row, state) match {
     case IsNoValue() => Values.NO_VALUE
+    case n: NodeValue if n.id() < 0 =>
+      n.properties().get(propertyKey.name)
     case n: VirtualNodeValue =>
       propertyKey.getOptId(state.query) match {
         case None => Values.NO_VALUE
@@ -51,6 +55,8 @@ case class Property(mapExpr: Expression, propertyKey: KeyToken)
             throwOnDeleted = true
           )
       }
+    case r: RelationshipValue if r.id() < 0 =>
+      r.properties().get(propertyKey.name)
     case r: VirtualRelationshipValue =>
       propertyKey.getOptId(state.query) match {
         case None => Values.NO_VALUE
