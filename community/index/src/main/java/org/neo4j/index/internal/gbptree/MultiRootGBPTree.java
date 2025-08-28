@@ -1421,6 +1421,15 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         rootLayer.visitAllDataTreeRoots(cursorContext, visitor);
     }
 
+    public void visitRoots(
+            CursorContext cursorContext,
+            TreeRootsVisitor<ROOT_KEY> visitor,
+            ROOT_KEY fromInclusiveKey,
+            ROOT_KEY toExclusiveKey)
+            throws IOException {
+        rootLayer.visitDataTreeRoots(cursorContext, visitor, fromInclusiveKey, toExclusiveKey);
+    }
+
     @VisibleForTesting
     public <VISITOR extends GBPTreeVisitor<ROOT_KEY, KEY, VALUE>> VISITOR visit(
             VISITOR visitor, CursorContext cursorContext) throws IOException {

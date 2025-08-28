@@ -218,6 +218,13 @@ abstract class RootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> implements TreeRootExch
         return DEFAULT_SPLIT_RATIO;
     }
 
+    abstract void visitDataTreeRoots(
+            CursorContext cursorContext,
+            TreeRootsVisitor<ROOT_KEY> visitor,
+            ROOT_KEY fromInclusiveKey,
+            ROOT_KEY toExclusiveKey)
+            throws IOException;
+
     @VisibleForTesting
     public abstract void clearCache();
 

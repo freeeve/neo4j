@@ -434,6 +434,20 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
                 SeekCursor.NO_MONITOR);
     }
 
+    private Seeker<ROOT_KEY, RootMappingValue> rootsSeek(
+            CursorContext cursorContext, ROOT_KEY fromInclusiveKey, ROOT_KEY toExclusiveKey) throws IOException {
+        rootLayout.initializeAsLowest(fromInclusiveKey);
+        rootLayout.initializeAsHighest(toExclusiveKey);
+        return support.initializeSeeker(
+                support.internalAllocateSeeker(rootLayout, cursorContext, rootLeafNode, rootInternalNode),
+                this,
+                fromInclusiveKey,
+                toExclusiveKey,
+                DEFAULT_MAX_READ_AHEAD,
+                LEAF_LEVEL,
+                SeekCursor.NO_MONITOR);
+    }
+
     @Override
     int keyValueSizeCap() {
         return dataLeafNode.keyValueSizeCap();
@@ -501,6 +515,22 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
     @Override
     void visitAllDataTreeRoots(CursorContext cursorContext, TreeRootsVisitor<ROOT_KEY> visitor) throws IOException {
         try (Seeker<ROOT_KEY, RootMappingValue> seek = allRootsSeek(cursorContext)) {
+            while (seek.next()) {
+                if (visitor.accept(rootLayout.copyKey(seek.key()))) {
+                    break;
+                }
+            }
+        }
+    }
+
+    @Override
+    void visitDataTreeRoots(
+            CursorContext cursorContext,
+            TreeRootsVisitor<ROOT_KEY> visitor,
+            ROOT_KEY fromInclusiveKey,
+            ROOT_KEY toExclusiveKey)
+            throws IOException {
+        try (Seeker<ROOT_KEY, RootMappingValue> seek = rootsSeek(cursorContext, fromInclusiveKey, toExclusiveKey)) {
             while (seek.next()) {
                 if (visitor.accept(rootLayout.copyKey(seek.key()))) {
                     break;

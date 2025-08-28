@@ -181,6 +181,16 @@ class SingleRootLayer<KEY, VALUE> extends RootLayer<SingleRoot, KEY, VALUE> {
     }
 
     @Override
+    void visitDataTreeRoots(
+            CursorContext cursorContext,
+            TreeRootsVisitor<SingleRoot> visitor,
+            SingleRoot fromInclusiveKey,
+            SingleRoot toExclusiveKey)
+            throws IOException {
+        visitor.accept(SingleRoot.SINGLE_ROOT);
+    }
+
+    @Override
     public void clearCache() {
         // Not needed in SingleRootLayer, but must be used in testing for MultiRootLayer
     }
