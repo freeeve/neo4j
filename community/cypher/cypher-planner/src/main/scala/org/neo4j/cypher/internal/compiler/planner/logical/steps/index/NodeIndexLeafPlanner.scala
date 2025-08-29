@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.impliedLabelPredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicPropertyNotifier
@@ -50,7 +51,6 @@ import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.notifications.NodeIndexLookupUnfulfillableNotification
 
@@ -218,9 +218,7 @@ object NodeIndexLeafPlanner extends IndexCompatiblePredicatesProvider {
     val impliedLabelPredicates =
       impliedEndpointLabelsMap.getOrElse(variable, Set.empty)
         .diff(explicitLabelNames)
-        .map { label =>
-          ImpliedLabel(HasLabels(variable, Seq(label))(InputPosition.NONE))(InputPosition.NONE)
-        }
+        .map(label => impliedLabelPredicate(variable, label))
     impliedLabelPredicates ++ explicitLabelPredicates
   }
 

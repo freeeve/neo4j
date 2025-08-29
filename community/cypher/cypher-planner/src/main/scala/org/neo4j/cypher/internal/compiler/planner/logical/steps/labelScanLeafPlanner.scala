@@ -22,9 +22,12 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.ast.UsingScanHint
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
+import org.neo4j.cypher.internal.compiler.planner.logical.impliedLabelPredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasLabels
+import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
@@ -38,31 +41,62 @@ case class labelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlann
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = {
-    qg.selections.flatPredicatesSet.flatMap {
-      case labelPredicate @ HasLabels(variable: Variable, Seq(labelName))
-        if !skipIDs.contains(variable) && qg.patternNodes(variable) && !qg.argumentIds(variable) =>
-        context.staticComponents.planContext.nodeTokenIndex.map { nodeTokenIndex =>
-          val hint = qg.hints.collectFirst {
-            case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(labelName.name)) => hint
-          }
-          val providedOrder = ResultOrdering.providedOrderForLabelScan(
-            interestingOrderConfig.orderToSolve,
-            variable,
-            nodeTokenIndex.orderCapability,
-            context.providedOrderFactory
-          )
-          context.staticComponents.logicalPlanProducer.planNodeByLabelScan(
-            variable,
-            labelName,
-            Seq(labelPredicate),
-            hint,
-            qg.argumentIds,
-            providedOrder,
-            context
-          )
-        }
-      case _ =>
-        None
+
+    val plansFromExplicitLabels: Set[LogicalPlan] =
+      for {
+        labelPredicate @ HasLabels(v: Variable, Seq(labelName)) <- qg.selections.flatPredicatesSet
+        plan <- planLabelScan(v, labelName, labelPredicate, qg, interestingOrderConfig, context)
+      } yield {
+        plan
+      }
+
+    val plansFromImpliedLabels: Set[LogicalPlan] =
+      for {
+        (v: Variable, labels) <-
+          context.staticComponents.graphSchemaOptimizations.impliedEndpointLabelsMap(qg.patternRelationships).toSet
+        label <- labels
+        plan <- planLabelScan(v, label, impliedLabelPredicate(v, label), qg, interestingOrderConfig, context)
+      } yield {
+        plan
+      }
+
+    plansFromExplicitLabels ++ plansFromImpliedLabels
+  }
+
+  private def planLabelScan(
+    variable: Variable,
+    labelName: LabelName,
+    labelPredicate: Expression,
+    qg: QueryGraph,
+    interestingOrderConfig: InterestingOrderConfig,
+    context: LogicalPlanningContext
+  ): Option[LogicalPlan] = {
+
+    val variableIsValid: Boolean =
+      !skipIDs.contains(variable) && qg.patternNodes(variable) && !qg.argumentIds(variable)
+
+    for {
+      nodeTokenIndex <- context.staticComponents.planContext.nodeTokenIndex
+      if variableIsValid
+    } yield {
+      val hint = qg.hints.collectFirst {
+        case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(labelName.name)) => hint
+      }
+      val providedOrder = ResultOrdering.providedOrderForLabelScan(
+        interestingOrderConfig.orderToSolve,
+        variable,
+        nodeTokenIndex.orderCapability,
+        context.providedOrderFactory
+      )
+      context.staticComponents.logicalPlanProducer.planNodeByLabelScan(
+        variable,
+        labelName,
+        Seq(labelPredicate),
+        hint,
+        qg.argumentIds,
+        providedOrder,
+        context
+      )
     }
   }
 }

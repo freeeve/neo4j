@@ -265,55 +265,6 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  // Cardinality estimation tests
-
-  test("should not apply the selectivity of an implied label to estimate cardinality of a label scan") {
-    val actors = 500
-
-    val planner = plannerBuilder()
-      .setLabelCardinality("Person", 1000)
-      .setLabelCardinality("Actor", actors)
-      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
-      .setAllNodesCardinality(3000)
-      .build()
-
-    val query = "MATCH (n:Actor:Person) RETURN n"
-
-    val actual = planner.planState(query)
-    val expected = planner.planBuilder()
-      .produceResults("n").withCardinality(actors)
-      .nodeByLabelScan("n", "Actor").withCardinality(actors)
-
-    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
-  }
-
-  test("should not apply the selectivity of implied labels to estimate cardinality of an intersection scan") {
-    val actors = 500
-    val others = 1500
-    val total = 3000
-
-    val planner = plannerBuilder()
-      .setLabelCardinality("Entity", 1500)
-      .setLabelCardinality("Person", 1000)
-      .setLabelCardinality("Actor", actors)
-      .setLabelCardinality("Other", others)
-      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
-      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Entity")
-      .setAllNodesCardinality(total)
-      .build()
-
-    val query = "MATCH (n:Actor:Person:Entity:Other) RETURN n"
-
-    val cardinality = actors * (others.toDouble / total)
-
-    val actual = planner.planState(query)
-    val expected = planner.planBuilder()
-      .produceResults("n").withCardinality(cardinality)
-      .intersectionNodeByLabelsScan("n", Seq("Actor", "Other")).withCardinality(cardinality)
-
-    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
-  }
-
   test("Should not plan a label filter if that label is implied by the relationship type and end-node constraint") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
@@ -554,7 +505,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  test("Should plan a label scan for implied label") {
+  test("Should plan a label scan for omitted implied label") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("A", 10)
@@ -572,10 +523,31 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
 
     val res = planner.plan(query).stripProduceResults
     res shouldEqual planner.subPlanBuilder()
-      .relationshipTypeScan("(a)-[:R]->()")
-      // TODO: This should be implemented in https://trello.com/c/4WeXJ4uY/
-      //      .expandAll("(a)-[:R]->()")
-      //      .nodeByLabelScan("a", "A")
+      .expandAll("(a)-[:R]->()")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test("Should plan a label scan for specified implied label") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 10)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 200)
+      .setRelationshipCardinality("(:A)-[:R]->()", 200)
+      .addRelationshipEndpointLabelConstraint("(:A)-[:R]->()")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R]->(b)
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .expandAll("(a)-[:R]->()")
+      .nodeByLabelScan("a", "A")
       .build()
   }
 
@@ -1515,4 +1487,79 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     )
   }
 
+  // Cardinality estimation tests
+
+  test("should not apply the selectivity of an implied label to estimate cardinality of a label scan") {
+    val actors = 500
+
+    val planner = plannerBuilder()
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", actors)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query = "MATCH (n:Actor:Person) RETURN n"
+
+    val actual = planner.planState(query)
+    val expected = planner.planBuilder()
+      .produceResults("n").withCardinality(actors)
+      .nodeByLabelScan("n", "Actor").withCardinality(actors)
+
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  test("should not apply the selectivity of implied labels to estimate cardinality of an intersection scan") {
+    val actors = 500
+    val others = 1500
+    val total = 3000
+
+    val planner = plannerBuilder()
+      .setLabelCardinality("Entity", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", actors)
+      .setLabelCardinality("Other", others)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Entity")
+      .setAllNodesCardinality(total)
+      .build()
+
+    val query = "MATCH (n:Actor:Person:Entity:Other) RETURN n"
+
+    val cardinality = actors * (others.toDouble / total)
+
+    val actual = planner.planState(query)
+    val expected = planner.planBuilder()
+      .produceResults("n").withCardinality(cardinality)
+      .intersectionNodeByLabelsScan("n", Seq("Actor", "Other")).withCardinality(cardinality)
+
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  test("should estimate cardinality of a label scan using implied label") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 10)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 200)
+      .setRelationshipCardinality("(:A)-[:R]->()", 200)
+      .addRelationshipEndpointLabelConstraint("(:A)-[:R]->()")
+      .build()
+
+    val query =
+      """
+        |MATCH (a)-[r:R]->(b)
+        |RETURN a
+        |""".stripMargin
+
+    val actual = planner.planState(query)
+    val expected = planner.subPlanBuilder()
+      .produceResults("a").withCardinality(200)
+      .expandAll("(a)-[:R]->()").withCardinality(200)
+      .nodeByLabelScan("a", "A").withCardinality(10)
+
+    actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
+  }
+
+  // Cardinality estimation tests end
 }
