@@ -28,6 +28,7 @@ import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.graphdb.RelationshipType.withName;
 import static org.neo4j.internal.helpers.ProcessUtils.start;
 import static org.neo4j.test.Race.throwing;
+import static org.neo4j.test.extension.SkipOnSpd.Note.incompatible;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -72,6 +73,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
@@ -102,6 +104,10 @@ class ReuseStorageSpaceIT {
     }
 
     @Test
+    @SkipOnSpd(
+            reason =
+                    "The IdController#maintenance trick does not work on SPD databases because they wait internal.dbms.cluster.raft.id_reuse.min_time before reusing id's",
+            notes = incompatible)
     void shouldReuseStorageSpaceWhenDeletingCreatingAndRestarting() throws Exception {
         shouldReuseStorageSpace(Operation.CREATE, Operation.DELETE_CREATE, ReuseStorageSpaceIT::sameProcess);
     }
@@ -113,11 +119,19 @@ class ReuseStorageSpaceIT {
     }
 
     @Test
+    @SkipOnSpd(
+            reason =
+                    "The IdController#maintenance trick does not work on SPD databases because they wait internal.dbms.cluster.raft.id_reuse.min_time before reusing id's",
+            notes = incompatible)
     void shouldReuseStorageSpaceWhenDeletingCreatingAndCrashing() throws Exception {
         shouldReuseStorageSpace(Operation.CREATE, Operation.DELETE_CREATE, ReuseStorageSpaceIT::crashingChildProcess);
     }
 
     @Test
+    @SkipOnSpd(
+            reason =
+                    "The IdController#maintenance trick does not work on SPD databases because they wait internal.dbms.cluster.raft.id_reuse.min_time before reusing id's",
+            notes = incompatible)
     void shouldPrioritizeFreelistWhenConcurrentlyAllocating() throws Exception {
         // This test specifically exercises the ID caches and refilling of those as it goes, so the smaller the
         // better for this test

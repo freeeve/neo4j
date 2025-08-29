@@ -25,6 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.dynamic_read_only_failover;
 import static org.neo4j.configuration.GraphDatabaseSettings.logical_log_rotation_threshold;
+import static org.neo4j.test.extension.SkipOnSpd.Note.notSupported;
+import static org.neo4j.test.extension.SkipOnSpd.Note.temporary;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -48,6 +50,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.utils.TestDirectory;
 
 @DbmsExtension(configurationCallback = "configure")
@@ -76,6 +79,11 @@ class DynamicReadOnlyFailoverIT {
     }
 
     @Test
+    @SkipOnSpd(
+            reason =
+                    "Setting the database as read only after pre-allocation failure is not working in SPD"
+                            + "(see https://trello.com/c/j2LiITer/11968-pre-allocation-failure-doesnt-set-the-database-to-read-only-in-spd)",
+            notes = {temporary, notSupported})
     void switchDatabaseToReadOnlyModeOnPreallocationFailure() {
         long initialRotationThreshold = ByteUnit.kibiBytes(256);
         Label marker = Label.label("marker");
