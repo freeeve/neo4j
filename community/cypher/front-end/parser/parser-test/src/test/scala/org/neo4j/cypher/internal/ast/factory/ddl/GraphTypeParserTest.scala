@@ -743,6 +743,151 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     }
   }
 
+  // Parameters/dynamic labels/relTypes are not allowed
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (:${label} => :Label2) }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (:Label => :${label}) }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (:Label => {$prop :: STRING}) }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier or '}'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { (:${label})-[:REL =>]->() }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { ()-[:REL =>]->(:${label}) }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { ()-[:${label} =>]->() }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { ()-[:REL => {$prop :: STRING}]->() }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier or '}'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT $name FOR (n:Label) REQUIRE n.prop IS KEY }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier or 'FOR'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT name FOR (n:${label}) REQUIRE n.prop IS UNIQUE }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR (n:Label) REQUIRE n.$prop IS NOT NULL }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT $name FOR ()-[n:REL]->() REQUIRE n.prop IS KEY }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier or 'FOR'."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT name FOR ()-[n:${label}]->() REQUIRE n.prop IS :: DATE }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
+  test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT FOR ()-[n:Label]->() REQUIRE n.$prop IS NOT NULL }""") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '$'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '$', expected: an identifier."
+        )
+    }
+  }
+
   // Negative tests
 
   test("""ALTER CURRENT GRAPH TYPE SET { CONSTRAINT PersonKeyName }""") {

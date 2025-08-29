@@ -205,7 +205,8 @@ object GraphType {
    *
    * @param elementTypes  The node and relationship element types of the graph type
    * @param constraints   The independent/undesignated constraints to be created of the graph type
-   * @return              The canonical form of the graph type `{ ... }` (but on a single line)
+   * @return              The canonical form of the graph type `{ ... }`
+   *                      (but on a single line and identifiers are only backticked when needed)
    */
   def graphTypeInfoForPlan(
     elementTypes: Set[GraphTypeEntry],

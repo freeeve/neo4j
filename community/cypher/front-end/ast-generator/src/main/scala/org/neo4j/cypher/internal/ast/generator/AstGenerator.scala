@@ -2919,7 +2919,7 @@ class AstGenerator(
   // Top level schema command method
 
   def _schemaCommand: Gen[SchemaCommand] = {
-    if (whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)) {
+    if (usesCypher5) {
       oneOf(_indexCommand, _constraintCommand)
     } else {
       oneOf(_indexCommand, _constraintCommand, _alterCurrentGraphTypeCommand)
