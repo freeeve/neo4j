@@ -932,6 +932,12 @@
                 <ignoredDependency>org.scalatest:*</ignoredDependency>
                 <ignoredDependency>org.scalacheck:*</ignoredDependency>
                 <ignoredDependency>co.helmethair:scalatest-junit-runner</ignoredDependency>
+                <ignoredDependency>org.opentest4j:opentest4j</ignoredDependency>
+                <ignoredDependency>org.assertj:*</ignoredDependency>
+
+                <ignoredDependency>org.codehaus.jettison:jettison</ignoredDependency>
+                <ignoredDependency>com.github.luben:zstd-jni</ignoredDependency>
+                <ignoredDependency>org.neo4j.licensing-proxy:zstd-proxy</ignoredDependency>
               </ignoredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <ignoredUnusedDeclaredDependency>com.lihaoyi:pprint_${scala.binary.version}</ignoredUnusedDeclaredDependency>

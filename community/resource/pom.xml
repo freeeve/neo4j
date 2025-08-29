@@ -11,6 +11,7 @@
     <properties>
         <moduleName>org.neo4j.graphdb.resource</moduleName>
         <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <modelVersion>4.0.0</modelVersion>

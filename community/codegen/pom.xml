@@ -10,6 +10,7 @@
 
     <properties>
         <moduleName>org.neo4j.codegen</moduleName>
+        <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
     </properties>
 
     <modelVersion>4.0.0</modelVersion>
@@ -41,12 +42,17 @@
 
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-unsafe</artifactId>
+            <artifactId>neo4j-util</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-util</artifactId>
+            <artifactId>neo4j-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-exceptions</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -98,6 +104,15 @@
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-test-util</artifactId>
             <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.scalactic</groupId>
+            <artifactId>scalactic_${scala.binary.version}</artifactId>
             <scope>test</scope>
         </dependency>
 

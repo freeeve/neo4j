@@ -11,6 +11,7 @@
 
   <properties>
     <moduleName>org.neo4j.zstd_proxy</moduleName>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
   </properties>
   <modelVersion>4.0.0</modelVersion>
 

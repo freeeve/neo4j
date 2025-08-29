@@ -56,9 +56,6 @@ Apache Software License, Version 2.0
   Apache Shiro :: Lang
   Caffeine cache
   IPAddress
-  Jackson-annotations
-  Jackson-core
-  jackson-databind
   Java Concurrency Tools Core Library
   Java Native Access
   Jettison
@@ -67,14 +64,10 @@ Apache Software License, Version 2.0
   magnolia
   Netty/Buffer
   Netty/Codec/Base
-  Netty/Codec/Compression
-  Netty/Codec/HTTP
   Netty/Common
   Netty/Handler
   Netty/Resolver
   Netty/Transport
-  Netty/Transport/Classes/Epoll
-  Netty/Transport/Classes/KQueue
   Netty/Transport/Native/Unix/Common
   picocli
   Scala Reflect
@@ -108,11 +101,7 @@ Eclipse Public License - v 1.0
   Eclipse Collections API
   Eclipse Collections Main Library
 
-Eclipse Public License v2.0
-  jakarta.ws.rs-api
-
 GNU General Public License, version 2 with the Classpath Exception
-  jakarta.ws.rs-api
   javax.annotation API
 
 MIT License
@@ -131,10 +120,6 @@ Eclipse Collections API
 Eclipse Collections Main Library
   Eclipse Distribution License - v 1.0
   Eclipse Public License - v 1.0
-
-jakarta.ws.rs-api
-  Eclipse Public License v2.0
-  GNU General Public License, version 2 with the Classpath Exception
 
 javax.annotation API
   Common Development and Distribution License Version 1.1

@@ -10,6 +10,7 @@
 
   <properties>
     <moduleName>org.neo4j.procedure.api</moduleName>
+    <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
   </properties>
 
   <modelVersion>4.0.0</modelVersion>
@@ -44,6 +45,34 @@
           <skipTests>true</skipTests>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>analyze</id>
+            <goals>
+              <goal>analyze-only</goal>
+            </goals>
+            <configuration>
+              <failOnWarning>true</failOnWarning>
+              <ignoredDependencies>
+                <!-- Ignore test dependencies to not risk tests stop running and for convenience. -->
+                <ignoredDependency>org.junit.jupiter:*</ignoredDependency>
+                <ignoredDependency>org.scalatest:*</ignoredDependency>
+                <ignoredDependency>org.scalacheck:*</ignoredDependency>
+                <ignoredDependency>co.helmethair:scalatest-junit-runner</ignoredDependency>
+                <ignoredDependency>org.opentest4j:opentest4j</ignoredDependency>
+                <ignoredDependency>org.assertj:*</ignoredDependency>
+
+                <!-- For javadoc references validation -->
+                <ignoredDependency>org.neo4j:neo4j-logging</ignoredDependency>
+                <ignoredDependency>org.neo4j:neo4j-graphdb-api</ignoredDependency>
+              </ignoredDependencies>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
 
@@ -51,6 +80,11 @@
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-collections</artifactId>
+      <version>${project.version}</version>
     </dependency>
 
     <!-- For javadoc references validation -->
