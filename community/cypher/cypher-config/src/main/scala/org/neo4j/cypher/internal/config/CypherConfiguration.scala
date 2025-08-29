@@ -75,6 +75,9 @@ class CypherConfiguration private (val config: Config) {
   def enableExperimentalCypherVersions: Boolean =
     config.get(GraphDatabaseInternalSettings.enable_experimental_cypher_versions)
 
+  def enableScopeQueries: Boolean =
+    config.get(GraphDatabaseInternalSettings.cypher_enable_scope_queries)
+
   /**
    * The system default query language, NOT the actual language to use.
    * The final resolved language for a query depend on:

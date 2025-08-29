@@ -42,6 +42,12 @@ class StatefulPreparserListener extends CypherPreparserBaseListener {
     if (ctx.VERSION() != null) settings.addOne(PreParserOption.version(ctx.VERSION().getText, pos(ctx.VERSION())))
   }
 
+  override def exitPlanMode(ctx: CypherPreparserParser.PlanModeContext): Unit = {
+    if (ctx.SCOPE() != null) settings.addOne(PreParserOption.scope(pos(ctx.SCOPE())))
+    if (ctx.PLAN() != null) settings.addOne(PreParserOption.plan(pos(ctx.PLAN())))
+    // PLAN we just swallow
+  }
+
   override def exitSetting(ctx: CypherPreparserParser.SettingContext): Unit = {
     if (ctx.IDENTIFIER().size() == 2) {
       settings.addOne(PreParserOption.generic(

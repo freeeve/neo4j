@@ -41,6 +41,7 @@ class StandardInternalExecutionResult(
   outerCloseable: AutoCloseable,
   override val queryType: InternalQueryType,
   override val executionMode: ExecutionMode,
+  val isScope: Boolean,
   planDescriptionBuilder: PlanDescriptionBuilder,
   subscriber: QuerySubscriber,
   internalNotifications: () => Seq[NotificationImplementation]
@@ -141,7 +142,8 @@ class StandardInternalExecutionResult(
       }
       planDescriptionBuilder.profile(runtimeResult.queryProfile)
     } else {
-      planDescriptionBuilder.explain()
+      if (isScope) planDescriptionBuilder.scope()
+      else planDescriptionBuilder.explain()
     }
 
   }

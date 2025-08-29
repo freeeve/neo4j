@@ -26,6 +26,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.HeapEstimatorCacheP
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.options.CypherPlanMode.default
 import org.neo4j.cypher.internal.options.CypherQueryOptions.ILLEGAL_EXPRESSION_ENGINE_RUNTIME_COMBINATIONS
 import org.neo4j.cypher.internal.options.CypherQueryOptions.ILLEGAL_INTERPRETED_PIPES_FALLBACK_RUNTIME_COMBINATIONS
 import org.neo4j.cypher.internal.options.CypherQueryOptions.ILLEGAL_OPERATOR_ENGINE_RUNTIME_COMBINATIONS
@@ -42,6 +43,7 @@ import java.util.Locale
 case class CypherQueryOptions(
   cypherVersion: CypherVersionOption, // This is NOT the resolved query language, only the pre-parser option.
   executionMode: CypherExecutionMode,
+  planMode: CypherPlanMode,
   planner: CypherPlannerOption,
   runtime: CypherRuntimeOption,
   updateStrategy: CypherUpdateStrategy,
@@ -89,13 +91,15 @@ case class CypherQueryOptions(
   }
 
   def renderCypherOptions: String = {
-    // For Cypher query rendering purposes, execution mode and Cypher options are two separate things.
+    // For Cypher query rendering purposes, execution & plan mode and Cypher options are two separate things.
     // Default execution mode renders to nothing, so let's use it as a part of a trick for rendering
     // just Cypher options with execution mode.
-    CypherQueryOptions.renderer.render(this.copy(executionMode = CypherExecutionMode.default))
+    CypherQueryOptions.renderer.render(this.copy(executionMode = CypherExecutionMode.default, planMode = default))
   }
 
   def renderExecutionMode: String = executionMode.render
+
+  def renderPlanMode: String = planMode.render
 
   /**
    * Cache key used for executableQueryCache, astCache, and exeuctionPlanCache.
@@ -140,10 +144,16 @@ object CypherQueryOptions {
 
   def fromValues(config: CypherConfiguration, keyValues: Set[(String, String)]): CypherQueryOptions = {
     reader.read(OptionReader.Input(config, keyValues)) match {
-
       case OptionReader.Result(remainder, _) if remainder.keyValues.nonEmpty =>
         throw InvalidCypherOption.unsupportedOptions(remainder.keyValues.map(_._1).toArray: _*)
       case OptionReader.Result(_, options) =>
+        if (options.planMode.isScope && !config.enableScopeQueries) {
+          throw InvalidCypherOption.invalidOption(
+            CypherPlanMode.scope.modeName,
+            CypherPlanMode.name,
+            CypherPlanMode.plan.modeName
+          )
+        }
         if (options.debugOptions.generateJavaSourceEnabled && !config.allowSourceGeneration) {
           throw InvalidCypherOption.sourceGenerationDisabled(this.getClass.getSimpleName)
         }
@@ -253,6 +263,42 @@ case object CypherExecutionMode extends CypherOptionCompanion[CypherExecutionMod
   implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherExecutionMode] =
     OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
   implicit val reader: OptionReader[CypherExecutionMode] = singleOptionReader()
+}
+
+sealed abstract class CypherPlanMode(val modeName: String) extends CypherOption(modeName) {
+  override def companion: CypherPlanMode.type = CypherPlanMode
+  override def render: String = super.render.toUpperCase(Locale.ROOT)
+  override def cacheKey: String = super.cacheKey.toUpperCase(Locale.ROOT)
+  def isScope: Boolean = this == CypherPlanMode.scope
+
+  /** Does not affect the plan we produce. */
+  override def relevantForLogicalPlanCacheKey: Boolean = false
+}
+
+case object CypherPlanMode extends CypherOptionCompanion[CypherPlanMode](
+      name = "plan mode"
+    ) {
+  case object default extends CypherPlanMode("")
+
+  case object plan extends CypherPlanMode("PLAN") {
+    override def render: String = modeName
+    override def cacheKey: String = ""
+  }
+
+  case object scope extends CypherPlanMode("SCOPE") {
+    override def render: String = modeName
+    override def cacheKey: String = ""
+  }
+
+  def values: Set[CypherPlanMode] = Set(scope, plan)
+
+  implicit val hasDefault: OptionDefault[CypherPlanMode] = OptionDefault.create(default)
+  implicit val renderer: OptionRenderer[CypherPlanMode] = OptionRenderer.create(_.render)
+  implicit val cacheKey: OptionCacheKey[CypherPlanMode] = OptionCacheKey.create(_.cacheKey)
+
+  implicit val logicalPlanCacheKey: OptionLogicalPlanCacheKey[CypherPlanMode] =
+    OptionLogicalPlanCacheKey.create(_.logicalPlanCacheKey)
+  implicit val reader: OptionReader[CypherPlanMode] = singleOptionReader()
 }
 
 /**

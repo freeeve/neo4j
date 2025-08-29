@@ -159,6 +159,7 @@ class StandardInternalExecutionResultTest extends CypherFunSuite {
       NoOuterCloseable,
       queryType,
       NormalMode,
+      isScope = false,
       mock[PlanDescriptionBuilder],
       subscriber,
       () => Seq.empty

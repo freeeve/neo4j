@@ -290,4 +290,5 @@ class TestContext(
   override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
   override def sessionDatabase: DatabaseReference = null
   override def semanticFeatures: Seq[SemanticFeature] = Seq()
+  override def isScopeQuery: Boolean = false
 }

@@ -73,6 +73,10 @@ object SemanticFeature {
     override def name: String = "new vector type"
   }
 
+  case object ScopeQueries extends SemanticFeature with FeatureToString {
+    override def name: String = "scope queries"
+  }
+
   case object ShardedPropertyDatabase extends SemanticFeature with FeatureToString {
     override def name: String = "`sharded property database"
   }
@@ -99,6 +103,7 @@ object SemanticFeature {
     ExperimentalCypherVersions,
     RelationshipPropertyValueAccessRules,
     VectorType,
+    ScopeQueries,
     ShardedPropertyDatabase,
     AllowClauseWithMixedLabelSyntax
   )

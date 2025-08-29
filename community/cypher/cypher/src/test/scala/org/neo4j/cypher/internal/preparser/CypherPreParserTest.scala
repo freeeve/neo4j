@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.preparser
 
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CachingPreParser
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.PreParser
@@ -58,6 +59,14 @@ class CypherPreParserTest extends CypherFunSuite with TableDrivenPropertyChecks 
     (
       "EXPLAIN MATCH",
       (List(PreParserOption.explain((1, 1, 0))), (1, 9, 8))
+    ),
+    (
+      "EXPLAIN SCOPE MATCH",
+      (List(PreParserOption.explain((1, 1, 0)), PreParserOption.scope((1, 9, 8))), (1, 15, 14))
+    ),
+    (
+      "EXPLAIN PLAN MATCH",
+      (List(PreParserOption.explain((1, 1, 0)), PreParserOption.plan((1, 9, 8))), (1, 14, 13))
     ),
     (
       "CYPHER WITH YALL",
@@ -220,6 +229,8 @@ class CypherPreParserTest extends CypherFunSuite with TableDrivenPropertyChecks 
                 CypherConfiguration.fromConfig(Config.defaults(
                   // Might need to be enabled when the next experimental version appear:
                   // GraphDatabaseInternalSettings.enable_experimental_cypher_versions, java.lang.Boolean.TRUE
+                  GraphDatabaseInternalSettings.cypher_enable_scope_queries,
+                  java.lang.Boolean.TRUE
                 )),
                 dbDefaultVersion
               ),
@@ -238,6 +249,7 @@ class CypherPreParserTest extends CypherFunSuite with TableDrivenPropertyChecks 
   private def parse(queryText: String, version: CypherVersion): PreParsedQuery = {
     preParserWith(
       // Might need to be enabled when the next experimental version appear: GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
+      GraphDatabaseInternalSettings.cypher_enable_scope_queries -> java.lang.Boolean.TRUE
     ).preParse(queryText, version)
   }
 

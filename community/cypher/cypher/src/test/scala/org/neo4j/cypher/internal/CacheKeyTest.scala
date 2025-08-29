@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeSupportOption
 import org.neo4j.cypher.internal.options.CypherPipelinedBatchSizePresetOption
+import org.neo4j.cypher.internal.options.CypherPlanMode
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
@@ -64,6 +65,7 @@ class CacheKeyTest extends CypherFunSuite {
     val options = CypherQueryOptions(
       cypherVersion = CypherVersionOption.cypher5,
       executionMode = CypherExecutionMode.profile,
+      planMode = CypherPlanMode.default,
       planner = CypherPlannerOption.dp,
       runtime = CypherRuntimeOption.pipelined,
       updateStrategy = CypherUpdateStrategy.eager,
@@ -99,6 +101,7 @@ class CacheKeyTest extends CypherFunSuite {
     val options = CypherQueryOptions(
       cypherVersion = CypherVersionOption.cypher5,
       executionMode = CypherExecutionMode.profile,
+      planMode = CypherPlanMode.default,
       planner = CypherPlannerOption.dp,
       runtime = CypherRuntimeOption.pipelined,
       updateStrategy = CypherUpdateStrategy.eager,

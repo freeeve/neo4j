@@ -302,7 +302,8 @@ public class QueryProcessorImpl implements QueryProcessor {
                 query.parameters(),
                 cancellationChecker,
                 Some$.MODULE$.apply(resolver),
-                sessionDatabase);
+                sessionDatabase,
+                preParsedQuery.options().queryOptions().planMode().isScope());
     }
 
     private TargetService.CatalogInfo toCatalogInfo(Seq<Option<StaticUseEvaluation.CatalogInfo>> graphSelections) {

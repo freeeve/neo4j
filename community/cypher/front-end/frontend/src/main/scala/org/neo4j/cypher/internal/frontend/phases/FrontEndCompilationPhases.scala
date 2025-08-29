@@ -20,6 +20,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
@@ -37,6 +38,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnal
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.UnwrapTopLevelBraces
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.rewriting.Deprecations
 import org.neo4j.cypher.internal.rewriting.rewriters.Forced
 import org.neo4j.cypher.internal.rewriting.rewriters.IfNoParameter
@@ -91,7 +93,11 @@ trait FrontEndCompilationPhases {
     )
 
   def postParsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    Chainer.chainTransformers(orderedSteps.map(_.getCheckedTransformer(
+    // let scope query step run before everything else, so use input is unchanged
+    val scopeQuerySteps =
+      if (config.semanticFeatures contains ScopeQueries) Seq(ScopeSurveyor)
+      else Seq()
+    Chainer.chainTransformers((scopeQuerySteps ++ orderedSteps).map(_.getCheckedTransformer(
       literalExtractionStrategy = config.literalExtractionStrategy,
       parameterTypeMapping = config.parameterTypeMapping,
       semanticFeatures = config.semanticFeatures,

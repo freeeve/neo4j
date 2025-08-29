@@ -352,3 +352,32 @@ final case class ArgumentPlanDescription(id: Id, arguments: Seq[Argument] = Seq.
     }
   }
 }
+
+case class WorkingScopePlanDescription(
+  id: Id,
+  name: String,
+  variables: Set[PrettyString],
+  arguments: Seq[Argument],
+  children: Seq[InternalPlanDescription]
+) extends InternalPlanDescription {
+  override def map(f: InternalPlanDescription => InternalPlanDescription): InternalPlanDescription = f(this)
+
+  override def find(searchedName: String): Seq[InternalPlanDescription] =
+    if (searchedName == name) Seq(this) else Seq.empty
+
+  override def addArgument(arg: Argument): InternalPlanDescription = copy(arguments = arguments :+ arg)
+
+  override def dup(children: Seq[AnyRef]): WorkingScopePlanDescription.this.type = {
+    if (children.iterator eqElements this.treeChildren) {
+      this
+    } else {
+      copy(
+        children(0).asInstanceOf[Id],
+        children(1).asInstanceOf[String],
+        children(2).asInstanceOf[Set[PrettyString]],
+        children(3).asInstanceOf[Seq[Argument]],
+        children(4).asInstanceOf[Seq[InternalPlanDescription]]
+      ).asInstanceOf[this.type]
+    }
+  }
+}

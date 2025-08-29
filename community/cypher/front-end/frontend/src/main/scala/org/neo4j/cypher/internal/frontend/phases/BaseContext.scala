@@ -37,4 +37,5 @@ trait BaseContext {
   def internalUsageStats: InternalUsageStats
   def sessionDatabase: DatabaseReference
   def semanticFeatures: Seq[SemanticFeature]
+  def isScopeQuery: Boolean
 }

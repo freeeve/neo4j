@@ -23,7 +23,9 @@ import org.neo4j.cypher.internal.expressions.HasMappableExpressions
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 
-sealed trait MergeAction extends ASTNode with SemanticCheckable with HasMappableExpressions[MergeAction]
+sealed trait MergeAction extends ASTNode with SemanticCheckable with HasMappableExpressions[MergeAction] {
+  def action: SetClause
+}
 
 case class OnCreate(action: SetClause)(val position: InputPosition) extends MergeAction {
   def semanticCheck: SemanticCheck = action.semanticCheck

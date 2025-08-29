@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.neo4j.cypher.internal.plandescription.WorkingScopePlanDescription;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 
 public class TaggingPlanDescriptionWrapper implements ExecutionPlanDescription {
@@ -36,7 +37,8 @@ public class TaggingPlanDescriptionWrapper implements ExecutionPlanDescription {
 
     @Override
     public String getName() {
-        return innerPlanDescription.getName() + "@" + graphName;
+        if (innerPlanDescription instanceof WorkingScopePlanDescription) return innerPlanDescription.getName();
+        else return innerPlanDescription.getName() + "@" + graphName;
     }
 
     @Override

@@ -792,7 +792,8 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
           ImmutablePlanningAttributes.ProvidedOrders(logicalQuery.providedOrders),
           executionPlan,
           renderPlanDescription = false,
-          CypherVersion.Legacy.legacyVersion()
+          CypherVersion.Legacy.legacyVersion(),
+          workingScopeOpt = None
         )
       planDescriptionBuilder.explain()
     }

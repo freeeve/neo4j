@@ -68,8 +68,16 @@ EXPLAIN
    : E X P L A I N
    ;
 
+PLAN
+   : P L A N
+   ;
+
 PROFILE
    : P R O F I L E
+   ;
+
+SCOPE
+   : S C O P E
    ;
 
 IDENTIFIER
@@ -216,8 +224,13 @@ strictlyPreparserOptions
 
 option
    : cypher VERSION? (setting)*
-   | EXPLAIN
+   | EXPLAIN planMode?
    | PROFILE
+   ;
+
+planMode
+   : PLAN
+   | SCOPE
    ;
 
 cypher

@@ -23,20 +23,32 @@ import org.neo4j.cypher.internal.plandescription.Arguments.AvailableProcessors
 import org.neo4j.cypher.internal.plandescription.Arguments.AvailableWorkers
 import org.neo4j.cypher.internal.plandescription.Arguments.BatchSize
 import org.neo4j.cypher.internal.plandescription.Arguments.ByteCode
+import org.neo4j.cypher.internal.plandescription.Arguments.Comment
 import org.neo4j.cypher.internal.plandescription.Arguments.DbHits
+import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredConstants
+import org.neo4j.cypher.internal.plandescription.Arguments.DeclaredVariables
 import org.neo4j.cypher.internal.plandescription.Arguments.Details
 import org.neo4j.cypher.internal.plandescription.Arguments.Distinctness
 import org.neo4j.cypher.internal.plandescription.Arguments.EstimatedRows
 import org.neo4j.cypher.internal.plandescription.Arguments.GlobalMemory
 import org.neo4j.cypher.internal.plandescription.Arguments.IdArg
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingConstants
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPath
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingPredicate
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingTopology
+import org.neo4j.cypher.internal.plandescription.Arguments.IncomingVariables
 import org.neo4j.cypher.internal.plandescription.Arguments.Memory
 import org.neo4j.cypher.internal.plandescription.Arguments.Order
+import org.neo4j.cypher.internal.plandescription.Arguments.OutgoingConstants
+import org.neo4j.cypher.internal.plandescription.Arguments.OutgoingVariables
 import org.neo4j.cypher.internal.plandescription.Arguments.PageCacheHits
 import org.neo4j.cypher.internal.plandescription.Arguments.PageCacheMisses
 import org.neo4j.cypher.internal.plandescription.Arguments.PipelineInfo
 import org.neo4j.cypher.internal.plandescription.Arguments.Planner
 import org.neo4j.cypher.internal.plandescription.Arguments.PlannerImpl
 import org.neo4j.cypher.internal.plandescription.Arguments.PlannerVersion
+import org.neo4j.cypher.internal.plandescription.Arguments.Referenced
+import org.neo4j.cypher.internal.plandescription.Arguments.ResultColumns
 import org.neo4j.cypher.internal.plandescription.Arguments.Rows
 import org.neo4j.cypher.internal.plandescription.Arguments.Runtime
 import org.neo4j.cypher.internal.plandescription.Arguments.RuntimeImpl
@@ -81,6 +93,19 @@ object PlanDescriptionArgumentSerializer {
         s"$fusion$serialString Pipeline $pipelineId"
       case StringRepresentation(rep) => rep
       case IdArg(Id(id))             => Int.box(id)
+      // working scope details
+      case IncomingConstants(value) => value
+      case IncomingPath(value)      => value
+      case IncomingPredicate(value) => value
+      case IncomingTopology(value)  => value
+      case IncomingVariables(value) => value
+      case Referenced(value)        => value
+      case DeclaredConstants(value) => value
+      case DeclaredVariables(value) => value
+      case ResultColumns(value)     => value
+      case OutgoingConstants(value) => value
+      case OutgoingVariables(value) => value
+      case Comment(value)           => value
 
       // Do not add a fallthrough here - we rely on exhaustive checking to ensure
       // that we don't forget to add new types of arguments here

@@ -57,6 +57,8 @@ object ContextHelper extends MockitoSugar {
       override def sessionDatabase: DatabaseReference = sessionDatabaseReference
 
       override def semanticFeatures: Seq[SemanticFeature] = Seq()
+
+      def isScopeQuery: Boolean = false
     }
   }
 }

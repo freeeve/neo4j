@@ -172,4 +172,55 @@ object Arguments {
       case _                             => version
     }
   }
+
+  /*
+   * working scope details
+   */
+  case class IncomingConstants(value: String) extends Argument {
+    override def name = "incoming constants"
+  }
+
+  case class IncomingVariables(value: String) extends Argument {
+    override def name = "incoming variables"
+  }
+
+  case class IncomingTopology(value: String) extends Argument {
+    override def name = "incoming topology variables"
+  }
+
+  case class IncomingPredicate(value: String) extends Argument {
+    override def name = "incoming predicate variables"
+  }
+
+  case class IncomingPath(value: String) extends Argument {
+    override def name = "incoming path variables"
+  }
+
+  case class Referenced(value: String) extends Argument {
+    override def name = "referenced"
+  }
+
+  case class DeclaredConstants(value: String) extends Argument {
+    override def name = "declared constants"
+  }
+
+  case class DeclaredVariables(value: String) extends Argument {
+    override def name = "declared variables"
+  }
+
+  case class ResultColumns(value: String) extends Argument {
+    override def name = "result columns"
+  }
+
+  case class OutgoingConstants(value: String) extends Argument {
+    override def name = "outgoing constants"
+  }
+
+  case class OutgoingVariables(value: String) extends Argument {
+    override def name = "outgoing variables"
+  }
+
+  case class Comment(value: String) extends Argument {
+    override def name = "comment"
+  }
 }

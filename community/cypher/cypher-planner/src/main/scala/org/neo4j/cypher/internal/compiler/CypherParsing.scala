@@ -64,7 +64,8 @@ class CypherParsing(
     params: MapValue,
     cancellationChecker: CancellationChecker,
     resolver: Option[ScopedProcedureSignatureResolver] = None,
-    sessionDatabase: DatabaseReference
+    sessionDatabase: DatabaseReference,
+    isScopeQuery: Boolean
   ): BaseState = {
     val plannerName = PlannerNameFor(plannerNameText)
     val startState = InitialState(queryText, plannerName, new AnonymousVariableNameGenerator)
@@ -78,7 +79,8 @@ class CypherParsing(
       cancellationChecker,
       internalSyntaxUsageStats,
       sessionDatabase,
-      config.semanticFeatures
+      config.semanticFeatures,
+      isScopeQuery
     )
     val paramTypes = ParameterValueTypeHelper.asCypherTypeMap(params, config.useParameterSizeHint)
 
@@ -161,7 +163,8 @@ object CypherParsingConfig {
           GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
           GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
           GraphDatabaseInternalSettings.spd_enabled -> SemanticFeature.ShardedPropertyDatabase.productPrefix,
-          GraphDatabaseInternalSettings.cypher_enable_vector_type -> SemanticFeature.VectorType.productPrefix
+          GraphDatabaseInternalSettings.cypher_enable_vector_type -> SemanticFeature.VectorType.productPrefix,
+          GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix
         ))
       )
     }

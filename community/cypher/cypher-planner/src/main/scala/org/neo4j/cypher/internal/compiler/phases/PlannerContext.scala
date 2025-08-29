@@ -66,7 +66,8 @@ class BaseContextImpl(
   override val cancellationChecker: CancellationChecker,
   override val internalUsageStats: InternalUsageStats,
   val sessionDatabase: DatabaseReference,
-  override val semanticFeatures: Seq[SemanticFeature]
+  override val semanticFeatures: Seq[SemanticFeature],
+  override val isScopeQuery: Boolean
 ) extends BaseContext {
 
   override val errorHandler: Seq[SemanticErrorDef] => Unit =
@@ -87,7 +88,8 @@ object BaseContextImpl {
     cancellationChecker: CancellationChecker,
     internalSyntaxUsageStats: InternalUsageStats,
     sessionDatabase: DatabaseReference,
-    semanticFeatures: Seq[SemanticFeature]
+    semanticFeatures: Seq[SemanticFeature],
+    isScopeQuery: Boolean
   ): BaseContextImpl = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
     new BaseContextImpl(
@@ -99,7 +101,8 @@ object BaseContextImpl {
       cancellationChecker,
       internalSyntaxUsageStats,
       sessionDatabase,
-      semanticFeatures
+      semanticFeatures,
+      isScopeQuery
     )
   }
 }
@@ -141,7 +144,8 @@ class PlannerContext(
       cancellationChecker,
       internalSyntaxUsageStats,
       sessionDatabase,
-      semanticFeatures
+      semanticFeatures,
+      false
     ) {
 
   /**

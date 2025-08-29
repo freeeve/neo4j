@@ -64,11 +64,18 @@ class PreParserTest extends CypherFunSuite {
     intercept[InvalidArgumentException](preParse("PROFILE EXPLAIN RETURN 42"))
   }
 
+  test("should not allow both SCOPE and PLAN") {
+    intercept[InvalidArgumentException](preParse("EXPLAIN SCOPE EXPLAIN PLAN RETURN 42"))
+    intercept[InvalidArgumentException](preParse("EXPLAIN PLAN EXPLAIN SCOPE RETURN 42"))
+  }
+
   test("should throw error on empty query") {
     intercept[SyntaxException](preParse(""))
     intercept[SyntaxException](preParse("     "))
     intercept[SyntaxException](preParse("EXPLAIN\n\n\n\n\n"))
     intercept[SyntaxException](preParse("EXPLAIN   "))
+    intercept[SyntaxException](preParse("EXPLAIN PLAN  "))
+    intercept[SyntaxException](preParse("EXPLAIN SCOPE "))
     intercept[SyntaxException](preParse("PROFILE "))
     intercept[SyntaxException](preParse("CYPHER 25"))
   }
@@ -136,6 +143,24 @@ class PreParserTest extends CypherFunSuite {
       CypherQueryOptions.defaultOptions.copy(
         cypherVersion = CypherVersionOption.cypher5,
         executionMode = CypherExecutionMode.explain
+      )
+    preParse("EXPLAIN PLAN CYPHER 5 RETURN 42").options.queryOptions shouldBe
+      CypherQueryOptions.defaultOptions.copy(
+        cypherVersion = CypherVersionOption.cypher5,
+        executionMode = CypherExecutionMode.explain,
+        planMode = CypherPlanMode.plan
+      )
+    preParserWith(
+      GraphDatabaseInternalSettings.cypher_enable_scope_queries -> java.lang.Boolean.TRUE
+    ).preParseQuery(
+      "EXPLAIN SCOPE CYPHER 5 RETURN 42",
+      devNullLogger,
+      CypherVersion.Legacy.legacyVersion()
+    ).options.queryOptions shouldBe
+      CypherQueryOptions.defaultOptions.copy(
+        cypherVersion = CypherVersionOption.cypher5,
+        executionMode = CypherExecutionMode.explain,
+        planMode = CypherPlanMode.scope
       )
     preParse("PROFILE CYPHER 5 RETURN 42").options.queryOptions shouldBe
       CypherQueryOptions.defaultOptions.copy(

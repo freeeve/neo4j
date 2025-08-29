@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.RuntimeName
 import org.neo4j.cypher.internal.frontend.PlannerName
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.plandescription.Arguments.BatchSize
 import org.neo4j.cypher.internal.plandescription.Arguments.Runtime
@@ -48,7 +49,8 @@ object PlanDescriptionBuilder {
     providedOrders: ImmutablePlanningAttributes.ProvidedOrders,
     executionPlan: ExecutionPlan,
     renderPlanDescription: Boolean,
-    cypherVersion: CypherVersion
+    cypherVersion: CypherVersion,
+    workingScopeOpt: Option[WorkingScope]
   ): PlanDescriptionBuilder = {
     // NOTE: We should not keep a reference to the ExecutionPlan in the PlanDescriptionBuilder since it can end up in long-lived caches, e.g. RecentQueryBuffer
     val batchSize = executionPlan.batchSize
@@ -72,7 +74,8 @@ object PlanDescriptionBuilder {
       internalPlanDescriptionRewriter,
       batchSize,
       renderPlanDescription,
-      cypherVersion
+      cypherVersion,
+      workingScopeOpt
     )
   }
 }
@@ -92,8 +95,16 @@ class PlanDescriptionBuilder(
   internalPlanDescriptionRewriter: Option[InternalPlanDescriptionRewriter],
   batchSize: Option[Int],
   includeStringRepresentation: Boolean,
-  cypherVersion: CypherVersion
+  cypherVersion: CypherVersion,
+  workingScopeOpt: Option[WorkingScope]
 ) {
+
+  def scope(): InternalPlanDescription = {
+    if (workingScopeOpt.nonEmpty)
+      WorkingScope2PlanDescription(workingScopeOpt.get)
+    else
+      explain()
+  }
 
   def explain(): InternalPlanDescription = {
     val description =

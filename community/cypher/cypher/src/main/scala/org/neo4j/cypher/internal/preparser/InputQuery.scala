@@ -24,10 +24,12 @@ import org.neo4j.configuration.helpers.QueryLanguageConverter
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.options.CypherDerivedQueryOptions
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
+import org.neo4j.cypher.internal.options.CypherPlanMode
 import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
@@ -62,6 +64,8 @@ sealed trait InputQuery {
       ))
     case _ => Seq.empty
   }
+
+  def workingScopeOpt: Option[WorkingScope] = None
 }
 
 object InputQuery {
@@ -127,6 +131,7 @@ case class FullyParsedQuery(state: BaseState, options: QueryOptions) extends Inp
     options = options.copy(queryOptions = options.queryOptions.copy(replan = replanOption))
   )
 
+  override def workingScopeOpt: Option[WorkingScope] = state.maybeWorkingScope
 }
 
 /**
@@ -155,6 +160,9 @@ case class QueryOptions(
 
   def withExecutionMode(executionMode: CypherExecutionMode): QueryOptions =
     copy(queryOptions = queryOptions.copy(executionMode = executionMode))
+
+  def withPlanMode(planMode: CypherPlanMode): QueryOptions =
+    copy(queryOptions = queryOptions.copy(planMode = planMode))
 
   def withQueryLanguage(language: CypherVersion): QueryOptions =
     copy(queryOptions =
@@ -198,7 +206,8 @@ case class QueryOptions(
   def render: Option[String] = {
     val options = queryOptions.renderCypherOptions
     val cypherOptions = if (!options.isBlank) "CYPHER " + options else ""
-    val fullOptions = (queryOptions.renderExecutionMode + " " + cypherOptions).trim
+    val executionOptions = (queryOptions.renderExecutionMode + " " + queryOptions.renderPlanMode).trim
+    val fullOptions = (executionOptions + " " + cypherOptions).trim
     if (fullOptions.isBlank) None else Some(fullOptions)
   }
 

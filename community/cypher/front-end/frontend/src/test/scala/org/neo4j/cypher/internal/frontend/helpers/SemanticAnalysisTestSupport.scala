@@ -91,6 +91,7 @@ class ErrorCollectingContext(
       override def isShard: Boolean = false
     }
   }
+  override def isScopeQuery: Boolean = false
 }
 
 object ErrorCollectingContext {

@@ -20,12 +20,15 @@
 package org.neo4j.cypher.internal.preparser
 
 import org.neo4j.cypher.internal.options.CypherExecutionMode
+import org.neo4j.cypher.internal.options.CypherPlanMode
 import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.util.InputPosition
 
 final case class PreParserOption(key: String, value: String, position: InputPosition)
 
 object PreParserOption {
+  def scope(position: InputPosition): PreParserOption = PreParserOption(CypherPlanMode.name, "SCOPE", position)
+  def plan(position: InputPosition): PreParserOption = PreParserOption(CypherPlanMode.name, "PLAN", position)
   def explain(position: InputPosition): PreParserOption = PreParserOption(CypherExecutionMode.name, "EXPLAIN", position)
   def profile(position: InputPosition): PreParserOption = PreParserOption(CypherExecutionMode.name, "PROFILE", position)
 

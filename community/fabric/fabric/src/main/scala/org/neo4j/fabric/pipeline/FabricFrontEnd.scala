@@ -129,7 +129,8 @@ case class FabricFrontEnd(
             GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix,
             GraphDatabaseInternalSettings.relationship_property_value_access_rules -> SemanticFeature.RelationshipPropertyValueAccessRules.productPrefix,
             GraphDatabaseInternalSettings.spd_enabled -> SemanticFeature.ShardedPropertyDatabase.productPrefix,
-            GraphDatabaseInternalSettings.cypher_enable_vector_type -> SemanticFeature.VectorType.productPrefix
+            GraphDatabaseInternalSettings.cypher_enable_vector_type -> SemanticFeature.VectorType.productPrefix,
+            GraphDatabaseInternalSettings.cypher_enable_scope_queries -> SemanticFeature.ScopeQueries.productPrefix
           ))
         ) ++ semanticFeatures,
       obfuscateLiterals = cypherConfig.obfuscateLiterals,
@@ -146,7 +147,8 @@ case class FabricFrontEnd(
       cancellationChecker,
       internalSyntaxUsageStats,
       sessionDatabase,
-      parsingConfig.semanticFeatures
+      parsingConfig.semanticFeatures,
+      query.options.queryOptions.planMode.isScope
     )
 
     object parseAndPrepare {

@@ -275,7 +275,8 @@ case class CypherPlanner(
         tracer,
         params,
         cancellationChecker,
-        sessionDatabase
+        sessionDatabase,
+        preParsedQuery.options.queryOptions.planMode.isScope
       )
       val value = AstCache.AstCacheValue(parsedQuery, notificationLogger.notifications)
       // We don't want to cache any query when a parameter has been solved

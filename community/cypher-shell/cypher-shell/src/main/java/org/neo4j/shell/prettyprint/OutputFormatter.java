@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.Values;
@@ -95,6 +96,18 @@ public interface OutputFormatter {
         StringBuilder sb = new StringBuilder(times * c.length());
         for (int i = 0; i < times; i++) {
             sb.append(c);
+        }
+        return sb.toString();
+    }
+
+    static String repeatConditionally(String a, String b, int times, Function<Integer, Boolean> condition) {
+        StringBuilder sb = new StringBuilder(times * Math.max(a.length(), b.length()));
+        for (int i = 0; i < times; i++) {
+            if (condition.apply(i)) {
+                sb.append(a);
+            } else {
+                sb.append(b);
+            }
         }
         return sb.toString();
     }

@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -106,6 +107,7 @@ trait FragmentTestUtils {
     override val maybeProcedureSignatureVersion: Option[Long] = Option.empty
     override val maybeStatement: Option[Statement] = Option.empty
     override val maybeReturnColumns: Option[Seq[String]] = Option.empty
+    override val maybeWorkingScope: Option[WorkingScope] = Option.empty
     override val maybeSemantics: Option[SemanticState] = Option.empty
     override val maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = Option.empty
     override val maybeResolvedParams: Option[Set[String]] = Option.empty
@@ -116,6 +118,7 @@ trait FragmentTestUtils {
     override val semanticsUpToDate: Boolean = false
     override def withStatement(s: Statement): BaseState = this
     override def withReturnColumns(cols: Seq[String]): BaseState = this
+    override def withWorkingScope(ws: WorkingScope): BaseState = this
     override def withSemanticTable(s: SemanticTable): BaseState = this
     override def withSemanticState(s: SemanticState): BaseState = this
     override def withParams(p: Map[AutoExtractedParameter, Expression]): BaseState = this

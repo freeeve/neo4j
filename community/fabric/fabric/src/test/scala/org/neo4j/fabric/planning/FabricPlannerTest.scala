@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeSupportOption
 import org.neo4j.cypher.internal.options.CypherPipelinedBatchSizePresetOption
+import org.neo4j.cypher.internal.options.CypherPlanMode
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
@@ -1080,6 +1081,7 @@ class FabricPlannerTest
           case CypherVersion.Cypher25 => CypherVersionOption.cypher25
         },
         executionMode = CypherExecutionMode.default,
+        planMode = CypherPlanMode.default,
         planner = CypherPlannerOption.cost,
         runtime = CypherRuntimeOption.parallel,
         updateStrategy = CypherUpdateStrategy.eager,

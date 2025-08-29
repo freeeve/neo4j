@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
 import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
+import org.neo4j.cypher.internal.options.CypherPlanMode
 import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.options.CypherVersionOption
@@ -118,7 +119,14 @@ class CachingPreParser(
       }
     preParsedQuery.notifications.foreach(notificationLogger.log)
     if (profile) {
-      preParsedQuery.copy(options = preParsedQuery.options.withExecutionMode(CypherExecutionMode.profile))
+      preParsedQuery.copy(options =
+        preParsedQuery.options.copy(
+          queryOptions = preParsedQuery.options.queryOptions.copy(
+            executionMode = CypherExecutionMode.profile,
+            planMode = CypherPlanMode.default
+          )
+        )
+      )
     } else if (targetsComposite) {
       preParsedQuery.copy(options =
         preParsedQuery.options.copy(

@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.ProcedureDbmsAccess
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScope
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString
 import org.neo4j.cypher.internal.logical.plans.ProcedureCall
@@ -220,7 +221,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       kernelMonitors,
       query.resolvedLanguage,
       executionPlanCacheKeyHash,
-      planState.returnColumns.toArray
+      planState.returnColumns.toArray,
+      planState.maybeWorkingScope
     )
   }
 
@@ -434,7 +436,8 @@ object CypherCurrentCompiler {
     kernelMonitors: Monitors,
     cypherVersion: CypherVersion,
     override val executionPlanCacheKeyHash: Int,
-    val returnColumns: Array[String]
+    val returnColumns: Array[String],
+    maybeWorkingScope: Option[WorkingScope]
   ) extends ExecutableQuery {
 
     // Monitors are implemented via dynamic proxies which are slow compared to NOOP which is why we want to able to completely disable
@@ -456,7 +459,8 @@ object CypherCurrentCompiler {
         providedOrders,
         executionPlan,
         renderPlanDescription,
-        cypherVersion
+        cypherVersion,
+        maybeWorkingScope
       )
 
     private def createQueryContext(
@@ -575,7 +579,7 @@ object CypherCurrentCompiler {
             .map(asKernelNotification(Some(queryOptions.offset)))
             .filter(notificationConfig.includes(_))
         }
-
+      val isScope = queryOptions.queryOptions.planMode.isScope
       val inner =
         if (innerExecutionMode == ExplainMode) {
           taskCloser.close(Success)
@@ -583,7 +587,8 @@ object CypherCurrentCompiler {
 
           new ExplainExecutionResult(
             returnColumns,
-            planDescriptionBuilder.explain(),
+            if (isScope) planDescriptionBuilder.scope()
+            else planDescriptionBuilder.explain(),
             internalQueryType,
             filteredPlannerNotifications.toSet,
             subscriber
@@ -604,6 +609,7 @@ object CypherCurrentCompiler {
             outerCloseable,
             internalQueryType,
             innerExecutionMode,
+            isScope,
             planDescriptionBuilder,
             subscriber,
             () =>

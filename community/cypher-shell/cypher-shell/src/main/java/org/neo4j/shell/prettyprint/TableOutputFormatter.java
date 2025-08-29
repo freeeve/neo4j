@@ -48,6 +48,7 @@ import org.neo4j.shell.state.BoltResult;
 
 public class TableOutputFormatter implements OutputFormatter {
 
+    public static final String INCOMING_VARIABLES = "incoming variables";
     public static final String STRING_REPRESENTATION = "string-representation";
     private static final String INFO_SEVERITY_LEVEL = "info";
     private final boolean wrap;
@@ -389,6 +390,8 @@ public class TableOutputFormatter implements OutputFormatter {
         Plan plan = summary.plan();
         if (plan.arguments().containsKey(STRING_REPRESENTATION)) {
             return plan.arguments().get(STRING_REPRESENTATION).asString();
+        } else if (plan.arguments().containsKey(INCOMING_VARIABLES)) {
+            return new TableScopePlanFormatter().formatPlan(plan);
         } else {
             return new TablePlanFormatter().formatPlan(plan);
         }
