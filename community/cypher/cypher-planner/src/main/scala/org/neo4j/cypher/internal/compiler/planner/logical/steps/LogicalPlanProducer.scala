@@ -623,7 +623,9 @@ case class LogicalPlanProducer(
     hiddenSelections: Seq[Expression],
     argumentIds: Set[LogicalVariable],
     providedOrder: ProvidedOrder,
-    context: LogicalPlanningContext
+    context: LogicalPlanningContext,
+    solvedPropertyPredicates: Set[Expression],
+    propertyPredicates: Map[PropertyKeyToken, Expression]
   ): LogicalPlan = {
     val predicate =
       operator match {
@@ -647,7 +649,8 @@ case class LogicalPlanProducer(
           relType = element,
           endNode = Some(patternForLeafPlan.right),
           argumentIds = allArgumentIds,
-          indexOrder = indexOrder
+          indexOrder = indexOrder,
+          propertyPredicates = propertyPredicates
         )
       case SemanticDirection.INCOMING =>
         DynamicDirectedRelationshipTypeLookup(
@@ -656,7 +659,8 @@ case class LogicalPlanProducer(
           relType = element,
           endNode = Some(patternForLeafPlan.left),
           argumentIds = allArgumentIds,
-          indexOrder = indexOrder
+          indexOrder = indexOrder,
+          propertyPredicates = propertyPredicates
         )
       case SemanticDirection.BOTH =>
         DynamicUndirectedRelationshipTypeLookup(
@@ -665,7 +669,8 @@ case class LogicalPlanProducer(
           relType = element,
           rightNode = Some(patternForLeafPlan.right),
           argumentIds = allArgumentIds,
-          indexOrder = indexOrder
+          indexOrder = indexOrder,
+          propertyPredicates = propertyPredicates
         )
     }
 
@@ -673,7 +678,7 @@ case class LogicalPlanProducer(
       annotateRelationshipLeafPlan(
         leafPlan = leafPlan,
         patternForLeafPlan = patternForLeafPlan,
-        solvedPredicates = List(predicate),
+        solvedPredicates = List(predicate) ++ solvedPropertyPredicates,
         solvedHint = Nil,
         argumentIds = argumentIds,
         providedOrder = providedOrder,

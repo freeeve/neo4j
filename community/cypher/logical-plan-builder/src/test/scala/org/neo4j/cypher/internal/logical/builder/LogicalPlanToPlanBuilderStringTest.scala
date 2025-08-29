@@ -402,6 +402,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "dynamicLabelNodeLookup",
     new TestPlanBuilder()
       .produceResults("x")
+      .apply()
+      .|.dynamicLabelNodeLookup("y", "['A', 'B']", All, "x")
       .dynamicLabelNodeLookup("x", "['A', 'B']", All, Map("foo" -> "1"))
       .build()
   )
@@ -1990,8 +1992,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     new TestPlanBuilder()
       .produceResults("x", "y")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$all('R')")
-      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any('R')")
+      .|.dynamicRelationshipTypeLookup("(x)-[r]-(y)", "$all('R')", IndexOrderAscending, argumentIds = Set("x", "y"))
+      .dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any('R')", propertyPredicates = Map("prop" -> "123"))
       .build()
   )
 

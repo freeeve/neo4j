@@ -467,19 +467,10 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case DynamicLabelNodeLookup(idName, labelExpr, _, propertyConstraints) =>
+      case DynamicLabelNodeLookup(idName, labelExpr, _, propertyPredicates) =>
         val label = getPrettyDynamicElement(labelExpr)
-        var prettyDetails = pretty"${asPrettyString(idName)}:$label"
-
-        if (propertyConstraints.nonEmpty) {
-          prettyDetails = prettyDetails
-            .append(pretty"\n")
-            .append(propertyConstraints
-              .map { case (prop, expr) =>
-                pretty"${asPrettyString(idName)}.${asPrettyString.raw(prop.name)} = ${asPrettyString(expr)}"
-              }
-              .mkPrettyString("\n"))
-        }
+        val prettyDetails = pretty"${asPrettyString(idName)}:$label"
+          .append(formatPropertyPredicatesForDynamicIndexSeek(asPrettyString(idName), propertyPredicates))
 
         PlanDescriptionImpl(
           id,
@@ -1231,9 +1222,10 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case DynamicDirectedRelationshipTypeLookup(idName, start, typeExpr, end, _, _) =>
+      case DynamicDirectedRelationshipTypeLookup(idName, start, typeExpr, end, _, _, propertyPredicates) =>
         val prettyType =
           pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${getPrettyDynamicElement(typeExpr)}]->(${asPrettyString(end)})"
+            .append(formatPropertyPredicatesForDynamicIndexSeek(asPrettyString(idName), propertyPredicates))
         PlanDescriptionImpl(
           id,
           "DynamicDirectedRelationshipTypeLookup",
@@ -1255,9 +1247,10 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case DynamicUndirectedRelationshipTypeLookup(idName, start, typeExpr, end, _, _) =>
+      case DynamicUndirectedRelationshipTypeLookup(idName, start, typeExpr, end, _, _, propertyPredicates) =>
         val prettyDetails =
           pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${getPrettyDynamicElement(typeExpr)}]-(${asPrettyString(end)})"
+            .append(formatPropertyPredicatesForDynamicIndexSeek(asPrettyString(idName), propertyPredicates))
         PlanDescriptionImpl(
           id,
           "DynamicUndirectedRelationshipTypeLookup",
@@ -4064,4 +4057,20 @@ case class LogicalPlan2PlanDescription(
       }).mkString("columns(", ", ", ")"))
     else if (yieldAll) pretty"allColumns"
     else pretty"defaultColumns"
+
+  private def formatPropertyPredicatesForDynamicIndexSeek(
+    idName: PrettyString,
+    propertyPredicates: Map[PropertyKeyToken, Expression]
+  ): PrettyString = {
+    if (propertyPredicates.isEmpty) {
+      pretty""
+    } else {
+      pretty"\n"
+        .append(propertyPredicates
+          .map { case (prop, expr) =>
+            pretty"$idName.${asPrettyString.raw(prop.name)} = ${asPrettyString(expr)}"
+          }
+          .mkPrettyString("\n"))
+    }
+  }
 }

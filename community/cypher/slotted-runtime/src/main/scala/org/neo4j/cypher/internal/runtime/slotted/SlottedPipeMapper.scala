@@ -790,7 +790,7 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
-      case DynamicDirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, indexOrder) =>
+      case DynamicDirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, indexOrder, _) =>
         indexRegistrator.registerTypeScan()
 
         relTypeLabel match {
@@ -815,7 +815,7 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
-      case DynamicUndirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, indexOrder) =>
+      case DynamicUndirectedRelationshipTypeLookup(name, start, relTypeLabel, end, _, indexOrder, _) =>
         indexRegistrator.registerTypeScan()
 
         relTypeLabel match {

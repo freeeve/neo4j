@@ -508,7 +508,7 @@ object ReadFinder {
       case DirectedRelationshipTypeScan(relationship, leftNode, relType, rightNode, _, _) =>
         processRelTypeRead(relationshipVariable(relationship), leftNode, relType, rightNode)
 
-      case DynamicDirectedRelationshipTypeLookup(relationship, startNode, relType, endNode, _, _) =>
+      case DynamicDirectedRelationshipTypeLookup(relationship, startNode, relType, endNode, _, _, _) =>
         val r = relationshipVariable(relationship)
         val predicate = relType match {
           case DynamicElement.Simple(expr, operator) => operator match {
@@ -522,7 +522,7 @@ object ReadFinder {
           .withIntroducedRelationshipVariable(relationship)
           .withAddedRelationshipFilterExpression(r, predicate)
 
-      case DynamicUndirectedRelationshipTypeLookup(relationship, leftNode, relType, rightNode, _, _) =>
+      case DynamicUndirectedRelationshipTypeLookup(relationship, leftNode, relType, rightNode, _, _, _) =>
         val r = relationshipVariable(relationship)
         val predicate = relType match {
           case DynamicElement.Simple(expr, operator) => operator match {

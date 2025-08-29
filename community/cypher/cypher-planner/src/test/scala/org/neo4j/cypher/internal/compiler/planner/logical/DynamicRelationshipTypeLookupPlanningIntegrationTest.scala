@@ -61,7 +61,9 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
           rightNode = Some("b"),
           direction = SemanticDirection.OUTGOING,
           operator = DynamicElement.All,
-          indexOrder = IndexOrderNone
+          indexOrder = IndexOrderNone,
+          propertyPredicates = Map.empty,
+          argumentIds = Set.empty
         )
         .build()
   }
@@ -84,7 +86,9 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
           rightNode = Some("b"),
           direction = SemanticDirection.OUTGOING,
           operator = DynamicElement.All,
-          indexOrder = IndexOrderNone
+          indexOrder = IndexOrderNone,
+          propertyPredicates = Map.empty,
+          argumentIds = Set.empty
         )
         .build()
   }
@@ -106,7 +110,9 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
           rightNode = Some("b"),
           direction = SemanticDirection.BOTH,
           operator = DynamicElement.Any,
-          indexOrder = IndexOrderNone
+          indexOrder = IndexOrderNone,
+          propertyPredicates = Map.empty,
+          argumentIds = Set.empty
         )
         .build()
   }
@@ -131,7 +137,8 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
           direction = SemanticDirection.INCOMING,
           operator = DynamicElement.Any,
           indexOrder = IndexOrderNone,
-          args = "types"
+          propertyPredicates = Map.empty,
+          argumentIds = Set("types")
         )
         .projection("['R', 'S', 'T'] AS types")
         .argument()
@@ -159,7 +166,8 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
           direction = SemanticDirection.BOTH,
           operator = DynamicElement.Any,
           indexOrder = IndexOrderNone,
-          args = "labels"
+          propertyPredicates = Map.empty,
+          argumentIds = Set("labels")
         )
         .projection("labels(a) AS labels")
         .nodeByLabelScan("a", "A", IndexOrderNone)
@@ -189,7 +197,9 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
           rightNode = Some("anon_1"),
           direction = SemanticDirection.OUTGOING,
           operator = DynamicElement.All,
-          indexOrder = IndexOrderNone
+          indexOrder = IndexOrderNone,
+          propertyPredicates = Map.empty,
+          argumentIds = Set.empty
         )
         .build()
   }
@@ -252,7 +262,9 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
           rightNode = Some("b"),
           direction = SemanticDirection.OUTGOING,
           operator = DynamicElement.All,
-          indexOrder = IndexOrderAscending
+          indexOrder = IndexOrderAscending,
+          propertyPredicates = Map.empty,
+          argumentIds = Set.empty
         )
         .build()
   }
@@ -276,8 +288,194 @@ class DynamicRelationshipTypeLookupPlanningIntegrationTest
           rightNode = Some("b"),
           direction = SemanticDirection.BOTH,
           operator = DynamicElement.All,
-          indexOrder = IndexOrderDescending
+          indexOrder = IndexOrderDescending,
+          propertyPredicates = Map.empty,
+          argumentIds = Set.empty
         )
         .build()
+  }
+
+  test("should not plan index usage when setting is disabled") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(100)
+      .enablePlanningDynamicLabelIndexUse(false)
+      .build()
+
+    val query = "MATCH (a)-[r:$('R')]-(b) WHERE r.prop = 123 RETURN r"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("r.prop = 123")
+      .dynamicRelationshipTypeLookup("()-[r]-()", "$all('R')")
+      .build()
+  }
+
+  test("should plan index usage for equality predicate") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query = "MATCH (a)-[r:$('R')]-(b) WHERE r.prop = 123 RETURN r"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .dynamicRelationshipTypeLookup("()-[r]-()", "$all('R')", propertyPredicates = Map("prop" -> "123"))
+      .build()
+  }
+
+  test("should plan index for multiple equality predicates on different properties") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query =
+      """MATCH (a)-[r:$('R') {name: 'hello', version: 123}]->(b)
+        |WHERE r.location = point({x:22.0, y:44.0})
+        |RETURN r
+        |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .dynamicRelationshipTypeLookup(
+        "()-[r]->()",
+        "$all('R')",
+        propertyPredicates = Map("name" -> "'hello'", "version" -> "123", "location" -> "point({x:22.0, y:44.0})")
+      )
+      .build()
+  }
+
+  test("should only plan index usage for known properties") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(100)
+      .addProperty("name")
+      .addProperty("version")
+      .addProperty("location")
+      .setAutoResolvePropertiesDuringPlanning(false)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query =
+      """MATCH (a)-[r:$('R') {name: 'hello', version: 123}]->(b)
+        |WHERE
+        |  r.location = point({x:22.0, y:44.0}) AND
+        |  r.unknown = 321
+        |RETURN r
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("r.unknown = 321")
+      .dynamicRelationshipTypeLookup(
+        "()-[r]->()",
+        "$all('R')",
+        propertyPredicates = Map("name" -> "'hello'", "version" -> "123", "location" -> "point({x:22.0, y:44.0})")
+      )
+      .build()
+  }
+
+  test("should plan index usage for equality predicate with argument dependencies") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query =
+      """MATCH (x)
+        |CALL (x) {
+        |  MATCH (a)-[r:$('R')]-(b)
+        |  WHERE r.prop = x.name
+        |  RETURN r
+        |}
+        |RETURN x, r
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .apply()
+      .|.dynamicRelationshipTypeLookup(
+        "()-[r]-()",
+        "$all('R')",
+        propertyPredicates = Map("prop" -> "x.name"),
+        argumentIds = Set("x")
+      )
+      .allNodeScan("x")
+      .build()
+  }
+
+  test("should not plan index usage for predicate on unrelated variable") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query =
+      """MATCH (x)
+        |CALL (x) {
+        |  MATCH (a)-[r:$('R')]->(b)
+        |  WHERE r.prop = x.name AND x.other = 123
+        |  RETURN r
+        |}
+        |RETURN x, r
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("cacheN[x.other] = 123")
+      .apply()
+      .|.dynamicRelationshipTypeLookup(
+        "()-[r]->()",
+        "$all('R')",
+        propertyPredicates = Map("prop" -> "x.name"),
+        argumentIds = Set("x")
+      )
+      .cacheProperties("cacheNFromStore[x.other]")
+      .allNodeScan("x")
+      .build()
+  }
+
+  test("should not plan index usage for non-equality predicates") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val unsupportedPredicates = Seq(
+      "r.prop IS NOT NULL",
+      "r.prop STARTS WITH 'hello'",
+      "r.prop ENDS WITH 'hello'",
+      "r.prop CONTAINS 'hello'",
+      "r.prop > 123"
+    )
+
+    for (pred <- unsupportedPredicates) {
+
+      val query = s"MATCH (a)-[r:$$('R')]->(b) WHERE r.x = 123 AND $pred RETURN r"
+      val plan = planner.plan(query).stripProduceResults
+      plan shouldEqual planner.subPlanBuilder()
+        .filter(pred)
+        .dynamicRelationshipTypeLookup("()-[r]->()", "$all('R')", propertyPredicates = Map("x" -> "123"))
+        .build()
+    }
+  }
+
+  test("should plan index usage for one equality predicate if there are multiple predicates on the same property") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setAllRelationshipsCardinality(100)
+      .enablePlanningDynamicLabelIndexUse()
+      .build()
+
+    val query = "MATCH (a)-[r:$('R')]-(b) WHERE r.x = 123 AND r.x = 321 RETURN r"
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .filter("r.x = 321")
+      .dynamicRelationshipTypeLookup("()-[r]-()", "$all('R')", propertyPredicates = Map("x" -> "123"))
+      .build()
   }
 }

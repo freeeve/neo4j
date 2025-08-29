@@ -1395,9 +1395,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       varFor(n),
       DynamicElement.Simple(labelExpr, operator),
       args.map(a => varFor(VariableParser.unescaped(a))).toSet,
-      propConstraints.map { case (prop, expr) =>
-        PropertyKeyToken(prop, PropertyKeyId(resolver.getPropertyKeyId(prop))) -> expr
-      }
+      resolvePropertyKeyIdsForDynamicIndexUse(propConstraints)
     )(_)))
   }
 
@@ -1895,21 +1893,12 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     }
   }
 
-  // implicit IndexOrderNone
   def dynamicRelationshipTypeLookup(
     pattern: String,
     relTypeExpr: String,
-    args: String*
-  ): IMPL = {
-    dynamicRelationshipTypeLookup(pattern, relTypeExpr, IndexOrderNone, args: _*)
-  }
-
-  // supplied index order
-  def dynamicRelationshipTypeLookup(
-    pattern: String,
-    relTypeExpr: String,
-    indexOrder: IndexOrder,
-    args: String*
+    indexOrder: IndexOrder = IndexOrderNone,
+    propertyPredicates: Map[String, String] = Map.empty,
+    argumentIds: Set[String] = Set.empty
   ): IMPL = {
     val p = patternParser.parse(pattern)
     val regex = "^(\\$|\\$any|\\$all)\\((.*)\\)$".r
@@ -1930,14 +1919,14 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           p.dir,
           op,
           indexOrder,
-          args: _*
+          propertyPredicates.view.mapValues(parseExpression).toMap,
+          argumentIds
         )
       case _ =>
         throw new IllegalArgumentException(s"'$pattern' cannot be parsed as a dynamic relationship type expression")
     }
   }
 
-  // use supplied indexOrder, Option nodes
   def dynamicRelationshipTypeLookup(
     leftNode: Option[String],
     relName: Option[String],
@@ -1946,7 +1935,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     direction: SemanticDirection,
     operator: SetOperator,
     indexOrder: IndexOrder,
-    args: String*
+    propertyPredicates: Map[String, Expression],
+    argumentIds: Set[String]
   ): IMPL = {
     newRelationship(varFor(relName))
     newNode(varFor(leftNode))
@@ -1959,8 +1949,9 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           varFor(leftNode),
           DynamicElement.Simple(relTypeExpr, operator),
           varFor(rightNode),
-          args.map(varFor).toSet,
-          indexOrder
+          argumentIds.map(varFor),
+          indexOrder,
+          resolvePropertyKeyIdsForDynamicIndexUse(propertyPredicates)
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeLookup(
@@ -1968,8 +1959,9 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           varFor(rightNode),
           DynamicElement.Simple(relTypeExpr, operator),
           varFor(leftNode),
-          args.map(varFor).toSet,
-          indexOrder
+          argumentIds.map(varFor),
+          indexOrder,
+          resolvePropertyKeyIdsForDynamicIndexUse(propertyPredicates)
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(DynamicUndirectedRelationshipTypeLookup(
@@ -1977,8 +1969,9 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           varFor(leftNode),
           DynamicElement.Simple(relTypeExpr, operator),
           varFor(rightNode),
-          args.map(varFor).toSet,
-          indexOrder
+          argumentIds.map(varFor),
+          indexOrder,
+          resolvePropertyKeyIdsForDynamicIndexUse(propertyPredicates)
         )(_)))
     }
   }
@@ -3560,6 +3553,13 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def ___CONDITION_END___(): IMPL = {
     this.enabled = true
     self
+  }
+
+  private def resolvePropertyKeyIdsForDynamicIndexUse(propertyPredicates: Map[String, Expression])
+    : Map[PropertyKeyToken, Expression] = {
+    propertyPredicates.map { case (prop, expr) =>
+      PropertyKeyToken(prop, PropertyKeyId(resolver.getPropertyKeyId(prop))) -> expr
+    }
   }
 
   protected def appendAtCurrentIndent(operatorBuilder: OperatorBuilder): IMPL = {

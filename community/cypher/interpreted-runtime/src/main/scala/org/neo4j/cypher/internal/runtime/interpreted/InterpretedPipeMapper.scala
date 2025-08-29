@@ -551,7 +551,7 @@ case class InterpretedPipeMapper(
           indexOrder
         )(id = id)
 
-      case DynamicDirectedRelationshipTypeLookup(ident, fromNode, typeExpr, toNode, _, indexOrder) =>
+      case DynamicDirectedRelationshipTypeLookup(ident, fromNode, typeExpr, toNode, _, indexOrder, _) =>
         indexRegistrator.registerTypeScan()
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
@@ -575,7 +575,7 @@ case class InterpretedPipeMapper(
           indexOrder
         )(id = id)
 
-      case DynamicUndirectedRelationshipTypeLookup(ident, fromNode, typeExpr, toNode, _, indexOrder) =>
+      case DynamicUndirectedRelationshipTypeLookup(ident, fromNode, typeExpr, toNode, _, indexOrder, _) =>
         indexRegistrator.registerTypeScan()
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>

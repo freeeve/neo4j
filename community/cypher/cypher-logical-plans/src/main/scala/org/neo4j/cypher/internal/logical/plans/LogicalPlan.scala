@@ -2114,7 +2114,8 @@ case class DynamicDirectedRelationshipTypeLookup(
   relType: DynamicElement,
   endNode: Option[LogicalVariable],
   argumentIds: Set[LogicalVariable],
-  indexOrder: IndexOrder
+  indexOrder: IndexOrder,
+  propertyPredicates: Map[PropertyKeyToken, Expression]
 )(implicit idGen: IdGen)
     extends RelationshipLogicalLeafPlan(idGen) with RelationshipTypeScan with StableLeafPlan {
 
@@ -5644,7 +5645,8 @@ case class DynamicUndirectedRelationshipTypeLookup(
   relType: DynamicElement,
   rightNode: Option[LogicalVariable],
   argumentIds: Set[LogicalVariable],
-  indexOrder: IndexOrder
+  indexOrder: IndexOrder,
+  propertyPredicates: Map[PropertyKeyToken, Expression]
 )(implicit idGen: IdGen)
     extends RelationshipLogicalLeafPlan(idGen) with RelationshipTypeScan with StableLeafPlan {
 

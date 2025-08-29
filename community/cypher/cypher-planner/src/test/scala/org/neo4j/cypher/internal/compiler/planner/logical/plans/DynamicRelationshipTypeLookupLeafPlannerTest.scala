@@ -63,7 +63,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
         endNode = Some(b),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -85,7 +86,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
         endNode = Some(a),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -107,7 +109,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
         rightNode = Some(b),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -129,7 +132,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(listOf(), DynamicElement.All),
         rightNode = Some(b),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -151,7 +155,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(listOfString("R", "S"), DynamicElement.All),
         rightNode = Some(b),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -173,7 +178,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(listOfString("R", "S"), DynamicElement.Any),
         rightNode = Some(b),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -197,7 +203,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(types, DynamicElement.All),
         rightNode = Some(b),
         argumentIds = Set(types),
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -259,7 +266,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
           relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
           endNode = Some(b),
           argumentIds = Set(a),
-          indexOrder = IndexOrderNone
+          indexOrder = IndexOrderNone,
+          propertyPredicates = Map.empty
         )
       )
     )
@@ -291,7 +299,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
           relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
           rightNode = Some(unnamed1),
           argumentIds = Set(a, b),
-          indexOrder = IndexOrderNone
+          indexOrder = IndexOrderNone,
+          propertyPredicates = Map.empty
         )
       )
     )
@@ -320,7 +329,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
           relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
           rightNode = Some(unnamed0),
           argumentIds = Set.empty,
-          indexOrder = IndexOrderNone
+          indexOrder = IndexOrderNone,
+          propertyPredicates = Map.empty
         )
       )
     )
@@ -351,7 +361,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
           relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
           endNode = Some(unnamed0),
           argumentIds = Set(a),
-          indexOrder = IndexOrderNone
+          indexOrder = IndexOrderNone,
+          propertyPredicates = Map.empty
         )
       )
     )
@@ -376,7 +387,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
         endNode = Some(b),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderAscending
+        indexOrder = IndexOrderAscending,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -402,7 +414,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
         endNode = Some(b),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderAscending
+        indexOrder = IndexOrderAscending,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -426,7 +439,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
         endNode = Some(a),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderDescending
+        indexOrder = IndexOrderDescending,
+        propertyPredicates = Map.empty
       )
     )
   }
@@ -450,7 +464,8 @@ class DynamicRelationshipTypeLookupLeafPlannerTest extends CypherFunSuite with L
         relType = DynamicElement.Simple(literalString("R"), DynamicElement.All),
         rightNode = Some(b),
         argumentIds = Set.empty,
-        indexOrder = IndexOrderNone
+        indexOrder = IndexOrderNone,
+        propertyPredicates = Map.empty
       )
     )
   }

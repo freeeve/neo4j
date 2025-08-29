@@ -164,7 +164,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
       .produceResults("b", "r")
       .apply()
       .|.projection("a AS b")
-      .|.dynamicRelationshipTypeLookup("()-[r]->()", "$('R')", "a")
+      .|.dynamicRelationshipTypeLookup("()-[r]->()", "$('R')", argumentIds = Set("a"))
       .input(variables = Seq("a"))
       .build()
 
@@ -265,7 +265,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
       .produceResults("b", "r")
       .apply()
       .|.projection("a AS b")
-      .|.dynamicRelationshipTypeLookup("()-[r]-()", "$('R')", "a")
+      .|.dynamicRelationshipTypeLookup("()-[r]-()", "$('R')", argumentIds = Set("a"))
       .input(variables = Seq("a"))
       .build()
 
@@ -454,7 +454,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(relType)", "relType")
+      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(relType)", argumentIds = Set("relType"))
       .input(variables = Seq("relType"))
       .build()
 
@@ -475,7 +475,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$(relType)", "relType")
+      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$(relType)", argumentIds = Set("relType"))
       .input(variables = Seq("relType"))
       .build()
 
@@ -517,7 +517,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all(relType)", "relType")
+      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$all(relType)", argumentIds = Set("relType"))
       .input(variables = Seq("relType"))
       .build()
 
@@ -546,7 +546,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(relType)", IndexOrderNone, "relType")
+      .|.dynamicRelationshipTypeLookup("(x)-[r]->(y)", "$any(relType)", IndexOrderNone, argumentIds = Set("relType"))
       .input(variables = Seq("relType"))
       .build()
 
@@ -791,7 +791,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r1", "r2")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x2)-[r2]->(y2)", "$any(['C','D'])", "x1", "r1", "y1")
+      .|.dynamicRelationshipTypeLookup("(x2)-[r2]->(y2)", "$any(['C','D'])", argumentIds = Set("x1", "r1", "y1"))
       .dynamicRelationshipTypeLookup("(x1)-[r1]->(y1)", "$any(['A','B'])")
       .build()
 
@@ -817,7 +817,7 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r1", "r2")
       .apply()
-      .|.dynamicRelationshipTypeLookup("(x2)-[r2]-(y2)", "$any(['C','D'])", "x1", "r1", "y1")
+      .|.dynamicRelationshipTypeLookup("(x2)-[r2]-(y2)", "$any(['C','D'])", argumentIds = Set("x1", "r1", "y1"))
       .dynamicRelationshipTypeLookup("(x1)-[r1]-(y1)", "$any(['A','B'])")
       .build()
 
@@ -1005,7 +1005,9 @@ abstract class DynamicRelationshipTypeLookupTestBase[CONTEXT <: RuntimeContext](
           Some("y"),
           dir,
           DynamicElement.Any,
-          IndexOrderNone
+          IndexOrderNone,
+          Map.empty,
+          Set.empty
         )
         .build()
 

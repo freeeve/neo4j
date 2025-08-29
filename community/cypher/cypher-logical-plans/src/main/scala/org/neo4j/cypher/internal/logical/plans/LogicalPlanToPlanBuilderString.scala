@@ -603,9 +603,23 @@ object LogicalPlanToPlanBuilderString {
           propertyConstraints
         ) =>
         val props = propertyConstraints.view.mapValues(_.quoted).toMap
-        params(idName.escaped, expr.quoted, operator, spread(argumentIds.map(_.escaped)), props)
+        params(
+          idName.escaped,
+          expr.quoted,
+          operator,
+          Param.conditional(props.nonEmpty)(props),
+          spread(argumentIds.map(_.escaped))
+        )
 
-      case DynamicDirectedRelationshipTypeLookup(idName, start, typeExpr, end, argumentIds, indexOrder) =>
+      case DynamicDirectedRelationshipTypeLookup(
+          idName,
+          start,
+          typeExpr,
+          end,
+          argumentIds,
+          indexOrder,
+          propertyPredicates
+        ) =>
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
             val op = operator match {
@@ -614,14 +628,24 @@ object LogicalPlanToPlanBuilderString {
             }
             val relExpr = s"$$$op(${expressionStringifier(expr)})"
 
+            val props = propertyPredicates.view.mapValues(_.quoted).toMap
             params(
               renderSimplePath(idName, start, Seq.empty, end),
               relExpr.quoted,
               indexOrder,
-              spread(argumentIds)
+              props,
+              argumentIds
             )
         }
-      case DynamicUndirectedRelationshipTypeLookup(idName, start, typeExpr, end, argumentIds, indexOrder) =>
+      case DynamicUndirectedRelationshipTypeLookup(
+          idName,
+          start,
+          typeExpr,
+          end,
+          argumentIds,
+          indexOrder,
+          propertyPredicates
+        ) =>
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
             val op = operator match {
@@ -630,11 +654,13 @@ object LogicalPlanToPlanBuilderString {
             }
             val relExpr = s"$$$op(${expressionStringifier(expr)})"
 
+            val props = propertyPredicates.view.mapValues(_.quoted).toMap
             params(
               renderSimplePath(idName, start, Seq.empty, end, BOTH),
               relExpr.quoted,
               indexOrder,
-              spread(argumentIds)
+              props,
+              argumentIds
             )
         }
       case PartitionedNodeByLabelScan(idName, label, argumentIds) =>

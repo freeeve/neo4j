@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.DynamicRelationshipTypeLookupLeafPlanner.DynamicRelationshipTypeLookupDetails
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.DynamicIndexUse.PropertyPredicatesHelper
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasAnyDynamicType
 import org.neo4j.cypher.internal.expressions.HasDynamicType
@@ -46,23 +47,30 @@ case class DynamicRelationshipTypeLookupLeafPlanner(skipIDs: Set[LogicalVariable
     queryGraph: QueryGraph,
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
-  ): Set[LogicalPlan] =
+  ): Set[LogicalPlan] = {
+    val propertyPredicatesHelper = new PropertyPredicatesHelper(queryGraph, context)
+
     DynamicRelationshipTypeLookupLeafPlanner
       .collectDynamicRelationshipTypeLookupDetails(skipIDs, context, queryGraph, interestingOrderConfig)
-      .map(planDynamicRelationshipByTypeLookup(context, _))
+      .map(planDynamicRelationshipByTypeLookup(context, propertyPredicatesHelper, _))
       .toSet
+  }
 
   final private def planDynamicRelationshipByTypeLookup(
     context: LogicalPlanningContext,
+    propertyPredicatesHelper: PropertyPredicatesHelper,
     details: DynamicRelationshipTypeLookupDetails
-  ): LogicalPlan =
+  ): LogicalPlan = {
+    val variable = details.relationship.variable
+    val propertyPredicates = propertyPredicatesHelper.predicatesForVariable(variable)
+
     RelationshipLeafPlanner.planHiddenSelectionAndRelationshipLeafPlan(
       argumentIds = details.argumentIds,
       relationship = details.relationship,
       context = context,
       relationshipLeafPlanProvider = (patternForLeafPlan, originalPattern, hiddenSelections) =>
         context.staticComponents.logicalPlanProducer.planDynamicRelationshipByTypeLookup(
-          variable = details.relationship.variable,
+          variable = variable,
           relationshipTypes = details.relationshipTypes,
           operator = details.operator,
           patternForLeafPlan = patternForLeafPlan,
@@ -70,9 +78,12 @@ case class DynamicRelationshipTypeLookupLeafPlanner(skipIDs: Set[LogicalVariable
           hiddenSelections = hiddenSelections,
           argumentIds = details.argumentIds,
           providedOrder = details.providedOrder,
-          context = context
+          context = context,
+          solvedPropertyPredicates = propertyPredicates.solvedPredicates,
+          propertyPredicates = propertyPredicates.indexSeekArguments
         )
     )
+  }
 }
 
 object DynamicRelationshipTypeLookupLeafPlanner {

@@ -1820,7 +1820,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           DynamicElement.Simple(literal(List("R", "S")), Any),
           Some(varFor("y")),
           Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          propertyPredicates = Map.empty
         ),
         23.0
       ),
@@ -1840,7 +1841,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           DynamicElement.Simple(literal(List("R", "S")), Any),
           Some(varFor("y")),
           Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          propertyPredicates = Map.empty
         ),
         23.0
       ),
@@ -1861,7 +1863,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           DynamicElement.Simple(literal(List("R", "S")), Any),
           Some(varFor("y")),
           Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          propertyPredicates = Map.empty
         ),
         23.0
       ),
@@ -1882,7 +1885,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           DynamicElement.Simple(literal(List("R", "S")), Any),
           Some(varFor("y")),
           Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          propertyPredicates = Map.empty
         ),
         23.0
       ),
@@ -1903,7 +1907,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           DynamicElement.Simple(literal(List("R", "S")), Any),
           None,
           Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          propertyPredicates = Map.empty
         ),
         23.0
       ),
@@ -1924,7 +1929,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           DynamicElement.Simple(literal(List("R", "S")), Any),
           None,
           Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          propertyPredicates = Map.empty
         ),
         23.0
       ),
@@ -1945,7 +1951,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           DynamicElement.Simple(literal(List("R", "S")), Any),
           None,
           Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          propertyPredicates = Map.empty
         ),
         23.0
       ),
@@ -1966,7 +1973,8 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
           DynamicElement.Simple(literal(List("R")), Any),
           Some(varFor("y")),
           Set.empty,
-          IndexOrderNone
+          IndexOrderNone,
+          propertyPredicates = Map.empty
         ),
         33.0
       ),
@@ -1976,6 +1984,63 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
         Seq.empty,
         Seq(details(s"(x)-[${anonVar("123")}:$$any([\"R\"])]->(y)")),
         Set(anonVar("123"), "x", "y")
+      )
+    )
+
+    assertGood(
+      attach(
+        DynamicDirectedRelationshipTypeLookup(
+          Some(varFor("r")),
+          Some(varFor("x")),
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          Some(varFor("y")),
+          Set.empty,
+          IndexOrderNone,
+          Map(
+            PropertyKeyToken("prop", PropertyKeyId(0)) -> literal(1),
+            PropertyKeyToken("foo", PropertyKeyId(0)) -> literal("bar")
+          )
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicDirectedRelationshipTypeLookup",
+        Seq.empty,
+        Seq(details(
+          """(x)-[r:$any(["R", "S"])]->(y)
+            |r.prop = 1
+            |r.foo = "bar"""".stripMargin
+        )),
+        Set("r", "x", "y")
+      )
+    )
+    assertGood(
+      attach(
+        DynamicUndirectedRelationshipTypeLookup(
+          Some(varFor("r")),
+          Some(varFor("x")),
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          Some(varFor("y")),
+          Set.empty,
+          IndexOrderNone,
+          Map(
+            PropertyKeyToken("prop", PropertyKeyId(0)) -> literal(1),
+            PropertyKeyToken("foo", PropertyKeyId(0)) -> literal("bar")
+          )
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicUndirectedRelationshipTypeLookup",
+        Seq.empty,
+        Seq(details(
+          """(x)-[r:$any(["R", "S"])]-(y)
+            |r.prop = 1
+            |r.foo = "bar"""".stripMargin
+        )),
+        Set("r", "x", "y")
       )
     )
   }
