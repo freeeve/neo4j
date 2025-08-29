@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.KernelException;
@@ -197,8 +198,11 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
             }
         }
         List<ValueType> result = new ArrayList<>(Arrays.asList(targetedTypes));
-        ValueType highCardinalityType =
-                randomRule.randomValues().among(RandomValues.excluding(ALL_ORDERABLE, lowCardinalityArray));
+        RandomValues randomValues = randomRule.randomValues();
+        ValueType highCardinalityType = randomValues.among(RandomValues.excluding(
+                ALL_ORDERABLE,
+                t -> ArrayUtils.contains(lowCardinalityArray, t)
+                        || !randomValues.configuration().allowedTypes().contains(t)));
         result.add(highCardinalityType);
         return result.toArray(new ValueType[0]);
     }
