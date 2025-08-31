@@ -133,7 +133,6 @@ import org.neo4j.kernel.impl.query.QueryEngineProvider;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.query.TransactionExecutionMonitor;
 import org.neo4j.kernel.impl.store.StoreFileListing;
-import org.neo4j.kernel.impl.store.StoreFormatNameProvider;
 import org.neo4j.kernel.impl.storemigration.StoreMigrator;
 import org.neo4j.kernel.impl.storemigration.UnableToMigrateException;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
@@ -355,8 +354,6 @@ public class Database extends AbstractDatabase {
         life.add(new LockerLifecycleAdapter(fileLockerService.createDatabaseLocker(fs, databaseLayout)));
         life.add(databaseConfig);
 
-        databaseDependencies.satisfyDependencies(new StoreFormatNameProvider(
-                storageEngineFactory, !isNotMultiVersioned(databaseConfig, namedDatabaseId)));
         databaseDependencies.satisfyDependency(ioController);
         databaseDependencies.satisfyDependency(transactionIdSequence);
         databaseDependencies.satisfyDependency(readOnlyDatabaseChecker);
