@@ -19,6 +19,7 @@
  */
 package org.neo4j.queryapi;
 
+import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_TYPE;
@@ -28,10 +29,13 @@ import static org.neo4j.server.queryapi.response.format.Fieldnames.ERROR_MESSAGE
 import static org.neo4j.server.queryapi.response.format.Fieldnames.TX_EXPIRY_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.VALUES_KEY;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -94,8 +98,45 @@ public final class QueryResponseAssertions
         return this;
     }
 
+    public QueryResponseAssertions hasFieldNames(String... expectedFieldNames) {
+        var responseFieldNamesIt = queryResponse.body().data().get("fields");
+
+        for (int i = 0; i < expectedFieldNames.length; i++) {
+            Assertions.assertThat(expectedFieldNames[i])
+                    .isEqualTo(responseFieldNamesIt.get(i).asText());
+        }
+
+        return this;
+    }
+
     public QueryResponseAssertions hasRecord() {
         hasRecord(1);
+        return this;
+    }
+
+    public QueryResponseAssertions hasRecords(List<List<Object>> expectedRecords) {
+        var responseRecords = queryResponse.body().data().get("values");
+        for (int i = 0; i < expectedRecords.size(); i++) {
+            var expectedRecord = expectedRecords.get(i);
+            var responseRecord = responseRecords.get(i);
+
+            for (int j = 0; j < expectedRecord.size(); j++) {
+                Object unwrapped = unwrapValue(responseRecord.get(j), expectedRecord.get(j));
+
+                Assertions.assertThat(expectedRecord.get(j)).isEqualTo(unwrapped);
+            }
+        }
+        return this;
+    }
+
+    public QueryResponseAssertions hasRecords(Object... expectedValues) {
+        var listOfLists = new ArrayList<List<Object>>();
+
+        for (Object expectedRecord : expectedValues) {
+            listOfLists.add(List.of(expectedRecord));
+        }
+
+        hasRecords(listOfLists);
         return this;
     }
 
@@ -127,11 +168,6 @@ public final class QueryResponseAssertions
         return this;
     }
 
-    public QueryResponseAssertions hasNoErrors() {
-        Assertions.assertThat(queryResponse.body().errors().size()).isEqualTo(0);
-        return this;
-    }
-
     public QueryResponseAssertions hasTransaction() {
         Assertions.assertThat(queryResponse.body().transaction()).isNotEmpty();
         return this;
@@ -144,6 +180,12 @@ public final class QueryResponseAssertions
 
     public QueryResponseAssertions hasBookmark() {
         Assertions.assertThat(queryResponse.body().bookmarks()).hasSize(1);
+        return this;
+    }
+
+    public QueryResponseAssertions hasBookmark(String bookmark) {
+        Assertions.assertThat(queryResponse.body().bookmarks().size()).isEqualTo(1);
+        Assertions.assertThat(queryResponse.body().bookmarks().getFirst()).isEqualTo(bookmark);
         return this;
     }
 
@@ -281,5 +323,30 @@ public final class QueryResponseAssertions
 
     public void hasNoProfiledQueryPlan() {
         Assertions.assertThat(queryResponse.body().profiledQueryPlan()).isNull();
+    }
+
+    private Object unwrapValue(JsonNode responseRecord, Object expectedRecord) {
+        Object unwrapped = null;
+        switch (responseRecord.getNodeType()) {
+            case NUMBER -> unwrapped = unwrapNumber(responseRecord, expectedRecord);
+            case STRING -> unwrapped = responseRecord.asText();
+            case BOOLEAN -> unwrapped = responseRecord.asBoolean();
+            case NULL -> unwrapped = null;
+            default -> fail();
+        }
+        return unwrapped;
+    }
+
+    private Object unwrapNumber(JsonNode responseValue, Object expectedValue) {
+        if (expectedValue instanceof Integer) {
+            return responseValue.asInt();
+        } else if (expectedValue instanceof Double) {
+            return responseValue.asDouble();
+        } else if (expectedValue instanceof Long) {
+            return responseValue.asLong();
+        } else if (expectedValue instanceof Float) {
+            return (float) responseValue.asDouble();
+        }
+        return null;
     }
 }

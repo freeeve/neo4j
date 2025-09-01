@@ -125,6 +125,19 @@ public class QueryAPITestClient {
         return rollbackTx(txId, "neo4j");
     }
 
+    public HttpResponse<QueryResponse> sendRaw(String rawJson) throws IOException, InterruptedException {
+        return client.send(
+                HttpRequest.newBuilder()
+                        .uri(URI.create(endpoint.replace("{databaseName}", "neo4j")))
+                        .header(
+                                "Content-Type",
+                                requiresTypedFormat ? "application/vnd.neo4j.query" : "application/json")
+                        .header("Accept", requiresTypedFormat ? "application/vnd.neo4j.query" : "application/json")
+                        .POST(HttpRequest.BodyPublishers.ofString(rawJson))
+                        .build(),
+                responseHandler());
+    }
+
     private HttpResponse<QueryResponse> sendRequest(QueryRequest request, String endpoint)
             throws IOException, InterruptedException {
         var reqBuilder = HttpRequest.newBuilder().uri(URI.create(endpoint));

@@ -19,13 +19,11 @@
  */
 package org.neo4j.queryapi;
 
-import static com.fasterxml.jackson.databind.node.TextNode.valueOf;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.queryapi.QueryApiTestUtil.setupLogging;
-import static org.neo4j.server.queryapi.response.TypedJsonDriverAutoCommitResultWriter.TYPED_JSON_MIME_TYPE_VALUE;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_TYPE;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.CYPHER_VALUE;
-import static org.neo4j.server.queryapi.response.format.Fieldnames.DATA_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.FIELDS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.VALUES_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames._ELEMENT_ID;
@@ -35,12 +33,7 @@ import static org.neo4j.server.queryapi.response.format.Fieldnames._PROPERTIES;
 import static org.neo4j.server.queryapi.response.format.Fieldnames._RELATIONSHIP_TYPE;
 import static org.neo4j.server.queryapi.response.format.Fieldnames._START_NODE_ELEMENT_ID;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -52,16 +45,15 @@ import org.neo4j.configuration.connectors.HttpConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.Label;
+import org.neo4j.queryapi.testclient.QueryAPITestClient;
+import org.neo4j.queryapi.testclient.QueryRequest;
 import org.neo4j.server.queryapi.response.format.Fieldnames;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 class QueryResourceTypedJsonIT {
 
     private static DatabaseManagementService dbms;
-    private static HttpClient client;
-    private static String queryEndpoint;
-
-    private final ObjectMapper MAPPER = new ObjectMapper();
+    private static QueryAPITestClient testClient;
 
     @BeforeAll
     static void beforeAll() {
@@ -76,8 +68,9 @@ class QueryResourceTypedJsonIT {
                 .impermanent()
                 .build();
         var portRegister = QueryApiTestUtil.resolveDependency(dbms, ConnectorPortRegister.class);
-        queryEndpoint = "http://" + portRegister.getLocalAddress(ConnectorType.HTTP) + "/db/{databaseName}/query/v2";
-        client = HttpClient.newBuilder().build();
+        var queryEndpoint =
+                "http://" + portRegister.getLocalAddress(ConnectorType.HTTP) + "/db/{databaseName}/query/v2";
+        testClient = new QueryAPITestClient(queryEndpoint, true);
     }
 
     @AfterAll
@@ -87,83 +80,71 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void basicTypes() throws IOException, InterruptedException {
-        var response = simpleRequest(
-                client,
-                queryEndpoint,
-                "{\"statement\": \"RETURN true as bool, 1 as number, "
-                        + "null as aNull, 1.23 as float, 'hello' as string\"}");
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("RETURN true as bool, 1 as number, 1.23 as float, 'hello' as string")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
+        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("bool", "number", "float", "string");
 
-        var parsedJson = MAPPER.readTree(response.body());
+        var parsedJson = response.body().data();
 
-        assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY).size()).isEqualTo(5);
-        assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY))
-                .containsExactly(
-                        valueOf("bool"), valueOf("number"), valueOf("aNull"), valueOf("float"), valueOf("string"));
-        assertThat(parsedJson
-                        .get(DATA_KEY)
-                        .get(VALUES_KEY)
-                        .get(0)
-                        .get(0)
-                        .get(CYPHER_TYPE)
-                        .asText())
+        assertThat(parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_TYPE).asText())
                 .isEqualTo("Boolean");
-        assertThat(parsedJson
-                        .get(DATA_KEY)
-                        .get(VALUES_KEY)
-                        .get(0)
-                        .get(0)
-                        .get(CYPHER_VALUE)
-                        .asBoolean())
+        assertThat(parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_VALUE).asBoolean())
                 .isEqualTo(true);
         QueryAssertions.assertThat(parsedJson).hasTypedResultAt(1, "Integer", "1");
-        assertThat(parsedJson
-                        .get(DATA_KEY)
+        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(2, "Float", "1.23");
+        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(3, "String", "hello");
+    }
+
+    @Test
+    void nullType() throws IOException, InterruptedException {
+        var response = testClient.autoCommit(
+                QueryRequest.newBuilder().statement("RETURN null as aNull").build());
+
+        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("aNull");
+
+        assertTrue(response.body()
+                .data()
+                .get(VALUES_KEY)
+                .get(0)
+                .get(0)
+                .get(CYPHER_VALUE)
+                .isNull());
+        assertThat(response.body()
+                        .data()
                         .get(VALUES_KEY)
                         .get(0)
-                        .get(2)
+                        .get(0)
                         .get(CYPHER_TYPE)
                         .asText())
                 .isEqualTo("Null");
-        assertThat(parsedJson
-                        .get(DATA_KEY)
-                        .get(VALUES_KEY)
-                        .get(0)
-                        .get(2)
-                        .get(CYPHER_VALUE)
-                        .isNull())
-                .isEqualTo(true);
-        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(3, "Float", "1.23");
-        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(4, "String", "hello");
     }
 
     @Test
     void temporalTypes() throws IOException, InterruptedException {
-        var response = simpleRequest(
-                client,
-                queryEndpoint,
-                "{\"statement\": \"RETURN datetime('2015-06-24T12:50:35.556+0100') AS theOffsetDateTime, "
-                        + "datetime('2015-11-21T21:40:32.142[Antarctica/Troll]') AS theZonedDateTime, "
-                        + "localdatetime('2015185T19:32:24') AS theLocalDateTime, "
-                        + "date('+2015-W13-4') AS theDate, "
-                        + "time('125035.556+0100') AS theTime, "
-                        + "localtime('12:50:35.556') AS theLocalTime\"}");
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("RETURN datetime('2015-06-24T12:50:35.556+0100') AS theOffsetDateTime, "
+                        + "datetime('2015-11-21T21:40:32.142[Antarctica/Troll]') AS theZonedDateTime,"
+                        + "localdatetime('2015185T19:32:24') AS theLocalDateTime,"
+                        + "date('+2015-W13-4') AS theDate,"
+                        + "time('125035.556+0100') AS theTime,"
+                        + "localtime('12:50:35.556') AS theLocalTime")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
+        QueryResponseAssertions.assertThat(response)
+                .wasSuccessful()
+                .hasFieldNames(
+                        "theOffsetDateTime",
+                        "theZonedDateTime",
+                        "theLocalDateTime",
+                        "theDate",
+                        "theTime",
+                        "theLocalTime");
 
-        var parsedJson = MAPPER.readTree(response.body());
+        var parsedJson = response.body().data();
 
-        assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY))
-                .containsExactly(
-                        valueOf("theOffsetDateTime"),
-                        valueOf("theZonedDateTime"),
-                        valueOf("theLocalDateTime"),
-                        valueOf("theDate"),
-                        valueOf("theTime"),
-                        valueOf("theLocalTime"));
-
-        var results = parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0);
+        var results = parsedJson.get(VALUES_KEY).get(0);
         assertThat(results.size()).isEqualTo(6);
         QueryAssertions.assertThat(parsedJson).hasTypedResultAt(0, "OffsetDateTime", "2015-06-24T12:50:35.556+01:00");
         QueryAssertions.assertThat(parsedJson)
@@ -176,14 +157,13 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void duration() throws IOException, InterruptedException {
-        var response = simpleRequest(
-                client, queryEndpoint, "{\"statement\": \"RETURN duration('P14DT16H12M') AS theDuration\"}");
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("RETURN duration('P14DT16H12M') AS theDuration")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
-        var parsedJson = MAPPER.readTree(response.body());
-        assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY)).containsExactly(valueOf("theDuration"));
+        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("theDuration");
 
-        QueryAssertions.assertThat(parsedJson).hasTypedResultAt(0, "Duration", "P14DT16H12M");
+        QueryAssertions.assertThat(response.body().data()).hasTypedResultAt(0, "Duration", "P14DT16H12M");
     }
 
     @Test
@@ -193,12 +173,13 @@ class QueryResourceTypedJsonIT {
             tx.commit();
         }
 
-        var response = simpleRequest(client, queryEndpoint, "{\"statement\": \"MATCH (n:FindMe) return n\"}");
+        var response = testClient.autoCommit(
+                QueryRequest.newBuilder().statement("MATCH (n:FindMe) return n").build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
+        QueryResponseAssertions.assertThat(response).wasSuccessful();
 
-        var parsedJson = MAPPER.readTree(response.body());
-        var results = parsedJson.get(DATA_KEY).get(VALUES_KEY);
+        var parsedJson = response.body().data();
+        var results = parsedJson.get(VALUES_KEY);
         QueryAssertions.assertThat(
                         results.get(0).get(0).get(CYPHER_VALUE).get(_PROPERTIES).get("binaryGoodness"))
                 .hasTypedResult("Base64", "AQIDBAU=");
@@ -206,21 +187,20 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void point() throws IOException, InterruptedException {
-        var response = simpleRequest(
-                client,
-                queryEndpoint,
-                "{\"statement\": \"RETURN point({x: 2.3, y: 4.5})," + "point({x: 2.3, y: 4.5, z: 6.7}),"
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("RETURN point({x: 2.3, y: 4.5}), point({x: 2.3, y: 4.5, z: 6.7}),"
                         + "point({x:2.3, y:4.5, srid:4326}),"
                         + "point({x: 2.3, y: 4.5, crs: 'WGS-84'}),"
                         + "point({x:2.3, y:4.5, z:6.7, srid:4979}),"
                         + "point({x: 2.3, y: 4.5, z: 6.7, crs: 'WGS-84-3D'}),"
                         + "point({longitude: 56.7, latitude: 12.78}),"
-                        + "point({longitude: 56.7, latitude: 12.78, height: 8})\"}");
+                        + "point({longitude: 56.7, latitude: 12.78, height: 8})")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
-        var parsedJson = MAPPER.readTree(response.body());
+        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        var parsedJson = response.body().data();
 
-        var results = parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0);
+        var results = parsedJson.get(VALUES_KEY).get(0);
         QueryAssertions.assertThat(results.get(0)).hasTypedResult("Point", "SRID=7203;POINT (2.3 4.5)");
         QueryAssertions.assertThat(results.get(1)).hasTypedResult("Point", "SRID=9157;POINT Z (2.3 4.5 6.7)");
         QueryAssertions.assertThat(results.get(2)).hasTypedResult("Point", "SRID=4326;POINT (2.3 4.5)");
@@ -233,19 +213,18 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void map() throws IOException, InterruptedException {
-        var response = simpleRequest(
-                client,
-                queryEndpoint,
-                "{\"statement\": \"RETURN {key: 'Value', listKey: [{inner1: 'Map1'}, {inner2: 'Map2'}]} AS map\"}");
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("RETURN {key: 'Value', listKey: [{inner1: 'Map1'}, {inner2: 'Map2'}]} AS map")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
+        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("map");
 
-        var parsedJson = MAPPER.readTree(response.body());
+        var parsedJson = response.body().data();
 
-        assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY).size()).isEqualTo(1);
-        assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY).get(0).asText()).isEqualTo("map");
+        assertThat(parsedJson.get(FIELDS_KEY).size()).isEqualTo(1);
+        assertThat(parsedJson.get(FIELDS_KEY).get(0).asText()).isEqualTo("map");
 
-        var map = parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0).get(0);
+        var map = parsedJson.get(VALUES_KEY).get(0).get(0);
 
         assertThat(map.get(CYPHER_TYPE).asText()).isEqualTo("Map");
 
@@ -282,27 +261,20 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void list() throws IOException, InterruptedException {
-        var response = simpleRequest(
-                client,
-                queryEndpoint,
-                "{\"statement\": \"RETURN [1,true,'hello',date('+2015-W13-4'), {amap: 'hello'}] as list\"}");
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("RETURN [1,true,'hello',date('+2015-W13-4'), {amap: 'hello'}] as list")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
+        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("list");
 
-        var parsedJson = MAPPER.readTree(response.body());
+        var parsedJson = response.body().data();
 
-        assertThat(parsedJson.get(DATA_KEY).get(FIELDS_KEY).size()).isEqualTo(1);
+        assertThat(parsedJson.get(FIELDS_KEY).size()).isEqualTo(1);
 
-        assertThat(parsedJson
-                        .get(DATA_KEY)
-                        .get(VALUES_KEY)
-                        .get(0)
-                        .get(0)
-                        .get(CYPHER_TYPE)
-                        .asText())
+        assertThat(parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_TYPE).asText())
                 .isEqualTo("List");
 
-        var resultArray = parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0).get(0).get(CYPHER_VALUE);
+        var resultArray = parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_VALUE);
 
         assertThat(resultArray.size()).isEqualTo(5);
         QueryAssertions.assertThat(resultArray.get(0)).hasTypedResult("Integer", "1");
@@ -329,14 +301,15 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void node() throws IOException, InterruptedException {
-        var response = simpleRequest(
-                client, queryEndpoint, "{\"statement\": \"CREATE (n:MyLabel {aNumber: 1234}) RETURN n\"}");
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("CREATE (n:MyLabel {aNumber: 1234}) RETURN n")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
+        QueryResponseAssertions.assertThat(response).wasSuccessful();
 
-        var parsedJson = MAPPER.readTree(response.body());
+        var parsedJson = response.body().data();
 
-        var node = parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0).get(0);
+        var node = parsedJson.get(VALUES_KEY).get(0).get(0);
         assertThat(node.get(CYPHER_TYPE).asText()).isEqualTo("Node");
         assertThat(node.get(CYPHER_VALUE).get(Fieldnames._ELEMENT_ID).asText()).isNotBlank();
         assertThat(node.get(CYPHER_VALUE).get(_LABELS).size()).isEqualTo(1);
@@ -347,12 +320,14 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void relationship() throws IOException, InterruptedException {
-        var response = simpleRequest(
-                client, queryEndpoint, "{\"statement\": \"CREATE (a)-[r:RELTYPE {onFire: 'owch!'}]->(b) RETURN r\"}");
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("CREATE (a)-[r:RELTYPE {onFire: 'owch!'}]->(b) RETURN r")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
-        var parsedJson = MAPPER.readTree(response.body());
-        var rel = parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0).get(0);
+        QueryResponseAssertions.assertThat(response).wasSuccessful();
+
+        var parsedJson = response.body().data();
+        var rel = parsedJson.get(VALUES_KEY).get(0).get(0);
         assertThat(rel.get(CYPHER_TYPE).asText()).isEqualTo("Relationship");
         assertThat(rel.get(CYPHER_VALUE).get(_ELEMENT_ID).asText()).isNotBlank();
         assertThat(rel.get(CYPHER_VALUE).get(_START_NODE_ELEMENT_ID).asText()).isNotBlank();
@@ -364,26 +339,21 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void simplePath() throws IOException, InterruptedException {
-        var createPathReq =
-                simpleRequest(client, queryEndpoint, "{\"statement\": \"CREATE (a:LabelA)-[rel1:REL]->(b:LabelB)\"}");
+        var createPathReq = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("CREATE (a:LabelA)-[rel1:REL]->(b:LabelB)")
+                .build());
 
-        assertThat(createPathReq.statusCode()).isEqualTo(202);
-        var response = simpleRequest(
-                client, queryEndpoint, "{\"statement\": \"MATCH p=(a:LabelA)-[rel1:REL]->(b:LabelB) RETURN p\"}");
+        QueryResponseAssertions.assertThat(createPathReq).wasSuccessful();
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("MATCH p=(a:LabelA)-[rel1:REL]->(b:LabelB) RETURN p")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
-        var parsedJson = MAPPER.readTree(response.body());
+        var parsedJson = response.body().data();
 
-        assertThat(parsedJson
-                        .get(DATA_KEY)
-                        .get(VALUES_KEY)
-                        .get(0)
-                        .get(0)
-                        .get(CYPHER_TYPE)
-                        .asText())
+        assertThat(parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_TYPE).asText())
                 .isEqualTo("Path");
 
-        var path = parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0).get(0).get(CYPHER_VALUE);
+        var path = parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_VALUE);
 
         assertThat(path.get(0).get(CYPHER_TYPE).asText()).isEqualTo("Node");
         assertThat(path.get(0).get(CYPHER_VALUE).get(_LABELS).get(0).asText()).isEqualTo("LabelA");
@@ -404,30 +374,21 @@ class QueryResourceTypedJsonIT {
 
     @Test
     void path() throws IOException, InterruptedException {
-        var createPathReq = simpleRequest(
-                client,
-                queryEndpoint,
-                "{\"statement\": \"CREATE (a:LabelA)-[rel1:RELAB]->(b:LabelB)<-[rel2:RELCB]-(c:LabelC)\"}");
+        var createPathReq = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("CREATE (a:LabelA)-[rel1:RELAB]->(b:LabelB)<-[rel2:RELCB]-(c:LabelC)")
+                .build());
 
-        assertThat(createPathReq.statusCode()).isEqualTo(202);
-        var response = simpleRequest(
-                client,
-                queryEndpoint,
-                "{\"statement\": \"MATCH p=(a:LabelA)-[rel1:RELAB]->(b:LabelB)<-[rel2:RELCB]-(c:LabelC) RETURN p\"}");
+        QueryResponseAssertions.assertThat(createPathReq).wasSuccessful();
+        var response = testClient.autoCommit(QueryRequest.newBuilder()
+                .statement("MATCH p=(a:LabelA)-[rel1:RELAB]->(b:LabelB)<-[rel2:RELCB]-(c:LabelC) RETURN p")
+                .build());
 
-        assertThat(response.statusCode()).isEqualTo(202);
-        var parsedJson = MAPPER.readTree(response.body());
+        var parsedJson = response.body().data();
 
-        assertThat(parsedJson
-                        .get(DATA_KEY)
-                        .get(VALUES_KEY)
-                        .get(0)
-                        .get(0)
-                        .get(CYPHER_TYPE)
-                        .asText())
+        assertThat(parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_TYPE).asText())
                 .isEqualTo("Path");
 
-        var path = parsedJson.get(DATA_KEY).get(VALUES_KEY).get(0).get(0).get(CYPHER_VALUE);
+        var path = parsedJson.get(VALUES_KEY).get(0).get(0).get(CYPHER_VALUE);
 
         assertThat(path.get(0).get(CYPHER_TYPE).asText()).isEqualTo("Node");
         assertThat(path.get(0).get(CYPHER_VALUE).get(_LABELS).get(0).asText()).isEqualTo("LabelA");
@@ -445,27 +406,5 @@ class QueryResourceTypedJsonIT {
 
         assertThat(path.get(4).get(CYPHER_TYPE).asText()).isEqualTo("Node");
         assertThat(path.get(4).get(CYPHER_VALUE).get(_LABELS).get(0).asText()).isEqualTo("LabelC");
-    }
-
-    public static HttpRequest.Builder baseRequestBuilder(String endpoint, String databaseName) {
-        return HttpRequest.newBuilder()
-                .uri(URI.create(endpoint.replace("{databaseName}", databaseName)))
-                .header("Content-Type", "application/json")
-                .header("Accept", TYPED_JSON_MIME_TYPE_VALUE);
-    }
-
-    public static HttpResponse<String> simpleRequest(
-            HttpClient client, String endpoint, String database, String requestBody)
-            throws IOException, InterruptedException {
-        var httpRequest = baseRequestBuilder(endpoint, database)
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
-                .build();
-
-        return client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-    }
-
-    public static HttpResponse<String> simpleRequest(HttpClient client, String endpoint, String requestBody)
-            throws IOException, InterruptedException {
-        return simpleRequest(client, endpoint, "neo4j", requestBody);
     }
 }
