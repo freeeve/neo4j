@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.variableChecking
+package org.neo4j.cypher.internal.frontend.scoping
 
 class ScopeSurveyorTest extends VariableCheckingTestSuite {
 
