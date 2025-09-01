@@ -21,7 +21,6 @@ package org.neo4j.dbms.systemgraph;
 
 import java.util.Map;
 import java.util.Optional;
-import org.neo4j.kernel.api.exceptions.InvalidArgumentsException;
 
 public record SeedURI(Optional<String> singleUri, Map<String, String> uriMap) {
     public static final SeedURI EMPTY = new SeedURI(Optional.empty(), Map.of());
@@ -30,11 +29,15 @@ public record SeedURI(Optional<String> singleUri, Map<String, String> uriMap) {
         return new SeedURI(Optional.of(singleUri), Map.of());
     }
 
-    public static SeedURI sharded(Map<String, String> uriMap) throws InvalidArgumentsException {
+    public static SeedURI sharded(Map<String, String> uriMap) {
         return new SeedURI(Optional.empty(), Map.copyOf(uriMap));
     }
 
     public boolean isEmpty() {
         return singleUri.isEmpty() && uriMap.isEmpty();
+    }
+
+    public Optional<String> best(String databaseName) {
+        return Optional.ofNullable(uriMap.get(databaseName)).or(this::singleUri);
     }
 }
