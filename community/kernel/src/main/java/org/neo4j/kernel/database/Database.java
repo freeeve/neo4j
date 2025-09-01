@@ -119,6 +119,7 @@ import org.neo4j.kernel.impl.api.transaction.monitor.TransactionMonitorScheduler
 import org.neo4j.kernel.impl.api.txid.IdStoreTransactionIdGenerator;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
+import org.neo4j.kernel.impl.factory.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.factory.FacadeKernelTransactionFactory;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
@@ -227,6 +228,7 @@ public class Database extends AbstractDatabase {
     private final KernelTransactionsFactory kernelTransactionsFactory;
     private final PagePrefetcher pagePrefetcher;
     private final StoreIdGenerator storeIdGenerator;
+    private final DatabaseCreationOptions databaseCreationOptions;
 
     private TransactionIdSequence transactionIdSequence;
     private IndexProviderMap indexProviderMap;
@@ -322,6 +324,7 @@ public class Database extends AbstractDatabase {
         this.pagePrefetcher = context.getPagePrefetcher();
         this.storeIdGenerator = context.storeIdGenerator();
         this.vectorStoreCreator = context.getVectorStoreCreator();
+        this.databaseCreationOptions = context.getDatabaseCreationOptions();
     }
 
     /**
@@ -354,6 +357,7 @@ public class Database extends AbstractDatabase {
         life.add(new LockerLifecycleAdapter(fileLockerService.createDatabaseLocker(fs, databaseLayout)));
         life.add(databaseConfig);
 
+        databaseDependencies.satisfyDependency(databaseCreationOptions);
         databaseDependencies.satisfyDependency(ioController);
         databaseDependencies.satisfyDependency(transactionIdSequence);
         databaseDependencies.satisfyDependency(readOnlyDatabaseChecker);

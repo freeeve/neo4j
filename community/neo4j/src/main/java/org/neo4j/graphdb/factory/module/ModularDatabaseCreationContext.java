@@ -61,6 +61,7 @@ import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.api.TransactionsFactory;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
+import org.neo4j.kernel.impl.factory.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.IOControllerService;
@@ -137,6 +138,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     private final TransactionsFactory transactionsFactory;
     private final PagePrefetcher pagePrefetcher;
     private final ExceptionHandlerService exceptionHandlerService;
+    private final DatabaseCreationOptions databaseCreationOptions;
 
     public ModularDatabaseCreationContext(
             HostedOnMode mode,
@@ -170,7 +172,8 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
             TransactionsFactory transactionsFactory,
             DatabaseMonitorsFactory databaseMonitorsFactory,
             StoreIdGenerator storeIdGenerator,
-            ExceptionHandlerService exceptionHandlerService) {
+            ExceptionHandlerService exceptionHandlerService,
+            DatabaseCreationOptions databaseCreationOptions) {
         this.serverIdentity = serverIdentity;
         this.namedDatabaseId = namedDatabaseId;
         this.databaseConfig = databaseConfig;
@@ -187,6 +190,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
         this.databaseMonitorsFactory = databaseMonitorsFactory;
         this.storeIdGenerator = storeIdGenerator;
         this.exceptionHandlerService = exceptionHandlerService;
+        this.databaseCreationOptions = databaseCreationOptions;
         this.databaseLogService = new DatabaseLogService(databaseLogIdentifier, globalModule.getLogService());
         this.scheduler = globalModule.getJobScheduler();
         this.globalDependencies = globalDependencies;
@@ -465,6 +469,11 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     @Override
     public TransactionsFactory getTransactionsFactory() {
         return transactionsFactory;
+    }
+
+    @Override
+    public DatabaseCreationOptions getDatabaseCreationOptions() {
+        return databaseCreationOptions;
     }
 
     private DatabaseAvailabilityGuard databaseAvailabilityGuardFactory(

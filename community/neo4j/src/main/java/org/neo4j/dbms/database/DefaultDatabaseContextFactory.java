@@ -19,6 +19,8 @@
  */
 package org.neo4j.dbms.database;
 
+import static org.neo4j.kernel.impl.factory.DatabaseCreationOptions.EMPTY_CREATION_OPTIONS;
+
 import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.cypher.internal.javacompat.CommunityCypherEngineProvider;
 import org.neo4j.dbms.identity.ServerIdentity;
@@ -130,7 +132,8 @@ public class DefaultDatabaseContextFactory
                     TransactionsFactory.DEFAULT,
                     databaseMonitorsFactory(databaseLogIdentifier),
                     StoreIdGenerator.UNIQUE_ID,
-                    globalModule.getExceptionHandlerService());
+                    globalModule.getExceptionHandlerService(),
+                    EMPTY_CREATION_OPTIONS);
             kernelDatabase = new Database(creationContext);
             context = new StandaloneDatabaseContext(kernelDatabase);
         }

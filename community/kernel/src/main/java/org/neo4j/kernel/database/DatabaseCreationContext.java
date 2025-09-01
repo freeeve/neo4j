@@ -48,6 +48,7 @@ import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.api.TransactionsFactory;
 import org.neo4j.kernel.impl.constraints.ConstraintSemantics;
 import org.neo4j.kernel.impl.factory.AccessCapabilityFactory;
+import org.neo4j.kernel.impl.factory.DatabaseCreationOptions;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.IOControllerService;
@@ -172,4 +173,6 @@ public interface DatabaseCreationContext {
     ExceptionHandlerService getExceptionHandlerService();
 
     VectorStoreCreator getVectorStoreCreator();
+
+    DatabaseCreationOptions getDatabaseCreationOptions();
 }
