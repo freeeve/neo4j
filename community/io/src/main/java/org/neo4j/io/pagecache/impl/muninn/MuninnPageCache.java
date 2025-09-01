@@ -966,7 +966,7 @@ public class MuninnPageCache implements PageCache {
         try (AsyncBlockAccessor blockAccessor =
                 createAsyncBlockAccessor(AsyncIOProvider.getInstance(), memoryTracker)) {
             while (!closed) {
-                int pageCountToEvict = parkUntilEvictionRequired(keepFree);
+                int pageCountToEvict = parkUntilEvictionRequired(keepFree, blockAccessor);
                 try (EvictionRunEvent evictionRunEvent = pageCacheTracer.beginPageEvictions(pageCountToEvict)) {
                     evictPages(blockAccessor, pageCountToEvict, clockArm, evictionRunEvent);
                 }
@@ -987,7 +987,7 @@ public class MuninnPageCache implements PageCache {
         return AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
     }
 
-    private int parkUntilEvictionRequired(int keepFree) {
+    private int parkUntilEvictionRequired(int keepFree, AsyncBlockAccessor blockAccessor) {
         for (; ; ) {
             if (Thread.interrupted() || closed) {
                 return 0;
@@ -996,6 +996,9 @@ public class MuninnPageCache implements PageCache {
             int numberOfPagesToEvict = tryGetNumberOfPagesToEvict(keepFree);
             if (numberOfPagesToEvict != UNKNOWN_PAGES_TO_EVICT) {
                 return numberOfPagesToEvict;
+            }
+            if (blockAccessor.isAvailable()) {
+                blockAccessor.completeSubmitted();
             }
             parkEvictor(EVICTOR_PARK_TIMEOUT);
         }
@@ -1094,7 +1097,6 @@ public class MuninnPageCache implements PageCache {
                 }
             }
         }
-        blockAccessor.completeSubmitted();
     }
 
     private void onPageEvictionComplete(long pageRef, int resultBytes) {
