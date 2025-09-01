@@ -37,7 +37,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
 
   override protected def plannerBuilder(): StatisticsBackedLogicalPlanningConfigurationBuilder =
     super.plannerBuilder()
-      .enableGraphSchemaOptimizations()
+      .enableGraphTypes()
 
   val plannerWithNodeLabelConstraints: StatisticsBackedLogicalPlanningConfigurationBuilder =
     plannerBuilder()

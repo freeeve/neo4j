@@ -349,9 +349,10 @@ class CypherPlannerConfiguration(
 
   val planningGraphSchemaOptimizationsEnabled: () => Boolean = {
     AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-      !GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled.dynamic()
+      !GraphDatabaseInternalSettings.graph_type_enabled.dynamic() &&
+        !GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled.dynamic()
     )
-    () => config.planningGraphSchemaOptimizationsEnabled
+    () => config.graphTypeEnabled && config.planningGraphSchemaOptimizationsEnabled
   }
 
   val optionalMatchRemoverEnabled: () => Boolean = {

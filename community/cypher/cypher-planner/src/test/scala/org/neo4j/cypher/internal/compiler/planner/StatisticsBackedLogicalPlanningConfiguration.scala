@@ -1193,6 +1193,10 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     withSetting(GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled, Boolean.box(enabled))
   }
 
+  def enableGraphTypes(enabled: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    withSetting(GraphDatabaseInternalSettings.graph_type_enabled, Boolean.box(enabled))
+  }
+
   def setDatabaseReferenceRepository(
     databaseReferenceRepository: DatabaseReferenceRepository
   ): StatisticsBackedLogicalPlanningConfigurationBuilder =

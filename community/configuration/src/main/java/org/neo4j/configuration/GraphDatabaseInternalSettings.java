@@ -1214,7 +1214,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("Feature flag to enable/disable use of graph schema optimizations during planning.")
     public static final Setting<Boolean> planning_graph_schema_optimizations_enabled = newBuilder(
-                    "internal.cypher.planning_graph_schema_optimizations_enabled", BOOL, false)
+                    "internal.cypher.planning_graph_schema_optimizations_enabled", BOOL, true)
             .build();
 
     @Internal
