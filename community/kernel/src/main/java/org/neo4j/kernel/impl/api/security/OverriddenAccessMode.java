@@ -233,4 +233,8 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     public String name() {
         return MessageUtil.overriddenMode(original.name(), wrapping.name());
     }
+
+    public String authTokenWrappingName() {
+        return wrapping.name();
+    }
 }
