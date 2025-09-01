@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatu
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.CypherExecutionException
+import org.neo4j.exceptions.RuntimeUnsupportedException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.config.Setting
@@ -818,6 +819,34 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
   }
 
+  test("Show current graph type") {
+    // WHEN
+    val exception = the[RuntimeUnsupportedException] thrownBy {
+      execute("CYPHER 25 SHOW CURRENT GRAPH TYPE")
+    }
+
+    // THEN
+    exception should be(gqlException(
+      "51N27: 'SHOW CURRENT GRAPH TYPE' is not supported in community edition.",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. " +
+          "'SHOW CURRENT GRAPH TYPE' is not supported in community edition."
+      )
+    ))
+    val cause = exception.getCause
+    cause should not be null
+    cause shouldBe a[CantCompileQueryException]
+    cause.asInstanceOf[CantCompileQueryException] should be(gqlException(
+      "51N27: 'SHOW CURRENT GRAPH TYPE' is not supported in community edition.",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. " +
+          "'SHOW CURRENT GRAPH TYPE' is not supported in community edition."
+      )
+    ))
+  }
+
   test("Graph type commands are not available in Cypher 5") {
     Seq("SET", "DROP", "ADD", "ALTER").foreach(operation =>
       withClue(operation) {
@@ -837,5 +866,20 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
         ))
       }
     )
+
+    // WHEN
+    val exception = the[SyntaxException] thrownBy {
+      execute(s"CYPHER 5 SHOW CURRENT GRAPH TYPE")
+    }
+
+    // THEN
+    exception should be(gqlException(
+      "Invalid input 'GRAPH': expected 'USER'",
+      InvalidSyntaxStatus.withCause(
+        GqlStatusInfoCodes.STATUS_42I06,
+        "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER'."
+      ),
+      fuzzyMsg = true
+    ))
   }
 }

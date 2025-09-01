@@ -58,6 +58,7 @@ import org.neo4j.cypher.internal.logical.plans.AssertSameRelationship
 import org.neo4j.cypher.internal.logical.plans.BFSPruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.CacheProperties
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
+import org.neo4j.cypher.internal.logical.plans.CommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ConditionalApply
 import org.neo4j.cypher.internal.logical.plans.Create
 import org.neo4j.cypher.internal.logical.plans.DeleteExpression
@@ -379,6 +380,7 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Eagerly
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
 import org.neo4j.values.AnyValue
@@ -1065,6 +1067,10 @@ case class InterpretedPipeMapper(
           case Left(l)  => Left(l)
         }
         CommandPipe(ShowSettingsCommand(newNames, columns, yields))(id)
+
+      // Throw on non-community show/terminate commands
+      case c: CommandLogicalPlan =>
+        throw CantCompileQueryException.commandUnsupportedInCommunityEdition(c.commandDescription)
 
       // Currently used for testing only
       case MultiNodeIndexSeek(indexLeafPlans) =>

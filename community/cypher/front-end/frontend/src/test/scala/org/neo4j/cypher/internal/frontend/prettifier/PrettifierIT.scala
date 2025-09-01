@@ -1592,6 +1592,40 @@ class PrettifierIT extends CypherFunSuite {
         |  SKIP 1
         |  LIMIT 1""".stripMargin,
 
+    // show current graph type
+
+    FailsInCypher5(
+      "show current graph type",
+      "SHOW CURRENT GRAPH TYPE"
+    ),
+    FailsInCypher5(
+      "show current graph type where type = 'OPEN'",
+      """SHOW CURRENT GRAPH TYPE
+        |  WHERE type = "OPEN"""".stripMargin
+    ),
+    FailsInCypher5(
+      "show current graph type yield *",
+      """SHOW CURRENT GRAPH TYPE
+        |YIELD *""".stripMargin
+    ),
+    FailsInCypher5(
+      "show current graph type yield type order by type skip 1 limit 1",
+      """SHOW CURRENT GRAPH TYPE
+        |YIELD type
+        |  ORDER BY type ASCENDING
+        |  SKIP 1
+        |  LIMIT 1""".stripMargin
+    ),
+    FailsInCypher5(
+      "show current graph type yield type, specification order by type offset 1 limit 10 where type = 'OPEN'",
+      """SHOW CURRENT GRAPH TYPE
+        |YIELD type, specification
+        |  ORDER BY type ASCENDING
+        |  SKIP 1
+        |  LIMIT 10
+        |  WHERE type = "OPEN"""".stripMargin
+    ),
+
     // show procedures
 
     "show procedure" ->
@@ -3817,6 +3851,11 @@ class PrettifierIT extends CypherFunSuite {
       """SHOW ALL CONSTRAINTS
         |YIELD ``
         |  ORDER BY `` ASCENDING""".stripMargin,
+    FailsInCypher5(
+      "SHOW CURRENT GRAPH TYPE YIELD ``",
+      """SHOW CURRENT GRAPH TYPE
+        |YIELD ``""".stripMargin
+    ),
     "SHOW PROCEDURES EXECUTABLE BY `` YIELD name AS `` RETURN `` AS ``" ->
       """SHOW PROCEDURES EXECUTABLE BY ``
         |YIELD name AS ``

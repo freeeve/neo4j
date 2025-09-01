@@ -308,6 +308,7 @@ import org.neo4j.cypher.internal.ast.ShowAllPrivileges
 import org.neo4j.cypher.internal.ast.ShowConstraintAction
 import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
+import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
@@ -2150,6 +2151,26 @@ class AstGenerator(
     SingleQuery(fullClauses)(pos)
   }
 
+  def _showCurrentGraphType: Gen[Query] = for {
+    use <- option(_use)
+    yields <- _eitherYieldOrWhere
+    yieldAll <- boolean
+  } yield {
+    val showClauses = yields match {
+      case Some(Right(w)) =>
+        Seq(ShowCurrentGraphTypeClause(Some(w), List.empty, yieldAll = false, None)(pos))
+      case Some(Left((y, r))) =>
+        val (w, yi) = turnYieldToWith(y)
+        Seq(ShowCurrentGraphTypeClause(None, yi, yieldAll = false, Some(w))(pos)) ++ r
+      case _ if yieldAll =>
+        Seq(ShowCurrentGraphTypeClause(None, List.empty, yieldAll = true, Some(getFullWithStarFromYield))(pos))
+      case _ =>
+        Seq(ShowCurrentGraphTypeClause(None, List.empty, yieldAll = false, None)(pos))
+    }
+    val fullClauses = use.map(u => u +: showClauses).getOrElse(showClauses)
+    SingleQuery(fullClauses)(pos)
+  }
+
   def _showProcedures: Gen[Query] = for {
     name <- _identifier
     exec <- option(oneOf(CurrentUser, User(name)))
@@ -2309,7 +2330,7 @@ class AstGenerator(
     exec <- option(oneOf(CurrentUser, User(name)))
     yields <- _yield
     yieldAll <- boolean
-    clause <- oneOf(
+    clauseCypher5 <- oneOf(
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowTransactionsClause(ids, None, item, all, Some(w), usesCypher5)(pos),
       (item: List[CommandResultItem], all: Boolean, w: With) =>
@@ -2322,6 +2343,22 @@ class AstGenerator(
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowIndexesClause(indexType, None, item, all, Some(w))(pos)
     )
+    clauseCypher25orAbove <- oneOf(
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowTransactionsClause(ids, None, item, all, Some(w), usesCypher5)(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowFunctionsClause(funcType, exec, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowProceduresClause(exec, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) => ShowSettingsClause(ids, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowConstraintsClause(constraintType, None, item, all, Some(w), usesCypher5)(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowIndexesClause(indexType, None, item, all, Some(w))(pos),
+      (item: List[CommandResultItem], all: Boolean, w: With) =>
+        ShowCurrentGraphTypeClause(None, item, all, Some(w))(pos)
+    )
+    clause = if (usesCypher5) clauseCypher5 else clauseCypher25orAbove
   } yield {
     val (withClause, items) = turnYieldToWith(yields)
     if (yieldAll) Seq(clause(List.empty, true, getFullWithStarFromYield))
@@ -2396,16 +2433,32 @@ class AstGenerator(
       withType = ParsedAsYield
     )(pos)
 
-  def _showCommands: Gen[Query] = oneOf(
-    _showIndexes,
-    _showConstraints,
-    _showProcedures,
-    _showFunctions,
-    _showTransactions,
-    _terminateTransactions,
-    _showSettings,
-    _combinedCommands
-  )
+  def _showCommands: Gen[Query] = {
+    if (usesCypher5) {
+      oneOf(
+        _showIndexes,
+        _showConstraints,
+        _showProcedures,
+        _showFunctions,
+        _showTransactions,
+        _terminateTransactions,
+        _showSettings,
+        _combinedCommands
+      )
+    } else {
+      oneOf(
+        _showIndexes,
+        _showConstraints,
+        _showCurrentGraphType,
+        _showProcedures,
+        _showFunctions,
+        _showTransactions,
+        _terminateTransactions,
+        _showSettings,
+        _combinedCommands
+      )
+    }
+  }
 
   // Schema commands
   // ----------------------------------

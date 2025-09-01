@@ -37,6 +37,7 @@ case class ShowIndexes(
   yieldAll: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "SHOW INDEXES"
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowIndexes =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
@@ -55,11 +56,30 @@ case class ShowConstraints(
   yieldAll: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "SHOW CONSTRAINTS"
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowConstraints =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
 
   override def removeArgumentIds(): ShowConstraints =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+}
+
+case class ShowCurrentGraphType(
+  defaultColumns: List[ShowColumn],
+  yieldColumns: List[CommandResultItem],
+  yieldAll: Boolean,
+  argumentIds: Set[LogicalVariable]
+)(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "SHOW CURRENT GRAPH TYPE"
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowCurrentGraphType =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): ShowCurrentGraphType =
     copy(argumentIds = Set.empty)(SameId(this.id))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
@@ -73,6 +93,7 @@ case class ShowProcedures(
   yieldAll: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "SHOW PROCEDURES"
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowProcedures =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
@@ -92,6 +113,7 @@ case class ShowFunctions(
   yieldAll: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "SHOW FUNCTIONS"
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowFunctions =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
@@ -110,6 +132,7 @@ case class ShowTransactions(
   yieldAll: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "SHOW TRANSACTIONS"
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowTransactions =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
@@ -130,6 +153,7 @@ case class TerminateTransactions(
   yieldAll: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "TERMINATE TRANSACTIONS"
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): TerminateTransactions =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
@@ -150,6 +174,7 @@ case class ShowSettings(
   yieldAll: Boolean,
   argumentIds: Set[LogicalVariable]
 )(implicit idGen: IdGen) extends CommandLogicalPlan(idGen, argumentIds) {
+  override def commandDescription: String = "SHOW SETTINGS"
 
   override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): ShowSettings =
     copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))

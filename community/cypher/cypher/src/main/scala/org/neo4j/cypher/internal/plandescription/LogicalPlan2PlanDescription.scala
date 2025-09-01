@@ -268,6 +268,7 @@ import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperties
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipPropertiesFromMap
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperty
 import org.neo4j.cypher.internal.logical.plans.ShowConstraints
+import org.neo4j.cypher.internal.logical.plans.ShowCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.ShowFunctions
 import org.neo4j.cypher.internal.logical.plans.ShowIndexes
 import org.neo4j.cypher.internal.logical.plans.ShowProcedures
@@ -1635,6 +1636,18 @@ case class LogicalPlan2PlanDescription(
           "AlterCurrentGraphTypeAlter",
           children,
           Seq(details),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case s: ShowCurrentGraphType =>
+        val colsDescription = commandColumnInfo(s.yieldColumns, s.yieldAll)
+        PlanDescriptionImpl(
+          id,
+          "ShowCurrentGraphType",
+          children,
+          Seq(Details(pretty"$colsDescription")),
           variables,
           withRawCardinalities,
           withDistinctness

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
+import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexesClause
 import org.neo4j.cypher.internal.ast.ShowProceduresClause
@@ -257,6 +258,7 @@ import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperties
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipPropertiesFromMap
 import org.neo4j.cypher.internal.logical.plans.SetRelationshipProperty
 import org.neo4j.cypher.internal.logical.plans.ShowConstraints
+import org.neo4j.cypher.internal.logical.plans.ShowCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.ShowFunctions
 import org.neo4j.cypher.internal.logical.plans.ShowIndexes
 import org.neo4j.cypher.internal.logical.plans.ShowProcedures
@@ -2799,6 +2801,8 @@ case class LogicalPlanProducer(
           s.yieldAll,
           inner.availableSymbols
         )
+      case s: ShowCurrentGraphTypeClause =>
+        ShowCurrentGraphType(s.unfilteredColumns.columns, s.yieldItems, s.yieldAll, inner.availableSymbols)
       case s: ShowProceduresClause =>
         ShowProcedures(
           s.executable,

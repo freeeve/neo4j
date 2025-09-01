@@ -135,6 +135,14 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   ): InputPosition => ast.CommandClause =
     ast.ShowIndexesClause(indexType, where.map(_._1), yieldItems, yieldAll, yieldWith)
 
+  private def showCurrentGraphType(
+    where: Option[(ast.Where, InputPosition)],
+    yieldAll: Boolean,
+    yieldItems: List[ast.CommandResultItem],
+    yieldWith: Option[ast.With]
+  ): InputPosition => ast.CommandClause =
+    ast.ShowCurrentGraphTypeClause(where.map(_._1), yieldItems, yieldAll, yieldWith)
+
   private def getWherePosition(startIndex: Int = 0) = {
     val startOfWhereClause = testName.indexOf("WHERE", startIndex)
     InputPosition(startOfWhereClause, 1, startOfWhereClause + 1)
@@ -357,6 +365,15 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         showIndex(ast.VectorIndexes, _, _, _, _)
       )
     ) ++ Seq(
+      // show current graph type only combinations
+      CommandCombinationsNoNames(
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        supportedInCypher5 = false
+      )
+    ) ++ Seq(
       // mixed show and terminate commands
       // excluding mixes of only those accepting string expressions,
       // as that is handled by `commandCombinationsAllowingStringExpressions`
@@ -416,6 +433,20 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW TRANSACTIONS 'db1-transaction-123'",
         showTx(Right(literalString("db1-transaction-123")), _, _, _, _)
       ),
+      CommandCombinationsNoNames(
+        "SHOW TRANSACTIONS",
+        showTx(Left(List.empty), _, _, _, _),
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        supportedInCypher5 = false
+      ),
+      CommandCombinationsNoNames(
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        "SHOW TRANSACTIONS 'db1-transaction-123'",
+        showTx(Right(literalString("db1-transaction-123")), _, _, _, _),
+        supportedInCypher5 = false
+      ),
       // terminate transaction combined with remaining commands
       CommandCombinationsNoNames(
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
@@ -464,6 +495,20 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         showIndex(ast.AllIndexes, _, _, _, _),
         "TERMINATE TRANSACTIONS 'db1-transaction-123'",
         terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _)
+      ),
+      CommandCombinationsNoNames(
+        "TERMINATE TRANSACTIONS 'db1-transaction-123'",
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        supportedInCypher5 = false
+      ),
+      CommandCombinationsNoNames(
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        "TERMINATE TRANSACTIONS 'db1-transaction-123'",
+        terminateTx(Right(literalString("db1-transaction-123")), _, _, _, _),
+        supportedInCypher5 = false
       ),
       // show settings combined with remaining commands
       CommandCombinationsNoNames(
@@ -514,6 +559,20 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW SETTINGS $setting",
         showSetting(Right(parameter("setting", CTAny)), _, _, _, _)
       ),
+      CommandCombinationsNoNames(
+        "SHOW SETTINGS",
+        showSetting(Left(List.empty), _, _, _, _),
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        supportedInCypher5 = false
+      ),
+      CommandCombinationsNoNames(
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        "SHOW SETTINGS $setting",
+        showSetting(Right(parameter("setting", CTAny)), _, _, _, _),
+        supportedInCypher5 = false
+      ),
       // show functions combined with remaining commands
       CommandCombinationsNoNames(
         "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
@@ -551,6 +610,20 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW FUNCTIONS",
         showFunction(ast.AllFunctions, None, _, _, _, _)
       ),
+      CommandCombinationsNoNames(
+        "SHOW BUILT IN FUNCTIONS EXECUTABLE BY CURRENT USER",
+        showFunction(ast.BuiltInFunctions, Some(ast.CurrentUser), _, _, _, _),
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        supportedInCypher5 = false
+      ),
+      CommandCombinationsNoNames(
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        "SHOW FUNCTIONS",
+        showFunction(ast.AllFunctions, None, _, _, _, _),
+        supportedInCypher5 = false
+      ),
       // show procedures combined with remaining commands
       CommandCombinationsNoNames(
         "SHOW ALL CONSTRAINTS",
@@ -576,6 +649,20 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         "SHOW INDEXES",
         showIndex(ast.AllIndexes, _, _, _, _)
       ),
+      CommandCombinationsNoNames(
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        "SHOW PROCEDURES",
+        showProcedure(None, _, _, _, _),
+        supportedInCypher5 = false
+      ),
+      CommandCombinationsNoNames(
+        "SHOW PROCEDURES",
+        showProcedure(None, _, _, _, _),
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        supportedInCypher5 = false
+      ),
       // show constraints combined with remaining commands
       CommandCombinationsNoNames(
         "SHOW ALL CONSTRAINTS",
@@ -588,6 +675,35 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
         showIndex(ast.FulltextIndexes, _, _, _, _),
         "SHOW CONSTRAINTS",
         showConstraint(ast.AllConstraints, _, _, _, _)
+      ),
+      CommandCombinationsNoNames(
+        "SHOW ALL CONSTRAINTS",
+        showConstraint(ast.AllConstraints, _, _, _, _),
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        supportedInCypher5 = false
+      ),
+      CommandCombinationsNoNames(
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        "SHOW CONSTRAINTS",
+        showConstraint(ast.AllConstraints, _, _, _, _),
+        supportedInCypher5 = false
+      ),
+      // show indexes combined with remaining commands
+      CommandCombinationsNoNames(
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        "SHOW INDEXES",
+        showIndex(ast.AllIndexes, _, _, _, _),
+        supportedInCypher5 = false
+      ),
+      CommandCombinationsNoNames(
+        "SHOW FULLTEXT INDEXES",
+        showIndex(ast.FulltextIndexes, _, _, _, _),
+        "SHOW CURRENT GRAPH TYPE",
+        showCurrentGraphType,
+        supportedInCypher5 = false
       )
     )
 
@@ -1796,6 +1912,287 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   }
 
   test(
+    "SHOW TRANSACTIONS YIELD a1, b1 AS c1, d1 AS d1, e1 AS f1, g1 AS e1 ORDER BY a1, b1, d1, e1 WHERE a1 AND b1 AND d1 AND e1 " +
+      "TERMINATE TRANSACTIONS 'id' YIELD a2, b2 AS c2, d2 AS d2, e2 AS f2, g2 AS e2 ORDER BY a2, b2, d2, e2 WHERE a2 AND b2 AND d2 AND e2 " +
+      "SHOW SETTINGS YIELD a3, b3 AS c3, d3 AS d3, e3 AS f3, g3 AS e3 ORDER BY a3, b3, d3, e3 WHERE a3 AND b3 AND d3 AND e3 " +
+      "SHOW FUNCTIONS YIELD a4, b4 AS c4, d4 AS d4, e4 AS f4, g4 AS e4 ORDER BY a4, b4, d4, e4 WHERE a4 AND b4 AND d4 AND e4 " +
+      "SHOW PROCEDURES YIELD a5, b5 AS c5, d5 AS d5, e5 AS f5, g5 AS e5 ORDER BY a5, b5, d5, e5 WHERE a5 AND b5 AND d5 AND e5 " +
+      "SHOW INDEXES YIELD a6, b6 AS c6, d6 AS d6, e6 AS f6, g6 AS e6 ORDER BY a6, b6, d6, e6 WHERE a6 AND b6 AND d6 AND e6 " +
+      "SHOW CONSTRAINTS YIELD a7, b7 AS c7, d7 AS d7, e7 AS f7, g7 AS e7 ORDER BY a7, b7, d7, e7 WHERE a7 AND b7 AND d7 AND e7 " +
+      "SHOW CURRENT GRAPH TYPE YIELD a8, b8 AS c8, d8 AS d8, e8 AS f8, g8 AS e8 ORDER BY a8, b8, d8, e8 WHERE a8 AND b8 AND d8 AND e8 " +
+      "RETURN *"
+  ) {
+    assertAstVersionAware(
+      supportedInCypher5 = false,
+      showTx(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(
+          commandResultItem("a1"),
+          commandResultItem("b1", Some("c1")),
+          commandResultItem("d1", Some("d1")),
+          commandResultItem("e1", Some("f1")),
+          commandResultItem("g1", Some("e1"))
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a1", "c1", "d1", "f1", "e1")),
+          Some(orderBy(
+            sortItem(varFor("a1")),
+            sortItem(varFor("c1")),
+            sortItem(varFor("d1")),
+            sortItem(varFor("e1"))
+          )),
+          where = Some(where(
+            and(
+              and(
+                and(
+                  varFor("a1"),
+                  varFor("c1")
+                ),
+                varFor("d1")
+              ),
+              varFor("e1")
+            )
+          ))
+        ))
+      ),
+      terminateTx(
+        Right(literalString("id")),
+        None,
+        yieldAll = false,
+        List(
+          commandResultItem("a2"),
+          commandResultItem("b2", Some("c2")),
+          commandResultItem("d2", Some("d2")),
+          commandResultItem("e2", Some("f2")),
+          commandResultItem("g2", Some("e2"))
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a2", "c2", "d2", "f2", "e2")),
+          Some(orderBy(
+            sortItem(varFor("a2")),
+            sortItem(varFor("c2")),
+            sortItem(varFor("d2")),
+            sortItem(varFor("e2"))
+          )),
+          where = Some(where(
+            and(
+              and(
+                and(
+                  varFor("a2"),
+                  varFor("c2")
+                ),
+                varFor("d2")
+              ),
+              varFor("e2")
+            )
+          ))
+        ))
+      ),
+      showSetting(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(
+          commandResultItem("a3"),
+          commandResultItem("b3", Some("c3")),
+          commandResultItem("d3", Some("d3")),
+          commandResultItem("e3", Some("f3")),
+          commandResultItem("g3", Some("e3"))
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a3", "c3", "d3", "f3", "e3")),
+          Some(orderBy(
+            sortItem(varFor("a3")),
+            sortItem(varFor("c3")),
+            sortItem(varFor("d3")),
+            sortItem(varFor("e3"))
+          )),
+          where = Some(where(
+            and(
+              and(
+                and(
+                  varFor("a3"),
+                  varFor("c3")
+                ),
+                varFor("d3")
+              ),
+              varFor("e3")
+            )
+          ))
+        ))
+      ),
+      showFunction(
+        ast.AllFunctions,
+        None,
+        None,
+        yieldAll = false,
+        List(
+          commandResultItem("a4"),
+          commandResultItem("b4", Some("c4")),
+          commandResultItem("d4", Some("d4")),
+          commandResultItem("e4", Some("f4")),
+          commandResultItem("g4", Some("e4"))
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a4", "c4", "d4", "f4", "e4")),
+          Some(orderBy(
+            sortItem(varFor("a4")),
+            sortItem(varFor("c4")),
+            sortItem(varFor("d4")),
+            sortItem(varFor("e4"))
+          )),
+          where = Some(where(
+            and(
+              and(
+                and(
+                  varFor("a4"),
+                  varFor("c4")
+                ),
+                varFor("d4")
+              ),
+              varFor("e4")
+            )
+          ))
+        ))
+      ),
+      showProcedure(
+        None,
+        None,
+        yieldAll = false,
+        List(
+          commandResultItem("a5"),
+          commandResultItem("b5", Some("c5")),
+          commandResultItem("d5", Some("d5")),
+          commandResultItem("e5", Some("f5")),
+          commandResultItem("g5", Some("e5"))
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a5", "c5", "d5", "f5", "e5")),
+          Some(orderBy(
+            sortItem(varFor("a5")),
+            sortItem(varFor("c5")),
+            sortItem(varFor("d5")),
+            sortItem(varFor("e5"))
+          )),
+          where = Some(where(
+            and(
+              and(
+                and(
+                  varFor("a5"),
+                  varFor("c5")
+                ),
+                varFor("d5")
+              ),
+              varFor("e5")
+            )
+          ))
+        ))
+      ),
+      showIndex(
+        ast.AllIndexes,
+        None,
+        yieldAll = false,
+        List(
+          commandResultItem("a6"),
+          commandResultItem("b6", Some("c6")),
+          commandResultItem("d6", Some("d6")),
+          commandResultItem("e6", Some("f6")),
+          commandResultItem("g6", Some("e6"))
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a6", "c6", "d6", "f6", "e6")),
+          Some(orderBy(
+            sortItem(varFor("a6")),
+            sortItem(varFor("c6")),
+            sortItem(varFor("d6")),
+            sortItem(varFor("e6"))
+          )),
+          where = Some(where(
+            and(
+              and(
+                and(
+                  varFor("a6"),
+                  varFor("c6")
+                ),
+                varFor("d6")
+              ),
+              varFor("e6")
+            )
+          ))
+        ))
+      ),
+      showConstraint(
+        ast.AllConstraints,
+        None,
+        yieldAll = false,
+        List(
+          commandResultItem("a7"),
+          commandResultItem("b7", Some("c7")),
+          commandResultItem("d7", Some("d7")),
+          commandResultItem("e7", Some("f7")),
+          commandResultItem("g7", Some("e7"))
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a7", "c7", "d7", "f7", "e7")),
+          Some(orderBy(
+            sortItem(varFor("a7")),
+            sortItem(varFor("c7")),
+            sortItem(varFor("d7")),
+            sortItem(varFor("e7"))
+          )),
+          where = Some(where(
+            and(
+              and(
+                and(
+                  varFor("a7"),
+                  varFor("c7")
+                ),
+                varFor("d7")
+              ),
+              varFor("e7")
+            )
+          ))
+        ))
+      ),
+      showCurrentGraphType(
+        None,
+        yieldAll = false,
+        List(
+          commandResultItem("a8"),
+          commandResultItem("b8", Some("c8")),
+          commandResultItem("d8", Some("d8")),
+          commandResultItem("e8", Some("f8")),
+          commandResultItem("g8", Some("e8"))
+        ),
+        Some(withFromYield(
+          returnAllItems.withDefaultOrderOnColumns(List("a8", "c8", "d8", "f8", "e8")),
+          Some(orderBy(
+            sortItem(varFor("a8")),
+            sortItem(varFor("c8")),
+            sortItem(varFor("d8")),
+            sortItem(varFor("e8"))
+          )),
+          where = Some(where(
+            and(
+              and(
+                and(
+                  varFor("a8"),
+                  varFor("c8")
+                ),
+                varFor("d8")
+              ),
+              varFor("e8")
+            )
+          ))
+        ))
+      ),
+      returnAll
+    )
+  }
+
+  test(
     "SHOW TRANSACTIONS YIELD a " +
       "TERMINATE TRANSACTIONS 'id' YIELD a " +
       "SHOW SETTINGS YIELD a " +
@@ -2031,6 +2428,271 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     )
   }
 
+  test(
+    "SHOW TRANSACTIONS YIELD a " +
+      "TERMINATE TRANSACTIONS 'id' YIELD a " +
+      "SHOW SETTINGS YIELD a " +
+      "SHOW FUNCTIONS YIELD a " +
+      "SHOW PROCEDURES YIELD a " +
+      "SHOW INDEXES YIELD a " +
+      "SHOW CONSTRAINTS YIELD a " +
+      "SHOW CURRENT GRAPH TYPE YIELD a " +
+      "SHOW TRANSACTIONS YIELD a " +
+      "TERMINATE TRANSACTIONS 'id' YIELD a " +
+      "SHOW SETTINGS YIELD a " +
+      "SHOW FUNCTIONS YIELD a " +
+      "SHOW PROCEDURES YIELD a " +
+      "SHOW INDEXES YIELD a " +
+      "SHOW CONSTRAINTS YIELD a " +
+      "SHOW CURRENT GRAPH TYPE YIELD a " +
+      "SHOW TRANSACTIONS YIELD a " +
+      "TERMINATE TRANSACTIONS 'id' YIELD a " +
+      "SHOW SETTINGS YIELD a " +
+      "SHOW FUNCTIONS YIELD a " +
+      "SHOW PROCEDURES YIELD a " +
+      "SHOW INDEXES YIELD a " +
+      "SHOW CONSTRAINTS YIELD a " +
+      "SHOW CURRENT GRAPH TYPE YIELD a " +
+      "SHOW TRANSACTIONS YIELD a " +
+      "TERMINATE TRANSACTIONS 'id' YIELD a " +
+      "SHOW SETTINGS YIELD a " +
+      "SHOW FUNCTIONS YIELD a " +
+      "SHOW PROCEDURES YIELD a " +
+      "SHOW INDEXES YIELD a " +
+      "SHOW CONSTRAINTS YIELD a " +
+      "SHOW CURRENT GRAPH TYPE YIELD a " +
+      "RETURN *"
+  ) {
+    assertAstVersionAware(
+      false,
+      showTx(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      terminateTx(
+        Right(literalString("id")),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showSetting(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showFunction(
+        ast.AllFunctions,
+        None,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showProcedure(
+        None,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showIndex(
+        ast.AllIndexes,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showConstraint(
+        ast.AllConstraints,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showCurrentGraphType(
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showTx(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      terminateTx(
+        Right(literalString("id")),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showSetting(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showFunction(
+        ast.AllFunctions,
+        None,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showProcedure(
+        None,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showIndex(
+        ast.AllIndexes,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showConstraint(
+        ast.AllConstraints,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showCurrentGraphType(
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showTx(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      terminateTx(
+        Right(literalString("id")),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showSetting(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showFunction(
+        ast.AllFunctions,
+        None,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showProcedure(
+        None,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showIndex(
+        ast.AllIndexes,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showConstraint(
+        ast.AllConstraints,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showCurrentGraphType(
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showTx(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      terminateTx(
+        Right(literalString("id")),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showSetting(
+        Left(List.empty),
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showFunction(
+        ast.AllFunctions,
+        None,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showProcedure(
+        None,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showIndex(
+        ast.AllIndexes,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showConstraint(
+        ast.AllConstraints,
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      showCurrentGraphType(
+        None,
+        yieldAll = false,
+        List(commandResultItem("a")),
+        Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("a"))))
+      ),
+      returnAll
+    )
+  }
+
   private val manyCommands = (for (_ <- 1 to 300) yield "SHOW TRANSACTIONS YIELD a").mkString(" ")
 
   test(manyCommands) {
@@ -2151,6 +2813,30 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     }
   }
 
+  test("SHOW CONSTRAINTS VERBOSE SHOW CURRENT GRAPH TYPE") {
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withOldSyntax(
+          """`SHOW CONSTRAINTS` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
+        )
+    }
+  }
+
+  test("SHOW CURRENT GRAPH TYPE SHOW CONSTRAINTS BRIEF") {
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER'."
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
+  }
+
   test("SHOW INDEXES BRIEF SHOW INDEXES") {
     failsParsing[ast.Statements].in {
       case Cypher5 => _.withOldSyntax(
@@ -2204,10 +2890,10 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
             |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
         )
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input 'BTREE': expected 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', " +
+          "Invalid input 'BTREE': expected 'ALIAS', 'ALIASES', 'ALL', 'CONSTRAINT', 'CONSTRAINTS', 'CURRENT', 'DATABASE', 'DEFAULT DATABASE', 'HOME DATABASE', 'DATABASES', " +
             "'EXIST', 'EXISTENCE', 'FULLTEXT', 'FUNCTION', 'FUNCTIONS', 'BUILT IN', 'INDEX', 'INDEXES', 'KEY', 'LOOKUP', 'NODE', 'POINT', 'POPULATED', 'PRIVILEGE', 'PRIVILEGES', " +
             "'PROCEDURE', 'PROCEDURES', 'PROPERTY', 'RANGE', 'REL', 'RELATIONSHIP', 'ROLE', 'ROLES', 'SERVER', 'SERVERS', 'SETTING', 'SETTINGS', 'SUPPORTED', 'TEXT', " +
-            "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'CURRENT USER', 'USERS' or 'VECTOR'"
+            "'TRANSACTION', 'TRANSACTIONS', 'UNIQUE', 'UNIQUENESS', 'USER', 'USERS' or 'VECTOR'"
         )
     }
   }
@@ -2254,6 +2940,29 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
       case _ => _.withSyntaxErrorContaining(
           "Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>"
         )
+    }
+  }
+
+  test("SHOW INDEXES BRIEF SHOW CURRENT GRAPH TYPE") {
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withOldSyntax(
+          """`SHOW INDEXES` no longer allows the `BRIEF` and `VERBOSE` keywords,
+            |please omit `BRIEF` and use `YIELD *` instead of `VERBOSE`.""".stripMargin
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'BRIEF': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
+    }
+  }
+
+  test("SHOW CURRENT GRAPH TYPE SHOW INDEXES VERBOSE") {
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER'."
+        )
+      case _ =>
+        _.withSyntaxErrorContaining("Invalid input 'VERBOSE': expected 'SHOW', 'TERMINATE', 'WHERE', 'YIELD' or <EOF>")
     }
   }
 
@@ -2343,6 +3052,14 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     }
 
     test(s"$otherClause SHOW INDEXES") {
+      failsParsing[ast.Statements].withMessageStart("Invalid input")
+    }
+
+    test(s"SHOW CURRENT GRAPH TYPE $otherClause") {
+      failsParsing[ast.Statements].withMessageStart("Invalid input")
+    }
+
+    test(s"$otherClause SHOW CURRENT GRAPH TYPE") {
       failsParsing[ast.Statements].withMessageStart("Invalid input")
     }
 

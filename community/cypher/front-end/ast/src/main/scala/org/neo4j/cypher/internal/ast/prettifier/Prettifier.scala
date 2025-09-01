@@ -178,6 +178,7 @@ import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
+import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
@@ -1016,6 +1017,7 @@ case class Prettifier(
       case u: UnresolvedCall              => asString(u)
       case s: ShowIndexesClause           => asString(s)
       case s: ShowConstraintsClause       => asString(s)
+      case s: ShowCurrentGraphTypeClause  => asString(s)
       case s: ShowProceduresClause        => asString(s)
       case s: ShowFunctionsClause         => asString(s)
       case s: ShowTransactionsClause      => asString(s)
@@ -1316,6 +1318,13 @@ case class Prettifier(
       val where = s.where.map(ind.asString(_, shouldBacktickEmpty = true)).map(asNewLine).getOrElse("")
       val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
       s"SHOW ${s.constraintType.prettyPrint} CONSTRAINTS$where$yielded"
+    }
+
+    def asString(s: ShowCurrentGraphTypeClause): String = {
+      val ind = indented()
+      val where = s.where.map(ind.asString).map(asNewLine).getOrElse("")
+      val yielded = yieldAsString(s.yieldItems, s.yieldAll, s.yieldWith)
+      s"SHOW CURRENT GRAPH TYPE$where$yielded"
     }
 
     def asString(s: ShowProceduresClause): String = {

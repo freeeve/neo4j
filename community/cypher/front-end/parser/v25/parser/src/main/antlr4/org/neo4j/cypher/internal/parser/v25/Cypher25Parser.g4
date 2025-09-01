@@ -927,6 +927,7 @@ showCommand
    : SHOW (
       showAliases
       | showConstraintCommand
+      | showCurrentGraphTypeCommand
       | showCurrentUser
       | showDatabase
       | showFunctions
@@ -984,6 +985,7 @@ composableShowCommandClauses
    : SHOW (
       showIndexCommand
       | showConstraintCommand
+      | showCurrentGraphTypeCommand
       | showFunctions
       | showProcedures
       | showSettings
@@ -1031,6 +1033,10 @@ constraintExistType
 
 showConstraintsEnd
    : constraintToken showCommandYield? composableCommandClauses?
+   ;
+
+showCurrentGraphTypeCommand
+   : CURRENT GRAPH TYPE showCommandYield? composableCommandClauses?
    ;
 
 showProcedures

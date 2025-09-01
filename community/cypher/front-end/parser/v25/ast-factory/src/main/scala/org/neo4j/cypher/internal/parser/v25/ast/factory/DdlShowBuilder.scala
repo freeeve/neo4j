@@ -62,6 +62,7 @@ import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
 import org.neo4j.cypher.internal.ast.ShowConstraintType
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
+import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowCurrentUser
 import org.neo4j.cypher.internal.ast.ShowDatabase
 import org.neo4j.cypher.internal.ast.ShowFunctionType
@@ -353,6 +354,14 @@ trait DdlShowBuilder extends Cypher25ParserListener {
       .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
   }
 
+  final override def exitShowCurrentGraphTypeCommand(
+    ctx: Cypher25Parser.ShowCurrentGraphTypeCommandContext
+  ): Unit = {
+    ctx.ast = decomposeYield(astOpt(ctx.showCommandYield()))
+      .copy(composableClauses = astOpt[Seq[Clause]](ctx.composableCommandClauses()))
+      .buildShowCurrentGraphType(pos(ctx.getParent))
+  }
+
   final override def exitShowProcedures(
     ctx: Cypher25Parser.ShowProceduresContext
   ): Unit = {
@@ -584,6 +593,15 @@ object DdlShowBuilder {
           returnCypher5Columns = false
         )(position)
       )
+    }
+
+    def buildShowCurrentGraphType(position: InputPosition): Seq[Clause] = {
+      buildClauses(ShowCurrentGraphTypeClause(
+        where,
+        yieldedItems,
+        yieldAll,
+        yieldClause.map(turnYieldToWith)
+      )(position))
     }
 
     def buildIndexClauses(indexType: ShowIndexType, position: InputPosition): Seq[Clause] = {

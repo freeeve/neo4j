@@ -718,6 +718,7 @@ sealed abstract class AbstractSemiApply(left: LogicalPlan)(idGen: IdGen)
  */
 abstract class CommandLogicalPlan(idGen: IdGen, argumentIds: Set[LogicalVariable])
     extends LogicalLeafPlan(idGen = idGen) {
+  def commandDescription: String
 
   def defaultColumns: List[ShowColumn]
 

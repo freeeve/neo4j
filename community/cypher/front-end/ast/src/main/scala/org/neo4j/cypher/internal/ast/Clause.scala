@@ -2646,6 +2646,48 @@ object ShowConstraintsClause {
   }
 }
 
+case class ShowCurrentGraphTypeClause(
+  originalColumns: List[ShowAndTerminateColumn],
+  where: Option[Where],
+  yieldItems: List[CommandResultItem],
+  yieldAll: Boolean,
+  yieldWith: Option[With]
+)(val position: InputPosition) extends CommandClause {
+  override def name: String = "SHOW CURRENT GRAPH TYPE"
+
+  private val columns = originalColumns.map(c => ShowColumn(c.name, c.cypherType)(position))
+
+  val unfilteredColumns: DefaultOrAllShowColumns =
+    DefaultOrAllShowColumns(useAllColumns = yieldItems.nonEmpty || yieldAll, columns, columns)
+
+  override def moveWhereToProjection: CommandClause = copy(where = None)(position)
+  override def moveOutWith: CommandClause = copy(yieldWith = None)(position)
+
+  override def clauseSpecificSemanticCheck: SemanticCheck =
+    requireFeatureSupport("`SHOW CURRENT GRAPH TYPE`", SemanticFeature.GraphTypes, position) chain
+      super.clauseSpecificSemanticCheck
+}
+
+object ShowCurrentGraphTypeClause {
+  val typeColumn = "type"
+  val specificationColumn = "specification"
+
+  def apply(
+    where: Option[Where],
+    yieldItems: List[CommandResultItem],
+    yieldAll: Boolean,
+    yieldWith: Option[With]
+  )(position: InputPosition): ShowCurrentGraphTypeClause = {
+    // All columns are currently default
+    val columns = List(
+      ShowAndTerminateColumn(typeColumn),
+      ShowAndTerminateColumn(specificationColumn)
+    )
+
+    ShowCurrentGraphTypeClause(columns, where, yieldItems, yieldAll, yieldWith)(position)
+  }
+}
+
 case class ShowProceduresClause(
   briefProcedureColumns: List[ShowAndTerminateColumn],
   allProcedureColumns: List[ShowAndTerminateColumn],

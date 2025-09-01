@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnAddedInRewrite
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
+import org.neo4j.cypher.internal.ast.ShowCurrentGraphTypeClause
 import org.neo4j.cypher.internal.ast.ShowFunctionsClause
 import org.neo4j.cypher.internal.ast.ShowIndexesClause
 import org.neo4j.cypher.internal.ast.ShowProceduresClause
@@ -360,6 +361,10 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
                   s.yieldWith.map(rewriteWithForShowCommands)
 
               case s: ShowIndexesClause =>
+                Seq[Clause](s.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(s.position)) ++
+                  s.yieldWith.map(rewriteWithForShowCommands)
+
+              case s: ShowCurrentGraphTypeClause =>
                 Seq[Clause](s.copy(yieldAll = true, yieldItems = List.empty, yieldWith = None)(s.position)) ++
                   s.yieldWith.map(rewriteWithForShowCommands)
 

@@ -297,6 +297,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                 exitConstraintExistType((Cypher25Parser.ConstraintExistTypeContext) ctx);
             case Cypher25Parser.RULE_showConstraintsEnd ->
                 exitShowConstraintsEnd((Cypher25Parser.ShowConstraintsEndContext) ctx);
+            case Cypher25Parser.RULE_showCurrentGraphTypeCommand ->
+                exitShowCurrentGraphTypeCommand((Cypher25Parser.ShowCurrentGraphTypeCommandContext) ctx);
             case Cypher25Parser.RULE_showProcedures -> exitShowProcedures((Cypher25Parser.ShowProceduresContext) ctx);
             case Cypher25Parser.RULE_showFunctions -> exitShowFunctions((Cypher25Parser.ShowFunctionsContext) ctx);
             case Cypher25Parser.RULE_functionToken -> exitFunctionToken((Cypher25Parser.FunctionTokenContext) ctx);

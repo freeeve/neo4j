@@ -22,6 +22,11 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.CommunityShowFuncProcAcceptanceTest.readAll
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.exceptions.CantCompileQueryException
+import org.neo4j.exceptions.RuntimeUnsupportedException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.kernel.api.procedure.GlobalProcedures
 import org.neo4j.test.DoubleLatch
@@ -33,7 +38,8 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
     with ShowSettingsAcceptanceTestSupport {
 
   override def databaseConfig(): Map[Setting[_], Object] = super.databaseConfig() ++ Map(
-    GraphDatabaseInternalSettings.composable_commands -> TRUE
+    GraphDatabaseInternalSettings.composable_commands -> TRUE,
+    GraphDatabaseInternalSettings.graph_type_enabled -> TRUE
   )
 
   override protected def onNewGraphDatabase(): Unit = {
@@ -903,6 +909,72 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
         }
       }
     }
+  }
+
+  test("Should fail to combine commands with show current graph type in community") {
+    Seq(
+      "SHOW TRANSACTIONS YIELD transactionId",
+      "SHOW PROCEDURES YIELD name",
+      "SHOW INDEXES YIELD name",
+      "SHOW SETTINGS YIELD name",
+      "TERMINATE TRANSACTION 'txId' YIELD message",
+      "SHOW FUNCTIONS YIELD name",
+      "SHOW CONSTRAINTS YIELD name"
+    ).foreach(command =>
+      withClue(command + ": ") {
+        // WHEN
+        val exceptionAfter = the[RuntimeUnsupportedException] thrownBy {
+          execute(s"CYPHER 25 SHOW CURRENT GRAPH TYPE YIELD specification $command RETURN *")
+        }
+
+        // THEN
+        exceptionAfter should be(gqlException(
+          "51N27: 'SHOW CURRENT GRAPH TYPE' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'SHOW CURRENT GRAPH TYPE' is not supported in community edition."
+          )
+        ))
+        val causeAfter = exceptionAfter.getCause
+        causeAfter should not be null
+        causeAfter shouldBe a[CantCompileQueryException]
+        causeAfter.asInstanceOf[CantCompileQueryException] should be(gqlException(
+          "51N27: 'SHOW CURRENT GRAPH TYPE' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'SHOW CURRENT GRAPH TYPE' is not supported in community edition."
+          )
+        ))
+
+        // WHEN
+        val exceptionBefore = the[RuntimeUnsupportedException] thrownBy {
+          execute(s"CYPHER 25 $command SHOW CURRENT GRAPH TYPE YIELD specification RETURN *")
+        }
+
+        // THEN
+        exceptionBefore should be(gqlException(
+          "51N27: 'SHOW CURRENT GRAPH TYPE' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'SHOW CURRENT GRAPH TYPE' is not supported in community edition."
+          )
+        ))
+        val causeBefore = exceptionBefore.getCause
+        causeBefore should not be null
+        causeBefore shouldBe a[CantCompileQueryException]
+        causeBefore.asInstanceOf[CantCompileQueryException] should be(gqlException(
+          "51N27: 'SHOW CURRENT GRAPH TYPE' is not supported in community edition.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_51N27,
+            "error: system configuration or operation exception - not supported in this edition. " +
+              "'SHOW CURRENT GRAPH TYPE' is not supported in community edition."
+          )
+        ))
+      }
+    )
   }
 
 }

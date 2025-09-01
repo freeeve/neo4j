@@ -383,6 +383,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitShowConstraintsEnd(Cypher25Parser.ShowConstraintsEndContext ctx);
 
+    void exitShowCurrentGraphTypeCommand(Cypher25Parser.ShowCurrentGraphTypeCommandContext ctx);
+
     void exitShowProcedures(Cypher25Parser.ShowProceduresContext ctx);
 
     void exitShowFunctions(Cypher25Parser.ShowFunctionsContext ctx);

@@ -216,27 +216,48 @@ class ShowUserAdministrationCommandParserTest extends UserAdministrationCommandP
   // fails parsing
 
   test("SHOW CURRENT USERS") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
-        |"SHOW CURRENT USERS"
-        |              ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
+            |"SHOW CURRENT USERS"
+            |              ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'USERS': expected 'GRAPH TYPE' or 'USER' (line 1, column 14 (offset: 13))
+            |"SHOW CURRENT USERS"
+            |              ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW CURRENT USERS YIELD *") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
-        |"SHOW CURRENT USERS YIELD *"
-        |              ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
+            |"SHOW CURRENT USERS YIELD *"
+            |              ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'USERS': expected 'GRAPH TYPE' or 'USER' (line 1, column 14 (offset: 13))
+            |"SHOW CURRENT USERS YIELD *"
+            |              ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW CURRENT USERS WHERE user = 'GRANTED'") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
-        |"SHOW CURRENT USERS WHERE user = 'GRANTED'"
-        |              ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'USERS': expected 'USER' (line 1, column 14 (offset: 13))
+            |"SHOW CURRENT USERS WHERE user = 'GRANTED'"
+            |              ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'USERS': expected 'GRAPH TYPE' or 'USER' (line 1, column 14 (offset: 13))
+            |"SHOW CURRENT USERS WHERE user = 'GRANTED'"
+            |              ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW CURRENT USER WITH AUTH") {

@@ -93,6 +93,7 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipElementType
 import org.neo4j.cypher.internal.logical.plans.RelationshipElementTypeReferenceByIdentifyingLabel
 import org.neo4j.cypher.internal.logical.plans.RelationshipElementTypeReferenceByLabel
 import org.neo4j.cypher.internal.logical.plans.ShowConstraints
+import org.neo4j.cypher.internal.logical.plans.ShowCurrentGraphType
 import org.neo4j.cypher.internal.logical.plans.ShowFunctions
 import org.neo4j.cypher.internal.logical.plans.ShowIndexes
 import org.neo4j.cypher.internal.logical.plans.ShowProcedures
@@ -4667,6 +4668,47 @@ class SchemaAndNonAdminCommandsLogicalPlan2PlanDescriptionTest extends LogicalPl
             "(:`L!2`)-[:`R-2` => {`1p2` :: DATE, `p%1` :: INTEGER, `p-3` :: FLOAT}]->(:`L``1` =>) }"
         )),
         Set.empty
+      )
+    )
+  }
+
+  test("ShowCurrentGraphType") {
+    assertGood(
+      attach(
+        ShowCurrentGraphType(List.empty, List.empty, yieldAll = false, Set.empty),
+        1.0
+      ),
+      planDescription(id, "ShowCurrentGraphType", Seq.empty, Seq(details("defaultColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        ShowCurrentGraphType(List.empty, List.empty, yieldAll = true, Set.empty),
+        1.0
+      ),
+      planDescription(id, "ShowCurrentGraphType", Seq.empty, Seq(details("allColumns")), Set.empty)
+    )
+
+    assertGood(
+      attach(
+        ShowCurrentGraphType(
+          List("xxx", "yyy", "vvv").map(s => ShowColumn(s)(pos)),
+          List(
+            CommandResultItem("xxx", varFor("xxx"))(pos),
+            CommandResultItem("yyy", varFor("zzz"))(pos),
+            CommandResultItem("vvv", varFor("vvv"))(pos)
+          ),
+          yieldAll = false,
+          Set.empty
+        ),
+        1.0
+      ),
+      planDescription(
+        id,
+        "ShowCurrentGraphType",
+        Seq.empty,
+        Seq(details("columns(xxx, yyy AS zzz, vvv)")),
+        Set("xxx", "zzz", "vvv")
       )
     )
   }
