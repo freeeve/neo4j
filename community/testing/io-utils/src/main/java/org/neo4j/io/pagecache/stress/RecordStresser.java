@@ -31,17 +31,20 @@ import java.util.concurrent.Callable;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.TinyLockManager;
-import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.io.pagecache.context.CursorContextFactory;
 
 public class RecordStresser implements Callable<Void> {
+    private static final String CALL_TAG = "RecordStresser-Call";
+    private static final String VERIFY_TAG = "RecordStresser-Verify";
+
     private final PagedFile pagedFile;
     private final Condition condition;
     private final int maxRecords;
     private final RecordFormat format;
     private final int threadId;
     private final TinyLockManager locks;
-    private final PageCacheTracer cacheTracer;
+    private final CursorContextFactory contextFactory;
+
     private long countSum;
 
     public RecordStresser(
@@ -51,14 +54,14 @@ public class RecordStresser implements Callable<Void> {
             RecordFormat format,
             int threadId,
             TinyLockManager locks,
-            PageCacheTracer cacheTracer) {
+            CursorContextFactory contextFactory) {
         this.pagedFile = pagedFile;
         this.condition = condition;
         this.maxRecords = maxRecords;
         this.format = format;
         this.threadId = threadId;
         this.locks = locks;
-        this.cacheTracer = cacheTracer;
+        this.contextFactory = contextFactory;
     }
 
     @Override
@@ -66,7 +69,8 @@ public class RecordStresser implements Callable<Void> {
         Random random = new Random();
         int recordsPerPage = format.getRecordsPerPage();
         int recordSize = format.getRecordSize();
-        try (PageCursor cursor = pagedFile.io(0, PF_SHARED_WRITE_LOCK, CursorContext.NULL_CONTEXT)) {
+        try (var cursorContext = contextFactory.create(CALL_TAG);
+                PageCursor cursor = pagedFile.io(0, PF_SHARED_WRITE_LOCK, cursorContext)) {
             while (!condition.fulfilled()) {
                 int recordId = random.nextInt(maxRecords);
                 int pageId = recordId / recordsPerPage;
@@ -93,7 +97,8 @@ public class RecordStresser implements Callable<Void> {
 
     public void verifyCounts() throws IOException {
         long actualSum = 0;
-        try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, CursorContext.NULL_CONTEXT)) {
+        try (var cursorContext = contextFactory.create(VERIFY_TAG);
+                PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, cursorContext)) {
             while (cursor.next()) {
                 actualSum += format.sumCountsForThread(cursor, threadId);
             }

@@ -19,6 +19,8 @@
  */
 package org.neo4j.io.pagecache.stress;
 
+import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
@@ -36,6 +38,7 @@ import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.TinyLockManager;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.util.concurrent.Futures;
 
@@ -86,9 +89,10 @@ public class PageCacheStresser {
         TinyLockManager locks = new TinyLockManager();
 
         List<RecordStresser> recordStressers = new ArrayList<>(numberOfThreads);
+        CursorContextFactory contextFactory = new CursorContextFactory(cacheTracer, EMPTY_CONTEXT_SUPPLIER);
         for (int threadId = 0; threadId < numberOfThreads; threadId++) {
             recordStressers.add(
-                    new RecordStresser(pagedFile, condition, maxRecords, format, threadId, locks, cacheTracer));
+                    new RecordStresser(pagedFile, condition, maxRecords, format, threadId, locks, contextFactory));
         }
         return recordStressers;
     }
