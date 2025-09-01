@@ -155,7 +155,40 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <scope>test</scope>
+            <!-- Should be test scope, but intellij do not like that -->
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>analyze</id>
+                        <goals>
+                            <goal>analyze-only</goal>
+                        </goals>
+                        <configuration>
+                            <failOnWarning>true</failOnWarning>
+                            <ignoredDependencies>
+                                <!-- Ignore test dependencies to not risk tests stop running and for convenience. -->
+                                <ignoredDependency>org.junit.jupiter:*</ignoredDependency>
+                                <ignoredDependency>org.scalatest:*</ignoredDependency>
+                                <ignoredDependency>org.scalacheck:*</ignoredDependency>
+                                <ignoredDependency>co.helmethair:scalatest-junit-runner</ignoredDependency>
+                                <ignoredDependency>org.opentest4j:opentest4j</ignoredDependency>
+                                <ignoredDependency>org.assertj:*</ignoredDependency>
+                            </ignoredDependencies>
+                            <ignoredNonTestScopedDependencies>
+                                <!-- Ignored because intellij is confused about the scope. -->
+                                <ignoredNonTestScopedDependency>org.apache.commons:commons-lang3</ignoredNonTestScopedDependency>
+                            </ignoredNonTestScopedDependencies>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>
