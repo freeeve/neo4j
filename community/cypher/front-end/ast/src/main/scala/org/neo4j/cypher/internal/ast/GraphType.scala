@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType.Alter
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType.Drop
 import org.neo4j.cypher.internal.ast.GraphType.NotDefinedHere
 import org.neo4j.cypher.internal.ast.GraphType.ResolutionStatus
 import org.neo4j.cypher.internal.ast.GraphType.Resolved
@@ -31,6 +33,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.error
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -278,20 +281,24 @@ case class NodeType(
   constraints: Set[(GraphTypeConstraintBody, Options)]
 )(val position: InputPosition) extends GraphTypeEntry {
 
-  def checkNotEmpty: SemanticCheck = if (propertyTypes.isEmpty && additionalLabels.isEmpty)
-    error(SemanticError(
-      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-        .atPosition(position.offset, position.line, position.column)
-        .withCause(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC2)
-            .withParam(GqlParams.StringParam.label, identifyingLabel.name)
+  def checkNotEmpty: SemanticCheck = SemanticCheck.fromState { (state: SemanticState) =>
+    if (state.graphTypeMode != Drop) {
+      if (propertyTypes.isEmpty && additionalLabels.isEmpty)
+        error(SemanticError(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
             .atPosition(position.offset, position.line, position.column)
-            .build()
-        ).build(),
-      s"node element type `${identifyingLabel.name}` is empty",
-      position
-    ))
-  else success
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC2)
+                .withParam(GqlParams.StringParam.label, identifyingLabel.name)
+                .atPosition(position.offset, position.line, position.column)
+                .build()
+            ).build(),
+          s"node element type `${identifyingLabel.name}` is empty",
+          position
+        ))
+      else success
+    } else success
+  }
 
   override def semanticCheck: SemanticCheck =
     GraphTypeEntry.checkProperties(propertyTypes) chain checkNotEmpty chain GraphTypeEntry.checkOptionsMaps(constraints)
@@ -308,23 +315,26 @@ case class EdgeType(
 )(val position: InputPosition)
     extends GraphTypeEntry {
 
-  def checkNotEmpty: SemanticCheck =
-    if (
-      propertyTypes.isEmpty && src.isInstanceOf[EmptyNodeTypeReference] && dest.isInstanceOf[EmptyNodeTypeReference]
-    ) {
-      error(SemanticError(
-        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-          .atPosition(position.offset, position.line, position.column)
-          .withCause(
-            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC3)
-              .withParam(GqlParams.StringParam.relType, identifyingLabel.name)
-              .atPosition(position.offset, position.line, position.column)
-              .build()
-          ).build(),
-        s"relationship element type `${identifyingLabel.name}` is empty",
-        position
-      ))
+  def checkNotEmpty: SemanticCheck = SemanticCheck.fromState { (state: SemanticState) =>
+    if (state.graphTypeMode != Drop) {
+      if (
+        propertyTypes.isEmpty && src.isInstanceOf[EmptyNodeTypeReference] && dest.isInstanceOf[EmptyNodeTypeReference]
+      ) {
+        error(SemanticError(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(position.offset, position.line, position.column)
+            .withCause(
+              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NC3)
+                .withParam(GqlParams.StringParam.relType, identifyingLabel.name)
+                .atPosition(position.offset, position.line, position.column)
+                .build()
+            ).build(),
+          s"relationship element type `${identifyingLabel.name}` is empty",
+          position
+        ))
+      } else success
     } else success
+  }
 
   override def semanticCheck: SemanticCheck =
     GraphTypeEntry.checkProperties(propertyTypes) chain checkNotEmpty chain GraphTypeEntry.checkOptionsMaps(constraints)
@@ -399,36 +409,59 @@ case class GraphTypeConstraintDefinition(
 
   val key: GraphTypeConstraintKey = GraphTypeConstraintKey(this)
 
-  override def semanticCheck: SemanticCheck = body.semanticCheck chain
-    checkProperties(body.properties.map(_.propertyKey)) chain {
-      reference match {
-        case NodeTypeReferenceByVariable(v) => checkPropertyVariablesInScope("node", Set(v), body.properties)
-        case NodeTypeReferenceByLabel(_, v) => checkPropertyVariablesInScope("node", v.toSet, body.properties)
-        case NodeTypeReferenceByIdentifyingLabel(_, v) =>
-          checkPropertyVariablesInScope("node", v.toSet, body.properties)
-        case EdgeTypeReferenceByVariable(v) => checkPropertyVariablesInScope("relationship", Set(v), body.properties)
-        case EdgeTypeReferenceByLabel(_, v) => checkPropertyVariablesInScope("relationship", v.toSet, body.properties)
-        case EdgeTypeReferenceByIdentifyingLabel(_, v) =>
-          checkPropertyVariablesInScope("relationship", v.toSet, body.properties)
-        case EmptyNodeTypeReference() => checkPropertyVariablesInScope("node", Set.empty, body.properties)
-      }
-    } chain options.checkOptionsForSchema("")
+  override def semanticCheck: SemanticCheck = checkValidMode() chain
+    body.semanticCheck chain
+    checkProperties(body.properties.map(_.propertyKey)) chain
+    checkConstraintReference() chain
+    options.checkOptionsForSchema("")
 
-  private def checkPropertyVariablesInScope(
-    entityType: String,
-    scope: Set[Variable],
-    props: Seq[Property]
-  ): SemanticCheck =
-    semanticCheckFold(props) {
-      case p @ Property(Variable(name), _) if !scope.exists(_.name == name) =>
-        val errorPos = p.map.position
-        error(SemanticError(
-          GqlHelper.getGql42001_22NC5(name, entityType, errorPos.offset, errorPos.line, errorPos.column),
-          s"graph type element referenced by '$name' not found.",
-          errorPos
-        ))
-      case _ => success
+  private def checkValidMode(): SemanticCheck = SemanticCheck.fromState { (state: SemanticState) =>
+    if (state.graphTypeMode == Drop || state.graphTypeMode == Alter) {
+      error(SemanticError(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+          .atPosition(position.offset, position.line, position.column)
+          .withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NCF)
+              .withParam(GqlParams.StringParam.graphTypeOperation, state.graphTypeMode.name())
+              .atPosition(position.offset, position.line, position.column)
+              .build()
+          ).build(),
+        s"Constraint definitions are not supported in the ALTER CURRENT GRAPH TYPE ${state.graphTypeMode.name()} operation.",
+        position
+      ))
+    } else success
+  }
+
+  private def checkConstraintReference(): SemanticCheck = {
+
+    def checkPropertyVariablesInScope(
+      entityType: String,
+      scope: Set[Variable],
+      props: Seq[Property]
+    ): SemanticCheck =
+      semanticCheckFold(props) {
+        case p @ Property(Variable(name), _) if !scope.exists(_.name == name) =>
+          val errorPos = p.map.position
+          error(SemanticError(
+            GqlHelper.getGql42001_22NC5(name, entityType, errorPos.offset, errorPos.line, errorPos.column),
+            s"graph type element referenced by '$name' not found.",
+            errorPos
+          ))
+        case _ => success
+      }
+
+    reference match {
+      case NodeTypeReferenceByVariable(v) => checkPropertyVariablesInScope("node", Set(v), body.properties)
+      case NodeTypeReferenceByLabel(_, v) => checkPropertyVariablesInScope("node", v.toSet, body.properties)
+      case NodeTypeReferenceByIdentifyingLabel(_, v) =>
+        checkPropertyVariablesInScope("node", v.toSet, body.properties)
+      case EdgeTypeReferenceByVariable(v) => checkPropertyVariablesInScope("relationship", Set(v), body.properties)
+      case EdgeTypeReferenceByLabel(_, v) => checkPropertyVariablesInScope("relationship", v.toSet, body.properties)
+      case EdgeTypeReferenceByIdentifyingLabel(_, v) =>
+        checkPropertyVariablesInScope("relationship", v.toSet, body.properties)
+      case EmptyNodeTypeReference() => checkPropertyVariablesInScope("node", Set.empty, body.properties)
     }
+  }
 
   // Check for duplicate property keys in constraint
   private def checkProperties(properties: Seq[PropertyKeyName]): SemanticCheck = {

@@ -1363,6 +1363,160 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     }
   }
 
+  // DROP generated examples
+
+  // DROP-NE-UNTCBS-5-1
+  test("ALTER CURRENT GRAPH TYPE DROP { (:Person =>), CONSTRAINT FOR (p:Person =>) REQUIRE p.name IS KEY }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-UNTCBS-6-1
+  test("ALTER CURRENT GRAPH TYPE DROP { (:Person =>), CONSTRAINT FOR (p:Person =>) REQUIRE p.name IS UNIQUE }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  //  DROP-NE-INTCBS-1-1
+  test("ALTER CURRENT GRAPH TYPE DROP { CONSTRAINT FOR (s:Student) REQUIRE s.studentID IS NOT NULL }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-INTCBS-2-1
+  test("ALTER CURRENT GRAPH TYPE DROP { CONSTRAINT FOR (s:Student) REQUIRE s.studentID :: INT }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-INTCBS-3-1
+  test("ALTER CURRENT GRAPH TYPE DROP { (:Person =>), CONSTRAINT FOR (s:Student) REQUIRE s.studentID IS NOT NULL }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-INTCBS-4-1
+  test("ALTER CURRENT GRAPH TYPE DROP { (:Person =>), CONSTRAINT FOR (s:Student) REQUIRE s.studentID :: INT }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-UETCBS-5-1
+  test(
+    "ALTER CURRENT GRAPH TYPE DROP { ()-[l:LIVES_IN =>]->(), CONSTRAINT FOR ()-[l:LIVES_IN =>]->() REQUIRE l.since IS KEY }"
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-UETCBS-6-1
+  test(
+    "ALTER CURRENT GRAPH TYPE DROP { ()-[l:LIVES_IN =>]->(), CONSTRAINT FOR ()-[l:LIVES_IN =>]->() REQUIRE l.since IS UNIQUE }"
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-IETCBS-1-1
+  test("ALTER CURRENT GRAPH TYPE DROP { CONSTRAINT FOR ()-[l:RELATED]->() REQUIRE l.since IS NOT NULL }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-IETCBS-2-1
+  test("ALTER CURRENT GRAPH TYPE DROP { CONSTRAINT FOR ()-[l:RELATED]->() REQUIRE l.since :: DATE }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-IETCBS-3-1
+  test(
+    "ALTER CURRENT GRAPH TYPE DROP { ()-[:LIVES_IN =>]->(), CONSTRAINT FOR ()-[l:RELATED]->() REQUIRE l.since IS NOT NULL }"
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
+  // DROP-NE-IETCBS-4-1
+  test(
+    "ALTER CURRENT GRAPH TYPE DROP { ()-[:LIVES_IN =>]->(), CONSTRAINT FOR ()-[l:RELATED]->() REQUIRE l.since :: DATE }"
+  ) {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '(', expected: ',' or '}'."
+        )
+    }
+  }
+
 }
 
 object GraphTypeParserTest {

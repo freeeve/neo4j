@@ -1191,6 +1191,27 @@ class AlterCurrentGraphTypeParserTest extends AstParsingTestBase with AstGraphTy
   }
 
   // negative tests
+  test("ALTER CURRENT GRAPH TYPE DROP { (n) }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '}', expected: '-'."
+        )
+    }
+  }
+
+  test("ALTER CURRENT GRAPH TYPE DROP { ()-[r]->() }") {
+    parsesIn[Statements] {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input ']', expected: ':'."
+        )
+    }
+  }
 
   test("""ALTER CURRENT GRAPH TYPE DROP { CONSTRAINT FOR (a:A) REQUIRE  a.key IS KEY }""".stripMargin) {
     parsesIn[Statements] {

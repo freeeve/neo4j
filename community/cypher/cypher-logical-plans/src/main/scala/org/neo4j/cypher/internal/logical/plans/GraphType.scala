@@ -346,14 +346,22 @@ case class NodeElementType(
   identifyingLabel: LabelName,
   additionalLabels: Set[LabelName],
   propertyTypes: Set[PropertyType]
-) extends GraphTypeEntry
+) extends GraphTypeEntry {
+
+  val isJustAnIdentifier: Boolean = additionalLabels.isEmpty && propertyTypes.isEmpty
+}
 
 case class RelationshipElementType(
   identifyingLabel: RelTypeName,
   sourceNode: NodeElementTypeReferenceForRelationshipElementType,
   targetNode: NodeElementTypeReferenceForRelationshipElementType,
   propertyTypes: Set[PropertyType]
-) extends GraphTypeEntry
+) extends GraphTypeEntry {
+
+  val isJustAnIdentifier: Boolean = sourceNode == EmptyNodeElementTypeReference &&
+    targetNode == EmptyNodeElementTypeReference &&
+    propertyTypes.isEmpty
+}
 
 case class PropertyType(name: PropertyKeyName, propertyType: CypherType)
 

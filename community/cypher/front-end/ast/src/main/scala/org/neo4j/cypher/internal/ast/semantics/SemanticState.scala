@@ -20,6 +20,8 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap.ASTAnnotationMap
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType
+import org.neo4j.cypher.internal.ast.AlterCurrentGraphType.AlterOperation
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.GraphReference
 import org.neo4j.cypher.internal.ast.semantics.Scope.DeclarationsAndDependencies
@@ -464,7 +466,8 @@ case class SemanticState(
   declareVariablesToSuppressDuplicateErrors: Boolean = true,
   semanticCheckHasRunOnce: Boolean = false,
   targetGraph: Option[GraphReference] = None,
-  workingGraph: Option[GraphReference] = None
+  workingGraph: Option[GraphReference] = None,
+  graphTypeMode: AlterOperation = AlterCurrentGraphType.Set
 ) {
 
   def scopeTree: Scope = currentScope.rootScope
