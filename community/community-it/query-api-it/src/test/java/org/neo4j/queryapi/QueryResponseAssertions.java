@@ -57,7 +57,12 @@ public final class QueryResponseAssertions
     }
 
     public QueryResponseAssertions wasSuccessful() {
-        Assertions.assertThat(queryResponse.statusCode()).isEqualTo(202);
+        Assertions.assertThat(queryResponse.statusCode())
+                .as(
+                        "Expected successful response but was a %s with body: %s",
+                        queryResponse.statusCode(), queryResponse.body())
+                .isEqualTo(202);
+
         Assertions.assertThat(queryResponse.body().errors()).isNull();
         return this;
     }

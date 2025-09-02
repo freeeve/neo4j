@@ -19,6 +19,7 @@
  */
 package org.neo4j.queryapi;
 
+import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.queryapi.QueryApiTestUtil.setupLogging;
@@ -28,7 +29,6 @@ import static org.neo4j.server.queryapi.response.format.Fieldnames.FIELDS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.VALUES_KEY;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,7 +46,6 @@ import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.queryapi.testclient.QueryAPITestClient;
-import org.neo4j.queryapi.testclient.QueryRequest;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 class QueryResourceTypedParametersIT {
@@ -100,10 +99,10 @@ class QueryResourceTypedParametersIT {
     @ParameterizedTest
     @MethodSource("paramTypes")
     void shouldHandleParameters(String typeString, Object value) throws IOException, InterruptedException {
-        var response = testClient.autoCommit(QueryRequest.newBuilder()
-                .statement("RETURN $parameter")
-                .parameters(Map.of("parameter", Map.of(CYPHER_TYPE, typeString, CYPHER_VALUE, value)))
-                .build());
+        var response = testClient.sendRaw(format(
+                "{\"statement\": \"RETURN $parameter\","
+                        + "\"parameters\": {\"parameter\": {\"$type\":\"%s\",\"_value\": \"%s\"}}}}}",
+                typeString, value));
 
         QueryResponseAssertions.assertThat(response).wasSuccessful();
         var parsedJson = response.body().data();
@@ -117,10 +116,8 @@ class QueryResourceTypedParametersIT {
 
     @Test
     void shouldHandleBooleanParameter() throws IOException, InterruptedException {
-        var response = testClient.autoCommit(QueryRequest.newBuilder()
-                .statement("RETURN $parameter")
-                .parameters(Map.of("parameter", Map.of(CYPHER_TYPE, "Boolean", CYPHER_VALUE, true)))
-                .build());
+        var response = testClient.sendRaw("{\"statement\": \"RETURN $parameter\","
+                + "\"parameters\": {\"parameter\": {\"$type\":\"Boolean\",\"_value\": true}}}}}");
 
         QueryResponseAssertions.assertThat(response).wasSuccessful();
 
@@ -135,10 +132,8 @@ class QueryResourceTypedParametersIT {
 
     @Test
     void shouldHandleStringParam() throws IOException, InterruptedException {
-        var response = testClient.autoCommit(QueryRequest.newBuilder()
-                .statement("RETURN $parameter")
-                .parameters(Map.of("parameter", Map.of(CYPHER_TYPE, "String", CYPHER_VALUE, "Hello")))
-                .build());
+        var response = testClient.sendRaw("{\"statement\": \"RETURN $parameter\","
+                + "\"parameters\": {\"parameter\": {\"$type\":\"String\",\"_value\": \"Hello\"}}}}}");
 
         QueryResponseAssertions.assertThat(response).wasSuccessful();
 
