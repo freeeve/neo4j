@@ -28,7 +28,7 @@ trait InternalNotification {
   def notificationName: String = this.getClass.getSimpleName.stripSuffix("$")
 }
 
-object InternalNotification {
+object InternalNotifications {
 
   val allNotifications: Set[String] = Set(
     "CartesianProductNotification",

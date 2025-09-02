@@ -388,7 +388,7 @@ abstract class ExecutionEngine(
 
     try {
       var n = 0
-      while (n < ExecutionEngine.PLAN_BUILDING_TRIES) {
+      while (n < ExecutionEngineConst.PLAN_BUILDING_TRIES) {
 
         val schemaToken = schemaHelper.readSchemaToken(tc)
         if (forceReplan) {
@@ -576,6 +576,6 @@ case class FunctionWithInformation(f: FunctionTypeSignature) extends FunctionInf
   }
 }
 
-object ExecutionEngine {
+object ExecutionEngineConst {
   val PLAN_BUILDING_TRIES: Int = 20
 }

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.cypher.internal.util.InternalNotifications
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners
@@ -38,11 +39,11 @@ class InternalNotificationTest extends CypherFunSuite {
   }
 
   /**
-   * If you add or remove an internal notification, the set InternalNotification.allNotifications should be updated
+   * If you add or remove an internal notification, the set InternalNotifications.allNotifications should be updated
    * accordingly. This set is used for creating corresponding metrics that track the count of issued notifications.
    */
-  test("All internal notifications should be listed in InternalNotification.allNotifications") {
-    InternalNotification.allNotifications should equal(
+  test("All internal notifications should be listed in InternalNotifications.allNotifications") {
+    InternalNotifications.allNotifications should equal(
       subTypes(classOf[InternalNotification]).map(_.getSimpleName.stripSuffix("$")).toSet
     )
   }
