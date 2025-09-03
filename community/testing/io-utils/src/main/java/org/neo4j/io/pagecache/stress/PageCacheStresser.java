@@ -70,9 +70,8 @@ public class PageCacheStresser {
         String prefix = "pagecacheundertest";
         Path file = Files.createTempFile(workingDirectory, prefix, ".bin");
 
-        var reservedBytes = pageCache.pageReservedBytes(openOptions);
-        var format = new RecordFormat(numberOfThreads, pageCache.pageSize() - reservedBytes);
-        int filePageSize = format.getFilePayloadSize() + reservedBytes;
+        var format = new RecordFormat(numberOfThreads, pageCache.pagePayloadSize(openOptions));
+        int filePageSize = format.getFilePayloadSize() + pageCache.pageReservedBytes(openOptions);
 
         try (var pagedFile =
                 pageCache.map(file, filePageSize, prefix, openOptions.newWith(StandardOpenOption.DELETE_ON_CLOSE))) {

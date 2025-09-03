@@ -81,8 +81,7 @@ class CommandPrimer {
         filesTouched = new HashSet<>();
         filesTouched.addAll(mappedFiles);
         recordsWrittenTo = new HashMap<>();
-        var reservedBytes = cache.pageReservedBytes(openOptions);
-        var payloadSize = cache.pageSize() - reservedBytes;
+        var payloadSize = cache.pagePayloadSize(openOptions);
         recordsPerPage = payloadSize / recordFormat.getRecordSize();
         maxRecordCount = filePageCount * recordsPerPage;
         recordLocks = new TinyLockManager();

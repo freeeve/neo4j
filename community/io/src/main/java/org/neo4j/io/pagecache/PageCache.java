@@ -207,6 +207,11 @@ public interface PageCache extends AutoCloseable {
     /**
      * Number of reserved bytes in pages when file is mapped with provided options.
      */
+    int pagePayloadSize(ImmutableSet<OpenOption> openOptions);
+
+    /**
+     * Number of reserved bytes in pages when file is mapped with provided options.
+     */
     int pageReservedBytes(ImmutableSet<OpenOption> openOptions);
 
     /**

@@ -797,6 +797,11 @@ public class MuninnPageCache implements PageCache {
     }
 
     @Override
+    public int pagePayloadSize(ImmutableSet<OpenOption> openOptions) {
+        return cachePageSize - pageReservedBytes(openOptions);
+    }
+
+    @Override
     public int pageReservedBytes(ImmutableSet<OpenOption> openOptions) {
         return openOptions.contains(PageCacheOpenOptions.MULTI_VERSIONED) ? pageReservedBytes : 0;
     }

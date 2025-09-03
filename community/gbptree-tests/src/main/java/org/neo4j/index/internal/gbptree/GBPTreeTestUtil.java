@@ -42,8 +42,7 @@ public class GBPTreeTestUtil {
     }
 
     static int calculatePayloadSize(PageCache pageCache, ImmutableSet<OpenOption> openOptions) {
-        var reservedBytes = pageCache.pageReservedBytes(openOptions);
-        return pageCache.pageSize() - reservedBytes;
+        return pageCache.pagePayloadSize(openOptions);
     }
 
     static boolean consistencyCheckStrict(MultiRootGBPTree<?, ?, ?> tree) throws IOException {

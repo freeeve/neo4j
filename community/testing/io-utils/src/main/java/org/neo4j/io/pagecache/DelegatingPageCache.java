@@ -66,6 +66,11 @@ public class DelegatingPageCache implements PageCache {
     }
 
     @Override
+    public int pagePayloadSize(ImmutableSet<OpenOption> openOptions) {
+        return delegate.pagePayloadSize(openOptions);
+    }
+
+    @Override
     public int pageReservedBytes(ImmutableSet<OpenOption> openOptions) {
         return delegate.pageReservedBytes(openOptions);
     }
