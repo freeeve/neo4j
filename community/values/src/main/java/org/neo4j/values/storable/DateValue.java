@@ -175,6 +175,11 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
     }
 
     @Override
+    public String getTemporalCypherTypeName() {
+        return "DATE";
+    }
+
+    @Override
     LocalDate temporal() {
         return value;
     }

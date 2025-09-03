@@ -3026,6 +3026,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "unsupported operation",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I65(
+            new GqlStatus("42I65"),
+            "An invalid character is used in the pattern. Verify that all characters are supported by `{ %s }`.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid pattern character",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I66(
+            new GqlStatus("42I66"),
+            "Pattern parsing failed. Make sure that an even number of escapes are used in the pattern.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "pattern parsing failed",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",

@@ -93,6 +93,11 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
         return "Time";
     }
 
+    @Override
+    public String getTemporalCypherTypeName() {
+        return "ZONED TIME";
+    }
+
     public static TimeValue parse(
             CharSequence text, Supplier<ZoneId> defaultZone, CSVHeaderInformation fieldsFromHeader) {
         if (fieldsFromHeader != null) {

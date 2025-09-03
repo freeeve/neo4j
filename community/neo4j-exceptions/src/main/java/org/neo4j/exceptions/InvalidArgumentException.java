@@ -177,6 +177,23 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, "Unknown normal form. Valid values are: NFC, NFD, NFKC, NFKD.");
     }
 
+    public static InvalidArgumentException invalidPatternCharacter(String type) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I65)
+                        .withParam(GqlParams.StringParam.valueType, type)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, gql.cause().get().statusDescription());
+    }
+
+    public static InvalidArgumentException patternParsingFailed() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I66)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, gql.cause().get().statusDescription());
+    }
+
     public static InvalidArgumentException incompleteSpatialValue(
             String crs, String mandatoryKeys, List<String> mandatoryKeysList) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)

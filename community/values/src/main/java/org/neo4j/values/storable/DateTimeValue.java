@@ -506,6 +506,11 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
     }
 
     @Override
+    public String getTemporalCypherTypeName() {
+        return "ZONED DATETIME";
+    }
+
+    @Override
     public <T> T map(ValueMapper<T> mapper) {
         return mapper.mapDateTime(this);
     }

@@ -1451,6 +1451,72 @@
     "cypherVersionScope": [5, 25]
   },
   {
+    "name": "format",
+    "category": "Temporal",
+    "description": "Returns the temporal value as an ISO-formatted string or as a string formatted by the provided pattern.",
+    "signature": "format(value :: DATE | LOCAL TIME | ZONED TIME | LOCAL DATETIME | ZONED DATETIME | DURATION) :: STRING",
+    "isBuiltIn": true,
+    "enterpriseOnly": false,
+    "argumentDescription": [
+      {
+        "name": "value",
+        "description": "A temporal value to be formatted.",
+        "type": "DATE | LOCAL TIME | ZONED TIME | LOCAL DATETIME | ZONED DATETIME | DURATION",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "STRING",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [25]
+  },
+  {
+    "name": "format",
+    "category": "Temporal",
+    "description": "Returns the temporal value as an ISO-formatted string or as a string formatted by the provided pattern.",
+    "signature": "format(value :: DATE | LOCAL TIME | ZONED TIME | LOCAL DATETIME | ZONED DATETIME | DURATION, pattern :: STRING) :: STRING",
+    "isBuiltIn": true,
+    "enterpriseOnly": false,
+    "argumentDescription": [
+      {
+        "name": "value",
+        "description": "A temporal value to be formatted.",
+        "type": "DATE | LOCAL TIME | ZONED TIME | LOCAL DATETIME | ZONED DATETIME | DURATION",
+        "isDeprecated": false
+      },
+      {
+        "name": "pattern",
+        "description": "A pattern used to format the temporal value. If the pattern is not provided the value will be formatted according to ISO 8601.",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "STRING",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [25]
+  },
+  {
     "name": "graph.byElementId",
     "category": "Graph",
     "description": "Returns the graph reference with the given element id. It is only supported in the `USE` clause, on composite databases.",

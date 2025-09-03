@@ -50,6 +50,7 @@ import java.time.temporal.TemporalUnit;
 import java.time.temporal.UnsupportedTemporalTypeException;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -631,6 +632,218 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
     @Override
     public String prettify() {
         return prettyPrint();
+    }
+
+    private enum DurationToken {
+        YEARS_TOKEN(true),
+        QUARTERS_TOKEN(true),
+        MONTHS_TOKEN(true),
+        WEEKS_TOKEN(true),
+        DAYS_TOKEN(true),
+        HOURS_TOKEN(true),
+        MINUTES_TOKEN(true),
+        SECONDS_TOKEN(true),
+        MILLISECONDS_TOKEN(true),
+        FRACTION_TOKEN(true),
+        NANOSECONDS_TOKEN(true),
+        ESCAPE_TOKEN(false),
+        NOT_A_COMPONENT_TOKEN(false);
+
+        public final boolean isToken;
+
+        DurationToken(boolean isToken) {
+            this.isToken = isToken;
+        }
+    }
+
+    private DurationToken getComponent(char c) {
+        return switch (c) {
+            case 'y', 'Y', 'u' -> DurationToken.YEARS_TOKEN;
+            case 'q', 'Q' -> DurationToken.QUARTERS_TOKEN;
+            case 'M', 'L' -> DurationToken.MONTHS_TOKEN;
+            case 'w', 'W' -> DurationToken.WEEKS_TOKEN;
+            case 'd', 'D' -> DurationToken.DAYS_TOKEN;
+            case 'h', 'H', 'k', 'K' -> DurationToken.HOURS_TOKEN;
+            case 'm' -> DurationToken.MINUTES_TOKEN;
+            case 's' -> DurationToken.SECONDS_TOKEN;
+            case 'n', 'S' -> DurationToken.FRACTION_TOKEN;
+            case 'A' -> DurationToken.MILLISECONDS_TOKEN;
+            case 'N' -> DurationToken.NANOSECONDS_TOKEN;
+            case '\'' -> DurationToken.ESCAPE_TOKEN;
+            default -> DurationToken.NOT_A_COMPONENT_TOKEN;
+        };
+    }
+
+    public void padLeftZeros(StringBuilder sb, long input, int length) {
+        int strLength = Long.toString(input).length();
+        if (strLength < length) {
+            int padLength = sb.length() + length - strLength;
+            while (sb.length() < padLength) {
+                sb.append('0');
+            }
+        }
+        sb.append(input);
+    }
+
+    /**
+     * Format according to the following pattern.
+     * A character will consume as much as possible of the remainder of the duration.
+     * +-----------------+------------+--------------------+
+     * | Component Group | Characters | Field              |
+     * +-----------------+------------+--------------------+
+     * |                 | y/Y/u      | Years              |
+     * +                 +------------+--------------------+
+     * |     Months      | q/Q        | Quarters           |
+     * +                 +------------+--------------------+
+     * |                 | M/L        | Months             |
+     * +-----------------+------------+--------------------+
+     * |                 | w/W        | Weeks              |
+     * +      Days       +------------+--------------------+
+     * |                 | d/D        | Days               |
+     * +-----------------+------------+--------------------+
+     * |                 | h/H/k/K    | Hours              |
+     * +                 +------------+--------------------+
+     * |                 | m          | Minutes            |
+     * +                 +------------+--------------------+
+     * |                 | s          | Seconds            |
+     * +     Seconds     +------------+--------------------+
+     * |                 | n/S        | Fraction of Second |
+     * +                 +------------+--------------------+
+     * |                 | A          | Milliseconds       |
+     * +                 +------------+--------------------+
+     * |                 | N          | Nanoseconds        |
+     * +-----------------+------------+--------------------+
+     */
+    public String format(String pattern) {
+        DurationToken previousToken = DurationToken.NOT_A_COMPONENT_TOKEN;
+        boolean inEscape = false;
+
+        int[] counters = new int[DurationToken.values().length];
+
+        for (int i = 0; i < pattern.length(); i++) {
+            char c = pattern.charAt(i);
+            DurationToken cType = getComponent(c);
+            if (inEscape) {
+                if (cType == DurationToken.ESCAPE_TOKEN) {
+                    if (i + 1 < pattern.length() && getComponent(pattern.charAt(i + 1)) == DurationToken.ESCAPE_TOKEN) {
+                        i += 1;
+                    } else {
+                        inEscape = false;
+                    }
+                }
+            } else if (cType.isToken) {
+                if (previousToken != cType) counters[cType.ordinal()] = 0;
+                counters[cType.ordinal()] += 1;
+            } else if (cType == DurationToken.ESCAPE_TOKEN) {
+                inEscape = true;
+            }
+            previousToken = cType;
+        }
+
+        if (inEscape) {
+            throw InvalidArgumentException.patternParsingFailed();
+        }
+
+        boolean hasHours = counters[DurationToken.HOURS_TOKEN.ordinal()] > 0;
+        boolean hasMinutes = counters[DurationToken.MINUTES_TOKEN.ordinal()] > 0;
+        boolean hasSeconds = counters[DurationToken.SECONDS_TOKEN.ordinal()] > 0;
+        boolean hasMilliseconds = counters[DurationToken.MILLISECONDS_TOKEN.ordinal()] > 0;
+
+        long years = get(DurationFields.YEARS.propertyKey).longValue();
+        long quarters = get(counters[DurationToken.YEARS_TOKEN.ordinal()] > 0
+                        ? DurationFields.QUARTERS_OF_YEAR.propertyKey
+                        : DurationFields.QUARTERS.propertyKey)
+                .longValue();
+        long months = get(counters[DurationToken.QUARTERS_TOKEN.ordinal()] > 0
+                        ? DurationFields.MONTHS_OF_QUARTER.propertyKey
+                        : counters[DurationToken.YEARS_TOKEN.ordinal()] > 0
+                                ? DurationFields.MONTHS_OF_YEAR.propertyKey
+                                : DurationFields.MONTHS.propertyKey)
+                .longValue();
+        long weeks = get(DurationFields.WEEKS.propertyKey).longValue();
+        long days = get(counters[DurationToken.WEEKS_TOKEN.ordinal()] > 0
+                        ? DurationFields.DAYS_OF_WEEK.propertyKey
+                        : DurationFields.DAYS.propertyKey)
+                .longValue();
+        long hours = hasHours ? get(DurationFields.HOURS.propertyKey).longValue() : 0;
+        long minutes = hasMinutes
+                ? get(hasHours ? DurationFields.MINUTES_OF_HOUR.propertyKey : DurationFields.MINUTES.propertyKey)
+                        .longValue()
+                : 0;
+        long seconds = hasSeconds
+                ? get(DurationFields.SECONDS.propertyKey).longValue()
+                        - TimeUnit.HOURS.toSeconds(hours)
+                        - TimeUnit.MINUTES.toSeconds(minutes)
+                : 0;
+        long millis = hasMilliseconds
+                ? get(DurationFields.MILLISECONDS.propertyKey).longValue()
+                        - TimeUnit.HOURS.toMillis(hours)
+                        - TimeUnit.MINUTES.toMillis(minutes)
+                        - TimeUnit.SECONDS.toMillis(seconds)
+                : 0;
+        long nanos = get(DurationFields.NANOSECONDS.propertyKey).longValue()
+                - TimeUnit.HOURS.toNanos(hours)
+                - TimeUnit.MINUTES.toNanos(minutes)
+                - TimeUnit.SECONDS.toNanos(seconds)
+                - TimeUnit.MILLISECONDS.toNanos(millis);
+
+        long fraction = get(DurationFields.NANOSECONDS_OF_SECOND.propertyKey).longValue();
+
+        long[] calculatedUnits =
+                new long[] {years, quarters, months, weeks, days, hours, minutes, seconds, millis, fraction, nanos, 0, 0
+                };
+
+        StringBuilder str = new StringBuilder();
+        previousToken = DurationToken.NOT_A_COMPONENT_TOKEN;
+
+        for (int i = 0; i < pattern.length(); i++) {
+            char c = pattern.charAt(i);
+            DurationToken cType = getComponent(c);
+            if (inEscape) {
+                if (cType == DurationToken.ESCAPE_TOKEN) {
+                    if (i + 1 < pattern.length() && getComponent(pattern.charAt(i + 1)) == DurationToken.ESCAPE_TOKEN) {
+                        str.append(c);
+                        i += 1;
+                    } else {
+                        inEscape = false;
+                    }
+                } else {
+                    str.append(c);
+                }
+            } else {
+                if (previousToken != cType && previousToken == DurationToken.FRACTION_TOKEN) {
+                    StringBuilder frac = new StringBuilder(Long.toString(fraction));
+                    while (frac.length() < 9) {
+                        frac.insert(0, "0");
+                    }
+                    str.append(frac, 0, counters[previousToken.ordinal()]);
+                } else if (previousToken != cType && previousToken.isToken) {
+                    padLeftZeros(str, calculatedUnits[previousToken.ordinal()], counters[previousToken.ordinal()]);
+                }
+
+                if (cType.isToken) {
+                    if (previousToken != cType) counters[cType.ordinal()] = 0;
+                    counters[cType.ordinal()] += 1;
+                } else if (cType == DurationToken.ESCAPE_TOKEN) {
+                    inEscape = true;
+                } else {
+                    str.append(c);
+                }
+            }
+            previousToken = cType;
+        }
+
+        if (previousToken == DurationToken.FRACTION_TOKEN) {
+            StringBuilder frac = new StringBuilder(Long.toString(fraction));
+            while (frac.length() < 9) {
+                frac.insert(0, "0");
+            }
+            str.append(frac, 0, counters[previousToken.ordinal()]);
+        } else if (previousToken.isToken) {
+            padLeftZeros(str, calculatedUnits[previousToken.ordinal()], counters[previousToken.ordinal()]);
+        }
+
+        return str.toString();
     }
 
     private static void nanos(StringBuilder str, int nanos) {

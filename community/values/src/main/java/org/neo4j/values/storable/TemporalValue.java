@@ -34,6 +34,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.chrono.ChronoZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.IsoFields;
@@ -80,6 +81,8 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
     public abstract TemporalValue<T, V> sub(DurationValue duration);
 
     abstract T temporal();
+
+    abstract String getTemporalCypherTypeName();
 
     /**
      * @return the date part of this temporal, if date is supported.
@@ -204,6 +207,15 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
             throw UnsupportedTemporalUnitException.cannotProcess(prettyVal, e);
         }
         return until;
+    }
+
+    public final String format(String pattern) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+            return formatter.format(temporal());
+        } catch (DateTimeException | IllegalArgumentException e) {
+            throw InvalidArgumentException.invalidPatternCharacter(getTemporalCypherTypeName());
+        }
     }
 
     private static TemporalValue attachTime(TemporalValue temporal) {

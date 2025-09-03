@@ -74,6 +74,7 @@ object Function {
     Exp,
     File,
     Floor,
+    Format,
     GraphByName,
     GraphByElementId,
     Haversin,

@@ -179,6 +179,11 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
     }
 
     @Override
+    public String getTemporalCypherTypeName() {
+        return "LOCAL TIME";
+    }
+
+    @Override
     LocalDate getDatePart() {
         throw UnsupportedTemporalUnitException.cannotGetDate(this.prettyPrint());
     }

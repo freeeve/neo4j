@@ -263,6 +263,11 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
     }
 
     @Override
+    public String getTemporalCypherTypeName() {
+        return "LOCAL DATETIME";
+    }
+
+    @Override
     LocalDateTime temporal() {
         return value;
     }

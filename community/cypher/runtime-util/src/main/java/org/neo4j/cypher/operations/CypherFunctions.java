@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.operations;
 
-import static java.lang.String.format;
 import static org.neo4j.cypher.operations.CursorUtils.propertyKeys;
 import static org.neo4j.cypher.operations.CypherFunctions.GetSingleDynamicTypeResult.ConflictingDynamicTypes;
 import static org.neo4j.cypher.operations.CypherFunctions.GetSingleDynamicTypeResult.EmptyDynamicTypeList;
@@ -323,6 +322,42 @@ public final class CypherFunctions {
             return doubleValue(Math.floor(number.doubleValue()));
         } else {
             throw needsNumbers("floor", in);
+        }
+    }
+
+    public static AnyValue format(AnyValue value) {
+        if (value == NO_VALUE) {
+            return NO_VALUE;
+        } else if (value instanceof TemporalValue || value instanceof DurationValue) {
+            return stringValue(value.toString());
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'format()': Expected to be Duration, Date, Time, LocalTime, LocalDateTime or DateTime, got: "
+                            + value.prettify() + ".",
+                    "format",
+                    value.prettify(),
+                    List.of("DATE", "LOCAL TIME", "ZONED TIME", "LOCAL DATETIME", "ZONED DATETIME", "DURATION"),
+                    CypherTypeValueMapper.valueType(value));
+        }
+    }
+
+    public static AnyValue format(AnyValue value, AnyValue pattern) {
+        if (value == NO_VALUE || pattern == NO_VALUE) {
+            return NO_VALUE;
+        } else if (value instanceof TemporalValue<?, ?> instant && pattern instanceof TextValue patternString) {
+            return stringValue(instant.format(patternString.stringValue()));
+        } else if (value instanceof DurationValue duration && pattern instanceof TextValue patternString) {
+            return stringValue(duration.format(patternString.stringValue()));
+        } else if (!(pattern instanceof TextValue)) {
+            throw notAString("format", pattern);
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'format()': Expected to be Duration, Date, Time, LocalTime, LocalDateTime or DateTime, got: "
+                            + value.prettify() + ".",
+                    "format",
+                    value.prettify(),
+                    List.of("DATE", "LOCAL TIME", "ZONED TIME", "LOCAL DATETIME", "ZONED DATETIME", "DURATION"),
+                    CypherTypeValueMapper.valueType(value));
         }
     }
 
@@ -753,7 +788,9 @@ public final class CypherFunctions {
             return startNode(rel, access, cursor);
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'startNode()': Expected %s to be a RelationshipValue", anyValue),
+                    String.format(
+                            "Invalid input for function 'startNode()': Expected %s to be a RelationshipValue",
+                            anyValue),
                     "startNode",
                     anyValue.prettify(),
                     List.of("RELATIONSHIP"),
@@ -778,7 +815,8 @@ public final class CypherFunctions {
             return endNode(rel, access, cursor);
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'endNode()': Expected %s to be a RelationshipValue", anyValue),
+                    String.format(
+                            "Invalid input for function 'endNode()': Expected %s to be a RelationshipValue", anyValue),
                     "endNode",
                     anyValue.prettify(),
                     List.of("RELATIONSHIP"),
@@ -965,7 +1003,7 @@ public final class CypherFunctions {
             return sequence.head();
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'head()': Expected %s to be a list", container),
+                    String.format("Invalid input for function 'head()': Expected %s to be a list", container),
                     "head",
                     container.prettify(),
                     List.of("LIST<ANY>"),
@@ -995,7 +1033,7 @@ public final class CypherFunctions {
             return sequence.last();
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'last()': Expected %s to be a list", container),
+                    String.format("Invalid input for function 'last()': Expected %s to be a list", container),
                     "last",
                     container.prettify(),
                     List.of("LIST<ANY>"),
@@ -1349,7 +1387,7 @@ public final class CypherFunctions {
             return longValue(((VirtualRelationshipValue) item).id());
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format(
+                    String.format(
                             "Invalid input for function 'id()': Expected %s to be a node or relationship, but it was `%s`",
                             item, item.getTypeName()),
                     "id",
@@ -1381,7 +1419,7 @@ public final class CypherFunctions {
         }
 
         throw CypherTypeException.functionArgumentWrongType(
-                format(
+                String.format(
                         "Invalid input for function 'elementId()': Expected %s to be a node or relationship, but it was `%s`",
                         entity, entity.getTypeName()),
                 "elementId",
@@ -1517,7 +1555,7 @@ public final class CypherFunctions {
             return textValue.stringValue();
         } else if (value instanceof SequenceValue sequenceValue) {
             if (sequenceValue.actualSize() != 1L) {
-                throw new IllegalArgumentException(format(
+                throw new IllegalArgumentException(String.format(
                         "Exactly one relationship type must be specified, but %d were found.",
                         sequenceValue.actualSize()));
             }
@@ -2033,7 +2071,7 @@ public final class CypherFunctions {
             return builder.build();
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'nodes()': Expected %s to be a path", in),
+                    String.format("Invalid input for function 'nodes()': Expected %s to be a path", in),
                     "nodes",
                     in.prettify(),
                     List.of("PATH"),
@@ -2048,7 +2086,7 @@ public final class CypherFunctions {
             return path.relationshipsAsList();
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'relationships()': Expected %s to be a path", in),
+                    String.format("Invalid input for function 'relationships()': Expected %s to be a path", in),
                     "relationships",
                     in.prettify(),
                     List.of("PATH"),
@@ -2070,7 +2108,7 @@ public final class CypherFunctions {
             return PointValue.fromMap(map);
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'point()': Expected a map but got %s", in),
+                    String.format("Invalid input for function 'point()': Expected a map but got %s", in),
                     "point",
                     in.prettify(),
                     List.of("MAP"),
@@ -2098,7 +2136,7 @@ public final class CypherFunctions {
             return ((MapValue) in).keys();
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format(
+                    String.format(
                             "Invalid input for function 'keys()': Expected a node, a relationship or a literal map but got %s",
                             in),
                     "keys",
@@ -2130,7 +2168,7 @@ public final class CypherFunctions {
             return in;
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format(
+                    String.format(
                             "Invalid input for function 'properties()': Expected a node, a relationship or a literal map but got %s",
                             in),
                     "properties",
@@ -2164,7 +2202,7 @@ public final class CypherFunctions {
             return in;
         } else {
             throw CypherTypeException.functionArgumentWrongType(
-                    format(
+                    String.format(
                             "Invalid input for function 'properties()': Expected a node, a relationship or a literal map but got %s",
                             in),
                     "properties",
@@ -2583,11 +2621,11 @@ public final class CypherFunctions {
         if (!(value instanceof TextValue)) {
             String errorMessage;
             if (contextForErrorMessage == null) {
-                errorMessage = format(
+                errorMessage = String.format(
                         "Expected %s to be a %s, but it was a %s",
                         value, TextValue.class.getName(), value.getClass().getName());
             } else {
-                errorMessage = format(
+                errorMessage = String.format(
                         "%s: Expected %s to be a %s, but it was a %s",
                         contextForErrorMessage.get(),
                         value,
@@ -2728,7 +2766,7 @@ public final class CypherFunctions {
 
     private static NumberValue asNumberValue(AnyValue value, Supplier<String> contextForErrorMessage) {
         if (!(value instanceof NumberValue)) {
-            var msg = format(
+            var msg = String.format(
                     "%s: Expected %s to be a %s, but it was a %s",
                     contextForErrorMessage.get(),
                     value,
@@ -2801,7 +2839,7 @@ public final class CypherFunctions {
         final long longValue = asLong(value, contextForErrorMessage, functionName, allowFloats);
         final int intValue = (int) longValue;
         if (intValue != longValue) {
-            String errorMsg = format(
+            String errorMsg = String.format(
                     "Expected an integer between %d and %d, but got: %d", minValue, Integer.MAX_VALUE, longValue);
             if (contextForErrorMessage != null) {
                 errorMsg = contextForErrorMessage.get() + ": " + errorMsg;
@@ -3134,7 +3172,7 @@ public final class CypherFunctions {
 
     private static CypherTypeException needsNumbers(String method, AnyValue in) {
         return CypherTypeException.functionArgumentWrongType(
-                format("%s() requires numbers", method),
+                String.format("%s() requires numbers", method),
                 method,
                 in.prettify(),
                 List.of("INTEGER", "FLOAT"),
@@ -3143,7 +3181,7 @@ public final class CypherFunctions {
 
     private static CypherTypeException notAString(String method, AnyValue in) {
         return CypherTypeException.functionArgumentWrongType(
-                format(
+                String.format(
                         "Expected a string value for `%s`, but got: %s; consider converting it to a string with "
                                 + "toString().",
                         method, in),
@@ -3155,7 +3193,7 @@ public final class CypherFunctions {
 
     private static CypherTypeException notAVector(String method, AnyValue in) {
         return CypherTypeException.functionArgumentWrongType(
-                format("Expected a vector value for `%s`, but got: %s.", method, in),
+                String.format("Expected a vector value for `%s`, but got: %s.", method, in),
                 method,
                 in.prettify(),
                 List.of("VECTOR"),
@@ -3164,7 +3202,7 @@ public final class CypherFunctions {
 
     private static CypherTypeException notAModeString(String method, AnyValue mode) {
         return CypherTypeException.functionArgumentWrongType(
-                format("Expected a string value for `%s`, but got: %s.", method, mode),
+                String.format("Expected a string value for `%s`, but got: %s.", method, mode),
                 method,
                 mode.prettify(),
                 List.of("STRING"),

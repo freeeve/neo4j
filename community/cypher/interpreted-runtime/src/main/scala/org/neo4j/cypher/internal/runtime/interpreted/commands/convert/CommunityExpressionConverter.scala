@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.expressions.functions.Exists
 import org.neo4j.cypher.internal.expressions.functions.Exp
 import org.neo4j.cypher.internal.expressions.functions.File
 import org.neo4j.cypher.internal.expressions.functions.Floor
+import org.neo4j.cypher.internal.expressions.functions.Format
 import org.neo4j.cypher.internal.expressions.functions.Function
 import org.neo4j.cypher.internal.expressions.functions.GraphByElementId
 import org.neo4j.cypher.internal.expressions.functions.GraphByName
@@ -638,9 +639,17 @@ case class CommunityExpressionConverter(
               s"unexpected Exists argument ${x.getClass.getSimpleName}"
             )
         }
-      case Exp      => commands.expressions.ExpFunction(self.toCommandExpression(id, invocation.arguments.head))
-      case File     => commands.expressions.File()
-      case Floor    => commands.expressions.FloorFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Exp   => commands.expressions.ExpFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case File  => commands.expressions.File()
+      case Floor => commands.expressions.FloorFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Format => if (invocation.arguments.size == 2) {
+          commands.expressions.FormatFunction(
+            self.toCommandExpression(id, invocation.arguments.head),
+            Some(self.toCommandExpression(id, invocation.arguments(1)))
+          )
+        } else {
+          commands.expressions.FormatFunction(self.toCommandExpression(id, invocation.arguments.head), None)
+        }
       case Haversin => commands.expressions.HaversinFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Head =>
         commands.expressions.Head(
