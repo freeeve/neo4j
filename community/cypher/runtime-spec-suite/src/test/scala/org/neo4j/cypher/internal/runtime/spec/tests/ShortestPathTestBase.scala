@@ -39,7 +39,7 @@ import org.neo4j.cypher.internal.runtime.spec.TestPath
 import org.neo4j.exceptions.ShortestPathCommonEndNodesForbiddenException
 import org.neo4j.graphdb.Direction.INCOMING
 import org.neo4j.graphdb.Direction.OUTGOING
-import org.neo4j.graphdb.Label
+import org.neo4j.graphdb.Label.label
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.internal.helpers.collection.Iterables.single
 import org.neo4j.values.AnyValue
@@ -631,7 +631,7 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
     // given
     val (start, end, r1, r2, r3) = givenGraph {
       val (Seq(n1, _, n3), Seq(r1, r2, r3)) = lollipopGraph()
-      n3.addLabel(Label.label("END"))
+      n3.addLabel(label("END"))
       (n1, n3, r1, r2, r3)
     }
 
@@ -1303,6 +1303,72 @@ abstract class ShortestPathTestBase[CONTEXT <: RuntimeContext](
     ))
 
     runtimeResult should beColumns("path").withRows(expected)
+  }
+
+  test("shortest paths with node property predicate") {
+    // given
+    val (start, a, b, r1, r2) = givenGraph {
+
+      /**
+       *                 (t21)
+       *               ↗
+       *         (t11)
+       *        ↗      ↘
+       *                 (̶t̶2̶2̶)̶
+       * (start)
+       *                 (t23)
+       *        ↘      ↗
+       *          (̶t̶1̶2̶)̶)
+       *               ↘
+       *                 (̶t̶2̶4̶)̶
+       *
+       */
+      val startNode = tx.createNode(label("Start"))
+      startNode.setProperty("followMe", true)
+      val t11 = tx.createNode(label("Neighbour"))
+      t11.setProperty("followMe", true)
+      val t12 = tx.createNode(label("Neighbour"))
+      t12.setProperty("followMe", false)
+      val r1 = startNode.createRelationshipTo(t11, RelationshipType.withName("R"))
+      startNode.createRelationshipTo(t12, RelationshipType.withName("R"))
+
+      val t21 = tx.createNode(label("Neighbour"))
+      t21.setProperty("followMe", true)
+      val t22 = tx.createNode(label("Neighbour"))
+      t22.setProperty("followMe", false)
+      val r2 = t11.createRelationshipTo(t21, RelationshipType.withName("R"))
+      t11.createRelationshipTo(t22, RelationshipType.withName("R"))
+
+      val t23 = tx.createNode(label("Neighbour"))
+      t23.setProperty("followMe", true)
+      val t24 = tx.createNode(label("Neighbour"))
+      t24.setProperty("followMe", false)
+      t12.createRelationshipTo(t23, RelationshipType.withName("R"))
+      t12.createRelationshipTo(t24, RelationshipType.withName("R"))
+      (startNode, t11, t21, r1, r2)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("nodes", "rels")
+      .projection("relationships(p) AS rels", "nodes(p) AS nodes")
+      .shortestPath(
+        "(source)-[r*1..]-(target)",
+        pathName = Some("p"),
+        nodePredicates = Seq(Predicate("n", "n.followMe"))
+      )
+      .cartesianProduct()
+      .|.nodeByLabelScan("target", "Neighbour")
+      .nodeByLabelScan("source", "Start")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("nodes", "rels").withRows(Seq(
+      Array(util.List.of(start, a), util.List.of(r1)),
+      Array(util.List.of(start, a, b), util.List.of(r1, r2))
+    ))
   }
 
   case class assertPaths(rowsMatcher: RowsMatcher)(check: VirtualPathValue => Boolean) extends RowsMatcher {
