@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
@@ -232,6 +233,20 @@ public class ParquetInput implements Input {
         private boolean columnShouldBeSkipped(String type, List<Path> relationshipFiles, int index, String columnName) {
             return hasHeader(type) && isNotIncludedInHeaderDefinition(relationshipFiles, index, columnName);
         }
+
+        private void ensureAllColumnsExist(Path nodeFile, Set<String> columnNames) {
+            var headers = headerColumnNameDefinitions.entrySet().stream()
+                    .filter(entry -> entry.getKey().contains(nodeFile))
+                    .flatMap(entry -> entry.getValue().keySet().stream())
+                    .collect(Collectors.toSet());
+
+            if (!columnNames.containsAll(headers)) {
+                var errorHeaders = new ArrayList<>(headers);
+                errorHeaders.removeAll(columnNames);
+                throw new InputException("Target column(s) '%s' from header cannot be found in %s."
+                        .formatted(errorHeaders, nodeFile.toString()));
+            }
+        }
     }
 
     private Map<Path, List<ParquetColumn>> verifyColumns(
@@ -264,6 +279,11 @@ public class ParquetInput implements Input {
                     var propertyNames = new HashSet<String>();
                     String previousGroupName = null;
                     var columns = metadata.getFileMetaData().getSchema().getColumns();
+                    if (headerContext.hasHeader(labelsAndNodeFilesEntry.getKey())) {
+                        headerContext.ensureAllColumnsExist(
+                                nodeFile,
+                                columns.stream().map(cd -> cd.getPath()[0]).collect(Collectors.toSet()));
+                    }
                     Set<String> mapColumns = new HashSet<>();
                     Set<String> structColumns = new HashSet<>();
                     // check for possible group / ID space definitions and register them

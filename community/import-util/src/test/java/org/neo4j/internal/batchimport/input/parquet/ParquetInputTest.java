@@ -96,6 +96,7 @@ import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
+import org.opentest4j.AssertionFailedError;
 
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
@@ -430,6 +431,32 @@ class ParquetInputTest {
                         MONITOR))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The header definition is empty");
+    }
+
+    @Test
+    void failIfHeaderContainsUnknownColumns() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":Label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
+        Path headerFile =
+                createHeaderFile(List.of(":ID", "name", "lol", ":Label"), List.of(":ID", "name", "lol", ":Label"));
+
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                        Map.of(),
+                        INTEGER,
+                        groups,
+                        MONITOR))
+                .isInstanceOf(InputException.class)
+                .hasMessageStartingWith("Target column(s) '[lol]' from header cannot be found in");
     }
 
     @Test
@@ -813,7 +840,7 @@ class ParquetInputTest {
     @Test
     void shouldOnlyApplyHeadersInTheSameRelationshipGroup() throws Exception {
         // GIVEN
-        Path relationshipFile = createParquetFile(
+        Path relationshipFile1 = createParquetFile(
                 List.of(
                         Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                                 .as(LogicalTypeAnnotation.stringType())
@@ -824,25 +851,79 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(":TYPE"),
-                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("since")),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("notsince")),
                 List.of(
                         new Object[] {"node1", "node2", "KNOWS", 1234567L},
                         new Object[] {"node2", "node10", "HACKS", 987654L}));
+        Path relationshipFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("notstartid"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("notendid"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("nottype"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("notsince")),
+                List.of(
+                        new Object[] {"node3", "node33", "KNOWS", 1234567L},
+                        new Object[] {"node4", "node44", "HACKS", 987654L}));
 
         Path headerFile = createHeaderFile(
-                List.of(":START_ID", ":END_ID", ":Type"), List.of("notstartid", "notendid", "nottype"));
+                List.of(":START_ID", ":END_ID", ":Type", "since"),
+                List.of("notstartid", "notendid", "nottype", "notsince"));
         Input input = createParquetInput(
                 Map.of(),
-                Map.of("", List.<Path[]>of(new Path[] {relationshipFile}), "ignore_me", List.<Path[]>of(new Path[] {
-                    headerFile
+                Map.of("", List.<Path[]>of(new Path[] {relationshipFile1}), "ignore_me", List.<Path[]>of(new Path[] {
+                    headerFile, relationshipFile2
                 })),
                 STRING,
                 groups,
                 MONITOR);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
-            assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
-            assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
+            assertNextRelationship(
+                    relationships,
+                    List.of("node1", "node2", "node3", "node4"),
+                    List.of("node2", "node10", "node33", "node44"),
+                    List.of("KNOWS", "HACKS", "KNOWS", "HACKS"),
+                    List.of(
+                            properties("notsince", 1234567L),
+                            properties("notsince", 987654L),
+                            properties("since", 1234567L),
+                            properties("since", 987654L)));
+            assertNextRelationship(
+                    relationships,
+                    List.of("node1", "node2", "node3", "node4"),
+                    List.of("node2", "node10", "node33", "node44"),
+                    List.of("KNOWS", "HACKS", "KNOWS", "HACKS"),
+                    List.of(
+                            properties("notsince", 1234567L),
+                            properties("notsince", 987654L),
+                            properties("since", 1234567L),
+                            properties("since", 987654L)));
+            assertNextRelationship(
+                    relationships,
+                    List.of("node1", "node2", "node3", "node4"),
+                    List.of("node2", "node10", "node33", "node44"),
+                    List.of("KNOWS", "HACKS", "KNOWS", "HACKS"),
+                    List.of(
+                            properties("notsince", 1234567L),
+                            properties("notsince", 987654L),
+                            properties("since", 1234567L),
+                            properties("since", 987654L)));
+            assertNextRelationship(
+                    relationships,
+                    List.of("node1", "node2", "node3", "node4"),
+                    List.of("node2", "node10", "node33", "node44"),
+                    List.of("KNOWS", "HACKS", "KNOWS", "HACKS"),
+                    List.of(
+                            properties("notsince", 1234567L),
+                            properties("notsince", 987654L),
+                            properties("since", 1234567L),
+                            properties("since", 987654L)));
         }
     }
 
@@ -2963,6 +3044,39 @@ class ParquetInputTest {
             InputIterator relationship, Object startNode, Object endNode, String type, Map<String, Object> properties)
             throws IOException {
         assertRelationship(relationship, globalGroup, startNode, globalGroup, endNode, type, properties);
+    }
+
+    // testing arbitrary order of relationships
+    private void assertNextRelationship(
+            InputIterator relationship,
+            List<Object> startNodes,
+            List<Object> endNodes,
+            List<String> types,
+            List<Map<String, Object>> propertiess)
+            throws IOException {
+        var success = false;
+        Throwable lastError = null;
+        assertTrue(readNext(relationship));
+        for (int i = 0; i < startNodes.size(); i++) {
+            var startNode = startNodes.get(i);
+            var endNode = endNodes.get(i);
+            var type = types.get(i);
+            var properties = propertiess.get(i);
+            try {
+                assertEquals(globalGroup, visitor.startIdGroup);
+                assertEquals(startNode, visitor.startId());
+                assertEquals(globalGroup, visitor.endIdGroup);
+                assertEquals(endNode, visitor.endId());
+                assertEquals(type, visitor.stringType);
+                assertPropertiesEquals(properties, visitor.propertiesAsMap());
+                success = true;
+            } catch (AssertionFailedError e) {
+                lastError = e;
+            }
+        }
+        if (!success) {
+            fail(lastError);
+        }
     }
 
     private void assertRelationship(
