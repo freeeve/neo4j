@@ -21,6 +21,8 @@ import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogChangedFields
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatements
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatementsAsQueries
+import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogWorkingScope
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.WorkingScopeStringRenderer
 import org.neo4j.cypher.internal.rewriting.ValidatingCondition
 import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -66,7 +68,8 @@ object Transformer {
     final val LogStatements = false
     final val LogStatementsAsQueries = false
     final val LogChangedFields = false
-    final val Enabled = LogStatements || LogStatementsAsQueries || LogChangedFields
+    final val LogWorkingScope = false
+    final val Enabled = LogStatements || LogStatementsAsQueries || LogChangedFields || LogWorkingScope
   }
 
   /**
@@ -126,6 +129,17 @@ object Transformer {
           println(s"######## DEBUG $transformerName, statement changed:")
           if (LogStatementsAsQueries) println(Prettifier(ExpressionStringifier()).asString(to.statement()))
           if (LogStatements) println(to.statement())
+          println("\n")
+        case _ =>
+      }
+    }
+
+    if (LogWorkingScope) {
+      (fromState, toState) match {
+        case (from: BaseState, to: BaseState)
+          if to.maybeWorkingScope.isDefined && from.maybeWorkingScope != to.maybeWorkingScope =>
+          println(s"######## DEBUG $transformerName, working scope changed:")
+          println(WorkingScopeStringRenderer(to.maybeWorkingScope))
           println("\n")
         case _ =>
       }

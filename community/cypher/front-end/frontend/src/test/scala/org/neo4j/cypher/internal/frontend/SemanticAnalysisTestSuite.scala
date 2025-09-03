@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
@@ -41,6 +42,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor
 import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
@@ -114,11 +116,16 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
   ): Analyse = Analyse(query, pipeline, isComposite, sessionDatabase, state, messageProvider, disabledVersions)
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
-  def pipelineWithSemanticFeatures(semanticFeatures: SemanticFeature*): Pipeline =
-    PreparatoryRewriting andThen
+  def pipelineWithSemanticFeatures(semanticFeatures: SemanticFeature*): Pipeline = {
+    (if (semanticFeatures contains ScopeQueries) {
+       ScopeSurveyor andThen PreparatoryRewriting
+     } else {
+       PreparatoryRewriting
+     }) andThen
       SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
       SemanticAnalysis(warn = Some(false), semanticFeatures: _*) andThen
       SemanticTypeCheck
+  }
 
   case class Analyse(
     query: String,
