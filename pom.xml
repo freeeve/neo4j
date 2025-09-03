@@ -138,6 +138,7 @@
       -XX:+DebugNonSafepoints
       -XX:MaxMetaspaceSize=${test.vm.maxmetaspace}
       -Xshare:off
+      -Dorg.neo4j.shaded.lucene9.vectorization.upperJavaFeatureVersion=25
       ${jdk.custom.options}
       ${test.runner.jvm.settings.db.format}
       ${test.runner.jvm.settings.additional}
