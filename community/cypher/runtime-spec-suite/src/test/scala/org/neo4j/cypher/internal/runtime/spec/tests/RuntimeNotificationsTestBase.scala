@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.runtime.spec.tests
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
-import org.neo4j.configuration.GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.coerceToPredicate

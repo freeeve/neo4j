@@ -48,6 +48,8 @@ import org.neo4j.kernel.impl.newapi.CursorPredicates
 import org.neo4j.token.api.TokenConstants.NO_TOKEN
 import org.neo4j.values.virtual.VirtualValues
 
+import scala.jdk.CollectionConverters.IteratorHasAsScala
+
 case class DynamicLabelNodeLookupPipe(
   ident: String,
   labelExpr: Expression,
@@ -123,88 +125,64 @@ object DynamicLabelNodeLookupPipe {
       new ReferenceCursorIterator(cursor)
     }
 
-    def findCompoundIndex(labelId: Int, propertyKeys: Seq[PropertyKeyToken]): Option[IndexDescriptor] = {
+    def findIndex(
+      labelId: Int,
+      propertyIds: Seq[Int],
+      predicates: Seq[PropertyIndexQuery]
+    ): Option[IndexDescriptor] = {
       if (labelId == NO_TOKEN) {
         None
       } else {
-        val iter = state.query.indexReferences(labelId, EntityType.NODE, propertyKeys.map(_.nameId.id): _*)
-        if (iter.hasNext) {
-          Some(iter.next())
-        } else {
-          None
-        }
+        state.query.indexReferences(labelId, EntityType.NODE, propertyIds: _*)
+          .asScala.find {
+            index =>
+              predicates.forall(p => index.getCapability.isQuerySupported(p.`type`(), p.valueCategory()))
+          }
       }
     }
 
-    def findIndex(labelId: Int, propertyKey: PropertyKeyToken): Option[IndexDescriptor] = {
-      if (labelId == NO_TOKEN) {
+    val iter = (labels, propertyExprs.size, operator) match {
+      case (Array(), _, _) =>
         None
-      } else {
-        val iter = state.query.indexReferences(labelId, EntityType.NODE, propertyKey.nameId.id)
-        if (iter.hasNext) {
-          Some(iter.next())
-        } else {
-          None
-        }
-      }
-    }
-
-    val iter = if (propertyExprs.isEmpty) {
-      Some(labelScan)
-    } else if (labels.length == 1 && propertyExprs.size == 1) {
-      // SINGLE LABEL, SINGLE PROPERTY
-      val (propertyKey, expr) = propertyExprs.head
-      val label = labels.head
-
-      findIndex(label, propertyKey)
-        .map(seek(_, Seq(predicate(propertyKey, expr))))
-    } else if (labels.length > 1 && !labels.contains(NO_TOKEN) && operator == All && propertyExprs.size == 1) {
-      // ALL MULTIPLE LABELS, SINGLE PROPERTY
-      val (propertyKey, expr) = propertyExprs.head
-
-      // naive implementation: use the first index that is found for any of the labels and then apply label filter
-      labels.iterator
-        .flatMap(label =>
-          findIndex(label, propertyKey)
-            .map(index =>
-              filterHasLabels(
-                seek(index, Seq(predicate(propertyKey, expr))),
-                labels.filterNot(_ == label)
+      case (_, 0, _) =>
+        Some(labelScan)
+      case (labels, _, _) if labels.contains(NO_TOKEN) =>
+        None
+      case (Array(label), 1, _) =>
+        // SINGLE LABEL, SINGLE PROPERTY
+        val (propertyKey, expr) = propertyExprs.head
+        val propPredicate = predicate(propertyKey, expr)
+        findIndex(label, Seq(propertyKey.nameId.id), Seq(propPredicate))
+          .map(seek(_, Seq(propPredicate)))
+      case (labels, 1, All) =>
+        // ALL MULTIPLE LABELS, SINGLE PROPERTY
+        val (propertyKey, expr) = propertyExprs.head
+        // naive implementation: use the first index that is found for any of the labels and then apply label filter
+        val propPredicate = predicate(propertyKey, expr)
+        labels.iterator
+          .flatMap(label =>
+            findIndex(label, Seq(propertyKey.nameId.id), Seq(propPredicate))
+              .map(index =>
+                filterHasLabels(
+                  seek(index, Seq(propPredicate)),
+                  labels.filterNot(_ == label)
+                )
               )
-            )
-        ).nextOption()
-    } else if (propertyExprs.size > 1 && labels.length == 1) {
-      // SINGLE LABEL, MULTIPLE PROPERTIES
-
-      // look for a compound index first
-      findCompoundIndex(labels.head, propertyExprs.keys.toSeq)
-        .map(seek(_, propertyExprs.map((predicate _).tupled).toSeq))
-        .orElse {
-          // if no compound index, use the first index for any of the properties and then apply property filter
-          propertyExprs.iterator
-            .flatMap { case (propertyKey, expr) =>
-              findIndex(labels.head, propertyKey)
-                .map { index =>
-                  val otherPredicates = propertyExprs
-                    .iterator
-                    .filterNot(_._1 == propertyKey)
-                    .map((predicate _).tupled)
-
-                  filterProperties(
-                    seek(index, Seq(predicate(propertyKey, expr))),
-                    otherPredicates
-                  )
-                }
-            }.nextOption()
-        }
-    } else None
+          ).nextOption()
+      case _ =>
+        None
+    }
 
     iter.getOrElse {
       val indexQueries = propertyExprs
         .iterator
         .map((predicate _).tupled)
 
-      filterProperties(labelScan, indexQueries)
+      if (indexQueries.hasNext) {
+        filterProperties(labelScan, indexQueries)
+      } else {
+        labelScan
+      }
     }
   }
 

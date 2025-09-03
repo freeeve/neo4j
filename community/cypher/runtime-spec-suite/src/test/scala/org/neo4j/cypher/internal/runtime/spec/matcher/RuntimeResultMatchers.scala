@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.spec._
 import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.graphdb.QueryStatistics
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.lock.LockType
@@ -40,6 +41,7 @@ import java.util
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.Map
 import scala.jdk.CollectionConverters.ListHasAsScala
 
 trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
@@ -123,6 +125,7 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
 
     private var maybeLocks: Option[LockMatcher] = None
     private var maybeNotifications: Option[NotificationsMatcher] = None
+    private var maybeIndexProfilesMatcher: Option[IndexProfilesMatcher] = None
 
     def withNoUpdates(): RuntimeResultMatcher = withStatistics()
 
@@ -220,6 +223,26 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
       this
     }
 
+    def usingIndexes(operatorId: Int, indexNames: String*): RuntimeResultMatcher = {
+      this.withIndexProfile(operatorId, IndexProfilesMatcher.allOf(indexNames: _*))
+    }
+
+    def usingAnyIndexes(operatorId: Int, indexNames: String*): RuntimeResultMatcher = {
+      this.withIndexProfile(operatorId, IndexProfilesMatcher.anyOf(indexNames: _*))
+    }
+
+    def notUsingIndexes(operatorId: Int, indexNames: String*): RuntimeResultMatcher = {
+      this.withIndexProfile(operatorId, IndexProfilesMatcher.not(IndexProfilesMatcher.anyOf(indexNames: _*)))
+    }
+
+    def withIndexProfile(operatorId: Int, profileMatcher: IndexProfilesMatcher.MatchOption): RuntimeResultMatcher = {
+      if (this.maybeIndexProfilesMatcher.isEmpty) {
+        this.maybeIndexProfilesMatcher = Some(new IndexProfilesMatcher())
+      }
+      this.maybeIndexProfilesMatcher.get.addOne(operatorId, profileMatcher)
+      this
+    }
+
     override def apply(left: RecordingRuntimeResult): MatchResult = {
       val columns = left.runtimeResult.fieldNames().toIndexedSeq
       if (columns != expectedColumns) {
@@ -247,6 +270,11 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
           .orElse {
             maybeNotifications
               .map(_.apply(left.notifications))
+              .filter(_.matches == false)
+          }
+          .orElse {
+            maybeIndexProfilesMatcher
+              .map(_.apply(left.runtimeResult.queryProfile()))
               .filter(_.matches == false)
           }
           .getOrElse {
@@ -421,6 +449,68 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
       } else {
         MatchResult(matches = true, "", "")
       }
+    }
+  }
+
+  class IndexProfilesMatcher extends Matcher[QueryProfile] {
+    private lazy val matchers: Map[Int, IndexProfilesMatcher.MatchOption] = Map()
+
+    def addOne(operatorId: Int, profileMatcher: IndexProfilesMatcher.MatchOption): Unit = {
+      matchers(operatorId) = profileMatcher
+    }
+
+    def indexProfilesMatch(
+      matchers: Map[Int, IndexProfilesMatcher.MatchOption],
+      actual: Map[Int, Seq[String]]
+    ): Boolean = {
+      matchers.keySet == actual.keySet &&
+      matchers.forall { case (id, matcher) =>
+        matcher.doesMatch(actual(id))
+      }
+    }
+
+    override def apply(left: QueryProfile): MatchResult = {
+      val actualIndexesUsed = matchers.map {
+        case (id: Int, _) =>
+          id -> left.operatorProfile(id).indexesUsed().map(_.getName).toSeq
+      }
+      val runtimeName = runtimeTestSupport.runtime.name
+      runtimeName match {
+        case "slotted" | "interpreted" =>
+          MatchResult(
+            matches = indexProfilesMatch(matchers, actualIndexesUsed),
+            rawFailureMessage = s"expected to use indexes $matchers but found $actualIndexesUsed",
+            rawNegatedFailureMessage = ""
+          )
+        case _ =>
+          MatchResult(
+            matches = actualIndexesUsed.values.forall(_.isEmpty),
+            rawFailureMessage = s"expected $runtimeName not to profile indexes",
+            rawNegatedFailureMessage = ""
+          )
+      }
+    }
+  }
+
+  object IndexProfilesMatcher {
+    def anyOf(indexNames: String*): IndexProfilesMatcher.MatchOption = Any(indexNames)
+    def allOf(indexNames: String*): IndexProfilesMatcher.MatchOption = All(indexNames)
+    def not(matcher: IndexProfilesMatcher.MatchOption): IndexProfilesMatcher.MatchOption = Not(matcher)
+
+    sealed trait MatchOption {
+      def doesMatch(targets: Seq[String]): Boolean
+    }
+
+    case class Any(names: Seq[String]) extends MatchOption {
+      override def doesMatch(targets: Seq[String]): Boolean = targets.exists(names.toSet.contains)
+    }
+
+    case class All(names: Seq[String]) extends MatchOption {
+      override def doesMatch(targets: Seq[String]): Boolean = targets.toSet == names.toSet
+    }
+
+    case class Not(matcher: MatchOption) extends MatchOption {
+      override def doesMatch(targets: Seq[String]): Boolean = !matcher.doesMatch(targets)
     }
   }
 
