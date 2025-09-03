@@ -979,6 +979,7 @@
             <palantirJavaFormat>
               <version>2.68.0</version>
             </palantirJavaFormat>
+            <toggleOffOn />
           </java>
           <scala>
             <scalafmt>
