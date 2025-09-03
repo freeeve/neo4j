@@ -2292,6 +2292,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.INVALID_TRANSACTION_STATE,
             "transaction termination transient error",
             ErrorClassification.TRANSIENT_ERROR),
+    STATUS_25N17(
+            new GqlStatus("25N17"),
+            "The operation { %s } requires an implicit transaction.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.INVALID_TRANSACTION_STATE,
+            "implicit transaction required",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_2D000(
             new GqlStatus("2D000"),
             "",

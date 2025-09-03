@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
+import org.neo4j.cypher.internal.GQLExceptionsHelper.requireImplicitTransaction
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.ExpressionCursors
@@ -39,13 +40,11 @@ import org.neo4j.cypher.internal.runtime.memory.QueryMemoryTracker
 import org.neo4j.cypher.internal.util.AggregationSkippedNull
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.exceptions.InternalException
-import org.neo4j.graphdb.TransactionFailureException
 import org.neo4j.internal.kernel
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.TokenReadSession
 import org.neo4j.io.IOUtils.closeAll
 import org.neo4j.kernel.api.KernelTransaction
-import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.scheduler.CallableExecutor
 import org.neo4j.values.AnyValue
@@ -217,9 +216,9 @@ class QueryState(
 
   def withNewTransaction(concurrentAccess: Boolean): QueryState = {
     if (query.getTransactionType != KernelTransaction.Type.IMPLICIT) {
-      throw new TransactionFailureException(
+      throw requireImplicitTransaction(
         "A query with 'CALL { ... } IN TRANSACTIONS' can only be executed in an implicit transaction, " + "but tried to execute in an explicit transaction.",
-        Status.Transaction.TransactionStartFailed
+        "CALL { ... } IN TRANSACTIONS"
       )
     }
     val newQuery = query.contextWithNewTransaction()
