@@ -58,7 +58,7 @@ import org.neo4j.bolt.protocol.io.reader.TimeReader;
 import org.neo4j.bolt.protocol.io.reader.legacy.LegacyDateTimeReader;
 import org.neo4j.bolt.protocol.io.reader.legacy.LegacyDateTimeZoneIdReader;
 import org.neo4j.bolt.protocol.io.writer.StructWriterV40;
-import org.neo4j.bolt.protocol.io.writer.VectorBarrierStructWriter;
+import org.neo4j.bolt.protocol.io.writer.VectorAsMapMarkerStructWriter;
 import org.neo4j.bolt.protocol.v40.fsm.response.metadata.MetadataHandlerV40;
 import org.neo4j.bolt.protocol.v40.message.decoder.authentication.HelloMessageDecoderV40;
 import org.neo4j.bolt.protocol.v40.message.decoder.transaction.BeginMessageDecoderV40;
@@ -162,7 +162,7 @@ public class BoltProtocolV40 extends AbstractBoltProtocol {
     public void registerStructWriters(WriterPipeline pipeline) {
         super.registerStructWriters(pipeline);
 
-        pipeline.addFirst(VectorBarrierStructWriter.getInstance()).addFirst(StructWriterV40.getInstance());
+        pipeline.addFirst(VectorAsMapMarkerStructWriter.getInstance()).addFirst(StructWriterV40.getInstance());
     }
 
     @Override

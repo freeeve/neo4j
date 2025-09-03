@@ -47,7 +47,7 @@ import org.neo4j.bolt.protocol.io.reader.LocalTimeReader;
 import org.neo4j.bolt.protocol.io.reader.Point2dReader;
 import org.neo4j.bolt.protocol.io.reader.Point3dReader;
 import org.neo4j.bolt.protocol.io.reader.TimeReader;
-import org.neo4j.bolt.protocol.io.writer.VectorBarrierStructWriter;
+import org.neo4j.bolt.protocol.io.writer.VectorAsMapMarkerStructWriter;
 import org.neo4j.bolt.protocol.v40.message.encoder.FailureMessageEncoderV40;
 import org.neo4j.bolt.protocol.v44.fsm.response.metadata.MetadataHandlerV44;
 import org.neo4j.bolt.protocol.v52.message.decoder.transaction.BeginMessageDecoderV52;
@@ -125,7 +125,7 @@ public class BoltProtocolV53 extends AbstractBoltProtocol {
     @Override
     @SuppressWarnings("removal")
     public void registerStructWriters(WriterPipeline pipeline) {
-        pipeline.addLast(VectorBarrierStructWriter.getInstance());
+        pipeline.addLast(VectorAsMapMarkerStructWriter.getInstance());
         super.registerStructWriters(pipeline);
     }
 
