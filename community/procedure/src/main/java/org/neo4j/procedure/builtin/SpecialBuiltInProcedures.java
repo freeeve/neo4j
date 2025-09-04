@@ -21,23 +21,30 @@ package org.neo4j.procedure.builtin;
 
 import java.lang.management.ManagementFactory;
 import java.util.List;
-import java.util.function.Supplier;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.procedure.CallableProcedure;
+import org.neo4j.kernel.api.procedure.GlobalProcedures;
 
 /**
  * This class houses built-in procedures which use a backdoor to inject dependencies.
  * <p>
  * TODO: The dependencies should be made available by a standard mechanism so the backdoor is not needed.
  */
-public class SpecialBuiltInProcedures implements Supplier<List<CallableProcedure>> {
+public class SpecialBuiltInProcedures {
 
     private final List<CallableProcedure> builtins;
 
     private SpecialBuiltInProcedures(List<CallableProcedure> builtins) {
         this.builtins = builtins;
+    }
+
+    public void install(GlobalProcedures globalProcedures) throws ProcedureException {
+        for (CallableProcedure builtin : builtins) {
+            globalProcedures.register(builtin);
+        }
     }
 
     public static SpecialBuiltInProcedures from(String neo4jVersion, String neo4jEdition, Config config) {
@@ -53,10 +60,5 @@ public class SpecialBuiltInProcedures implements Supplier<List<CallableProcedure
                         cypherExperimentalVersionsEnabled),
                 new JmxQueryProcedure(
                         new QualifiedName("dbms", "queryJmx"), ManagementFactory.getPlatformMBeanServer())));
-    }
-
-    @Override
-    public List<CallableProcedure> get() {
-        return builtins;
     }
 }

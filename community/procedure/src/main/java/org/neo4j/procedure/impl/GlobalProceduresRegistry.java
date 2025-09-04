@@ -26,8 +26,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
-import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.ThrowingFunction;
 import org.neo4j.graphdb.Resource;
@@ -46,7 +44,6 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.NullLog;
-import org.neo4j.procedure.builtin.SpecialBuiltInProcedures;
 import org.neo4j.string.Globbing;
 import org.neo4j.util.VisibleForTesting;
 
@@ -61,7 +58,6 @@ public class GlobalProceduresRegistry extends LifecycleAdapter implements Global
     private final ComponentRegistry safeComponents = new ComponentRegistry(); // Synchronized by updater
     private final ComponentRegistry allComponents = new ComponentRegistry(); // Synchronized by updater
     private final ProcedureCompiler compiler;
-    private final Supplier<List<CallableProcedure>> builtin;
     private final Path proceduresDirectory;
     private final RegistrationUpdater updater = new RegistrationUpdater();
 
@@ -74,19 +70,10 @@ public class GlobalProceduresRegistry extends LifecycleAdapter implements Global
 
     @VisibleForTesting
     public GlobalProceduresRegistry() {
-        this(
-                SpecialBuiltInProcedures.from("N/A", "N/A", Config.defaults()),
-                null,
-                NullLog.getInstance(),
-                ProcedureConfig.DEFAULT);
+        this(null, NullLog.getInstance(), ProcedureConfig.DEFAULT);
     }
 
-    public GlobalProceduresRegistry(
-            Supplier<List<CallableProcedure>> builtin,
-            Path proceduresDirectory,
-            InternalLog log,
-            ProcedureConfig config) {
-        this.builtin = builtin;
+    public GlobalProceduresRegistry(Path proceduresDirectory, InternalLog log, ProcedureConfig config) {
         this.proceduresDirectory = proceduresDirectory;
         this.typeCheckers = new Cypher5TypeCheckers();
         this.compiler = new ProcedureCompiler(typeCheckers, safeComponents, allComponents, log, config);
@@ -212,9 +199,6 @@ public class GlobalProceduresRegistry extends LifecycleAdapter implements Global
     public void start() throws Exception {
         try (var ignored = updater.acquire()) {
             unguardedLoadFromDisk(registry, (name) -> true);
-            for (var procedure : builtin.get()) {
-                registry.register(procedure);
-            }
         }
     }
 

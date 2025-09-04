@@ -146,10 +146,8 @@ class BuiltInProceduresTest {
 
         doReturn(clock).when(resolver).resolveDependency(Clock.class);
 
-        var builtins = SpecialBuiltInProcedures.from("1.3.37", Edition.COMMUNITY.toString(), Config.defaults());
-        for (var proc : builtins.get()) {
-            procs.register(proc);
-        }
+        SpecialBuiltInProcedures.from("1.3.37", Edition.COMMUNITY.toString(), Config.defaults())
+                .install(procs);
         procs.registerComponent(
                 SpdBuiltInProcedures.class, context -> SpdBuiltInProcedures.COMMUNITY_EDITION_IMPL, false);
         procs.registerProcedure(BuiltInProcedures.class);

@@ -44,7 +44,6 @@ import org.neo4j.bolt.tx.TransactionManager;
 import org.neo4j.bolt.tx.TransactionManagerImpl;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.DependencyResolver;
-import org.neo4j.common.Edition;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
@@ -84,7 +83,6 @@ import org.neo4j.kernel.api.security.provider.SecurityProvider;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.kernel.internal.Version;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.logging.InternalLog;
@@ -93,7 +91,6 @@ import org.neo4j.logging.Log;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.procedure.StatusDetailsAccessor;
 import org.neo4j.procedure.builtin.BuiltInDbmsProcedures;
-import org.neo4j.procedure.builtin.SpecialBuiltInProcedures;
 import org.neo4j.procedure.impl.GlobalProceduresRegistry;
 import org.neo4j.procedure.impl.ProcedureConfig;
 import org.neo4j.procedure.impl.ProcedureGraphDatabaseAPI;
@@ -354,11 +351,8 @@ public class DatabaseManagementServiceFactory {
             Log proceduresLog = logService.getUserLog(GlobalProcedures.class);
 
             ProcedureConfig procedureConfig = editionModule.getProcedureConfig(globalConfig);
-            Edition neo4jEdition = globalModule.getDbmsInfo().edition;
-            SpecialBuiltInProcedures builtInProcedures =
-                    SpecialBuiltInProcedures.from(Version.getNeo4jVersion(), neo4jEdition.toString(), globalConfig);
             GlobalProceduresRegistry globalProcedures =
-                    new GlobalProceduresRegistry(builtInProcedures, proceduresDirectory, internalLog, procedureConfig);
+                    new GlobalProceduresRegistry(proceduresDirectory, internalLog, procedureConfig);
 
             try (var registry = globalProcedures.bulk()) {
                 registry.registerType(Node.class, NTNode);
@@ -418,7 +412,8 @@ public class DatabaseManagementServiceFactory {
                     editionModule.registerProcedures(
                             registry, procedureConfig, globalModule, databaseContextProvider, routingService);
                 } catch (KernelException e) {
-                    internalLog.error("Failed to register built-in edition procedures at start up: " + e.getMessage());
+                    throw new IllegalStateException(
+                            "Failed to register built-in edition procedures at start up!\n\nCause: " + e.getMessage());
                 }
             }
             globalModule.getGlobalLife().add(globalProcedures);

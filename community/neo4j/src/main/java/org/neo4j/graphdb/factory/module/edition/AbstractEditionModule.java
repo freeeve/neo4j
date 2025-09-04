@@ -68,12 +68,14 @@ import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats;
+import org.neo4j.kernel.internal.Version;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.procedure.builtin.BuiltInDbmsProcedures;
 import org.neo4j.procedure.builtin.BuiltInProcedures;
 import org.neo4j.procedure.builtin.FulltextProcedures;
 import org.neo4j.procedure.builtin.SpdBuiltInProcedures;
+import org.neo4j.procedure.builtin.SpecialBuiltInProcedures;
 import org.neo4j.procedure.builtin.TokenProcedures;
 import org.neo4j.procedure.builtin.VectorIndexProcedures;
 import org.neo4j.procedure.builtin.routing.RoutingProcedureInstaller;
@@ -97,6 +99,11 @@ public abstract class AbstractEditionModule {
             DatabaseContextProvider<?> databaseContextProvider,
             RoutingService routingService)
             throws KernelException {
+        SpecialBuiltInProcedures.from(
+                        Version.getNeo4jVersion(),
+                        globalModule.getDbmsInfo().edition.toString(),
+                        globalModule.getGlobalConfig())
+                .install(globalProcedures);
         registerEditionSpecificProcedures(globalProcedures, databaseContextProvider);
         globalProcedures.registerProcedure(BuiltInProcedures.class);
         globalProcedures.registerProcedure(TokenProcedures.class);
