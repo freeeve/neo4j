@@ -996,8 +996,7 @@ public class Database extends AbstractDatabase {
         databaseDependencies.satisfyDependencies(
                 checkPointer, logFiles, logicalTransactionStore, transactionAppender, transactionLogService);
 
-        return new DatabaseTransactionLogModule(
-                checkPointer, transactionAppender, transactionMetadataCache, logicalTransactionStore);
+        return new DatabaseTransactionLogModule(checkPointer, transactionAppender, logicalTransactionStore);
     }
 
     private DatabaseKernelModule buildKernel(
