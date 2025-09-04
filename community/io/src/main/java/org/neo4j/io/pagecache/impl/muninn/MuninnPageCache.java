@@ -1035,10 +1035,6 @@ public class MuninnPageCache implements PageCache {
             int pagesToEvict,
             EvictionClockArm evictionClockArm,
             EvictionRunEvent evictionRunEvent) {
-        if (closed) {
-            return;
-        }
-
         if (blockAccessor.isAvailable()) {
             asyncEvict(blockAccessor, pagesToEvict, evictionClockArm, evictionRunEvent);
         } else {
