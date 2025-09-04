@@ -2371,13 +2371,15 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
 
   private def confForSubtractionNodeByLabelScanVersusIndexTest(existsSelectivity: Double)
     : StatisticsBackedLogicalPlanningConfiguration = {
-    val nodes = 200.0
     val a = 100.0
     val b = 100.0
+    val c = 100.0
+    val nodes = a + b + c
     plannerBuilder()
       .setAllNodesCardinality(nodes)
       .setLabelCardinality("A", a)
       .setLabelCardinality("B", b)
+      .setLabelCardinality("C", c)
       .addNodeIndex("A", Seq("prop"), existsSelectivity, 1)
       .build()
   }
@@ -2386,12 +2388,12 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
     val existsSelectivity = 0.1
     val planningConf = confForSubtractionNodeByLabelScanVersusIndexTest(existsSelectivity)
 
-    val plan = planningConf.plan("MATCH (n:A&!B) WHERE n.prop IS NOT NULL RETURN n.prop")
+    val plan = planningConf.plan("MATCH (n:A&B&!C) WHERE n.prop IS NOT NULL RETURN n.prop")
 
     plan should equal(planningConf.planBuilder()
       .produceResults("`n.prop`")
       .projection("cacheN[n.prop] AS `n.prop`")
-      .filter("NOT n:B")
+      .filter("n:B", "NOT n:C")
       .nodeIndexOperator("n:A(prop)", getValue = Map("prop" -> GetValue))
       .build())
   }
@@ -2400,13 +2402,13 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
     val existsSelectivity = 0.9
     val planningConf = confForSubtractionNodeByLabelScanVersusIndexTest(existsSelectivity)
 
-    val plan = planningConf.plan("MATCH (n:A&!B) WHERE n.prop IS NOT NULL RETURN n.prop")
+    val plan = planningConf.plan("MATCH (n:A&B&!C) WHERE n.prop IS NOT NULL RETURN n.prop")
 
     plan should equal(planningConf.planBuilder()
       .produceResults("`n.prop`")
       .projection("cacheN[n.prop] AS `n.prop`")
       .filter("cacheNFromStore[n.prop] IS NOT NULL")
-      .subtractionNodeByLabelsScan("n", Seq("A"), Seq("B"))
+      .subtractionNodeByLabelsScan("n", Seq("A", "B"), Seq("C"))
       .build())
   }
 }

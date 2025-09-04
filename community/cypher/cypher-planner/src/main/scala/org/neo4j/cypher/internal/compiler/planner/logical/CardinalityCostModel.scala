@@ -34,8 +34,10 @@ import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.c
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.effectiveCardinalities
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.getEffectiveBatchSize
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.hackyRelTypeScanCost
+import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel.selectivityForLabels
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.CostModel
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.IndependenceCombiner
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
@@ -45,6 +47,7 @@ import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.HasLabelsOrTypes
 import org.neo4j.cypher.internal.expressions.HasTypes
 import org.neo4j.cypher.internal.expressions.InequalityExpression
+import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Property
@@ -378,11 +381,19 @@ case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChec
         // The set difference gives all resulting nodes of the subtraction scan: n5
         val nextCallsForPositiveCursor =
           positiveLabels.map(l => statistics.nodesWithLabelCardinality(semanticTable.id(l))).min
+
+        // Assume that only nodes with all positive labels will be checked against negative labels.
+        // This helps when comparing the cost of SubtractionNodeByLabelsScan to IntersectionNodeByLabelsScan+Filter
+        val positiveLabelsCardinality =
+          statistics.nodesAllCardinality() *
+            selectivityForLabels(positiveLabels, semanticTable, statistics)
+              .getOrElse(Selectivity.ZERO)
+
         // Take the worst case where the sets are disjoint (i.e. the sum of the set cardinalities)
         val negativeLabelsCardinalitySum = negativeLabels.map(l =>
           statistics.nodesWithLabelCardinality(semanticTable.id(l))
         ).sum(NumericCardinality)
-        val nextCallsForNegativeCursor = Cardinality.min(nextCallsForPositiveCursor, negativeLabelsCardinalitySum)
+        val nextCallsForNegativeCursor = Cardinality.min(positiveLabelsCardinality, negativeLabelsCardinalitySum)
         (nextCallsForPositiveCursor + nextCallsForNegativeCursor) * effectiveCardinalities.lhsReduction.fraction * rowCost
 
       case _ =>
@@ -498,6 +509,7 @@ object CardinalityCostModel {
 
       case _: NodeByLabelScan |
         _: UnionNodeByLabelsScan |
+        _: SubtractionNodeByLabelsScan |
         _: DynamicLabelNodeLookup => INDEX_SCAN_COST_PER_ROW
 
       case NodeIndexScan(_, _, properties, _, _, _, _) => INDEX_SCAN_COST_PER_ROW + indexGetValueCost(properties)
@@ -958,6 +970,20 @@ object CardinalityCostModel {
         ExecutionModel.VolcanoBatchSize // A CartesianProduct that provides order is rewritten to execute in a row-by-row fashion
       case _ => batchSize
     }
+  }
+
+  // This duplicates NodeCardinalityModel logic somewhat, but using NodeCardinalityModel directly would pull in many dependencies.
+  private[logical] def selectivityForLabels(
+    labels: Seq[LabelName],
+    semanticTable: SemanticTable,
+    statistics: GraphStatistics
+  ): Option[Selectivity] = {
+    val all = statistics.nodesAllCardinality()
+    val selectivities = labels.map(l =>
+      (statistics.nodesWithLabelCardinality(semanticTable.id(l)) / all)
+        .getOrElse(Selectivity.ZERO)
+    )
+    IndependenceCombiner.andTogetherSelectivities(selectivities)
   }
 
   private object HashJoin {

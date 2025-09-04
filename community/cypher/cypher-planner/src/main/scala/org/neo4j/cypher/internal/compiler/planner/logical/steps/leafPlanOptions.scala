@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.logical.plans.NodeIndexEndsWithScan
 import org.neo4j.cypher.internal.logical.plans.NodeIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.SubtractionNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexContainsScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexEndsWithScan
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
@@ -125,9 +126,10 @@ class LeafPlanSelectorHeuristic(context: LogicalPlanningContext) extends Selecto
       20 + indexTypeModifier(p, p.indexType)
     case p: RelationshipIndexLeafPlan if hasAccessedProperties(p.idName, p.properties, context) =>
       20 + indexTypeModifier(p, p.indexType)
-    case _: NodeByLabelScan      => 10
-    case _: RelationshipTypeScan => 10
-    case _                       => 0
+    case _: SubtractionNodeByLabelsScan => 11
+    case _: NodeByLabelScan             => 10
+    case _: RelationshipTypeScan        => 10
+    case _                              => 0
   }
 
   private def indexTypeModifier(plan: LogicalPlan, indexType: org.neo4j.graphdb.schema.IndexType): Int = {

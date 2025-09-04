@@ -63,9 +63,10 @@ import org.neo4j.cypher.internal.util.WorkReduction
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.Assertion
+import org.scalatest.OptionValues
 
 class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSupport
-    with LogicalPlanConstructionTestSupport {
+    with LogicalPlanConstructionTestSupport with OptionValues {
 
   private val SMALL_CHUNK_SIZE = 128
   private val BIG_CHUNK_SIZE = 1024
@@ -1227,10 +1228,48 @@ class CardinalityCostModelTest extends CypherFunSuite with AstConstructionTestSu
     unlimited shouldEqual
       (HardcodedGraphStatistics.nodesWithLabelCardinality(resolvedLabels.get("A")) +
         HardcodedGraphStatistics.nodesWithLabelCardinality(resolvedLabels.get("B"))) *
-      DEFAULT_COST_PER_ROW
+      CostPerRow(INDEX_SCAN_COST_PER_ROW)
 
     val limited = costFor(plan, withLimit, semanticTable, builder.cardinalities, builder.providedOrders)
     limited should be < unlimited
     limited shouldEqual (unlimited * 0.5)
+  }
+
+  test(
+    "cost of subtraction scan with two positive and one negative labels should match the cost of intersection scan with a filter"
+  ) {
+    val resolvedLabels = Map("A" -> LabelId(0), "B" -> LabelId(1), "C" -> LabelId(2))
+    val semanticTable = SemanticTable(resolvedLabelNames = resolvedLabels)
+
+    val subtractionCost = {
+      val builder = new LogicalPlanBuilder(wholePlan = false)
+      val plan = builder
+        .subtractionNodeByLabelsScan("n", Seq("A", "B"), Seq("C"))
+        .build()
+
+      costFor(plan, QueryGraphSolverInput.empty, semanticTable, builder.cardinalities, builder.providedOrders)
+    }
+
+    val intersectionFilterCost = {
+      val builder = new LogicalPlanBuilder(wholePlan = false)
+
+      val intersectionCardinality =
+        HardcodedGraphStatistics.nodesAllCardinality() *
+          CardinalityCostModel.selectivityForLabels(
+            Seq(labelName("A"), labelName("B")),
+            semanticTable,
+            HardcodedGraphStatistics
+          ).value
+
+      val plan = builder
+        .filter("NOT n:C")
+        .intersectionNodeByLabelsScan("n", Seq("A", "B")).withCardinality(intersectionCardinality.amount)
+        .build()
+
+      costFor(plan, QueryGraphSolverInput.empty, semanticTable, builder.cardinalities, builder.providedOrders)
+    }
+
+    subtractionCost should be > Cost.ZERO
+    subtractionCost shouldEqual intersectionFilterCost
   }
 }
