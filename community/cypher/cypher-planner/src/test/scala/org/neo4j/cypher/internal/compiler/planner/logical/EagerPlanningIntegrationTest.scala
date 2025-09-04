@@ -2741,4 +2741,183 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .build()
     )
   }
+
+  test("should plan an eager when the dynamic label index plan overlaps with a create") {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("A", 20)
+        .addProperty("prop")
+        .enablePlanningDynamicLabelIndexUse()
+        .build()
+
+    val query =
+      """
+        |UNWIND [1] AS one
+        |MATCH (n:$($labelArg)) WHERE n.prop = 1
+        |CREATE (m:A {prop: 1})
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan should equal(
+      planner.subPlanBuilder()
+        .emptyResult()
+        .create(createNodeFull("m", labels = Seq("A"), properties = Some("{prop: 1}")))
+        .eager(ListSet(
+          EagernessReason.PropertyReadSetConflict(propName("prop"))
+            .withConflict(EagernessReason.Conflict(Id(2), Id(5))),
+          EagernessReason.LabelReadSetConflict(labelName("A"))
+            .withConflict(EagernessReason.Conflict(Id(2), Id(5)))
+        ))
+        .apply()
+        .|.dynamicLabelNodeLookup("n", "$labelArg", DynamicElement.All, Map("prop" -> "1"), "one")
+        .unwind("[1] AS one")
+        .argument()
+        .build()
+    )
+  }
+
+  test(
+    "should not plan an eager when the dynamic label index plan does not overlap with a creates - the created nodes do not have the property prop1 that the match requires"
+  ) {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("A", 20)
+        .addProperty("prop1")
+        .addProperty("prop2")
+        .enablePlanningDynamicLabelIndexUse()
+        .build()
+
+    val query =
+      """
+        |UNWIND [1] AS one
+        |MATCH (n:$($labelArg)) WHERE n.prop1 = 1
+        |CREATE (m:A {prop2: 1})
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan should equal(
+      planner.subPlanBuilder()
+        .emptyResult()
+        .create(createNodeFull("m", labels = Seq("A"), properties = Some("{prop2: 1}")))
+        .apply()
+        .|.dynamicLabelNodeLookup("n", "$labelArg", DynamicElement.All, Map("prop1" -> "1"), "one")
+        .unwind("[1] AS one")
+        .argument()
+        .build()
+    )
+  }
+
+  test("should plan an eager when the dynamic directed or undirected relationship index plan overlaps with a create") {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setRelationshipCardinality("()-[:A]->()", 20)
+        .addProperty("prop")
+        .enablePlanningDynamicLabelIndexUse()
+        .build()
+
+    for (dirStr <- Seq("", ">")) {
+      val query =
+        s"""
+           |UNWIND [1] AS one
+           |MATCH ()-[r:$$($$labelArg)]-$dirStr() WHERE r.prop = 1
+           |CREATE ()-[s:A {prop: 1}]->()
+           |""".stripMargin
+
+      val plan = planner.plan(query).stripProduceResults
+      plan should equal(
+        planner.subPlanBuilder()
+          .emptyResult()
+          .create(
+            createNodeFull("anon_0"),
+            createNodeFull("anon_1"),
+            createRelationship(
+              relationship = "s",
+              left = "anon_0",
+              typ = "A",
+              right = "anon_1",
+              direction = OUTGOING,
+              properties = Some("{prop: 1}")
+            )
+          )
+          .eager(ListSet(
+            EagernessReason.PropertyReadSetConflict(propName("prop"))
+              .withConflict(EagernessReason.Conflict(Id(2), Id(5))),
+            EagernessReason.TypeReadSetConflict(RelTypeName("A")(InputPosition.NONE))
+              .withConflict(EagernessReason.Conflict(Id(2), Id(5))),
+            EagernessReason.ReadCreateConflict
+              .withConflict(EagernessReason.Conflict(Id(2), Id(5)))
+          ))
+          .apply()
+          .|.dynamicRelationshipTypeLookup(
+            pattern = s"()-[]-$dirStr()",
+            relTypeExpr = "$all($labelArg)",
+            indexOrder = IndexOrderNone,
+            propertyPredicates = Map(("prop", "1")),
+            argumentIds = Set("one")
+          )
+          .unwind("[1] AS one")
+          .argument()
+          .build()
+      )
+    }
+  }
+
+  test(
+    "should not plan an eager when the dynamic directed or undirected relationship index plan does not overlap with a create - the created relationship does not have the property prop1 that the match require"
+  ) {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("B", 15)
+        .setRelationshipCardinality("()-[:A]->()", 20)
+        .setRelationshipCardinality("(:B)-[]->(:B)", 20)
+        .setRelationshipCardinality("(:B)-[]->()", 20)
+        .setRelationshipCardinality("()-[]->(:B)", 20)
+        .addProperty("prop1")
+        .addProperty("prop2")
+        .enablePlanningDynamicLabelIndexUse()
+        .build()
+
+    for (dirStr <- Seq("", ">")) {
+      val query =
+        s"""
+           |UNWIND [1] AS one
+           |MATCH (n:B)-[r:$$($$labelArg)]-$dirStr(m:B) WHERE r.prop1 = 1
+           |CREATE ()-[s:A {prop2: 1}]->()
+           |""".stripMargin
+
+      val plan = planner.plan(query).stripProduceResults
+      plan should equal(
+        planner.subPlanBuilder()
+          .emptyResult()
+          .create(
+            createNodeFull("anon_0"),
+            createNodeFull("anon_1"),
+            createRelationship(
+              relationship = "s",
+              left = "anon_0",
+              typ = "A",
+              right = "anon_1",
+              direction = OUTGOING,
+              properties = Some("{prop2: 1}")
+            )
+          )
+          .filterExpression(andsReorderable("n:B", "m:B"))
+          .apply()
+          .|.dynamicRelationshipTypeLookup(
+            pattern = s"(n)-[]-$dirStr(m)",
+            relTypeExpr = "$all($labelArg)",
+            indexOrder = IndexOrderNone,
+            propertyPredicates = Map(("prop1", "1")),
+            argumentIds = Set("one")
+          )
+          .unwind("[1] AS one")
+          .argument()
+          .build()
+      )
+    }
+  }
 }

@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.R
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.ContainerIndex
+import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.GetDegree
@@ -331,6 +332,32 @@ object ReadFinder {
 
     def withReferencedRelationshipVariable(variable: LogicalVariable): PlanReads =
       copy(referencedRelationshipVariables = referencedRelationshipVariables + variable)
+
+    /**
+     * Adds node or relationship filters to these PlanReads.
+     * The filters are Equality expressions, constructed from the property predicates of a dynamic label/type lookup plan.
+     *
+     * @param propertyPredicates The property predicates from the dynamic label/type lookup plan
+     * @param variable The variable on which the dynamic lookup plan is performed
+     */
+    def withPropertyPredicatesInDynamicLabelOrTypeLookup(
+      propertyPredicates: Map[PropertyKeyToken, Expression],
+      variable: LogicalVariable,
+      semanticTable: SemanticTable
+    ): PlanReads =
+      propertyPredicates.foldLeft(this)((accInner, propPred) =>
+        processFilterExpression(
+          accInner,
+          Equals(
+            Property(
+              variable,
+              PropertyKeyName(propPred._1.name)(InputPosition.NONE)
+            )(InputPosition.NONE),
+            propPred._2
+          )(InputPosition.NONE),
+          semanticTable
+        )
+      )
   }
 
   /**
@@ -356,10 +383,11 @@ object ReadFinder {
           .withIntroducedNodeVariable(variable)
           .withAddedNodeFilterExpression(variable, hasLabels)
 
-      case DynamicLabelNodeLookup(variable, _, _, _) =>
+      case DynamicLabelNodeLookup(variable, _, _, propertyPredicates) =>
         PlanReads()
           .withIntroducedNodeVariable(variable)
           .withUnknownLabelsRead(Some(variable))
+          .withPropertyPredicatesInDynamicLabelOrTypeLookup(propertyPredicates, variable, semanticTable)
 
       case UnionNodeByLabelsScan(variable, labelNames, _, _) =>
         val predicates = labelNames.map { labelName =>
@@ -508,7 +536,7 @@ object ReadFinder {
       case DirectedRelationshipTypeScan(relationship, leftNode, relType, rightNode, _, _) =>
         processRelTypeRead(relationshipVariable(relationship), leftNode, relType, rightNode)
 
-      case DynamicDirectedRelationshipTypeLookup(relationship, startNode, relType, endNode, _, _, _) =>
+      case DynamicDirectedRelationshipTypeLookup(relationship, startNode, relType, endNode, _, _, propertyPredicates) =>
         val r = relationshipVariable(relationship)
         val predicate = relType match {
           case DynamicElement.Simple(expr, operator) => operator match {
@@ -521,8 +549,17 @@ object ReadFinder {
           .withIntroducedNodeVariable(endNode)
           .withIntroducedRelationshipVariable(relationship)
           .withAddedRelationshipFilterExpression(r, predicate)
+          .withPropertyPredicatesInDynamicLabelOrTypeLookup(propertyPredicates, r, semanticTable)
 
-      case DynamicUndirectedRelationshipTypeLookup(relationship, leftNode, relType, rightNode, _, _, _) =>
+      case DynamicUndirectedRelationshipTypeLookup(
+          relationship,
+          leftNode,
+          relType,
+          rightNode,
+          _,
+          _,
+          propertyPredicates
+        ) =>
         val r = relationshipVariable(relationship)
         val predicate = relType match {
           case DynamicElement.Simple(expr, operator) => operator match {
@@ -535,6 +572,7 @@ object ReadFinder {
           .withIntroducedNodeVariable(rightNode)
           .withIntroducedRelationshipVariable(relationship)
           .withAddedRelationshipFilterExpression(r, predicate)
+          .withPropertyPredicatesInDynamicLabelOrTypeLookup(propertyPredicates, r, semanticTable)
 
       case DirectedRelationshipIndexScan(
           relationship,
