@@ -307,6 +307,7 @@ class DbmsDiagnosticsManagerTest {
     void dumpNativeAccessProviderOnLinux() {
         diagnosticsManager.dumpAll();
         assertThat(logProvider).containsMessages("Linux native access is available.");
+        assertThat(logProvider).containsMessages("Native async IO provider: async IO provider is not available.");
     }
 
     @Test
@@ -314,6 +315,7 @@ class DbmsDiagnosticsManagerTest {
     void dumpNativeAccessProviderOnNonLinux() {
         diagnosticsManager.dumpAll();
         assertThat(logProvider).containsMessages("Native access is not available for current platform.");
+        assertThat(logProvider).containsMessages("Native async IO provider: async IO provider is not available.");
     }
 
     @Test

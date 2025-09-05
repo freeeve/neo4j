@@ -27,6 +27,8 @@ import org.neo4j.memory.MemoryTracker;
 @ServiceProvider
 public class AbsentAsyncIOProvider implements AsyncIOProvider {
 
+    private static final String ASYNC_IO_PROVIDER_DESCRIPTION = "async IO provider is not available.";
+
     @Override
     public AsyncBlockAccessor createAsyncBlockAccessor(
             int queueSize,
@@ -34,6 +36,11 @@ public class AbsentAsyncIOProvider implements AsyncIOProvider {
             AsyncFailureHandler failureHandler,
             MemoryTracker memoryTracker) {
         return EMPTY_ASYNC_BLOCK_ACCESSOR;
+    }
+
+    @Override
+    public String describe() {
+        return ASYNC_IO_PROVIDER_DESCRIPTION;
     }
 
     @Override

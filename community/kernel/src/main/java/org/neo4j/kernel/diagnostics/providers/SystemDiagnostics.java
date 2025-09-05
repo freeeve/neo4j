@@ -55,6 +55,7 @@ import org.neo4j.internal.diagnostics.DiagnosticsProvider;
 import org.neo4j.internal.nativeimpl.NativeAccess;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.async.AsyncIOProvider;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.os.OsBeanUtil;
 import org.neo4j.util.VisibleForTesting;
@@ -245,6 +246,8 @@ public enum SystemDiagnostics implements DiagnosticsProvider {
         public void dump(DiagnosticsLogger logger) {
             NativeAccess nativeAccess = NativeAccessProvider.getNativeAccess();
             logger.log("Native access details: " + nativeAccess.describe());
+            logger.log(
+                    "Native async IO provider: " + AsyncIOProvider.getInstance().describe());
         }
     };
 
