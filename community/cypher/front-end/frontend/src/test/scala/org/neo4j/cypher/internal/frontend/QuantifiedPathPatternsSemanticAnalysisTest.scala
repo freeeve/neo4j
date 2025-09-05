@@ -600,6 +600,18 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
     run().hasNoErrors
   }
 
+  test("MATCH (a) MATCH p = ( ()--() WHERE EXISTS { (a) } OR true AND false )+ RETURN 1") {
+    run().hasNoErrors
+  }
+
+  test("MATCH p = ( ()--() WHERE EXISTS { () } OR true AND false )+ RETURN 1") {
+    run().hasNoErrors
+  }
+
+  test("MATCH (n), p = ( ()--() WHERE EXISTS { (n) } OR true AND false )+ RETURN 1") {
+    run().hasNoErrors
+  }
+
   // accessing non-local variables outside of the quantification
   test("MATCH (x)-->(y)((a)-[e]->(b) WHERE a.h > x.h)* (s)-->(u) RETURN count(*)") {
     run().hasNoErrors

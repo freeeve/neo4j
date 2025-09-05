@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.DefaultTypeMismatchMessageGenerator
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
+import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -377,12 +378,27 @@ trait SemanticAnalysisTooling {
    * In [[SemanticPatternCheck.declareVariablesInSeparateScope]] we store the
    * newly created variables to access and escape them from the import here.
    */
+  def importValuesFromParentInExpressionWithScopeDependencies(expr: ExpressionWithComputedDependencies)
+    : SemanticCheck = {
+    (state: SemanticState) =>
+      val outerLoc = state.currentScope.parent.get
+      val outerParentScope = outerLoc.parent.fold(Scope.empty)(_.scope)
+      val escapedSymbols = state.recordedScopes.get(expr).fold(Set.empty[String])(_.scope.symbolNames)
+      val dependencies = if (expr.computedScopeDependencies.isDefined)
+        outerParentScope.symbolNames.diff(expr.dependencies.map(_.name))
+      else Set.empty
+      SemanticCheckResult.success(state
+        .importValuesFromScope(outerLoc.scope, escapedSymbols)
+        .importValuesFromScope(outerParentScope, escapedSymbols ++ dependencies))
+  }
+
   def importValuesFromParentInExpression(expr: Expression): SemanticCheck = {
     (state: SemanticState) =>
       val outerLoc = state.currentScope.parent.get
       val outerParentScope = outerLoc.parent.fold(Scope.empty)(_.scope)
       val escapedSymbols = state.recordedScopes.get(expr).fold(Set.empty[String])(_.scope.symbolNames)
-      SemanticCheckResult.success(state.importValuesFromScope(outerLoc.scope, escapedSymbols)
+      SemanticCheckResult.success(state
+        .importValuesFromScope(outerLoc.scope, escapedSymbols)
         .importValuesFromScope(outerParentScope, escapedSymbols ++ outerLoc.scope.symbolNames))
   }
 

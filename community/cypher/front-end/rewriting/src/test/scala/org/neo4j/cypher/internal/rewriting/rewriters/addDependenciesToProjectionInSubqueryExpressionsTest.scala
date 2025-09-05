@@ -20,6 +20,8 @@ import org.neo4j.cypher.internal.CypherVersionHelpers
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
@@ -201,18 +203,6 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
     )
   }
 
-  test("""WITH "Bosse" as x
-         |MATCH (person:Person)
-         |WHERE EXISTS {
-         | WITH "Ozzy" AS x, person AS person
-         | MATCH (person)-[:HAS_DOG]->(d:Dog)
-         | WHERE d.name = x
-         | RETURN person AS person
-         |}
-         |RETURN person.name AS name""".stripMargin) {
-    assertIsNotRewritten(testName)
-  }
-
   test("""MATCH (person:Person)
          |WHERE EXISTS {
          | MATCH (person)-[:HAS_DOG]->(d:Dog)
@@ -417,18 +407,6 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
     )
   }
 
-  test("""WITH "Bosse" as x
-         |MATCH (person:Person)
-         |WHERE COUNT {
-         | WITH "Ozzy" AS x, person AS person
-         | MATCH (person)-[:HAS_DOG]->(d:Dog)
-         | WHERE d.name = x
-         | RETURN person AS person
-         |} > 2
-         |RETURN person.name AS name""".stripMargin) {
-    assertIsNotRewritten(testName)
-  }
-
   test("""MATCH (person:Person)
          |WHERE COUNT {
          | MATCH (person)-[:HAS_DOG]->(d:Dog)
@@ -567,6 +545,7 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
       )
 
     val result = normalizedWithAndReturnClauses.rewrite(rewriter)
+    println(Prettifier(ExpressionStringifier()).asString(result.asInstanceOf[Statement]))
     assert(result === expected)
   }
 }

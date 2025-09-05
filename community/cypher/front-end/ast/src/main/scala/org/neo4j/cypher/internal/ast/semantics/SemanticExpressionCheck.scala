@@ -879,7 +879,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       // EXISTS
       case x: ExistsExpression =>
         withScopedState {
-          importValuesFromParentInExpression(x) chain
+          importValuesFromParentInExpressionWithScopeDependencies(x) chain
             fromState(state => x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = true, state)) chain
             when(x.query.containsUpdates) {
               SemanticError.anExpressionCannotContainUpdates("Exists", x.position)
@@ -899,7 +899,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       // COUNT
       case x: CountExpression =>
         withScopedState {
-          importValuesFromParentInExpression(x) chain
+          importValuesFromParentInExpressionWithScopeDependencies(x) chain
             fromState(state =>
               x.query.semanticCheckInSubqueryExpressionContext(
                 canOmitReturn =
@@ -925,7 +925,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       // COLLECT
       case x: CollectExpression =>
         withScopedState {
-          importValuesFromParentInExpression(x) chain
+          importValuesFromParentInExpressionWithScopeDependencies(x) chain
             fromState(state => x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = false, state)) chain
             when(x.query.containsUpdates) {
               SemanticError.aExpressionCannotContainUpdates("Collect", x.position)

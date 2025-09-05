@@ -434,7 +434,7 @@ object SemanticState {
       val allDefinitions = scope.children.flatMap(_.allSymbolDefinitions.values.flatten).toSet
       val parentDefinitions = parent.get.availableSymbolDefinitions
       val (dependencies, declarations) = allDefinitions.partition { definition =>
-        parentDefinitions.contains(definition)
+        parentDefinitions.map(_.name).contains(definition.name)
       }
       DeclarationsAndDependencies(declarations, dependencies)
     }
