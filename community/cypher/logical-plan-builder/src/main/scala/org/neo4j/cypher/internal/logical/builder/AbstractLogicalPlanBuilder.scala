@@ -2846,7 +2846,6 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         predicates = pushdownOperators.filter,
         distinctBy = pushdownOperators.distinct,
         limit = pushdownOperators.limit,
-        skip = pushdownOperators.skip,
         orderBy = pushdownOperators.orderBy,
         arguments = pushdownOperators.arguments,
         previouslyCachedProperties = pushdownOperators.previouslyCachedProperties
@@ -3921,7 +3920,6 @@ object AbstractLogicalPlanBuilder {
     filter: Seq[Expression] = Seq.empty,
     distinct: Option[Expression] = None,
     orderBy: Seq[Expression] = Seq.empty,
-    skip: Option[Expression] = None,
     limit: Option[Expression] = None,
     arguments: Set[LogicalVariable] = Set.empty,
     previouslyCachedProperties: Set[LogicalProperty] = Set.empty
@@ -3947,10 +3945,6 @@ object AbstractLogicalPlanBuilder {
 
     def limit(expr: String): PushdownOperators = {
       copy(limit = Some(Parser.Latest.parseExpression(expr)))
-    }
-
-    def skip(expr: String): PushdownOperators = {
-      copy(skip = Some(Parser.Latest.parseExpression(expr)))
     }
 
     def arguments(exprs: String*): PushdownOperators = {

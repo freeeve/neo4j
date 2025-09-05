@@ -332,7 +332,6 @@ object LogicalPlanToPlanBuilderString {
           _,
           _,
           _,
-          _,
           _
         ) =>
         "remoteBatchPropertiesWithPushdownOperatorsOnNode"
@@ -340,7 +339,6 @@ object LogicalPlanToPlanBuilderString {
           _,
           _,
           RELATIONSHIP_TYPE,
-          _,
           _,
           _,
           _,
@@ -1878,10 +1876,6 @@ object LogicalPlanToPlanBuilderString {
       conditional(remoteBatchPropertiesWithPushdownOperators.limit.nonEmpty)(call(
         "limit",
         spread(remoteBatchPropertiesWithPushdownOperators.limit.map(_.quoted))
-      )),
-      conditional(remoteBatchPropertiesWithPushdownOperators.skip.nonEmpty)(call(
-        "skip",
-        spread(remoteBatchPropertiesWithPushdownOperators.skip.map(_.quoted))
       )),
       conditional(remoteBatchPropertiesWithPushdownOperators.orderBy.nonEmpty)(call(
         "orderBy",

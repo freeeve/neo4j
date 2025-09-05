@@ -1273,7 +1273,6 @@ case class RemoteBatchPropertiesWithPushdownOperators(
   predicates: Seq[Expression] = Seq.empty,
   distinctBy: Option[Expression] = None,
   orderBy: Seq[Expression] = Seq.empty,
-  skip: Option[Expression] = None,
   limit: Option[Expression] = None,
   // the next two are variables and properties (from other variables) that are used in other expressions.
   arguments: Set[LogicalVariable] = Set.empty,

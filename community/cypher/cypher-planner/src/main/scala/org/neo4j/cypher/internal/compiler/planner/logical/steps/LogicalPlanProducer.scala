@@ -4185,7 +4185,6 @@ case class LogicalPlanProducer(
       orderBy = innerRemoteBatchPropertiesWithPushdown.orderBy ++ remoteBatchPropertiesWithPushdownOperators.orderBy,
       limit =
         remoteBatchPropertiesWithPushdownOperators.limit.orElse(innerRemoteBatchPropertiesWithPushdown.limit), // we give precedence to the latest limit operator. If the current limit is higher that's still fine since both the limits will still be evaluated on the graph shard.
-      skip = remoteBatchPropertiesWithPushdownOperators.skip.orElse(innerRemoteBatchPropertiesWithPushdown.limit),
       distinctBy = innerRemoteBatchPropertiesWithPushdown.distinctBy.orElse(
         remoteBatchPropertiesWithPushdownOperators.distinctBy
       ), // TODO: when implementing pushdown distinctness we will need to figure out how to combine the two.

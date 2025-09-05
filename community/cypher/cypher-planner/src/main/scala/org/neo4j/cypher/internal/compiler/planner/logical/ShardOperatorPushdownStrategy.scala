@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyA
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SelectionCandidate
+import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
@@ -275,16 +276,20 @@ object ShardOperatorPushdownStrategy {
     ): Option[RemoteBatchPropertiesWithPushdownOperators] = {
       if (queryProjection.queryPagination.nonEmpty) {
         previousPushdownOperator(inputPlan)
-          .filter(op => op.skip.isEmpty && op.limit.isEmpty)
+          .filter(op => op.limit.isEmpty)
           .map { op =>
+            val maybeLimit = (queryProjection.queryPagination.skip, queryProjection.queryPagination.limit) match {
+              case (Some(skipExpr), Some(limitExpr)) => Some(Add(limitExpr, skipExpr)(limitExpr.position))
+              case (_, limit)                        => limit
+            }
+
             RemoteBatchPropertiesWithPushdownOperators(
               source =
                 inputPlan, // if it is an empty apply we should still point to it. The logical plan producer will merge the two operators correctly.
               properties = op.properties,
               variable = op.variable,
               entityType = op.entityType,
-              skip = queryProjection.queryPagination.skip,
-              limit = queryProjection.queryPagination.limit
+              limit = maybeLimit
             )(
               context.staticComponents.idGen
             ) // if the previous pushdown operator has no skip and limit, we can use it as is.

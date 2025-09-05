@@ -1958,7 +1958,7 @@ class PushOperatorsToShardPlanningIntegrationTest
       .build()
   }
 
-  test("Should pushdown skip and limit along with predicates for a simple pushdown query") {
+  test("Should pushdown limit with adjusted count for SKIP+LIMIT along with predicates for a simple pushdown query") {
     val query =
       """
         |MATCH (n:Person)
@@ -1972,8 +1972,7 @@ class PushOperatorsToShardPlanningIntegrationTest
       .skip(10)
       .limit(add(literalInt(20), literalInt(10)))
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "n", properties = "id")(PushdownOperators()
-        .limit("20")
-        .skip("10")
+        .limit("20 + 10")
         .filter("n.name STARTS WITH 'A'"))
       .nodeByLabelScan("n", "Person", IndexOrderNone)
       .build()
