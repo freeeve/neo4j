@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.LongAdder;
@@ -101,7 +102,6 @@ public class IndexIdMapper implements IdMapper {
     private final ByteBufferFactory bufferFactory;
     private final StorageEngineIndexingBehaviour indexingBehaviour;
     private final MutableLongSet duplicateNodeIds = LongSets.mutable.empty();
-    private final LongAdder numAdded = new LongAdder();
 
     // key is groupName, and for some reason accessors doesn't expose which descriptor they're for, so pass that in too
     public IndexIdMapper(
@@ -145,7 +145,7 @@ public class IndexIdMapper implements IdMapper {
                     openOptions,
                     indexingBehaviour);
             populator.create();
-            populators.put(entry.getKey(), new Populator(populator, descriptor));
+            populators.put(entry.getKey(), new Populator(populator, descriptor, new LongAdder()));
         }
     }
 
@@ -157,7 +157,7 @@ public class IndexIdMapper implements IdMapper {
             try {
                 populator.populator.add(Collections.singleton(update), CursorContext.NULL_CONTEXT);
                 populator.populator.includeSample(update);
-                numAdded.increment();
+                populator.numAdded.increment();
             } catch (IndexEntryConflictException e) {
                 throw new RuntimeException(e);
             }
@@ -225,7 +225,7 @@ public class IndexIdMapper implements IdMapper {
     }
 
     /**
-     * Validates all added entries from {@link #put(Object, long, Group)} and collects duplicates into
+     * Validates all added entries from {@link Setter#put(Object, long, Group)} and collects duplicates into
      * the {@code collector}, also returning the IDs of violating nodes.
      * Must be run before {@link IdMapper#prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet)}.
      *
@@ -271,6 +271,8 @@ public class IndexIdMapper implements IdMapper {
             completeBuild(collector, scheduler);
         }
         validate(collector);
+        long totalAdded =
+                populators.values().stream().mapToLong(p -> p.numAdded().sum()).sum();
         for (var entry : populators.entrySet()) {
             try {
                 var descriptor = entry.getValue().descriptor;
@@ -282,7 +284,7 @@ public class IndexIdMapper implements IdMapper {
                                 ElementIdMapper.PLACEHOLDER,
                                 openOptions,
                                 indexingBehaviour);
-                        var progress = progressMonitorFactory.singlePart("Prepare ID mapper", numAdded.sum())) {
+                        var progress = progressMonitorFactory.singlePart("Prepare ID mapper", totalAdded)) {
                     var accessor = accessors.get(entry.getKey());
                     accessor.insertFrom(
                             newNodesIndex,
@@ -362,8 +364,55 @@ public class IndexIdMapper implements IdMapper {
     @Override
     public void acceptMemoryStatsVisitor(MemoryStatsVisitor visitor) {}
 
-    public Set<IndexDescriptor> indexDescriptors() {
-        return new HashSet<>(indexDescriptors.values());
+    /**
+     * @param includeUnchanged if {@code false} excludes any index (managed by this IdMapper) that hasn't gotten
+     * any updates made to it.
+     * @return all indexes (their {@link IndexDescriptor} managed by this IdMapper.
+     */
+    public Set<IndexDescriptor> indexDescriptors(boolean includeUnchanged) {
+        Set<IndexDescriptor> descriptors = new HashSet<>();
+        populators.forEach((group, populator) -> {
+            if (includeUnchanged || populator.numAdded.sum() > 0) {
+                descriptors.add(populator.descriptor);
+            }
+        });
+        return descriptors;
+    }
+
+    /**
+     *
+     * @param indexId ID of the index to get the {@link IndexAccessor} for.
+     * @return the (already open) {@link IndexAccessor} for the index with the given id. This method
+     * should be called after {@link #prepare(PropertyValueLookup, Collector, ProgressMonitorFactory, LongSet)}.
+     */
+    public Optional<IndexAccessor> indexAccessor(long indexId) {
+        boolean found = false;
+        String foundGroup = null;
+        for (var group : indexDescriptors.keySet()) {
+            if (indexDescriptors.get(group).getId() == indexId) {
+                found = true;
+                foundGroup = group;
+                break;
+            }
+        }
+        if (!found) {
+            return Optional.empty();
+        }
+        return Optional.of(accessors.get(foundGroup));
+    }
+
+    /**
+     * @param indexId ID of the index to get the group name for.
+     * @return the name of the {@link Group} that the index for the given id is associated with in this IdMapper.
+     */
+    public String groupName(long indexId) {
+        for (var groupName : indexDescriptors.keySet()) {
+            var indexDescriptor = indexDescriptors.get(groupName);
+            if (indexDescriptor.getId() == indexId) {
+                return groupName;
+            }
+        }
+        throw new IllegalStateException("Group name not found for index id " + indexId);
     }
 
     private record Index(ValueIndexReader reader, SchemaDescriptor schemaDescriptor) implements Closeable {
@@ -373,5 +422,5 @@ public class IndexIdMapper implements IdMapper {
         }
     }
 
-    private record Populator(IndexPopulator populator, IndexDescriptor descriptor) {}
+    private record Populator(IndexPopulator populator, IndexDescriptor descriptor, LongAdder numAdded) {}
 }
