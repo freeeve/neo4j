@@ -611,7 +611,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
   // Graph type commands
 
   test("Alter current graph type with empty graph type") {
-    Seq("SET", "ADD", "DROP").foreach(operation =>
+    Seq("SET", "ADD", "DROP", "ALTER").foreach(operation =>
       withClue(operation) {
         // WHEN
         val exception = the[CantCompileQueryException] thrownBy {
@@ -629,24 +629,6 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
         ))
       }
     )
-
-    // Move ALTER up to loop above when implemented
-    // WHEN
-    val exception = the[SyntaxException] thrownBy {
-      execute(s"CYPHER 25 ALTER CURRENT GRAPH TYPE ALTER {}")
-    }
-
-    // THEN
-    exception should be(gqlException(
-      s"51N31: ALTER is not supported in ALTER CURRENT GRAPH TYPE.",
-      gqlStatus(
-        GqlStatusInfoCodes.STATUS_51N31,
-        "error: system configuration or operation exception - not supported. " +
-          s"ALTER is not supported in ALTER CURRENT GRAPH TYPE."
-      ),
-      fuzzyMsg = true
-    ))
-
   }
 
   test("Create property uniqueness constraints through graph type") {

@@ -43,7 +43,6 @@ import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
-import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -813,20 +812,12 @@ case class AlterCurrentGraphType(
 )(val position: InputPosition) extends SchemaCommand {
   override val commandDescription: String = "ALTER CURRENT GRAPH TYPE " + operation.name
 
-  private def checkForAllowedAlterCommand: SemanticCheck = operation match {
-    case AlterCurrentGraphType.Alter =>
-      val gql =
-        GqlHelper.get51N31("ALTER", "ALTER CURRENT GRAPH TYPE", position.offset, position.line, position.column)
-      error(gql, GqlHelper.getCompleteMessage(gql), position)
-    case _ => SemanticCheck.success
-  }
-
   override def semanticCheck: SemanticCheck =
     requireFeatureSupport(
       "`ALTER CURRENT GRAPH TYPE`",
       SemanticFeature.GraphTypes,
       position
-    ) chain checkForAllowedAlterCommand chain SemanticCheck.fromState { (state: SemanticState) =>
+    ) chain SemanticCheck.fromState { (state: SemanticState) =>
       SemanticCheck.setState(state.copy(graphTypeMode = operation)) chain graphType.semanticCheck
     }
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
