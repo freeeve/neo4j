@@ -1296,13 +1296,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           .map(s =>
             if (options != NoOptions) {
               val action = "SET OPTION"
-              plans.AssertNotVirtualSpd(
-                plans.AssertNotGraphShard(
-                  plans.AssertNotPropertyShard(s, dbName, action, "alter"),
-                  dbName,
-                  action,
-                  "alter"
-                ),
+              plans.AssertNotGraphShard(
+                plans.AssertNotPropertyShard(s, dbName, action, "alter"),
                 dbName,
                 action,
                 "alter"
@@ -1312,13 +1307,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           .map(s =>
             if (optionsToRemove.nonEmpty) {
               val action = "REMOVE OPTION"
-              plans.AssertNotVirtualSpd(
-                plans.AssertNotGraphShard(
-                  plans.AssertNotPropertyShard(s, dbName, action, "alter"),
-                  dbName,
-                  action,
-                  "alter"
-                ),
+              plans.AssertNotGraphShard(
+                plans.AssertNotPropertyShard(s, dbName, action, "alter"),
                 dbName,
                 action,
                 "alter"
@@ -1349,7 +1339,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
                 action,
                 "alter"
               )
-              plans.AlterShardedDatabase(ps, dbName, access, cypherVersion, shardDefinition)
+              plans.AlterShardedDatabase(ps, dbName, access, options, cypherVersion, shardDefinition)
             } else if (replicas.nonEmpty) {
               // allowed on property shard
               val action = "SET TOPOLOGY ... REPLICAS"

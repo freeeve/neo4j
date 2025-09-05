@@ -573,6 +573,7 @@ case class AlterShardedDatabase(
   source: AdministrationCommandLogicalPlan,
   databaseName: DatabaseName,
   access: Option[Access],
+  options: Options,
   defaultLanguageVersion: Option[CypherVersion],
   shardDefinition: Option[ShardDefinition]
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))

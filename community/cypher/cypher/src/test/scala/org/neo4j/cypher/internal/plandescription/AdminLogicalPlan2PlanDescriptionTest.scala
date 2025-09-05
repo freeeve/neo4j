@@ -568,7 +568,7 @@ class AdminLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
     assertGood(
       attach(
-        AlterShardedDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadWriteAccess), None, None),
+        AlterShardedDatabase(privLhsLP, NamespacedName("db1")(pos), Some(ReadWriteAccess), NoOptions, None, None),
         1.0
       ),
       adminPlanDescription
