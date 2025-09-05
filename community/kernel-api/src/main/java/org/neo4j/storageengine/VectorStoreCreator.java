@@ -27,7 +27,9 @@ public interface VectorStoreCreator {
 
     void createVectorStore(Vector.CoordinateType coordinateType, int dimensions) throws KernelException;
 
-    class FailingVectorStoreCreator implements VectorStoreCreator {
+    final class FailingVectorStoreCreator implements VectorStoreCreator {
+        private FailingVectorStoreCreator() {}
+
         @Override
         public void createVectorStore(Vector.CoordinateType coordinateType, int dimensions) {
             throw new UnsupportedOperationException("Cannot create a vector store here");

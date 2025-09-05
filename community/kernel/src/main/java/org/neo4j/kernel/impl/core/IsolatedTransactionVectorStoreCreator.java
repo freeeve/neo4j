@@ -48,8 +48,8 @@ public final class IsolatedTransactionVectorStoreCreator implements VectorStoreC
     @Override
     public synchronized void createVectorStore(Vector.CoordinateType coordinateType, int dimensions)
             throws KernelException {
-        Kernel kernel = kernelSupplier.get();
-        try (KernelTransaction tx = kernel.beginTransaction(Type.IMPLICIT, AUTH_DISABLED)) {
+        final Kernel kernel = kernelSupplier.get();
+        try (final KernelTransaction tx = kernel.beginTransaction(Type.IMPLICIT, AUTH_DISABLED)) {
             tx.dataWrite().createVectorStore(coordinateType, dimensions);
             tx.commit();
         }

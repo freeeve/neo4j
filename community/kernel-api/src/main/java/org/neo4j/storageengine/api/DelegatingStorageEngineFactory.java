@@ -75,6 +75,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.OperationMode;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccessExtended;
@@ -174,6 +175,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             StoreIdGenerator storeIdGenerator,
             DependencyResolver databaseDependencies,
             ExceptionHandlerService exceptionHandlerService,
+            OperationMode mode,
             VectorStoreCreator vectorStoreCreator)
             throws IOException {
         return delegate.instantiate(
@@ -202,6 +204,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 storeIdGenerator,
                 databaseDependencies,
                 exceptionHandlerService,
+                mode,
                 vectorStoreCreator);
     }
 
@@ -356,8 +359,9 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             FileSystemAbstraction fs,
             DatabaseLayout databaseLayout,
             PageCache pageCache,
-            KernelVersionProvider kernelVersionProvider) {
-        return delegate.checkStoreFileState(fs, databaseLayout, pageCache, kernelVersionProvider);
+            KernelVersionProvider kernelVersionProvider,
+            boolean isDirty) {
+        return delegate.checkStoreFileState(fs, databaseLayout, pageCache, kernelVersionProvider, isDirty);
     }
 
     @Override

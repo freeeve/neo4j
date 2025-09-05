@@ -39,6 +39,8 @@ public interface RecoveryService {
     RecoveryApplier getRecoveryApplier(
             TransactionApplicationMode mode, CursorContextFactory contextFactory, String tracerTag) throws Exception;
 
+    void checkMissingStoreFiles();
+
     void missingLogs();
 
     void transactionsRecovered(

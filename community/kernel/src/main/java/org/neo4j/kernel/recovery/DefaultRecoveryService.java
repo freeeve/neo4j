@@ -37,6 +37,8 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
+import org.neo4j.kernel.recovery.Recovery.StoreFileChecker;
+import org.neo4j.kernel.recovery.RecoveryStartInformationProvider.Monitor;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
@@ -56,6 +58,7 @@ public class DefaultRecoveryService implements RecoveryService {
     private final InternalLog log;
     private final boolean doParallelRecovery;
     private final CursorContextFactory contextFactory;
+    private final StoreFileChecker storeFileChecker;
 
     DefaultRecoveryService(
             StorageEngine storageEngine,
@@ -65,10 +68,11 @@ public class DefaultRecoveryService implements RecoveryService {
             LogFiles logFiles,
             KernelVersionProvider versionProvider,
             LogFormatVersionProvider logFormatVersionProvider,
-            RecoveryStartInformationProvider.Monitor monitor,
+            Monitor monitor,
             InternalLog log,
             boolean doParallelRecovery,
-            CursorContextFactory contextFactory) {
+            CursorContextFactory contextFactory,
+            StoreFileChecker storeFileChecker) {
         this.storageEngine = storageEngine;
         this.transactionIdStore = transactionIdStore;
         this.logicalTransactionStore = logicalTransactionStore;
@@ -79,6 +83,7 @@ public class DefaultRecoveryService implements RecoveryService {
         this.log = log;
         this.doParallelRecovery = doParallelRecovery;
         this.contextFactory = contextFactory;
+        this.storeFileChecker = storeFileChecker;
         this.recoveryStartInformationProvider = new RecoveryStartInformationProvider(logFiles, monitor);
     }
 
@@ -94,6 +99,11 @@ public class DefaultRecoveryService implements RecoveryService {
             return new ParallelRecoveryVisitor(storageEngine, mode, contextFactory, tracerTag);
         }
         return new RecoveryVisitor(storageEngine, mode, contextFactory, tracerTag);
+    }
+
+    @Override
+    public void checkMissingStoreFiles() {
+        Recovery.checkIfUnrecoverable(storeFileChecker.check(false));
     }
 
     @Override

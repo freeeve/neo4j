@@ -184,6 +184,7 @@ import org.neo4j.memory.ScopedMemoryPool;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.OperationMode;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -445,8 +446,7 @@ public class Database extends AbstractDatabase {
                         otherDatabaseMemoryTracker,
                         ioController,
                         internalLogProvider,
-                        tailMetadata,
-                        vectorStoreCreator)
+                        tailMetadata)
                 .recoveryPredicate(RecoveryPredicate.ALL)
                 .monitors(databaseMonitors)
                 .extensionFactories(extensionFactories)
@@ -502,6 +502,7 @@ public class Database extends AbstractDatabase {
                 storeIdGenerator,
                 databaseDependencies,
                 exceptionHandlerService,
+                OperationMode.DEFAULT,
                 vectorStoreCreator);
 
         var metadataProvider = databaseDependencies.satisfyDependency(storageEngine.metadataProvider());

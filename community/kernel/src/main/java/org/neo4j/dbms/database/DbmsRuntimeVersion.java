@@ -162,6 +162,15 @@ public enum DbmsRuntimeVersion implements ComponentVersion, KernelVersionProvide
         throw new IllegalArgumentException("Unrecognised DBMS runtime version number: " + versionNumber);
     }
 
+    public static DbmsRuntimeVersion fromKernelVersion(KernelVersion kernelVersion) {
+        for (DbmsRuntimeVersion componentVersion : VERSIONS) {
+            if (componentVersion.kernelVersion == kernelVersion) {
+                return componentVersion;
+            }
+        }
+        throw new IllegalArgumentException("Unrecognised DBMS runtime version for: " + kernelVersion);
+    }
+
     @Override
     public boolean isGreaterThan(ComponentVersion other) {
         if (!(other instanceof DbmsRuntimeVersion)) {

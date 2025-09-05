@@ -72,7 +72,7 @@ public class RecoveryStartInformationProvider implements ThrowingSupplier<Recove
     private final LogFiles logFiles;
     private final Monitor monitor;
 
-    public RecoveryStartInformationProvider(LogFiles logFiles, Monitor monitor) {
+    RecoveryStartInformationProvider(LogFiles logFiles, Monitor monitor) {
         this.logFiles = logFiles;
         this.monitor = monitor;
     }

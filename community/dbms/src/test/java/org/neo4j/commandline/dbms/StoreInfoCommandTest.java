@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -407,7 +408,8 @@ class StoreInfoCommandTest {
                         any(),
                         argThat(dbLayout -> dbLayout.databaseDirectory().equals(databaseLayout.databaseDirectory())),
                         any(),
-                        any());
+                        any(),
+                        anyBoolean());
 
         StoreVersion storeVersion2 = null;
         if (successorStoreVersion != null) {

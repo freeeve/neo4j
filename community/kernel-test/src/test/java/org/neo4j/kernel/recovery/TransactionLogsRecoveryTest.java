@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -104,6 +105,7 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.StorageEngine;
+import org.neo4j.storageengine.api.StorageFilesState;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.TransactionId;
@@ -240,7 +242,8 @@ class TransactionLogsRecoveryTest {
                             NO_MONITOR,
                             mock(InternalLog.class),
                             false,
-                            contextFactory) {
+                            contextFactory,
+                            recovering -> StorageFilesState.recoveredState()) {
                         private int nr;
 
                         @Override
@@ -366,7 +369,8 @@ class TransactionLogsRecoveryTest {
                             NO_MONITOR,
                             mock(InternalLog.class),
                             false,
-                            contextFactory),
+                            contextFactory,
+                            recovering -> StorageFilesState.recoveredState()),
                     logPruner,
                     schemaLife,
                     monitor,
@@ -383,6 +387,203 @@ class TransactionLogsRecoveryTest {
             life.start();
 
             verifyNoInteractions(monitor);
+        } finally {
+            life.shutdown();
+        }
+    }
+
+    @Test
+    void shouldSeeThatMissingStoreFilesBeforeForwardRecoveryShouldBeUnrecoverable() throws Exception {
+        var contextFactory = new CursorContextFactory(NULL, EMPTY_CONTEXT_SUPPLIER);
+        LogFile logFile = logFiles.getLogFile();
+        Path file = logFile.getLogFileForVersion(logVersion);
+
+        writeSomeData(file, dataWriters -> {
+            LogEntryWriter<?> writer = dataWriters.writer();
+            LogPositionAwareChannel channel = dataWriters.channel();
+            LogPositionMarker marker = new LogPositionMarker();
+
+            // last committed tx
+            int previousChecksum = BASE_TX_CHECKSUM;
+            channel.getCurrentLogPosition(marker);
+            LogPosition lastCommittedTxPosition = marker.newPosition();
+            byte[] headerData = encodeLogIndex(1);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 2L, 3L, 4L, previousChecksum, headerData);
+            lastCommittedTxStartEntry = newStartEntry(LATEST_KERNEL_VERSION, 2L, 3L, 4L, previousChecksum, headerData);
+            previousChecksum = writer.writeCommitEntry(LATEST_KERNEL_VERSION, 4L, 5L);
+            lastCommittedTxCommitEntry = newCommitEntry(LATEST_KERNEL_VERSION, 4L, 5L, previousChecksum);
+
+            // checkpoint pointing to the previously committed transaction
+            var checkpointFile = logFiles.getCheckpointFile();
+            var checkpointAppender = checkpointFile.getCheckpointAppender();
+            checkpointAppender.checkPoint(
+                    LogCheckPointEvent.NULL,
+                    new TransactionId(4L, 7L, LATEST_KERNEL_VERSION, 2, 5L, 6L),
+                    5L,
+                    LATEST_KERNEL_VERSION,
+                    lastCommittedTxPosition,
+                    lastCommittedTxPosition,
+                    Instant.now(),
+                    "test");
+
+            // tx committed after checkpoint
+            channel.getCurrentLogPosition(marker);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 6L, 4L, 5L, previousChecksum, headerData);
+            expectedStartEntry = newStartEntry(LATEST_KERNEL_VERSION, 6L, 4L, 5L, previousChecksum, headerData);
+
+            previousChecksum = writer.writeCommitEntry(LATEST_KERNEL_VERSION, 5L, 7L);
+            expectedCommitEntry = newCommitEntry(LATEST_KERNEL_VERSION, 5L, 7L, previousChecksum);
+
+            return true;
+        });
+
+        LifeSupport life = new LifeSupport();
+        LogsRecoveryMonitor monitor = new LogsRecoveryMonitor();
+        try {
+            var recoveryLogFiles = buildLogFiles();
+            life.add(recoveryLogFiles);
+            StorageEngine storageEngine = mock(StorageEngine.class);
+            when(storageEngine.createStorageCursors(any())).thenReturn(mock(StoreCursors.class));
+            Config config = Config.defaults();
+
+            TransactionMetadataCache metadataCache = new TransactionMetadataCache();
+            LogicalTransactionStore txStore = new PhysicalLogicalTransactionStore(
+                    recoveryLogFiles,
+                    metadataCache,
+                    TestCommandReaderFactory.INSTANCE,
+                    monitors,
+                    false,
+                    config,
+                    INSTANCE);
+            CorruptedLogsTruncator logPruner =
+                    new CorruptedLogsTruncator(storeDir, recoveryLogFiles, fileSystem, INSTANCE);
+            monitors.addMonitorListener(monitor);
+            life.add(new TransactionLogsRecovery(
+                    logFiles,
+                    LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                    LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
+                    new DefaultRecoveryService(
+                            storageEngine,
+                            transactionIdStore,
+                            txStore,
+                            versionRepository,
+                            recoveryLogFiles,
+                            LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                            LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
+                            NO_MONITOR,
+                            mock(InternalLog.class),
+                            false,
+                            contextFactory,
+                            recovering -> StorageFilesState.unrecoverableState(
+                                    List.of(Path.of("store_file_should_be_here")))),
+                    logPruner,
+                    schemaLife,
+                    monitor,
+                    ProgressMonitorFactory.NONE,
+                    false,
+                    EMPTY_CHECKER,
+                    RecoveryPredicate.ALL,
+                    false,
+                    contextFactory,
+                    Clocks.systemClock(),
+                    LatestVersions.BINARY_VERSIONS,
+                    RecoveryMode.FULL));
+
+            life.start();
+
+            assertThat(monitor.isRecoveryRequired()).isTrue();
+            assertThat(monitor.throwable)
+                    .isNotNull()
+                    .hasMessageContainingAll(
+                            "Store file",
+                            "store_file_should_be_here",
+                            "missing and recovery is not possible",
+                            "Please restore from a consistent backup");
+        } finally {
+            life.shutdown();
+        }
+    }
+
+    @Test
+    void shouldSeeThatMissingStoreFilesShouldBeUnrecoverableWithNoLogChanges() throws Exception {
+        Path file = logFiles.getLogFile().getLogFileForVersion(logVersion);
+        var contextFactory = new CursorContextFactory(NULL, EMPTY_CONTEXT_SUPPLIER);
+
+        LogPositionMarker marker = new LogPositionMarker();
+        writeSomeData(file, dataWriters -> {
+            LogEntryWriter<?> writer = dataWriters.writer();
+            LogPositionAwareChannel channel = dataWriters.channel();
+            TransactionId transactionId = new TransactionId(4L, 7L, LATEST_KERNEL_VERSION, BASE_TX_CHECKSUM, 5L, 6L);
+
+            // last committed tx
+            channel.getCurrentLogPosition(marker);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 2L, 3L, 4L, BASE_TX_CHECKSUM, EMPTY_BYTE_ARRAY);
+            writer.writeCommitEntry(LATEST_KERNEL_VERSION, 4L, 5L);
+
+            // check point
+            channel.getCurrentLogPosition(marker);
+            var checkpointFile = logFiles.getCheckpointFile();
+            var checkpointAppender = checkpointFile.getCheckpointAppender();
+            checkpointAppender.checkPoint(
+                    LogCheckPointEvent.NULL,
+                    transactionId,
+                    transactionId.id() + 7,
+                    LATEST_KERNEL_VERSION,
+                    marker.newPosition(),
+                    marker.newPosition(),
+                    Instant.now(),
+                    "test");
+            return true;
+        });
+
+        LifeSupport life = new LifeSupport();
+        RecoveryMonitor monitor = mock(RecoveryMonitor.class);
+        try {
+            StorageEngine storageEngine = mock(StorageEngine.class);
+            Config config = Config.defaults();
+
+            TransactionMetadataCache metadataCache = new TransactionMetadataCache();
+            LogicalTransactionStore txStore = new PhysicalLogicalTransactionStore(
+                    logFiles, metadataCache, TestCommandReaderFactory.INSTANCE, monitors, false, config, INSTANCE);
+            CorruptedLogsTruncator logPruner = new CorruptedLogsTruncator(storeDir, logFiles, fileSystem, INSTANCE);
+            monitors.addMonitorListener(monitor);
+            life.add(new TransactionLogsRecovery(
+                    logFiles,
+                    LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                    LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
+                    new DefaultRecoveryService(
+                            storageEngine,
+                            transactionIdStore,
+                            txStore,
+                            versionRepository,
+                            logFiles,
+                            LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                            LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
+                            NO_MONITOR,
+                            mock(InternalLog.class),
+                            false,
+                            contextFactory,
+                            recovering -> StorageFilesState.unrecoverableState(
+                                    List.of(Path.of("store_file_should_be_here")))),
+                    logPruner,
+                    schemaLife,
+                    monitor,
+                    ProgressMonitorFactory.NONE,
+                    false,
+                    EMPTY_CHECKER,
+                    RecoveryPredicate.ALL,
+                    false,
+                    contextFactory,
+                    Clocks.systemClock(),
+                    LatestVersions.BINARY_VERSIONS,
+                    RecoveryMode.FULL));
+
+            assertThatThrownBy(life::start)
+                    .hasMessageContainingAll(
+                            "Store file",
+                            "store_file_should_be_here",
+                            "missing and recovery is not possible",
+                            "Please restore from a consistent backup");
         } finally {
             life.shutdown();
         }
@@ -686,7 +887,8 @@ class TransactionLogsRecoveryTest {
                             NO_MONITOR,
                             mock(InternalLog.class),
                             false,
-                            contextFactory),
+                            contextFactory,
+                            recovering -> StorageFilesState.recoveredState()),
                     logPruner,
                     schemaLife,
                     monitor,
@@ -749,6 +951,7 @@ class TransactionLogsRecoveryTest {
     private static final class LogsRecoveryMonitor implements RecoveryMonitor {
         private int batchCounter;
         private boolean recoveryRequired;
+        private Throwable throwable;
 
         @Override
         public void batchRecovered(CommittedCommandBatchRepresentation committedBatch) {
@@ -766,6 +969,11 @@ class TransactionLogsRecoveryTest {
 
         public int recoveredBatches() {
             return batchCounter;
+        }
+
+        @Override
+        public void failToRecoverTransactionsAfterPosition(Throwable t, LogPosition recoveryFromPosition) {
+            throwable = t;
         }
     }
 }

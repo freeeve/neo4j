@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.recovery;
 
-import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
@@ -44,6 +43,7 @@ import static org.neo4j.token.api.TokenHolder.TYPE_RELATIONSHIP_TYPE;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
@@ -139,11 +139,11 @@ import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
+import org.neo4j.storageengine.OperationMode;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.MetadataProvider;
-import org.neo4j.storageengine.api.RecoveryState;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StorageFilesState;
@@ -154,6 +154,7 @@ import org.neo4j.time.Stopwatch;
 import org.neo4j.token.CreatingTokenHolder;
 import org.neo4j.token.ReadOnlyTokenCreator;
 import org.neo4j.token.TokenHolders;
+import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.DefaultElementIdMapperV1;
 
 /**
@@ -270,16 +271,8 @@ public final class Recovery {
             IOController ioController,
             InternalLogProvider logProvider,
             KernelVersionProvider emptyLogsFallbackKernelVersion) {
-        Context context = new Context(
-                fs,
-                pageCache,
-                databaseLayout,
-                config,
-                memoryTracker,
-                tracers,
-                ioController,
-                logProvider,
-                VectorStoreCreator.FAILING);
+        Context context =
+                new Context(fs, pageCache, databaseLayout, config, memoryTracker, tracers, ioController, logProvider);
         return context.kernelVersionProvider(emptyLogsFallbackKernelVersion);
     }
 
@@ -293,40 +286,8 @@ public final class Recovery {
             IOController ioController,
             InternalLogProvider logProvider,
             LogTailMetadata logTail) {
-        return context(
-                fs,
-                pageCache,
-                tracers,
-                config,
-                databaseLayout,
-                memoryTracker,
-                ioController,
-                logProvider,
-                logTail,
-                VectorStoreCreator.FAILING);
-    }
-
-    public static Context context(
-            FileSystemAbstraction fs,
-            PageCache pageCache,
-            DatabaseTracers tracers,
-            Config config,
-            DatabaseLayout databaseLayout,
-            MemoryTracker memoryTracker,
-            IOController ioController,
-            InternalLogProvider logProvider,
-            LogTailMetadata logTail,
-            VectorStoreCreator vectorStoreCreator) {
-        Context context = new Context(
-                fs,
-                pageCache,
-                databaseLayout,
-                config,
-                memoryTracker,
-                tracers,
-                ioController,
-                logProvider,
-                vectorStoreCreator);
+        Context context =
+                new Context(fs, pageCache, databaseLayout, config, memoryTracker, tracers, ioController, logProvider);
         return context.withLogTailInfo(logTail);
     }
 
@@ -354,7 +315,6 @@ public final class Recovery {
         private RecoveryMode mode = RecoveryMode.FULL;
         private long awaitIndexesOnlineMillis;
         private KernelVersionProvider emptyLogsFallbackKernelVersion;
-        private final VectorStoreCreator vectorStoreCreator;
 
         private Context(
                 FileSystemAbstraction fileSystemAbstraction,
@@ -364,8 +324,7 @@ public final class Recovery {
                 MemoryTracker memoryTracker,
                 DatabaseTracers tracers,
                 IOController ioController,
-                InternalLogProvider logProvider,
-                VectorStoreCreator vectorStoreCreator) {
+                InternalLogProvider logProvider) {
             requireNonNull(pageCache);
             requireNonNull(fileSystemAbstraction);
             requireNonNull(databaseLayout);
@@ -378,7 +337,6 @@ public final class Recovery {
             this.tracers = tracers;
             this.ioController = ioController;
             this.logProvider = requireNonNull(logProvider);
-            this.vectorStoreCreator = vectorStoreCreator;
         }
 
         public Context withLogTailInfo(LogTailMetadata logTail) {
@@ -496,8 +454,7 @@ public final class Recovery {
                     context.rollbackIncompleteTransactions,
                     context.awaitIndexesOnlineMillis,
                     context.emptyLogsFallbackKernelVersion,
-                    context.mode,
-                    context.vectorStoreCreator);
+                    context.mode);
         } finally {
             config.removeAllLocalListeners();
         }
@@ -533,8 +490,7 @@ public final class Recovery {
             boolean rollbackIncompleteTransactions,
             long awaitIndexesOnlineMillis,
             KernelVersionProvider emptyLogsFallbackKernelVersion,
-            RecoveryMode mode,
-            VectorStoreCreator vectorStoreCreator)
+            RecoveryMode mode)
             throws IOException {
         InternalLog recoveryLog = logProvider.getLog(Recovery.class);
 
@@ -560,7 +516,9 @@ public final class Recovery {
             return false;
         }
         var recoveryStartTime = Stopwatch.start();
-        checkAllFilesPresence(databaseLayout, fs, pageCache, storageEngineFactory, logTailMetadata);
+        StoreFileChecker storageFilesState = isDirty ->
+                storageEngineFactory.checkStoreFileState(fs, databaseLayout, pageCache, logTailMetadata, isDirty);
+        checkIfUnrecoverable(storageFilesState.check(true));
         LifeSupport recoveryLife = new LifeSupport();
         var namedDatabaseId = createRecoveryDatabaseId(fs, pageCache, databaseLayout, storageEngineFactory);
         Monitors monitors = new Monitors(globalMonitors, logProvider);
@@ -660,7 +618,8 @@ public final class Recovery {
                 StoreIdGenerator.UNIQUE_ID,
                 dependenciesOf(recoveryVersionStorage),
                 new ExceptionHandlerService(logService.getInternalLogProvider()),
-                vectorStoreCreator);
+                OperationMode.RECOVERY,
+                VectorStoreCreator.FAILING);
 
         // multi versioned stores recovery does not support format mode atm
         if (multiversion) {
@@ -778,7 +737,8 @@ public final class Recovery {
                 rollbackIncompleteTransactions,
                 cursorContextFactory,
                 mode,
-                new BinarySupportedKernelVersions(config));
+                new BinarySupportedKernelVersions(config),
+                storageFilesState);
 
         CheckPointerImpl.ForceOperation forceOperation =
                 new DefaultForceOperation(indexingService, storageEngine, databasePageCache);
@@ -902,18 +862,26 @@ public final class Recovery {
         }
     }
 
-    private static void checkAllFilesPresence(
-            DatabaseLayout databaseLayout,
-            FileSystemAbstraction fs,
-            PageCache pageCache,
-            StorageEngineFactory storageEngineFactory,
-            KernelVersionProvider kernelVersionProvider) {
-        StorageFilesState state =
-                storageEngineFactory.checkStoreFileState(fs, databaseLayout, pageCache, kernelVersionProvider);
-        if (state.recoveryState() == RecoveryState.UNRECOVERABLE) {
-            throw new RuntimeException(format(
-                    "Store files %s is(are) missing and recovery is not possible. Please restore from a consistent backup.",
-                    state.missingFiles()));
+    @VisibleForTesting
+    @FunctionalInterface
+    public interface StoreFileChecker {
+        /**
+         * Check if all required files are present.
+         *
+         * @param isDirty if {@code true} the store has not properly been shutdown, and we can't trust
+         *                the content of the files.
+         * @return a {@link StorageFilesState} indicating the recovered/recoverable state of the store.
+         */
+        StorageFilesState check(boolean isDirty);
+    }
+
+    static void checkIfUnrecoverable(StorageFilesState state) {
+        final List<Path> missingFiles = state.missingFiles();
+        if (missingFiles != null && !missingFiles.isEmpty()) {
+            final boolean plural = missingFiles.size() > 1;
+            throw new RuntimeException(
+                    "Store file%s %s %s missing and recovery is not possible. Please restore from a consistent backup."
+                            .formatted(plural ? "s" : "", missingFiles, plural ? "are" : "is"));
         }
     }
 
@@ -940,7 +908,8 @@ public final class Recovery {
             boolean rollbackIncompleteTransactions,
             CursorContextFactory contextFactory,
             RecoveryMode mode,
-            BinarySupportedKernelVersions binarySupportedKernelVersions) {
+            BinarySupportedKernelVersions binarySupportedKernelVersions,
+            StoreFileChecker storageFilesState) {
         RecoveryService recoveryService = new DefaultRecoveryService(
                 storageEngine,
                 transactionIdStore,
@@ -952,7 +921,8 @@ public final class Recovery {
                 positionMonitor,
                 log,
                 doParallelRecovery,
-                contextFactory);
+                contextFactory,
+                storageFilesState);
         CorruptedLogsTruncator logsTruncator = new CorruptedLogsTruncator(
                 databaseLayout.databaseDirectory(), logFiles, fileSystemAbstraction, memoryTracker);
         var loggerPrintWriterAdaptor = new LoggerPrintWriterAdaptor(log, Level.INFO);

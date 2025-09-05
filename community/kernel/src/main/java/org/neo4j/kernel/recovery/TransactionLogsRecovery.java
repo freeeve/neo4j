@@ -125,12 +125,14 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
     public void init() throws Exception {
         RecoveryStartInformation recoveryStartInformation = recoveryService.getRecoveryStartInformation();
         if (!recoveryStartInformation.isRecoveryRequired()) {
+            recoveryService.checkMissingStoreFiles();
             schemaLife.init();
             return;
         }
 
         monitor.recoveryRequired(recoveryStartInformation);
         if (recoveryStartInformation.missingLogs()) {
+            recoveryService.checkMissingStoreFiles();
             recoveryService.missingLogs();
             logFiles.getLogFile().initializeMissingLogFile();
         } else {
@@ -186,6 +188,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
                 skipReverseRecovery(recoveryStartInformation);
             }
 
+            recoveryService.checkMissingStoreFiles();
             forwardRecovery(
                     recoveryStartInformation, transactionIdTracker, recoveryStartPosition, recoveryContextTracker);
         } catch (Error | ClosedByInterruptException | DatabaseStartAbortedException | RecoveryPredicateException e) {

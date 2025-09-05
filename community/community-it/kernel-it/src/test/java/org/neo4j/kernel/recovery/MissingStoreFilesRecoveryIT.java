@@ -110,7 +110,7 @@ class MissingStoreFilesRecoveryIT {
         assertThat(dbStateService.causeOfFailure(defaultNamedDatabaseId).orElseThrow())
                 .rootCause()
                 .hasMessageContaining(
-                        "is(are) missing and recovery is not possible. Please restore from a consistent backup.");
+                        "are missing and recovery is not possible. Please restore from a consistent backup.");
     }
 
     @Test

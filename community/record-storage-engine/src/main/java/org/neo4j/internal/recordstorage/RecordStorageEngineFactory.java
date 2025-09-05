@@ -140,6 +140,7 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.OperationMode;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -274,6 +275,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             StoreIdGenerator storeIdGenerator,
             DependencyResolver databaseDependencies,
             ExceptionHandlerService exceptionHandlerService,
+            OperationMode mode,
             VectorStoreCreator vectorStoreCreator) {
         return new RecordStorageEngine(
                 formatSpecificDatabaseLayout(databaseLayout),
@@ -699,7 +701,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             FileSystemAbstraction fs,
             DatabaseLayout databaseLayout,
             PageCache pageCache,
-            KernelVersionProvider kernelVersionProvider) {
+            KernelVersionProvider kernelVersionProvider,
+            boolean isDirty) {
         RecordDatabaseLayout recordLayout = formatSpecificDatabaseLayout(databaseLayout);
 
         Set<Path> storeFiles = Arrays.stream(RecordDatabaseFile.values())

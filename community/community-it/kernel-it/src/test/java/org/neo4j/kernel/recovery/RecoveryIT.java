@@ -1799,7 +1799,7 @@ class RecoveryIT {
             assertTrue(failure.isPresent());
             assertThat(failure.get().getCause())
                     .hasMessageContainingAll(
-                            storeFile.getFileName().toString(), "is(are) missing and recovery is not possible");
+                            storeFile.getFileName().toString(), "is missing and recovery is not possible");
         } finally {
             managementService.shutdown();
         }
@@ -1828,7 +1828,7 @@ class RecoveryIT {
             assertTrue(failure.isPresent());
             assertThat(failure.get().getCause())
                     .hasMessageContainingAll(
-                            storeFile.getFileName().toString(), "is(are) missing and recovery is not possible");
+                            storeFile.getFileName().toString(), "is missing and recovery is not possible");
         } finally {
             managementService.shutdown();
         }

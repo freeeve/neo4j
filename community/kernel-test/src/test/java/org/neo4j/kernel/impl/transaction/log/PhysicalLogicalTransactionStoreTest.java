@@ -530,6 +530,9 @@ class PhysicalLogicalTransactionStoreTest {
         }
 
         @Override
+        public void checkMissingStoreFiles() {}
+
+        @Override
         public void missingLogs() {
             recoveryPerformed.set(true);
         }

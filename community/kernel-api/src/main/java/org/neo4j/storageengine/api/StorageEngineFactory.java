@@ -82,6 +82,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.Services;
+import org.neo4j.storageengine.OperationMode;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.migration.SchemaRuleMigrationAccessExtended;
@@ -184,11 +185,13 @@ public interface StorageEngineFactory {
             StoreIdGenerator storeIdGenerator,
             DependencyResolver databaseDependencies,
             ExceptionHandlerService exceptionHandlerService,
+            OperationMode mode,
             VectorStoreCreator vectorStoreCreator)
             throws IOException;
 
     /**
-     * Lists files of a specific storage location. This is a lenient version of {@link #checkStoreFileState(FileSystemAbstraction, DatabaseLayout, PageCache, KernelVersionProvider)}
+     * Lists files of a specific storage location. This is a lenient version of
+     * {@link #checkStoreFileState(FileSystemAbstraction, DatabaseLayout, PageCache, KernelVersionProvider, boolean)}
      * which doesn't take into account which files are expected to be there.
      *
      * @param fileSystem {@link FileSystemAbstraction} this storage is on.
@@ -341,17 +344,19 @@ public interface StorageEngineFactory {
      * Asks this storage engine about the state of a specific store before opening it. If this specific store is missing optional or
      * even perhaps mandatory files in order to properly open it, this is the place to report that.
      *
-     * @param fs                    {@link FileSystemAbstraction} to use for file operations.
-     * @param databaseLayout        {@link DatabaseLayout} for the location of the database in the file system.
-     * @param pageCache             {@link PageCache} for any data reading needs.
+     * @param fs {@link FileSystemAbstraction} to use for file operations.
+     * @param databaseLayout {@link DatabaseLayout} for the location of the database in the file system.
+     * @param pageCache {@link PageCache} for any data reading needs.
      * @param kernelVersionProvider Provides the kernel version of the store to check.
+     * @param isDirty if the database is not cleanly shutdown.
      * @return the state of the storage files.
      */
     StorageFilesState checkStoreFileState(
             FileSystemAbstraction fs,
             DatabaseLayout databaseLayout,
             PageCache pageCache,
-            KernelVersionProvider kernelVersionProvider);
+            KernelVersionProvider kernelVersionProvider,
+            boolean isDirty);
 
     /**
      * @return a {@link CommandReaderFactory} capable of handing out {@link CommandReader} for specific versions. Generally kernel will take care

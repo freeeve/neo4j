@@ -17,19 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.storageengine.api;
+package org.neo4j.storageengine;
 
-public enum RecoveryState {
-    /**
-     * Storage files are all there and looks OK.
-     */
-    RECOVERED,
-    /**
-     * Storage files are not in a fully recovered state, but is recoverable.
-     */
-    RECOVERABLE,
-    /**
-     * Storage files are not in a recoverable state.
-     */
-    UNRECOVERABLE
+public enum OperationMode {
+    DEFAULT,
+    RECOVERY
 }
