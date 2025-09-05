@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.util.UpperBound
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.graphdb.Label
 import org.neo4j.graphdb.Label.label
+import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.RelationshipType.withName
 
 import java.util.Collections.emptyList
@@ -962,6 +963,59 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
         )
       )
     )
+  }
+
+  test("should work with optional on rhs") {
+    // given
+    val nodes = givenGraph {
+      val startNodes = nodePropertyGraph(
+        100,
+        {
+          case i => Map("p" -> i)
+        },
+        "START"
+      )
+
+      startNodes.foreach(start => {
+        val c = tx.createNode(Label.label("C"))
+        c.createRelationshipTo(start, RelationshipType.withName("R"))
+
+        val d = tx.createNode(Label.label("D"))
+        d.createRelationshipTo(start, RelationshipType.withName("R"))
+      })
+
+      nodePropertyGraph(
+        1,
+        {
+          case i => Map("p" -> i)
+        },
+        "NOT_CONNECTED"
+      )
+
+      startNodes
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("s", "p")
+      .projection("start as s", "cache[nc.p] as p")
+      .remoteBatchProperties("cache[nc.p]")
+      .apply()
+      .|.apply()
+      .|.|.optional("start", "c")
+      .|.|.filter("nc:NOT_CONNECTED")
+      .|.|.expandAll("(start)<-[:NOT]-(nc)")
+      .|.|.argument("start", "c")
+      .|.filter("d:D")
+      .|.expandAll("(start)<-[:R]-(d)")
+      .|.argument("start", "c")
+      .optionalExpandAll("(start)<-[:R]-(c)", Some("c:C"))
+      .nodeByLabelScan("start", "START")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    val expected = nodes.map(n => Array(n, null))
+    runtimeResult should beColumns("s", "p").withRows(expected)
   }
 }
 
