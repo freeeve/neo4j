@@ -32,12 +32,11 @@ import scala.language.implicitConversions
 This coordinates PlannerQuery planning and delegates work to the classes that do the actual planning of
 QueryGraphs and EventHorizons
  */
-case class PlanSingleQuery(headPlanner: HeadPlanner = PlanHead(), tailPlanner: TailPlanner = PlanWithTail())
-    extends SingleQueryPlanner {
+case class PlanSingleQuery(headPlanner: HeadPlanner = PlanHead(), tailPlanner: TailPlanner = PlanWithTail()) {
 
   private type StepResult = (BestPlans, LogicalPlanningContext)
 
-  override def plan(query: SinglePlannerQuery, context: LogicalPlanningContext): LogicalPlan = {
+  def plan(query: SinglePlannerQuery, context: LogicalPlanningContext): LogicalPlan = {
     // to enable for-comprehension syntax
     implicit def stepResult2Some(t: StepResult): Some[StepResult] = Some(t)
 

@@ -312,7 +312,3 @@ case object plannerQueryPlanner {
     }
   }
 }
-
-trait SingleQueryPlanner {
-  def plan(in: SinglePlannerQuery, context: LogicalPlanningContext): LogicalPlan
-}
