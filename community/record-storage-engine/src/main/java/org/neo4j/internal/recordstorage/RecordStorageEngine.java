@@ -286,7 +286,8 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
             consistencyCheckApply = config.get(GraphDatabaseInternalSettings.consistency_check_on_apply);
             storeEntityCounters = new RecordDatabaseEntityCounters(idGeneratorFactory, countsStore);
-            parallelIndexUpdatesApply = config.get(GraphDatabaseInternalSettings.parallel_index_updates_apply);
+            parallelIndexUpdatesApply =
+                    multiVersion || config.get(GraphDatabaseInternalSettings.parallel_index_updates_apply);
         } catch (Throwable failure) {
             neoStores.close();
             throw failure;
