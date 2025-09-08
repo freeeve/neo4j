@@ -23,11 +23,12 @@ import org.neo4j.codegen.api.CodeGeneration.GENERATED_SOURCE_LOCATION_PROPERTY
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Suite
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.attribute.BasicFileAttributes
 
@@ -38,17 +39,15 @@ import java.nio.file.attribute.BasicFileAttributes
  * How to use:
  * 1. Add this trait to the test class containing your test.
  * 2. Prefix your query with `CYPHER debug=generate_java_source`
- * 3. When running the test make sure that the Working Directory is set to
- *    the directory of the maven module containing your test.
- * 4. Mark `[your-maven-module]/target/generated-test-sources/cypher` as "Generated Sources Root".
- * 5. Make sure you have a breakpoint set to somewhere before execution enters the generated code,
+ * 3. Mark `[your-maven-module]/target/generated-test-sources/cypher` as "Generated Sources Root".
+ * 4. Make sure you have a breakpoint set to somewhere before execution enters the generated code,
  *    but after the code has been generated.
- * 6. When you run you test, as the first breakpoint triggers, find the directory
+ * 5. When you run you test, as the first breakpoint triggers, find the directory
  *    `[your-maven-module]/target/generated-test-sources/cypher`, right click and select "Synchronize 'cypher'"
  *    If you have not done so before, this is a good time to "Mark Directory as" "Generated Sources Root".
- * 7. Now you should see the source file for the generated query, and be able to set breakpoints in that code,
+ * 6. Now you should see the source file for the generated query, and be able to set breakpoints in that code,
  *    as well as stepping through it.
- * 8. Note that every time you re-run your test, you will have to repeat steps 5 to 7, since new code will be
+ * 7. Note that every time you re-run your test, you will have to repeat steps 4 to 6, since new code will be
  *    generated each time.
  */
 trait SaveGeneratedSource extends BeforeAndAfterEach {
@@ -62,17 +61,19 @@ trait SaveGeneratedSource extends BeforeAndAfterEach {
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     if (saveGeneratedSourceEnabled) {
-      val cwd = Paths.get(".").normalize.toRealPath()
-      // If CWD is set up correctly, we assign the generated source location
+      // Resolve the generated source location relative to classpath of the test class that mixes in this trait.
+      val classPathUrl = getClass.getProtectionDomain.getCodeSource.getLocation
+      val classPathString = URLDecoder.decode(classPathUrl.getPath, StandardCharsets.UTF_8)
+      val modulePath = Path.of(classPathString).resolve("../../").normalize()
+      // If the module directory is resolved correctly, we assign the generated source location
       if (
-        Files.isDirectory(cwd.resolve("src/test/scala").resolve(getClass.getName.replace('.', '/')).getParent)
-        && Files.isDirectory(cwd.resolve("target"))
+        Files.isDirectory(modulePath.resolve("src/test/scala").resolve(getClass.getName.replace('.', '/')).getParent)
+        && Files.isDirectory(modulePath.resolve("target"))
       ) {
-        setLocation(cwd.resolve("target").resolve("generated-test-sources").resolve("cypher"))
+        setLocation(modulePath.resolve("target").resolve("generated-test-sources").resolve("cypher"))
       } else {
         throw new IllegalArgumentException(
-          s"""Could not resolve directory for saving generated source code relative to current working directory '$cwd'.
-             |Make sure the working directory in your debug configuration is set to the directory of the Maven module containing the test.""".stripMargin
+          s"Could not resolve directory for saving generated source code relative to the module directory '$modulePath'."
         )
       }
     }
