@@ -207,6 +207,7 @@ public interface TopologyGraphDbmsModel {
     String DATABASE_BOOTSTRAP_KERNEL_VERSION_PROPERTY = "bootstrapKernelVersion";
     String DATABASE_DEFAULT_LANGUAGE_PROPERTY = "defaultLanguage";
     String DATABASE_BACKPRESSURE_ENABLED_PROPERTY = "backpressureEnabled";
+    String DATABASE_MIRROR_URI_PROPERTY = "mirrorURI";
 
     Label DATABASE_NAME_LABEL = Label.label("DatabaseName");
     String DATABASE_NAME = DATABASE_NAME_LABEL.name();
