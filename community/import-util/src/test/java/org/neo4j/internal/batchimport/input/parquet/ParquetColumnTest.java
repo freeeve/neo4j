@@ -22,6 +22,8 @@ package org.neo4j.internal.batchimport.input.parquet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.stream.Stream;
+import org.apache.parquet.schema.PrimitiveType;
+import org.apache.parquet.schema.Type;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -62,7 +64,10 @@ class ParquetColumnTest {
                 "id:ID    (    id-space   )    {   this_is: 'a weird {name}' }  ,{this_is: 'a weird {name}'}",
             })
     void parsesColumnConfiguration(String input, String expected) {
-        var column = ParquetColumn.from(ParquetColumn.HeaderDefinition.from(input), EntityType.NODE);
+        var column = ParquetColumn.from(
+                ParquetColumn.HeaderDefinition.from(input),
+                EntityType.NODE,
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
 
         assertThat(column.rawConfiguration()).isEqualTo(expected);
     }
@@ -72,7 +77,10 @@ class ParquetColumnTest {
     void supportsAllNeo4jTypes(String rawType, ParquetColumnType expectedType) {
         var header = "prop%s".formatted(rawType == null ? "" : ":" + rawType);
 
-        var column = ParquetColumn.from(ParquetColumn.HeaderDefinition.from(header), EntityType.RELATIONSHIP);
+        var column = ParquetColumn.from(
+                ParquetColumn.HeaderDefinition.from(header),
+                EntityType.RELATIONSHIP,
+                new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.INT32, "name"));
 
         assertThat(column.columnType()).isEqualTo(expectedType);
     }

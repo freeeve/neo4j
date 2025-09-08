@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Supplier;
+import org.apache.parquet.schema.PrimitiveType;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.values.storable.Value;
@@ -38,6 +39,7 @@ record ParquetColumn(
         HeaderDefinition headerDefinition,
         String propertyName,
         String groupName,
+        PrimitiveType primitiveType,
         ParquetLogicalColumnType logicalColumnType,
         ParquetColumnType columnType,
         boolean isArray,
@@ -78,7 +80,8 @@ record ParquetColumn(
         }
     }
 
-    static ParquetColumn from(HeaderDefinition headerDefinition, EntityType knownEntityType) {
+    static ParquetColumn from(
+            HeaderDefinition headerDefinition, EntityType knownEntityType, PrimitiveType primitiveType) {
         String targetColumnName = headerDefinition.targetColumnName();
         boolean isArray = hasArrayDefinition(targetColumnName);
         // get rid of the array definition after we looked for its presence
@@ -101,6 +104,7 @@ record ParquetColumn(
                 headerDefinition,
                 propertyName,
                 groupNameMatch.getMatch(),
+                primitiveType,
                 logicalColumnType,
                 columnType,
                 isArray,
@@ -187,6 +191,7 @@ record ParquetColumn(
                 headerDefinition(),
                 propertyName(),
                 groupName(),
+                primitiveType(),
                 logicalColumnType(),
                 columnType(),
                 false,
@@ -200,6 +205,7 @@ record ParquetColumn(
                 headerDefinition(),
                 propertyName(),
                 groupName(),
+                primitiveType(),
                 logicalColumnType(),
                 columnType,
                 isArray(),

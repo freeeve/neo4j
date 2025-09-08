@@ -21,6 +21,7 @@ package org.neo4j.internal.batchimport.input.parquet;
 
 import java.io.IOException;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,6 +35,7 @@ import java.util.stream.Collectors;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.csv.reader.VectorExtractor;
+import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.values.storable.DateTimeValue;
@@ -208,7 +210,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
 
     private Object convertType(Object object, ParquetColumn parquetColumn) {
         try {
-            if (parquetColumn.isRaw()) {
+            if (parquetColumn.isRaw() && parquetColumn.primitiveType().getLogicalTypeAnnotation() == null) {
                 return object;
             }
 
@@ -236,18 +238,33 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                     yield PointValue.parse(object.toString());
                 }
                 case DATE ->
-                    object instanceof Integer
-                            ? DateValue.epochDate((Integer) object)
+                    object instanceof Number number
+                            ? DateValue.epochDate(number.intValue())
                             : DateValue.parse(object.toString());
                 case TIME ->
-                    TimeValue.parse(object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
+                    object instanceof Number number
+                            ? TimeValue.time(number.longValue(), ZoneOffset.UTC)
+                            : TimeValue.parse(
+                                    object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
                 case DATE_TIME ->
                     DateTimeValue.parse(object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
                 case LOCAL_TIME -> LocalTimeValue.parse(object.toString());
-                case LOCAL_DATE_TIME ->
-                    object instanceof Long
-                            ? LocalDateTimeValue.localDateTime((Long) object / 1000000L, 0)
-                            : LocalDateTimeValue.parse(object.toString());
+                case LOCAL_DATE_TIME -> {
+                    if (object instanceof Long) {
+                        yield LocalDateTimeValue.localDateTime((Long) object / 1000000L, 0);
+                    } else {
+                        try {
+                            yield LocalDateTimeValue.parse(object.toString());
+                        } catch (TemporalParseException e) {
+                            // this could happen if the column type is adjusted to UTC (with zone) but the column header
+                            // defines this just as a localdatetime
+                            yield LocalDateTimeValue.localDateTime(
+                                    DateTimeValue.parse(object.toString(), () -> ZoneId.of(ZoneOffset.UTC.getId()))
+                                            .asObjectCopy()
+                                            .toLocalDateTime());
+                        }
+                    }
+                }
                 case DURATION -> DurationValue.parse(object.toString());
                 case INT -> Integer.valueOf(object.toString());
                 case SHORT -> Short.valueOf(object.toString());

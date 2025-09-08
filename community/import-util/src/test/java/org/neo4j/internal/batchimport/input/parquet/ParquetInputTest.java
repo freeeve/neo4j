@@ -44,6 +44,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -1325,6 +1327,48 @@ class ParquetInputTest {
     }
 
     @Test
+    void shouldParseSimpleTypesDouble() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.DOUBLE).named("someDouble")),
+                List.of(new Object[] {0, "Mattias", 1.1d}, new Object[] {1, "Johan", 2.2d}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(nodes, 0L, properties("name", "Mattias", "someDouble", 1.1d), labels());
+            assertNextNode(nodes, 1L, properties("name", "Johan", "someDouble", 2.2d), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseSimpleTypesFloat() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.FLOAT).named("someDouble")),
+                List.of(new Object[] {0, "Mattias", 1.1f}, new Object[] {1, "Johan", 2.2f}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(nodes, 0L, properties("name", "Mattias", "someDouble", 1.1f), labels());
+            assertNextNode(nodes, 1L, properties("name", "Johan", "someDouble", 2.2f), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
     void shouldParseDatePropertyValues() throws Exception {
         // GIVEN
         Path nodeFile = createParquetFile(
@@ -1371,6 +1415,54 @@ class ParquetInputTest {
     }
 
     @Test
+    void shouldParseRealDatePropertyValue() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                                .as(LogicalTypeAnnotation.dateType())
+                                .named("date:Date")),
+                List.<Object[]>of(new Object[] {0, "Mattias", 13193}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(nodes, 0L, properties("name", "Mattias", "date", DateValue.date(2006, 2, 14)), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseFilesWithMixedTimeValues() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                                .as(LogicalTypeAnnotation.dateType())
+                                .named("date:Date")),
+                List.<Object[]>of(new Object[] {0, "Mattias", 13193}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(nodes, 0L, properties("name", "Mattias", "date", DateValue.date(2006, 2, 14)), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
     void shouldParseDateTimePropertyLongValues() throws Exception {
         // GIVEN
         Path nodeFile = createParquetFile(
@@ -1392,6 +1484,106 @@ class ParquetInputTest {
                     nodes,
                     0L,
                     properties("name", "Mattias", "date", LocalDateTimeValue.localDateTime(2005, 5, 24, 22, 54, 33, 0)),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseRealTimestampPropertyValuesNanos() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.NANOS))
+                                .named("date:DateTime")),
+                List.<Object[]>of(new Object[] {0, "Mattias", 1752844932961528000L}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            // 2005-05-24 22:54:33 1116975273000000
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties(
+                            "name",
+                            "Mattias",
+                            "date",
+                            DateTimeValue.datetime(
+                                    2025, 7, 18, 13, 22, 12, 961528000, ZoneId.of(ZoneOffset.UTC.getId()))),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseRealTimestampPropertyValuesMicros() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MICROS))
+                                .named("date:LocalDateTime")),
+                List.<Object[]>of(new Object[] {0, "Mattias", 1752844932961528L}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            // 2005-05-24 22:54:33 1116975273000000
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties(
+                            "name",
+                            "Mattias",
+                            "date",
+                            LocalDateTimeValue.localDateTime(2025, 7, 18, 13, 22, 12, 961528000)),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseRealTimestampPropertyValuesMillis() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
+                                .named("date:LocalDateTime")),
+                List.<Object[]>of(new Object[] {0, "Mattias", 1752844932961L}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            // 2005-05-24 22:54:33 1116975273000000
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties(
+                            "name",
+                            "Mattias",
+                            "date",
+                            LocalDateTimeValue.localDateTime(2025, 7, 18, 13, 22, 12, 961000000)),
                     labels());
             assertFalse(readNext(nodes));
         }
@@ -1423,6 +1615,441 @@ class ParquetInputTest {
                     nodes, 1L, properties("name", "Johan", "time", TimeValue.time(16, 20, 1, 0, "+00:00")), labels());
             assertNextNode(
                     nodes, 2L, properties("name", "Bob", "time", TimeValue.time(7, 30, 0, 0, "-05:00")), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseNumericTimePropertyValues() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64).named("time:Time")),
+                List.of(new Object[] {0, "Mattias", 52397144072000L}, new Object[] {1, "Johan", 52397000000000L}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("name", "Mattias", "time", TimeValue.time(14, 33, 17, 144072000, "+00:00")),
+                    labels());
+            assertNextNode(
+                    nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseRealUTCTimePropertyValuesNanos() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.NANOS))
+                                .named("time:Time")),
+                List.of(new Object[] {0, "Mattias", 52397144072000L}, new Object[] {1, "Johan", 52397000000000L}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("name", "Mattias", "time", TimeValue.time(14, 33, 17, 144072000, "+00:00")),
+                    labels());
+            assertNextNode(
+                    nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseRealUTCTimePropertyValuesMillis() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                                .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MILLIS))
+                                .named("time:Time")),
+                List.of(new Object[] {0, "Mattias", 52397144}, new Object[] {1, "Johan", 52397000}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("name", "Mattias", "time", TimeValue.time(14, 33, 17, 144000000, "+00:00")),
+                    labels());
+            assertNextNode(
+                    nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseRealUTCTimePropertyValuesMicros() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MICROS))
+                                .named("time:Time")),
+                List.of(new Object[] {0, "Mattias", 52397144072L}, new Object[] {1, "Johan", 52397000000L}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("name", "Mattias", "time", TimeValue.time(14, 33, 17, 144072000, "+00:00")),
+                    labels());
+            assertNextNode(
+                    nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseTimePropertyValuesNanos() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.NANOS))
+                                .named("time:Time")),
+                List.of(new Object[] {0, "Mattias", 52397144072000L}, new Object[] {1, "Johan", 52397000000000L}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("name", "Mattias", "time", TimeValue.time(14, 33, 17, 144072000, "+00:00")),
+                    labels());
+            assertNextNode(
+                    nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseTimePropertyValuesMillis() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT32)
+                                .as(LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.MILLIS))
+                                .named("time:Time")),
+                List.of(new Object[] {0, "Mattias", 52397144}, new Object[] {1, "Johan", 52397000}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("name", "Mattias", "time", TimeValue.time(14, 33, 17, 144000000, "+00:00")),
+                    labels());
+            assertNextNode(
+                    nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseTimePropertyValuesMicros() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.optional(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.MICROS))
+                                .named("time:Time")),
+                List.of(new Object[] {0, "Mattias", 52397144072L}, new Object[] {1, "Johan", 52397000000L}));
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("name", "Mattias", "time", TimeValue.time(14, 33, 17, 144072000, "+00:00")),
+                    labels());
+            assertNextNode(
+                    nodes, 1L, properties("name", "Johan", "time", TimeValue.time(14, 33, 17, 0, "+00:00")), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseLocalDateTimeWithoutUTCAdjustmentInMicros() throws Exception {
+        var nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.MICROS))
+                                .named("datetime")),
+                List.of(new Object[] {0, 52397144072L}, new Object[] {1, 52397000000L}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("datetime", LocalDateTimeValue.localDateTime(1970, 1, 1, 14, 33, 17, 144072000)),
+                    labels());
+            assertNextNode(
+                    nodes,
+                    1L,
+                    properties("datetime", LocalDateTimeValue.localDateTime(1970, 1, 1, 14, 33, 17, 0)),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseUUIDasString() throws Exception {
+        var nodeFile = Path.of(getClass().getResource("/parquet/uuid.parquet").toURI());
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(nodes, 1L, properties("myUUID", "ba576658-d01d-4858-94ff-a97f18be9608"), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseLocalDateTimeWithoutUTCAdjustmentInMillis() throws Exception {
+        var nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64)
+                                .as(LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.MILLIS))
+                                .named("datetime")),
+                List.of(new Object[] {0, 52397144L}, new Object[] {1, 52397000L}));
+
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            // THEN
+            assertNextNode(
+                    nodes,
+                    0L,
+                    properties("datetime", LocalDateTimeValue.localDateTime(1970, 1, 1, 14, 33, 17, 144000000)),
+                    labels());
+            assertNextNode(
+                    nodes,
+                    1L,
+                    properties("datetime", LocalDateTimeValue.localDateTime(1970, 1, 1, 14, 33, 17, 0)),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseSourceContainingDateAndTimeCorrectly() throws Exception {
+
+        var headerPath =
+                Path.of(getClass().getResource("/parquet/datetime_header.csv").toURI());
+        var nodePath =
+                Path.of(getClass().getResource("/parquet/datetime_data.parquet").toURI());
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {headerPath, nodePath})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNodeWithoutGroupAndIdCheck(
+                    nodes,
+                    properties(
+                            "date",
+                            DateValue.date(2025, 7, 15),
+                            "datetime",
+                            DateTimeValue.datetime(2025, 7, 15, 12, 0, 0, 0, "Z"),
+                            "address",
+                            "123 Main St",
+                            "string",
+                            "Alpha",
+                            "epoch",
+                            LocalDateTimeValue.localDateTime(2025, 7, 15, 6, 30, 0, 0),
+                            "integer",
+                            101),
+                    labels());
+            assertNextNodeWithoutGroupAndIdCheck(
+                    nodes,
+                    properties(
+                            "date",
+                            DateValue.date(2025, 7, 15),
+                            "datetime",
+                            DateTimeValue.datetime(2025, 7, 15, 12, 1, 0, 0, "Z"),
+                            "address",
+                            "456 Market Ave",
+                            "string",
+                            "Beta",
+                            "epoch",
+                            LocalDateTimeValue.localDateTime(2025, 7, 15, 7, 30, 0, 0),
+                            "integer",
+                            102),
+                    labels());
+            assertNextNodeWithoutGroupAndIdCheck(
+                    nodes,
+                    properties(
+                            "date",
+                            DateValue.date(2025, 7, 15),
+                            "datetime",
+                            DateTimeValue.datetime(2025, 7, 15, 12, 2, 0, 0, "Z"),
+                            "address",
+                            "789 Broadway Blvd",
+                            "string",
+                            "Gamma",
+                            "epoch",
+                            LocalDateTimeValue.localDateTime(2025, 7, 15, 8, 30, 0, 0),
+                            "integer",
+                            103),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseDateRelatedTypesLikeDataImporter() throws Exception {
+
+        var nodePath = Path.of(
+                getClass().getResource("/parquet/temporal_types.parquet").toURI());
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodePath})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNodeWithoutGroupAndIdCheck(
+                    nodes,
+                    properties(
+                            "c_time_millis",
+                            LocalTimeValue.localTime(23, 59, 59, 999_000_000),
+                            "c_time_millis_utc",
+                            TimeValue.time(23, 59, 59, 999_000_000, ZoneOffset.UTC),
+                            "c_time_micros",
+                            LocalTimeValue.localTime(23, 59, 59, 999_999_000),
+                            "c_time_micros_utc",
+                            TimeValue.time(23, 59, 59, 999_999_000, ZoneOffset.UTC),
+                            "c_time_nanos",
+                            LocalTimeValue.localTime(23, 59, 59, 999_999_999),
+                            "c_time_nanos_utc",
+                            TimeValue.time(23, 59, 59, 999_999_999, ZoneOffset.UTC),
+                            "c_timestamp_millis",
+                            LocalDateTimeValue.localDateTime(1999, 1, 5, 22, 59, 59, 999_000_000),
+                            "c_timestamp_millis_utc",
+                            DateTimeValue.datetime(
+                                    1999, 1, 5, 23, 59, 59, 999_000_000, ZoneId.of(ZoneOffset.UTC.getId())),
+                            "c_timestamp_micros",
+                            LocalDateTimeValue.localDateTime(1999, 1, 5, 22, 59, 59, 999_999_000),
+                            "c_timestamp_micros_utc",
+                            DateTimeValue.datetime(
+                                    1999, 1, 5, 23, 59, 59, 999_999_000, ZoneId.of(ZoneOffset.UTC.getId())),
+                            "c_timestamp_nanos",
+                            LocalDateTimeValue.localDateTime(1999, 1, 5, 22, 59, 59, 999_999_999),
+                            "c_timestamp_nanos_utc",
+                            DateTimeValue.datetime(
+                                    1999, 1, 5, 23, 59, 59, 999_999_999, ZoneId.of(ZoneOffset.UTC.getId())),
+                            "c_date",
+                            DateValue.date(1999, 1, 5)),
+                    labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
+    void shouldParseNumbersLikeDataImporter() throws Exception {
+
+        var nodePath =
+                Path.of(getClass().getResource("/parquet/numeric_types.parquet").toURI());
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodePath})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNodeWithoutGroupAndIdCheck(
+                    nodes,
+                    properties(
+                            "c_boolean",
+                            true,
+                            "c_byte",
+                            127,
+                            "c_short",
+                            32767,
+                            "c_int",
+                            2147483647,
+                            "c_long",
+                            9223372036854775807L,
+                            "c_float16",
+                            "5.016327E-4", // cannot read correctly
+                            "c_float32",
+                            3.4028235E38F,
+                            "c_double",
+                            1.7976931348623157e+308,
+                            "c_decimal_int32",
+                            2147483647,
+                            "c_decimal_int64",
+                            9223372036854775807L,
+                            "c_decimal_binary",
+                            "1234567890",
+                            "c_decimal_bytes",
+                            "1234567890",
+                            "c_ubyte",
+                            255,
+                            "c_ushort",
+                            65535,
+                            "c_uint",
+                            -1, // ignore
+                            "c_ulong",
+                            -1L), // ignore
+                    labels());
             assertFalse(readNext(nodes));
         }
     }
@@ -3126,6 +3753,13 @@ class ParquetInputTest {
         assertTrue(readNext(data));
         assertEquals(group, visitor.idGroup);
         assertEquals(id, visitor.id());
+        assertEquals(labels, asSet(visitor.labels()));
+        assertPropertiesEquals(properties, visitor.propertiesAsMap());
+    }
+
+    private void assertNextNodeWithoutGroupAndIdCheck(
+            InputIterator data, Map<String, Object> properties, Set<String> labels) throws IOException {
+        assertTrue(readNext(data));
         assertEquals(labels, asSet(visitor.labels()));
         assertPropertiesEquals(properties, visitor.propertiesAsMap());
     }

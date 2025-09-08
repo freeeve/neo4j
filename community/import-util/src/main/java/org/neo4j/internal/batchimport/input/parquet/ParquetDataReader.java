@@ -21,7 +21,12 @@ package org.neo4j.internal.batchimport.input.parquet;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,6 +50,11 @@ import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.internal.batchimport.input.Groups;
+import org.neo4j.values.storable.DateTimeValue;
+import org.neo4j.values.storable.DateValue;
+import org.neo4j.values.storable.LocalDateTimeValue;
+import org.neo4j.values.storable.LocalTimeValue;
+import org.neo4j.values.storable.TimeValue;
 
 /**
  * There should be a 1:1 match between Reader and file for now.
@@ -263,6 +273,120 @@ class ParquetDataReader implements Closeable {
             String fieldName = column.getPath()[0];
             Type type = schema.getType(fieldName);
             LogicalTypeAnnotation logicalType = type.getLogicalTypeAnnotation();
+            // reference:
+            // https://github.com/apache/parquet-format/blob/master/LogicalTypes.md#parquet-logical-type-definitions
+            // Dates
+            if (LogicalTypeAnnotation.dateType().equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                return DateValue.date(LocalDate.ofEpochDay((int) object));
+            }
+            // Time UTC true
+            if (LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MILLIS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                return TimeValue.time(
+                        LocalTime.ofNanoOfDay(((int) object) * 1_000_000L).atOffset(ZoneOffset.UTC));
+            }
+            if (LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.MICROS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                return TimeValue.time(
+                        LocalTime.ofNanoOfDay(((long) object) * 1_000L).atOffset(ZoneOffset.UTC));
+            }
+            if (LogicalTypeAnnotation.timeType(true, LogicalTypeAnnotation.TimeUnit.NANOS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                return TimeValue.time(LocalTime.ofNanoOfDay((long) object).atOffset(ZoneOffset.UTC));
+            }
+            // Time UTC false
+            if (LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.MILLIS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((int) object) * 1_000_000L / 1_000_000_000L;
+                var nanos = ((int) object) * 1_000_000L % 1_000_000_000L;
+                return LocalTimeValue.localTime(LocalTime.ofSecondOfDay(seconds).plusNanos(nanos));
+            }
+            if (LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.MICROS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((long) object) * 1_000L / 1_000_000_000L;
+                var nanos = ((long) object) * 1_000L % 1_000_000_000L;
+                return LocalTimeValue.localTime(LocalTime.ofSecondOfDay(seconds).plusNanos(nanos));
+            }
+            if (LogicalTypeAnnotation.timeType(false, LogicalTypeAnnotation.TimeUnit.NANOS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((long) object) / 1_000_000_000L;
+                var nanos = ((long) object) % 1_000_000_000L;
+                return LocalTimeValue.localTime(LocalTime.ofSecondOfDay(seconds).plusNanos(nanos));
+            }
+            // Timestamp UTC true
+            if (LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MILLIS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((long) object) / 1_000L;
+                var millis = ((long) object) % 1_000L;
+                return DateTimeValue.datetime(ZonedDateTime.of(
+                        LocalDateTime.ofEpochSecond(seconds, (int) millis * 1_000_000, ZoneOffset.UTC),
+                        ZoneId.of(ZoneOffset.UTC.getId())));
+            }
+            if (LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.MICROS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((long) object) / 1_000_000L;
+                var micros = ((long) object) % 1_000_000L;
+                return DateTimeValue.datetime(ZonedDateTime.of(
+                        LocalDateTime.ofEpochSecond(seconds, (int) micros * 1_000, ZoneOffset.UTC),
+                        ZoneId.of(ZoneOffset.UTC.getId())));
+            }
+            if (LogicalTypeAnnotation.timestampType(true, LogicalTypeAnnotation.TimeUnit.NANOS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((long) object) / 1_000_000_000L;
+                var nanos = ((long) object) % 1_000_000_000L;
+                return DateTimeValue.datetime(ZonedDateTime.of(
+                        LocalDateTime.ofEpochSecond(seconds, (int) nanos, ZoneOffset.UTC),
+                        ZoneId.of(ZoneOffset.UTC.getId())));
+            }
+            // Timestamp UTC false
+            if (LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.MILLIS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((long) object) / 1_000L;
+                var millis = ((long) object) % 1_000L;
+                return LocalDateTimeValue.localDateTime(
+                        LocalDateTime.ofEpochSecond(seconds, (int) millis * 1_000_000, ZoneOffset.UTC));
+            }
+            if (LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.MICROS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((long) object) / 1_000_000L;
+                var micros = ((long) object) % 1_000_000L;
+                return LocalDateTimeValue.localDateTime(
+                        LocalDateTime.ofEpochSecond(seconds, (int) (micros * 1_000), ZoneOffset.UTC));
+            }
+            if (LogicalTypeAnnotation.timestampType(false, LogicalTypeAnnotation.TimeUnit.NANOS)
+                    .equals(logicalType)) {
+                var object = readPrimitiveType(columnReader, primitiveType);
+                columnReader.consume();
+                var seconds = ((long) object) / 1_000_000_000L;
+                var nanos = ((long) object) % 1_000_000_000L;
+                return LocalDateTimeValue.localDateTime(
+                        LocalDateTime.ofEpochSecond(seconds, (int) nanos, ZoneOffset.UTC));
+            }
+
             if (columnReader.getCurrentDefinitionLevel() == maxDefinitionLevel) {
                 if (logicalType != null && logicalType.equals(LogicalTypeAnnotation.listType())) {
                     var readValues = new ArrayList<>();

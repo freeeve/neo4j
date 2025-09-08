@@ -303,7 +303,9 @@ public class ParquetInput implements Input {
                                 continue;
                             }
                             var parquetColumn = ParquetColumn.from(
-                                    headerContext.getHeaderDefinition(nodeFiles, i, columnName), EntityType.NODE);
+                                    headerContext.getHeaderDefinition(nodeFiles, i, columnName),
+                                    EntityType.NODE,
+                                    columnDescriptor.getPrimitiveType());
                             if (parquetColumn.isIgnoredColumn()) {
                                 continue;
                             }
@@ -417,7 +419,8 @@ public class ParquetInput implements Input {
                             }
                             var parquetColumn = ParquetColumn.from(
                                     headerContext.getHeaderDefinition(relationshipFileList, i, columnName),
-                                    EntityType.RELATIONSHIP);
+                                    EntityType.RELATIONSHIP,
+                                    columnDescriptor.getPrimitiveType());
                             if (parquetColumn.isIgnoredColumn()) {
                                 continue;
                             }
