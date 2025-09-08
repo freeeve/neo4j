@@ -134,6 +134,7 @@ record ParquetColumn(
         }
         return switch (idTypeValue.toUpperCase(Locale.ROOT)) {
             case "INT" -> IdType.INTEGER;
+            case "LONG" -> IdType.INTEGER;
             case "STRING" -> IdType.STRING;
             case "ACTUAL" -> IdType.ACTUAL;
             default -> IdType.ACTUAL;
