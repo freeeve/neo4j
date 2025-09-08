@@ -529,15 +529,20 @@ object CardinalityCostModel {
       case RemoteBatchPropertiesWithFilter(_, predicates, properties) =>
         // RemoteBatchPropertiesWithFilter will execute the predicates on the shard and fetch properties.
         // We need to include a cost for property retrieval as well as the cost of evaluating the predicates.
-        val predicatePropertyAccesses = PropertyAccessHelper.findPropertyAccesses(predicates).size
+        val predicatePropertyAccesses: Int =
+          predicates.foldRight(0) {
+            case (predicate, acc) => acc + PropertyAccessHelper.findPropertyAccesses(Iterable(predicate)).size
+          }
         val propertyAccessCost = properties.size * 0.1
         (propertyAccessCost + predicatePropertyAccesses) * STORE_LOOKUP_COST_PER_ROW
 
       case remoteBatchPropertiesWithPushdownOperators: RemoteBatchPropertiesWithPushdownOperators =>
         // The operator will execute the predicates on the shard and fetch properties.
         // We need to include a cost for property retrieval as well as the cost of evaluating the predicates.
-        val predicatePropertyAccesses =
-          PropertyAccessHelper.findPropertyAccesses(remoteBatchPropertiesWithPushdownOperators.predicates).size
+        val predicatePropertyAccesses: Int =
+          remoteBatchPropertiesWithPushdownOperators.predicates.foldRight(0) {
+            case (predicate, acc) => acc + PropertyAccessHelper.findPropertyAccesses(Iterable(predicate)).size
+          }
         val propertyAccessCost = remoteBatchPropertiesWithPushdownOperators.properties.size * 0.1
         (propertyAccessCost + predicatePropertyAccesses) * STORE_LOOKUP_COST_PER_ROW
 
