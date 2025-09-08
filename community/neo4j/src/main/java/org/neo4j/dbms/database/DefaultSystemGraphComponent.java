@@ -62,7 +62,8 @@ import org.neo4j.util.Stringifier;
 /**
  * This is the community component for databases.
  * Each database is represented by a node with label :Database or :DeletedDatabase
- * and properties for the database name, status, uuid, creation time, store version and more.
+ * and properties for the (database name), status, uuid, creation time, store version and more.
+ * The database name is represented by :DatabaseName nodes connected to the database nodes.
  * There is also one node with label :DatabaseDefault and one with label :DatabaseAll,
  * that represent the default database and all databases, respectively.
  */

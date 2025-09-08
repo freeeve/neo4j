@@ -54,8 +54,9 @@ import org.neo4j.util.VisibleForTesting;
 
 /**
  * This component contains the users of the dbms.
- * Each user is represented by a node in the system database with the label :User and properties for username, credentials, passwordChangeRequired and status.
- * The schema is the same in both community and enterprise (even if status is an enterprise-only feature).
+ * Each user is represented by a node in the system database with the label :User and properties for username, internal id, credentials, passwordChangeRequired, status and home database.
+ * The user node also connects to a node with label :Auth which holds external auth information for linked users.
+ * The schema is the same in both community and enterprise (even if some of the features are enterprise-only).
  */
 public class UserSecurityGraphComponent extends AbstractSystemGraphComponent
         implements SystemGraphComponentWithVersion {
