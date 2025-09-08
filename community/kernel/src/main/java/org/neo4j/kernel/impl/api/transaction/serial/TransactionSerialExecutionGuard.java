@@ -43,11 +43,12 @@ public final class TransactionSerialExecutionGuard implements SerialExecutionGua
         }
 
         if (SERIAL != transaction.transactionType() && transaction.getTransactionSequenceNumber() >= serialExecution) {
-            throw new TransientTransactionFailureException(
-                    Status.Transaction.TransactionValidationFailed,
-                    "Serial transaction execution enforcement guard. Serial transaction sequence number: "
+            throw TransientTransactionFailureException.internalError(
+                    "Transaction changes aborted due to serial transaction guard enforcement.",
+                    "Serial transaction sequence number: "
                             + serialExecution + " enforced termination of transaction with sequence number: "
-                            + transaction.getTransactionSequenceNumber());
+                            + transaction.getTransactionSequenceNumber(),
+                    Status.Transaction.TransactionValidationFailed);
         }
     }
 

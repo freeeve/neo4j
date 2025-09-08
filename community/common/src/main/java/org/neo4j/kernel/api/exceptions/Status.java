@@ -132,7 +132,7 @@ public interface Status {
                 "The transaction is of the wrong type to service the request. For instance, a transaction that has "
                         + "had schema modifications performed in it cannot be used to subsequently perform data operations, "
                         + "and vice versa."),
-        TransactionValidationFailed(ClientError, "Transaction changes did not pass validation checks"),
+        TransactionValidationFailed(ClientError, "Transaction changes did not pass validation checks."),
         TransactionHookFailed(ClientError, "Transaction hook failure."),
         TransactionMarkedAsFailed(
                 ClientError,
