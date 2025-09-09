@@ -1461,6 +1461,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "token does not exist",
             ErrorClassification.DATABASE_ERROR),
+    STATUS_22N60(
+            new GqlStatus("22N60"),
+            "Encountered illegal { %s } element: { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "illegal element",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22N62(
             new GqlStatus("22N62"),
             "The relationship type { %s } does not exist.",

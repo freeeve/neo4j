@@ -61,13 +61,17 @@ public class AuthenticationProtocolLimiterHandler extends SimpleChannelInboundHa
 
             if (this.levels.isEmpty()) {
                 if (rootEncountered) {
-                    throw new PackstreamReaderException("Encountered illegal secondary root element within message");
+                    throw PackstreamReaderException.illegalElement(
+                            "secondary root",
+                            "Excepted single root element",
+                            "Encountered illegal secondary root element within message");
                 }
 
                 rootEncountered = true;
 
                 if (type != Type.STRUCT) {
-                    throw new PackstreamReaderException("Encountered illegal root element: Expected struct");
+                    throw PackstreamReaderException.illegalElement(
+                            "root", "Expected struct", "Encountered illegal root element: Expected struct");
                 }
             }
 
@@ -103,7 +107,8 @@ public class AuthenticationProtocolLimiterHandler extends SimpleChannelInboundHa
 
             if (!currentLevel.expectingKey) {
                 if (type != Type.STRING) {
-                    throw new PackstreamReaderException("Encountered illegal map element: Expected string key");
+                    throw PackstreamReaderException.illegalElement(
+                            "map", "Expected string key", "Encountered illegal map element: Expected string key");
                 }
 
                 return true;

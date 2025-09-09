@@ -30,16 +30,6 @@ import org.neo4j.packstream.error.PackstreamException;
 
 public class PackstreamReaderException extends PackstreamException {
 
-    @Deprecated
-    public PackstreamReaderException(String message) {
-        this(message, message);
-    }
-
-    @Deprecated
-    public PackstreamReaderException(String message, String legacyMessage) {
-        super(message, legacyMessage);
-    }
-
     protected PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message, String legacyMessage) {
         super(gqlStatusObject, message, legacyMessage);
     }
@@ -61,6 +51,16 @@ public class PackstreamReaderException extends PackstreamException {
                 .withParam(GqlParams.StringParam.mapKey, key)
                 .build();
         var legacyMessage = "Duplicate map key: \"" + key + "\"";
+        return new PackstreamReaderException(gql, ErrorMessageHolder.getMessage(gql, legacyMessage), legacyMessage);
+    }
+
+    public static PackstreamReaderException illegalElement(
+            String elementName, String description, String legacyMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N60)
+                .withParam(GqlParams.StringParam.item, elementName)
+                .withParam(GqlParams.StringParam.msg, description)
+                .build();
+
         return new PackstreamReaderException(gql, ErrorMessageHolder.getMessage(gql, legacyMessage), legacyMessage);
     }
 

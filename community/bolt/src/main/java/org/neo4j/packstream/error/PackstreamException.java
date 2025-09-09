@@ -27,13 +27,6 @@ public abstract class PackstreamException extends IOException implements ErrorGq
     private final ErrorGqlStatusObject innerGqlStatusObject;
     private final String legacyMessage;
 
-    @Deprecated
-    protected PackstreamException(String message, String legacyMessage) {
-        super(message);
-        this.innerGqlStatusObject = null;
-        this.legacyMessage = legacyMessage;
-    }
-
     protected PackstreamException(ErrorGqlStatusObject gqlStatusObject, String message, String legacyMessage) {
         super(message);
         this.innerGqlStatusObject = gqlStatusObject;

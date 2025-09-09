@@ -25,9 +25,11 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.protocol.error.ClientRequestComplexityExceeded;
+import org.neo4j.bolt.testing.util.ErrorUtil;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.struct.StructHeader;
+import org.neo4j.test.conditions.Conditions;
 
 class AuthenticationProtocolLimiterHandlerTest {
 
@@ -74,7 +76,44 @@ class AuthenticationProtocolLimiterHandlerTest {
                     this.channel.writeInbound(msg.raw());
                     this.channel.checkException();
                 })
-                .withMessage("Encountered illegal root element: Expected struct");
+                .withMessage(ErrorUtil.useNewMessage("22N60: Encountered illegal root element: Expected struct.")
+                        .whenLegacyFallbackTo("Encountered illegal root element: Expected struct"))
+                .has(Conditions.condition(ex -> ex.gqlStatus().equals("22N60")));
+    }
+
+    @Test
+    void shouldRejectDuplicatedRoots() {
+        var msg = PackstreamBuf.allocUnpooled()
+                .writeStructHeader(new StructHeader(0, (short) 0x42))
+                .writeStructHeader(new StructHeader(3, (short) 0x42));
+
+        Assertions.assertThatExceptionOfType(PackstreamReaderException.class)
+                .isThrownBy(() -> {
+                    this.channel.writeInbound(msg.raw());
+                    this.channel.checkException();
+                })
+                .withMessage(ErrorUtil.useNewMessage(
+                                "22N60: Encountered illegal secondary root element: Excepted single root element.")
+                        .whenLegacyFallbackTo("Encountered illegal secondary root element within message"))
+                .has(Conditions.condition(ex -> ex.gqlStatus().equals("22N60")));
+    }
+
+    @Test
+    void shouldRejectNonStringKeyOnMaps() {
+        var msg = PackstreamBuf.allocUnpooled()
+                .writeStructHeader(new StructHeader(1, (short) 0x42))
+                .writeMapHeader(1)
+                .writeInt(2)
+                .writeString("foo");
+
+        Assertions.assertThatExceptionOfType(PackstreamReaderException.class)
+                .isThrownBy(() -> {
+                    this.channel.writeInbound(msg.raw());
+                    this.channel.checkException();
+                })
+                .withMessage(ErrorUtil.useNewMessage("22N60: Encountered illegal map element: Expected string key.")
+                        .whenLegacyFallbackTo("Encountered illegal map element: Expected string key"))
+                .has(Conditions.condition(ex -> ex.gqlStatus().equals("22N60")));
     }
 
     @Test
