@@ -82,6 +82,22 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         this.cause = cause;
     }
 
+    public ErrorGqlStatusObject insertCause(ErrorGqlStatusObjectImplementation newCause) {
+        if (this.cause == null) {
+            setCause(newCause);
+        } else {
+            if (this.cause instanceof ErrorGqlStatusObjectImplementation implCause) {
+                setCause(implCause.insertCause(newCause));
+            } else {
+                // It is possible we will never end up in this case, but in that case we make sure that all codes are
+                // preserved.
+                newCause.setCause(this.cause);
+                setCause(newCause);
+            }
+        }
+        return this;
+    }
+
     public void markAsCause() {
         isCause = true;
     }
@@ -215,6 +231,12 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         }
 
         public ErrorGqlStatusObject build() {
+            diagnosticRecordBuilder.withClassification(gqlStatusInfoCode.getClassification());
+            DiagnosticRecord diagnosticRecord = diagnosticRecordBuilder.build();
+            return new ErrorGqlStatusObjectImplementation(gqlStatusInfoCode, paramMap, cause, diagnosticRecord);
+        }
+
+        public ErrorGqlStatusObjectImplementation buildImpl() {
             diagnosticRecordBuilder.withClassification(gqlStatusInfoCode.getClassification());
             DiagnosticRecord diagnosticRecord = diagnosticRecordBuilder.build();
             return new ErrorGqlStatusObjectImplementation(gqlStatusInfoCode, paramMap, cause, diagnosticRecord);

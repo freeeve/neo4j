@@ -34,6 +34,28 @@ trait CypherExceptionFactory {
     syntaxException(GqlHelper.get50N00(this.getClass.getSimpleName, message), message, pos)
   }
 
+  def insertExistsInOtherLanguageVersion(
+    unsupportedVersion: String,
+    supportedVersion: String,
+    ex: SyntaxException
+  ): RuntimeException = {
+    val exceptionCause = ex.gqlStatusObject()
+    val gql_42I67 =
+      ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I67)
+        .withParam(GqlParams.StringParam.feat1, unsupportedVersion)
+        .withParam(GqlParams.StringParam.feat2, supportedVersion).buildImpl()
+
+    val gql = exceptionCause match {
+      case c: ErrorGqlStatusObjectImplementation =>
+        c.insertCause(gql_42I67)
+      case _ =>
+        // It is possible we will never end up in this case, but in that case we make sure that all codes are preserved.
+        gql_42I67.setCause(exceptionCause)
+        gql_42I67
+    }
+    new SyntaxException(gql, ex.getMessage)
+  }
+
   def unsupportedRequestOnSystemDatabaseException(
     invalidInput: String,
     legacyMessage: String,

@@ -23,6 +23,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.Reparsesable_42I67
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
@@ -837,10 +838,10 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
         // THEN
         exception should be(gqlException(
           "Invalid input 'GRAPH': expected 'USER SET PASSWORD FROM'",
-          InvalidSyntaxStatus.withCause(
+          InvalidSyntaxStatus.withCause(gqlStatus(
             GqlStatusInfoCodes.STATUS_42I06,
             "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER SET PASSWORD FROM'."
-          ),
+          ).withCause(Reparsesable_42I67)),
           fuzzyMsg = true
         ))
       }
@@ -852,13 +853,15 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
 
     // THEN
-    exception should be(gqlException(
-      "Invalid input 'GRAPH': expected 'USER'",
-      InvalidSyntaxStatus.withCause(
-        GqlStatusInfoCodes.STATUS_42I06,
-        "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER'."
-      ),
-      fuzzyMsg = true
-    ))
+    exception should be(
+      gqlException(
+        "Invalid input 'GRAPH': expected 'USER'",
+        InvalidSyntaxStatus.withCause(gqlStatus(
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input 'GRAPH', expected: 'USER'."
+        ).withCause(Reparsesable_42I67)),
+        fuzzyMsg = true
+      )
+    )
   }
 }

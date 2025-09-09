@@ -3050,6 +3050,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "pattern parsing failed",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I67(
+            new GqlStatus("42I67"),
+            "The query is a valid `CYPHER { %s }` query, but it is run in `CYPHER { %s }`. Consider changing the database default Cypher version using `ALTER DATABASE SET DEFAULT LANGUAGE` or prefix the query with `CYPHER { %s }`.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.feat2, GqlParams.StringParam.feat1, GqlParams.StringParam.feat2
+            },
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "unsupported language feature",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",
