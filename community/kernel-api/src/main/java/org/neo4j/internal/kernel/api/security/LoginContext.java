@@ -91,6 +91,10 @@ public abstract class LoginContext {
      */
     public static final LoginContext AUTH_DISABLED = fullAccess(EMBEDDED_CONNECTION);
 
+    public LoginContext withExternalShardAccess() {
+        return this;
+    }
+
     public interface IdLookup {
         int[] NO_SUCH_PROCEDURE = EMPTY_INT_ARRAY;
 

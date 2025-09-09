@@ -70,8 +70,10 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
         var resolvedReference = location.databaseReference();
         // If we are in the local DB and we see a VirtualSPD reference, we need to resolve it to the graph shard and
         // that will always exist here because VirtualSPDs are only created on the same servers as graph shards.
+        var externalShardAccess = true;
         if (location.databaseReference() instanceof DatabaseReferenceImpl.VirtualSPD) {
             resolvedReference = ((DatabaseReferenceImpl.VirtualSPD) location.databaseReference()).graphShard();
+            externalShardAccess = false;
         }
 
         var databaseContext = databaseContextProvider
@@ -96,7 +98,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
                 .ifPresent(bookmark -> transactionIdTracker.awaitGraphUpToDate(location, bookmark.transactionId()));
 
         InternalTransaction internalTransaction =
-                beginInternalTransaction(databaseApi, transactionInfo, terminationCallback);
+                beginInternalTransaction(databaseApi, transactionInfo, terminationCallback, externalShardAccess);
 
         return new LocalDatabaseTransaction(
                 location,
@@ -118,7 +120,10 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
     }
 
     protected InternalTransaction beginInternalTransaction(
-            GraphDatabaseAPI databaseApi, TransactionInfo transactionInfo, Consumer<Status> terminationCallback) {
+            GraphDatabaseAPI databaseApi,
+            TransactionInfo transactionInfo,
+            Consumer<Status> terminationCallback,
+            boolean externalShardAccess) {
         var accessMode =
                 switch (transactionInfo.accessMode()) {
                     case WRITE -> RoutingInfo.AccessMode.WRITE;
@@ -126,9 +131,12 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
                 };
         var routingInfo =
                 new RoutingInfo(accessMode, transactionInfo.routingContext().getParameters());
+        var loginContext = externalShardAccess
+                ? transactionInfo.loginContext().withExternalShardAccess()
+                : transactionInfo.loginContext();
         InternalTransaction internalTransaction = databaseApi.beginTransaction(
                 transactionInfo.type(),
-                transactionInfo.loginContext(),
+                loginContext,
                 transactionInfo.clientInfo(),
                 routingInfo,
                 transactionInfo.bookmarks(),
