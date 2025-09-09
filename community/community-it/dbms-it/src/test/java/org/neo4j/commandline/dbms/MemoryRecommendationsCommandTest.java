@@ -71,6 +71,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.RandomValuesUtils;
@@ -275,6 +276,9 @@ class MemoryRecommendationsCommandTest {
     }
 
     @Test
+    @SkipOnSpd(
+            reason = "We calculate expected index and page cache size from specific dbLayouts for the created names. "
+                    + "In SPD the expected numbers will miss all shards and be too small")
     void includeAllDatabasesToMemoryRecommendations() throws IOException {
         PrintStream output = mock(PrintStream.class);
         Path homeDir = neo4jLayout.homeDirectory();
