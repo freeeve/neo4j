@@ -23,12 +23,14 @@ import org.neo4j.codegen.api.CodeGeneration.GENERATED_SOURCE_LOCATION_PROPERTY
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Suite
 
+import java.io.File
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import java.nio.file.FileVisitResult
 import java.nio.file.FileVisitResult.CONTINUE
 import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.nio.file.SimpleFileVisitor
 import java.nio.file.attribute.BasicFileAttributes
 
@@ -64,10 +66,13 @@ trait SaveGeneratedSource extends BeforeAndAfterEach {
       // Resolve the generated source location relative to classpath of the test class that mixes in this trait.
       val classPathUrl = getClass.getProtectionDomain.getCodeSource.getLocation
       val classPathString = URLDecoder.decode(classPathUrl.getPath, StandardCharsets.UTF_8)
-      val modulePath = Path.of(classPathString).resolve("../../").normalize()
+      val modulePath = Path.of(classPathString).resolve(Paths.get("..", "..")).normalize()
       // If the module directory is resolved correctly, we assign the generated source location
       if (
-        Files.isDirectory(modulePath.resolve("src/test/scala").resolve(getClass.getName.replace('.', '/')).getParent)
+        Files.isDirectory(modulePath.resolve(Paths.get("src", "test", "scala")).resolve(getClass.getName.replace(
+          ".",
+          File.pathSeparator
+        )).getParent)
         && Files.isDirectory(modulePath.resolve("target"))
       ) {
         setLocation(modulePath.resolve("target").resolve("generated-test-sources").resolve("cypher"))
