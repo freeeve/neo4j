@@ -473,7 +473,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
         doDefragment(cursor, keyCount, keyCount);
     }
 
-    private void doDefragment(PageCursor cursor, int keyCount, int offsetCount) {
+    void doDefragment(PageCursor cursor, int keyCount, int offsetCount) {
         var offsets = new int[keyCount];
         var sizes = new int[keyCount];
         // collect alive offsets and sizes
@@ -1071,7 +1071,8 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     }
 
     @Override
-    public <ROOT_KEY> void deepVisitValue(PageCursor cursor, int pos, GBPTreeVisitor<ROOT_KEY, KEY, VALUE> visitor) {}
+    public <ROOT_KEY> void deepVisitValue(PageCursor cursor, int pos, GBPTreeVisitor<ROOT_KEY, KEY, VALUE> visitor)
+            throws IOException {}
 
     protected static int lowestActiveKeyOffset(PageCursor cursor, int keyCount, int payloadSize) {
         int lowestOffsetSoFar = payloadSize;

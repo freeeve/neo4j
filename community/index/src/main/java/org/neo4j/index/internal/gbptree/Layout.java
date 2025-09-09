@@ -34,11 +34,13 @@ import org.neo4j.io.pagecache.PageCursor;
  */
 public interface Layout<KEY, VALUE> extends KeyLayout<KEY> {
     int FIXED_SIZE_VALUE = -1;
-    /*
-     * @return the max size of the dynamic values in the tree
+
+    /**
+     * @return true if the value size is fixed, otherwise false. Generally the value size is fixed if the key size is fixed, and vice versa. But it can
+     * be overwritten.
      */
-    default int valueCapacitySize() {
-        return FIXED_SIZE_VALUE;
+    default boolean fixedValueSize() {
+        return fixedSize();
     }
 
     /**

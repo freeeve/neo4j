@@ -28,8 +28,10 @@ abstract class IndexLayout<KEY extends NativeIndexKey<KEY>> extends Layout.Adapt
         super(fixedSize, identifier, majorVersion, minorVersion);
     }
 
-    IndexLayout(boolean fixedSize, String layoutName, int majorVersion, int minorVersion) {
-        this(fixedSize, Layout.namedIdentifier(layoutName, NullValue.SIZE), majorVersion, minorVersion);
+    @Override
+    public boolean fixedValueSize() {
+        // the values are always fixed for indexes, even though the key sizes are dynamic.
+        return true;
     }
 
     @Override
