@@ -258,7 +258,6 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
                                 0,
                                 new long[] {target1, target2, target3},
                                 new int[] {4 + RESERVED_BYTES, 4 + RESERVED_BYTES, 4 + RESERVED_BYTES},
-                                buffers,
                                 buffers));
             }
             assertEquals(0, controller.getExternalIOCounter());
@@ -726,9 +725,9 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
         try {
             for (int i = 0; i < 10_000; i++) {
                 adversary.enableAdversary(false);
-                swapper.write(0, zeroPages, pageLengths, pageCount, pageCount);
+                swapper.write(0, zeroPages, pageLengths, pageCount);
                 adversary.enableAdversary(true);
-                swapper.write(0, writePages, pageLengths, pageCount, pageCount);
+                swapper.write(0, writePages, pageLengths, pageCount);
                 for (long readPage : readPages) {
                     clear(readPage);
                 }

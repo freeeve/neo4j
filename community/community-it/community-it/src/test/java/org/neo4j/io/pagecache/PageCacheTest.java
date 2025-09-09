@@ -4548,15 +4548,10 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                     }
 
                     @Override
-                    public long write(
-                            long startFilePageId,
-                            long[] bufferAddresses,
-                            int[] bufferLengths,
-                            int length,
-                            int totalAffectedPages)
+                    public long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length)
                             throws IOException {
-                        flushCounter.getAndAdd(totalAffectedPages);
-                        return super.write(startFilePageId, bufferAddresses, bufferLengths, length, totalAffectedPages);
+                        flushCounter.getAndAdd(length);
+                        return super.write(startFilePageId, bufferAddresses, bufferLengths, length);
                     }
                 };
             }

@@ -119,8 +119,7 @@ public class DummyPageSwapper implements PageSwapper {
     }
 
     @Override
-    public long write(
-            long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length, int totalAffectedPages) {
+    public long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length) {
         return 0;
     }
 }

@@ -124,8 +124,7 @@ public interface PageSwapper extends Closeable {
      * interrupted. If this happens, then implementation must reopen the
      * channel and the operation must be retried.
      */
-    long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length, int totalAffectedPages)
-            throws IOException;
+    long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length) throws IOException;
 
     /**
      * Asynchronously write the contents of the page given by the bufferAddress and the default length of the page buffer,

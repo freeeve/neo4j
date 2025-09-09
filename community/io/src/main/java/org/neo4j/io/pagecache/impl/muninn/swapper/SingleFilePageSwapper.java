@@ -340,13 +340,8 @@ class SingleFilePageSwapper implements PageSwapper {
     }
 
     @Override
-    public long write(
-            long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length, int totalAffectedPages)
+    public long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length)
             throws IOException {
-        if (totalAffectedPages == 0) {
-            return 0;
-        }
-
         try (Retry retry = new Retry()) {
             do {
                 try {

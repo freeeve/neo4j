@@ -2998,22 +2998,9 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                     evictionBouncer,
                     swappers)) {
                 @Override
-                public long write(
-                        long startFilePageId,
-                        long[] bufferAddresses,
-                        int[] bufferLengths,
-                        int length,
-                        int totalAffectedPages)
+                public long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length)
                         throws IOException {
-                    int flushedDataSize = 0;
-                    for (int i = 0; i < length; i++) {
-                        flushedDataSize += bufferLengths[i];
-                    }
-                    assertThat(totalAffectedPages * filePageSize)
-                            .describedAs(
-                                    "Number of affected pages multiplied by page size should be equal to size of buffers we want to flush")
-                            .isEqualTo(flushedDataSize);
-                    return super.write(startFilePageId, bufferAddresses, bufferLengths, length, totalAffectedPages);
+                    return super.write(startFilePageId, bufferAddresses, bufferLengths, length);
                 }
             };
         }

@@ -134,9 +134,8 @@ public class DelegatingPageSwapper implements PageSwapper {
     }
 
     @Override
-    public long write(
-            long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length, int totalAffectedPages)
+    public long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length)
             throws IOException {
-        return delegate.write(startFilePageId, bufferAddresses, bufferLengths, length, totalAffectedPages);
+        return delegate.write(startFilePageId, bufferAddresses, bufferLengths, length);
     }
 }
