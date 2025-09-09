@@ -67,6 +67,9 @@ public class CliDumper {
         String comAndParams = commandAndParams.append(SEPARATOR).toString();
 
         for (CommandLine.Model.OptionSpec os : spec.options()) {
+            if (os.hidden() && !includeHidden) {
+                continue;
+            }
             stringBuilder
                     .append(comAndParams)
                     .append(Arrays.toString(os.names()))
@@ -111,6 +114,9 @@ public class CliDumper {
         var params = spec.positionalParameters();
         StringBuilder paramOptions = new StringBuilder();
         for (CommandLine.Model.PositionalParamSpec param : params) {
+            if (param.hidden() && !includeHidden) {
+                continue;
+            }
             commandAndParams.append(param.paramLabel());
             commandAndParams.append(includeType ? " " + param.type().getSimpleName() : "");
             commandAndParams.append(param.hidden() && includeHidden ? " <HIDDEN>" : "");
