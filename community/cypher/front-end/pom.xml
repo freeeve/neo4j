@@ -38,6 +38,8 @@
 
   <modules>
     <module>ast</module>
+    <module>ast-test-util</module>
+    <module>ast-test</module>
     <module>rewriting</module>
     <module>frontend</module>
     <module>util</module>

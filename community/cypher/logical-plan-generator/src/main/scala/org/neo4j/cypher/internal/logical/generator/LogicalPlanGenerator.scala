@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.logical.generator
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.ASTAnnotationMap
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.generator.AstGenerator.zeroOrMore
 import org.neo4j.cypher.internal.ast.generator.SemanticAwareAstGenerator
 import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
@@ -39,13 +38,16 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.skipAndLimit.shouldPlanExhaustiveLimit
+import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext.Results
 import org.neo4j.cypher.internal.expressions.LabelName
+import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.logical.generator.LogicalPlanGenerator.State
 import org.neo4j.cypher.internal.logical.generator.LogicalPlanGenerator.WithState
@@ -91,6 +93,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.Cost
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PredicateHelper
 import org.neo4j.cypher.internal.util.RelTypeId
@@ -107,7 +110,7 @@ import org.scalacheck.Gen
 
 import scala.language.implicitConversions
 
-object LogicalPlanGenerator extends AstConstructionTestSupport {
+object LogicalPlanGenerator {
   case class WithState[+T](x: T, state: State)
 
   object State {
@@ -188,7 +191,7 @@ object LogicalPlanGenerator extends AstConstructionTestSupport {
       leafCardinalityMultipliersStack.headOption.getOrElse(Cardinality.SINGLE)
 
     def recordLabel(variable: Variable, label: String): State = {
-      val newLabels = labelInfo(variable) + LabelName(label)(pos)
+      val newLabels = labelInfo(variable) + LabelName(label)(InputPosition.NONE)
       copy(labelInfo = labelInfo.updated(variable, newLabels))
     }
   }
@@ -208,7 +211,7 @@ class LogicalPlanGenerator(
   costLimit: Cost,
   nodes: Seq[Node],
   rels: Seq[Relationship]
-) extends AstConstructionTestSupport {
+) {
 
   private val labels = labelsWithIds.keys.toVector
   private val relTypes = relTypesWithIds.keys.toVector
@@ -387,7 +390,8 @@ class LogicalPlanGenerator(
     state <- state.newNode(right)
     relIds <- Gen.someOf(relIds ++ Seq.fill(relIds.size)(StatementConstants.NO_SUCH_RELATIONSHIP))
   } yield {
-    val seekableArgs = ManySeekableArgs(listOfInt(relIds.toSeq: _*))
+    val relIdsLiteral = ListLiteral(relIds.view.map(literalInt).toSeq)(InputPosition.NONE)
+    val seekableArgs = ManySeekableArgs(relIdsLiteral)
     val plan =
       if (directed) {
         val p = DirectedRelationshipByIdSeek(idName, seekableArgs, left, right, Set.empty)(state.idGen)
@@ -582,7 +586,7 @@ class LogicalPlanGenerator(
     WithState(leftExpr, state) <- valueHashJoinExpression(left, state)
     WithState(rightExpr, state) <- valueHashJoinExpression(right, state)
   } yield {
-    val equalsExpr = equals(leftExpr, rightExpr)
+    val equalsExpr = Equals(leftExpr, rightExpr)(InputPosition.NONE)
     val plan = ValueHashJoin(left, right, equalsExpr)(state.idGen)
     annotate(plan, state)
   }
@@ -609,18 +613,19 @@ class LogicalPlanGenerator(
 
   private def label: Gen[LabelName] = for {
     name <- Gen.oneOf(labels)
-  } yield LabelName(name)(pos)
+  } yield LabelName(name)(InputPosition.NONE)
 
   private def optionalLabel: Gen[Option[LabelName]] = Gen.option(label)
 
   private def relTypeNames: Gen[Seq[RelTypeName]] = for {
     names <- zeroOrMore(relTypes)
     name <- names
-  } yield RelTypeName(name)(pos)
+  } yield RelTypeName(name)(InputPosition.NONE)
 
   def newVariable(state: State): Gen[WithState[Variable]] = {
     val name = s"var${state.varCount}"
-    Gen.const(WithState(varFor(name), state.incVarCount()))
+    val variable = Variable(name)(InputPosition.NONE, isIsolated = false)
+    Gen.const(WithState(variable, state.incVarCount()))
   }
 
   private def expressionList(
@@ -716,4 +721,7 @@ class LogicalPlanGenerator(
       Gen.oneOf(symbols).map(s => WithState(s, state))
     )
   }
+
+  final private def literalInt(value: Long): SignedDecimalIntegerLiteral =
+    SignedDecimalIntegerLiteral(value.toString)(InputPosition.NONE)
 }

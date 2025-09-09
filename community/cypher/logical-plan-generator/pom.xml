@@ -149,10 +149,9 @@
 
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-ast</artifactId>
+      <artifactId>neo4j-ast-test-util</artifactId>
       <version>${project.version}</version>
-      <type>test-jar</type>
-      <scope>compile</scope>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

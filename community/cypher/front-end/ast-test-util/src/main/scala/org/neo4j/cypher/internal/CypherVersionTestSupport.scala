@@ -76,3 +76,5 @@ trait CypherVersionTestSupport {
       withClue(s"CYPHER $v\n")(f(v))
     )
 }
+
+class CypherFunSuiteWithVersionTestSupport extends CypherFunSuite with CypherVersionTestSupport

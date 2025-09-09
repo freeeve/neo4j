@@ -60,13 +60,6 @@
             <version>${project.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>neo4j-test-util</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-
         <!-- scala -->
         <dependency>
             <groupId>org.scala-lang</groupId>
@@ -118,11 +111,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.scalactic</groupId>
-            <artifactId>scalactic_${scala.binary.version}</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest-compatible</artifactId>
             <scope>test</scope>
@@ -130,11 +118,6 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest-funsuite_${scala.binary.version}</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.scalatestplus</groupId>
-            <artifactId>scalacheck-1-16_${scala.binary.version}</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.scalacheck</groupId>
