@@ -583,7 +583,15 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
         }
 
         boolean exists(CursorContext context) {
-            return rootMappingCache.computeIfAbsent(dataRootKey, key -> getFromTree(key, context, () -> null)) != null;
+            var root = rootMappingCache.computeIfAbsent(dataRootKey, key -> getFromTree(key, context, () -> null));
+            if (root == null) {
+                return false;
+            }
+            if (root.root() == NULL_ROOT) {
+                // Let's read from the tree to see if there is something here and not just a stale cache value!
+                return getFromTree(dataRootKey, context, () -> null) != null;
+            }
+            return true;
         }
 
         @Override
