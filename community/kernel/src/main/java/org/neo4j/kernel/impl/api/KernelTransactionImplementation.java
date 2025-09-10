@@ -182,7 +182,9 @@ import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.enrichment.ApplyEnrichmentStrategy;
 import org.neo4j.storageengine.api.enrichment.CaptureMode;
+import org.neo4j.storageengine.api.enrichment.EnrichmentCommandFactory;
 import org.neo4j.storageengine.api.enrichment.EnrichmentMode;
+import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor;
 import org.neo4j.storageengine.api.txstate.TxStateVisitor.Decorator;
@@ -1336,7 +1338,7 @@ public class KernelTransactionImplementation
         return commandDecorator.transform(commands);
     }
 
-    private CommandDecorator commandDecorator(MemoryTracker commandsTracker) {
+    protected CommandDecorator commandDecorator(MemoryTracker commandsTracker) {
         final var mode = txState.enrichmentMode();
         if (namedDatabaseId.isSystemDatabase() || mode == EnrichmentMode.OFF || !txState.hasDataChanges()) {
             return tx -> enforceConstraints(tx, commandsTracker);
@@ -1347,7 +1349,7 @@ public class KernelTransactionImplementation
 
             @Override
             public TxStateVisitor apply(TxStateVisitor tx) {
-                enrichmentVisitor = new TxEnrichmentVisitor(
+                enrichmentVisitor = createTxStateEnrichmentVisitor(
                         enforceConstraints(tx, commandsTracker),
                         mode == EnrichmentMode.DIFF ? CaptureMode.DIFF : CaptureMode.FULL,
                         serverIdentity.serverId().shortName(),
@@ -1376,6 +1378,34 @@ public class KernelTransactionImplementation
                 return commands;
             }
         };
+    }
+
+    protected TxEnrichmentVisitor createTxStateEnrichmentVisitor(
+            TxStateVisitor parent,
+            CaptureMode captureMode,
+            String serverId,
+            KernelVersionProvider kernelVersionProvider,
+            EnrichmentCommandFactory enrichmentCommandFactory,
+            ReadableTransactionState txState,
+            Map<String, Object> userMetadata,
+            long lastTransactionIdWhenStarted,
+            StorageReader store,
+            CursorContext cursorContext,
+            StoreCursors storeCursors,
+            MemoryTracker memoryTracker) {
+        return new TxEnrichmentVisitor(
+                parent,
+                captureMode,
+                serverId,
+                kernelVersionProvider,
+                enrichmentCommandFactory,
+                txState,
+                userMetadata,
+                lastTransactionIdWhenStarted,
+                store,
+                cursorContext,
+                storeCursors,
+                memoryTracker);
     }
 
     // Because of current constraint creation dance we need to refresh context version to be able
@@ -1750,7 +1780,7 @@ public class KernelTransactionImplementation
         return statistics;
     }
 
-    protected TxStateVisitor enforceConstraints(TxStateVisitor txStateVisitor, MemoryTracker memoryTracker) {
+    private TxStateVisitor enforceConstraints(TxStateVisitor txStateVisitor, MemoryTracker memoryTracker) {
         return constraintSemantics.decorateTxStateVisitor(
                 storageReader,
                 kernelRead,
@@ -2040,7 +2070,7 @@ public class KernelTransactionImplementation
                 HeapEstimatorCacheConfig heapEstimatorCacheConfig);
     }
 
-    private interface CommandDecorator extends Decorator {
+    protected interface CommandDecorator extends Decorator {
         default List<StorageCommand> transform(List<StorageCommand> storageCommands) {
             // no enrichment is occurring
             return storageCommands;
