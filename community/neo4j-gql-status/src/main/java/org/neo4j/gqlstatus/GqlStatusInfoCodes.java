@@ -1999,9 +1999,9 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NBE(
             new GqlStatus("22NBE"),
-            "Invalid vector dimensions. The number of vector dimensions needs to be between { %s } and { %s }, but was { %s }.",
+            "Invalid vector dimensions. The number of vector dimensions must be between { %s } and { %s }, but is { %s }.",
             new GqlParams.GqlParam[] {
-                GqlParams.NumberParam.count, GqlParams.NumberParam.count1, GqlParams.NumberParam.count2
+                GqlParams.NumberParam.count1, GqlParams.NumberParam.count2, GqlParams.NumberParam.count3
             },
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2009,7 +2009,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NBF(
             new GqlStatus("22NBF"),
-            "Property value of type { %s } too big (more than { %s } bytes): { %s }",
+            "Property value of type { %s } is too big (more than { %s } bytes): { %s }",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.typeDescription, GqlParams.NumberParam.bytes, GqlParams.StringParam.value
             },

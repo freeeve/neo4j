@@ -1297,9 +1297,9 @@ public class InvalidArgumentException extends Neo4jException {
     public static InvalidArgumentException invalidVectorDimensions(
             int minDimensions, int maxDimensions, int givenDimensions) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NBE)
-                .withParam(GqlParams.NumberParam.count, minDimensions)
-                .withParam(GqlParams.NumberParam.count1, maxDimensions)
-                .withParam(GqlParams.NumberParam.count2, givenDimensions)
+                .withParam(GqlParams.NumberParam.count1, minDimensions)
+                .withParam(GqlParams.NumberParam.count2, maxDimensions)
+                .withParam(GqlParams.NumberParam.count3, givenDimensions)
                 .build();
         return new InvalidArgumentException(gql, gql.getMessage());
     }

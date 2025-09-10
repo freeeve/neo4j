@@ -181,6 +181,7 @@ public class GqlParams {
         count(new NONNEG()), // Amount
         count1(new NONNEG()),
         count2(new NONNEG()),
+        count3(new NONNEG()),
         countAllocs(new NUM()), // Desired number of servers to use
         countSeeders(new NUM()), // Number of seeding servers
         dim1(new NONNEG()), // Number representing index dimensionality
