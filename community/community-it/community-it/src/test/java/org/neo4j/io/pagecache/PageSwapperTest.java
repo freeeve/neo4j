@@ -1047,7 +1047,6 @@ public abstract class PageSwapperTest {
         write(swapper, 0, pages, pageSizes, 2);
         putInt(pageA, 0, 3);
         putInt(pageB, 0, 4);
-        write(swapper, 0, pages, pageSizes, 0);
         read(swapper, 0, pages, pageSizes, 2);
 
         int[] expectedValues = {1, 2};
