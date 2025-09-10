@@ -29,11 +29,6 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class DatabaseShutdownException extends GqlRuntimeException implements Status.HasStatus {
     private static final String MESSAGE = "This database is shutdown.";
 
-    @Deprecated
-    public DatabaseShutdownException() {
-        super(MESSAGE);
-    }
-
     private DatabaseShutdownException(ErrorGqlStatusObject gqlStatusObject) {
         super(gqlStatusObject, MESSAGE);
     }
