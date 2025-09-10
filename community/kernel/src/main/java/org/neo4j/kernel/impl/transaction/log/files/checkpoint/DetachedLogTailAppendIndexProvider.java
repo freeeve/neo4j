@@ -92,6 +92,12 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
                 LogPosition logFileStartPosition = getLogFileStartPosition(currentFileVersion, logVersion);
                 // if file does not even have header lets switch to the previous one
                 if (logFileStartPosition != null) {
+                    if (appendIndex == UNKNOWN_APPEND_INDEX) {
+                        // Header exist (and is cached) since we were able to figure out logFileStartPosition,
+                        // let's initiate appendIndex to the header last append index just in case we don't find any
+                        // entries at all.
+                        appendIndex = logFile.extractHeader(currentFileVersion).getLastAppendIndex();
+                    }
                     try (var reader =
                             logFile.getReader(logFileStartPosition, ReaderLogVersionBridge.forFile(logFile))) {
                         if (reader instanceof EnvelopeReadChannel envelopeReadChannel) {

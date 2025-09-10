@@ -157,12 +157,29 @@ class DetachedLogTailScannerTest {
 
     @ParameterizedTest
     @MethodSource("params")
-    void emptyLogFilesLastBatch(int startLogVersion, int endLogVersion) throws Exception {
+    void emptyLogFilesButHasHeaderLastBatch(int startLogVersion, int endLogVersion) throws Exception {
         setupLogFiles(endLogVersion, logFile());
 
         LogTailMetadata logTailInformation = logFiles.getTailMetadata();
         AppendBatchInfo lastBatch = logTailInformation.lastBatch();
         assertEquals(endLogVersion, lastBatch.logPositionAfter().getLogVersion());
+        assertEquals(
+                logFiles.getLogFile()
+                        .extractHeader(logFiles.getLogFile().getCurrentLogVersion())
+                        .getLastAppendIndex(),
+                lastBatch.appendIndex());
+    }
+
+    @ParameterizedTest
+    @MethodSource("params")
+    void emptyLogFilesWithoutHeaderLastBatch(int startLogVersion, int endLogVersion) throws Exception {
+        setupLogFiles(endLogVersion, logFile());
+        fs.truncate(
+                logFiles.getLogFile().getLogFileForVersion(logFiles.getLogFile().getCurrentLogVersion()), 0);
+
+        LogTailMetadata logTailInformation = logFiles.getTailMetadata();
+        AppendBatchInfo lastBatch = logTailInformation.lastBatch();
+        assertEquals(LogPosition.UNSPECIFIED, lastBatch.logPositionAfter());
         assertEquals(UNKNOWN_APPEND_INDEX, lastBatch.appendIndex());
     }
 
