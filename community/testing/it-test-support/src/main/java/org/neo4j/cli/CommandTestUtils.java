@@ -22,9 +22,15 @@ package org.neo4j.cli;
 import static java.lang.String.format;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Stream;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import picocli.CommandLine;
@@ -83,6 +89,25 @@ public class CommandTestUtils {
         });
     }
 
+    @FunctionalInterface
+    public interface TestCallable {
+        void call(CapturingExecutionContext ctx) throws Exception;
+    }
+
+    public static CapturingExecutionContext callWithSuppressedOutput(ExecutionContext ctx, TestCallable callable) {
+        var executionContext = capturingExecutionContext(ctx.homeDir(), ctx.confDir(), ctx.fs());
+        try {
+            callable.call(executionContext);
+            return executionContext;
+        } catch (Throwable e) {
+            throw new RuntimeException(
+                    format(
+                            "%nCaptured System.out:%n%s%nCaptured System.err:%n%s",
+                            executionContext.outAsString(), executionContext.errAsString()),
+                    e);
+        }
+    }
+
     /**
      * Runs the {@link AdminTool} with suppressed output.
      *
@@ -131,5 +156,55 @@ public class CommandTestUtils {
             err().flush();
             return rawErr.toString();
         }
+    }
+
+    // A collection of miscellaneous utils
+
+    /**
+     * Find the latest file in a directory, e.g. when searching a set of backups
+     *
+     * @param fs filesystem to use
+     * @param path to search
+     * @return the path of the latest file, or null if no files
+     * @throws IOException if there is an IO problem accessing the filesystem
+     */
+    public static Path latestFileInDirectory(FileSystemAbstraction fs, Path path) throws IOException {
+        var list = filesByTime(fs, path);
+        if (list.isEmpty()) {
+            return null;
+        }
+        return list.getLast();
+    }
+
+    /**
+     * The escaped (eg ' ' -> %20) version of a path string
+     * @param path to convert to an escaped string
+     * @return The escaped string (eg ' ' -> %20) from the input path
+     * @throws URISyntaxException
+     */
+    public static String escapedPath(String path) throws URISyntaxException {
+        return new URI(null, null, path, null).getRawPath();
+    }
+
+    /**
+     * Count the number of lines which contain the supplied string as a substring
+     * @param lines the stream of lines to search
+     * @param substring to look for
+     * @return n, where n is the number of lines which contain the supplied string as a substring
+     */
+    public static long containCount(Stream<String> lines, String substring) {
+        return lines.filter(s -> s.contains(substring)).count();
+    }
+
+    private static List<Path> filesByTime(FileSystemAbstraction fs, Path path) throws IOException {
+        var files = Arrays.asList(fs.listFiles(path));
+        files.sort((o1, o2) -> {
+            try {
+                return (int) (fs.lastModifiedTime(o1) - fs.lastModifiedTime(o2));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        return files;
     }
 }

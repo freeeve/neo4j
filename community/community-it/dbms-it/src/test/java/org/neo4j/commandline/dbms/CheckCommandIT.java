@@ -22,9 +22,12 @@ package org.neo4j.commandline.dbms;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.cli.AbstractAdminCommand.COMMAND_CONFIG_FILE_NAME_PATTERN;
+import static org.neo4j.cli.CommandTestUtils.containCount;
+import static org.neo4j.cli.CommandTestUtils.latestFileInDirectory;
 import static org.neo4j.cli.CommandTestUtils.withSuppressedOutput;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 
@@ -32,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashMap;
@@ -164,9 +168,10 @@ class CheckCommandIT {
                               --from-path-txn=<path> Path to the transactions directory, containing the transaction directory for the database
                                                        to source from.
                                                        Default: <config: server.directories.transaction.logs.root>
-                              --from-path=<path>     Path to the directory containing dump/backup artifacts that need to be checked for
-                                                       consistency. If the directory contains multiple backups, it will select the most recent
-                                                       backup chain, based on the transaction IDs found, to perform the consistency check.
+                              --from-path=<path>     Path to a backup file or a directory containing dump/backup artifacts.
+                                                       If the path is to a single file, that artifact is selected and checked for consistency.
+                                                       If a directory is provided, the tool selects the most recent backup chain
+                                                       (based on transaction IDs) within it and checks that chain for consistency.
                               --temp-path=<path>     Path to directory to be used as a staging area to extract dump/backup artifacts, if needed.
                                                        Default:  <from-path>""");
     }
@@ -415,6 +420,66 @@ class CheckCommandIT {
     }
 
     @Test
+    void checkDumpArtifact() throws IOException {
+        final var dump = testDirectory.directory("dump");
+
+        // Create 2 dumps - default, and another
+        createDump(dump);
+        Path firstDumpArtifact = latestFileInDirectory(filesytem, dump);
+
+        String altDBName = prepareDatabase(neo4jLayout.databaseLayout("altMyDB"));
+        createDump(dump, altDBName);
+        Path altDumpArtifact = latestFileInDirectory(filesytem, dump);
+
+        // Confirm that we successfully check the default DBdump, using the name of the dump file
+        withSuppressedOutput(homeDir, confPath, filesytem, ctx -> {
+            final var checkCommand = new CheckCommand(ctx);
+            CommandLine.populateCommand(checkCommand, "--from-path=" + dump.resolve(Path.of(dbName + ".dump")), dbName);
+            assertThatCode(checkCommand::execute).doesNotThrowAnyException();
+            assertThat(containCount(ctx.outAsString().lines(), expectedUndumpMessage(firstDumpArtifact)))
+                    .isEqualTo(1);
+            assertThat(containCount(ctx.outAsString().lines(), expectedUndumpMessage(altDumpArtifact)))
+                    .isEqualTo(0);
+        });
+
+        // Confirm that we successfully check the alternative DB, using the name of the database
+        withSuppressedOutput(homeDir, confPath, filesytem, ctx -> {
+            final var checkCommand = new CheckCommand(ctx);
+            CommandLine.populateCommand(checkCommand, "--from-path=" + dump, altDBName);
+            assertThatCode(checkCommand::execute).doesNotThrowAnyException();
+            assertThat(containCount(ctx.outAsString().lines(), expectedUndumpMessage(firstDumpArtifact)))
+                    .isEqualTo(0);
+            assertThat(containCount(ctx.outAsString().lines(), expectedUndumpMessage(altDumpArtifact)))
+                    .isEqualTo(1);
+        });
+
+        // Confirm that we successfully check the alternative DB, using the name of the dump file
+        withSuppressedOutput(homeDir, confPath, filesytem, ctx -> {
+            final var checkCommand = new CheckCommand(ctx);
+            CommandLine.populateCommand(
+                    checkCommand, "--from-path=" + dump.resolve(Path.of(altDBName + ".dump")), "ignored");
+            assertThatCode(checkCommand::execute).doesNotThrowAnyException();
+            assertThat(containCount(ctx.outAsString().lines(), expectedUndumpMessage(firstDumpArtifact)))
+                    .isEqualTo(0);
+            assertThat(containCount(ctx.outAsString().lines(), expectedUndumpMessage(altDumpArtifact)))
+                    .isEqualTo(1);
+        });
+
+        // Request check of file that does not have '.dump' extension - should refuse to check that
+        var nonexistentDBName = "nonexistentDB";
+        withSuppressedOutput(homeDir, confPath, filesytem, ctx -> {
+            final var checkCommand = new CheckCommand(ctx);
+            CommandLine.populateCommand(
+                    checkCommand, "--from-path=" + dump.resolve(Path.of(nonexistentDBName + ".dum")), "ignored");
+            Throwable thrown = catchThrowable(checkCommand::execute);
+            assertThat(thrown)
+                    .isInstanceOf(Exception.class)
+                    .hasMessageContaining("Failed to prepare for consistency check")
+                    .hasMessageContaining("Could not find a valid database, or dump");
+        });
+    }
+
+    @Test
     void checkStagingAreaGetsClearedAwayForDump() {
         final var dump = testDirectory.directory("dump");
         createDump(dump);
@@ -518,9 +583,13 @@ class CheckCommandIT {
     }
 
     private void createDump(Path dump) {
+        createDump(dump, dbName);
+    }
+
+    private void createDump(Path dump, final String dumpDBName) {
         withSuppressedOutput(homeDir, confPath, filesytem, ctx -> {
             final var dumpCommand = new DumpCommand(ctx);
-            CommandLine.populateCommand(dumpCommand, "--to-path=" + dump, dbName);
+            CommandLine.populateCommand(dumpCommand, "--to-path=" + dump, dumpDBName);
             assertThatCode(dumpCommand::execute).doesNotThrowAnyException();
         });
     }
@@ -670,5 +739,11 @@ class CheckCommandIT {
         void verifyArgument(Class<?> type, Object expectedValue) {
             assertArgument(type).isEqualTo(expectedValue);
         }
+    }
+
+    private static final String DUMP_PREFIX = "Loading dump from:";
+
+    private String expectedUndumpMessage(final Path path) throws URISyntaxException {
+        return DUMP_PREFIX + ' ' + path.toString();
     }
 }

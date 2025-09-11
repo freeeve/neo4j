@@ -120,8 +120,9 @@ public class CheckCommand extends AbstractAdminCommand {
             final var tempPath = (fromAndTemp.tempPath == null)
                     ? fromPath
                     : fromAndTemp.tempPath.toAbsolutePath().normalize();
+            final var tempDir = fs.isDirectory(tempPath) ? tempPath : tempPath.getParent();
 
-            return new PathSource(fromPath, tempPath);
+            return new PathSource(fromPath, tempDir);
         }
 
         private DataTxnSource toDataTxnSource() {
@@ -134,9 +135,12 @@ public class CheckCommand extends AbstractAdminCommand {
                     paramLabel = "<path>",
                     required = true,
                     description =
-                            "Path to the directory containing dump/backup artifacts that need to be checked for consistency. "
-                                    + "If the directory contains multiple backups, it will select the most recent backup chain, "
-                                    + "based on the transaction IDs found, to perform the consistency check. ")
+                            """
+                            Path to a backup file or a directory containing dump/backup artifacts.
+                              If the path is to a single file, that artifact is selected and checked for consistency.
+                              If a directory is provided, the tool selects the most recent backup chain
+                              (based on transaction IDs) within it and checks that chain for consistency.
+                            """)
             private String fromPath;
 
             @Option(

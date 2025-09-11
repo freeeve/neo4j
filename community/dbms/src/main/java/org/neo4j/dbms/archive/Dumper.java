@@ -78,6 +78,15 @@ public class Dumper {
         this.progressPrinter = createProgressPrinter(progressPrinter);
     }
 
+    /**
+     * Tells whether a given path is a valid dump (based on file extension)
+     * @param dump should be a dump
+     * @return <code>true</code> if the provided path is a dump
+     */
+    public static boolean isDumpFile(Path dump) {
+        return dump.toString().endsWith(DUMP_EXTENSION);
+    }
+
     public void dump(Path path, Path archive, CompressionFormat format) throws IOException {
         dump(path, path, openForDump(archive), format, Predicates.alwaysFalse());
     }

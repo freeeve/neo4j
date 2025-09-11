@@ -49,7 +49,11 @@ public class CheckDump implements CheckDatabase {
     @Override
     public boolean containsPotentiallyCheckableDatabase(
             FileSystemAbstraction fs, Source source, NormalizedDatabaseName database) {
-        return source instanceof final PathSource pathSource && fs.fileExists(dumpFile(pathSource.path, database));
+        if (source instanceof PathSource pathSource) {
+            Path dump = dumpFile(fs, pathSource.path, database);
+            return Dumper.isDumpFile(dump) && fs.fileExists(dump);
+        }
+        return false;
     }
 
     @Override
@@ -74,7 +78,7 @@ public class CheckDump implements CheckDatabase {
             throws IOException, IncorrectFormat {
         final var pathSource = Source.expected(PathSource.class, source);
 
-        final var dump = dumpFile(pathSource.path, database);
+        final var dump = dumpFile(fs, pathSource.path, database);
         final var loader = verbose ? new Loader(fs, logProvider) : new Loader(fs);
         checkDiskSpace(fs, dump, loader, force);
 
@@ -86,8 +90,12 @@ public class CheckDump implements CheckDatabase {
         loader.load(dump, targetLayout, false, false, DumpFormatSelector::decompress);
     }
 
-    private static Path dumpFile(Path directory, NormalizedDatabaseName database) {
-        return directory.resolve(database.name() + DUMP_EXTENSION);
+    private static Path dumpFile(FileSystemAbstraction fs, Path directoryOrFile, NormalizedDatabaseName database) {
+        if (fs.isDirectory(directoryOrFile)) {
+            return directoryOrFile.resolve(database.name() + DUMP_EXTENSION);
+        } else {
+            return directoryOrFile;
+        }
     }
 
     private void checkDiskSpace(FileSystemAbstraction fs, Path dump, Loader loader, boolean force) throws IOException {
