@@ -30,9 +30,9 @@ public abstract class OperatorProfileEvent implements AutoCloseable, KernelReadT
 
     public abstract void row();
 
-    public abstract void row(boolean hasRow);
-
     public abstract void rows(long n);
+
+    public abstract void indexHit(IndexDescriptor index);
 
     // AutoCloseable
 
@@ -74,6 +74,7 @@ public abstract class OperatorProfileEvent implements AutoCloseable, KernelReadT
     @Override
     public void onIndexSeek(IndexDescriptor index) {
         dbHit();
+        indexHit(index);
     }
 
     @Override

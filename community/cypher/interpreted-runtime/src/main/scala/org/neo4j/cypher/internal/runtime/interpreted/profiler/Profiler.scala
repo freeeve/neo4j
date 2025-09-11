@@ -425,21 +425,16 @@ final class ProfilingPipeQueryContext(
 
     override def row(): Unit = {}
 
-    override def row(hasRow: Boolean): Unit = {}
-
     override def rows(n: Long): Unit = {}
 
-    override def close(): Unit = {}
-
-    // direct calls to this method from ProfilingPipeQueryContext are all because the tracer is set *after* the call
-    // in DefaultValueIndexCursor.initializeQuery
-    override def onIndexSeek(index: IndexDescriptor): Unit = {
+    override def indexHit(index: IndexDescriptor): Unit = {
       indexSeeks.updateWith(index) {
         case Some(count) => Some(count + 1)
         case None        => Some(1)
       }
-      super.onIndexSeek(index)
     }
+
+    override def close(): Unit = {}
   }
 
   class ProfilerReadOperations[T, CURSOR](inner: ReadOperations[T, CURSOR])

@@ -20,10 +20,10 @@
 package org.neo4j.cypher.internal.profiling;
 
 import java.util.HashMap;
-import java.util.Map;
 import org.neo4j.cypher.internal.util.attribution.Id;
 import org.neo4j.cypher.result.OperatorProfile;
 import org.neo4j.cypher.result.QueryProfile;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.impl.query.statistic.StatisticProvider;
 
 public class ProfilingTracer implements QueryProfiler, QueryProfile {
@@ -35,7 +35,7 @@ public class ProfilingTracer implements QueryProfiler, QueryProfile {
 
     private final Clock clock;
     private final StatisticProvider statisticProvider;
-    private final Map<Integer, ProfilingTracerData> data = new HashMap<>();
+    private final HashMap<Integer, ProfilingTracerData> data = new HashMap<>();
 
     public ProfilingTracer(StatisticProvider statisticProvider) {
         this(Clock.SYSTEM_TIMER, statisticProvider);
@@ -91,15 +91,11 @@ public class ProfilingTracer implements QueryProfiler, QueryProfile {
 
     @Override
     public OperatorProfileEvent executeOperator(Id operatorId, boolean trackAll) {
-        ProfilingTracerData operatorData = this.data.get(operatorId.x());
-        if (operatorData == null) {
-            operatorData = new ProfilingTracerData();
-            this.data.put(operatorId.x(), operatorData);
-        }
+        ProfilingTracerData operatorData = this.data.computeIfAbsent(operatorId.x(), k -> new ProfilingTracerData());
         if (trackAll) {
-            return new TrackingExecutionEvent(clock, statisticProvider, operatorData, operatorId.x());
+            return new TrackingExecutionEvent(operatorData, clock, statisticProvider);
         } else {
-            return new ExecutionEvent(statisticProvider, operatorData, operatorId.x());
+            return new ExecutionEvent(operatorData);
         }
     }
 
@@ -110,15 +106,12 @@ public class ProfilingTracer implements QueryProfiler, QueryProfile {
 
     private static class ExecutionEvent extends OperatorProfileEvent {
         final ProfilingTracerData data;
-        final StatisticProvider statisticProvider;
         long hitCount;
         long rowCount;
-        int planId;
+        HashMap<IndexDescriptor, Integer> indexHits = new HashMap<>();
 
-        ExecutionEvent(StatisticProvider statisticProvider, ProfilingTracerData data, int planId) {
-            this.statisticProvider = statisticProvider;
+        ExecutionEvent(ProfilingTracerData data) {
             this.data = data;
-            this.planId = planId;
         }
 
         @Override
@@ -129,7 +122,9 @@ public class ProfilingTracer implements QueryProfiler, QueryProfile {
                     rowCount,
                     OperatorProfile.NO_DATA,
                     OperatorProfile.NO_DATA,
-                    OperatorProfile.NO_DATA);
+                    OperatorProfile.NO_DATA,
+                    indexHits.keySet().toArray(new IndexDescriptor[0]),
+                    indexHits.values().stream().mapToInt(v -> v).toArray());
         }
 
         @Override
@@ -148,27 +143,29 @@ public class ProfilingTracer implements QueryProfiler, QueryProfile {
         }
 
         @Override
-        public void row(boolean hasRow) {
-            if (hasRow) {
-                rowCount++;
-            }
+        public void rows(long n) {
+            rowCount += n;
         }
 
         @Override
-        public void rows(long n) {
-            rowCount += n;
+        public void indexHit(IndexDescriptor index) {
+            indexHits.put(index, indexHits.getOrDefault(index, 0) + 1);
         }
     }
 
     private static class TrackingExecutionEvent extends ExecutionEvent {
-        private final long start;
         private final Clock clock;
-        private long pageCountHitsStart;
-        private long pageCountMissesStart;
+        private final StatisticProvider statisticProvider;
 
-        TrackingExecutionEvent(Clock clock, StatisticProvider statisticProvider, ProfilingTracerData data, int planId) {
-            super(statisticProvider, data, planId);
+        private final long start;
+        private final long pageCountHitsStart;
+        private final long pageCountMissesStart;
+
+        TrackingExecutionEvent(ProfilingTracerData data, Clock clock, StatisticProvider statisticProvider) {
+            super(data);
             this.clock = clock;
+            this.statisticProvider = statisticProvider;
+
             this.start = clock.nanoTime();
             this.pageCountHitsStart = statisticProvider.getPageCacheHits();
             this.pageCountMissesStart = statisticProvider.getPageCacheMisses();
@@ -185,7 +182,9 @@ public class ProfilingTracer implements QueryProfiler, QueryProfile {
                     rowCount,
                     pageCacheHits - pageCountHitsStart,
                     pageCacheFaults - pageCountMissesStart,
-                    OperatorProfile.NO_DATA);
+                    OperatorProfile.NO_DATA,
+                    indexHits.keySet().toArray(new IndexDescriptor[0]),
+                    indexHits.values().stream().mapToInt(v -> v).toArray());
         }
     }
 }

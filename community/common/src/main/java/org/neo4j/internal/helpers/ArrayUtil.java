@@ -152,7 +152,7 @@ public final class ArrayUtil {
     }
 
     /**
-     * Create a array from a existing array and additional items following it.
+     * Create an array from an existing array and additional items following it.
      *
      * @param initial the initial array
      * @param additional the additional items that would be added into the initial array
@@ -186,6 +186,27 @@ public final class ArrayUtil {
         T[] result = Arrays.copyOf(initial, length);
         int offset = initial.length;
         for (T[] array : additional) {
+            System.arraycopy(array, 0, result, offset, array.length);
+            offset += array.length;
+        }
+        return result;
+    }
+
+    /**
+     * Create a single int array from many int arrays.
+     *
+     * @param initial an initial int array
+     * @param additional additional int arrays to be concatenated with the initial int array
+     * @return the concatenated int array
+     */
+    public static int[] concatArrays(int[] initial, int[]... additional) {
+        int length = initial.length;
+        for (int[] array : additional) {
+            length += array.length;
+        }
+        int[] result = Arrays.copyOf(initial, length);
+        int offset = initial.length;
+        for (int[] array : additional) {
             System.arraycopy(array, 0, result, offset, array.length);
             offset += array.length;
         }

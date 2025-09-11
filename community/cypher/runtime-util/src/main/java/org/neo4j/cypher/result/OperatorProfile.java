@@ -21,6 +21,7 @@ package org.neo4j.cypher.result;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.neo4j.internal.schema.IndexDescriptor;
 
 /**
@@ -58,8 +59,14 @@ public interface OperatorProfile {
      */
     long maxAllocatedMemory();
 
+    /**
+     * The set of indexes used while executing this operator.
+     */
     IndexDescriptor[] indexesUsed();
 
+    /**
+     * The number of times each index was used while executing this operator.
+     */
     int[] indexUseCount();
 
     long NO_DATA = -1L;
@@ -100,13 +107,15 @@ public interface OperatorProfile {
 
     static String toString(OperatorProfile self) {
         return String.format(
-                "Operator Profile { time: %d, dbHits: %d, rows: %d, page cache hits: %d, page cache misses: %d, max allocated: %d }",
+                "Operator Profile { time: %d, dbHits: %d, rows: %d, page cache hits: %d, page cache misses: %d, max allocated: %d, indexes used: %s, index use count: %s }",
                 self.time(),
                 self.dbHits(),
                 self.rows(),
                 self.pageCacheHits(),
                 self.pageCacheMisses(),
-                self.maxAllocatedMemory());
+                self.maxAllocatedMemory(),
+                Arrays.stream(self.indexesUsed()).map(IndexDescriptor::getName).collect(Collectors.joining(",")),
+                Arrays.stream(self.indexUseCount()).mapToObj(String::valueOf).collect(Collectors.joining(",")));
     }
 
     class ConstOperatorProfile implements OperatorProfile {
@@ -117,6 +126,8 @@ public interface OperatorProfile {
         private final long pageCacheHits;
         private final long pageCacheMisses;
         private final long maxAllocatedMemory;
+        private final IndexDescriptor[] indexesUsed = new IndexDescriptor[0];
+        private final int[] indexUseCount = new int[0];
 
         ConstOperatorProfile(long value) {
             this(value, value, value, value, value, value);
@@ -164,12 +175,12 @@ public interface OperatorProfile {
 
         @Override
         public IndexDescriptor[] indexesUsed() {
-            return new IndexDescriptor[0];
+            return indexesUsed;
         }
 
         @Override
         public int[] indexUseCount() {
-            return new int[0];
+            return indexUseCount;
         }
 
         @Override

@@ -23,6 +23,8 @@ import org.mockito.Answers
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.result.OperatorProfile
+import org.neo4j.internal.schema.IndexPrototype
+import org.neo4j.internal.schema.SchemaDescriptors
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer
 import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer
@@ -180,6 +182,33 @@ class ProfilingTracerTest extends CypherFunSuite {
 
     val information = tracer.operatorProfile(operatorId.x)
     information.pageCacheMisses() should equal(17)
+  }
+
+  test("report index usage as part of profiling statistics") {
+    val operatorId = id
+    val tracer = new ProfilingTracer(NoKernelStatisticProvider)
+    val event = tracer.executeOperator(operatorId)
+    val index1 = IndexPrototype.forSchema(SchemaDescriptors.forLabel(1, 1)).withName("index1").materialise(1)
+    val index2 = IndexPrototype.forSchema(SchemaDescriptors.forLabel(2, 2)).withName("index2").materialise(2)
+
+    event.indexHit(index1)
+    event.indexHit(index1)
+    event.indexHit(index2)
+    event.close()
+
+    val information = tracer.operatorProfile(operatorId.x)
+    information.indexesUsed() should equal(Array(index1, index2))
+    information.indexUseCount() should equal(Array(2, 1))
+  }
+
+  test("report zero index usage as part of profiling statistics") {
+    val operatorId = id
+    val tracer = new ProfilingTracer(NoKernelStatisticProvider)
+    tracer.executeOperator(operatorId).close() // no profiling sent
+
+    val information = tracer.operatorProfile(operatorId.x)
+    information.indexesUsed() should equal(Array.empty)
+    information.indexUseCount() should equal(Array.empty)
   }
 
   class DelegatingKernelStatisticProvider(tracer: DefaultPageCursorTracer) extends StatisticProvider {

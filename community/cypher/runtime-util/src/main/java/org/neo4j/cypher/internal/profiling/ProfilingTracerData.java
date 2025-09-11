@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.profiling;
 
+import java.util.HashMap;
 import org.neo4j.cypher.result.OperatorProfile;
 import org.neo4j.internal.schema.IndexDescriptor;
 
@@ -29,15 +30,31 @@ public class ProfilingTracerData implements OperatorProfile {
     private long pageCacheHits;
     private long pageCacheMisses;
     private long maxAllocatedMemory;
+    private final HashMap<IndexDescriptor, Integer> indexHits = new HashMap<>();
 
     public void update(
-            long time, long dbHits, long rows, long pageCacheHits, long pageCacheMisses, long maxAllocatedMemory) {
+            long time,
+            long dbHits,
+            long rows,
+            long pageCacheHits,
+            long pageCacheMisses,
+            long maxAllocatedMemory,
+            IndexDescriptor[] indexesUsed,
+            int[] indexUseCount) {
         this.time += time;
         this.dbHits += dbHits;
         this.rows += rows;
         this.pageCacheHits += pageCacheHits;
         this.pageCacheMisses += pageCacheMisses;
         this.maxAllocatedMemory += maxAllocatedMemory;
+
+        if (indexesUsed != null && indexUseCount != null) {
+            IndexDescriptor index;
+            for (int i = 0; i < indexesUsed.length; i++) {
+                index = indexesUsed[i];
+                this.indexHits.put(index, this.indexHits.getOrDefault(index, 0) + indexUseCount[i]);
+            }
+        }
     }
 
     @Override
@@ -72,14 +89,12 @@ public class ProfilingTracerData implements OperatorProfile {
 
     @Override
     public IndexDescriptor[] indexesUsed() {
-        // TODO: implement index usage tracking in pipelined
-        return new IndexDescriptor[0];
+        return this.indexHits.keySet().toArray(new IndexDescriptor[0]);
     }
 
     @Override
     public int[] indexUseCount() {
-        // TODO: implement index usage tracking in pipelined
-        return new int[0];
+        return this.indexHits.values().stream().mapToInt(Integer::intValue).toArray();
     }
 
     public void sanitize() {
