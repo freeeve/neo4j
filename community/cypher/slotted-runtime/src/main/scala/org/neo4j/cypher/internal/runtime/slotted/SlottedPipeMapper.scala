@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal
 import org.neo4j.cypher.internal.ast.semantics.TokenTable
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.ir.CreateNode
 import org.neo4j.cypher.internal.ir.CreatePattern
@@ -82,7 +81,6 @@ import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
-import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.AllowSameNode
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.DisallowSameNode
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
@@ -1293,7 +1291,8 @@ class SlottedPipeMapper(
           perStepRelPredicates,
           pathPredicates,
           withFallBack,
-          sameNodeMode
+          sameNodeMode,
+          traversalMode
         ) =>
         val rel = shortestPathPattern.expr.element match {
           case internal.expressions.RelationshipChain(_, relationshipPattern, _) =>
@@ -1327,10 +1326,6 @@ class SlottedPipeMapper(
           case _    => (false, None)
         }
 
-        if (!allowZeroLength && sameNodeMode == AllowSameNode && rel.direction == SemanticDirection.BOTH) {
-          throw new IllegalArgumentException("We don't allow -[*1..]- for AllowSameNode")
-        }
-
         val predicates = TraversalPredicates.create(
           perStepNodePredicates,
           perStepRelPredicates,
@@ -1355,6 +1350,7 @@ class SlottedPipeMapper(
           allowZeroLength = allowZeroLength,
           maxDepth = maxDepth,
           needOnlyOnePath = single && !withFallBack,
+          traversalMode = traversalMode,
           slots = slots
         )(id)
 

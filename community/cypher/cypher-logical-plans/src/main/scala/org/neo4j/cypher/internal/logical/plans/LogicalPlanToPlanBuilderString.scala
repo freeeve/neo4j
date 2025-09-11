@@ -484,7 +484,8 @@ object LogicalPlanToPlanBuilderString {
           relationshipPredicates,
           pathPredicates,
           withFallBack,
-          sameNodeMode
+          sameNodeMode,
+          traversalPathMode
         ) =>
         val lenStr = length match {
           case VarPatternLength(min, max) => s"*$min..${max.getOrElse("")}"
@@ -500,7 +501,8 @@ object LogicalPlanToPlanBuilderString {
           "relationshipPredicates" -> relationshipPredicates,
           "pathPredicates" -> conditional(pathPredicates.nonEmpty)(seqParam(pathPredicates)(_.quoted)),
           "withFallback" -> conditional(withFallBack)(true),
-          "sameNodeMode" -> objectName(sameNodeMode)
+          "sameNodeMode" -> objectName(sameNodeMode),
+          "traversalPathMode" -> objectName(traversalPathMode)
         )
 
       case StatefulShortestPath(

@@ -22,6 +22,8 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.DisallowSameNode
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.SameNodeMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
@@ -32,7 +34,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.ShortestPathCommonEndNodesForbiddenException.shortestPathCommonEndNodes
-import org.neo4j.internal.kernel.api.helpers.traversal.BiDirectionalBFS
+import org.neo4j.internal.kernel.api.helpers.traversal.ShortestPathBFSFactory
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualPathValue
 import org.neo4j.values.virtual.VirtualValues
@@ -51,7 +53,8 @@ case class ShortestPathPipe(
   sameNodeMode: SameNodeMode,
   allowZeroLength: Boolean,
   maxDepth: Option[Int],
-  needOnlyOnePath: Boolean
+  needOnlyOnePath: Boolean,
+  traversalMode: TraversalPathMode
 )(val id: Id = Id.INVALID_ID)
     extends PipeWithSource(source) {
   self =>
@@ -71,19 +74,6 @@ case class ShortestPathPipe(
       val traversalCursor = state.query.traversalCursor()
       state.query.resources.trace(traversalCursor)
 
-      // Create empty BiDirectionalBFS here and (re)set with source/target nodes and predicates for each row below.
-      val biDirectionalBFS = BiDirectionalBFS.newEmptyBiDirectionalBFS(
-        types.types(state.query),
-        toGraphDb(direction),
-        maxDepth.getOrElse(Int.MaxValue),
-        returnOneShortestPathOnly,
-        state.query.transactionalContext.dataRead,
-        nodeCursor,
-        traversalCursor,
-        memoryTracker,
-        needOnlyOnePath,
-        allowZeroLength
-      )
       val pathPredicate = pathPredicates.foldLeft(True(): commands.predicates.Predicate)(_.andWith(_))
       val output = input.flatMap {
         row =>
@@ -97,15 +87,25 @@ case class ShortestPathPipe(
                   if (sameNodeMode.shouldReturnEmptyResult(sourceNode.id(), targetNode.id(), allowZeroLength)) {
                     ClosingIterator.empty
                   } else {
-
-                    biDirectionalBFS.resetForNewRow(
+                    val bfs = ShortestPathBFSFactory.create(
                       sourceNode.id(),
                       targetNode.id(),
+                      types.types(state.query),
+                      toGraphDb(direction),
+                      maxDepth.getOrElse(Int.MaxValue),
+                      state.query.transactionalContext.dataRead,
+                      nodeCursor,
+                      traversalCursor,
+                      memoryTracker,
                       filteringStep.asNodeIdPredicate(row, state),
-                      filteringStep.asRelCursorPredicate(row, state)
+                      filteringStep.asRelCursorPredicate(row, state),
+                      returnOneShortestPathOnly,
+                      allowZeroLength,
+                      needOnlyOnePath,
+                      traversalMode == Walk
                     )
 
-                    val shortestPaths = biDirectionalBFS.shortestPathIterator()
+                    val shortestPaths = bfs.shortestPathIterator()
 
                     val outputRows = ClosingIterator.asClosingIterator(shortestPaths).map {
                       (path: VirtualPathValue) =>
@@ -114,7 +114,7 @@ case class ShortestPathPipe(
 
                     }.filter {
                       r => pathPredicate.isTrue(r, state)
-                    }
+                    }.closing(bfs)
 
                     if (returnOneShortestPathOnly) {
                       if (outputRows.hasNext) {
@@ -148,7 +148,7 @@ case class ShortestPathPipe(
             }
           }
       }
-      output.closing(traversalCursor).closing(nodeCursor).closing(biDirectionalBFS)
+      output.closing(traversalCursor).closing(nodeCursor)
     }
   }
 }

@@ -33,7 +33,7 @@ import org.neo4j.exceptions.SyntaxException
 import org.neo4j.function.Predicates
 import org.neo4j.graphdb.NotFoundException
 import org.neo4j.graphdb.Relationship
-import org.neo4j.internal.kernel.api.helpers.traversal.BiDirectionalBFS
+import org.neo4j.internal.kernel.api.helpers.traversal.ShortestPathBFSFactory
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
@@ -80,13 +80,12 @@ case class ShortestPathExpression(
     val nodeCursor = state.query.nodeCursor()
     val traversalCursor = state.query.traversalCursor()
 
-    val biDirectionalBFS = BiDirectionalBFS.newEmptyBiDirectionalBFS(
+    val bfs = ShortestPathBFSFactory.create(
       sourceNodeId,
       targetNodeId,
       types.types(state.query),
       toGraphDb(shortestPathPattern.dir),
       shortestPathPattern.maxDepth.getOrElse(Int.MaxValue),
-      shortestPathPattern.single,
       state.query.transactionalContext.dataRead,
       nodeCursor,
       traversalCursor,
@@ -94,9 +93,11 @@ case class ShortestPathExpression(
       Predicates.ALWAYS_TRUE_LONG,
       Predicates.alwaysTrue(),
       shortestPathPattern.single,
-      true
+      shortestPathPattern.allowZeroLength,
+      shortestPathPattern.single,
+      false
     )
-    val shortestPathIterator = biDirectionalBFS.shortestPathIterator()
+    val shortestPathIterator = bfs.shortestPathIterator()
 
     val matches =
       if (shortestPathPattern.single) {
@@ -107,7 +108,7 @@ case class ShortestPathExpression(
       } else {
         VirtualValues.list(shortestPathIterator.asScala.toList: _*)
       }
-    biDirectionalBFS.close()
+    bfs.close()
     nodeCursor.close()
     traversalCursor.close()
     matches

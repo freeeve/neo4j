@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.cypher.GraphDatabaseFunSuite
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.ImplicitValueConversion.toNodeValue
 import org.neo4j.cypher.internal.runtime.interpreted.QueryStateTestSupport
@@ -49,7 +50,8 @@ class PathExpressionTest extends GraphDatabaseFunSuite with QueryStateTestSuppor
       allowZeroLength = false,
       maxDepth = None,
       single = true,
-      relIterator = None
+      relIterator = None,
+      pathMode = Trail
     )
 
     val expression = ShortestPathExpression(pattern, disallowSameNode = true)

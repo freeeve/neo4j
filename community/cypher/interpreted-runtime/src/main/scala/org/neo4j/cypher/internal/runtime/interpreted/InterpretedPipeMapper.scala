@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
-import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage.toKernelScope
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.CreatePattern
@@ -92,7 +91,6 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
-import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.AllowSameNode
 import org.neo4j.cypher.internal.logical.plans.Foreach
 import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -1585,7 +1583,8 @@ case class InterpretedPipeMapper(
           perStepRelPredicates,
           pathPredicates,
           withFallBack,
-          sameNodeMode
+          sameNodeMode,
+          traversalMode
         ) =>
         val single = shortestPathPattern.expr.single
 
@@ -1610,10 +1609,6 @@ case class InterpretedPipeMapper(
           case _    => (false, None)
         }
 
-        if (!allowZeroLength && sameNodeMode == AllowSameNode && rel.direction == SemanticDirection.BOTH) {
-          throw new IllegalArgumentException("We don't allow -[*1..]- for AllowSameNode")
-        }
-
         val pathName = shortestPathPattern.maybePathVar.map(_.name).getOrElse(anonymousVariableNameGenerator.nextName)
         ShortestPathPipe(
           source,
@@ -1629,7 +1624,8 @@ case class InterpretedPipeMapper(
           sameNodeMode,
           allowZeroLength,
           maxDepth,
-          single && !withFallBack
+          single && !withFallBack,
+          traversalMode
         )(id)
 
       case StatefulShortestPath(

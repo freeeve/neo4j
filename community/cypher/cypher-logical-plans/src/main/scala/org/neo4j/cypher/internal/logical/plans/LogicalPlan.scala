@@ -68,6 +68,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan.safeGet
 import org.neo4j.cypher.internal.logical.plans.Prober.Probe
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.LengthBounds
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable
@@ -2727,7 +2728,8 @@ case class FindShortestPaths(
   perStepRelPredicates: Seq[VariablePredicate] = Seq.empty,
   pathPredicates: Seq[Expression] = Seq.empty,
   withFallBack: Boolean = false,
-  sameNodeMode: SameNodeMode = DisallowSameNode
+  sameNodeMode: SameNodeMode = DisallowSameNode,
+  pathMode: TraversalPathMode = Trail
 )(implicit idGen: IdGen)
     extends LogicalUnaryPlan(idGen) {
 

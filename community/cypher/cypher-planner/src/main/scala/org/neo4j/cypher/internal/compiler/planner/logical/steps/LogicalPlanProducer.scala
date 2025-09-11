@@ -278,6 +278,7 @@ import org.neo4j.cypher.internal.logical.plans.TransactionApply
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
 import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.logical.plans.TriadicSelection
 import org.neo4j.cypher.internal.logical.plans.UndirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByElementIdSeek
@@ -3097,7 +3098,8 @@ case class LogicalPlanProducer(
         rewrittenRelationshipPredicates.toSeq,
         rewrittenPathPredicates.toSeq,
         withFallBack,
-        if (disallowSameNode) DisallowSameNode else SkipSameNode
+        if (disallowSameNode) DisallowSameNode else SkipSameNode,
+        Trail
       ),
       solved,
       ProvidedOrder.Left,

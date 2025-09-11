@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.runtime.slotted.pipes
 
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.SameNodeMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.physicalplanning.Slot
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationUtils.makeGetPrimitiveNodeFromSlotFunctionFor
@@ -37,7 +39,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.RelationshipTypes
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TraversalPredicates
 import org.neo4j.cypher.internal.runtime.slotted.SlottedRow
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.internal.kernel.api.helpers.traversal.BiDirectionalBFS
+import org.neo4j.internal.kernel.api.helpers.traversal.ShortestPathBFSFactory
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.values.virtual.VirtualValues
 
@@ -58,6 +60,7 @@ case class ShortestPathSlottedPipe(
   allowZeroLength: Boolean,
   maxDepth: Option[Int],
   needOnlyOnePath: Boolean,
+  traversalMode: TraversalPathMode,
   slots: SlotConfiguration
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) with Pipe {
   self =>
@@ -76,19 +79,6 @@ case class ShortestPathSlottedPipe(
     val traversalCursor = state.query.traversalCursor()
     state.query.resources.trace(traversalCursor)
 
-    // Create empty BiDirectionalBFS here and (re)set with source/target nodes and predicates for each row below.
-    val biDirectionalBFS = BiDirectionalBFS.newEmptyBiDirectionalBFS(
-      types.types(state.query),
-      toGraphDb(dir),
-      maxDepth.getOrElse(Int.MaxValue),
-      returnOneShortestPathOnly,
-      state.query.transactionalContext.dataRead,
-      nodeCursor,
-      traversalCursor,
-      memoryTracker,
-      needOnlyOnePath,
-      allowZeroLength
-    )
     val pathPredicate = pathPredicates.foldLeft(True(): commands.predicates.Predicate)(_.andWith(_))
     val output = input.flatMap {
       row =>
@@ -104,15 +94,26 @@ case class ShortestPathSlottedPipe(
             if (sameNodeMode.shouldReturnEmptyResult(sourceNode, targetNode, allowZeroLength)) {
               ClosingIterator.empty
             } else {
-              biDirectionalBFS.resetForNewRow(
+              val bfs = ShortestPathBFSFactory.create(
                 sourceNode,
                 targetNode,
+                types.types(state.query),
+                toGraphDb(dir),
+                maxDepth.getOrElse(Int.MaxValue),
+                state.query.transactionalContext.dataRead,
+                nodeCursor,
+                traversalCursor,
+                memoryTracker,
                 predicates.asNodeIdPredicate(row, state),
-                predicates.asRelCursorPredicate(row, state)
+                predicates.asRelCursorPredicate(row, state),
+                returnOneShortestPathOnly,
+                allowZeroLength,
+                needOnlyOnePath,
+                traversalMode == Walk
               )
 
               ClosingIterator.asClosingIterator {
-                val shortestPaths = biDirectionalBFS.shortestPathIterator().asScala
+                val shortestPaths = bfs.shortestPathIterator().asScala
                   .map { path =>
                     val rels = VirtualValues.list(path.relationshipIds().map(VirtualValues.relationship): _*)
 
@@ -128,13 +129,13 @@ case class ShortestPathSlottedPipe(
                 } else {
                   shortestPaths
                 }
-              }
+              }.closing(bfs)
             }
           } else {
             ClosingIterator.empty
           }
         }
     }
-    output.closing(traversalCursor).closing(nodeCursor).closing(biDirectionalBFS)
+    output.closing(traversalCursor).closing(nodeCursor)
   }
 }

@@ -25,8 +25,10 @@ import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
+import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.AllowSameNode
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.options.CypherRuntimeOption.slotted
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
@@ -504,6 +506,155 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
     a[MemoryLimitExceededException] should be thrownBy {
       consume(execute(logicalQuery, runtime, input))
     }
+  }
+
+  test("should kill shortest undirected multiloop before it runs out of memory") {
+    assume(!isParallel)
+    // given a circle graph with 10 relations to each neighbour (except for start node)
+    val start = givenGraph {
+      val nodes = nodeGraph(10)
+      val start = nodes.head
+      start.createRelationshipTo(nodes(1), RelationshipType.withName("R"))
+      start.createRelationshipTo(nodes(nodes.size - 1), RelationshipType.withName("R"))
+      for (i <- 1 until nodes.size - 1) {
+        val from = nodes(i)
+        val to = nodes(i + 1)
+        for (_ <- 1 to 10) {
+          from.createRelationshipTo(to, RelationshipType.withName("R"))
+        }
+      }
+      start
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .shortestPath("(x)-[r*1..]-(x)", pathName = Some("path"), all = true, sameNodeMode = AllowSameNode)
+      .allNodeScan("x")
+      .build()
+
+    // then
+    a[MemoryLimitExceededException] should be thrownBy {
+      consume(execute(logicalQuery, runtime))
+    }
+  }
+
+  test("should kill shortest single directed loop before it runs out of memory") {
+    assume(!isParallel)
+    // given
+    givenGraph(
+      circleGraph(1000)
+    )
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .shortestPath("(x)-[r*1..]->(x)", pathName = Some("path"), sameNodeMode = AllowSameNode)
+      .allNodeScan("x")
+      .build()
+    // Needed because fused directed shortest is too memory efficient...
+    getConfig.setDynamic(GraphDatabaseSettings.memory_transaction_max_size, Long.box(ByteUnit.mebiBytes(1)), "Test")
+    restartTx()
+    // then
+    a[MemoryLimitExceededException] should be thrownBy {
+      consume(execute(logicalQuery, runtime))
+    }
+  }
+
+  test("should kill shortest multiloop in walkmode before it runs out of memory") {
+    assume(!isParallel)
+    // given
+    val start = givenGraph {
+      val nodes = nodeGraph(10)
+      val start = nodes.head
+      for (i <- 1 until nodes.size - 1) {
+        val to = nodes(i)
+        for (_ <- 1 to 1000) {
+          start.createRelationshipTo(to, RelationshipType.withName("R"))
+        }
+      }
+      start
+    }
+
+    getConfig.setDynamic(GraphDatabaseSettings.memory_transaction_max_size, Long.box(ByteUnit.mebiBytes(1)), "Test")
+    restartTx()
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .shortestPath(
+        "(x)-[r*1..]-(x)",
+        pathName = Some("path"),
+        all = true,
+        sameNodeMode = AllowSameNode,
+        traversalPathMode = Walk
+      )
+      .allNodeScan("x")
+      .build()
+
+    // then
+    a[MemoryLimitExceededException] should be thrownBy {
+      consume(execute(logicalQuery, runtime))
+    }
+  }
+
+  test("shortest single undirected should not run out of memory") {
+    assume(!isParallel)
+    // given
+    givenGraph(nodeGraph(10000))
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .shortestPath("(x)-[r*1..]-(x)", pathName = Some("path"), sameNodeMode = AllowSameNode)
+      .allNodeScan("x")
+      .build()
+
+    // then
+    consume(execute(logicalQuery, runtime))
+  }
+
+  test("shortest single directed should not run out of memory") {
+    assume(!isParallel)
+    // given
+    givenGraph(nodeGraph(10000))
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .shortestPath("(x)-[r*1..]->(x)", pathName = Some("path"), sameNodeMode = AllowSameNode)
+      .allNodeScan("x")
+      .build()
+
+    // then
+    consume(execute(logicalQuery, runtime))
+  }
+
+  test("shortest multi undirected loop should not run out of memory") {
+    assume(!isParallel)
+    // given
+    givenGraph(nodeGraph(10000))
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .shortestPath("(x)-[r*1..]-(x)", pathName = Some("path"), sameNodeMode = AllowSameNode, all = true)
+      .allNodeScan("x")
+      .build()
+
+    // then
+    consume(execute(logicalQuery, runtime))
+  }
+
+  test("shortest multi undirected loop in walkmode should not run out of memory") {
+    assume(!isParallel)
+    // given
+    givenGraph(nodeGraph(10000))
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .shortestPath(
+        "(x)-[r*1..]-(x)",
+        pathName = Some("path"),
+        sameNodeMode = AllowSameNode,
+        all = true,
+        traversalPathMode = Walk
+      )
+      .allNodeScan("x")
+      .build()
+
+    // then
+    consume(execute(logicalQuery, runtime))
   }
 
   test("should not kill top query with low limit") {

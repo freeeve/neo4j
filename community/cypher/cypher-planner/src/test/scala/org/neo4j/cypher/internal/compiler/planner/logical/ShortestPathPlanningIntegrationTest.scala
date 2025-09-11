@@ -5173,7 +5173,8 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
           pathName = Some("anon_3"),
           nodePredicates = Seq(),
           relationshipPredicates = Seq(VariablePredicate(varFor("anon_0"), relPredicate)),
-          sameNodeMode = AllowSameNode
+          sameNodeMode = AllowSameNode,
+          traversalPathMode = Walk
         )
         .cartesianProduct()
         .|.nodeIndexOperator(

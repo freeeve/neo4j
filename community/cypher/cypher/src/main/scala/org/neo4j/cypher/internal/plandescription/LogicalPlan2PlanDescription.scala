@@ -2203,6 +2203,7 @@ case class LogicalPlan2PlanDescription(
           relPredicates,
           pathPredicates,
           _,
+          _,
           _
         ) =>
         val patternRelationshipInfo =

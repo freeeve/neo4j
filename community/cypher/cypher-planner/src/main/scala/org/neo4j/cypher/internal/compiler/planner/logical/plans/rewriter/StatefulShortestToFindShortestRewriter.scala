@@ -34,7 +34,6 @@ import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.RelationshipUniquenessPredicate
 import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.VarLengthBound
@@ -129,16 +128,13 @@ case class StatefulShortestToFindShortestRewriter(
   /**
    * This method checks if the VarLengthPattern is able to be used in a findShortestPaths.
    * - It can only contain one quantified relationship.
-   * - It must contain a VarPatternLength that is NOT Undirected with a min patternlength larger than 0.
    */
   private def isVarlengthWithValidLength(patternRelationships: Seq[PatternRelationship])
     : Option[PatternRelationship] = {
     exactlyOne(patternRelationships).filter(patternRelationship =>
       patternRelationship.length match {
-        case VarPatternLength(min, _) =>
-          !(min != 0 && //    4.1 Minimum bound is larger 0
-            patternRelationship.dir == BOTH) //    4.2  and relationship is not directed.
-        case _ => false
+        case VarPatternLength(_, _) => true
+        case _                      => false
       }
     )
   }
@@ -202,7 +198,8 @@ case class StatefulShortestToFindShortestRewriter(
         relationshipPredicates.toSeq,
         Seq.empty,
         withFallBack = false,
-        AllowSameNode
+        AllowSameNode,
+        statefulShortestPath.pathMode
       )(SameId(statefulShortestPath.id)))
     } else {
       None
@@ -234,10 +231,7 @@ case class StatefulShortestToFindShortestRewriter(
    * - The relationship must NOT be undirected when the minimum repetition is larger than 0.
    */
   private def isValidQpp(qpp: QuantifiedPathPattern): Boolean =
-    qpp.patternRelationships.size == 1 &&
-      !(qpp.patternRelationships.exists(_.dir == BOTH) &&
-        qpp.repetition.min != 0) &&
-      qpp.repetition.min < 2
+    qpp.patternRelationships.size == 1 && qpp.repetition.min < 2
 
   private def findShortestFromQppShortest(
     selectivePathPattern: SelectivePathPattern,
@@ -288,7 +282,8 @@ case class StatefulShortestToFindShortestRewriter(
             inlinedPredicates.relationshipPredicates,
             Seq.empty,
             withFallBack = false,
-            AllowSameNode
+            AllowSameNode,
+            statefulShortestPath.pathMode
           )(SameId(statefulShortestPath.id)))
         )
     } else {

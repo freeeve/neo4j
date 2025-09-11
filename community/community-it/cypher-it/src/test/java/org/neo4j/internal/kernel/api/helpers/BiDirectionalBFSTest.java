@@ -89,27 +89,94 @@ class BiDirectionalBFSTest {
             long a4ToB4 = write.relationshipCreate(a4, rel, b4);
             long a5ToB5 = write.relationshipCreate(a5, rel, b5);
 
-            var bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.OUTGOING, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-
             // (start)-->(a1)-->(b1)
-            bfs.resetForNewRow(start, b1, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            var bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a1, b1}, new long[] {startToA1, a1ToB1}));
             // (start)-->(a2)-->(b2)
-            bfs.resetForNewRow(start, b2, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b2,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a2, b2}, new long[] {startToA2, a2ToB2}));
             // (start)-->(a3)-->(b3)
-            bfs.resetForNewRow(start, b3, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b3,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a3, b3}, new long[] {startToA3, a3ToB3}));
             // (start)-->(a4)-->(b4)
-            bfs.resetForNewRow(start, b4, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b4,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a4, b4}, new long[] {startToA4, a4ToB4}));
             // (start)-->(a5)-->(b5)
-            bfs.resetForNewRow(start, b5, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b5,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a5, b5}, new long[] {startToA5, a5ToB5}));
         }
@@ -155,23 +222,90 @@ class BiDirectionalBFSTest {
             write.relationshipCreate(a4, rel, b4);
             write.relationshipCreate(a5, rel, b5);
 
-            var bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.INCOMING, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-
             // (start)-->(a1)-->(b1)
-            bfs.resetForNewRow(start, b1, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            var bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.INCOMING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
             // (start)-->(a2)-->(b2)
-            bfs.resetForNewRow(start, b2, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b2,
+                    null,
+                    Direction.INCOMING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
             // (start)-->(a3)-->(b3)
-            bfs.resetForNewRow(start, b3, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b3,
+                    null,
+                    Direction.INCOMING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
             // (start)-->(a4)-->(b4)
-            bfs.resetForNewRow(start, b4, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b4,
+                    null,
+                    Direction.INCOMING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
             // (start)-->(a5)-->(b5)
-            bfs.resetForNewRow(start, b5, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b5,
+                    null,
+                    Direction.INCOMING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
         }
     }
@@ -216,27 +350,94 @@ class BiDirectionalBFSTest {
             long a4ToB4 = write.relationshipCreate(a4, rel, b4);
             long a5ToB5 = write.relationshipCreate(a5, rel, b5);
 
-            var bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.BOTH, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-
             // (start)-->(a1)-->(b1)
-            bfs.resetForNewRow(start, b1, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            var bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a1, b1}, new long[] {startToA1, a1ToB1}));
             // (start)-->(a2)-->(b2)
-            bfs.resetForNewRow(start, b2, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b2,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a2, b2}, new long[] {startToA2, a2ToB2}));
             // (start)-->(a3)-->(b3)
-            bfs.resetForNewRow(start, b3, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b3,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a3, b3}, new long[] {startToA3, a3ToB3}));
             // (start)-->(a4)-->(b4)
-            bfs.resetForNewRow(start, b4, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b4,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a4, b4}, new long[] {startToA4, a4ToB4}));
             // (start)-->(a5)-->(b5)
-            bfs.resetForNewRow(start, b5, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b5,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a5, b5}, new long[] {startToA5, a5ToB5}));
         }
@@ -282,13 +483,38 @@ class BiDirectionalBFSTest {
             write.relationshipCreate(a4, rel, b4);
             write.relationshipCreate(a5, rel, b5);
 
-            var bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.OUTGOING, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-
             // (start)-->(a1)-->(b1)
-            bfs.resetForNewRow(start, b1, n -> n != a1, Predicates.alwaysTrue());
+            var bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    n -> n != a1,
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
-            bfs.resetForNewRow(start, b1, n -> n != b5, Predicates.alwaysTrue());
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    n -> n != b5,
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a1, b1}, new long[] {startToA1, a1ToB1}));
         }
@@ -334,15 +560,54 @@ class BiDirectionalBFSTest {
             write.relationshipCreate(a4, rel, b4);
             write.relationshipCreate(a5, rel, b5);
 
-            var bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.BOTH, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-
             // (start)-->(a1)-->(b1)
-            bfs.resetForNewRow(start, b1, LongPredicates.alwaysTrue(), r -> r.relationshipReference() != a1ToB1);
+            var bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    r -> r.relationshipReference() != a1ToB1,
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
-            bfs.resetForNewRow(start, b1, LongPredicates.alwaysTrue(), r -> r.relationshipReference() != startToA1);
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    r -> r.relationshipReference() != startToA1,
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
-            bfs.resetForNewRow(start, b1, LongPredicates.alwaysTrue(), r -> r.relationshipReference() != a2ToB2);
+            bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    r -> r.relationshipReference() != a2ToB2,
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a1, b1}, new long[] {startToA1, a1ToB1}));
         }
@@ -388,11 +653,22 @@ class BiDirectionalBFSTest {
             write.relationshipCreate(a4, rel, b4);
             write.relationshipCreate(a5, rel, b5);
 
-            var bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.BOTH, 1, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-
             // (start)-->(a1)-->(b1)
-            bfs.resetForNewRow(start, b1, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+            var bfs = newEmptyBiDirectionalBFS(
+                    start,
+                    b1,
+                    null,
+                    Direction.BOTH,
+                    1,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
         }
     }
@@ -433,19 +709,54 @@ class BiDirectionalBFSTest {
             write.relationshipCreate(b3, rel, b1);
 
             var bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.OUTGOING, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-
-            bfs.resetForNewRow(start, b2, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+                    start,
+                    b2,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a2, b2}, new long[] {startToA2, a2ToB2}));
 
             bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.INCOMING, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-            bfs.resetForNewRow(start, b2, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+                    start,
+                    b2,
+                    null,
+                    Direction.INCOMING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(bfs.shortestPathIterator()).isExhausted();
             bfs = newEmptyBiDirectionalBFS(
-                    null, Direction.BOTH, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-            bfs.resetForNewRow(start, b2, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+                    start,
+                    b2,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfs.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a2, b2}, new long[] {startToA2, a2ToB2}));
         }
@@ -482,6 +793,8 @@ class BiDirectionalBFSTest {
             long a3ToEnd = write.relationshipCreate(a3, rel, end);
 
             var bfsMulti = newEmptyBiDirectionalBFS(
+                    start,
+                    end,
                     null,
                     Direction.OUTGOING,
                     10,
@@ -490,10 +803,10 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-
-            bfsMulti.resetForNewRow(start, end, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(asList(bfsMulti.shortestPathIterator()))
                     .containsExactlyInAnyOrder(
                             pathReference(new long[] {start, a1, end}, new long[] {startToA1, a1ToEnd}),
@@ -501,9 +814,20 @@ class BiDirectionalBFSTest {
                             pathReference(new long[] {start, a3, end}, new long[] {startToA3, a3ToEnd}));
 
             var bfsSingle = newEmptyBiDirectionalBFS(
-                    null, Direction.OUTGOING, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, true, false);
-
-            bfsSingle.resetForNewRow(start, end, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+                    start,
+                    end,
+                    null,
+                    Direction.OUTGOING,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    true,
+                    false);
             assertThat(single(bfsSingle.shortestPathIterator()))
                     .isIn(
                             pathReference(new long[] {start, a1, end}, new long[] {startToA1, a1ToEnd}),
@@ -545,6 +869,8 @@ class BiDirectionalBFSTest {
             long a3ToEnd = write.relationshipCreate(a3, rel3, end);
 
             var bfsR1 = newEmptyBiDirectionalBFS(
+                    start,
+                    end,
                     new int[] {rel1},
                     Direction.OUTGOING,
                     10,
@@ -553,14 +879,16 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-
-            bfsR1.resetForNewRow(start, end, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(single(bfsR1.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a1, end}, new long[] {startToA1, a1ToEnd}));
 
             var bfsR2 = newEmptyBiDirectionalBFS(
+                    start,
+                    end,
                     new int[] {rel2},
                     Direction.OUTGOING,
                     10,
@@ -569,13 +897,16 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-            bfsR2.resetForNewRow(start, end, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(single(bfsR2.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a2, end}, new long[] {startToA2, a2ToEnd}));
 
             var bfsR3 = newEmptyBiDirectionalBFS(
+                    start,
+                    end,
                     new int[] {rel3},
                     Direction.OUTGOING,
                     10,
@@ -584,9 +915,10 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-            bfsR3.resetForNewRow(start, end, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(single(bfsR3.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {start, a3, end}, new long[] {startToA3, a3ToEnd}));
         }
@@ -604,6 +936,8 @@ class BiDirectionalBFSTest {
             long r = write.relationshipCreate(a, rel, a);
 
             var outgoingBFS = newEmptyBiDirectionalBFS(
+                    a,
+                    a,
                     null,
                     Direction.OUTGOING,
                     10,
@@ -612,13 +946,16 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-            outgoingBFS.resetForNewRow(a, a, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(single(outgoingBFS.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {a, a}, new long[] {r}));
 
             var incomingBFS = newEmptyBiDirectionalBFS(
+                    a,
+                    a,
                     null,
                     Direction.INCOMING,
                     10,
@@ -627,16 +964,29 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-            incomingBFS.resetForNewRow(a, a, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(single(incomingBFS.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {a, a}, new long[] {r}));
 
             // This special case works
             var undirectedBFS = newEmptyBiDirectionalBFS(
-                    null, Direction.BOTH, 10, true, tx.dataRead(), nodeCursor, relCursor, NO_TRACKING, false, false);
-            undirectedBFS.resetForNewRow(a, a, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
+                    a,
+                    a,
+                    null,
+                    Direction.BOTH,
+                    10,
+                    true,
+                    tx.dataRead(),
+                    nodeCursor,
+                    relCursor,
+                    NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
+                    false,
+                    false);
             assertThat(single(undirectedBFS.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {a, a}, new long[] {r}));
         }
@@ -656,6 +1006,8 @@ class BiDirectionalBFSTest {
             long bToA = write.relationshipCreate(b, rel, a);
 
             var outgoingBFS = newEmptyBiDirectionalBFS(
+                    a,
+                    a,
                     null,
                     Direction.OUTGOING,
                     10,
@@ -664,13 +1016,16 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-            outgoingBFS.resetForNewRow(a, a, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(single(outgoingBFS.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {a, b, a}, new long[] {aToB, bToA}));
 
             var incomingBFS = newEmptyBiDirectionalBFS(
+                    a,
+                    a,
                     null,
                     Direction.INCOMING,
                     10,
@@ -679,9 +1034,10 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-            incomingBFS.resetForNewRow(a, a, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(single(incomingBFS.shortestPathIterator()))
                     .isEqualTo(pathReference(new long[] {a, b, a}, new long[] {bToA, aToB}));
         }
@@ -718,6 +1074,8 @@ class BiDirectionalBFSTest {
             long b1ToA3 = write.relationshipCreate(b1, rel, a3);
 
             var outgoingBFS = newEmptyBiDirectionalBFS(
+                    start,
+                    start,
                     null,
                     Direction.OUTGOING,
                     10,
@@ -726,10 +1084,10 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-
-            outgoingBFS.resetForNewRow(start, start, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(asList(outgoingBFS.shortestPathIterator()))
                     .containsExactlyInAnyOrder(
                             pathReference(
@@ -740,6 +1098,8 @@ class BiDirectionalBFSTest {
                                     new long[] {startToA2, a2ToB1, b1ToA3, a3ToStart}));
 
             var incomingBFS = newEmptyBiDirectionalBFS(
+                    start,
+                    start,
                     null,
                     Direction.INCOMING,
                     10,
@@ -748,10 +1108,10 @@ class BiDirectionalBFSTest {
                     nodeCursor,
                     relCursor,
                     NO_TRACKING,
+                    LongPredicates.alwaysTrue(),
+                    Predicates.alwaysTrue(),
                     false,
                     false);
-
-            incomingBFS.resetForNewRow(start, start, LongPredicates.alwaysTrue(), Predicates.alwaysTrue());
             assertThat(asList(incomingBFS.shortestPathIterator()))
                     .containsExactlyInAnyOrder(
                             pathReference(

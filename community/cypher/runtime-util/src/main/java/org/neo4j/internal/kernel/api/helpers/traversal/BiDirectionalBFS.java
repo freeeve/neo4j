@@ -68,7 +68,7 @@ import org.neo4j.values.virtual.PathReference;
  * <p>
  * Iteration and retracing of paths is done with a PathsIterator which is described in more detail at its declaration.
  */
-public class BiDirectionalBFS implements AutoCloseable {
+public class BiDirectionalBFS implements ShortestPathBFS {
     private final BiDirectionalBFSImpl<?> inner;
 
     private BiDirectionalBFS(BiDirectionalBFSImpl<?> inner) {
@@ -254,30 +254,6 @@ public class BiDirectionalBFS implements AutoCloseable {
         }
         bfs.algorithmState = State.NOT_INITIALIZED_WITH_NODES;
         return new BiDirectionalBFS(bfs);
-    }
-
-    /**
-     * Reset the BiDirectionalBFS in preparation of computing the shortest path(s) between
-     * a new source and target node pair. Compared to creating a new BiDirectionalBFS object,
-     * doing this has the advantage of not needing us to reinitialize all the data structures
-     * we keep on the heap.
-     */
-    public void resetForNewRow(
-            long sourceNodeId,
-            long targetNodeId,
-            LongPredicate nodeFilter,
-            Predicate<RelationshipTraversalEntities> relFilter) {
-        inner.resetForNewRow(sourceNodeId, targetNodeId, nodeFilter, relFilter);
-    }
-
-    public void resetForNewRow(
-            long sourceNodeId,
-            long targetNodeId,
-            NodeCursor nodeCursor,
-            RelationshipTraversalCursor relCursor,
-            LongPredicate nodeFilter,
-            Predicate<RelationshipTraversalEntities> relFilter) {
-        inner.resetForNewRow(sourceNodeId, targetNodeId, nodeCursor, relCursor, nodeFilter, relFilter);
     }
 
     public Iterator<PathReference> shortestPathIterator() {
