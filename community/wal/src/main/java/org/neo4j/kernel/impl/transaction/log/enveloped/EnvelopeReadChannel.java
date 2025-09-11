@@ -791,6 +791,22 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
         if (enforceChecksumChain) {
             if (currentChecksum != previousEnvelopeChecksumFromHeader) {
+                if (nextTerm == 0 && nextContentType == 0) { // Fields after checksum
+                    // Possibly this is just an incomplete tx that was cut off during writing the checksum
+                    LogPosition currentLogPosition = getCurrentLogPosition();
+                    try {
+                        checkTail(this, currentLogPosition, null);
+                        throw new IncompleteEnvelopeReadException(
+                                "Found incomplete envelope header, incomplete at previousChecksum "
+                                        + new LogPosition(
+                                                currentLogPosition.getLogVersion(),
+                                                currentLogPosition.getByteOffset() - Long.BYTES - Byte.BYTES)
+                                        + " Found: " + previousEnvelopeChecksumFromHeader);
+                    } catch (IllegalStateException e) {
+                        // Nope it's broken
+                    }
+                }
+
                 throw new ChecksumMismatchException(
                         "Envelope checksum chain is broken. Previous checksum '%d', expected: '%d'.",
                         currentChecksum, previousEnvelopeChecksumFromHeader);

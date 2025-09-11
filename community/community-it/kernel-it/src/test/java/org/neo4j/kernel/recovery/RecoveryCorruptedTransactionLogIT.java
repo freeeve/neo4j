@@ -154,7 +154,7 @@ class RecoveryCorruptedTransactionLogIT {
     private Config CONFIG;
 
     @Inject
-    private DefaultFileSystemAbstraction fileSystem;
+    DefaultFileSystemAbstraction fileSystem;
 
     @Inject
     private DatabaseLayout databaseLayout;
@@ -163,12 +163,12 @@ class RecoveryCorruptedTransactionLogIT {
     private RandomSupport random;
 
     private static final int HEADER_OFFSET = LATEST_LOG_FORMAT.getHeaderSize();
-    private final AssertableLogProvider logProvider = new AssertableLogProvider(true);
-    private final RecoveryMonitor recoveryMonitor = new RecoveryMonitor();
+    final AssertableLogProvider logProvider = new AssertableLogProvider(true);
+    final RecoveryMonitor recoveryMonitor = new RecoveryMonitor();
     private final CorruptedCheckpointMonitor corruptedFilesMonitor = new CorruptedCheckpointMonitor();
     private final Monitors monitors = new Monitors();
-    private LogFiles logFiles;
-    private TestDatabaseManagementServiceBuilder databaseFactory;
+    LogFiles logFiles;
+    TestDatabaseManagementServiceBuilder databaseFactory;
     private StorageEngineFactory storageEngineFactory;
     // Some transactions can have been run on start-up, so this is the offset the first transaction of a test will have.
     private long txOffsetAfterStart;
@@ -1280,17 +1280,17 @@ class RecoveryCorruptedTransactionLogIT {
                 .isFalse();
     }
 
-    private static StoreId getStoreId(GraphDatabaseAPI database) {
+    static StoreId getStoreId(GraphDatabaseAPI database) {
         return database.getDependencyResolver()
                 .resolveDependency(StoreIdProvider.class)
                 .getStoreId();
     }
 
-    private static TransactionIdStore getTransactionIdStore(GraphDatabaseAPI database) {
+    static TransactionIdStore getTransactionIdStore(GraphDatabaseAPI database) {
         return database.getDependencyResolver().resolveDependency(TransactionIdStore.class);
     }
 
-    private void removeLastCheckpointRecordFromLastLogFile() throws IOException {
+    void removeLastCheckpointRecordFromLastLogFile() throws IOException {
         CheckpointFile checkpointFile = logFiles.getCheckpointFile();
         var checkpoint = checkpointFile.findLatestCheckpoint();
         if (checkpoint.isPresent()) {
@@ -1572,7 +1572,7 @@ class RecoveryCorruptedTransactionLogIT {
         return metaDataStore.getLastClosedTransaction().logPosition();
     }
 
-    private LogFiles buildDefaultLogFiles(StoreId storeId) throws IOException {
+    LogFiles buildDefaultLogFiles(StoreId storeId) throws IOException {
         return LogFilesBuilder.builder(
                         databaseLayout,
                         fileSystem,
@@ -1626,7 +1626,7 @@ class RecoveryCorruptedTransactionLogIT {
         return lastTxSize;
     }
 
-    private static long generateTransaction(GraphDatabaseAPI database) throws IOException {
+    static long generateTransaction(GraphDatabaseAPI database) throws IOException {
         LogPosition lastTx = getLastClosedTransaction(database);
         LogFiles logFiles = database.getDependencyResolver().resolveDependency(LogFiles.class);
         LogFile logFile = logFiles.getLogFile();
@@ -1653,7 +1653,7 @@ class RecoveryCorruptedTransactionLogIT {
         managementService.shutdown();
     }
 
-    private void startStopDatabase() {
+    void startStopDatabase() {
         DatabaseManagementService managementService = databaseFactory.build();
         storageEngineFactory = ((GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME))
                 .getDependencyResolver()
@@ -1759,7 +1759,7 @@ class RecoveryCorruptedTransactionLogIT {
         }
     }
 
-    private static class RecoveryMonitor implements org.neo4j.kernel.recovery.RecoveryMonitor {
+    static class RecoveryMonitor implements org.neo4j.kernel.recovery.RecoveryMonitor {
         private final List<Long> recoveredBatches = new ArrayList<>();
         private int numberOfRecoveredTransactions;
         private final AtomicBoolean recoveryRequired = new AtomicBoolean();

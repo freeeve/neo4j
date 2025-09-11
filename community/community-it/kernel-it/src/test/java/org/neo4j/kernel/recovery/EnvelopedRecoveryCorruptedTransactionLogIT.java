@@ -19,16 +19,29 @@
  */
 package org.neo4j.kernel.recovery;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED;
+import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.test.LatestVersions.LATEST_RUNTIME_VERSION;
 
+import java.io.IOException;
+import java.nio.ByteOrder;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.graphdb.config.Setting;
+import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEntrySerializerV5_22;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.logging.LogAssertions;
+import org.neo4j.storageengine.api.TransactionIdStore;
 
 class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransactionLogIT {
     // TODO MERGELOG turn into no-op when default format
@@ -60,5 +73,44 @@ class EnvelopedRecoveryCorruptedTransactionLogIT extends RecoveryCorruptedTransa
         // Anything the length of an envelope header or less is just considered a broken
         // last entry by default and will not be considered corrupted (just last broken entry which is recoverable).
         return LogEnvelopeHeader.HEADER_SIZE + 1;
+    }
+
+    @Test
+    void allowRecoveryOnHeaderEndingInPreviousChecksum() throws IOException {
+        DatabaseManagementService managementService = databaseFactory.build();
+        GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
+        logFiles = buildDefaultLogFiles(getStoreId(database));
+
+        TransactionIdStore transactionIdStore = getTransactionIdStore(database);
+        LogPosition logOffsetBeforeTestTransactions =
+                transactionIdStore.getLastClosedTransaction().logPosition();
+        long lastClosedTransactionBeforeStart = transactionIdStore.getLastClosedTransactionId();
+        generateTransaction(database);
+        long numberOfClosedTransactions =
+                getTransactionIdStore(database).getLastClosedTransactionId() - lastClosedTransactionBeforeStart;
+        LogPosition logOffsetAfterTestTransactions =
+                transactionIdStore.getLastClosedTransaction().logPosition();
+        generateTransaction(database);
+
+        // Zero out everything after first part of header of the second transaction.
+        // Will break it in the middle of the previousChecksum field
+        managementService.shutdown();
+        long offset = logOffsetAfterTestTransactions.getByteOffset()
+                + (LogEnvelopeHeader.HEADER_SIZE
+                        - (Long.BYTES + Byte.BYTES) // fields after checksum
+                        - (Short.BYTES)); // most of checksum
+        try (StoreChannel storeChannel = fileSystem.write(
+                logFiles.getLogFile().getLogFileForVersion(logFiles.getLogFile().getCurrentLogVersion()))) {
+            storeChannel.position(offset);
+            storeChannel.writeAll(ByteBuffers.allocate(2000, ByteOrder.LITTLE_ENDIAN, INSTANCE));
+        }
+        removeLastCheckpointRecordFromLastLogFile();
+
+        startStopDatabase();
+
+        assertEquals(numberOfClosedTransactions, recoveryMonitor.getNumberOfRecoveredTransactions());
+        LogAssertions.assertThat(logProvider)
+                .containsMessages("Recovery required from position LogPosition{logVersion=0, byteOffset="
+                        + logOffsetBeforeTestTransactions.getByteOffset() + "}");
     }
 }
