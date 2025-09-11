@@ -41,9 +41,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
@@ -415,49 +412,6 @@ class GqlStatusInfoCodesTest {
                     matcher.find(),
                     "The expected list-joinstyle was not inserted into the message string for code " + gqlCode
                             + ". Got: " + msg);
-        }
-    }
-
-    @Disabled
-    void verifyGqlStatusHaveNotChanged() {
-        final var params = new HashMap<GqlParams.GqlParam, Object>();
-        Reflections reflections = new Reflections("org.neo4j.gqlstatus", new SubTypesScanner(false));
-        Set<Class<? extends GqlParams.GqlParam>> enums = reflections.getSubTypesOf(GqlParams.GqlParam.class);
-
-        for (Class<? extends GqlParams.GqlParam> e : enums) {
-            if (e.isEnum()) {
-                for (final var p : e.getEnumConstants()) params.put(p, p.toParamFormat());
-            }
-        }
-
-        StringBuilder gqlBuilder = new StringBuilder();
-        Arrays.stream(GqlStatusInfoCodes.values()).forEach(gqlCode -> {
-            gqlBuilder.append(gqlCode.getStatusString());
-            gqlBuilder.append(gqlCode.getCondition());
-            gqlBuilder.append(gqlCode.getSubCondition());
-            gqlBuilder.append(gqlCode.getMessage(params));
-            gqlBuilder.append(Arrays.toString(gqlCode.getStatusParameterKeys().stream()
-                    .map(GqlParams.GqlParam::name)
-                    .toArray()));
-        });
-
-        byte[] gqlHash = DigestUtils.sha256(gqlBuilder.toString());
-
-        byte[] expectedHash = new byte[] {
-            -25, 81, -58, 73, 72, -100, 93, -44, -108, 98, 54, 30, -11, -109, 110, 102, 24, 40, -3, 64, 67, 117, 65,
-            -99, -114, 122, -7, -56, 122, 5, 91, -111
-        };
-
-        if (!Arrays.equals(gqlHash, expectedHash)) {
-            Assertions.fail(
-                    """
-            Expected: %s
-            Actual: %s
-            Updating the GQL status code is a breaking change!!!
-            If parameters are updated, you must change them everywhere they are used (i.e. each time they are used in the call `.withParam(..., ...)`)
-            If you update an error message, it is not breaking, but please update documentation.
-            """
-                            .formatted(Arrays.toString(expectedHash), Arrays.toString(gqlHash)));
         }
     }
 
