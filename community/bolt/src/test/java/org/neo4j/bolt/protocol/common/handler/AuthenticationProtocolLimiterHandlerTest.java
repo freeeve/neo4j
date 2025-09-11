@@ -76,8 +76,9 @@ class AuthenticationProtocolLimiterHandlerTest {
                     this.channel.writeInbound(msg.raw());
                     this.channel.checkException();
                 })
-                .withMessage(ErrorUtil.useNewMessage("22N60: Encountered illegal root element: Expected struct.")
-                        .whenLegacyFallbackTo("Encountered illegal root element: Expected struct"))
+                .withMessage(
+                        ErrorUtil.useNewMessage("22N60: Encountered illegal root element. Reason: Expected struct.")
+                                .whenLegacyFallbackTo("Encountered illegal root element: Expected struct"))
                 .has(Conditions.condition(ex -> ex.gqlStatus().equals("22N60")));
     }
 
@@ -93,7 +94,7 @@ class AuthenticationProtocolLimiterHandlerTest {
                     this.channel.checkException();
                 })
                 .withMessage(ErrorUtil.useNewMessage(
-                                "22N60: Encountered illegal secondary root element: Excepted single root element.")
+                                "22N60: Encountered illegal secondary root element. Reason: Excepted single root element.")
                         .whenLegacyFallbackTo("Encountered illegal secondary root element within message"))
                 .has(Conditions.condition(ex -> ex.gqlStatus().equals("22N60")));
     }
@@ -111,8 +112,9 @@ class AuthenticationProtocolLimiterHandlerTest {
                     this.channel.writeInbound(msg.raw());
                     this.channel.checkException();
                 })
-                .withMessage(ErrorUtil.useNewMessage("22N60: Encountered illegal map element: Expected string key.")
-                        .whenLegacyFallbackTo("Encountered illegal map element: Expected string key"))
+                .withMessage(
+                        ErrorUtil.useNewMessage("22N60: Encountered illegal map element. Reason: Expected string key.")
+                                .whenLegacyFallbackTo("Encountered illegal map element: Expected string key"))
                 .has(Conditions.condition(ex -> ex.gqlStatus().equals("22N60")));
     }
 

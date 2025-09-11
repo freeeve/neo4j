@@ -1463,7 +1463,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_22N60(
             new GqlStatus("22N60"),
-            "Encountered illegal { %s } element: { %s }.",
+            "Encountered illegal { %s } element. Reason: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.DATA_EXCEPTION,
