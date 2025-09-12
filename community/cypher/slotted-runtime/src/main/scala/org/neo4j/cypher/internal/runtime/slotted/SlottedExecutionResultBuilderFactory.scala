@@ -20,7 +20,6 @@
 package org.neo4j.cypher.internal.runtime.slotted
 
 import org.neo4j.cypher.internal.config.MemoryTrackingController
-import org.neo4j.cypher.internal.runtime.ExpressionCursors
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.ParameterMapping
 import org.neo4j.cypher.internal.runtime.QueryContext
@@ -28,6 +27,7 @@ import org.neo4j.cypher.internal.runtime.QueryIndexes
 import org.neo4j.cypher.internal.runtime.QuerySelectivityTrackers
 import org.neo4j.cypher.internal.runtime.QueryTransactionMode
 import org.neo4j.cypher.internal.runtime.createParameterArray
+import org.neo4j.cypher.internal.runtime.cursors.ExpressionCursors
 import org.neo4j.cypher.internal.runtime.interpreted.BaseExecutionResultBuilderFactory
 import org.neo4j.cypher.internal.runtime.interpreted.ExecutionResultBuilder
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe

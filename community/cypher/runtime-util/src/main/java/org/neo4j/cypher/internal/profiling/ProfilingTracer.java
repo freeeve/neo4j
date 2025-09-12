@@ -158,8 +158,8 @@ public class ProfilingTracer implements QueryProfiler, QueryProfile {
         private final StatisticProvider statisticProvider;
 
         private final long start;
-        private final long pageCountHitsStart;
-        private final long pageCountMissesStart;
+        private final long pageCacheHitsStart;
+        private final long pageCacheMissesStart;
 
         TrackingExecutionEvent(ProfilingTracerData data, Clock clock, StatisticProvider statisticProvider) {
             super(data);
@@ -167,21 +167,21 @@ public class ProfilingTracer implements QueryProfiler, QueryProfile {
             this.statisticProvider = statisticProvider;
 
             this.start = clock.nanoTime();
-            this.pageCountHitsStart = statisticProvider.getPageCacheHits();
-            this.pageCountMissesStart = statisticProvider.getPageCacheMisses();
+            this.pageCacheHitsStart = statisticProvider.getPageCacheHits();
+            this.pageCacheMissesStart = statisticProvider.getPageCacheMisses();
         }
 
         @Override
         public void close() {
-            long pageCacheHits = statisticProvider.getPageCacheHits();
-            long pageCacheFaults = statisticProvider.getPageCacheMisses();
             long executionTime = clock.nanoTime() - start;
+            long pageCacheHits = statisticProvider.getPageCacheHits();
+            long pageCacheMisses = statisticProvider.getPageCacheMisses();
             data.update(
                     executionTime,
                     hitCount,
                     rowCount,
-                    pageCacheHits - pageCountHitsStart,
-                    pageCacheFaults - pageCountMissesStart,
+                    pageCacheHits - pageCacheHitsStart,
+                    pageCacheMisses - pageCacheMissesStart,
                     OperatorProfile.NO_DATA,
                     indexHits.keySet().toArray(new IndexDescriptor[0]),
                     indexHits.values().stream().mapToInt(v -> v).toArray());

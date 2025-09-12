@@ -545,10 +545,14 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1"))
       .build()
 
-    val runtimeResult = profile(logicalQuery, runtime)
+    val matchExpectations =
+      if (canFuse) {
+        beColumns("x").withRows(singleColumn(expected))
+      } else {
+        beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
+      }
 
-    runtimeResult should beColumns("x").withRows(singleColumn(expected))
-      .usingIndexes(2, indexName)
+    profile(logicalQuery, runtime) should matchExpectations
   }
 
   test("should filter for all labels and a single property") {
@@ -580,10 +584,14 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['A', 'B']", All, Map("prop" -> "1"))
       .build()
 
-    val runtimeResult = profile(logicalQuery, runtime)
+    val matchExpectations =
+      if (canFuse) {
+        beColumns("x").withRows(singleColumn(expected))
+      } else {
+        beColumns("x").withRows(singleColumn(expected)).usingAnyIndexes(2, index_a, index_b)
+      }
 
-    runtimeResult should beColumns("x").withRows(singleColumn(expected))
-      .usingAnyIndexes(2, index_a, index_b)
+    profile(logicalQuery, runtime) should matchExpectations
   }
 
   test("should filter for a single label and multiple properties ignoring indexes") {
@@ -611,10 +619,13 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
       .build()
 
-    val runtimeResult = profile(logicalQuery, runtime)
-
-    runtimeResult should beColumns("x").withRows(singleColumn(expected))
-      .notUsingIndexes(2, indexName)
+    val matchExpectations =
+      if (canFuse) {
+        beColumns("x").withRows(singleColumn(expected))
+      } else {
+        beColumns("x").withRows(singleColumn(expected)).notUsingIndexes(2, indexName)
+      }
+    profile(logicalQuery, runtime) should matchExpectations
   }
 
   test("should filter for a single label and multiple properties with no indexes") {
@@ -676,9 +687,15 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['B', 'A']", All, Map("age" -> "21", "name" -> "'bob'"))
       .build()
 
-    val runtimeResult = profile(logicalQuery, runtime)
-    runtimeResult should beColumns("x").withRows(singleColumn(expected))
-      .notUsingIndexes(2, indexNameB, indexNameA)
+    val matchExpectations =
+      if (canFuse) {
+        beColumns("x").withRows(singleColumn(expected))
+      } else {
+        beColumns("x").withRows(singleColumn(expected))
+          .notUsingIndexes(2, indexNameB, indexNameA)
+      }
+
+    profile(logicalQuery, runtime) should matchExpectations
   }
 
   test("should filter for multiple labels and multiple properties not using any indexes (AND)") {
@@ -716,9 +733,15 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['A', 'B']", All, Map("age" -> "21", "name" -> "'bob'"))
       .build()
 
-    val runtimeResult = profile(logicalQuery, runtime)
-    runtimeResult should beColumns("x").withRows(singleColumn(expected))
-      .notUsingIndexes(2, indexName, indexNameA1, indexNameA2)
+    val matchExpectations =
+      if (canFuse) {
+        beColumns("x").withRows(singleColumn(expected))
+      } else {
+        beColumns("x").withRows(singleColumn(expected))
+          .notUsingIndexes(2, indexName, indexNameA1, indexNameA2)
+      }
+
+    profile(logicalQuery, runtime) should matchExpectations
   }
 
   test("should not try to use indexes that can't support the intended query") {
@@ -745,9 +768,14 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1"))
       .build()
 
-    val runtimeResult = profile(logicalQuery, runtime)
+    val matchExpectations =
+      if (canFuse) {
+        beColumns("x").withRows(singleColumn(expected))
+      } else {
+        beColumns("x").withRows(singleColumn(expected))
+          .notUsingIndexes(2, indexName)
+      }
 
-    runtimeResult should beColumns("x").withRows(singleColumn(expected))
-      .notUsingIndexes(2, indexName)
+    profile(logicalQuery, runtime) should matchExpectations
   }
 }

@@ -106,7 +106,7 @@ class ParallelTransactionalContextWrapper(
 
   override def token: Token = unsupported()
 
-  override def schemaRead: SchemaRead = unsupported()
+  override def schemaRead: SchemaRead = _kernelExecutionContext.schemaRead()
 
   override def schemaWrite: SchemaWrite = unsupported()
 

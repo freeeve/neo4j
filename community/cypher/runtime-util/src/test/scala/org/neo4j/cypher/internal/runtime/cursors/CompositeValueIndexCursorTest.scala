@@ -17,15 +17,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.runtime
+package org.neo4j.cypher.internal.runtime.cursors
 
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.runtime.CompositeValueIndexCursor.ascending
-import org.neo4j.cypher.internal.runtime.CompositeValueIndexCursor.descending
-import org.neo4j.cypher.internal.runtime.CompositeValueIndexCursor.unordered
+import org.neo4j.cypher.internal.runtime.cursors.CompositeValueIndexCursor.ascending
+import org.neo4j.cypher.internal.runtime.cursors.CompositeValueIndexCursor.descending
+import org.neo4j.cypher.internal.runtime.cursors.CompositeValueIndexCursor.unordered
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor
 import org.neo4j.internal.kernel.api.helpers.StubNodeValueIndexCursor

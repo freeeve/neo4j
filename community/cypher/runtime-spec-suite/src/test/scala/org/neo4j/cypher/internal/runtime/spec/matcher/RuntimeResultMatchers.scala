@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.matcher
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.runtime.CypherRow
@@ -474,21 +475,11 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
         case (id: Int, _) =>
           id -> left.operatorProfile(id).indexesUsed().map(_.getName).toSeq
       }
-      val runtimeName = runtimeTestSupport.runtime.name
-      runtimeName match {
-        case "slotted" | "interpreted" =>
-          MatchResult(
-            matches = indexProfilesMatch(matchers, actualIndexesUsed),
-            rawFailureMessage = s"expected to use indexes $matchers but found $actualIndexesUsed",
-            rawNegatedFailureMessage = ""
-          )
-        case _ =>
-          MatchResult(
-            matches = actualIndexesUsed.values.forall(_.isEmpty),
-            rawFailureMessage = s"expected $runtimeName not to profile indexes",
-            rawNegatedFailureMessage = ""
-          )
-      }
+      MatchResult(
+        matches = indexProfilesMatch(matchers, actualIndexesUsed),
+        rawFailureMessage = s"expected to use indexes $matchers but found $actualIndexesUsed",
+        rawNegatedFailureMessage = ""
+      )
     }
   }
 

@@ -17,9 +17,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.runtime
+package org.neo4j.cypher.internal.runtime.cursors
 
 import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.runtime.ResourceManagedCursorPool
 import org.neo4j.internal.kernel.api.Cursor
 import org.neo4j.internal.kernel.api.CursorFactory
 import org.neo4j.internal.kernel.api.DefaultCloseListenable

@@ -45,7 +45,7 @@ import static org.neo4j.values.virtual.VirtualValues.EMPTY_LIST;
 import java.util.Map;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.cypher.internal.runtime.DbAccess;
-import org.neo4j.cypher.internal.runtime.ExpressionCursors;
+import org.neo4j.cypher.internal.runtime.cursors.ExpressionCursors;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
