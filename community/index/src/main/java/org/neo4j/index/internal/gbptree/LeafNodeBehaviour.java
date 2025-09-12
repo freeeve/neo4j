@@ -116,15 +116,23 @@ public interface LeafNodeBehaviour<KEY, VALUE> extends SharedNodeBehaviour<KEY> 
             int insertPos,
             KEY newKey,
             VALUE newValue,
-            KEY newSplitter,
             int splitPos,
-            double ratioToKeepInLeftOnSplit,
             long stableGeneration,
             long unstableGeneration,
             CursorContext cursorContext)
             throws IOException;
 
-    void doSplit(PageCursor leftCursor, int leftKeyCount, PageCursor rightCursor, int splitPos);
+    void doSplitAndUpdate(
+            PageCursor leftCursor,
+            PageCursor rightCursor,
+            int keyCount,
+            int splitPos,
+            int updatePos,
+            VALUE newValue,
+            long stableGeneration,
+            long unstableGeneration,
+            CursorContext cursorContext)
+            throws IOException;
 
     void moveKeyValuesFromLeftToRight(
             PageCursor leftCursor,

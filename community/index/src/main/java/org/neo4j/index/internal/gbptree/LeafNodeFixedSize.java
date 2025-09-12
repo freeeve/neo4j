@@ -345,9 +345,7 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             int insertPos,
             KEY newKey,
             VALUE newValue,
-            KEY newSplitter,
             int splitPos,
-            double ratioToKeepInLeftOnSplit,
             long stableGeneration,
             long unstableGeneration,
             CursorContext cursorContext)
@@ -401,7 +399,16 @@ class LeafNodeFixedSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     }
 
     @Override
-    public void doSplit(PageCursor leftCursor, int leftKeyCount, PageCursor rightCursor, int splitPos) {
+    public void doSplitAndUpdate(
+            PageCursor leftCursor,
+            PageCursor rightCursor,
+            int keyCount,
+            int splitPos,
+            int updatePos,
+            VALUE newValue,
+            long stableGeneration,
+            long unstableGeneration,
+            CursorContext cursorContext) {
         throw new UnsupportedOperationException("Not supported.");
     }
 

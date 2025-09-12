@@ -667,9 +667,7 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
             int insertPos,
             KEY newKey,
             VALUE newValue,
-            KEY newSplitter,
             int splitPos,
-            double ratioToKeepInLeftOnSplit,
             long stableGeneration,
             long unstableGeneration,
             CursorContext cursorContext)
@@ -721,9 +719,39 @@ class LeafNodeDynamicSize<KEY, VALUE> implements LeafNodeBehaviour<KEY, VALUE> {
     }
 
     @Override
-    public void doSplit(PageCursor leftCursor, int keyCount, PageCursor rightCursor, int splitPos) {
+    public void doSplitAndUpdate(
+            PageCursor leftCursor,
+            PageCursor rightCursor,
+            int keyCount,
+            int splitPos,
+            int updatePos,
+            VALUE newValue,
+            long stableGeneration,
+            long unstableGeneration,
+            CursorContext cursorContext)
+            throws IOException {
         int rightKeyCount = keyCount - splitPos;
         moveKeysAndValues(leftCursor, splitPos, rightCursor, 0, rightKeyCount);
+
+        if (updatePos >= splitPos) {
+            if (!setValueAt(
+                    rightCursor,
+                    newValue,
+                    updatePos - splitPos,
+                    keyCount - splitPos,
+                    cursorContext,
+                    stableGeneration,
+                    unstableGeneration)) {
+                throw new IllegalStateException(
+                        "Expected new value " + newValue + " to fit in right leaf after split, but it didn't.");
+            }
+        } else {
+            if (!setValueAt(
+                    leftCursor, newValue, updatePos, splitPos, cursorContext, stableGeneration, unstableGeneration)) {
+                throw new IllegalStateException(
+                        "Expected new value " + newValue + " to fit in left leaf after split, but it didn't.");
+            }
+        }
 
         TreeNodeUtil.setKeyCount(leftCursor, splitPos);
         TreeNodeUtil.setKeyCount(rightCursor, rightKeyCount);

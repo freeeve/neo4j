@@ -926,7 +926,7 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         // Position where newKey / newValue is to be inserted
         int pos = positionOf(KeySearch.search(cursor, leafNode, newKey, readKey, keyCount, cursorContext));
         // Position where to split
-        int middlePos = leafNode.findSplitterForInsert(
+        int splitPos = leafNode.findSplitterForInsert(
                 cursor,
                 keyCount,
                 newKey,
@@ -935,15 +935,6 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
                 structurePropagation.rightKey,
                 ratioToKeepInLeftOnSplit,
                 cursorContext);
-        if (!coordination.beforeSplittingLeaf(internalNode.totalSpaceOfKeyChild(structurePropagation.rightKey))) {
-            return false;
-        }
-
-        long current = cursor.getCurrentPageId();
-        long oldRight = TreeNodeUtil.rightSibling(cursor, stableGeneration, unstableGeneration)
-                .pointer();
-        checkRightSiblingPointer(oldRight, true, cursor, stableGeneration, unstableGeneration);
-        long newRight = idProvider.acquireNewId(stableGeneration, unstableGeneration, bind(cursor));
 
         // BALANCE KEYS AND VALUES
         // Two different scenarios
@@ -976,50 +967,21 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         // [key3][key4][key5]
         //
 
-        structurePropagation.hasRightKeyInsert = true;
-        structurePropagation.midChild = current;
-        structurePropagation.rightChild = newRight;
-
-        structureWriteLog.split(
-                unstableGeneration,
-                currentLevel > 0 ? levels[currentLevel - 1].treeNodeId : -1,
-                cursor.getCurrentPageId(),
-                newRight);
-
-        try (PageCursor rightCursor = cursor.openLinkedCursor(newRight)) {
-            // Initialize new right
-            TreeNodeUtil.goTo(rightCursor, "new right sibling in split", newRight);
-            leafNode.initialize(rightCursor, layerType, stableGeneration, unstableGeneration);
-            TreeNodeUtil.setRightSibling(rightCursor, oldRight, stableGeneration, unstableGeneration);
-            TreeNodeUtil.setLeftSibling(rightCursor, current, stableGeneration, unstableGeneration);
-
-            // Do split
+        AfterSplitAction splitAndInsert = (leftCursor, rightCursor) -> {
             leafNode.doSplitAndInsert(
-                    cursor,
+                    leftCursor,
                     keyCount,
                     rightCursor,
                     pos,
                     newKey,
                     newValue,
-                    structurePropagation.rightKey,
-                    middlePos,
-                    ratioToKeepInLeftOnSplit,
+                    splitPos,
                     stableGeneration,
                     unstableGeneration,
                     cursorContext);
-        }
+        };
 
-        // Update old right with new left sibling (newRight)
-        if (TreeNodeUtil.isNode(oldRight)) {
-            try (PageCursor oldRightCursor = cursor.openLinkedCursor(oldRight)) {
-                TreeNodeUtil.goTo(oldRightCursor, "old right sibling", oldRight);
-                TreeNodeUtil.setLeftSibling(oldRightCursor, newRight, stableGeneration, unstableGeneration);
-            }
-        }
-
-        // Update left child
-        TreeNodeUtil.setRightSibling(cursor, newRight, stableGeneration, unstableGeneration);
-        return true;
+        return split(splitAndInsert, cursor, structurePropagation, stableGeneration, unstableGeneration);
     }
 
     private boolean splitLeafAndUpdate(
@@ -1037,6 +999,29 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         int splitPos = leafNode.findSplitterForUpdate(
                 cursor, keyCount, key, newValue, oldValue, updatePos, structurePropagation.rightKey, cursorContext);
 
+        AfterSplitAction splitAndUpdate = (leftCursor, rightCursor) -> {
+            leafNode.doSplitAndUpdate(
+                    leftCursor,
+                    rightCursor,
+                    keyCount,
+                    splitPos,
+                    updatePos,
+                    newValue,
+                    stableGeneration,
+                    unstableGeneration,
+                    cursorContext);
+        };
+
+        return split(splitAndUpdate, cursor, structurePropagation, stableGeneration, unstableGeneration);
+    }
+
+    private boolean split(
+            AfterSplitAction afterSplitAction,
+            PageCursor cursor,
+            StructurePropagation<KEY> structurePropagation,
+            long stableGeneration,
+            long unstableGeneration)
+            throws IOException {
         if (!coordination.beforeSplittingLeaf(internalNode.totalSpaceOfKeyChild(structurePropagation.rightKey))) {
             return false;
         }
@@ -1064,27 +1049,7 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
             TreeNodeUtil.setRightSibling(rightCursor, oldRight, stableGeneration, unstableGeneration);
             TreeNodeUtil.setLeftSibling(rightCursor, current, stableGeneration, unstableGeneration);
 
-            // Do split and update
-            leafNode.doSplit(cursor, keyCount, rightCursor, splitPos);
-            if (updatePos >= splitPos) {
-                if (!leafNode.setValueAt(
-                        rightCursor,
-                        newValue,
-                        updatePos - splitPos,
-                        keyCount - splitPos,
-                        cursorContext,
-                        stableGeneration,
-                        unstableGeneration)) {
-                    throw new IllegalStateException(
-                            "Expected new value " + newValue + " to fit in right leaf after split, but it didn't.");
-                }
-            } else {
-                if (!leafNode.setValueAt(
-                        cursor, newValue, updatePos, splitPos, cursorContext, stableGeneration, unstableGeneration)) {
-                    throw new IllegalStateException(
-                            "Expected new value " + newValue + " to fit in left leaf after split, but it didn't.");
-                }
-            }
+            afterSplitAction.call(cursor, rightCursor);
         }
 
         // Update old right with new left sibling (newRight)
@@ -1098,6 +1063,11 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
         // Update left child
         TreeNodeUtil.setRightSibling(cursor, newRight, stableGeneration, unstableGeneration);
         return true;
+    }
+
+    @FunctionalInterface
+    private interface AfterSplitAction {
+        void call(PageCursor leftCursor, PageCursor rightCursor) throws IOException;
     }
 
     /**
