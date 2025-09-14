@@ -86,6 +86,7 @@ Apache Software License, Version 2.0
   Guava InternalFutureFailureAccess and InternalFutures
   Guava ListenableFuture only
   Guava: Google Core Libraries for Java
+  Internet Time Utility
   io.grpc:grpc-api
   io.grpc:grpc-context
   io.grpc:grpc-core
@@ -99,6 +100,7 @@ Apache Software License, Version 2.0
   Jackson-annotations
   Jackson-core
   jackson-databind
+  Jackson-dataformat-YAML
   Jackson-JAXRS: base
   Jackson-JAXRS: JSON
   Jakarta Bean Validation API
@@ -119,6 +121,7 @@ Apache Software License, Version 2.0
   json4s-ast
   json4s-core
   json4s-scalap
+  JsonSchemaValidator
   magnolia
   Neo4j Java Driver
   Netty/Buffer
@@ -140,6 +143,7 @@ Apache Software License, Version 2.0
   proto-google-common-protos
   Scala Reflect
   scala-collection-contrib
+  SnakeYAML
   snappy-java
   Strategic Blue Parquet Floor
   WMI4Java
@@ -183,6 +187,7 @@ Eclipse Distribution License - v 1.0
   jersey-container-servlet-core
   jersey-core-client
   jersey-inject-hk2
+  org.locationtech.jts:jts-core
   TXW2 Runtime
 
 Eclipse Public License - v 1.0
@@ -228,6 +233,7 @@ MIT License
   Cucumber CiEnvironment
   Cucumber Expressions
   Cucumber HTML Formatter
+  Cucumber Json Formatter
   Cucumber Messages
   Cucumber Query
   Cucumber Tag Expressions
