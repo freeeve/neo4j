@@ -743,8 +743,10 @@ public final class CypherFunctions {
         final var b = toFloatArrayVector(function, functionName, rhs, "b");
 
         if (a.length != b.length) {
-            throw new InvalidArgumentException(invalidSimilarityFunctionInputErrorMessage(
-                    function, "The supplied vectors do not have the same number of dimensions"));
+            throw InvalidArgumentException.invalidFunctionArgument(
+                    functionName,
+                    invalidSimilarityFunctionInputErrorMessage(
+                            function, "The supplied vectors do not have the same number of dimensions"));
         }
 
         return doubleValue(function.compare(a, b));
@@ -2729,7 +2731,7 @@ public final class CypherFunctions {
                 () ->
                         // this string assumes that the asString method fails and gives context which operation went
                         // wrong
-                        "Cannot access a map '" + container.toString() + "' by key '" + index.toString() + "'"));
+                        "Cannot access a map '" + container + "' by key '" + index.toString() + "'"));
     }
 
     public static String asString(AnyValue value) {
