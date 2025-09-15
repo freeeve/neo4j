@@ -76,6 +76,7 @@ import org.neo4j.bolt.protocol.common.connector.listener.ResetMessageConnectorLi
 import org.neo4j.bolt.protocol.common.connector.listener.ResponseMetricsConnectorListener;
 import org.neo4j.bolt.protocol.common.connector.netty.AdditionalSocketNettyConnector;
 import org.neo4j.bolt.protocol.common.connector.netty.DomainSocketNettyConnector;
+import org.neo4j.bolt.protocol.common.connector.netty.FabricSocketNettyConnector;
 import org.neo4j.bolt.protocol.common.connector.netty.LocalNettyConnector;
 import org.neo4j.bolt.protocol.common.connector.netty.SocketNettyConnector;
 import org.neo4j.bolt.protocol.common.connector.transport.ConnectorTransport;
@@ -377,16 +378,14 @@ public class BoltServer extends LifecycleAdapter {
             var internalEncryptionRequired = sslPolicyProvider.hasPolicyForScope(CLUSTER);
             var clusterSslPolicyProvider = new DefaultScopedSslPolicyProvider(CLUSTER, sslPolicyProvider);
 
-            registerConnector(createSocketConnector(
+            registerConnector(createFabricSocketConnector(
                     internalListenAddress,
                     connectionFactory,
                     internalEncryptionRequired,
                     transport,
                     clusterSslPolicyProvider,
                     createAuthentication(internalAuthManager),
-                    ConnectorType.INTRA_BOLT,
-                    allocator,
-                    true));
+                    allocator));
 
             log.info("Configured internal Bolt connector with listener address %s", internalListenAddress);
         }
@@ -607,11 +606,9 @@ public class BoltServer extends LifecycleAdapter {
             ScopedSslPolicyProvider sslPolicyProvider,
             Authentication authentication,
             ConnectorType connectorType,
-            ByteBufAllocator allocator,
-            boolean isInternalConnector) {
+            ByteBufAllocator allocator) {
         var config = SocketConnectorConfiguration.factory()
                 .fromConfig(this.config)
-                .isInternalConnector(isInternalConnector)
                 .requireEncryption(encryptionRequired)
                 .sslPolicyProvider(sslPolicyProvider)
                 .build();
@@ -644,28 +641,6 @@ public class BoltServer extends LifecycleAdapter {
                 logService.getInternalLogProvider());
     }
 
-    private Connector createSocketConnector(
-            SocketAddress bindAddress,
-            Connection.Factory connectionFactory,
-            boolean encryptionRequired,
-            ConnectorTransport transport,
-            ScopedSslPolicyProvider sslPolicyProvider,
-            Authentication authentication,
-            ConnectorType connectorType,
-            ByteBufAllocator allocator) {
-
-        return createSocketConnector(
-                bindAddress,
-                connectionFactory,
-                encryptionRequired,
-                transport,
-                sslPolicyProvider,
-                authentication,
-                connectorType,
-                allocator,
-                false);
-    }
-
     private Connector createAdditionalSocketConnector(
             SocketAddress bindAddress,
             Connection.Factory connectionFactory,
@@ -683,6 +658,48 @@ public class BoltServer extends LifecycleAdapter {
                 BoltConnector.NAME,
                 bindAddress,
                 connectorType,
+                connectorPortRegister,
+                memoryPool,
+                clock,
+                allocator,
+                bossEventLoopGroup,
+                workerEventLoopGroup,
+                transport,
+                connectionFactory,
+                connectionTracker,
+                protocolRegistry,
+                authentication,
+                authConfigProvider,
+                defaultDatabaseResolver,
+                connectionHintRegistry,
+                transactionManager,
+                routingService,
+                createErrorAccountant(),
+                createTrafficAccountant(),
+                driverMetricsMonitor,
+                config,
+                logService.getUserLogProvider(),
+                logService.getInternalLogProvider());
+    }
+
+    private Connector createFabricSocketConnector(
+            SocketAddress bindAddress,
+            Connection.Factory connectionFactory,
+            boolean encryptionRequired,
+            ConnectorTransport transport,
+            ScopedSslPolicyProvider sslPolicyProvider,
+            Authentication authentication,
+            ByteBufAllocator allocator) {
+        var config = SocketConnectorConfiguration.factory()
+                .fromConfig(this.config)
+                .requireEncryption(encryptionRequired)
+                .sslPolicyProvider(sslPolicyProvider)
+                .isInternalConnector(true)
+                .build();
+
+        return new FabricSocketNettyConnector(
+                BoltConnector.NAME,
+                bindAddress,
                 connectorPortRegister,
                 memoryPool,
                 clock,
