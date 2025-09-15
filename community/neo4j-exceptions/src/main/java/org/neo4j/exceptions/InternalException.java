@@ -36,8 +36,12 @@ public class InternalException extends Neo4jException {
     }
 
     public static InternalException internalError(String msgTitle, String message) {
-        var gql = GqlHelper.get50N00(msgTitle, message);
-        return new InternalException(gql, message);
+        return internalError(msgTitle, message, message);
+    }
+
+    public static InternalException internalError(String msgTitle, String gqlMessage, String oldMessage) {
+        var gql = GqlHelper.get50N00(msgTitle, gqlMessage);
+        return new InternalException(gql, oldMessage);
     }
 
     public static InternalException internalError(String msgTitle, String message, Throwable cause) {

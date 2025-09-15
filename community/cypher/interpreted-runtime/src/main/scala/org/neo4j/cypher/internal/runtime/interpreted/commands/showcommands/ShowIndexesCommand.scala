@@ -65,6 +65,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowS
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowSchemaCommandHelper.propStringJoiner
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowSchemaCommandHelper.relPropStringJoiner
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.schema.ConstraintDescriptor
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
@@ -210,7 +211,11 @@ case class ShowIndexesCommand(
           case unknown =>
             // This match should cover all existing columns but we get scala warnings
             // on non-exhaustive match due to it being string values
-            throw new IllegalStateException(s"Missing case for column: $unknown")
+            throw InternalException.internalError(
+              this.getClass.getSimpleName,
+              s"Unknown column for show indexes. Missing case for column: $unknown.",
+              s"Missing case for column: $unknown"
+            )
         }.toMap[String, AnyValue]
     }
     val updatedRows = updateRowsWithPotentiallyRenamedColumns(rows.toList)

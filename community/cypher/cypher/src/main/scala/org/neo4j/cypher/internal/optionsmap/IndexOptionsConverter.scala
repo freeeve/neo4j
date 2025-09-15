@@ -227,14 +227,6 @@ trait IndexOptionsConverter[T] extends OptionsConverter[T] {
     )
   }
 
-  protected def invalidConfigValueString(pp: PrettyPrinter, value: AnyValue, schemaType: String): String = {
-    value.writeTo(pp)
-    invalidConfigValueString(pp.value(), schemaType)
-  }
-
-  protected def invalidConfigValueString(value: String, schemaType: String): String =
-    s"Could not create $schemaType with specified index config '$value'"
-
   protected def assertEmptyConfig(
     config: AnyValue,
     schemaType: String,

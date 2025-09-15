@@ -22,7 +22,10 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.neo4j.configuration.helpers.DatabaseNameValidator.MAXIMUM_DATABASE_NAME_LENGTH
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.dbms.database.DatabaseContext
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.internal.kernel.api.security.AdminActionOnResource
 import org.neo4j.internal.kernel.api.security.AuthSubject
 import org.neo4j.internal.kernel.api.security.PermissionState
@@ -144,9 +147,19 @@ class TransactionCommandHelperTest extends ShowCommandTestBase {
   }
 
   test("does not print negative transaction ids") {
-    the[InvalidArgumentsException] thrownBy {
+    val exception = the[InvalidArgumentsException] thrownBy {
       TransactionId("neo4j", -15L)
-    } should have message s"Negative ids are not supported $expectedTxIdFormat"
+    }
+    exception should be(gqlException(
+      s"Negative ids are not supported $expectedTxIdFormat",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22003,
+        "error: data exception - numeric value out of range. The numeric value -15 is outside the required range."
+      ).withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N02,
+        s"error: data exception - specified negative numeric value. Expected 'id $expectedTxIdFormat' to be a positive number but found -15 instead."
+      ))
+    ))
   }
 
   test("parses transaction ids") {
@@ -158,50 +171,128 @@ class TransactionCommandHelperTest extends ShowCommandTestBase {
   }
 
   test("does not parse negative transaction ids") {
-    the[InvalidArgumentsException] thrownBy {
+    val exception = the[InvalidArgumentsException] thrownBy {
       TransactionId.parse("neo4j-transaction--12")
-    } should have message s"Negative ids are not supported $expectedTxIdFormat"
+    }
+    exception should be(gqlException(
+      s"Negative ids are not supported $expectedTxIdFormat",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22003,
+        "error: data exception - numeric value out of range. The numeric value -12 is outside the required range."
+      ).withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N02,
+        s"error: data exception - specified negative numeric value. Expected 'id $expectedTxIdFormat' to be a positive number but found -12 instead."
+      ))
+    ))
   }
 
   test("does not parse wrong separator") {
-    the[InvalidArgumentsException] thrownBy {
+    val exception1 = the[InvalidArgumentsException] thrownBy {
       TransactionId.parse("neo4j-transactioo-12")
-    } should have message s"Could not parse id $expectedTxIdFormat"
+    }
+    exception1 should be(gqlException(
+      s"Could not parse id $expectedTxIdFormat",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          s"Invalid input 'neo4j-transactioo-12' for id $expectedTxIdFormat."
+      )
+    ))
 
-    the[InvalidArgumentsException] thrownBy {
+    val exception2 = the[InvalidArgumentsException] thrownBy {
       TransactionId.parse("neo4j-12")
-    } should have message s"Could not parse id $expectedTxIdFormat"
+    }
+    exception2 should be(gqlException(
+      s"Could not parse id $expectedTxIdFormat",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          s"Invalid input 'neo4j-12' for id $expectedTxIdFormat."
+      )
+    ))
   }
 
   test("does not parse random text") {
-    the[InvalidArgumentsException] thrownBy {
+    val exception = the[InvalidArgumentsException] thrownBy {
       TransactionId.parse("blarglbarf")
-    } should have message s"Could not parse id $expectedTxIdFormat"
+    }
+    exception should be(gqlException(
+      s"Could not parse id $expectedTxIdFormat",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          s"Invalid input 'blarglbarf' for id $expectedTxIdFormat."
+      )
+    ))
   }
 
   test("does not parse trailing random text") {
-    the[InvalidArgumentsException] thrownBy {
+    val exception = the[InvalidArgumentsException] thrownBy {
       TransactionId.parse("neo4j-transaction-12  ")
-    } should have message s"Could not parse id $expectedTxIdFormat"
+    }
+    exception should be(gqlException(
+      s"Could not parse id $expectedTxIdFormat",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          s"Invalid input 'neo4j-transaction-12  ' for id $expectedTxIdFormat."
+      ).withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. Invalid input '12  ' for a number."
+      ))
+    ))
+    exception.getCause shouldBe a[NumberFormatException]
   }
 
   test("does not parse empty text") {
-    the[InvalidArgumentsException] thrownBy {
+    val exception = the[InvalidArgumentsException] thrownBy {
       TransactionId.parse("")
-    } should have message s"Could not parse id $expectedTxIdFormat"
+    }
+    exception should be(gqlException(
+      s"Could not parse id $expectedTxIdFormat",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          s"Invalid input '' for id $expectedTxIdFormat."
+      )
+    ))
   }
 
   test("validate and normalise database name when parsing") {
     TransactionId.parse("NEO4J-transaction-14") shouldBe TransactionId("neo4j", 14L)
 
-    val e = the[InvalidArgumentsException] thrownBy TransactionId.parse(
-      "a".repeat(MAXIMUM_DATABASE_NAME_LENGTH + 1) + "-transaction-14"
-    )
-    e.getMessage should include(" must have a length between ")
+    val longName = "a".repeat(MAXIMUM_DATABASE_NAME_LENGTH + 1)
+    val exception1 = the[InvalidArgumentsException] thrownBy {
+      TransactionId.parse(longName + "-transaction-14")
+    }
+    exception1 should be(gqlException(
+      "The provided database name must have a length between 3 and 63 characters.",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          s"Invalid input '$longName-transaction-14' for id $expectedTxIdFormat."
+      ).withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          s"Invalid input '$longName' for database name (The provided database name must have a length between 3 and 63 characters.)."
+      ))
+    ))
 
-    the[InvalidArgumentsException] thrownBy {
+    val exception2 = the[InvalidArgumentsException] thrownBy {
       TransactionId.parse("-transaction-12")
-    } should have message "The provided database name is empty."
+    }
+    exception2 should be(gqlException(
+      "The provided database name is empty.",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          s"Invalid input '-transaction-12' for id $expectedTxIdFormat."
+      ).withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N05,
+        "error: data exception - input failed validation. " +
+          "Invalid input '' for database name (The provided database name is empty.)."
+      ))
+    ))
   }
 
   // Test query ids
@@ -211,8 +302,18 @@ class TransactionCommandHelperTest extends ShowCommandTestBase {
   }
 
   test("does not print negative query ids") {
-    the[InvalidArgumentsException] thrownBy {
+    val exception = the[InvalidArgumentsException] thrownBy {
       QueryId(-15L)
-    } should have message "Negative ids are not supported (expected format: query-<id>)"
+    }
+    exception should be(gqlException(
+      "Negative ids are not supported (expected format: query-<id>)",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22003,
+        "error: data exception - numeric value out of range. The numeric value -15 is outside the required range."
+      ).withCause(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N02,
+        "error: data exception - specified negative numeric value. Expected 'id (expected format: query-<id>)' to be a positive number but found -15 instead."
+      ))
+    ))
   }
 }

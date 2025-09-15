@@ -3451,7 +3451,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "unexpected end of input",
             ErrorClassification.CLIENT_ERROR),
-    STATUS_42N46(
+    STATUS_42N46( // Duplicate of 42N52, use that instead
             new GqlStatus("42N46"),
             "{ %s } is not a recognized Cypher type.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},

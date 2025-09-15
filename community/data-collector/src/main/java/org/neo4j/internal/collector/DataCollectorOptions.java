@@ -57,7 +57,7 @@ class DataCollectorOptions {
         Integer parse(Object value) throws InvalidArgumentsException {
             int x = asInteger(value);
             if (x < 0) {
-                throw InvalidArgumentsException.requiresPositiveInteger(name, x);
+                throw InvalidArgumentsException.requiresPositiveIntegerInOptions(name, x);
             }
             return x;
         }

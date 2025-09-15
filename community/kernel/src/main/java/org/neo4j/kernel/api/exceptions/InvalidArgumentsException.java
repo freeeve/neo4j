@@ -32,6 +32,7 @@ import org.neo4j.gqlstatus.GqlException;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.internal.schema.IndexConfigValidationRecords.IndexConfigValidationRecord;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.utils.PrettyPrinter;
@@ -95,7 +96,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         return new InvalidArgumentsException(gql, legacyMessage, cause);
     }
 
-    public static InvalidArgumentsException requiresPositiveInteger(String option, int value) {
+    public static InvalidArgumentsException requiresPositiveIntegerInOptions(String option, int value) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
                 .withParam(GqlParams.StringParam.value, String.valueOf(value))
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N02)
@@ -105,6 +106,53 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 .build();
         return new InvalidArgumentsException(
                 gql, String.format("Option `%s` requires positive integer argument, got `%d`", option, value));
+    }
+
+    public static InvalidArgumentsException requiresPositiveIntegerInIds(long value, String expectedFormat) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, String.valueOf(value))
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N02)
+                        .withParam(GqlParams.StringParam.option, String.format("id %s", expectedFormat))
+                        .withParam(GqlParams.NumberParam.value, value)
+                        .build())
+                .build();
+        return new InvalidArgumentsException(gql, "Negative ids are not supported " + expectedFormat);
+    }
+
+    public static InvalidArgumentsException cannotParseId(String value, String expectedFormat) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                .withParam(GqlParams.StringParam.input, value)
+                .withParam(GqlParams.StringParam.context, String.format("id %s", expectedFormat))
+                .build();
+        return new InvalidArgumentsException(gql, "Could not parse id " + expectedFormat);
+    }
+
+    public static InvalidArgumentsException cannotParseIdInvalidNumber(
+            String value, String idNumber, String expectedFormat, NumberFormatException cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                .withParam(GqlParams.StringParam.input, value)
+                .withParam(GqlParams.StringParam.context, String.format("id %s", expectedFormat))
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                        .withParam(GqlParams.StringParam.input, idNumber)
+                        .withParam(GqlParams.StringParam.context, "a number")
+                        .build())
+                .build();
+
+        return new InvalidArgumentsException(gql, "Could not parse id " + expectedFormat, cause);
+    }
+
+    public static InvalidArgumentsException cannotParseIdInvalidDatabase(
+            String value, String dbName, String expectedFormat, IllegalArgumentException cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                .withParam(GqlParams.StringParam.input, value)
+                .withParam(GqlParams.StringParam.context, String.format("id %s", expectedFormat))
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                        .withParam(GqlParams.StringParam.input, dbName)
+                        .withParam(
+                                GqlParams.StringParam.context, String.format("database name (%s)", cause.getMessage()))
+                        .build())
+                .build();
+        return new InvalidArgumentsException(gql, cause.getMessage(), cause);
     }
 
     public static InvalidArgumentsException invalidResource(String typeString) {
@@ -298,6 +346,11 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         return invalidInput(input, key, List.of("STRING"), oldMsg);
     }
 
+    public static InvalidArgumentsException invalidMapOption(String operation, String key, AnyValue input) {
+        var oldMsg = String.format("Could not %s with specified %s '%s', Map expected.", operation, key, input);
+        return invalidInput(input, key, List.of("MAP NOT NULL"), oldMsg);
+    }
+
     public static InvalidArgumentsException pointOptionsInConfig(
             PrettyPrinter pp, MapValue itemsMap, String schemaType, java.util.List<String> validConfigSettingNames) {
         var gql = getIdxGql(itemsMap, validConfigSettingNames);
@@ -326,6 +379,65 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 java.lang.String.format(
                         "%s, contains vector config options.\nTo create vector index, please use 'CREATE VECTOR INDEX ...'.",
                         invalidConfigValueString(pp, itemsMap, schemaType)));
+    }
+
+    public static InvalidArgumentsException unrecognizedIndexConfigSetting(
+            PrettyPrinter pp,
+            MapValue itemsMap,
+            IndexConfigValidationRecord unrecognized,
+            String schemaType,
+            java.util.List<String> validConfigSettingNames) {
+        var gql = getIdxGql(itemsMap, validConfigSettingNames);
+
+        var validValues = "";
+        if (!validConfigSettingNames.isEmpty()) {
+            var sb = new StringBuilder();
+            sb.append(validConfigSettingNames.getFirst());
+            for (int i = 1; i < validConfigSettingNames.size(); i++) {
+                sb.append(", ").append(validConfigSettingNames.get(i));
+            }
+            validValues = sb.toString();
+        }
+        return new InvalidArgumentsException(
+                gql,
+                java.lang.String.format(
+                        "%s. '%s' is an unrecognized setting. Supported: [%s]",
+                        invalidConfigValueString(pp, itemsMap, schemaType), unrecognized.settingName(), validValues));
+    }
+
+    public static InvalidArgumentsException indexSettingOutOfRange(
+            String settingName,
+            String expectedType,
+            String minValue,
+            String maxValue,
+            PrettyPrinter pp,
+            AnyValue given) {
+        given.writeTo(pp);
+        var gql = GqlHelper.getGql22003_22N03(settingName, expectedType, minValue, maxValue, pp.value());
+
+        return new InvalidArgumentsException(
+                gql, String.format("'%s' must be between %s and %s inclusively", settingName, minValue, maxValue));
+    }
+
+    public static InvalidArgumentsException invalidIndexSettingValue(
+            String settingName, java.util.List<String> validTypes, PrettyPrinter pp, AnyValue given) {
+        given.writeTo(pp);
+        String givenString = pp.value();
+        var supported = "";
+        if (!validTypes.isEmpty()) {
+            var sb = new StringBuilder();
+            sb.append(validTypes.getFirst());
+            for (int i = 1; i < validTypes.size(); i++) {
+                sb.append(", ").append(validTypes.get(i));
+            }
+            supported = sb.toString();
+        }
+
+        var gql = GqlHelper.getGql42001_22N04(givenString, settingName, validTypes);
+
+        return new InvalidArgumentsException(
+                gql,
+                String.format("'%s' is an unsupported '%s'. Supported: [%s]", givenString, settingName, supported));
     }
 
     public static InvalidArgumentsException expectedNonePrimarySecondary(
@@ -360,15 +472,19 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     }
 
     public static InvalidArgumentsException unrecognisedOptionsOnlyKeys(
-            String operation, String invalidKeys, List<String> permittedOptions) {
-        var permittedOptionsString = String.join(", ", permittedOptions);
+            String operation, List<String> invalidKeys, List<String> permittedOptions) {
+        var permittedOptionsString =
+                permittedOptions.stream().map(option -> "'" + option + "'").collect(Collectors.joining(", "));
+        var invalidKeysStringGql = String.join(", ", invalidKeys);
+        var invalidKeysStringOld =
+                invalidKeys.stream().map(option -> "'" + option + "'").collect(Collectors.joining(", "));
         var gql = GqlHelper.getGql42001_22N04(
-                invalidKeys, GqlParams.StringParam.input.process("OPTIONS"), permittedOptions);
+                invalidKeysStringGql, GqlParams.StringParam.input.process("OPTIONS"), permittedOptions);
         return new InvalidArgumentsException(
                 gql,
                 String.format(
                         "Could not %s with unrecognised option(s): %s. Expected %s.",
-                        operation, invalidKeys, permittedOptionsString));
+                        operation, invalidKeysStringOld, permittedOptionsString));
     }
 
     public static InvalidArgumentsException unrecognisedOptionsNoOperation(
@@ -382,15 +498,42 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     }
 
     public static InvalidArgumentsException unrecognisedCreateDbOptions(
-            String operation, String invalidKeys, List<String> permittedOptions) {
-        var permittedOptionsString = String.join(", ", permittedOptions);
+            String operation, List<String> invalidKeys, List<String> permittedOptions) {
+        var permittedOptionsString =
+                permittedOptions.stream().map(option -> "'" + option + "'").collect(Collectors.joining(", "));
+        var invalidKeysStringGql = String.join(", ", invalidKeys);
+        var invalidKeysStringOld =
+                invalidKeys.stream().map(option -> "'" + option + "'").collect(Collectors.joining(", "));
         var gql = GqlHelper.getGql42001_22N04(
-                invalidKeys, GqlParams.StringParam.input.process("OPTIONS"), permittedOptions);
+                invalidKeysStringGql, GqlParams.StringParam.input.process("OPTIONS"), permittedOptions);
         return new InvalidArgumentsException(
                 gql,
                 String.format(
                         "Could not %s with 'CREATE DATABASE' option(s): %s. Expected %s.",
-                        operation, invalidKeys, permittedOptionsString));
+                        operation, invalidKeysStringOld, permittedOptionsString));
+    }
+
+    public static InvalidArgumentsException invalidCreateDbOptionsKeysCombination(
+            String operation, List<String> invalidKeys, List<String> permittedOptions) {
+        var permittedOptionsString =
+                permittedOptions.stream().map(option -> "'" + option + "'").collect(Collectors.joining(", "));
+        // Assumes only 2 keys (and the gql version assumes the parameter will add '...' around it)
+        var invalidKeysStringOldMsg =
+                invalidKeys.stream().map(key -> "'" + key + "'").collect(Collectors.joining(" and "));
+        var invalidKeysString = String.join("' and '", invalidKeys);
+
+        var gql = GqlHelper.getGql42001_22N04(
+                invalidKeysString, GqlParams.StringParam.input.process("CREATE DATABASE OPTIONS"), permittedOptions);
+        return new InvalidArgumentsException(
+                gql,
+                String.format(
+                        "Invalid input %s for %s. Expected one of %s.",
+                        invalidKeysStringOldMsg, operation, permittedOptionsString));
+    }
+
+    public static InvalidArgumentsException unsupportedOptionsKey(String key) {
+        var gql = GqlHelper.get51N31(key, "OPTIONS without change_data_capture");
+        return new InvalidArgumentsException(gql, String.format("%s is not supported yet", key));
     }
 
     public static InvalidArgumentsException invalidDriverSettings(

@@ -53,7 +53,7 @@ case class QueryId(internalId: Long) {
   private val PREFIX = "query-"
   private val EXPECTED_FORMAT_MSG = "(expected format: query-<id>)"
 
-  if (internalId <= 0) throw new InvalidArgumentsException("Negative ids are not supported " + EXPECTED_FORMAT_MSG)
+  if (internalId <= 0) throw InvalidArgumentsException.requiresPositiveIntegerInIds(internalId, EXPECTED_FORMAT_MSG)
 
   override def toString: String = PREFIX + internalId
 }
@@ -74,29 +74,35 @@ object TransactionId {
   val TERMINATED_STATE = "Terminated with reason: %s"
 
   def apply(dbName: String, internalId: Long): TransactionId = {
-    if (internalId < 0) throw new InvalidArgumentsException("Negative ids are not supported " + EXPECTED_FORMAT_MSG)
+    if (internalId < 0) throw InvalidArgumentsException.requiresPositiveIntegerInIds(internalId, EXPECTED_FORMAT_MSG)
     TransactionId(new NormalizedDatabaseName(Objects.requireNonNull(dbName)), internalId)
   }
 
   @throws[InvalidArgumentsException]
   def parse(transactionIdText: String): TransactionId = {
+    var tid: String = null
+    var database: NormalizedDatabaseName = null
     try {
       val i = transactionIdText.lastIndexOf(SEPARATOR)
       if (i != -1) {
-        val database = new NormalizedDatabaseName(transactionIdText.substring(0, i))
+        database = new NormalizedDatabaseName(transactionIdText.substring(0, i))
         DatabaseNameValidator.validateInternalDatabaseName(database)
         if (database.name.nonEmpty) {
-          val tid = transactionIdText.substring(i + SEPARATOR.length)
+          tid = transactionIdText.substring(i + SEPARATOR.length)
           val internalId = tid.toLong
           return TransactionId(database.name, internalId)
         }
       }
     } catch {
       case e: NumberFormatException =>
-        throw new InvalidArgumentsException("Could not parse id " + EXPECTED_FORMAT_MSG, e)
-      case e: IllegalArgumentException =>
-        throw new InvalidArgumentsException(e.getMessage, e)
+        throw InvalidArgumentsException.cannotParseIdInvalidNumber(transactionIdText, tid, EXPECTED_FORMAT_MSG, e)
+      case e: IllegalArgumentException => throw InvalidArgumentsException.cannotParseIdInvalidDatabase(
+          transactionIdText,
+          database.name,
+          EXPECTED_FORMAT_MSG,
+          e
+        )
     }
-    throw new InvalidArgumentsException("Could not parse id " + EXPECTED_FORMAT_MSG)
+    throw InvalidArgumentsException.cannotParseId(transactionIdText, EXPECTED_FORMAT_MSG)
   }
 }

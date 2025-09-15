@@ -56,7 +56,7 @@ public class QueryExecutionKernelExceptionTest {
 
     @Test
     void testGqlExceptionWrappingWithCause() {
-        var gqlException = InvalidArgumentsException.requiresPositiveInteger("the_option", -1);
+        var gqlException = InvalidArgumentsException.requiresPositiveIntegerInOptions("the_option", -1);
         var translatedGqlException = QueryExecutionKernelException.wrapError(gqlException);
         assertEquals("22003", translatedGqlException.gqlStatus());
         assertEquals(
@@ -97,7 +97,7 @@ public class QueryExecutionKernelExceptionTest {
 
     @Test
     void testGqlExceptionWrappingWithJavaCause() {
-        var causeException = InvalidArgumentsException.requiresPositiveInteger("the_option", -1);
+        var causeException = InvalidArgumentsException.requiresPositiveIntegerInOptions("the_option", -1);
         var gqlException = TestUnknownGqlException.create("I am an exception", causeException);
         var translatedGqlException = QueryExecutionKernelException.wrapError(gqlException);
         assertEquals("50N42", translatedGqlException.gqlStatus());

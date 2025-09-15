@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.internal.kernel.api.security.AdminActionOnResource
 import org.neo4j.internal.kernel.api.security.PrivilegeAction.TERMINATE_TRANSACTION
@@ -129,6 +130,10 @@ case class TerminateTransactionsCommand(
       case unknown               =>
         // This match should cover all existing columns but we get scala warnings
         // on non-exhaustive match due to it being string values
-        throw new IllegalStateException(s"Missing case for column: $unknown")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unknown column for terminate transactions. Missing case for column: $unknown.",
+          s"Missing case for column: $unknown"
+        )
     }.toMap[String, AnyValue]
 }

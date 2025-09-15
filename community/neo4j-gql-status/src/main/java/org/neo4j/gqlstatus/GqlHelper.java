@@ -73,13 +73,18 @@ public class GqlHelper {
 
     public static ErrorGqlStatusObject getGql22003_22N03(
             String component, String valueType, Number lower, Number upper, String value) {
+        return getGql22003_22N03(component, valueType, String.valueOf(lower), String.valueOf(upper), value);
+    }
+
+    public static ErrorGqlStatusObject getGql22003_22N03(
+            String component, String valueType, String lower, String upper, String value) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
                 .withParam(GqlParams.StringParam.value, value)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
                         .withParam(GqlParams.StringParam.component, component)
                         .withParam(GqlParams.StringParam.valueType, valueType)
-                        .withParam(GqlParams.StringParam.lower, String.valueOf(lower))
-                        .withParam(GqlParams.StringParam.upper, String.valueOf(upper))
+                        .withParam(GqlParams.StringParam.lower, lower)
+                        .withParam(GqlParams.StringParam.upper, upper)
                         .withParam(GqlParams.StringParam.value, value)
                         .build())
                 .build();
@@ -1252,6 +1257,10 @@ public class GqlHelper {
                 .withParam(GqlParams.StringParam.feat, notSupported)
                 .withParam(GqlParams.StringParam.context, context)
                 .build();
+    }
+
+    public static ErrorGqlStatusObject get51N31(String notSupported, String context) {
+        return get51N31(notSupported, context, -1, -1, -1);
     }
 
     public static ErrorGqlStatusObject getGql52N02_52N11(String procedure) {

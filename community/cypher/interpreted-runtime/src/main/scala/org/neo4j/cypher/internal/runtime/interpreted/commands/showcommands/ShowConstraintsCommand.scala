@@ -65,6 +65,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowS
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowSchemaCommandHelper.createRelConstraintCommand
 import org.neo4j.cypher.internal.runtime.interpreted.commands.showcommands.ShowSchemaCommandHelper.extractOptionsMap
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.schema
 import org.neo4j.internal.schema.ConstraintDescriptor
 import org.neo4j.internal.schema.EndpointType
@@ -235,7 +236,11 @@ case class ShowConstraintsCommand(
           case unknown =>
             // This match should cover all existing columns but we get scala warnings
             // on non-exhaustive match due to it being string values
-            throw new IllegalStateException(s"Missing case for column: $unknown")
+            throw InternalException.internalError(
+              this.getClass.getSimpleName,
+              s"Unknown column for show constraints. Missing case for column: $unknown.",
+              s"Missing case for column: $unknown"
+            )
         }.toMap[String, AnyValue]
     }
     val updatedRows = updateRowsWithPotentiallyRenamedColumns(rows.toList)

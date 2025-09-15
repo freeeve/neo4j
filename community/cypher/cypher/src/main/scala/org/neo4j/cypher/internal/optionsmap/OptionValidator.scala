@@ -68,8 +68,7 @@ trait MapOptionValidator extends OptionValidator[MapValue] {
       case mapValue: MapValue =>
         validateContent(mapValue, config)
         mapValue
-      case _ =>
-        throw new InvalidArgumentsException(s"Could not $operation with specified $KEY '$value', Map expected.")
+      case _ => throw InvalidArgumentsException.invalidMapOption(operation, KEY, value)
     }
   }
 }

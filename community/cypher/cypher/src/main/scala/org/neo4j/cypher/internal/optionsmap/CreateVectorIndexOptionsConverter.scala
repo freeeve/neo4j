@@ -24,6 +24,7 @@ import org.eclipse.collections.api.set.sorted.ImmutableSortedSet
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
+import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexConfigValidationRecords
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType
@@ -49,6 +50,7 @@ import org.neo4j.values.virtual.MapValue
 import java.lang
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import scala.jdk.CollectionConverters.SeqHasAsJava
 
 case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, latestSupportedVersion: VectorIndexVersion)
     extends IndexOptionsConverter[CreateIndexWithFullOptions] {
@@ -87,10 +89,12 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
           foundFulltextConfigValues(IndexType.VECTOR, pp, itemsMap, schemaType)
         case pointSetting if validPointConfigSettingNames.contains(pointSetting.settingName) =>
           foundPointConfigValues(IndexType.VECTOR, pp, itemsMap, schemaType)
-        case unrecognized => throw new InvalidArgumentsException(
-            invalidConfigValueString(pp, itemsMap, schemaType) +
-              s". '${unrecognized.settingName}' is an unrecognized setting. Supported: " +
-              validSettingNames.mkString("[", ", ", "]")
+        case unrecognized => throw InvalidArgumentsException.unrecognizedIndexConfigSetting(
+            pp,
+            itemsMap,
+            unrecognized,
+            schemaType,
+            validSettingNames.toList.asJava
           )
       }
     }
@@ -148,20 +152,33 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
         invalidValue =>
           val valid = invalidValue.valid
           valid match {
-            case range: VectorIndexConfigUtils.Range[_] => throw new IllegalArgumentException(
-                s"'${invalidValue.settingName}' must be between ${range.min} and ${range.max} inclusively"
+            case range: VectorIndexConfigUtils.Range[_] => throw InvalidArgumentsException.indexSettingOutOfRange(
+                invalidValue.settingName,
+                // In practice all vector setting ranges are INTEGER,
+                //  if that changes we need to update this
+                "INTEGER NOT NULL",
+                range.min.toString,
+                range.max.toString,
+                pp,
+                invalidValue.rawValue()
               )
             case _: lang.Iterable[_] | _: PrimitiveIterable =>
-              val supported = valid match {
-                case iterable: lang.Iterable[_]           => iterable.asScala.mkString("[", ", ", "]")
-                case primitiveIterable: PrimitiveIterable => primitiveIterable.makeString("[", ", ", "]")
-                case _                                    => // by construction, this pattern match is exhaustive
+              val supported: List[String] = valid match {
+                case iterable: lang.Iterable[_]           => iterable.asScala.map(_.toString).toList
+                case primitiveIterable: PrimitiveIterable => List(primitiveIterable.makeString(", "))
+                case _                                    =>
+                  // by construction, this pattern match is exhaustive
+                  List.empty
               }
-              invalidValue.rawValue().writeTo(pp)
-              throw new IllegalArgumentException(
-                s"'${pp.value()}' is an unsupported '${invalidValue.settingName}'. Supported: $supported"
+              throw InvalidArgumentsException.invalidIndexSettingValue(
+                invalidValue.settingName,
+                supported.asJava,
+                pp,
+                invalidValue.rawValue()
               )
-            case unknown => throw new IllegalStateException(
+            case unknown => throw InternalException.internalError(
+                this.getClass.getSimpleName,
+                s"Unhandled valid value type '${unknown.getClass.getSimpleName}' for '${invalidValue.settingName}'. Provided: $unknown.",
                 s"Unhandled valid value type '${unknown.getClass.getSimpleName}' for '${invalidValue.settingName}'. Provided: $unknown"
               )
           }
