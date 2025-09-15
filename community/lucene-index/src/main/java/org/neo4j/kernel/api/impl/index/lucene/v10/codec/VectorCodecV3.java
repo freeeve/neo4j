@@ -21,7 +21,7 @@ package org.neo4j.kernel.api.impl.index.lucene.v10.codec;
 
 import org.apache.lucene.codecs.FilterCodec;
 import org.apache.lucene.codecs.KnnVectorsFormat;
-import org.apache.lucene.codecs.lucene101.Lucene101Codec;
+import org.apache.lucene.codecs.lucene103.Lucene103Codec;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexConfig;
 
 public class VectorCodecV3 extends FilterCodec {
@@ -34,7 +34,7 @@ public class VectorCodecV3 extends FilterCodec {
     }
 
     public VectorCodecV3(VectorIndexConfig config) {
-        super(CODEC_NAME, new Lucene101Codec());
+        super(CODEC_NAME, new Lucene103Codec());
         this.config = config;
         final var dimensions =
                 config.dimensions().orElseGet(() -> config.version().maxDimensions());
