@@ -25,6 +25,7 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.SslProvider;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
@@ -48,6 +49,10 @@ public class SslPolicy {
     private final String[] tlsVersions;
     private final ClientAuth clientAuth;
 
+    /* Temporary, to be removed when we have a proper way to configure the driver */
+    private final Path privateKeyFile;
+    private final Path certificateFile;
+
     private final TrustManagerFactory trustManagerFactory;
     private final SslProvider sslProvider;
 
@@ -57,7 +62,9 @@ public class SslPolicy {
 
     public SslPolicy(
             PrivateKey privateKey,
+            Path privateKeyFile,
             X509Certificate[] keyCertChain,
+            Path certificateFile,
             List<String> tlsVersions,
             List<String> ciphers,
             ClientAuth clientAuth,
@@ -76,6 +83,8 @@ public class SslPolicy {
         this.verifyHostname = verifyHostname;
         this.verifyExpiration = verifyExpiration;
         this.log = logProvider.getLog(SslPolicy.class);
+        this.privateKeyFile = privateKeyFile;
+        this.certificateFile = certificateFile;
     }
 
     public SslContext nettyServerContext() throws SSLException {
@@ -132,6 +141,14 @@ public class SslPolicy {
 
     public X509Certificate[] certificateChain() {
         return keyCertChain;
+    }
+
+    public Path certificateFile() {
+        return certificateFile;
+    }
+
+    public Path privateKeyFile() {
+        return privateKeyFile;
     }
 
     public KeyStore getKeyStore(char[] keyStorePass, char[] privateKeyPass) {

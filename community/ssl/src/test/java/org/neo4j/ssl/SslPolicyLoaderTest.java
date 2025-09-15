@@ -287,5 +287,7 @@ class SslPolicyLoaderTest {
         assertNotNull(sslPolicy.certificateChain());
         assertNotNull(sslPolicy.nettyClientContext());
         assertNotNull(sslPolicy.nettyServerContext());
+        assertNotNull(sslPolicy.certificateFile());
+        assertNotNull(sslPolicy.privateKeyFile());
     }
 }
