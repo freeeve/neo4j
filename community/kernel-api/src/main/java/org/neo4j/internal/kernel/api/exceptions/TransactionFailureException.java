@@ -139,6 +139,12 @@ public class TransactionFailureException extends KernelException {
                 "Transactions cannot be committed in a read-only Neo4j database");
     }
 
+    public static TransactionFailureException transactionRollbackFailed(Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
+                .build();
+        return new TransactionFailureException(gql, Status.Transaction.TransactionRollbackFailed, cause);
+    }
+
     // KNL-038
     public static TransactionFailureException cannotRollbackCannotDropCreatedConstraintIndex(Throwable cause) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_40N01)
