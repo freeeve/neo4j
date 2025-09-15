@@ -51,7 +51,6 @@ import org.neo4j.cypher.internal.ir.SetRelationshipPropertyPattern
 import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.ir.ast.IRExpression
-import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.symbols.CTList
@@ -122,7 +121,7 @@ case object PlanUpdates extends UpdatesPlanner {
             Set.empty,
             foreach.innerUpdates.queryGraph.argumentIds,
             context,
-            CachedProperties.empty
+            context.plannerState.previouslyCachedProperties
           )
           val innerUpdatePlan = planAllUpdatesRecursively(foreach.innerUpdates, innerLeaf)
           context.staticComponents.logicalPlanProducer.planForeachApply(

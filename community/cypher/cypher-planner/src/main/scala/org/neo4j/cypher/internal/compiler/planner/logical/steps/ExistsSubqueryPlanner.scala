@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.plannerQueryPlanner
 import org.neo4j.cypher.internal.ir.ast.ExistsIRExpression
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
+import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.util.Ref
 
@@ -64,26 +65,26 @@ final case class ExistsSubqueryPlannerWithCaching() extends ExistsSubqueryPlanne
   private def doPlan(
     subqueryRef: Ref[ExistsIRExpression],
     labelInfo: LabelInfo,
-    context: CachedFunction.CacheKey[Unit, LogicalPlanningContext]
+    context: CachedFunction.CacheKey[CachedProperties, LogicalPlanningContext]
   ): LogicalPlan = {
     ExistsSubqueryPlanner.planInnerOfExistsSubquery(subqueryRef.value, labelInfo, context.value)
   }
 
   private def computeContextCacheKey(context: LogicalPlanningContext)
-    : CachedFunction.CacheKey[Unit, LogicalPlanningContext] = {
+    : CachedFunction.CacheKey[CachedProperties, LogicalPlanningContext] = {
     CachedFunction.CacheKey.computeFrom(context) {
-      // The same EXISTS subquery can be planned with different instances of LogicalPlanningContext, but it is assumed
-      // that the resulting plan will be the same regardless of any particular field.
-      // To avoid generating cache-misses and re-computing the same plan multiple times, we're excluding
-      // LogicalPlanningContext from the cache key.
-      // When adding a new field to LogicalPlanningContext, consider if this assumption still holds. If not, add relevant
-      // fields to the cache key below.
+      // Only `previouslyCachedProperties` from LogicalPlanningContext are included in the cache key,
+      // as it is currently assumed that other fields do not affect the resulting plan for an EXISTS subquery.
+      // In SPD, previously cached properties will help determine if any properties can be reused from the outer query and potentially prevent a costly remoteBatchProperties operation.
+      // This avoids unnecessary cache misses and redundant planning.
+      // If new fields are added to LogicalPlanningContext that can influence subquery planning,
+      // ensure they are also included in the cache key here.
       case LogicalPlanningContext(
           _,
           _,
-          PlannerState(_, _, _, _, _, _, _, _)
+          PlannerState(_, _, _, _, _, _, _, previouslyCachedProperties)
         ) =>
-        ()
+        previouslyCachedProperties
     }
   }
 }

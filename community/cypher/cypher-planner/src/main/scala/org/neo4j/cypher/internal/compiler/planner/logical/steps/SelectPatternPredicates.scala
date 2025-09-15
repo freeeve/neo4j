@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.steps
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.Variable
@@ -41,35 +42,54 @@ case object SelectPatternPredicates extends SelectionCandidateGenerator {
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
   ): Iterator[SelectionCandidate] = {
-    for {
-      pattern <- unsolvedPredicates.iterator.filter(containsExistsSubquery)
-      if queryGraph.argumentIds.subsetOf(lhs.availableSymbols)
-    } yield {
-      val plan = pattern match {
-        case p: ExistsIRExpression =>
-          val rhs = rhsPlan(lhs, p, context)
-          context.staticComponents.logicalPlanProducer.planSemiApply(lhs, rhs, p, context)
-        case p @ Not(e: ExistsIRExpression) =>
-          val rhs = rhsPlan(lhs, e, context)
-          context.staticComponents.logicalPlanProducer.planAntiSemiApply(lhs, rhs, p, context)
-        case o @ Ors(exprs) =>
-          val (subqueryExpressions, expressions) = exprs.partition {
-            case ExistsIRExpression(_, _, _)      => true
-            case Not(ExistsIRExpression(_, _, _)) => true
-            case _                                => false
-          }
-          val (plan, solvedPredicates) =
-            planPredicates(lhs, subqueryExpressions, expressions, None, interestingOrderConfig, context)
-          AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-            exprs.forall(solvedPredicates.contains),
-            "planPredicates is supposed to solve all predicates in an OR clause."
-          )
-          context.staticComponents.logicalPlanProducer.solvePredicate(plan, o)
-        case p => throw new IllegalStateException(
-            s"Only ExistsIRExpression (potentially nested in Not/Ors) allowed here. Got: $p"
-          )
+    val unsolvedExistsPredicates = unsolvedPredicates.filter(containsExistsSubquery)
+    if (unsolvedExistsPredicates.isEmpty)
+      Iterator.empty
+    else {
+      val prefilterPredicates = unsolvedPredicates.filter {
+        case HasLabels(v: Variable, _) if lhs.availableSymbols.contains(v) => true
+        case _                                                             => false
       }
-      SelectionCandidate(plan, Set(pattern))
+
+      val lhsWithLabelsPrefiltered =
+        context.staticComponents.logicalPlanProducer.planSelection(lhs, prefilterPredicates.toSeq, context)
+      for {
+        pattern <- unsolvedExistsPredicates.iterator
+        if queryGraph.argumentIds.subsetOf(lhsWithLabelsPrefiltered.availableSymbols)
+      } yield {
+        val plan = pattern match {
+          case p: ExistsIRExpression =>
+            val rhs = rhsPlan(lhsWithLabelsPrefiltered, p, context)
+            context.staticComponents.logicalPlanProducer.planSemiApply(lhsWithLabelsPrefiltered, rhs, p, context)
+          case p @ Not(e: ExistsIRExpression) =>
+            val rhs = rhsPlan(lhsWithLabelsPrefiltered, e, context)
+            context.staticComponents.logicalPlanProducer.planAntiSemiApply(lhsWithLabelsPrefiltered, rhs, p, context)
+          case o @ Ors(exprs) =>
+            val (subqueryExpressions, expressions) = exprs.partition {
+              case ExistsIRExpression(_, _, _)      => true
+              case Not(ExistsIRExpression(_, _, _)) => true
+              case _                                => false
+            }
+            val (plan, solvedPredicates) =
+              planPredicates(
+                lhsWithLabelsPrefiltered,
+                subqueryExpressions,
+                expressions,
+                None,
+                interestingOrderConfig,
+                context
+              )
+            AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+              exprs.forall(solvedPredicates.contains),
+              "planPredicates is supposed to solve all predicates in an OR clause."
+            )
+            context.staticComponents.logicalPlanProducer.solvePredicate(plan, o)
+          case p => throw new IllegalStateException(
+              s"Only ExistsIRExpression (potentially nested in Not/Ors) allowed here. Got: $p"
+            )
+        }
+        SelectionCandidate(plan, prefilterPredicates + pattern)
+      }
     }
   }
 

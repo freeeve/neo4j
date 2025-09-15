@@ -1680,7 +1680,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .remoteBatchProperties("cacheNFromStore[expertCandidatePerson.id]", "cacheNFromStore[tag.name]")
       .filter("tag:Tag")
       .expandAll("(message)-[:MESSAGE_HAS_TAG]-(tag)")
-      .filter("message:Message")
       .semiApply()
       .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_3.name]")("anon_3.name = $tagClass")
       .|.filter("anon_3:TagClass")
@@ -1688,6 +1687,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.filter("anon_2:Tag")
       .|.expandAll("(message)-[:MESSAGE_HAS_TAG]->(anon_2)")
       .|.argument("message")
+      .filter("message:Message")
       .expandAll("(expertCandidatePerson)<-[:POST_HAS_CREATOR]-(message)")
       .filter("shortestPathDistance >= 3")
       .aggregation(Seq("expertCandidatePerson AS expertCandidatePerson"), Seq("min(anon_4) AS shortestPathDistance"))
@@ -2687,6 +2687,54 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .projection("cacheN[n.firstName] AS `n.firstName`", "cacheN[n.lastName] AS `n.lastName`")
       .remoteBatchPropertiesWithFilter("cacheNFromStore[n.lastName]")("n.lastName CONTAINS 'Smith'")
       .nodeIndexOperator("n:Person(firstName = 'John')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test("should prefilter with has labels before nested subqueries") {
+    val query =
+      """
+        |MATCH (this:Person)
+        |WHERE (this.name STARTS WITH 'A' AND EXISTS {
+        |  MATCH (this)<-[:POST_HAS_CREATOR]-(message1:Message)
+        |  WHERE message1.language = 'en' AND EXISTS {
+        |    MATCH (message1)<-[:REPLY_OF]-(reply1:Message)
+        |    WHERE reply1.language = 'esp' AND EXISTS {
+        |      MATCH (reply1)-[:COMMENT_HAS_CREATOR]->(person1:Person)
+        |      WHERE person1.name STARTS WITH 'B' AND NOT (EXISTS {
+        |        MATCH (person1)<-[:POST_HAS_CREATOR]-(message2:Message)
+        |        WHERE message2.language = 'en'
+        |     })
+        |    }
+        |  }
+        |})
+        |RETURN this.name
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[this.name] AS `this.name`")
+      .semiApply()
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[message1.language]")("message1.language = 'en'")
+      .|.semiApply()
+      .|.|.remoteBatchPropertiesWithFilter("cacheNFromStore[reply1.language]")("reply1.language = 'esp'")
+      .|.|.semiApply()
+      .|.|.|.antiSemiApply()
+      .|.|.|.|.remoteBatchPropertiesWithFilter("cacheNFromStore[message2.language]")("message2.language = 'en'")
+      .|.|.|.|.filter("message2:Message")
+      .|.|.|.|.expandAll("(person1)<-[:POST_HAS_CREATOR]-(message2)")
+      .|.|.|.|.argument("person1")
+      .|.|.|.remoteBatchPropertiesWithFilter("cacheNFromStore[person1.name]")("person1.name STARTS WITH 'B'")
+      .|.|.|.filter("person1:Person")
+      .|.|.|.expandAll("(reply1)-[:COMMENT_HAS_CREATOR]->(person1)")
+      .|.|.|.argument("reply1")
+      .|.|.filter("reply1:Message")
+      .|.|.expandAll("(message1)<-[:REPLY_OF]-(reply1)")
+      .|.|.argument("message1")
+      .|.filter("message1:Message")
+      .|.expandAll("(this)<-[:POST_HAS_CREATOR]-(message1)")
+      .|.argument("this")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[this.name]")("this.name STARTS WITH 'A'")
+      .nodeByLabelScan("this", "Person")
       .build()
   }
 
