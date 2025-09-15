@@ -33,7 +33,16 @@ public interface AsyncBlockAccessor extends AutoCloseable {
     void asyncRead(int fileDescriptor, long pageRef, long offset, long bufferAddress, int bufferSize)
             throws IOException;
 
-    void asyncVectorWrite(int fileDescriptor, long offset, long[] bufferAddress, int[] bufferSize) throws IOException;
+    void asyncVectorWrite(
+            int fileDescriptor,
+            long offset,
+            long[] bufferAddresses,
+            int[] bufferSizes,
+            int length,
+            long[] pagesRefs,
+            long[] flushStamps,
+            int pagesToFlush)
+            throws IOException;
 
     void asyncVectorRead(int fileDescriptor, long offset, long[] bufferAddress, int[] bufferSize) throws IOException;
 
@@ -62,7 +71,15 @@ public interface AsyncBlockAccessor extends AutoCloseable {
         }
 
         @Override
-        public void asyncVectorWrite(int fileDescriptor, long offset, long[] bufferAddress, int[] bufferSize) {
+        public void asyncVectorWrite(
+                int fileDescriptor,
+                long offset,
+                long[] bufferAddresses,
+                int[] bufferSizes,
+                int length,
+                long[] pagesRefs,
+                long[] flushStamps,
+                int pagesToFlush) {
             throw new UnsupportedOperationException();
         }
 

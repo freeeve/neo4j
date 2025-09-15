@@ -138,4 +138,19 @@ public class DelegatingPageSwapper implements PageSwapper {
             throws IOException {
         return delegate.write(startFilePageId, bufferAddresses, bufferLengths, length);
     }
+
+    @Override
+    public void asyncWrite(
+            AsyncBlockAccessor accessor,
+            long startFilePageId,
+            long[] bufferAddresses,
+            int[] bufferLengths,
+            int length,
+            long[] pageRefs,
+            long[] flushStamps,
+            int pagesToFlush)
+            throws IOException {
+        delegate.asyncWrite(
+                accessor, startFilePageId, bufferAddresses, bufferLengths, length, pageRefs, flushStamps, pagesToFlush);
+    }
 }

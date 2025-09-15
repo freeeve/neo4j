@@ -359,6 +359,31 @@ class SingleFilePageSwapper implements PageSwapper {
     }
 
     @Override
+    public void asyncWrite(
+            AsyncBlockAccessor accessor,
+            long startFilePageId,
+            long[] bufferAddresses,
+            int[] bufferLengths,
+            int length,
+            long[] pageRefs,
+            long[] flushStamps,
+            int pagesToFlush)
+            throws IOException {
+        long fileOffset = pageIdToPosition(startFilePageId);
+        long bytesToWrite = countBuffersLengths(bufferLengths, length);
+        increaseFileSizeTo(fileOffset + bytesToWrite);
+        accessor.asyncVectorWrite(
+                channel.getFileDescriptor(),
+                fileOffset,
+                bufferAddresses,
+                bufferLengths,
+                length,
+                pageRefs,
+                flushStamps,
+                pagesToFlush);
+    }
+
+    @Override
     public void asyncWrite(AsyncBlockAccessor accessor, long pageRef, long filePageId, long bufferAddress)
             throws IOException {
         long fileOffset = pageIdToPosition(filePageId);

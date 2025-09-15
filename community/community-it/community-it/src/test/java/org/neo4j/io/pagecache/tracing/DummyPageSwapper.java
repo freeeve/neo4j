@@ -122,4 +122,15 @@ public class DummyPageSwapper implements PageSwapper {
     public long write(long startFilePageId, long[] bufferAddresses, int[] bufferLengths, int length) {
         return 0;
     }
+
+    @Override
+    public void asyncWrite(
+            AsyncBlockAccessor accessor,
+            long startFilePageId,
+            long[] bufferAddresses,
+            int[] bufferLengths,
+            int length,
+            long[] pageRefs,
+            long[] flushStamps,
+            int pagesToFlush) {}
 }

@@ -44,7 +44,8 @@ class DefaultAsyncIOProviderTest {
 
         assertThatThrownBy(() -> asyncBlockAccessor.asyncVectorRead(1, 2, new long[] {3}, new int[] {4}))
                 .isInstanceOf(UnsupportedOperationException.class);
-        assertThatThrownBy(() -> asyncBlockAccessor.asyncVectorWrite(1, 2, new long[] {3}, new int[] {4}))
+        assertThatThrownBy(() -> asyncBlockAccessor.asyncVectorWrite(
+                        1, 2, new long[] {3}, new int[] {4}, 1, new long[] {1}, new long[] {2}, 1))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 }
