@@ -187,7 +187,9 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
             // TODO: delayed mechanism for deleting these roots when no one needs access to the data tree any more
             return;
         }
+        var rootUnderDeletion = new DataTreeRoot<ROOT_KEY>(null, NULL_ROOT);
         try (var rootMappingMerger = new RootDeleteValueMerger(cursorContext, dataRootKey)) {
+            rootMappingCache.put(dataRootKey, rootUnderDeletion);
             try (Writer<ROOT_KEY, RootMappingValue> rootMappingWriter = support.internalParallelWriter(
                     rootLayout,
                     rootLeafNode,
@@ -218,8 +220,9 @@ class MultiRootLayer<ROOT_KEY, DATA_KEY, DATA_VALUE> extends RootLayer<ROOT_KEY,
                         break;
                     }
                 }
+            } finally {
+                rootMappingCache.remove(dataRootKey);
             }
-            rootMappingCache.remove(dataRootKey);
         }
     }
 

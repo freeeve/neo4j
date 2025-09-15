@@ -455,7 +455,7 @@ class MultiRootGBPTreeTest {
     }
 
     @Test
-    void shouldCreateDeleteAndUpdateRootsConcurrently() throws IOException {
+    void shouldCreateDeleteAndUpdateRootsConcurrently() {
         // when
         var ops = new AtomicInteger();
         var numCheckpoints = new AtomicInteger();
@@ -479,6 +479,16 @@ class MultiRootGBPTreeTest {
                 updateKey(key, true);
                 tree.delete(key, NULL_CONTEXT);
             } catch (DataTreeNotFoundException | DataTreeNotEmptyException ignored) {
+            }
+            ops.incrementAndGet();
+        }));
+
+        race.addContestants(5, throwing(() -> {
+            RawBytes key = random.among(keys);
+            var access = tree.access(key);
+            try (var reader = access.seek(key, key, NULL_CONTEXT)) {
+                reader.next();
+            } catch (DataTreeNotFoundException ignored) {
             }
             ops.incrementAndGet();
         }));
