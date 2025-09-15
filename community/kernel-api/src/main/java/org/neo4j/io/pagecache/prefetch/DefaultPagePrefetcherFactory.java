@@ -22,13 +22,18 @@ package org.neo4j.io.pagecache.prefetch;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.logging.InternalLog;
 import org.neo4j.scheduler.JobScheduler;
 
 @ServiceProvider
 public class DefaultPagePrefetcherFactory implements PagePrefetcherFactory {
 
     @Override
-    public PagePrefetcher create(PageCache pageCache, JobScheduler jobScheduler, CursorContextFactory contextFactory) {
+    public PagePrefetcher create(
+            PageCache pageCache,
+            JobScheduler jobScheduler,
+            CursorContextFactory contextFactory,
+            InternalLog internalLog) {
         return PagePrefetcher.DISABLED;
     }
 

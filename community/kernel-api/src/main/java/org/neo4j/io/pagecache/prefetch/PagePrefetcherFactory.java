@@ -22,6 +22,7 @@ package org.neo4j.io.pagecache.prefetch;
 import org.neo4j.annotations.service.Service;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.logging.InternalLog;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.service.PrioritizedService;
 import org.neo4j.service.Services;
@@ -29,7 +30,11 @@ import org.neo4j.service.Services;
 @Service
 public interface PagePrefetcherFactory extends PrioritizedService {
 
-    PagePrefetcher create(PageCache pageCache, JobScheduler jobScheduler, CursorContextFactory contextFactory);
+    PagePrefetcher create(
+            PageCache pageCache,
+            JobScheduler jobScheduler,
+            CursorContextFactory contextFactory,
+            InternalLog internalLog);
 
     static PagePrefetcherFactory getInstance() {
         return PagePrefetcherFactoryHolder.PAGE_PREFETCHER_FACTORY;

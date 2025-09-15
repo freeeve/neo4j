@@ -297,7 +297,8 @@ public class GlobalModule {
                     .create(
                             pageCache,
                             jobScheduler,
-                            new CursorContextFactory(tracers.getPageCacheTracer(), EMPTY_CONTEXT_SUPPLIER));
+                            new CursorContextFactory(tracers.getPageCacheTracer(), EMPTY_CONTEXT_SUPPLIER),
+                            logService.getInternalLog(PagePrefetcher.class));
         }
         return PagePrefetcher.DISABLED;
     }
