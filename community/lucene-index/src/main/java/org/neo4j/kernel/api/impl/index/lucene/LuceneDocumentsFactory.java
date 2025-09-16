@@ -59,6 +59,20 @@ public interface LuceneDocumentsFactory {
         return Long.parseLong(document.get(LuceneDocumentsFactory.ENTITY_ID_KEY));
     }
 
+    /**
+     * Helper to extract a valid vector from the vector document values parameter
+     * @param values values configuring the vector document. the first value should be the vector itself
+     * @param similarityFunction checks the validity of the vector in the context of the function
+     * @return a valid {@code float[]} representation of the vector, otherwise {@code null}.
+     */
+    static float[] maybeVectorFromValues(Value[] values, Neo4jVectorSimilarityFunction similarityFunction) {
+        final var candidate = VectorCandidate.maybeFrom(values[0]);
+        if (candidate == null) {
+            return null;
+        }
+        return similarityFunction.maybeToValidVector(candidate);
+    }
+
     LuceneDocument reusableTextDocument(long id, Value... values);
 
     LuceneDocument reusableFulltextDocument(long id, String[] propertyNames, Value[] values);
@@ -68,8 +82,8 @@ public interface LuceneDocumentsFactory {
     LuceneDocument createVectorDocument(
             VectorDocumentStructure vectorDocumentStructure,
             long id,
-            VectorCandidate candidate,
-            Neo4jVectorSimilarityFunction similarityFunction);
+            Neo4jVectorSimilarityFunction similarityFunction,
+            Value[] values);
 
     LuceneDocument newDocument();
 }

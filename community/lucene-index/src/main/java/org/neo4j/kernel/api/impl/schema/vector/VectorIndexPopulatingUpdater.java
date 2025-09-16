@@ -28,7 +28,6 @@ import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
-import org.neo4j.values.VectorCandidate;
 
 class VectorIndexPopulatingUpdater implements IndexUpdater {
     private final LucenePartitionIndexWriter writer;
@@ -59,7 +58,6 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
         try {
             final var entityId = valueUpdate.getEntityId();
             final var values = valueUpdate.values();
-            final var candidate = VectorCandidate.maybeFrom(values[0]);
             final var updateMode = valueUpdate.updateMode();
             switch (updateMode) {
                 case ADDED ->
@@ -67,13 +65,13 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
                             VectorDocumentStructure.ENTITY_ID_KEY,
                             entityId,
                             documentsFactory.createVectorDocument(
-                                    documentStructure, entityId, candidate, similarityFunction));
+                                    documentStructure, entityId, similarityFunction, values));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
                             VectorDocumentStructure.ENTITY_ID_KEY,
                             entityId,
                             documentsFactory.createVectorDocument(
-                                    documentStructure, entityId, candidate, similarityFunction));
+                                    documentStructure, entityId, similarityFunction, values));
                 case REMOVED -> writer.deleteDocuments(VectorDocumentStructure.ENTITY_ID_KEY, entityId);
             }
         } catch (IOException e) {

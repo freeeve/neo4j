@@ -27,7 +27,7 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
-import org.neo4j.values.VectorCandidate;
+import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
@@ -67,9 +67,13 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
     public LuceneDocument createVectorDocument(
             VectorDocumentStructure vectorDocumentStructure,
             long id,
-            VectorCandidate candidate,
-            Neo4jVectorSimilarityFunction similarityFunction) {
-        final var vector = similarityFunction.maybeToValidVector(candidate);
+            Neo4jVectorSimilarityFunction similarityFunction,
+            Value[] values) {
+        Preconditions.checkArgument(
+                values != null && values.length == 1,
+                "%s vector documents can only receive a single value",
+                getClass().getSimpleName());
+        float[] vector = LuceneDocumentsFactory.maybeVectorFromValues(values, similarityFunction);
         if (vector == null) {
             return null;
         }

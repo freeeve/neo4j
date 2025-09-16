@@ -27,7 +27,7 @@ import org.neo4j.shaded.lucene9.analysis.TokenStream;
 import org.neo4j.shaded.lucene9.document.Field;
 import org.neo4j.shaded.lucene9.document.FieldType;
 import org.neo4j.shaded.lucene9.index.IndexOptions;
-import org.neo4j.values.VectorCandidate;
+import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
@@ -68,9 +68,13 @@ public class Lucene9DocumentsFactory implements LuceneDocumentsFactory {
     public LuceneDocument createVectorDocument(
             VectorDocumentStructure vectorDocumentStructure,
             long id,
-            VectorCandidate candidate,
-            Neo4jVectorSimilarityFunction similarityFunction) {
-        float[] vector = similarityFunction.maybeToValidVector(candidate);
+            Neo4jVectorSimilarityFunction similarityFunction,
+            Value[] values) {
+        Preconditions.checkArgument(
+                values != null && values.length == 1,
+                "%s vector documents can only receive a single value",
+                getClass().getSimpleName());
+        float[] vector = LuceneDocumentsFactory.maybeVectorFromValues(values, similarityFunction);
         if (vector == null) {
             return null;
         }
