@@ -491,6 +491,9 @@ public class ImportCommand {
             Closeable maybeCheckLock(DatabaseLayout databaseLayout) throws CannotWriteException, IOException;
         }
 
+        @Override
+        public abstract void execute() throws Exception;
+
         protected void doExecute() {
             try {
                 final var format = importFormat();
