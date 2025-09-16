@@ -173,6 +173,18 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `x` not defined.")
   }
 
+  test("""LET x = 1
+         |CALL (x) {
+         |  RETURN x AS a
+         |
+         |  NEXT
+         |
+         |  RETURN x + 1 AS b, c AS a, a AS c
+         |}
+         |RETURN b, a, c""".stripMargin) {
+    error("42N62", "Variable `c` not defined.")
+  }
+
   test("""RETURN 1 AS a
          |
          |NEXT

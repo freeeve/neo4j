@@ -37,7 +37,7 @@ object pegStatement {
        */
       case NextStatement(queries) =>
         val children = queries.scanLeft(WorkingScope.apriori(incoming)) {
-          case (previous, query) => apply(query, previous.outgoing)
+          case (previous, query) => apply(query, incoming.replaceWith(previous.outgoing.variables))
         }.tail
         // Alternatively, referenced can be computed by referencedInChildren minus "declaredInChildren"
         val referenced =
