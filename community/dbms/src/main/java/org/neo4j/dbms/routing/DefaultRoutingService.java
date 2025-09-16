@@ -65,6 +65,8 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
     private final String clientProvidedRouterSuffix;
     private final Clock clock;
 
+    private final RoutingAddressRewriter addressRewriter;
+
     public DefaultRoutingService(
             InternalLogProvider logProvider,
             RoutingTableServiceValidator validator,
@@ -94,6 +96,15 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
         this.clientProvidedRouterPrefixRotationPeriod =
                 config.get(GraphDatabaseInternalSettings.client_provided_router_prefix_rotation_period);
         this.clock = clock;
+
+        if (config.get(GraphDatabaseInternalSettings.routing_address_rewriting_enabled)) {
+            var template = config.get(GraphDatabaseInternalSettings.routing_address_rewriting_template);
+            var clientRegex = config.get(GraphDatabaseInternalSettings.routing_address_rewriting_client_regex);
+            var tableRegex = config.get(GraphDatabaseInternalSettings.routing_address_rewriting_table_regex);
+            addressRewriter = new RoutingAddressRewriter(template, clientRegex, tableRegex);
+        } else {
+            addressRewriter = null;
+        }
     }
 
     @Override
@@ -141,6 +152,10 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
 
         if (shouldReplaceRouter) {
             result = replaceRouterWithClientProvidedAddress(result, clientProvidedAddress.get());
+        }
+
+        if (addressRewriter != null && clientProvidedAddress.isPresent()) {
+            result = addressRewriter.rewrite(result, clientProvidedAddress.get());
         }
 
         assertRoutingResultNotEmpty(result, databaseReference);

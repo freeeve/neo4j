@@ -1855,6 +1855,37 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     "internal.dbms.sharded_property_database.asynchronous_shard_transaction_close", BOOL, true)
             .build();
 
+    @Internal
+    @Description(
+            "Enables templatized rewriting of addresses in routing table based on source address and client provided address")
+    public static final Setting<Boolean> routing_address_rewriting_enabled = newBuilder(
+                    "internal.dbms.routing.routing_address_rewriting_enabled", BOOL, false)
+            .build();
+
+    @Internal
+    @Description(
+            "Template used when address rewriting enabled. It is of the form ${t:1}.${c:2} where ${t:1} substitutes the first captured "
+                    + "group from the table supplied hostname, and ${c:2} substitutes the second captured group from the client supplied hostname")
+    public static final Setting<String> routing_address_rewriting_template = newBuilder(
+                    "internal.dbms.routing_address_rewriting_template", STRING, null)
+            .build();
+
+    @Internal
+    @Description(
+            "Regular expression used when address rewriting enabled. Must match on hostname of routing table supplied address and capture "
+                    + "groups that can be used in template.")
+    public static final Setting<String> routing_address_rewriting_table_regex = newBuilder(
+                    "internal.dbms.routing_address_rewriting_table_regex", STRING, null)
+            .build();
+
+    @Internal
+    @Description(
+            "Regular expression used when address rewriting enabled. Must match on hostname of client supplied address and capture groups "
+                    + "that can be used in template.")
+    public static final Setting<String> routing_address_rewriting_client_regex = newBuilder(
+                    "internal.dbms.routing_address_rewriting_client_regex", STRING, null)
+            .build();
+
     // Helper method
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(
