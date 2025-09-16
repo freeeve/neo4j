@@ -1338,7 +1338,7 @@ public class KernelTransactionImplementation
         return commandDecorator.transform(commands);
     }
 
-    protected CommandDecorator commandDecorator(MemoryTracker commandsTracker) {
+    private CommandDecorator commandDecorator(MemoryTracker commandsTracker) {
         final var mode = txState.enrichmentMode();
         if (namedDatabaseId.isSystemDatabase() || mode == EnrichmentMode.OFF || !txState.hasDataChanges()) {
             return tx -> enforceConstraints(tx, commandsTracker);
