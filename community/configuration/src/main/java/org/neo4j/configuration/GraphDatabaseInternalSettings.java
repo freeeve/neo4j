@@ -1325,6 +1325,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     "internal.dbms.relationship_endpoint_label_and_node_label_existence_constraints", BOOL, false)
             .build();
 
+    @Internal
+    @Description("Set this to enable the use of single stage filtering on vector indexes.")
+    public static final Setting<Boolean> vector_single_stage_filtering_enabled = newBuilder(
+                    "internal.dbms.vector_single_stage_filtering_enabled", BOOL, false)
+            .build();
+
     public enum ExtractLiteral {
         ALWAYS,
         NEVER,
