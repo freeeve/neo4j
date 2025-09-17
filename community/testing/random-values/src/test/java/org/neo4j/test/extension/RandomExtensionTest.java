@@ -29,10 +29,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.test.RandomSupport;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class RandomExtensionTest {
     @Inject
     RandomSupport random;
