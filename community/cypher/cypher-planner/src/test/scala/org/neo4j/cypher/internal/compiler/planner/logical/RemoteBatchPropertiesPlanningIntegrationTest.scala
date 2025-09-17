@@ -2445,7 +2445,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         |MATCH (a)
         |      ((left)-[rel]->(right) WHERE rel.prop = a.prop)+
         |      (b)
-        |RETURN rel
+        |WITH rel, a.prop AS prop
+        |RETURN rel, prop
         |""".stripMargin
 
     val planner = spdPlanner
@@ -2472,14 +2473,64 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     planner.plan(query).stripProduceResults shouldEqual
       planner.subPlanBuilder()
+        .projection("cacheN[a.prop] AS `prop`")
         .repeatTrail(`(a) ((left) ... (right))+ (b)`)
         .|.remoteBatchPropertiesWithFilter("cacheRFromStore[rel.prop]")("rel.prop = cacheNFromStore[a.prop]")
         .|.filterExpression(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
-        // We could cache this earlier on before the Repeat, so to not fetch it on each iteration
-        .|.remoteBatchProperties("cacheNFromStore[a.prop]")
         .|.argument("left", "a")
+        .remoteBatchProperties("cacheNFromStore[a.prop]")
         .allNodeScan("a")
+        .build()
+  }
+
+  test("should properly handle multiple external properties accessed in QPP") {
+    val query =
+      """
+        |MATCH (start)-[x]->(a)
+        |      ((left)-[rel]->(right) WHERE start.min < rel.prop < x.max)+
+        |      (b)
+        |WITH rel, start.min AS startMin, x.max AS xMax
+        |RETURN rel, startMin, xMax
+        |""".stripMargin
+
+    val planner = spdPlanner
+      .setAllNodesCardinality(10000)
+      .setAllRelationshipsCardinality(100000)
+      .build()
+
+    val `(a) ((left) ... (right))+ (b)` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set.empty,
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set("x"),
+      previouslyBoundRelationshipGroups = Set.empty,
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set.empty
+    )
+
+    planner.plan(query).stripProduceResults shouldEqual
+      planner.subPlanBuilder()
+        .projection("cacheN[start.min] AS `startMin`", "cacheR[x.max] AS `xMax`")
+        .repeatTrail(`(a) ((left) ... (right))+ (b)`)
+        .|.remoteBatchPropertiesWithFilter("cacheRFromStore[rel.prop]")(
+          "cacheNFromStore[start.min] < rel.prop",
+          "rel.prop < cacheRFromStore[x.max]"
+        )
+        .|.filterExpression(isRepeatTrailUnique("rel"))
+        .|.expandAll("(left)-[rel]->(right)")
+        .|.argument("left", "start", "x")
+        .remoteBatchProperties("cacheRFromStore[x.max]")
+        .expandAll("(start)-[x]->(a)")
+        .remoteBatchProperties("cacheNFromStore[start.min]")
+        .allNodeScan("start")
         .build()
   }
 
@@ -2529,8 +2580,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .|.remoteBatchProperties("cacheRFromStore[rel.prop]")
         .|.filterExpression(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
-        .|.remoteBatchProperties("cacheNFromStore[a.prop]")
         .|.argument("left", "a", "sum")
+        .remoteBatchProperties("cacheNFromStore[a.prop]")
         .allNodeScan("a")
         .build()
   }

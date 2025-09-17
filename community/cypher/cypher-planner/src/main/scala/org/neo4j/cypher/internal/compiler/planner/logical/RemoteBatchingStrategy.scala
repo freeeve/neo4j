@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.ContextualPropertyAccess
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
@@ -108,6 +109,15 @@ sealed trait RemoteBatchingStrategy {
     predicatesToSolve: Set[Expression],
     interestingOrderConfig: InterestingOrderConfig
   ): RemoteBatchingSubQueryResult
+
+  /**
+   * Properties of external available symbols that are accessed by predicates inside the QPP.
+   */
+  def propertiesToFetchBeforeQpp(
+    predicates: Iterable[Expression],
+    availableSymbols: Set[LogicalVariable],
+    semanticTable: SemanticTable
+  ): CachedProperties
 }
 
 case class RemoteBatchingResult(
@@ -371,6 +381,29 @@ object RemoteBatchingStrategy {
             }
         }
       }
+    }
+
+    override def propertiesToFetchBeforeQpp(
+      predicates: Iterable[Expression],
+      availableSymbols: Set[LogicalVariable],
+      semanticTable: SemanticTable
+    ): CachedProperties = {
+      val propMap: Map[LogicalVariable, Set[PropertyKeyName]] =
+        PropertyAccessHelper.findPropertyAccesses(predicates)
+          .groupMap(_.variable)(pa => PropertyKeyName(pa.propertyName)(InputPosition.NONE))
+
+      propMap.view
+        .filterKeys(availableSymbols)
+        .foldLeft(CachedProperties.empty) {
+          case (acc, (variable, props)) =>
+            val tpe = semanticTable.typeFor(variable)
+            if (tpe.is(CTNode))
+              acc.add(variable, NODE_TYPE, props)
+            else if (tpe.is(CTRelationship))
+              acc.add(variable, RELATIONSHIP_TYPE, props)
+            else
+              acc
+        }
     }
 
     private def externalPropertyAccessesRewriter(context: LogicalPlanningContext) = {
@@ -641,5 +674,12 @@ object RemoteBatchingStrategy {
       interestingOrderConfig: InterestingOrderConfig
     ): RemoteBatchingSubQueryResult =
       RemoteBatchingSubQueryResult(withNoRewrittenExprs(predicatesToSolve), input)
+
+    override def propertiesToFetchBeforeQpp(
+      predicates: Iterable[Expression],
+      availableSymbols: Set[LogicalVariable],
+      semanticTable: SemanticTable
+    ): CachedProperties =
+      CachedProperties.empty
   }
 }

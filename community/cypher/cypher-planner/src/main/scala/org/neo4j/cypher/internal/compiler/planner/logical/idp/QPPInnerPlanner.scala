@@ -183,9 +183,18 @@ case class IDPQPPInnerPlanner(context: LogicalPlanningContext) extends QPPInnerP
     }
 
     val inferredLabelInfo = inferLabelInfoFromJuxtaposedNodes()
-    updatedContext = updatedContext.withModifiedPlannerState(_
-      .withFusedLabelInfo(labelInfoOuter)
-      .withFusedLabelInfo(inferredLabelInfo))
+    updatedContext = updatedContext
+      .withModifiedPlannerState(_
+        .withFusedLabelInfo(labelInfoOuter)
+        .withFusedLabelInfo(inferredLabelInfo))
+      .withModifiedPlannerState { state =>
+        val shouldBeCached = context.settings.remoteBatchPropertiesStrategy.propertiesToFetchBeforeQpp(
+          additionalPredicates,
+          argumentsIntroducedByExtractedPredicates,
+          context.semanticTable
+        )
+        state.copy(previouslyCachedProperties = state.previouslyCachedProperties.union(shouldBeCached))
+      }
 
     // We use InterestingOrderConfig.empty because the order from a RHS of Trail is not propagated anyway
     val plan =

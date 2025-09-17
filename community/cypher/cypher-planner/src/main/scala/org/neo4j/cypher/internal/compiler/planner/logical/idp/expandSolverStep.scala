@@ -336,6 +336,8 @@ object expandSolverStep {
         insideRepeat = true
       )
 
+    val innerPlanPredicates = extractedPredicates.predicates.map(_.original)
+
     // AllReduce forces planning left to right
     if (
       !fromLeft && extractedPredicates.predicates.exists {
@@ -343,6 +345,11 @@ object expandSolverStep {
         case _                                            => false
       }
     ) {
+      return None
+    }
+
+    // Don't want to repeatedly fetch remote properties on RHS of Repeat
+    if (!remotePropertiesForAvailableSymbolsAlreadyCached(sourcePlan, availableVars, innerPlanPredicates, context)) {
       return None
     }
 
@@ -361,7 +368,6 @@ object expandSolverStep {
     ).toMap
 
     val innerPlan = qppInnerPlanner.planQPP(quantifiedPathPattern, fromLeft, extractedPredicates, filteredLabelInfo)
-    val innerPlanPredicates = extractedPredicates.predicates.map(_.original)
 
     val startBinding = if (fromLeft) quantifiedPathPattern.leftBinding else quantifiedPathPattern.rightBinding
     val endBinding = if (fromLeft) quantifiedPathPattern.rightBinding else quantifiedPathPattern.leftBinding
@@ -893,5 +899,20 @@ object expandSolverStep {
     case SelectivePathPattern.Selector.Any(k)            => StatefulShortestPath.Selector.Shortest(k)
     case SelectivePathPattern.Selector.ShortestGroups(k) => StatefulShortestPath.Selector.ShortestGroups(k)
     case SelectivePathPattern.Selector.Shortest(k)       => StatefulShortestPath.Selector.Shortest(k)
+  }
+
+  private def remotePropertiesForAvailableSymbolsAlreadyCached(
+    sourcePlan: LogicalPlan,
+    availableVars: Set[LogicalVariable],
+    predicates: Iterable[Expression],
+    context: LogicalPlanningContext
+  ): Boolean = {
+    val cachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(sourcePlan.id)
+    val shouldBeCached = context.settings.remoteBatchPropertiesStrategy.propertiesToFetchBeforeQpp(
+      predicates,
+      availableVars,
+      context.semanticTable
+    )
+    cachedProperties.intersect(shouldBeCached) == shouldBeCached
   }
 }
