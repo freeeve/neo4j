@@ -21,8 +21,6 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -56,7 +54,7 @@ abstract class LockNodesTestBase[CONTEXT <: RuntimeContext](
 
   test("should not lock nodes if no result") {
     // given
-    val nodes = givenGraph {
+    givenGraph {
       nodeGraph(sizeHint)
     }
 
@@ -117,7 +115,7 @@ abstract class LockNodesTestBase[CONTEXT <: RuntimeContext](
 
   test("should profile lockNodes") {
     // given
-    val nodes = givenGraph {
+    givenGraph {
       nodeGraph(sizeHint)
     }
 

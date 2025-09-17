@@ -498,7 +498,7 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
             } else {
                 String prettyVal = value instanceof Value v ? v.prettyPrint() : String.valueOf(value);
                 throw InvalidArgumentException.cannotAssignPointField(
-                        String.valueOf(value), prettyVal, key, List.of("STRING"));
+                        String.valueOf(value), key, prettyVal, List.of("STRING"));
             }
         }
 
@@ -513,7 +513,7 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
                 String prettyVal = value instanceof Value v ? v.prettyPrint() : String.valueOf(value);
 
                 throw InvalidArgumentException.cannotAssignPointField(
-                        String.valueOf(value), prettyVal, key, List.of("FLOAT", "INTEGER"));
+                        String.valueOf(value), key, prettyVal, List.of("FLOAT", "INTEGER"));
             }
         }
 
@@ -525,7 +525,7 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
             } else {
                 String prettyVal = value instanceof Value v ? v.prettyPrint() : String.valueOf(value);
                 throw InvalidArgumentException.cannotAssignPointField(
-                        String.valueOf(value), prettyVal, key, List.of("INTEGER"));
+                        String.valueOf(value), key, prettyVal, List.of("INTEGER"));
             }
         }
 

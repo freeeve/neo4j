@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.matcher
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.runtime.CypherRow

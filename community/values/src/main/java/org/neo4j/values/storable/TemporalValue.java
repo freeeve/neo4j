@@ -1294,7 +1294,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         public void assign(String key, Object valueObj) {
             if (!(valueObj instanceof String value)) {
                 String prettyVal = valueObj instanceof Value v ? v.prettyPrint() : String.valueOf(valueObj);
-                throw InvalidArgumentException.cannotAssignNonStringTimezone(String.valueOf(valueObj), prettyVal, key);
+                throw InvalidArgumentException.cannotAssignNonStringTimezone(String.valueOf(valueObj), key, prettyVal);
             }
             if ("timezone".equalsIgnoreCase(key)) {
                 if (timezone == null) {

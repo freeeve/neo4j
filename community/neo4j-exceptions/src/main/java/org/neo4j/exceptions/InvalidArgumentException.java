@@ -705,7 +705,7 @@ public class InvalidArgumentException extends Neo4jException {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
                         .withParam(GqlParams.StringParam.input, prettyValue)
-                        .withParam(GqlParams.StringParam.variable, "timezone")
+                        .withParam(GqlParams.StringParam.context, "timezone")
                         .withParam(GqlParams.ListParam.valueTypeList, List.of("STRING"))
                         .build())
                 .build();
@@ -717,7 +717,7 @@ public class InvalidArgumentException extends Neo4jException {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
                         .withParam(GqlParams.StringParam.input, prettyValue)
-                        .withParam(GqlParams.StringParam.variable, "coordinate " + field.toLowerCase(Locale.ROOT))
+                        .withParam(GqlParams.StringParam.context, "coordinate " + field.toLowerCase(Locale.ROOT))
                         .withParam(GqlParams.ListParam.valueTypeList, expectedTypes)
                         .build())
                 .build();
