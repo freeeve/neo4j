@@ -43,6 +43,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaPatternMatchingType;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.memory.HeapEstimator;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.values.storable.Value;
@@ -52,6 +53,8 @@ import org.neo4j.values.storable.Value;
  * This is of use in populating indexes that might be relevant to label/relType and property combinations.
  */
 public class EntityUpdates {
+    public static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(EntityUpdates.class);
+
     private final long entityId;
 
     // ASSUMPTION: these long arrays are actually sorted sets

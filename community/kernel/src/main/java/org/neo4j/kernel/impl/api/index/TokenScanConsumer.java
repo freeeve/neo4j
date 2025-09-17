@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.api.index;
 
+import org.neo4j.memory.MemoryTracker;
+
 /**
  * A consumer of a scan over entities generating a tuple of entity id and tokens
  * for each scanned entity.
@@ -29,8 +31,9 @@ public interface TokenScanConsumer {
     interface Batch {
         /**
          * Adds a record to the batch.
+         * @return the heap byte size that this data uses, if it's kept/queued.
          */
-        void addRecord(long entityId, int[] tokens);
+        long addRecord(long entityId, int[] tokens, MemoryTracker memoryTracker);
 
         /**
          * Processes the batch.

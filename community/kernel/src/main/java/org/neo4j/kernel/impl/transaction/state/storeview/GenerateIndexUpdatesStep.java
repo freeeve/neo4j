@@ -96,23 +96,30 @@ public class GenerateIndexUpdatesStep<CURSOR extends StorageEntityScanCursor<?>>
     protected void process(
             long[] entityIds, BatchSender sender, CursorContext cursorContext, MemoryTracker memoryTracker)
             throws Exception {
-        GeneratedIndexUpdates updates = new GeneratedIndexUpdates(gatherPropertyUpdates, gatherTokenUpdates);
+        GeneratedIndexUpdates updates = new GeneratedIndexUpdates(
+                gatherPropertyUpdates, gatherTokenUpdates, this.memoryTracker.getScopedMemoryTracker());
         int numEntities = 0;
-        try (var storeCursors = storeCursorsFactory.apply(cursorContext);
+        // For the opened cursors do scoped memory tracking because they're used to have a transaction-scope
+        // memory tracker, meaning that they don't actually register each individual release of their memory
+        // and instead relying on the supposedly transaction-scoped memory tracker to take care of that
+        // all in one go.
+        try (var cursorMemoryTracker = this.memoryTracker.getScopedMemoryTracker();
+                var storeCursors = storeCursorsFactory.apply(cursorContext);
                 CURSOR entityCursor = entityCursorBehaviour.allocateEntityScanCursor(
-                        cursorContext, storeCursors, this.memoryTracker);
+                        cursorContext, storeCursors, cursorMemoryTracker);
                 StoragePropertyCursor propertyCursor =
-                        reader.allocatePropertyCursor(cursorContext, storeCursors, this.memoryTracker)) {
+                        reader.allocatePropertyCursor(cursorContext, storeCursors, cursorMemoryTracker); ) {
             for (long entityId : entityIds) {
                 numEntities++;
                 try (Lock ignored = lockFunction.apply(entityId)) {
                     entityCursor.single(entityId);
                     while (entityCursor.next()) {
                         generateUpdates(updates, entityCursor, propertyCursor);
-                        if (updates.propertiesByteSize > maxBatchSizeBytes) {
+                        if (updates.updatesByteSize > maxBatchSizeBytes) {
                             batchDone(updates, sender, numEntities);
                             numEntities = 0;
-                            updates = new GeneratedIndexUpdates(gatherPropertyUpdates, gatherTokenUpdates);
+                            updates = new GeneratedIndexUpdates(
+                                    gatherPropertyUpdates, gatherTokenUpdates, memoryTracker.getScopedMemoryTracker());
                         }
                     }
                 }
@@ -145,7 +152,7 @@ public class GenerateIndexUpdatesStep<CURSOR extends StorageEntityScanCursor<?>>
         }
 
         if (gatherTokenUpdates) {
-            updates.tokenUpdates.addRecord(entityCursor.entityReference(), tokens);
+            updates.addTokenUpdate(entityCursor.entityReference(), tokens);
         }
 
         if (gatherPropertyUpdates && containsAnyEntityToken(relevantTokenIds, tokens)) {
@@ -164,10 +171,9 @@ public class GenerateIndexUpdatesStep<CURSOR extends StorageEntityScanCursor<?>>
             // is allowed to fail in which ever way it wants to. The result of failure will be the same as
             // a failed validation, i.e. population FAILED.
             relevantProperties.put(propertyKeyId, value);
-            indexUpdates.propertiesByteSize += value.estimatedHeapUsage();
         }
         if (!relevantProperties.isEmpty()) {
-            indexUpdates.propertyUpdates.addRecord(cursor.entityReference(), tokens, relevantProperties);
+            indexUpdates.addPropertyUpdates(cursor.entityReference(), tokens, relevantProperties);
         }
     }
 
@@ -189,15 +195,18 @@ public class GenerateIndexUpdatesStep<CURSOR extends StorageEntityScanCursor<?>>
         return false;
     }
 
-    class GeneratedIndexUpdates {
+    class GeneratedIndexUpdates implements AutoCloseable {
         private final PropertyScanConsumer.Batch propertyUpdates;
         private final TokenScanConsumer.Batch tokenUpdates;
-        private long propertiesByteSize;
+        private final MemoryTracker scopedMemoryTracker;
+        private long updatesByteSize;
         private volatile int numberOfEntities;
 
-        GeneratedIndexUpdates(boolean gatherPropertyUpdates, boolean gatherTokenUpdates) {
+        GeneratedIndexUpdates(
+                boolean gatherPropertyUpdates, boolean gatherTokenUpdates, MemoryTracker scopedMemoryTracker) {
             propertyUpdates = gatherPropertyUpdates ? propertyScanConsumer.newBatch() : null;
             tokenUpdates = gatherTokenUpdates ? tokenScanConsumer.newBatch() : null;
+            this.scopedMemoryTracker = scopedMemoryTracker;
         }
 
         void completeBatch() {
@@ -209,10 +218,24 @@ public class GenerateIndexUpdatesStep<CURSOR extends StorageEntityScanCursor<?>>
                 tokenUpdates.process();
             }
             completedEntities.add(numberOfEntities);
+            close();
         }
 
         void setNumberOfEntities(int numEntities) {
             this.numberOfEntities = numEntities;
+        }
+
+        @Override
+        public void close() {
+            scopedMemoryTracker.close();
+        }
+
+        public void addTokenUpdate(long entityId, int[] tokens) {
+            updatesByteSize += tokenUpdates.addRecord(entityId, tokens, scopedMemoryTracker);
+        }
+
+        public void addPropertyUpdates(long entityId, int[] tokens, Map<Integer, Value> properties) {
+            updatesByteSize += propertyUpdates.addRecord(entityId, tokens, properties, scopedMemoryTracker);
         }
     }
 }

@@ -309,8 +309,8 @@ public class BatchingMultipleIndexPopulatorTest {
             }
             var batch = consumer.newBatch();
             Arrays.stream(updates)
-                    .forEach(update ->
-                            batch.addRecord(update.id, update.labels, Map.of(update.propertyId, update.propertyValue)));
+                    .forEach(update -> batch.addRecord(
+                            update.id, update.labels, Map.of(update.propertyId, update.propertyValue), INSTANCE));
             batch.process();
         }
 

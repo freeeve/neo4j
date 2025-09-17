@@ -26,6 +26,8 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.memory.HeapEstimator;
 
 public final class TokenIndexEntryUpdate extends IndexEntryUpdate {
+    public static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(TokenIndexEntryUpdate.class);
+
     private final int[] removed;
     private final int[] added;
 

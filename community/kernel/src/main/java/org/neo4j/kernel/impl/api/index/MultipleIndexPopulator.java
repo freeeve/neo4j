@@ -768,17 +768,25 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
     }
 
     private class PropertyScanConsumerImpl implements PropertyScanConsumer {
-
         @Override
         public Batch newBatch() {
             return new Batch() {
                 final List<EntityUpdates> updates = new ArrayList<>();
 
                 @Override
-                public void addRecord(long entityId, int[] tokens, Map<Integer, Value> properties) {
+                public long addRecord(
+                        long entityId, int[] tokens, Map<Integer, Value> properties, MemoryTracker memoryTracker) {
+                    long heapSize = EntityUpdates.SHALLOW_SIZE + HeapEstimator.sizeOf(tokens);
                     var builder = EntityUpdates.forEntity(entityId, true).withTokens(tokens);
-                    properties.forEach(builder::added);
+                    for (var property : properties.entrySet()) {
+                        var key = property.getKey();
+                        var value = property.getValue();
+                        builder.added(key, value);
+                        heapSize += value.estimatedHeapUsage();
+                    }
+                    memoryTracker.allocateHeap(heapSize);
                     updates.add(builder.build());
+                    return heapSize;
                 }
 
                 @Override
@@ -829,9 +837,12 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
                 private final List<TokenIndexEntryUpdate> updates = new ArrayList<>();
 
                 @Override
-                public void addRecord(long entityId, int[] tokens) {
+                public long addRecord(long entityId, int[] tokens, MemoryTracker memoryTracker) {
+                    long heapSize = TokenIndexEntryUpdate.SHALLOW_SIZE + HeapEstimator.sizeOf(tokens);
+                    memoryTracker.allocateHeap(heapSize);
                     updates.add(TokenIndexEntryUpdate.tokenChange(
                             entityId, population.indexProxyStrategy.getIndexDescriptor(), EMPTY_INT_ARRAY, tokens));
+                    return heapSize;
                 }
 
                 @Override

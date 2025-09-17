@@ -26,6 +26,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import org.neo4j.kernel.impl.api.index.TokenScanConsumer;
+import org.neo4j.memory.HeapEstimator;
+import org.neo4j.memory.MemoryTracker;
 
 public class TestTokenScanConsumer implements TokenScanConsumer {
     private static final Monitor NO_MONITOR = (entityId, tokens) -> {};
@@ -52,10 +54,13 @@ public class TestTokenScanConsumer implements TokenScanConsumer {
             final List<Record> batchTokenUpdates = new ArrayList<>();
 
             @Override
-            public void addRecord(long entityId, int[] tokens) {
+            public long addRecord(long entityId, int[] tokens, MemoryTracker memoryTracker) {
                 batchTokenUpdates.add(new Record(entityId, tokens));
                 entities.add(entityId);
                 monitor.recordAdded(entityId, tokens);
+                long heapSize = HeapEstimator.sizeOf(tokens);
+                memoryTracker.allocateHeap(heapSize);
+                return heapSize;
             }
 
             @Override

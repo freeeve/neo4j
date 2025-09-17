@@ -119,9 +119,9 @@ class TokenIndexPopulationTest {
         addIndexPopulator(tokenIndexPopulator, tokenIndex);
 
         mockTokenStore(batch -> {
-            batch.addRecord(1, new int[] {123});
-            batch.addRecord(2, new int[] {123, 111});
-            batch.addRecord(3, new int[] {111});
+            batch.addRecord(1, new int[] {123}, EmptyMemoryTracker.INSTANCE);
+            batch.addRecord(2, new int[] {123, 111}, EmptyMemoryTracker.INSTANCE);
+            batch.addRecord(3, new int[] {111}, EmptyMemoryTracker.INSTANCE);
         });
 
         multipleIndexPopulator.create(CursorContext.NULL_CONTEXT);
@@ -155,7 +155,8 @@ class TokenIndexPopulationTest {
         // TokenIndexEntryUpdate for ID  1 and tokens long[]{1}
         // in this situation, but we want to test that the token index population
         // is driven only by TokenIndexEntryUpdates and ignores EntityUpdates
-        mockPropertyStore(batch -> batch.addRecord(1, new int[] {1}, Map.of(1, Values.stringValue("Hello"))));
+        mockPropertyStore(batch ->
+                batch.addRecord(1, new int[] {1}, Map.of(1, Values.stringValue("Hello")), EmptyMemoryTracker.INSTANCE));
 
         multipleIndexPopulator.create(CursorContext.NULL_CONTEXT);
         multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY).run(NO_EXTERNAL_UPDATES);
@@ -168,7 +169,7 @@ class TokenIndexPopulationTest {
     void shouldNotPassConsumerForValueIndexUpdatesToStoreWhenNoValueIndexPopulating() {
         addIndexPopulator(tokenIndexPopulator, tokenIndex);
 
-        mockTokenStore(batch -> batch.addRecord(1, new int[] {123}));
+        mockTokenStore(batch -> batch.addRecord(1, new int[] {123}, EmptyMemoryTracker.INSTANCE));
 
         multipleIndexPopulator.create(CursorContext.NULL_CONTEXT);
         multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY).run(NO_EXTERNAL_UPDATES);
@@ -180,7 +181,8 @@ class TokenIndexPopulationTest {
     void shouldNotPassConsumerForTokenIndexUpdatesToStoreWhenNoTokenIndexPopulating() {
         addIndexPopulator(valueIndexPopulator, valueIndex);
 
-        mockPropertyStore(batch -> batch.addRecord(1, new int[] {1}, Map.of(1, Values.stringValue("Hello"))));
+        mockPropertyStore(batch ->
+                batch.addRecord(1, new int[] {1}, Map.of(1, Values.stringValue("Hello")), EmptyMemoryTracker.INSTANCE));
 
         multipleIndexPopulator.create(CursorContext.NULL_CONTEXT);
         multipleIndexPopulator.createStoreScan(CONTEXT_FACTORY).run(NO_EXTERNAL_UPDATES);

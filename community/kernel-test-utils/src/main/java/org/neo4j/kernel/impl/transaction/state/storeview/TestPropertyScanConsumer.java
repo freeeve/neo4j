@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.neo4j.kernel.impl.api.index.PropertyScanConsumer;
+import org.neo4j.memory.Measurable;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.values.storable.Value;
 
 public class TestPropertyScanConsumer implements PropertyScanConsumer {
@@ -38,8 +40,14 @@ public class TestPropertyScanConsumer implements PropertyScanConsumer {
             final List<Record> batchEntityUpdates = new ArrayList<>();
 
             @Override
-            public void addRecord(long entityId, int[] tokens, Map<Integer, Value> properties) {
+            public long addRecord(
+                    long entityId, int[] tokens, Map<Integer, Value> properties, MemoryTracker memoryTracker) {
                 batchEntityUpdates.add(new Record(entityId, tokens, properties));
+                long heapSize = properties.values().stream()
+                        .mapToLong(Measurable::estimatedHeapUsage)
+                        .sum();
+                memoryTracker.allocateHeap(heapSize);
+                return heapSize;
             }
 
             @Override

@@ -2041,8 +2041,8 @@ class IndexingServiceTest {
                     }
 
                     var batch = consumer.newBatch();
-                    updates.forEach(update ->
-                            batch.addRecord(update.id, update.labels, Map.of(update.propertyId, update.propertyValue)));
+                    updates.forEach(update -> batch.addRecord(
+                            update.id, update.labels, Map.of(update.propertyId, update.propertyValue), INSTANCE));
                     batch.process();
                 }
 

@@ -53,6 +53,7 @@ import org.neo4j.kernel.impl.transaction.state.storeview.PropertyAwareEntityStor
 import org.neo4j.lock.Lock;
 import org.neo4j.lock.LockService;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageNodeCursor;
@@ -384,7 +385,10 @@ class StoreScanStageTest {
             return new Batch() {
 
                 @Override
-                public void addRecord(long entityId, int[] tokens, Map<Integer, Value> properties) {}
+                public long addRecord(
+                        long entityId, int[] tokens, Map<Integer, Value> properties, MemoryTracker memoryTracker) {
+                    return 0;
+                }
 
                 @Override
                 public void process() {
@@ -403,7 +407,10 @@ class StoreScanStageTest {
             return new Batch() {
 
                 @Override
-                public void addRecord(long entityId, int[] tokens, Map<Integer, Value> properties) {}
+                public long addRecord(
+                        long entityId, int[] tokens, Map<Integer, Value> properties, MemoryTracker memoryTracker) {
+                    return 0;
+                }
 
                 @Override
                 public void process() {
@@ -421,7 +428,9 @@ class StoreScanStageTest {
         public Batch newBatch() {
             return new Batch() {
                 @Override
-                public void addRecord(long entityId, int[] tokens) {}
+                public long addRecord(long entityId, int[] tokens, MemoryTracker memoryTracker) {
+                    return 0;
+                }
 
                 @Override
                 public void process() {
