@@ -38,12 +38,6 @@ public abstract class KernelException extends GqlException implements Status.Has
         this.statusCode = statusCode;
     }
 
-    @Deprecated
-    protected KernelException(Status statusCode, Throwable cause) {
-        super(ErrorMessageHolder.getOldCauseMessage(cause), cause);
-        this.statusCode = statusCode;
-    }
-
     protected KernelException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
         super(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause), cause);
         this.statusCode = statusCode;

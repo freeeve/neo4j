@@ -43,11 +43,6 @@ public class TransactionFailureException extends KernelException {
         super(gqlStatusObject, statusCode, cause, message, parameters);
     }
 
-    @Deprecated
-    public TransactionFailureException(Status statusCode, Throwable cause) {
-        super(statusCode, cause);
-    }
-
     private TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
         super(gqlStatusObject, statusCode, cause);
     }

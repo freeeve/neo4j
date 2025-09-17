@@ -35,11 +35,6 @@ public abstract class TransientFailureException extends GqlRuntimeException impl
         super(gqlStatusObject, message, cause);
     }
 
-    @Deprecated
-    protected TransientFailureException(String message) {
-        super(message);
-    }
-
     protected TransientFailureException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }

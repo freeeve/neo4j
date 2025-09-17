@@ -36,12 +36,6 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class TransientTransactionFailureException extends TransientFailureException {
     private final Status status;
 
-    @Deprecated
-    public TransientTransactionFailureException(Status status, String message) {
-        super(message);
-        this.status = status;
-    }
-
     protected TransientTransactionFailureException(
             ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
         super(gqlStatusObject, message);
