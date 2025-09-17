@@ -3060,6 +3060,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "unsupported language feature",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I68(
+            new GqlStatus("42I68"),
+            "Pattern, `{ %s }`, does not match input, `{ %s }`. Verify that the pattern is valid for constructing `{ %s }`.",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.input1, GqlParams.StringParam.input2, GqlParams.StringParam.valueType
+            },
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "mismatched pattern",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",
@@ -5136,6 +5146,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.PROCEDURE_EXCEPTION,
             "custom procedure execution error cause",
             ErrorClassification.UNKNOWN),
+    STATUS_53N33(
+            new GqlStatus("53N33"),
+            "Failed to invoke function { %s } caused by: { %s }.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.sig, GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.FUNCTION_EXCEPTION,
+            "function invocation failed",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_53N34(
             new GqlStatus("53N34"),
             "{ %s } is restricted and accesses database internals. User-defined function restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict user-defined functions you can trust with access to database internals.",

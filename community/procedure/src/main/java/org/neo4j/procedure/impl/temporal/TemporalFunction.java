@@ -33,6 +33,8 @@ import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import org.neo4j.cypher.internal.expressions.functions.Category;
 import org.neo4j.function.ThrowingFunction;
@@ -42,6 +44,7 @@ import org.neo4j.internal.kernel.api.procs.FieldSignature;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.internal.kernel.api.procs.UserFunctionSignature;
+import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.procedure.CallableUserFunction;
 import org.neo4j.kernel.api.procedure.Context;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
@@ -58,16 +61,18 @@ public abstract class TemporalFunction<T extends AnyValue> implements CallableUs
     private static final TextValue DEFAULT_TEMPORAL_ARGUMENT_VALUE = Values.utf8Value(DEFAULT_TEMPORAL_ARGUMENT);
     static final DefaultParameterValue DEFAULT_PARAMETER_VALUE =
             new DefaultParameterValue(DEFAULT_TEMPORAL_ARGUMENT_VALUE, Neo4jTypes.NTAny);
+    static final DefaultParameterValue DEFAULT_PATTERN_PARAMETER_VALUE =
+            new DefaultParameterValue(DEFAULT_TEMPORAL_ARGUMENT_VALUE, Neo4jTypes.NTString);
     private static final String TEMPORAL_CATEGORY = Category.TEMPORAL();
 
     public static void registerTemporalFunctions(GlobalProcedures globalProcedures, ProcedureConfig procedureConfig)
             throws ProcedureException {
         Supplier<ZoneId> defaultZone = procedureConfig::getDefaultTemporalTimeZone;
-        register(new DateTimeFunction(defaultZone), globalProcedures);
-        register(new LocalDateTimeFunction(defaultZone), globalProcedures);
-        register(new DateFunction(defaultZone), globalProcedures);
-        register(new TimeFunction(defaultZone), globalProcedures);
-        register(new LocalTimeFunction(defaultZone), globalProcedures);
+        register(DateTimeFunction::new, defaultZone, globalProcedures);
+        register(LocalDateTimeFunction::new, defaultZone, globalProcedures);
+        register(DateFunction::new, defaultZone, globalProcedures);
+        register(TimeFunction::new, defaultZone, globalProcedures);
+        register(LocalTimeFunction::new, defaultZone, globalProcedures);
         DurationFunction.register(globalProcedures);
     }
 
@@ -80,6 +85,8 @@ public abstract class TemporalFunction<T extends AnyValue> implements CallableUs
     protected abstract T now(Clock clock, String timezone, Supplier<ZoneId> defaultZone);
 
     protected abstract T parse(TextValue value, Supplier<ZoneId> defaultZone);
+
+    protected abstract T parsePattern(TextValue value, TextValue pattern, Supplier<ZoneId> defaultZone);
 
     protected abstract T build(MapValue map, Supplier<ZoneId> defaultZone);
 
@@ -95,7 +102,11 @@ public abstract class TemporalFunction<T extends AnyValue> implements CallableUs
 
     protected abstract List<FieldSignature> getTemporalTruncateSignature();
 
-    TemporalFunction(Neo4jTypes.AnyType result, List<FieldSignature> inputSignature, Supplier<ZoneId> defaultZone) {
+    TemporalFunction(
+            Neo4jTypes.AnyType result,
+            List<FieldSignature> inputSignature,
+            Set<QueryLanguage> supportedQueryLanguages,
+            Supplier<ZoneId> defaultZone) {
         String basename = basename(getClass());
         assert result.getClass().getSimpleName().equals(basename + "Type") : "result type should match function name";
         Description description = getClass().getAnnotation(Description.class);
@@ -110,13 +121,19 @@ public abstract class TemporalFunction<T extends AnyValue> implements CallableUs
                 true,
                 true,
                 false,
-                true);
+                true,
+                supportedQueryLanguages);
         this.defaultZone = defaultZone;
     }
 
-    private static void register(TemporalFunction<?> base, GlobalProcedures globalProcedures)
+    private static void register(
+            BiFunction<Set<QueryLanguage>, Supplier<ZoneId>, TemporalFunction<?>> func,
+            Supplier<ZoneId> defaultZone,
+            GlobalProcedures globalProcedures)
             throws ProcedureException {
+        TemporalFunction<?> base = func.apply(Set.of(QueryLanguage.CYPHER_25), defaultZone);
         globalProcedures.register(base);
+        globalProcedures.register(func.apply(Set.of(QueryLanguage.CYPHER_5), defaultZone));
         globalProcedures.register(new Now<>(base, "transaction"));
         globalProcedures.register(new Now<>(base, "statement"));
         globalProcedures.register(new Now<>(base, "realtime"));
@@ -139,12 +156,23 @@ public abstract class TemporalFunction<T extends AnyValue> implements CallableUs
 
     @Override
     public final AnyValue apply(Context ctx, AnyValue[] input) throws ProcedureException {
-        if (input == null || (input.length > 0 && (input[0] == NO_VALUE || input[0] == null))) {
+        if (input == null
+                || (input.length > 0 && (input[0] == NO_VALUE || input[0] == null))
+                || (input.length > 1 && (input[1] == NO_VALUE || input[1] == null))) {
             return NO_VALUE;
         } else if (input.length == 0 || input[0].equals(DEFAULT_TEMPORAL_ARGUMENT_VALUE)) {
             return now(ctx.statementClock(), null, defaultZone);
         } else if (input[0] instanceof TextValue) {
-            return parse((TextValue) input[0], defaultZone);
+            if (input.length == 1 || input[1].equals(DEFAULT_TEMPORAL_ARGUMENT_VALUE)) {
+                return parse((TextValue) input[0], defaultZone);
+            } else if (input[1] instanceof TextValue) {
+                return parsePattern((TextValue) input[0], (TextValue) input[1], defaultZone);
+            }
+        } else if (input.length == 2
+                && input[1] instanceof TextValue pattern
+                && !pattern.equals(DEFAULT_PATTERN_PARAMETER_VALUE.value())) {
+            throw ProcedureException.invalidFunctionArgument(
+                    this.signature.toString(), "A pattern can only be used in conjunction with a `STRING` input.");
         } else if (input[0] instanceof TemporalValue) {
             return select(input[0], defaultZone);
         } else if (input[0] instanceof MapValue map) {
@@ -153,13 +181,12 @@ public abstract class TemporalFunction<T extends AnyValue> implements CallableUs
                 return now(ctx.statementClock(), timezone, defaultZone);
             }
             return build(map, defaultZone);
-        } else {
-            throw ProcedureException.invalidCallSignature(
-                    String.valueOf(this.signature.name()),
-                    this.signature.toString(),
-                    "Invalid call signature for " + getClass().getSimpleName() + ": Provided input was "
-                            + Arrays.toString(input));
         }
+        throw ProcedureException.invalidCallSignature(
+                String.valueOf(this.signature.name()),
+                this.signature.toString(),
+                "Invalid call signature for " + getClass().getSimpleName() + ": Provided input was "
+                        + Arrays.toString(input));
     }
 
     private static String onlyTimezone(MapValue map) {
@@ -192,7 +219,8 @@ public abstract class TemporalFunction<T extends AnyValue> implements CallableUs
                     true,
                     true,
                     false,
-                    true);
+                    true,
+                    QueryLanguage.ALL);
         }
 
         @Override

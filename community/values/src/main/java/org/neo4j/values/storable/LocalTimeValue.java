@@ -34,11 +34,13 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.TemporalUnit;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.exceptions.UnsupportedTemporalUnitException;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.StructureBuilder;
@@ -50,6 +52,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     public static final LocalTimeValue MIN_VALUE = new LocalTimeValue(LocalTime.MIN);
     public static final LocalTimeValue MAX_VALUE = new LocalTimeValue(LocalTime.MAX);
+    private static final String cypherTypeName = "LOCAL TIME";
 
     private final LocalTime value;
 
@@ -80,6 +83,16 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     public static LocalTimeValue parse(TextValue text) {
         return parse(LocalTimeValue.class, PATTERN, LocalTimeValue::parse, text);
+    }
+
+    public static LocalTimeValue parsePattern(TextValue text, TextValue pattern) {
+        try {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(pattern.stringValue());
+            LocalTime lt = dtf.parse(text.stringValue(), LocalTime::from);
+            return new LocalTimeValue(lt);
+        } catch (IllegalArgumentException | DateTimeParseException e) {
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+        }
     }
 
     public static LocalTimeValue now(Clock clock) {
@@ -180,7 +193,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     @Override
     public String getTemporalCypherTypeName() {
-        return "LOCAL TIME";
+        return cypherTypeName;
     }
 
     @Override

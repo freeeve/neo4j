@@ -29,9 +29,11 @@ import java.time.ZoneId;
 import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 import org.neo4j.internal.kernel.api.procs.FieldSignature;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
+import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.procedure.Description;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.TemporalValue;
@@ -42,7 +44,7 @@ import org.neo4j.values.virtual.MapValue;
 @Description("Creates a `ZONED TIME` instant.")
 class TimeFunction extends TemporalFunction<TimeValue> {
 
-    private static final List<FieldSignature> INPUT_SIGNATURE = singletonList(
+    private static final List<FieldSignature> INPUT_SIGNATURE_CYPHER_5 = singletonList(
             inputField(
                     "input",
                     Neo4jTypes.NTAny,
@@ -50,8 +52,26 @@ class TimeFunction extends TemporalFunction<TimeValue> {
                     false,
                     "Either a string representation of a temporal value, a map containing the single key 'timezone', or a map containing temporal values ('hour', 'minute', 'second', 'millisecond', 'microsecond', 'nanosecond', 'timezone') as components."));
 
-    TimeFunction(Supplier<ZoneId> defaultZone) {
-        super(NTTime, INPUT_SIGNATURE, defaultZone);
+    private static final List<FieldSignature> INPUT_SIGNATURE = Arrays.asList(
+            inputField(
+                    "input",
+                    Neo4jTypes.NTAny,
+                    DEFAULT_PARAMETER_VALUE,
+                    false,
+                    "Either a string representation of a temporal value, a map containing the single key 'timezone', or a map containing temporal values ('hour', 'minute', 'second', 'millisecond', 'microsecond', 'nanosecond', 'timezone') as components."),
+            inputField(
+                    "pattern",
+                    Neo4jTypes.NTString,
+                    DEFAULT_PATTERN_PARAMETER_VALUE,
+                    false,
+                    "A pattern used to parse a zoned time value. If the pattern is not provided the value will be parsed according to default patterns."));
+
+    TimeFunction(Set<QueryLanguage> supportedQueryLanguages, Supplier<ZoneId> defaultZone) {
+        super(
+                NTTime,
+                supportedQueryLanguages.contains(QueryLanguage.CYPHER_5) ? INPUT_SIGNATURE_CYPHER_5 : INPUT_SIGNATURE,
+                supportedQueryLanguages,
+                defaultZone);
     }
 
     @Override
@@ -62,6 +82,11 @@ class TimeFunction extends TemporalFunction<TimeValue> {
     @Override
     protected TimeValue parse(TextValue value, Supplier<ZoneId> defaultZone) {
         return TimeValue.parse(value, defaultZone);
+    }
+
+    @Override
+    protected TimeValue parsePattern(TextValue value, TextValue pattern, Supplier<ZoneId> defaultZone) {
+        return TimeValue.parsePattern(value, pattern, defaultZone);
     }
 
     @Override

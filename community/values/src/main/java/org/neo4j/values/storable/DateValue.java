@@ -35,6 +35,7 @@ import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.IsoFields;
@@ -55,6 +56,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
 
     public static final DateValue MIN_VALUE = new DateValue(LocalDate.MIN);
     public static final DateValue MAX_VALUE = new DateValue(LocalDate.MAX);
+    public static final String cypherTypeName = "DATE";
 
     private final LocalDate value;
 
@@ -100,6 +102,16 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
 
     public static DateValue parse(TextValue text) {
         return parse(DateValue.class, PATTERN, DateValue::parse, text);
+    }
+
+    public static DateValue parsePattern(TextValue text, TextValue pattern) {
+        try {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(pattern.stringValue());
+            LocalDate ld = dtf.parse(text.stringValue(), LocalDate::from);
+            return new DateValue(ld);
+        } catch (IllegalArgumentException | DateTimeParseException e) {
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+        }
     }
 
     public static DateValue now(Clock clock) {
@@ -176,7 +188,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
 
     @Override
     public String getTemporalCypherTypeName() {
-        return "DATE";
+        return cypherTypeName;
     }
 
     @Override

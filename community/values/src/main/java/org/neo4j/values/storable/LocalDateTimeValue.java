@@ -42,13 +42,16 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.IsoFields;
+import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalUnit;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.exceptions.UnsupportedTemporalUnitException;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.values.AnyValue;
@@ -61,6 +64,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     public static final LocalDateTimeValue MIN_VALUE = new LocalDateTimeValue(LocalDateTime.MIN);
     public static final LocalDateTimeValue MAX_VALUE = new LocalDateTimeValue(LocalDateTime.MAX);
+    private static final String cypherTypeName = "LOCAL DATETIME";
 
     private final LocalDateTime value;
     private final long epochSecondsInUTC;
@@ -99,6 +103,24 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     public static LocalDateTimeValue parse(TextValue text) {
         return parse(LocalDateTimeValue.class, PATTERN, LocalDateTimeValue::parse, text);
+    }
+
+    public static LocalDateTimeValue parsePattern(TextValue text, TextValue pattern) {
+        try {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(pattern.stringValue());
+            TemporalAccessor parsed = dtf.parseBest(text.stringValue(), LocalDateTime::from, LocalDate::from);
+            switch (parsed) {
+                case LocalDateTime ldt -> {
+                    return new LocalDateTimeValue(ldt);
+                }
+                case LocalDate ld -> {
+                    return new LocalDateTimeValue(ld.atStartOfDay());
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + parsed);
+            }
+        } catch (IllegalArgumentException | DateTimeParseException e) {
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+        }
     }
 
     public static LocalDateTimeValue now(Clock clock) {
@@ -264,7 +286,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     @Override
     public String getTemporalCypherTypeName() {
-        return "LOCAL DATETIME";
+        return cypherTypeName;
     }
 
     @Override

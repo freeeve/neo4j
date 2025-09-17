@@ -183,7 +183,11 @@ public class InvalidArgumentException extends Neo4jException {
                         .withParam(GqlParams.StringParam.valueType, type)
                         .build())
                 .build();
-        return new InvalidArgumentException(gql, gql.cause().get().statusDescription());
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "An invalid character is used in the pattern. Verify that all characters are supported by `%s`.",
+                        type));
     }
 
     public static InvalidArgumentException patternParsingFailed() {
@@ -191,7 +195,8 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I66)
                         .build())
                 .build();
-        return new InvalidArgumentException(gql, gql.cause().get().statusDescription());
+        return new InvalidArgumentException(
+                gql, "Pattern parsing failed. Make sure that an even number of escapes are used in the pattern.");
     }
 
     public static InvalidArgumentException incompleteSpatialValue(

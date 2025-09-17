@@ -38,12 +38,15 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalUnit;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.InvalidTemporalArgumentException;
+import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.exceptions.UnsupportedTemporalUnitException;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.StructureBuilder;
@@ -56,6 +59,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
 
     public static final TimeValue MIN_VALUE = new TimeValue(OffsetTime.MIN);
     public static final TimeValue MAX_VALUE = new TimeValue(OffsetTime.MAX);
+    private static final String cypherTypeName = "ZONED TIME";
 
     private final OffsetTime value;
     private final long nanosOfDayUTC;
@@ -95,7 +99,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
 
     @Override
     public String getTemporalCypherTypeName() {
-        return "ZONED TIME";
+        return cypherTypeName;
     }
 
     public static TimeValue parse(
@@ -116,6 +120,28 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
 
     public static TimeValue parse(TextValue text, Supplier<ZoneId> defaultZone) {
         return parse(TimeValue.class, PATTERN, TimeValue::parse, text, defaultZone);
+    }
+
+    public static TimeValue parsePattern(TextValue text, TextValue pattern, Supplier<ZoneId> defaultZone) {
+        try {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(pattern.stringValue());
+            TemporalAccessor parsed = dtf.parseBest(text.stringValue(), OffsetTime::from, LocalTime::from);
+            switch (parsed) {
+                case OffsetTime ot -> {
+                    return new TimeValue(ot);
+                }
+                case LocalTime t -> {
+                    ZoneId zoneId = defaultZone.get();
+                    ZoneOffset offset = zoneId instanceof ZoneOffset
+                            ? (ZoneOffset) zoneId
+                            : zoneId.getRules().getOffset(Instant.now());
+                    return new TimeValue(t.atOffset(offset));
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + parsed);
+            }
+        } catch (IllegalArgumentException | DateTimeParseException ex) {
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+        }
     }
 
     public static TimeValue now(Clock clock) {

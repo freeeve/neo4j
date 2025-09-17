@@ -931,6 +931,14 @@ public class ProcedureException extends KernelException {
         return new ProcedureException(gql, statusCode, legacyMessage);
     }
 
+    public static ProcedureException invalidFunctionArgument(String signature, String msg) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_53N33)
+                .withParam(GqlParams.StringParam.sig, signature)
+                .withParam(GqlParams.StringParam.msg, msg)
+                .build();
+        return new ProcedureException(gql, ProcedureCallFailed, msg);
+    }
+
     public static ProcedureException graphPropertiesNotFound(String graphName) {
         var gql = GqlHelper.getGql42001_42N00(graphName);
 

@@ -55,6 +55,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.exceptions.UnsupportedTemporalUnitException;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.hashing.HashFunction;
@@ -75,6 +76,7 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
 
     public static final DurationValue MIN_VALUE = duration(0, 0, Long.MIN_VALUE, 0);
     public static final DurationValue MAX_VALUE = duration(0, 0, Long.MAX_VALUE, 999_999_999);
+    private static final String cypherTypeName = "DURATION";
 
     public static final DurationValue ZERO = new DurationValue(0, 0, 0, 0);
     private static final List<TemporalUnit> UNITS = List.of(MONTHS, DAYS, SECONDS, NANOS);
@@ -656,7 +658,7 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
         }
     }
 
-    private DurationToken getComponent(char c) {
+    private static DurationToken getComponent(char c) {
         return switch (c) {
             case 'y', 'Y', 'u' -> DurationToken.YEARS_TOKEN;
             case 'q', 'Q' -> DurationToken.QUARTERS_TOKEN;
@@ -844,6 +846,165 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
         }
 
         return str.toString();
+    }
+
+    static class ParseContext {
+        boolean[] seenElements;
+        long[] values;
+        int inputIndex;
+        boolean inEscape;
+        String pattern;
+        String input;
+
+        public ParseContext(
+                boolean[] seenElements, long[] values, int inputIndex, boolean inEscape, String pattern, String input) {
+            this.seenElements = seenElements;
+            this.values = values;
+            this.inputIndex = inputIndex;
+            this.inEscape = false;
+            this.pattern = pattern;
+            this.input = input;
+        }
+
+        public void incIndex() {
+            inputIndex += 1;
+        }
+
+        public void incIndex(int inc) {
+            inputIndex += inc;
+        }
+
+        public void toggleEscape() {
+            inEscape = !inEscape;
+        }
+
+        public void seen(int token) {
+            seenElements[token] = true;
+        }
+
+        public void hasSeen(int token) {
+            if (seenElements[token]) {
+                throw TemporalParseException.mismatchedPattern(pattern, input, cypherTypeName);
+            }
+        }
+
+        public void setValue(int token, String value) {
+            try {
+                values[token] = Long.parseLong(value);
+            } catch (NumberFormatException e) {
+                throw TemporalParseException.mismatchedPattern(pattern, input, cypherTypeName);
+            }
+        }
+
+        private char nextChar(int length, boolean last) {
+            if (inputIndex + length + 1 >= input.length()) {
+                if (last) {
+                    return '!';
+                } else {
+                    throw TemporalParseException.mismatchedPattern(pattern, input, cypherTypeName);
+                }
+            }
+            return input.charAt(inputIndex + length + 1);
+        }
+
+        public void getValue(int previous, boolean last) {
+            String intTokens = "0123456789";
+            hasSeen(previous);
+
+            StringBuilder value = new StringBuilder().append(input.charAt(inputIndex));
+            int valueLength = 0;
+            char nextInputChar = nextChar(0, last);
+            while (intTokens.indexOf(nextInputChar) > -1) {
+                value.append(nextInputChar);
+
+                valueLength += 1;
+                nextInputChar = nextChar(valueLength, last);
+            }
+
+            incIndex(valueLength);
+
+            if (previous == DurationToken.FRACTION_TOKEN.ordinal()) {
+                while (value.length() < 9) {
+                    value.append('0');
+                }
+            }
+
+            seen(previous);
+            setValue(previous, value.toString());
+            incIndex();
+        }
+
+        public DurationValue getDuration() {
+            // years * 12 + quarters * 3 + months
+            // weeks * 7 + days
+            // hours * 3600 + minutes * 60 + seconds
+            // milliseconds * 1000000 + fraction + nanoseconds
+            return newDuration(
+                    values[0] * 12 + values[1] * 3 + values[2],
+                    values[3] * 7 + values[4],
+                    TimeUnit.HOURS.toSeconds(values[5]) + TimeUnit.MINUTES.toSeconds(values[6]) + values[7],
+                    TimeUnit.MILLISECONDS.toNanos(values[8]) + values[9] + values[10]);
+        }
+    }
+
+    public static DurationValue parsePattern(TextValue text, TextValue patternInput) {
+
+        String input = text.stringValue();
+        String pattern = patternInput.stringValue();
+
+        ParseContext ctx = new ParseContext(
+                new boolean[DurationToken.values().length],
+                new long[DurationToken.values().length],
+                0,
+                false,
+                pattern,
+                input);
+
+        DurationToken currentToken;
+        DurationToken previousToken = DurationToken.NOT_A_COMPONENT_TOKEN;
+
+        for (int i = 0; i < pattern.length(); i++) {
+            currentToken = getComponent(pattern.charAt(i));
+
+            if (ctx.inEscape) {
+                if (currentToken == DurationToken.ESCAPE_TOKEN) {
+                    if (i + 1 < pattern.length() && getComponent(pattern.charAt(i + 1)) == DurationToken.ESCAPE_TOKEN) {
+                        i += 1;
+                        ctx.incIndex();
+                    } else {
+                        ctx.toggleEscape();
+                    }
+                } else {
+                    ctx.incIndex();
+                }
+            } else {
+                if (previousToken.isToken && currentToken != previousToken) {
+                    ctx.getValue(previousToken.ordinal(), false);
+                }
+
+                if (currentToken == DurationToken.ESCAPE_TOKEN) {
+                    ctx.toggleEscape();
+                } else if (currentToken == DurationToken.NOT_A_COMPONENT_TOKEN && ctx.inputIndex + 1 < input.length()) {
+                    ctx.incIndex();
+                }
+            }
+
+            previousToken = currentToken;
+        }
+
+        if (ctx.inEscape) {
+            throw InvalidArgumentException.patternParsingFailed();
+        }
+
+        if (previousToken.isToken && ctx.inputIndex < input.length()) {
+            ctx.getValue(previousToken.ordinal(), true);
+        }
+
+        if (ctx.inputIndex + 1 < input.length()) {
+            throw TemporalParseException.mismatchedPattern(pattern, input, cypherTypeName);
+        }
+
+        return ctx.getDuration();
     }
 
     private static void nanos(StringBuilder str, int nanos) {

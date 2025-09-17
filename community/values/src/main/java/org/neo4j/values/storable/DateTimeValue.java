@@ -37,7 +37,6 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.Clock;
 import java.time.DateTimeException;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -51,6 +50,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
 import java.time.temporal.IsoFields;
+import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 import java.time.temporal.TemporalUnit;
 import java.time.zone.ZoneRulesException;
@@ -74,6 +74,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
             new DateTimeValue(ZonedDateTime.of(LocalDateTime.MIN, ZoneOffset.MIN));
     public static final DateTimeValue MAX_VALUE =
             new DateTimeValue(ZonedDateTime.of(LocalDateTime.MAX, ZoneOffset.MAX));
+    private static final String cypherTypeName = "ZONED DATETIME";
 
     private final ZonedDateTime value;
     private final long epochSeconds;
@@ -167,6 +168,28 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
 
     public static DateTimeValue parse(TextValue text, Supplier<ZoneId> defaultZone) {
         return parse(DateTimeValue.class, PATTERN, DateTimeValue::parse, text, defaultZone);
+    }
+
+    public static DateTimeValue parsePattern(TextValue text, TextValue pattern, Supplier<ZoneId> defaultZone) {
+        try {
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern(pattern.stringValue());
+            TemporalAccessor parsed =
+                    dtf.parseBest(text.stringValue(), ZonedDateTime::from, LocalDateTime::from, LocalDate::from);
+            switch (parsed) {
+                case ZonedDateTime zdt -> {
+                    return new DateTimeValue(zdt);
+                }
+                case LocalDateTime ldt -> {
+                    return new DateTimeValue(ldt.atZone(defaultZone.get()));
+                }
+                case LocalDate ld -> {
+                    return new DateTimeValue(ld.atStartOfDay(defaultZone.get()));
+                }
+                default -> throw new IllegalStateException("Unexpected value: " + parsed);
+            }
+        } catch (IllegalArgumentException | DateTimeParseException e) {
+            throw TemporalParseException.mismatchedPattern(pattern.stringValue(), text.stringValue(), cypherTypeName);
+        }
     }
 
     public static DateTimeValue now(Clock clock) {
@@ -268,8 +291,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                         }
                         result = assertValidArgument(
                                 "epochSeconds",
-                                () -> ZonedDateTime.ofInstant(
-                                        Instant.ofEpochMilli(epochSeconds.longValue() * 1000), timezone()));
+                                () -> ofInstant(ofEpochMilli(epochSeconds.longValue() * 1000), timezone()));
                     } else {
                         AnyValue epochField = fields.get(TemporalFields.epochMillis);
                         if (!(epochField instanceof IntegralValue epochMillis)) {
@@ -279,9 +301,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                                     "date time", String.valueOf(epochField), prettyVal);
                         }
                         result = assertValidArgument(
-                                "epochMillis",
-                                () -> ZonedDateTime.ofInstant(
-                                        Instant.ofEpochMilli(epochMillis.longValue()), timezone()));
+                                "epochMillis", () -> ofInstant(ofEpochMilli(epochMillis.longValue()), timezone()));
                     }
                     selectingTimeZone = false;
                 } else if (selectingTime || selectingDate) {
@@ -507,7 +527,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
 
     @Override
     public String getTemporalCypherTypeName() {
-        return "ZONED DATETIME";
+        return cypherTypeName;
     }
 
     @Override

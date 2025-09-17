@@ -20,6 +20,7 @@
 package org.neo4j.procedure.impl.temporal;
 
 import static org.neo4j.internal.kernel.api.procs.FieldSignature.inputField;
+import static org.neo4j.procedure.impl.temporal.TemporalFunction.DEFAULT_PATTERN_PARAMETER_VALUE;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.temporal.ChronoUnit;
@@ -27,12 +28,14 @@ import java.time.temporal.TemporalUnit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import org.neo4j.cypher.internal.expressions.functions.Category;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.FieldSignature;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.internal.kernel.api.procs.UserFunctionSignature;
+import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.procedure.CallableUserFunction;
 import org.neo4j.kernel.api.procedure.Context;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
@@ -46,14 +49,15 @@ import org.neo4j.values.virtual.MapValue;
 @Description("Creates a `DURATION` value.")
 class DurationFunction implements CallableUserFunction {
     private static final String CATEGORY = Category.TEMPORAL();
+    private final UserFunctionSignature signature;
 
-    private static final UserFunctionSignature DURATION = new UserFunctionSignature(
+    private static final UserFunctionSignature DURATION_SIGNATURE_CYPHER_5 = new UserFunctionSignature(
             new QualifiedName("duration"),
             Collections.singletonList(
                     inputField(
                             "input",
                             Neo4jTypes.NTAny,
-                            "A map optionally containing the following keys: 'years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', or 'nanoseconds'.")),
+                            "Either a string representation of a duration value or a map optionally containing the following keys: 'years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', or 'nanoseconds'.")),
             Neo4jTypes.NTDuration,
             false,
             null,
@@ -62,10 +66,42 @@ class DurationFunction implements CallableUserFunction {
             true,
             true,
             false,
-            true);
+            true,
+            Set.of(QueryLanguage.CYPHER_5));
+
+    private static final UserFunctionSignature DURATION_SIGNATURE = new UserFunctionSignature(
+            new QualifiedName("duration"),
+            Arrays.asList(
+                    inputField(
+                            "input",
+                            Neo4jTypes.NTAny,
+                            "Either a string representation of a duration value or a map optionally containing the following keys: 'years', 'months', 'weeks', 'days', 'hours', 'minutes', 'seconds', 'milliseconds', 'microseconds', or 'nanoseconds'."),
+                    inputField(
+                            "pattern",
+                            Neo4jTypes.NTString,
+                            DEFAULT_PATTERN_PARAMETER_VALUE,
+                            false,
+                            "A pattern used to parse a duration value. If the pattern is not provided the value will be parsed according to default patterns.")),
+            Neo4jTypes.NTDuration,
+            false,
+            null,
+            DurationFunction.class.getAnnotation(Description.class).value(),
+            CATEGORY,
+            true,
+            true,
+            false,
+            true,
+            Set.of(QueryLanguage.CYPHER_25));
+
+    DurationFunction(Set<QueryLanguage> supportedQueryLanguages) {
+        signature = supportedQueryLanguages.contains(QueryLanguage.CYPHER_5)
+                ? DURATION_SIGNATURE_CYPHER_5
+                : DURATION_SIGNATURE;
+    }
 
     static void register(GlobalProcedures globalProcedures) throws ProcedureException {
-        globalProcedures.register(new DurationFunction());
+        globalProcedures.register(new DurationFunction(Set.of(QueryLanguage.CYPHER_5)));
+        globalProcedures.register(new DurationFunction(Set.of(QueryLanguage.CYPHER_25)));
         globalProcedures.register(new Between("between"));
         globalProcedures.register(new Between("inMonths"));
         globalProcedures.register(new Between("inDays"));
@@ -74,7 +110,7 @@ class DurationFunction implements CallableUserFunction {
 
     @Override
     public UserFunctionSignature signature() {
-        return DURATION;
+        return signature;
     }
 
     @Override
@@ -88,6 +124,29 @@ class DurationFunction implements CallableUserFunction {
                 return DurationValue.parse((TextValue) input[0]);
             } else if (input[0] instanceof MapValue map) {
                 return DurationValue.build(map);
+            }
+            throw ProcedureException.invalidCallSignature(
+                    String.valueOf(this.signature().name()),
+                    this.signature().toString(),
+                    "Invalid call signature for " + getClass().getSimpleName() + ": Provided input was "
+                            + Arrays.toString(input));
+        } else if (input.length == 2) {
+            if (input[0] == NO_VALUE || input[0] == null || input[1] == NO_VALUE || input[1] == null) {
+                return NO_VALUE;
+            } else if (input[0] instanceof TextValue value && input[1] instanceof TextValue pattern) {
+                if (pattern.equals(DEFAULT_PATTERN_PARAMETER_VALUE.value())) {
+                    return DurationValue.parse(value);
+                } else {
+                    return DurationValue.parsePattern(value, pattern);
+                }
+            } else if (input[0] instanceof MapValue map) {
+                if (input[1] instanceof TextValue pattern && !pattern.equals(DEFAULT_PATTERN_PARAMETER_VALUE.value())) {
+                    throw ProcedureException.invalidFunctionArgument(
+                            this.signature.toString(),
+                            "A pattern can only be used in conjunction with a `STRING` input.");
+                } else {
+                    return DurationValue.build(map);
+                }
             }
             throw ProcedureException.invalidCallSignature(
                     String.valueOf(this.signature().name()),
@@ -152,7 +211,8 @@ class DurationFunction implements CallableUserFunction {
                     true,
                     true,
                     false,
-                    true);
+                    true,
+                    QueryLanguage.ALL);
         }
 
         @Override

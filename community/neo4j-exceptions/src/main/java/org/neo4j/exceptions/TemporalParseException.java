@@ -61,6 +61,16 @@ public class TemporalParseException extends SyntaxException {
         return new TemporalParseException(gql, "Text cannot be parsed to a " + type, text, 0);
     }
 
+    public static TemporalParseException cannotParseInput(String type, String text, String input) {
+        var gql = GqlHelper.getGql22007_22N36(text, type);
+        return new TemporalParseException(gql, "Cannot parse " + text + " as a " + type, input, 0);
+    }
+
+    public static TemporalParseException cannotParseInputInvalidCharacter(String type, String text, String input) {
+        var gql = GqlHelper.getGql22007_22N36_42I65(text, type);
+        return new TemporalParseException(gql, "Cannot parse " + text + " as a " + type, input, 0);
+    }
+
     public static TemporalParseException cannotParseToDateHint(String input) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N35)
@@ -71,6 +81,22 @@ public class TemporalParseException extends SyntaxException {
                 gql,
                 "Text cannot be parsed to a Date. Hint, year+month needs to have two digits for "
                         + "month (e.g. 2015-02) and " + "ordinal dates three digits (e.g. 2015-032).",
+                null);
+    }
+
+    public static TemporalParseException mismatchedPattern(String pattern, String input, String valueType) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I68)
+                        .withParam(GqlParams.StringParam.input1, pattern)
+                        .withParam(GqlParams.StringParam.input2, input)
+                        .withParam(GqlParams.StringParam.valueType, valueType)
+                        .build())
+                .build();
+        return new TemporalParseException(
+                gql,
+                String.format(
+                        "Pattern, `%s`, does not match input, `%s`. Verify that the pattern is valid for constructing `%s`.",
+                        pattern, input, valueType),
                 null);
     }
 
