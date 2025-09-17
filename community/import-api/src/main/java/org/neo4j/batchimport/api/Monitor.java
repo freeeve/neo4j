@@ -51,6 +51,21 @@ public interface Monitor {
      */
     default void completed(boolean success) {}
 
+    /**
+     * @return the desired interval (millis) of receiving a call to {@link #detailedProgressReport(DetailedProgressReport)},
+     * or {@code 0} if disabled.
+     */
+    default long detailedProgressReportIntervalMillis() {
+        return 0;
+    }
+
+    /**
+     * Receives a {@link DetailedProgressReport} for the monitored import.
+     * @param report the progress report so far.
+     * @see #detailedProgressReportIntervalMillis()
+     */
+    default void detailedProgressReport(DetailedProgressReport report) {}
+
     class Delegate implements Monitor {
         private final Monitor delegate;
 
@@ -102,6 +117,16 @@ public interface Monitor {
         @Override
         public void completed(boolean success) {
             delegate.completed(success);
+        }
+
+        @Override
+        public long detailedProgressReportIntervalMillis() {
+            return delegate.detailedProgressReportIntervalMillis();
+        }
+
+        @Override
+        public void detailedProgressReport(DetailedProgressReport report) {
+            delegate.detailedProgressReport(report);
         }
     }
 }

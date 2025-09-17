@@ -54,6 +54,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.collections.api.tuple.Pair;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.IndexConfig;
+import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.batchimport.api.UnsupportedFormatException;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.IdType;
@@ -477,6 +478,8 @@ public class ImportCommand {
                                 + "If not specifically provided, the default temp path will be created inside the database directory of the imported database.")
         private Path tempPath;
 
+        protected Monitor monitor = Monitor.NO_MONITOR;
+
         protected Base(ExecutionContext ctx) {
             super(ctx);
         }
@@ -493,6 +496,13 @@ public class ImportCommand {
 
         @Override
         public abstract void execute() throws Exception;
+
+        /**
+         * Available since it's otherwise difficult to do this by means of PicoCLI.
+         */
+        public void setMonitor(Monitor monitor) {
+            this.monitor = monitor;
+        }
 
         protected void doExecute() {
             try {
@@ -910,7 +920,7 @@ public class ImportCommand {
                             verbose,
                             DefaultAdditionalIds.EMPTY,
                             databaseConfig,
-                            new PrintingImportLogicMonitor(stdOut, stdErr),
+                            new PrintingImportLogicMonitor(stdOut, stdErr, monitor),
                             jobScheduler,
                             badCollector,
                             TransactionLogInitializer.getLogFilesInitializer(),

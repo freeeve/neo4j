@@ -37,7 +37,7 @@ class PrintingImportLogicMonitorTest {
     private final PrintStream out = new PrintStream(outBuffer);
     private final ByteArrayOutputStream errBuffer = new ByteArrayOutputStream();
     private final PrintStream err = new PrintStream(errBuffer);
-    private final Monitor monitor = new PrintingImportLogicMonitor(out, err);
+    private final Monitor monitor = new PrintingImportLogicMonitor(out, err, Monitor.NO_MONITOR);
 
     @Test
     void mayExceedNodeIdCapacity() {

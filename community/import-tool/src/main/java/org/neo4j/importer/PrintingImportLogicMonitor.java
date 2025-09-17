@@ -24,22 +24,25 @@ import static org.neo4j.io.ByteUnit.bytesToString;
 import java.io.PrintStream;
 import org.neo4j.batchimport.api.Monitor;
 
-public class PrintingImportLogicMonitor implements Monitor {
+public class PrintingImportLogicMonitor extends Monitor.Delegate {
     private final PrintStream out;
     private final PrintStream err;
 
-    public PrintingImportLogicMonitor(PrintStream out, PrintStream err) {
+    public PrintingImportLogicMonitor(PrintStream out, PrintStream err, Monitor delegate) {
+        super(delegate);
         this.out = out;
         this.err = err;
     }
 
     @Override
     public void doubleRelationshipRecordUnitsEnabled() {
+        super.doubleRelationshipRecordUnitsEnabled();
         out.println("Will use double record units for all relationships");
     }
 
     @Override
     public void mayExceedNodeIdCapacity(long capacity, long estimatedCount) {
+        super.mayExceedNodeIdCapacity(capacity, estimatedCount);
         err.printf(
                 "WARNING: estimated number of relationships %d may exceed capacity %d of selected record format%n",
                 estimatedCount, capacity);
@@ -47,6 +50,7 @@ public class PrintingImportLogicMonitor implements Monitor {
 
     @Override
     public void mayExceedRelationshipIdCapacity(long capacity, long estimatedCount) {
+        super.mayExceedRelationshipIdCapacity(capacity, estimatedCount);
         err.printf(
                 "WARNING: estimated number of nodes %d may exceed capacity %d of selected record format%n",
                 estimatedCount, capacity);
@@ -54,6 +58,7 @@ public class PrintingImportLogicMonitor implements Monitor {
 
     @Override
     public void insufficientHeapSize(long optimalMinimalHeapSize, long heapSize) {
+        super.insufficientHeapSize(optimalMinimalHeapSize, heapSize);
         err.printf(
                 "WARNING: heap size %s may be too small to complete this import. Suggested heap size is %s",
                 bytesToString(heapSize), bytesToString(optimalMinimalHeapSize));
@@ -61,6 +66,7 @@ public class PrintingImportLogicMonitor implements Monitor {
 
     @Override
     public void abundantHeapSize(long optimalMinimalHeapSize, long heapSize) {
+        super.abundantHeapSize(optimalMinimalHeapSize, heapSize);
         err.printf(
                 "WARNING: heap size %s is unnecessarily large for completing this import.%n"
                         + "The abundant heap memory will leave less memory for off-heap importer caches. Suggested heap size is %s",
@@ -70,6 +76,7 @@ public class PrintingImportLogicMonitor implements Monitor {
     @Override
     public void insufficientAvailableMemory(
             long estimatedCacheSize, long optimalMinimalHeapSize, long availableMemory) {
+        super.insufficientAvailableMemory(estimatedCacheSize, optimalMinimalHeapSize, availableMemory);
         err.printf(
                 "WARNING: %s memory may not be sufficient to complete this import. Suggested memory distribution is:%n"
                         + "heap size: %s%n"

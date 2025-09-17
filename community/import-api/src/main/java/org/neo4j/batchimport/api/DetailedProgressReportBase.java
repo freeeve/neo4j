@@ -1,0 +1,217 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.batchimport.api;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.function.IntFunction;
+import org.eclipse.collections.api.set.primitive.IntSet;
+import org.neo4j.batchimport.api.DetailedProgressReport.Stats;
+import org.neo4j.batchimport.api.input.ApplicationMode;
+import org.neo4j.common.TokenNameLookup;
+import org.neo4j.internal.schema.SchemaUserDescription;
+
+/**
+ * Class for gathering information while import is running, into mutable state rich enough to be able to
+ * generate {@link DetailedProgressReport} from.
+ */
+public class DetailedProgressReportBase {
+    private final MutableStats nodeStats = new MutableStats();
+    private final MutableStats relationshipStats = new MutableStats();
+    private final PerTokenMutableStats perLabelStats = new PerTokenMutableStats();
+    private final PerTokenMutableStats perRelationshipTypeStats = new PerTokenMutableStats();
+    private final MutableStats indexStats = new MutableStats();
+    private final MutableStats constraintStats = new MutableStats();
+    private final Timer schemaTimer = new Timer();
+    private final Timer nodeTimer = new Timer();
+    private final Timer relationshipTimer = new Timer();
+    private final boolean trackPerEntityTokenStats;
+    private volatile TokenNameLookup tokenNameLookup = SchemaUserDescription.TOKEN_ID_NAME_LOOKUP;
+
+    /**
+     * @param trackPerEntityTokenStats register stats per entity tokens too. Optional because it's
+     * slightly more expensive and those stats are not always used.
+     */
+    public DetailedProgressReportBase(boolean trackPerEntityTokenStats) {
+        this.trackPerEntityTokenStats = trackPerEntityTokenStats;
+    }
+
+    public void setTokenNameLookup(TokenNameLookup tokenNameLookup) {
+        this.tokenNameLookup = tokenNameLookup;
+    }
+
+    public MutableStats nodeStats() {
+        return nodeStats;
+    }
+
+    public MutableStats relationshipStats() {
+        return relationshipStats;
+    }
+
+    public MutableStats indexStats() {
+        return indexStats;
+    }
+
+    public MutableStats constraintStats() {
+        return constraintStats;
+    }
+
+    public Timer schemaTimer() {
+        return schemaTimer;
+    }
+
+    public Timer nodeTimer() {
+        return nodeTimer;
+    }
+
+    public Timer relationshipTimer() {
+        return relationshipTimer;
+    }
+
+    public void registerNodeStats(ApplicationMode applicationMode, IntSet... entityTokens) {
+        nodeStats.register(applicationMode);
+        if (trackPerEntityTokenStats) {
+            perLabelStats.register(applicationMode, entityTokens);
+        }
+    }
+
+    public void registerRelationshipStats(ApplicationMode applicationMode, int relationshipType) {
+        relationshipStats.register(applicationMode);
+        if (trackPerEntityTokenStats) {
+            perRelationshipTypeStats.register(applicationMode, relationshipType);
+        }
+    }
+
+    public DetailedProgressReport snapshot() {
+        return new DetailedProgressReport(
+                nodeStats.snapshot(),
+                relationshipStats.snapshot(),
+                perLabelStats.snapshot(tokenNameLookup::labelGetName),
+                perRelationshipTypeStats.snapshot(tokenNameLookup::relationshipTypeGetName),
+                indexStats.snapshot(),
+                constraintStats.snapshot(),
+                nodeTimer.snapshot(),
+                relationshipTimer.snapshot(),
+                schemaTimer.snapshot());
+    }
+
+    public record MutableStats(
+            LongAdder numProcessed, LongAdder numCreated, LongAdder numUpdated, LongAdder numDeleted) {
+        public MutableStats() {
+            this(new LongAdder(), new LongAdder(), new LongAdder(), new LongAdder());
+        }
+
+        public Stats snapshot() {
+            return new Stats(
+                    numProcessed.longValue(), numCreated.longValue(), numUpdated.longValue(), numDeleted.longValue());
+        }
+
+        /**
+         * Convenience method to register a creation/update/deletion, based on {@link ApplicationMode}.
+         */
+        public void register(ApplicationMode applicationMode) {
+            switch (applicationMode) {
+                case CREATE -> numCreated.increment();
+                case UPDATE -> numUpdated.increment();
+                case DELETE -> numDeleted.increment();
+            }
+        }
+    }
+
+    public static class Timer {
+        private volatile long start;
+        private volatile long end;
+
+        public void start() {
+            this.start = System.nanoTime();
+        }
+
+        public void end() {
+            this.end = System.nanoTime();
+        }
+
+        public Duration snapshot() {
+            long start = this.start;
+            if (start == 0) {
+                return Duration.ZERO;
+            }
+
+            long end = this.end;
+            if (end == 0) {
+                end = System.nanoTime();
+            }
+            return Duration.ofNanos(end - start);
+        }
+    }
+
+    public static class PerTokenMutableStats {
+        // Have a simple final array for the (presumably) most common token IDs, for performance
+        private final MutableStats[] lowIdStats = new MutableStats[100];
+        private final Map<Integer, MutableStats> higherIdStats = new ConcurrentHashMap<>();
+
+        PerTokenMutableStats() {
+            for (int tokenId = 0; tokenId < lowIdStats.length; tokenId++) {
+                lowIdStats[tokenId] = new MutableStats();
+            }
+        }
+
+        /**
+         * Convenience method to register creation/update/deletion of an entity, with additional details
+         * about its entity tokens. There could be multiple sets of entity tokens, e.g. added, removed a.s.o.
+         */
+        private void register(ApplicationMode applicationMode, IntSet... entityTokens) {
+            for (var tokens : entityTokens) {
+                tokens.forEach(tokenId -> {
+                    var stats = forToken(tokenId);
+                    stats.numProcessed.increment();
+                    stats.register(applicationMode);
+                });
+            }
+        }
+
+        private void register(ApplicationMode applicationMode, int entityTokenId) {
+            var stats = forToken(entityTokenId);
+            stats.numProcessed.increment();
+            stats.register(applicationMode);
+        }
+
+        private Map<String, Stats> snapshot(IntFunction<String> tokenNameLookup) {
+            Map<String, Stats> snapshot = new HashMap<>();
+            for (int tokenId = 0; tokenId < lowIdStats.length; tokenId++) {
+                var stats = lowIdStats[tokenId];
+                if (stats.numProcessed.sum() > 0) {
+                    snapshot.put(tokenNameLookup.apply(tokenId), stats.snapshot());
+                }
+            }
+            higherIdStats.forEach(
+                    (tokenId, mutableStats) -> snapshot.put(tokenNameLookup.apply(tokenId), mutableStats.snapshot()));
+            return snapshot;
+        }
+
+        private MutableStats forToken(int tokenId) {
+            return tokenId < lowIdStats.length
+                    ? lowIdStats[tokenId]
+                    : higherIdStats.computeIfAbsent(tokenId, k -> new MutableStats());
+        }
+    }
+}
