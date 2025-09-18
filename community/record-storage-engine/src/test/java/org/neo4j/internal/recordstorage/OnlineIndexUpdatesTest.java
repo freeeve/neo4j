@@ -40,6 +40,7 @@ import static org.neo4j.kernel.impl.store.record.Record.NO_LABELS_FIELD;
 import static org.neo4j.kernel.impl.store.record.Record.NO_NEXT_PROPERTY;
 import static org.neo4j.kernel.impl.store.record.Record.NO_NEXT_RELATIONSHIP;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -77,7 +78,6 @@ import org.neo4j.kernel.impl.store.record.PrimitiveRecord;
 import org.neo4j.kernel.impl.store.record.PropertyBlock;
 import org.neo4j.kernel.impl.store.record.PropertyRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -142,7 +142,6 @@ class OnlineIndexUpdatesTest {
                 nullLogProvider,
                 contextFactory,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
 
         neoStores = storeFactory.openAllNeoStores();
@@ -153,7 +152,7 @@ class OnlineIndexUpdatesTest {
                 databaseLayout.countStore(),
                 fileSystem,
                 immediate(),
-                new CountsComputer(neoStores, contextFactory, INSTANCE, NumberArrayFactories.OFF_HEAP),
+                new CountsComputer(neoStores, BASE_TX_ID, contextFactory, INSTANCE, NumberArrayFactories.OFF_HEAP),
                 false,
                 GBPTreeGenericCountsStore.NO_MONITOR,
                 databaseLayout.getDatabaseName(),

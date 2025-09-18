@@ -23,7 +23,7 @@ import java.util.Optional;
 import org.neo4j.kernel.database.DatabaseId;
 import org.neo4j.storageengine.StoreFileClosedException;
 import org.neo4j.storageengine.api.ExternalStoreId;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdProvider;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -62,7 +62,7 @@ public class DefaultDatabaseDetailsExtrasProvider {
 
     private static Optional<Long> fetchLastAppendIndex(Optional<? extends DatabaseContext> context) {
         return context.map(DatabaseContext::dependencies)
-                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(MetadataProvider.class))
+                .flatMap(dependencyResolver -> dependencyResolver.resolveOptionalDependency(LogMetadataProvider.class))
                 .flatMap(applyIndexProvider ->
                         Optional.of(applyIndexProvider.getLastCommittedBatch().appendIndex()));
     }

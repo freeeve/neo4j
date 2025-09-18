@@ -29,6 +29,8 @@ import static org.neo4j.internal.batchimport.cache.idmapping.IdMappers.combineSk
 import static org.neo4j.internal.helpers.Format.duration;
 import static org.neo4j.io.ByteUnit.bytesToString;
 import static org.neo4j.io.IOUtils.closeAll;
+import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
+import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -76,11 +78,11 @@ import org.neo4j.kernel.impl.store.RelationshipStore;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.migration.MigrationProgressMonitor;
 
@@ -587,14 +589,14 @@ public class ImportLogic implements Closeable {
                         nodeStore.getIdGenerator().getHighId());
     }
 
-    public void buildAuxiliaryStores() {
-        buildAuxiliaryStores(0);
+    public void buildAuxiliaryStores(LogMetadataProvider logMetadataProvider) {
+        buildAuxiliaryStores(0, logMetadataProvider);
     }
 
     /**
      * Builds the counts store and lookup indexes. Requires that {@link #importNodes()} and {@link #importRelationships()} has run.
      */
-    public void buildAuxiliaryStores(long fromNodeId) {
+    public void buildAuxiliaryStores(long fromNodeId, LogMetadataProvider logMetadataProvider) {
         neoStore.buildCountsStore(
                 new CountsBuilder() {
                     @Override
@@ -653,9 +655,10 @@ public class ImportLogic implements Closeable {
 
                     @Override
                     public long lastCommittedTxId() {
-                        return neoStore.getLastCommittedTransactionId();
+                        return logMetadataProvider.getLastCommittedTransactionId();
                     }
                 },
+                logMetadataProvider,
                 contextFactory,
                 memoryTracker);
     }
@@ -692,18 +695,27 @@ public class ImportLogic implements Closeable {
             Configuration config,
             LogService logService,
             AdditionalInitialIds additionalInitialIds,
-            LogTailLogVersionsMetadata logTailMetadata,
+            LogMetadataProvider logMetadataProvider,
             Config dbConfig,
             JobScheduler scheduler,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory) {
+        logMetadataProvider.setLastCommittedAndClosedTransactionId(
+                additionalInitialIds.lastCommittedTransactionId(),
+                additionalInitialIds.lastCommittedTransactionAppendIndex(),
+                logMetadataProvider.getLastCommittedTransaction().kernelVersion(),
+                additionalInitialIds.lastCommittedTransactionChecksum(),
+                BASE_TX_COMMIT_TIMESTAMP,
+                UNKNOWN_CONSENSUS_INDEX,
+                additionalInitialIds.lastCommittedTransactionLogByteOffset(),
+                additionalInitialIds.lastCommittedTransactionLogVersion(),
+                additionalInitialIds.lastAppendIndex());
+        logMetadataProvider.setCheckpointLogVersion(additionalInitialIds.checkpointLogVersion());
         return BatchingNeoStores.batchingNeoStores(
                 fileSystem,
                 databaseLayout,
                 config,
                 logService,
-                additionalInitialIds,
-                logTailMetadata,
                 dbConfig,
                 scheduler,
                 cacheTracer,

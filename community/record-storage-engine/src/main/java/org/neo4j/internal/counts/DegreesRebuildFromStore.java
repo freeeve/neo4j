@@ -58,6 +58,7 @@ import org.neo4j.logging.Level;
 import org.neo4j.logging.LoggerPrintWriterAdaptor;
 import org.neo4j.logging.NullLog;
 import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 
 /**
  * Scans the store and rebuilds the {@link GBPTreeRelationshipGroupDegreesStore} contents if the file is missing.
@@ -65,6 +66,7 @@ import org.neo4j.memory.MemoryTracker;
 public class DegreesRebuildFromStore implements DegreesRebuilder {
     private final NeoStores neoStores;
     private final DatabaseLayout databaseLayout;
+    private final LogMetadataProvider logMetadataProvider;
     private final CursorContextFactory contextFactory;
     private final InternalLog log;
     private final Configuration processingConfig;
@@ -72,11 +74,13 @@ public class DegreesRebuildFromStore implements DegreesRebuilder {
     public DegreesRebuildFromStore(
             NeoStores neoStores,
             DatabaseLayout databaseLayout,
+            LogMetadataProvider logMetadataProvider,
             CursorContextFactory contextFactory,
             InternalLogProvider logProvider,
             Configuration processingConfig) {
         this.neoStores = neoStores;
         this.databaseLayout = databaseLayout;
+        this.logMetadataProvider = logMetadataProvider;
         this.contextFactory = contextFactory;
         this.log = logProvider.getLog(DegreesRebuildFromStore.class);
         this.processingConfig = processingConfig;
@@ -84,7 +88,7 @@ public class DegreesRebuildFromStore implements DegreesRebuilder {
 
     @Override
     public long lastCommittedTxId() {
-        return neoStores.getMetaDataStore().getLastCommittedTransactionId();
+        return logMetadataProvider.getLastCommittedTransactionId();
     }
 
     @Override

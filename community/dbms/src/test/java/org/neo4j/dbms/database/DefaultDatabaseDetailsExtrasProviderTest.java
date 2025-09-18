@@ -38,6 +38,7 @@ import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.impl.transaction.log.AppendBatchInfo;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.api.ExternalStoreId;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
 
@@ -56,13 +57,14 @@ class DefaultDatabaseDetailsExtrasProviderTest {
         databaseContextProvider = mock(DatabaseContextProvider.class);
         provider = new DefaultDatabaseDetailsExtrasProvider(databaseContextProvider);
 
+        var logMetadataProvider = mock(LogMetadataProvider.class);
         var metadataProvider = mock(MetadataProvider.class);
         when(metadataProvider.getExternalStoreId()).thenReturn(externalStoreId);
-        when(metadataProvider.getLastCommittedTransactionId()).thenReturn(lastCommittedTxId);
-        when(metadataProvider.getLastCommittedBatch())
+        when(logMetadataProvider.getLastCommittedTransactionId()).thenReturn(lastCommittedTxId);
+        when(logMetadataProvider.getLastCommittedBatch())
                 .thenReturn(new AppendBatchInfo(lastAppendIndex, new LogPosition(5, 512)));
 
-        var dependencies = dependenciesOf(metadataProvider);
+        var dependencies = dependenciesOf(metadataProvider, logMetadataProvider);
         var database = mock(Database.class);
         when(database.getStoreId()).thenReturn(storeId);
         when(database.isStarted()).thenReturn(true);

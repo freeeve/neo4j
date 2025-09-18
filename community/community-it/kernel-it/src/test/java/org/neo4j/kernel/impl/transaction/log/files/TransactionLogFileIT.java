@@ -49,8 +49,8 @@ import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.NullLog;
 import org.neo4j.memory.LocalMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
-import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.DbmsExtension;
@@ -76,7 +76,7 @@ class TransactionLogFileIT {
     private LogVersionRepository logVersionRepository;
 
     @Inject
-    private MetadataProvider metadataProvider;
+    private LogMetadataProvider metadataProvider;
 
     @Test
     @EnabledOnOs(OS.LINUX)

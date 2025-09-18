@@ -66,7 +66,6 @@ import static org.neo4j.lock.LockType.EXCLUSIVE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.INTERNAL;
 import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.add;
-import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.change;
 import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 
 import java.io.IOException;
@@ -111,7 +110,6 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProvider;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.FlatRelationshipModifications;
 import org.neo4j.kernel.impl.api.FlatRelationshipModifications.RelationshipData;
 import org.neo4j.kernel.impl.store.DynamicAllocatorProvider;
@@ -144,6 +142,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.RelationshipDirection;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
 import org.neo4j.storageengine.api.StorageCommand;
@@ -211,7 +210,7 @@ class TransactionRecordStateTest {
 
     private void createStores(Config config, RecordFormats formats) {
         var logTailMetadata = new EmptyLogTailMetadata(config);
-        kernelVersionProvider = new MetadataCache(logTailMetadata);
+        kernelVersionProvider = new LogMetadataProviderImpl(logTailMetadata);
         var pageCacheTracer = PageCacheTracer.NULL;
         idGeneratorFactory =
                 new DefaultIdGeneratorFactory(fs, immediate(), pageCacheTracer, databaseLayout.getDatabaseName());
@@ -226,7 +225,6 @@ class TransactionRecordStateTest {
                 NullLogProvider.getInstance(),
                 new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 false,
-                logTailMetadata,
                 StoreIdGenerator.UNIQUE_ID);
         neoStores = storeFactory.openAllNeoStores();
         allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);

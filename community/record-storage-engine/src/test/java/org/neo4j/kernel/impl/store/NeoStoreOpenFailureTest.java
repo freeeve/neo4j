@@ -87,7 +87,6 @@ class NeoStoreOpenFailureTest {
                 formats,
                 contextFactory,
                 false,
-                logTail,
                 STORE_TYPES,
                 openOptions,
                 StoreIdGenerator.UNIQUE_ID);
@@ -114,7 +113,6 @@ class NeoStoreOpenFailureTest {
                                 formats,
                                 contextFactory,
                                 false,
-                                logTail,
                                 STORE_TYPES,
                                 openOptions,
                                 StoreIdGenerator.UNIQUE_ID));

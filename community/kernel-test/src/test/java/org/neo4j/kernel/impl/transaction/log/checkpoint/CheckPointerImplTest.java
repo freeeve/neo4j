@@ -66,10 +66,10 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.storageengine.api.ClosedBatchMetadata;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
-import org.neo4j.test.LatestVersions;
 import org.neo4j.time.Clocks;
 import org.neo4j.util.concurrent.BinaryLatch;
 
@@ -78,6 +78,7 @@ class CheckPointerImplTest {
     private static final long TRANSACTION_APPEND_INDEX = 8;
 
     private final MetadataProvider metadataProvider = mock(MetadataProvider.class);
+    private final LogMetadataProvider logMetadataProvider = mock(LogMetadataProvider.class);
     private final CheckPointThreshold threshold = mock(CheckPointThreshold.class);
     private final ForceOperation forceOperation = mock(ForceOperation.class);
     private final LogPruning logPruning = mock(LogPruning.class);
@@ -406,9 +407,10 @@ class CheckPointerImplTest {
         when(databaseTracers.getDatabaseTracer()).thenReturn(tracer);
         when(databaseTracers.getPageCacheTracer()).thenReturn(PageCacheTracer.NULL);
         when(metadataProvider.getStoreId()).thenReturn(storeId);
-        when(metadataProvider.getLastAppendIndex()).thenReturn(initialAppendIndex);
+        when(logMetadataProvider.getLastAppendIndex()).thenReturn(initialAppendIndex);
+        when(logMetadataProvider.kernelVersion()).thenReturn(LATEST_KERNEL_VERSION);
         return new CheckPointerImpl(
-                metadataProvider,
+                logMetadataProvider,
                 threshold,
                 forceOperation,
                 logPruning,
@@ -419,8 +421,7 @@ class CheckPointerImplTest {
                 mutex,
                 new CursorContextFactory(new DefaultPageCacheTracer(), EMPTY_CONTEXT_SUPPLIER),
                 clock,
-                IOController.DISABLED,
-                LatestVersions.LATEST_KERNEL_VERSION_PROVIDER);
+                IOController.DISABLED);
     }
 
     private CheckPointerImpl checkPointer() {
@@ -430,13 +431,13 @@ class CheckPointerImplTest {
     private void mockTxIdStore() {
         var otherCommitted = new TransactionId(
                 transactionId, TRANSACTION_APPEND_INDEX, LATEST_KERNEL_VERSION, 6, 7, UNKNOWN_CONSENSUS_INDEX);
-        when(metadataProvider.getLastCommittedTransaction()).thenReturn(otherCommitted);
-        when(metadataProvider.getLastClosedTransactionId())
+        when(logMetadataProvider.getLastCommittedTransaction()).thenReturn(otherCommitted);
+        when(logMetadataProvider.getLastClosedTransactionId())
                 .thenReturn(initialAppendIndex, transactionId, transactionId);
-        when(metadataProvider.getLastCommittedBatch())
+        when(logMetadataProvider.getLastCommittedBatch())
                 .thenReturn(new AppendBatchInfo(TRANSACTION_APPEND_INDEX, logPosition));
-        when(metadataProvider.getHighestEverClosedTransaction()).thenReturn(otherCommitted);
-        when(metadataProvider.getLastClosedBatch())
+        when(logMetadataProvider.getHighestEverClosedTransaction()).thenReturn(otherCommitted);
+        when(logMetadataProvider.getLastClosedBatch())
                 .thenReturn(
                         new ClosedBatchMetadata(initialAppendIndex, LATEST_KERNEL_VERSION, logPosition),
                         new ClosedBatchMetadata(TRANSACTION_APPEND_INDEX, LATEST_KERNEL_VERSION, logPosition));

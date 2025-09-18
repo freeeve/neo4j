@@ -51,19 +51,6 @@ public class CountsComputer implements CountsBuilder {
 
     public CountsComputer(
             NeoStores stores,
-            CursorContextFactory contextFactory,
-            MemoryTracker memoryTracker,
-            NumberArrayFactory numberArrayFactory) {
-        this(
-                stores,
-                stores.getMetaDataStore().getLastCommittedTransactionId(),
-                contextFactory,
-                memoryTracker,
-                numberArrayFactory);
-    }
-
-    public CountsComputer(
-            NeoStores stores,
             long lastCommittedTransactionId,
             CursorContextFactory contextFactory,
             MemoryTracker memoryTracker,

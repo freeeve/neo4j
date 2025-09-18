@@ -35,7 +35,6 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.pruning.LogPruning;
@@ -45,7 +44,7 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.storageengine.api.ClosedBatchMetadata;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.time.Stopwatch;
 
@@ -57,7 +56,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
     private static final String UNLIMITED_IO_CONTROLLER_LIMIT = "unlimited";
 
     private final CheckpointAppender checkpointAppender;
-    private final MetadataProvider metadataProvider;
+    private final LogMetadataProvider metadataProvider;
     private final CheckPointThreshold threshold;
     private final ForceOperation forceOperation;
     private final LogPruning logPruning;
@@ -68,13 +67,12 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
     private final CursorContextFactory cursorContextFactory;
     private final Clock clock;
     private final IOController ioController;
-    private final KernelVersionProvider versionProvider;
 
     private volatile boolean shutdown;
     private volatile LatestCheckpointInfo latestCheckPointInfo = UNKNOWN_CHECKPOINT_INFO;
 
     public CheckPointerImpl(
-            MetadataProvider metadataProvider,
+            LogMetadataProvider metadataProvider,
             CheckPointThreshold threshold,
             ForceOperation forceOperation,
             LogPruning logPruning,
@@ -85,8 +83,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             StoreCopyCheckPointMutex mutex,
             CursorContextFactory cursorContextFactory,
             Clock clock,
-            IOController ioController,
-            KernelVersionProvider versionProvider) {
+            IOController ioController) {
         this.checkpointAppender = checkpointAppender;
         this.metadataProvider = metadataProvider;
         this.threshold = threshold;
@@ -99,7 +96,6 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
         this.cursorContextFactory = cursorContextFactory;
         this.clock = clock;
         this.ioController = ioController;
-        this.versionProvider = versionProvider;
     }
 
     @Override
@@ -225,7 +221,7 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             long highestEverClosedTransactionId = transactionId.id();
             cursorContext.getVersionContext().initWrite(highestEverClosedTransactionId);
             cursorContext.getVersionContext().initAppendIndex(transactionId.appendIndex());
-            KernelVersion kernelVersion = versionProvider.kernelVersion();
+            KernelVersion kernelVersion = metadataProvider.kernelVersion();
             // info about last checkpoint is used only be store copy and so far we do not want to update protocol
             // to contain all the fields and state to make checkpoint identical after store copy.
             // To make it still work we are using the oldest non-visible index instead of the last batch plus state

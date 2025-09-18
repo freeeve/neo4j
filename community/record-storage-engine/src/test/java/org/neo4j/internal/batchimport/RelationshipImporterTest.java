@@ -22,11 +22,9 @@ package org.neo4j.internal.batchimport;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.batchimport.api.Configuration.DEFAULT;
 import static org.neo4j.configuration.Config.defaults;
-import static org.neo4j.internal.batchimport.DefaultAdditionalIds.EMPTY;
 import static org.neo4j.internal.batchimport.store.BatchingNeoStores.batchingNeoStoresWithExternalPageCache;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
-import static org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata.EMPTY_LOG_TAIL;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.ByteArrayOutputStream;
@@ -64,8 +62,6 @@ class RelationshipImporterTest {
                 RecordDatabaseLayout.ofFlat(directory.homePath()),
                 DEFAULT,
                 NullLogService.getInstance(),
-                EMPTY,
-                EMPTY_LOG_TAIL,
                 defaults(),
                 INSTANCE);
         stores.createNew();

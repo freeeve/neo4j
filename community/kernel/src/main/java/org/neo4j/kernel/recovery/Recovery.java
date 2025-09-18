@@ -86,7 +86,6 @@ import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.database.DefaultForceOperation;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.extension.DatabaseExtensions;
 import org.neo4j.kernel.extension.ExtensionFactory;
@@ -142,6 +141,8 @@ import org.neo4j.service.Services;
 import org.neo4j.storageengine.OperationMode;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.VectorStoreCreator;
+import org.neo4j.storageengine.api.LogMetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
@@ -590,7 +591,7 @@ public final class Recovery {
                 tracers.getPageCacheTracer(),
                 indexDependencies));
 
-        MetadataCache recoveryMetaDataCache = new MetadataCache(logTailMetadata);
+        LogMetadataProvider logMetadataProvider = new LogMetadataProviderImpl(logTailMetadata);
         StorageEngine storageEngine = storageEngineFactory.instantiate(
                 fs,
                 clock,
@@ -608,8 +609,7 @@ public final class Recovery {
                 logService.getInternalLogProvider(),
                 logService.getUserLogProvider(),
                 recoveryCleanupCollector,
-                logTailMetadata,
-                recoveryMetaDataCache,
+                logMetadataProvider,
                 memoryTracker,
                 cursorContextFactory,
                 tracers.getPageCacheTracer(),
@@ -660,7 +660,7 @@ public final class Recovery {
                 databaseLayout.getDatabaseName(),
                 readOnlyChecker,
                 clock,
-                recoveryMetaDataCache,
+                logMetadataProvider,
                 fs,
                 EMPTY_VISIBILITY_PROVIDER);
 
@@ -683,9 +683,10 @@ public final class Recovery {
                 readOnlyChecker,
                 cursorContextFactory,
                 logService,
-                metadataProvider);
+                metadataProvider,
+                logMetadataProvider);
 
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, recoveryMetaDataCache, recoveryMetaDataCache)
+        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, logMetadataProvider, logMetadataProvider)
                 .withStorageEngineFactory(storageEngineFactory)
                 .withConfig(config)
                 .withDatabaseTracers(tracers)
@@ -716,7 +717,7 @@ public final class Recovery {
         RecoveryMonitor recoveryMonitor = monitors.newMonitor(RecoveryMonitor.class);
         TransactionLogsRecovery transactionLogsRecovery = transactionLogRecovery(
                 fs,
-                metadataProvider,
+                logMetadataProvider,
                 recoveryMonitor,
                 monitors.newMonitor(RecoveryStartInformationProvider.Monitor.class),
                 logFiles,
@@ -724,7 +725,7 @@ public final class Recovery {
                 logTailMetadata,
                 logTailMetadata,
                 transactionStore,
-                metadataProvider,
+                logMetadataProvider,
                 schemaLife,
                 databaseLayout,
                 failOnCorruptedLogFiles,
@@ -751,9 +752,9 @@ public final class Recovery {
                 clock,
                 config,
                 new ReentrantLock(),
-                metadataProvider);
+                logMetadataProvider);
         CheckPointerImpl checkPointer = new CheckPointerImpl(
-                metadataProvider,
+                logMetadataProvider,
                 RecoveryThreshold.INSTANCE,
                 forceOperation,
                 logPruning,
@@ -764,8 +765,7 @@ public final class Recovery {
                 new StoreCopyCheckPointMutex(),
                 cursorContextFactory,
                 clock,
-                ioController,
-                recoveryMetaDataCache);
+                ioController);
         recoveryLife.add(indexStatisticsStore);
         recoveryLife.add(storageEngine);
         recoveryLife.add(new MissingTransactionLogsCheck(config, logTailMetadata, recoveryLog));

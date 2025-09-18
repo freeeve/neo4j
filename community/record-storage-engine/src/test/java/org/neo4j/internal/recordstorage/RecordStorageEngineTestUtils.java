@@ -44,7 +44,6 @@ import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProvider;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
@@ -56,6 +55,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
@@ -91,8 +91,7 @@ public class RecordStorageEngineTestUtils {
                 new DefaultIdGeneratorFactory(fs, immediate(), cacheTracer, DEFAULT_DATABASE_NAME),
                 immediate(),
                 EmptyMemoryTracker.INSTANCE,
-                emptyLogTailMetadata,
-                new MetadataCache(emptyLogTailMetadata),
+                new LogMetadataProviderImpl(emptyLogTailMetadata),
                 new CursorContextFactory(cacheTracer, EMPTY_CONTEXT_SUPPLIER),
                 cacheTracer,
                 VersionStorage.EMPTY_STORAGE,
@@ -115,8 +114,8 @@ public class RecordStorageEngineTestUtils {
         when(txState.addedAndRemovedNodes()).thenReturn(LongDiffSets.EMPTY);
         when(txState.addedAndRemovedRelationships()).thenReturn(LongDiffSets.EMPTY);
         NeoStores neoStores = storageEngine.testAccessNeoStores();
-        TransactionIdStore txIdStore = neoStores.getMetaDataStore();
-        KernelVersionProvider kernelVersionProvider = storageEngine.metadataCache;
+        TransactionIdStore txIdStore = storageEngine.logMetadataProvider();
+        KernelVersionProvider kernelVersionProvider = storageEngine.logMetadataProvider();
         CursorContext cursorContext = NULL_CONTEXT;
         try (RecordStorageCommandCreationContext commandCreationContext =
                         storageEngine.newCommandCreationContext(false);

@@ -53,7 +53,6 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.storageengine.api.MetadataProvider;
@@ -245,14 +244,7 @@ class DatabaseStartupTest {
         try (var scheduler = JobSchedulerFactory.createInitialisedScheduler();
                 var pageCache = new MuninnPageCache(fs, scheduler, MuninnPageCache.config(1_000));
                 var metadataProvider = storageEngineFactory.transactionMetaDataStore(
-                        fs,
-                        databaseLayout,
-                        Config.defaults(),
-                        pageCache,
-                        writable(),
-                        NULL_CONTEXT_FACTORY,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                        NULL)) {
+                        fs, databaseLayout, Config.defaults(), pageCache, writable(), NULL_CONTEXT_FACTORY, NULL)) {
             tamper.accept(metadataProvider);
         }
     }

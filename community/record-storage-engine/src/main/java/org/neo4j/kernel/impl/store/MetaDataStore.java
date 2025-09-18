@@ -31,7 +31,6 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.configuration.Config;
@@ -45,34 +44,18 @@ import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.store.format.RecordFormat;
 import org.neo4j.kernel.impl.store.record.MetaDataRecord;
 import org.neo4j.kernel.impl.store.record.Record;
-import org.neo4j.kernel.impl.transaction.log.AppendBatchInfo;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.storageengine.StoreFileClosedException;
 import org.neo4j.storageengine.StoreIdGenerator.StoreIds;
-import org.neo4j.storageengine.api.ClosedBatchMetadata;
-import org.neo4j.storageengine.api.ClosedTransactionMetadata;
 import org.neo4j.storageengine.api.ExternalStoreId;
 import org.neo4j.storageengine.api.MetadataProvider;
-import org.neo4j.storageengine.api.OpenTransactionMetadata;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
-import org.neo4j.storageengine.api.TransactionId;
-import org.neo4j.storageengine.api.TransactionIdStore;
-import org.neo4j.storageengine.util.ChunkedTransactionRegistry;
-import org.neo4j.storageengine.util.HighestAppendBatch;
-import org.neo4j.storageengine.util.HighestTransactionId;
-import org.neo4j.util.concurrent.ArrayQueueOutOfOrderSequence;
-import org.neo4j.util.concurrent.OutOfOrderSequence;
-import org.neo4j.util.concurrent.OutOfOrderSequence.Meta;
 
 public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHeader> implements MetadataProvider {
     private static final String TYPE_DESCRIPTOR = "NeoStore";
@@ -115,22 +98,8 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
     private volatile UUID externalStoreUUID;
     private volatile UUID databaseUUID;
 
-    private final AtomicLong logVersion;
-    private final AtomicLong checkpointLogVersion;
-    private final AtomicLong lastCommittingTx;
     private final Supplier<StoreIds> storeIdFactory;
-
-    private final HighestTransactionId highestCommittedTransaction;
-    private final HighestTransactionId highestClosedTransaction;
-
-    private final OutOfOrderSequence lastClosedTx;
-    private final OutOfOrderSequence lastClosedBatch;
-
     private volatile boolean closed;
-    private final AtomicLong appendIndex;
-    private final HighestAppendBatch lastCommittedBatch;
-    private final ChunkedTransactionRegistry chunkedTransactionRegistry = new ChunkedTransactionRegistry();
-    private volatile long lowestAvailableCommittedTransactionId = TransactionIdStore.UNKNOWN_TX_ID;
 
     MetaDataStore(
             FileSystemAbstraction fileSystem,
@@ -141,7 +110,6 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
             InternalLogProvider logProvider,
             RecordFormat<MetaDataRecord> recordFormat,
             boolean readOnly,
-            LogTailLogVersionsMetadata logTailMetadata,
             String databaseName,
             ImmutableSet<OpenOption> openOptions,
             Supplier<StoreIds> storeIdFactory) {
@@ -162,41 +130,11 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
                 databaseName,
                 buildOptions(openOptions));
 
-        checkpointLogVersion = new AtomicLong(logTailMetadata.getCheckpointLogVersion());
-        logVersion = new AtomicLong(logTailMetadata.getLogVersion());
         this.storeIdFactory = storeIdFactory;
-        var lastCommittedTx = logTailMetadata.getLastCommittedTransaction();
-        lastCommittingTx = new AtomicLong(lastCommittedTx.id());
-        highestCommittedTransaction = new HighestTransactionId(lastCommittedTx);
-        highestClosedTransaction = new HighestTransactionId(lastCommittedTx);
-        var logPosition = logTailMetadata.getLastTransactionLogPosition();
-        AppendBatchInfo lastBatch = logTailMetadata.lastBatch();
-        lastCommittedBatch = new HighestAppendBatch(lastBatch);
-        appendIndex = new AtomicLong(lastBatch.appendIndex());
-        var initialMeta = new Meta(
-                logPosition.getLogVersion(),
-                logPosition.getByteOffset(),
-                lastCommittedTx.kernelVersion().version(),
-                lastCommittedTx.checksum(),
-                lastCommittedTx.commitTimestamp(),
-                lastCommittedTx.consensusIndex(),
-                lastCommittedTx.appendIndex());
-        lastClosedTx = new ArrayQueueOutOfOrderSequence(lastCommittedTx.id(), 128, initialMeta);
-        lastClosedBatch = new ArrayQueueOutOfOrderSequence(lastBatch.appendIndex(), 128, initialMeta);
     }
 
     private static ImmutableSet<OpenOption> buildOptions(ImmutableSet<OpenOption> openOptions) {
         return openOptions.newWithoutAll(FORBIDDEN_OPTIONS).newWithAll(REQUIRED_OPTIONS);
-    }
-
-    @Override
-    public long nextAppendIndex() {
-        return appendIndex.incrementAndGet();
-    }
-
-    @Override
-    public long getLastAppendIndex() {
-        return appendIndex.get();
     }
 
     @Override
@@ -212,53 +150,6 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
         try (CursorContext context = contextFactory.create("readMetadata")) {
             readMetadataFile(context);
         }
-    }
-
-    @Override
-    public long getCheckpointLogVersion() {
-        assertNotClosed();
-        return checkpointLogVersion.get();
-    }
-
-    @Override
-    public void setCheckpointLogVersion(long version) {
-        checkpointLogVersion.set(version);
-    }
-
-    @Override
-    public long incrementAndGetCheckpointLogVersion() {
-        return checkpointLogVersion.incrementAndGet();
-    }
-
-    @Override
-    public void setLastCommittedAndClosedTransactionId(
-            long transactionId,
-            long transactionAppendIndex,
-            KernelVersion kernelVersion,
-            int checksum,
-            long commitTimestamp,
-            long consensusIndex,
-            long byteOffset,
-            long logVersion,
-            long appendIndex) {
-        assertNotClosed();
-        lastCommittingTx.set(transactionId);
-        var meta = new Meta(
-                logVersion,
-                byteOffset,
-                kernelVersion.version(),
-                checksum,
-                commitTimestamp,
-                consensusIndex,
-                transactionAppendIndex);
-        lastClosedBatch.set(appendIndex, meta);
-        lastClosedTx.set(transactionId, meta);
-        highestClosedTransaction.set(
-                transactionId, transactionAppendIndex, kernelVersion, checksum, commitTimestamp, consensusIndex);
-        highestCommittedTransaction.set(
-                transactionId, transactionAppendIndex, kernelVersion, checksum, commitTimestamp, consensusIndex);
-        this.appendIndex.set(appendIndex);
-        this.lastCommittedBatch.set(appendIndex, LogPosition.UNSPECIFIED);
     }
 
     @Override
@@ -291,192 +182,6 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
     public ExternalStoreId getExternalStoreId() {
         assertNotClosed();
         return new ExternalStoreId(externalStoreUUID);
-    }
-
-    @Override
-    public long getCurrentLogVersion() {
-        assertNotClosed();
-        return logVersion.get();
-    }
-
-    @Override
-    public void setCurrentLogVersion(long version) {
-        logVersion.set(version);
-    }
-
-    @Override
-    public long incrementAndGetVersion() {
-        return logVersion.incrementAndGet();
-    }
-
-    @Override
-    public long nextCommittingTransactionId() {
-        assertNotClosed();
-        return lastCommittingTx.incrementAndGet();
-    }
-
-    @Override
-    public void transactionCommitted(
-            long transactionId,
-            long appendIndex,
-            KernelVersion kernelVersion,
-            int checksum,
-            long commitTimestamp,
-            long consensusIndex) {
-        assertNotClosed();
-        highestCommittedTransaction.offer(
-                transactionId, appendIndex, kernelVersion, checksum, commitTimestamp, consensusIndex);
-    }
-
-    @Override
-    public long getLastCommittedTransactionId() {
-        assertNotClosed();
-        return highestCommittedTransaction.get().id();
-    }
-
-    @Override
-    public TransactionId getLastCommittedTransaction() {
-        assertNotClosed();
-        return highestCommittedTransaction.get();
-    }
-
-    @Override
-    public long getLastClosedTransactionId() {
-        assertNotClosed();
-        return lastClosedTx.getHighestGapFreeNumber();
-    }
-
-    @Override
-    public TransactionIdSnapshot getClosedTransactionSnapshot() {
-        assertNotClosed();
-        return new TransactionIdSnapshot(lastClosedTx.reverseSnapshot());
-    }
-
-    @Override
-    public ClosedTransactionMetadata getLastClosedTransaction() {
-        assertNotClosed();
-        return new ClosedTransactionMetadata(lastClosedTx.get());
-    }
-
-    @Override
-    public ClosedBatchMetadata getLastClosedBatch() {
-        assertNotClosed();
-        return new ClosedBatchMetadata(lastClosedBatch.get());
-    }
-
-    @Override
-    public void transactionClosed(
-            long transactionId,
-            long appendIndex,
-            KernelVersion kernelVersion,
-            long logVersion,
-            long byteOffset,
-            int checksum,
-            long commitTimestamp,
-            long consensusIndex) {
-        lastClosedTx.offer(
-                transactionId,
-                new Meta(
-                        logVersion,
-                        byteOffset,
-                        kernelVersion.version(),
-                        checksum,
-                        commitTimestamp,
-                        consensusIndex,
-                        appendIndex));
-        highestClosedTransaction.offer(
-                transactionId, appendIndex, kernelVersion, checksum, commitTimestamp, consensusIndex);
-    }
-
-    @Override
-    public void batchClosed(
-            long transactionId,
-            long appendIndex,
-            boolean firstBatch,
-            boolean lastBatch,
-            KernelVersion kernelVersion,
-            LogPosition logPositionAfter) {
-        lastClosedBatch.offer(
-                appendIndex,
-                new Meta(
-                        logPositionAfter.getLogVersion(),
-                        logPositionAfter.getByteOffset(),
-                        kernelVersion.version(),
-                        UNKNOWN_TX_CHECKSUM,
-                        UNKNOWN_TX_COMMIT_TIMESTAMP,
-                        UNKNOWN_CONSENSUS_INDEX,
-                        appendIndex));
-        // only remove transaction if this is the last batch in multi batch transaction
-        if (lastBatch && !firstBatch) {
-            chunkedTransactionRegistry.removeTransaction(transactionId);
-        }
-    }
-
-    @Override
-    public void resetLastClosedTransaction(
-            long transactionId,
-            long appendIndex,
-            KernelVersion kernelVersion,
-            long logVersion,
-            long byteOffset,
-            int checksum,
-            long commitTimestamp,
-            long consensusIndex) {
-        assertNotClosed();
-        var meta = new Meta(
-                logVersion,
-                byteOffset,
-                kernelVersion.version(),
-                checksum,
-                commitTimestamp,
-                consensusIndex,
-                appendIndex);
-        lastClosedBatch.set(appendIndex, meta);
-        lastClosedTx.set(transactionId, meta);
-    }
-
-    @Override
-    public void appendBatch(
-            long transactionId,
-            long appendIndex,
-            boolean firstBatch,
-            boolean lastBatch,
-            LogPosition logPositionBefore,
-            LogPosition logPositionAfter) {
-        this.lastCommittedBatch.offer(appendIndex, logPositionAfter);
-
-        // this is the first and last batch, no need to register in progress transaction
-        if (firstBatch && lastBatch) {
-            return;
-        }
-        if (firstBatch) {
-            chunkedTransactionRegistry.registerTransaction(transactionId, appendIndex, logPositionBefore);
-        }
-    }
-
-    @Override
-    public AppendBatchInfo getLastCommittedBatch() {
-        return lastCommittedBatch.get();
-    }
-
-    @Override
-    public OpenTransactionMetadata getOldestOpenTransaction() {
-        return chunkedTransactionRegistry.oldestOpenTransactionMetadata();
-    }
-
-    @Override
-    public TransactionId getHighestEverClosedTransaction() {
-        return highestClosedTransaction.get();
-    }
-
-    @Override
-    public long getLowestAvailableCommittedTransactionId() {
-        return lowestAvailableCommittedTransactionId;
-    }
-
-    @Override
-    public void setLowestAvailableCommittedTransactionId(long transactionId) {
-        this.lowestAvailableCommittedTransactionId = transactionId;
     }
 
     public void logRecords(final DiagnosticsLogger logger) {

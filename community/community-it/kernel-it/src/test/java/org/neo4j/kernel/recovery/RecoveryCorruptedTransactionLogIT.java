@@ -128,7 +128,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.monitoring.Monitors;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
@@ -746,7 +746,7 @@ class RecoveryCorruptedTransactionLogIT {
             try {
                 var metadataProvider = ((GraphDatabaseAPI) restartedDbms.database(DEFAULT_DATABASE_NAME))
                         .getDependencyResolver()
-                        .resolveDependency(MetadataProvider.class);
+                        .resolveDependency(LogMetadataProvider.class);
                 assertEquals(i, metadataProvider.getCheckpointLogVersion());
             } finally {
                 restartedDbms.shutdown();
@@ -1567,8 +1567,9 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private static LogPosition getLastClosedTransaction(GraphDatabaseAPI database) {
-        MetadataProvider metaDataStore = database.getDependencyResolver().resolveDependency(MetadataProvider.class);
-        return metaDataStore.getLastClosedTransaction().logPosition();
+        LogMetadataProvider logMetadataProvider =
+                database.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
+        return logMetadataProvider.getLastClosedTransaction().logPosition();
     }
 
     LogFiles buildDefaultLogFiles(StoreId storeId) throws IOException {

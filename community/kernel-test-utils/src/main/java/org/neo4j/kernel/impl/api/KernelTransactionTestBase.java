@@ -102,7 +102,7 @@ import org.neo4j.monitoring.ExceptionHandlerService;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.CommandCreationContext;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 import org.neo4j.storageengine.api.StorageNodeCursor;
@@ -131,7 +131,7 @@ class KernelTransactionTestBase {
     protected final ApplyEnrichmentStrategy enrichmentStrategy = mock(ApplyEnrichmentStrategy.class);
     protected final StorageEngine storageEngine = mock(StorageEngine.class, RETURNS_MOCKS);
     protected final StorageReader storageReader = mockedStorageReader();
-    protected final MetadataProvider metadataProvider = mock(MetadataProvider.class);
+    protected final LogMetadataProvider metadataProvider = mock(LogMetadataProvider.class);
     protected final CommandCreationContext commandCreationContext = mock(CommandCreationContext.class);
     protected final TransactionMonitor transactionMonitor = mock(TransactionMonitor.class);
     protected final CapturingCommitProcess commitProcess = new CapturingCommitProcess();
@@ -158,7 +158,7 @@ class KernelTransactionTestBase {
         collectionsFactory = Mockito.spy(new TestCollectionsFactory());
         when(storageEngine.newReader()).thenReturn(storageReader);
         when(storageEngine.newCommandCreationContext(anyBoolean())).thenReturn(commandCreationContext);
-        when(storageEngine.metadataProvider()).thenReturn(metadataProvider);
+        when(storageEngine.logMetadataProvider()).thenReturn(metadataProvider);
         when(storageEngine.createStorageCursors(any())).thenReturn(StoreCursors.NULL);
         when(storageEngine.createCommands(
                         any(ReadableTransactionState.class),

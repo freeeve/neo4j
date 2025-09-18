@@ -93,7 +93,6 @@ import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.store.CountsComputer;
 import org.neo4j.kernel.impl.store.MetaDataStore;
 import org.neo4j.kernel.impl.store.NeoStores;
@@ -104,7 +103,6 @@ import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.store.stats.RecordDatabaseEntityCounters;
 import org.neo4j.kernel.impl.store.stats.StoreEntityCounters;
-import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.lock.LockGroup;
@@ -122,6 +120,7 @@ import org.neo4j.storageengine.api.CommandCreationContext;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.InternalErrorTracer;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineCostCharacteristics;
@@ -131,7 +130,6 @@ import org.neo4j.storageengine.api.StorageLocks;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
-import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.enrichment.Enrichment;
 import org.neo4j.storageengine.api.enrichment.EnrichmentCommand;
@@ -171,9 +169,9 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     private final PagePrefetcher pagePrefetcher;
     private IndexUpdatesWorkSync indexUpdatesSync;
     private final IdGeneratorFactory idGeneratorFactory;
+    private final LogMetadataProvider logMetadataProvider;
     private final CursorContextFactory contextFactory;
     private final MemoryTracker otherMemoryTracker;
-    final MetadataCache metadataCache;
     private final LockVerificationFactory lockVerificationFactory;
     private final CountsStore countsStore;
     private final RelationshipGroupDegreesStore groupDegreesStore;
@@ -207,8 +205,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             IdGeneratorFactory idGeneratorFactory,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
             MemoryTracker otherMemoryTracker,
-            LogTailMetadata logTailMetadata,
-            MetadataCache metadataCache,
+            LogMetadataProvider logMetadataProvider,
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
@@ -224,9 +221,9 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         this.databaseHealth = databaseHealth;
         this.constraintSemantics = constraintSemantics;
         this.idGeneratorFactory = idGeneratorFactory;
+        this.logMetadataProvider = logMetadataProvider;
         this.contextFactory = contextFactory;
         this.otherMemoryTracker = otherMemoryTracker;
-        this.metadataCache = metadataCache;
         this.pagePrefetcher = pagePrefetcher;
         this.neoStores = new StoreFactory(
                         databaseLayout,
@@ -238,7 +235,6 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         internalLogProvider,
                         contextFactory,
                         false,
-                        logTailMetadata,
                         storeIdGenerator)
                 .openAllNeoStores();
         this.multiVersion = neoStores.getOpenOptions().contains(PageCacheOpenOptions.MULTI_VERSIONED);
@@ -376,7 +372,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         contextFactory,
                         pageCacheTracer,
                         getOpenOptions(),
-                        new RecordCountsBuilder(internalLogProvider, fs, contextFactory, layout),
+                        new RecordCountsBuilder(internalLogProvider, fs, contextFactory, layout, logMetadataProvider),
                         false,
                         versionStorage);
     }
@@ -403,7 +399,12 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         contextFactory,
                         pageCacheTracer,
                         new DegreesRebuildFromStore(
-                                neoStores, databaseLayout, contextFactory, internalLogProvider, Configuration.DEFAULT),
+                                neoStores,
+                                databaseLayout,
+                                logMetadataProvider,
+                                contextFactory,
+                                internalLogProvider,
+                                Configuration.DEFAULT),
                         getOpenOptions(),
                         false,
                         versionStorage);
@@ -659,7 +660,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     @Override
     public void init() {
         var kernelVersionApplierFactory =
-                new KernelVersionTransactionApplierFactory(metadataCache, internalLogProvider);
+                new KernelVersionTransactionApplierFactory(logMetadataProvider, internalLogProvider);
         for (TransactionApplicationMode mode : TransactionApplicationMode.values()) {
             applierDispatchers.put(mode, buildAppliersDispatcherFactory(mode, kernelVersionApplierFactory));
         }
@@ -796,6 +797,11 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     @Override
+    public LogMetadataProvider logMetadataProvider() {
+        return logMetadataProvider;
+    }
+
+    @Override
     public StoreEntityCounters storeEntityCounters() {
         return storeEntityCounters;
     }
@@ -867,6 +873,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
     private class RecordCountsBuilder implements CountsBuilder {
         private final InternalLog log;
+        private final LogMetadataProvider logMetadataProvider;
         private final FileSystemAbstraction fs;
         private final CursorContextFactory contextFactory;
         private final RecordDatabaseLayout layout;
@@ -875,11 +882,13 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                 InternalLogProvider internalLogProvider,
                 FileSystemAbstraction fs,
                 CursorContextFactory contextFactory,
-                RecordDatabaseLayout layout) {
+                RecordDatabaseLayout layout,
+                LogMetadataProvider logMetadataProvider) {
             this.fs = fs;
             this.contextFactory = contextFactory;
             this.layout = layout;
             log = internalLogProvider.getLog(MetaDataStore.class);
+            this.logMetadataProvider = logMetadataProvider;
         }
 
         @Override
@@ -887,7 +896,12 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             log.warn("Missing counts store, rebuilding it.");
             try (NumberArrayFactory numberArrayFactory =
                     NumberArrayFactories.auto(fs, layout.databaseDirectory(), log)) {
-                new CountsComputer(neoStores, contextFactory, memoryTracker, numberArrayFactory)
+                new CountsComputer(
+                                neoStores,
+                                logMetadataProvider.getLastCommittedTransactionId(),
+                                contextFactory,
+                                memoryTracker,
+                                numberArrayFactory)
                         .initialize(updater, cursorContext, memoryTracker);
             }
             log.warn("Counts store rebuild completed.");
@@ -895,8 +909,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
 
         @Override
         public long lastCommittedTxId() {
-            TransactionIdStore txIdStore = metadataProvider();
-            return txIdStore.getLastCommittedTransactionId();
+            return logMetadataProvider.getLastCommittedTransactionId();
         }
     }
 

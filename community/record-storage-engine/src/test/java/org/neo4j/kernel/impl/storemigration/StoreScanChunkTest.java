@@ -35,7 +35,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.impl.store.StoreFactory;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.StoreIdGenerator;
@@ -72,7 +71,6 @@ class StoreScanChunkTest {
                         NullLogProvider.getInstance(),
                         NULL_CONTEXT_FACTORY,
                         false,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                         StoreIdGenerator.UNIQUE_ID)
                 .openAllNeoStores()) {
             RecordStorageReader storageReader = new RecordStorageReader(neoStores);

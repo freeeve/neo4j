@@ -32,7 +32,6 @@ import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.imme
 import static org.neo4j.internal.recordstorage.StoreTokens.createReadOnlyTokenHolder;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
-import static org.neo4j.kernel.KernelVersion.DEFAULT_BOOTSTRAP_VERSION;
 import static org.neo4j.lock.LockService.NO_LOCK_SERVICE;
 import static org.neo4j.lock.LockTracer.NONE;
 import static org.neo4j.lock.ResourceLocker.IGNORE;
@@ -41,9 +40,7 @@ import static org.neo4j.storageengine.api.Commitment.NO_COMMITMENT;
 import static org.neo4j.storageengine.api.PropertySelection.ALL_PROPERTIES;
 import static org.neo4j.storageengine.api.RelationshipSelection.ALL_RELATIONSHIPS;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.INTERNAL;
-import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
-import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 
 import java.io.IOException;
 import java.nio.file.OpenOption;
@@ -82,7 +79,6 @@ import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.txstate.TransactionState;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
 import org.neo4j.kernel.impl.api.state.TxState;
@@ -91,8 +87,6 @@ import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.record.PropertyKeyTokenRecord;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -103,8 +97,9 @@ import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.StoreIdGenerator;
-import org.neo4j.storageengine.api.ClosedTransactionMetadata;
 import org.neo4j.storageengine.api.CommandCreationContext;
+import org.neo4j.storageengine.api.LogMetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.LogVersionRepository;
 import org.neo4j.storageengine.api.PropertyKeyValue;
 import org.neo4j.storageengine.api.Reference;
@@ -116,8 +111,6 @@ import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 import org.neo4j.storageengine.api.StorageRelationshipTraversalCursor;
-import org.neo4j.storageengine.api.TransactionId;
-import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
@@ -337,19 +330,6 @@ class NeoStoresTest {
     }
 
     @Test
-    void shouldInitializeTheTxIdToOne() {
-        StoreFactory factory = getStoreFactory(Config.defaults(), databaseLayout, fs, LOG_PROVIDER, false);
-        try (NeoStores neoStores = factory.openAllNeoStores()) {
-            neoStores.getMetaDataStore();
-        }
-
-        try (NeoStores neoStores = factory.openAllNeoStores()) {
-            long lastCommittedTransactionId = neoStores.getMetaDataStore().getLastCommittedTransactionId();
-            assertEquals(TransactionIdStore.BASE_TX_ID, lastCommittedTransactionId);
-        }
-    }
-
-    @Test
     void shouldThrowUnderlyingStorageExceptionWhenFailingToLoadStorage() throws IOException {
         FileSystemAbstraction fileSystem = fs;
         var config = Config.defaults();
@@ -370,72 +350,6 @@ class NeoStoresTest {
     }
 
     @Test
-    void shouldSetHighestTransactionIdWhenNeeded() {
-        // GIVEN
-        StoreFactory factory = getStoreFactory(Config.defaults(), databaseLayout, fs, LOG_PROVIDER, false);
-
-        try (NeoStores neoStore = factory.openAllNeoStores()) {
-            MetaDataStore store = neoStore.getMetaDataStore();
-            store.setLastCommittedAndClosedTransactionId(
-                    40,
-                    41,
-                    DEFAULT_BOOTSTRAP_VERSION,
-                    4444,
-                    BASE_TX_COMMIT_TIMESTAMP,
-                    7,
-                    LATEST_LOG_FORMAT.getHeaderSize(),
-                    0,
-                    44);
-
-            // WHEN
-            store.transactionCommitted(42, 43, DEFAULT_BOOTSTRAP_VERSION, 6666, BASE_TX_COMMIT_TIMESTAMP, 8);
-
-            // THEN
-            assertEquals(
-                    new TransactionId(42, 43, DEFAULT_BOOTSTRAP_VERSION, 6666, BASE_TX_COMMIT_TIMESTAMP, 8),
-                    store.getLastCommittedTransaction());
-            assertEquals(
-                    new ClosedTransactionMetadata(
-                            new TransactionId(40, 41, DEFAULT_BOOTSTRAP_VERSION, 4444, BASE_TX_COMMIT_TIMESTAMP, 7),
-                            new LogPosition(0, LATEST_LOG_FORMAT.getHeaderSize())),
-                    store.getLastClosedTransaction());
-        }
-    }
-
-    @Test
-    void shouldNotSetHighestTransactionIdWhenNeeded() {
-        // GIVEN
-        StoreFactory factory = getStoreFactory(Config.defaults(), databaseLayout, fs, LOG_PROVIDER, false);
-
-        try (NeoStores neoStore = factory.openAllNeoStores()) {
-            MetaDataStore store = neoStore.getMetaDataStore();
-            store.setLastCommittedAndClosedTransactionId(
-                    40,
-                    41,
-                    DEFAULT_BOOTSTRAP_VERSION,
-                    4444,
-                    BASE_TX_COMMIT_TIMESTAMP,
-                    8,
-                    LATEST_LOG_FORMAT.getHeaderSize(),
-                    0,
-                    44);
-
-            // WHEN
-            store.transactionCommitted(39, 40, DEFAULT_BOOTSTRAP_VERSION, 3333, BASE_TX_COMMIT_TIMESTAMP, 9);
-
-            // THEN
-            assertEquals(
-                    new TransactionId(40, 41, DEFAULT_BOOTSTRAP_VERSION, 4444, BASE_TX_COMMIT_TIMESTAMP, 8),
-                    store.getLastCommittedTransaction());
-            assertEquals(
-                    new ClosedTransactionMetadata(
-                            new TransactionId(40, 41, DEFAULT_BOOTSTRAP_VERSION, 4444, BASE_TX_COMMIT_TIMESTAMP, 8),
-                            new LogPosition(0, LATEST_LOG_FORMAT.getHeaderSize())),
-                    store.getLastClosedTransaction());
-        }
-    }
-
-    @Test
     void shouldCloseAllTheStoreEvenIfExceptionsAreThrown() {
         // given
         Config defaults = Config.defaults(counts_store_rotation_timeout, Duration.ofMinutes(60));
@@ -450,7 +364,6 @@ class NeoStoresTest {
                 NullLogProvider.getInstance(),
                 CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
         NeoStores neoStore = factory.openAllNeoStores();
 
@@ -474,7 +387,6 @@ class NeoStoresTest {
                 LOG_PROVIDER,
                 CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
 
         // when
@@ -500,7 +412,6 @@ class NeoStoresTest {
                 LOG_PROVIDER,
                 CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
         StoreType[] allStoreTypes = StoreType.STORE_TYPES;
         StoreType[] allButLastStoreTypes = Arrays.copyOf(allStoreTypes, allStoreTypes.length - 1);
@@ -523,6 +434,7 @@ class NeoStoresTest {
                 createReadOnlyTokenHolder(TokenHolder.TYPE_LABEL),
                 createReadOnlyTokenHolder(TokenHolder.TYPE_RELATIONSHIP_TYPE));
         LogTailMetadata emptyLogTail = new EmptyLogTailMetadata(config);
+        LogMetadataProvider logMetadataProvider = new LogMetadataProviderImpl(emptyLogTail);
         storageEngine = new RecordStorageEngine(
                 databaseLayout,
                 config,
@@ -539,8 +451,7 @@ class NeoStoresTest {
                 idGeneratorFactory,
                 immediate(),
                 INSTANCE,
-                emptyLogTail,
-                new MetadataCache(emptyLogTail),
+                logMetadataProvider,
                 CONTEXT_FACTORY,
                 PageCacheTracer.NULL,
                 VersionStorage.EMPTY_STORAGE,
@@ -554,7 +465,7 @@ class NeoStoresTest {
         NeoStores neoStores = storageEngine.testAccessNeoStores();
         storeCursors = new CachedStoreCursors(neoStores, NULL_CONTEXT);
         life.add(LifecycleAdapter.onShutdown(storeCursors::close));
-        transactionIdGenerator = new IdStoreTransactionIdGenerator(storageEngine.metadataProvider());
+        transactionIdGenerator = new IdStoreTransactionIdGenerator(logMetadataProvider);
         storageReader = storageEngine.newReader();
     }
 
@@ -720,7 +631,6 @@ class NeoStoresTest {
                 logProvider,
                 CONTEXT_FACTORY,
                 readOnly,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
     }
 

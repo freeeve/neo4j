@@ -88,15 +88,16 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.exceptions.index.IndexPopulationFailedKernelException;
 import org.neo4j.kernel.api.index.KernelSchemaLifecycleContext;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.index.IndexPopulationFailure;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
+import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.ReadableStorageEngine;
 import org.neo4j.storageengine.api.StorageNodeCursor;
 import org.neo4j.storageengine.api.StorageReader;
@@ -165,7 +166,10 @@ class KernelIndexesLifecycleManagerTest {
                 databaseLayout,
                 fs,
                 pageCache,
-                new MetadataCache(kernelVersion, LogFormat.fromConfigAndKernelVersion(config, kernelVersion)),
+                new LogMetadataProviderImpl(
+                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                        LogFormat.fromConfigAndKernelVersion(config, kernelVersion),
+                        kernelVersion),
                 scheduler,
                 new TokenHolders(
                         tokenHolder(TokenHolder.TYPE_LABEL),
@@ -439,7 +443,10 @@ class KernelIndexesLifecycleManagerTest {
                 databaseLayout,
                 fs,
                 pageCache,
-                new MetadataCache(kernelVersion, LogFormat.fromConfigAndKernelVersion(config, kernelVersion)),
+                new LogMetadataProviderImpl(
+                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                        LogFormat.fromConfigAndKernelVersion(config, kernelVersion),
+                        kernelVersion),
                 scheduler,
                 new TokenHolders(
                         tokenHolder(TokenHolder.TYPE_LABEL),

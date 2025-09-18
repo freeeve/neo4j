@@ -270,7 +270,7 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
                 databaseLayout.getDatabaseName(),
                 readOnlyChecker,
                 clock,
-                context.metadataCache(),
+                context.kernelVersionProvider(),
                 fileSystem,
                 EMPTY_VISIBILITY_PROVIDER));
     }

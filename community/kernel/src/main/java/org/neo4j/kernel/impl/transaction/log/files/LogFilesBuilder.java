@@ -60,8 +60,8 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.storageengine.ReadOnlyLogVersionRepository;
 import org.neo4j.storageengine.api.CommandReaderFactory;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.LogVersionRepository;
-import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdProvider;
@@ -391,7 +391,7 @@ public class LogFilesBuilder {
             return null;
         }
         return dependencies
-                .resolveOptionalDependency(MetadataProvider.class)
+                .resolveOptionalDependency(LogMetadataProvider.class)
                 .map(provider -> (LastAppendIndexProvider) provider::getLastAppendIndex)
                 .orElse(null);
     }

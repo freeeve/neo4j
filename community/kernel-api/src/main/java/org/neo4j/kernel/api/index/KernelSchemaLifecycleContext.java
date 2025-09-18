@@ -27,7 +27,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.database.MetadataCache;
+import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
@@ -44,7 +44,7 @@ public record KernelSchemaLifecycleContext(
         DatabaseLayout databaseLayout,
         FileSystemAbstraction fileSystem,
         PageCache pageCache,
-        MetadataCache metadataCache,
+        KernelVersionProvider kernelVersionProvider,
         JobScheduler jobScheduler,
         TokenHolders tokenHolders,
         ElementIdMapper elementIdMapper,

@@ -48,7 +48,6 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -63,6 +62,7 @@ import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.IndexUpdateListener;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.TokenHolder;
@@ -289,8 +289,7 @@ public class RecordStorageEngineSupport {
                     idGeneratorFactory,
                     RecoveryCleanupWorkCollector.immediate(),
                     EmptyMemoryTracker.INSTANCE,
-                    emptyLogTailMetadata,
-                    new MetadataCache(emptyLogTailMetadata),
+                    new LogMetadataProviderImpl(emptyLogTailMetadata),
                     new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER),
                     PageCacheTracer.NULL,
                     VersionStorage.EMPTY_STORAGE,

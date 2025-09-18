@@ -115,6 +115,7 @@ public class RecordStorageConsistencyChecker implements AutoCloseable {
     private final ConsistencyFlags consistencyFlags;
     private final CursorContextFactory contextFactory;
     private final PageCacheTracer cacheTracer;
+    private final long lastCommittedTxId;
     private final CacheAccess cacheAccess;
     private final ConsistencyReporter reporter;
     private final CountsState observedCounts;
@@ -143,7 +144,8 @@ public class RecordStorageConsistencyChecker implements AutoCloseable {
             EntityBasedMemoryLimiter.Factory memoryLimit,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
-            PageCacheTracer cacheTracer) {
+            PageCacheTracer cacheTracer,
+            long lastCommittedTxId) {
         this.fileSystem = fileSystem;
         this.databaseLayout = databaseLayout;
         this.pageCache = pageCache;
@@ -154,6 +156,7 @@ public class RecordStorageConsistencyChecker implements AutoCloseable {
         this.consistencyFlags = consistencyFlags;
         this.contextFactory = contextFactory;
         this.cacheTracer = cacheTracer;
+        this.lastCommittedTxId = lastCommittedTxId;
         int stopCountThreshold = config.get(consistency_checker_fail_fast_threshold);
         AtomicInteger stopCount = new AtomicInteger(0);
         ConsistencyReporter.Monitor monitor = ConsistencyReporter.NO_MONITOR;
@@ -429,7 +432,7 @@ public class RecordStorageConsistencyChecker implements AutoCloseable {
 
                                     @Override
                                     public long lastCommittedTxId() {
-                                        return neoStores.getMetaDataStore().getLastCommittedTransactionId();
+                                        return lastCommittedTxId;
                                     }
                                 },
                                 true,
@@ -472,7 +475,7 @@ public class RecordStorageConsistencyChecker implements AutoCloseable {
 
                             @Override
                             public long lastCommittedTxId() {
-                                return neoStores.getMetaDataStore().getLastCommittedTransactionId();
+                                return lastCommittedTxId;
                             }
                         },
                         neoStores.getOpenOptions(),

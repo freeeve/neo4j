@@ -53,13 +53,12 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.kernel.impl.transaction.CompleteBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
-import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
+import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.lock.LockService;
@@ -68,6 +67,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.StoreIdGenerator;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.LatestVersions;
@@ -122,8 +122,10 @@ class PreAllocationOfStoreFilesTest {
                 EmptyIdGeneratorFactory.EMPTY_ID_GENERATOR_FACTORY,
                 RecoveryCleanupWorkCollector.ignore(),
                 EmptyMemoryTracker.INSTANCE,
-                new EmptyLogTailMetadata(Config.defaults()),
-                mock(MetadataCache.class),
+                new LogMetadataProviderImpl(
+                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                        LatestVersions.LATEST_LOG_FORMAT,
+                        LatestVersions.LATEST_KERNEL_VERSION),
                 CursorContextFactory.NULL_CONTEXT_FACTORY,
                 PageCacheTracer.NULL,
                 VersionStorage.EMPTY_STORAGE,

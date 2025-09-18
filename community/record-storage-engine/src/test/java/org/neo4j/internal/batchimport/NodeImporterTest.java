@@ -58,7 +58,6 @@ import org.neo4j.kernel.impl.store.NodeStore;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.RecordLoad;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.extension.Inject;
@@ -94,8 +93,6 @@ class NodeImporterTest {
                 layout,
                 Configuration.DEFAULT,
                 NullLogService.getInstance(),
-                DefaultAdditionalIds.EMPTY,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 Config.defaults(),
                 INSTANCE);
         stores.createNew();

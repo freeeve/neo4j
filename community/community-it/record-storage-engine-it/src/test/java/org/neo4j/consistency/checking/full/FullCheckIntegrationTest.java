@@ -180,6 +180,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.ThreadSafePeakMemoryTracker;
 import org.neo4j.storageengine.api.EntityUpdates;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -3217,7 +3218,8 @@ public class FullCheckIntegrationTest {
                 memoryLimiter,
                 memoryTracker,
                 new CursorContextFactory(cacheTracer, EMPTY_CONTEXT_SUPPLIER),
-                cacheTracer)) {
+                cacheTracer,
+                dependencyResolver.resolveDependency(LogMetadataProvider.class).getLastCommittedTransactionId())) {
             checker.check();
         }
         assertThat(memoryTracker.usedNativeMemory()).isZero();

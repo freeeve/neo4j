@@ -57,7 +57,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -438,7 +438,7 @@ class CheckPointerIntegrationTest {
         // when
         try {
             var db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
-            var metadataProvider = db.getDependencyResolver().resolveDependency(MetadataProvider.class);
+            var metadataProvider = db.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
             var checkPointer = db.getDependencyResolver().resolveDependency(CheckPointer.class);
             long prevLowestTxId = metadataProvider.getLowestAvailableCommittedTransactionId();
             assertThat(prevLowestTxId).isGreaterThan(0);
@@ -475,8 +475,8 @@ class CheckPointerIntegrationTest {
         getCheckPointer((GraphDatabaseAPI) db).checkPointIfNeeded(new SimpleTriggerInfo("Test"));
     }
 
-    private MetadataProvider getMetadataProvider(GraphDatabaseAPI databaseAPI) {
-        return databaseAPI.getDependencyResolver().resolveDependency(MetadataProvider.class);
+    private LogMetadataProvider getMetadataProvider(GraphDatabaseAPI databaseAPI) {
+        return databaseAPI.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
     }
 
     private static CheckPointer getCheckPointer(GraphDatabaseAPI db) {

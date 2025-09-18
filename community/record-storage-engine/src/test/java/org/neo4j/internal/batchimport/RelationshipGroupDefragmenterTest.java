@@ -62,7 +62,6 @@ import org.neo4j.kernel.impl.store.format.ForcedSecondaryUnitRecordFormats;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.Record;
 import org.neo4j.kernel.impl.store.record.RelationshipGroupRecord;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
@@ -113,8 +112,6 @@ class RelationshipGroupDefragmenterTest {
                 databaseLayout,
                 CONFIG,
                 NullLogService.getInstance(),
-                DefaultAdditionalIds.EMPTY,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 config,
                 jobScheduler,
                 PageCacheTracer.NULL,

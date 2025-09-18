@@ -106,7 +106,6 @@ import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
 import org.neo4j.kernel.impl.storemigration.SchemaStoreMigration.SchemaStoreMigrator;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
@@ -453,7 +452,6 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                         StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(storesToOpen);
     }
@@ -552,7 +550,6 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
     }
 

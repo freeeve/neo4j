@@ -53,12 +53,12 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.TransactionId;
 
 public class TransactionLogServiceImpl implements TransactionLogService {
     private final LogicalTransactionStore transactionStore;
-    private final MetadataProvider metadataProvider;
+    private final LogMetadataProvider metadataProvider;
 
     private final Lock pruneLock;
     private final LogFile logFile;
@@ -69,7 +69,7 @@ public class TransactionLogServiceImpl implements TransactionLogService {
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
 
     public TransactionLogServiceImpl(
-            MetadataProvider metadataProvider,
+            LogMetadataProvider metadataProvider,
             LogFiles logFiles,
             LogicalTransactionStore transactionStore,
             Lock pruneLock,

@@ -59,8 +59,8 @@ import org.neo4j.internal.counts.DegreesRebuilder;
 import org.neo4j.internal.counts.GBPTreeCountsStore;
 import org.neo4j.internal.counts.GBPTreeGenericCountsStore;
 import org.neo4j.internal.counts.GBPTreeRelationshipGroupDegreesStore;
-import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.id.ScanOnOpenOverwritingIdGeneratorFactory;
+import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -75,13 +75,11 @@ import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.store.MetaDataStore;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.StoreFactory;
-import org.neo4j.kernel.impl.store.StoreType;
 import org.neo4j.kernel.impl.store.format.FormatFamily;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.store.format.standard.Standard;
 import org.neo4j.kernel.impl.store.format.standard.StandardV4_3;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.recovery.LogTailExtractor;
@@ -198,7 +196,6 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                loadLogTail(databaseLayout, CONFIG, storageEngine),
                 StoreIdGenerator.UNIQUE_ID);
         try (NeoStores neoStores = storeFactory.openAllNeoStores()) {
             MetaDataStore metaDataStore = neoStores.getMetaDataStore();
@@ -256,7 +253,6 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                loadLogTail(databaseLayout, CONFIG, storageEngine),
                 StoreIdGenerator.UNIQUE_ID);
         try (NeoStores neoStores = storeFactory.openAllNeoStores()) {
             MetaDataStore metaDataStore = neoStores.getMetaDataStore();
@@ -331,7 +327,6 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                loadLogTail(databaseLayout, config, storageEngine),
                 StoreIdGenerator.UNIQUE_ID);
         try (NeoStores neoStores = storeFactory.openAllNeoStores()) {
             MetaDataStore metaDataStore = neoStores.getMetaDataStore();
@@ -448,7 +443,6 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                loadLogTail(databaseLayout, CONFIG, engineFactory),
                 StoreIdGenerator.UNIQUE_ID);
         storeFactory.openAllNeoStores().close();
         assertThat(logProvider).forLevel(ERROR).doesNotHaveAnyLogs();
@@ -602,7 +596,6 @@ class RecordStorageMigratorIT {
                 logService.getInternalLogProvider(),
                 contextFactory,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
         storeFactory.openAllNeoStores().close();
     }
@@ -647,22 +640,13 @@ class RecordStorageMigratorIT {
                 migrationLayout, databaseLayout, versionToMigrateFrom, versionToMigrateTo, EmptyMemoryTracker.INSTANCE);
 
         // then
-        try (NeoStores neoStores = new StoreFactory(
-                        databaseLayout,
-                        Config.defaults(),
-                        new DefaultIdGeneratorFactory(fs, immediate(), cacheTracer, databaseLayout.getDatabaseName()),
-                        pageCache,
-                        cacheTracer,
+        LogTailMetadata tailMetadata = new LogTailExtractor(
                         fs,
-                        NullLogProvider.getInstance(),
-                        contextFactory,
-                        false,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
-                        StoreIdGenerator.UNIQUE_ID)
-                .openNeoStores(StoreType.META_DATA)) {
-            neoStores.start(NULL_CONTEXT);
-            assertThat(neoStores.getMetaDataStore().getCheckpointLogVersion()).isEqualTo(0);
-        }
+                        CONFIG,
+                        StorageEngineFactory.selectStorageEngine(RecordStorageEngineFactory.ID),
+                        DatabaseTracers.EMPTY)
+                .getTailMetadata(databaseLayout, INSTANCE);
+        assertThat(tailMetadata.getCheckpointLogVersion()).isEqualTo(0);
     }
 
     private static StoreVersion getVersionToMigrateFrom(RecordStoreVersionCheck check) {

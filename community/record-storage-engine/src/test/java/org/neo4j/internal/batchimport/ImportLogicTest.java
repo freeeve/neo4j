@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.neo4j.batchimport.api.AdditionalInitialIds;
 import org.neo4j.batchimport.api.IndexImporterFactory;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.graphdb.Direction;
@@ -53,11 +54,14 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
+import org.neo4j.test.LatestVersions;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
+import org.neo4j.test.scheduler.JobSchedulerAdapter;
 
 @PageCacheExtension
 @Neo4jLayoutExtension
@@ -91,8 +95,6 @@ class ImportLogicTest {
                 databaseLayout,
                 DEFAULT,
                 getInstance(),
-                DefaultAdditionalIds.EMPTY,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 defaults(),
                 INSTANCE)) {
             //noinspection EmptyTryBlock
@@ -183,8 +185,6 @@ class ImportLogicTest {
                 databaseLayout,
                 DEFAULT,
                 getInstance(),
-                DefaultAdditionalIds.EMPTY,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 defaults(),
                 INSTANCE)) {
             // when
@@ -211,6 +211,66 @@ class ImportLogicTest {
 
             // then
             verify(monitor).done(eq(true), anyLong(), contains(dataStatistics.toString()));
+        }
+    }
+
+    @Test
+    void notEmptyInitialIds() {
+        LogMetadataProviderImpl logMetadataProvider = new LogMetadataProviderImpl(
+                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                LatestVersions.LATEST_LOG_FORMAT,
+                LatestVersions.LATEST_KERNEL_VERSION);
+        ImportLogic.instantiateNeoStores(
+                fileSystem,
+                databaseLayout,
+                NULL,
+                DEFAULT,
+                getInstance(),
+                new TestAdditionalInitialIds(),
+                logMetadataProvider,
+                defaults(),
+                new JobSchedulerAdapter(),
+                INSTANCE,
+                CONTEXT_FACTORY);
+
+        assertEquals(10, logMetadataProvider.getLastCommittedTransactionId());
+        assertEquals(14, logMetadataProvider.getCheckpointLogVersion());
+    }
+
+    private static class TestAdditionalInitialIds implements AdditionalInitialIds {
+        @Override
+        public long lastCommittedTransactionId() {
+            return 10;
+        }
+
+        @Override
+        public int lastCommittedTransactionChecksum() {
+            return 11;
+        }
+
+        @Override
+        public long lastCommittedTransactionLogVersion() {
+            return 12;
+        }
+
+        @Override
+        public long lastCommittedTransactionLogByteOffset() {
+            return 13;
+        }
+
+        @Override
+        public long checkpointLogVersion() {
+            return 14;
+        }
+
+        @Override
+        public long lastAppendIndex() {
+            return 20;
+        }
+
+        @Override
+        public long lastCommittedTransactionAppendIndex() {
+            return 15;
         }
     }
 }

@@ -35,12 +35,13 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.LogFilesInitializer;
+import org.neo4j.storageengine.api.LogMetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 
 /**
  * {@link BatchImporter} which tries to exercise as much of the available resources to gain performance.
@@ -112,6 +113,7 @@ public class ParallelBatchImporter implements BatchImporter {
             throw new UnsupportedOperationException("Record format batch import does not support schema changes");
         }
 
+        LogMetadataProvider logMetadataProvider = new LogMetadataProviderImpl(logTailMetadata);
         try (BatchingNeoStores store = ImportLogic.instantiateNeoStores(
                         fileSystem,
                         databaseLayout,
@@ -119,7 +121,7 @@ public class ParallelBatchImporter implements BatchImporter {
                         config,
                         logService,
                         additionalInitialIds,
-                        logTailMetadata,
+                        logMetadataProvider,
                         dbConfig,
                         jobScheduler,
                         memoryTracker,
@@ -147,11 +149,11 @@ public class ParallelBatchImporter implements BatchImporter {
             logFilesInitializer.initializeLogFiles(
                     databaseLayout,
                     store.getNeoStores().getMetaDataStore(),
-                    new MetadataCache(logTailMetadata),
+                    logMetadataProvider,
                     fileSystem,
                     BATCH_IMPORTER_CHECKPOINT,
                     dbConfig);
-            logic.buildAuxiliaryStores();
+            logic.buildAuxiliaryStores(logMetadataProvider);
             logic.success();
         }
     }

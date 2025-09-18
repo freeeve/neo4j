@@ -27,7 +27,6 @@ import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_F
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
 import static org.neo4j.kernel.impl.store.StoreType.PROPERTY_ARRAY;
 import static org.neo4j.kernel.impl.store.StoreType.PROPERTY_STRING;
-import static org.neo4j.kernel.impl.transaction.log.LogTailMetadata.EMPTY_LOG_TAIL;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.concurrent.ThreadLocalRandom;
@@ -83,7 +82,6 @@ class NodeInputIdPropertyLookupTest {
                         NullLogProvider.getInstance(),
                         NULL_CONTEXT_FACTORY,
                         false,
-                        EMPTY_LOG_TAIL,
                         StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(PROPERTY_ARRAY, PROPERTY_STRING, StoreType.PROPERTY);
     }

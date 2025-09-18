@@ -32,10 +32,11 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
+import org.neo4j.storageengine.api.LogMetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -112,14 +113,15 @@ class LogsMigrator {
         }
 
         MigrationTransactionIds migrate() {
+            LogMetadataProvider logMetadataProvider = new LogMetadataProviderImpl(logTailSupplier.get());
             try (MetadataProvider store = getMetaDataStore()) {
                 // Always migrate to the latest kernel version
                 KernelVersion latestVersion = KernelVersion.getLatestVersion(config);
-                MetadataCache metadataCache =
-                        new MetadataCache(latestVersion, LogFormat.fromConfigAndKernelVersion(config, latestVersion));
+                logMetadataProvider.setKernelVersion(latestVersion);
+                logMetadataProvider.setCurrentLogFormat(LogFormat.fromConfigAndKernelVersion(config, latestVersion));
 
                 TransactionLogInitializer logInitializer =
-                        new TransactionLogInitializer(fs, store, storageEngineFactory, metadataCache);
+                        new TransactionLogInitializer(fs, store, logMetadataProvider, storageEngineFactory);
                 Path transactionLogsDirectory = databaseLayout.getTransactionLogsDirectory();
 
                 if (logsMissing) {
@@ -150,10 +152,10 @@ class LogsMigrator {
             // The log files are missing entirely, but since we made it through the check,
             // we were told to not think of this as an error condition,
             // so we instead initialize an empty log file.
+            LogMetadataProvider logMetadataProvider = new LogMetadataProviderImpl(logTailSupplier.get());
             try (MetadataProvider store = getMetaDataStore()) {
-                MetadataCache metadataCache = new MetadataCache(logTailSupplier.get());
                 TransactionLogInitializer logInitializer =
-                        new TransactionLogInitializer(fs, store, storageEngineFactory, metadataCache);
+                        new TransactionLogInitializer(fs, store, logMetadataProvider, storageEngineFactory);
                 Path transactionLogsDirectory = databaseLayout.getTransactionLogsDirectory();
                 return new MigrationTransactionIds(
                         TransactionIdStore.BASE_TX_ID,
@@ -174,7 +176,6 @@ class LogsMigrator {
                 pageCache,
                 DatabaseReadOnlyChecker.readOnly(),
                 contextFactory,
-                logTailSupplier.get(),
                 pageCacheTracer);
     }
 

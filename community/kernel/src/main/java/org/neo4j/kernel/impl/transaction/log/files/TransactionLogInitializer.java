@@ -36,7 +36,6 @@ import org.neo4j.exceptions.UnderlyingStorageException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -48,6 +47,7 @@ import org.neo4j.logging.NullLog;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.HealthEventGenerator;
 import org.neo4j.storageengine.api.LogFilesInitializer;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.TransactionId;
@@ -59,8 +59,8 @@ import org.neo4j.storageengine.api.TransactionId;
 public class TransactionLogInitializer {
     private final FileSystemAbstraction fs;
     private final MetadataProvider metadataProvider;
+    private final LogMetadataProvider logMetadataProvider;
     private final StorageEngineFactory storageEngineFactory;
-    private final MetadataCache metadataCache;
 
     /**
      * Get a {@link LogFilesInitializer} implementation, suitable for e.g. passing to a batch importer.
@@ -72,7 +72,7 @@ public class TransactionLogInitializer {
             public void initializeLogFiles(
                     DatabaseLayout databaseLayout,
                     MetadataProvider metadataProvider,
-                    MetadataCache metadataCache,
+                    LogMetadataProvider logMetadataProvider,
                     FileSystemAbstraction fileSystem,
                     String checkpointReason,
                     Config config) {
@@ -80,9 +80,9 @@ public class TransactionLogInitializer {
                     TransactionLogInitializer initializer = new TransactionLogInitializer(
                             fileSystem,
                             metadataProvider,
+                            logMetadataProvider,
                             StorageEngineFactory.selectStorageEngine(fileSystem, databaseLayout)
-                                    .orElseThrow(),
-                            metadataCache);
+                                    .orElseThrow());
                     initializer.initializeEmptyLogFile(
                             databaseLayout, databaseLayout.getTransactionLogsDirectory(), checkpointReason, config);
                 } catch (IOException e) {
@@ -94,16 +94,16 @@ public class TransactionLogInitializer {
             public void clearHistoryAndInitializeLogFiles(
                     DatabaseLayout databaseLayout,
                     MetadataProvider metadataProvider,
-                    MetadataCache metadataCache,
+                    LogMetadataProvider logMetadataProvider,
                     FileSystemAbstraction fileSystem,
                     String checkpointReason) {
                 try {
                     TransactionLogInitializer initializer = new TransactionLogInitializer(
                             fileSystem,
                             metadataProvider,
+                            logMetadataProvider,
                             StorageEngineFactory.selectStorageEngine(fileSystem, databaseLayout)
-                                    .orElseThrow(),
-                            metadataCache);
+                                    .orElseThrow());
                     initializer.migrateExistingLogFiles(
                             databaseLayout,
                             databaseLayout.getTransactionLogsDirectory(),
@@ -120,12 +120,12 @@ public class TransactionLogInitializer {
     public TransactionLogInitializer(
             FileSystemAbstraction fs,
             MetadataProvider metadataProvider,
-            StorageEngineFactory storageEngineFactory,
-            MetadataCache metadataCache) {
+            LogMetadataProvider logMetadataProvider,
+            StorageEngineFactory storageEngineFactory) {
         this.fs = fs;
         this.metadataProvider = metadataProvider;
+        this.logMetadataProvider = logMetadataProvider;
         this.storageEngineFactory = storageEngineFactory;
-        this.metadataCache = metadataCache;
     }
 
     /**
@@ -165,31 +165,31 @@ public class TransactionLogInitializer {
 
     private LogFilesSpan buildLogFiles(DatabaseLayout layout, Path transactionLogsDirectory, Config config)
             throws IOException {
-        LogFilesBuilder builder = LogFilesBuilder.builder(layout, fs, metadataCache, metadataCache)
-                .withLogVersionRepository(metadataProvider)
-                .withTransactionIdStore(metadataProvider)
-                .withAppendIndexProvider(metadataProvider)
+        LogFilesBuilder builder = LogFilesBuilder.builder(layout, fs, logMetadataProvider, logMetadataProvider)
+                .withLogVersionRepository(logMetadataProvider)
+                .withTransactionIdStore(logMetadataProvider)
+                .withAppendIndexProvider(logMetadataProvider)
                 .withStoreId(metadataProvider.getStoreId())
                 .withLogsDirectory(transactionLogsDirectory)
                 .withStorageEngineFactory(storageEngineFactory)
                 .withConfig(config)
                 .withDatabaseHealth(new DatabaseHealth(HealthEventGenerator.NO_OP, NullLog.getInstance()));
-        if (metadataCache.kernelVersion() == KernelVersion.GLORIOUS_FUTURE) {
+        if (logMetadataProvider.kernelVersion() == KernelVersion.GLORIOUS_FUTURE) {
             builder.withConfig(Config.defaults(
                     GraphDatabaseInternalSettings.latest_kernel_version,
-                    metadataCache.kernelVersion().version()));
+                    logMetadataProvider.kernelVersion().version()));
         }
         LogFiles logFiles = builder.build();
         return new LogFilesSpan(new Lifespan(logFiles), logFiles);
     }
 
     private long appendEmptyTransactionAndCheckPoint(LogFiles logFiles, String reason) throws IOException {
-        TransactionId committedTx = metadataProvider.getLastCommittedTransaction();
+        TransactionId committedTx = logMetadataProvider.getLastCommittedTransaction();
         long consensusIndex = UNKNOWN_CONSENSUS_INDEX;
         long timestamp = committedTx.commitTimestamp();
-        long upgradeTransactionId = metadataProvider.nextCommittingTransactionId();
-        long appendIndex = metadataProvider.nextAppendIndex();
-        KernelVersion kernelVersion = metadataCache.kernelVersion();
+        long upgradeTransactionId = logMetadataProvider.nextCommittingTransactionId();
+        long appendIndex = logMetadataProvider.nextAppendIndex();
+        KernelVersion kernelVersion = logMetadataProvider.kernelVersion();
         LogFile logFile = logFiles.getLogFile();
         TransactionLogWriter transactionLogWriter = logFile.getTransactionLogWriter();
         CompleteCommandBatch emptyTx = emptyTransaction(timestamp, upgradeTransactionId, kernelVersion, consensusIndex);
@@ -211,7 +211,7 @@ public class TransactionLogInitializer {
                         upgradeTransactionId, appendIndex, kernelVersion, checksum, timestamp, consensusIndex),
                 appendIndex,
                 kernelVersion);
-        metadataProvider.transactionCommitted(
+        logMetadataProvider.transactionCommitted(
                 upgradeTransactionId, appendIndex, kernelVersion, checksum, timestamp, consensusIndex);
         return upgradeTransactionId;
     }

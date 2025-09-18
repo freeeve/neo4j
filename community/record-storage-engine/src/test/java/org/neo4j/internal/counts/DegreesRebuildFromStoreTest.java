@@ -62,9 +62,11 @@ import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.StoreIdGenerator;
+import org.neo4j.storageengine.api.LogMetadataProviderImpl;
 import org.neo4j.storageengine.api.RelationshipDirection;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.api.txstate.NodeState;
+import org.neo4j.test.LatestVersions;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomSupportExtension;
@@ -185,12 +187,15 @@ class DegreesRebuildFromStoreTest {
                         NullLogProvider.getInstance(),
                         NULL_CONTEXT_FACTORY,
                         false,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                         StoreIdGenerator.UNIQUE_ID)
                 .openAllNeoStores()) {
             DegreesRebuildFromStore rebuild = new DegreesRebuildFromStore(
                     neoStores,
                     layout,
+                    new LogMetadataProviderImpl(
+                            LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
+                            LatestVersions.LATEST_LOG_FORMAT,
+                            LatestVersions.LATEST_KERNEL_VERSION),
                     NULL_CONTEXT_FACTORY,
                     NullLogProvider.getInstance(),
                     Configuration.withBatchSize(Configuration.DEFAULT, 100));

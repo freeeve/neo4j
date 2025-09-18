@@ -41,7 +41,6 @@ import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.impl.store.format.FormatFamily;
 import org.neo4j.kernel.impl.store.format.PageCacheOptionsSelector;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.storageengine.StoreIdGenerator;
 
@@ -59,7 +58,6 @@ public class StoreFactory {
     private final RecordFormats recordFormats;
     private final CursorContextFactory contextFactory;
     private final boolean readOnly;
-    private final LogTailLogVersionsMetadata logTailMetadata;
     private final StoreIdGenerator storeIdGenerator;
     private final ImmutableSet<OpenOption> openOptions;
 
@@ -73,7 +71,6 @@ public class StoreFactory {
             InternalLogProvider logProvider,
             CursorContextFactory contextFactory,
             boolean readOnly,
-            LogTailLogVersionsMetadata logTailMetadata,
             StoreIdGenerator storeIdGenerator) {
         this(
                 directoryStructure,
@@ -92,7 +89,6 @@ public class StoreFactory {
                 logProvider,
                 contextFactory,
                 readOnly,
-                logTailMetadata,
                 storeIdGenerator);
     }
 
@@ -107,7 +103,6 @@ public class StoreFactory {
             InternalLogProvider logProvider,
             CursorContextFactory contextFactory,
             boolean readOnly,
-            LogTailLogVersionsMetadata logTailMetadata,
             StoreIdGenerator storeIdGenerator) {
         this.databaseLayout = RecordDatabaseLayout.convert(databaseLayout);
         this.config = config;
@@ -116,7 +111,6 @@ public class StoreFactory {
         this.recordFormats = recordFormats;
         this.contextFactory = contextFactory;
         this.readOnly = readOnly;
-        this.logTailMetadata = logTailMetadata;
         this.storeIdGenerator = storeIdGenerator;
         this.openOptions = buildOpenOptions(config, recordFormats, immutable.empty());
         this.logProvider = logProvider;
@@ -159,7 +153,6 @@ public class StoreFactory {
                 recordFormats,
                 contextFactory,
                 readOnly,
-                logTailMetadata,
                 storeTypes,
                 openOptions,
                 storeIdGenerator);

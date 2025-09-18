@@ -192,6 +192,8 @@ public interface StorageEngine extends ReadableStorageEngine, Lifecycle {
      */
     MetadataProvider metadataProvider();
 
+    LogMetadataProvider logMetadataProvider();
+
     CountsStore countsAccessor();
 
     /**

@@ -54,7 +54,6 @@ import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.RecordLoad;
 import org.neo4j.kernel.impl.store.record.RelationshipGroupRecord;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -97,7 +96,6 @@ class RelationshipGroupGetterTest {
                 logProvider,
                 NULL_CONTEXT_FACTORY,
                 false,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
         stores = storeFactory.openNeoStores(StoreType.RELATIONSHIP_GROUP, StoreType.NODE, StoreType.NODE_LABEL);
         groupStore = spy(stores.getRelationshipGroupStore());

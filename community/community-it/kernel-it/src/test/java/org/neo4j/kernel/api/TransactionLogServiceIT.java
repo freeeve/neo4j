@@ -106,7 +106,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.monitoring.tracing.Tracers;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.monitoring.Monitors;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.OtherThreadExecutor;
@@ -143,7 +143,7 @@ class TransactionLogServiceIT {
     private FileSystemAbstraction fs;
 
     @Inject
-    private MetadataProvider metadataProvider;
+    private LogMetadataProvider metadataProvider;
 
     @Inject
     private DatabaseAvailabilityGuard availabilityGuard;

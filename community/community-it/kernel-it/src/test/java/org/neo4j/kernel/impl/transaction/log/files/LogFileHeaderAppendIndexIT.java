@@ -29,7 +29,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
 
@@ -42,7 +42,7 @@ public class LogFileHeaderAppendIndexIT {
     private LogFiles logFiles;
 
     @Inject
-    private MetadataProvider metadataProvider;
+    private LogMetadataProvider metadataProvider;
 
     @Test
     void logFileHeaderContainsLastIndex() throws IOException {

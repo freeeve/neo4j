@@ -84,7 +84,6 @@ import org.neo4j.kernel.impl.store.PropertyValueRecordSizeCalculator;
 import org.neo4j.kernel.impl.store.StoreFactory;
 import org.neo4j.kernel.impl.store.record.PropertyRecord;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -191,7 +190,6 @@ class CsvInputEstimateCalculationIT {
                                     NullLogProvider.getInstance(),
                                     NULL_CONTEXT_FACTORY,
                                     false,
-                                    LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                                     StoreIdGenerator.UNIQUE_ID)
                             .openAllNeoStores()) {
                 var nodeStore = stores.getNodeStore();

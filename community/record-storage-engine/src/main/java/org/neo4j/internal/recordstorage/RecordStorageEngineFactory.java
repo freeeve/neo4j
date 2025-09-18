@@ -100,7 +100,6 @@ import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.locking.forseti.ForsetiLockManager;
@@ -146,6 +145,7 @@ import org.neo4j.storageengine.VectorStoreCreator;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.ConstraintRuleAccessor;
 import org.neo4j.storageengine.api.LogFilesInitializer;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.SchemaRule44;
 import org.neo4j.storageengine.api.StorageEngine;
@@ -265,8 +265,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             InternalLogProvider internalLogProvider,
             InternalLogProvider userLogProvider,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
-            LogTailMetadata logTailMetadata,
-            MetadataCache metadataCache,
+            LogMetadataProvider logMetadataProvider,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
@@ -293,8 +292,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 idGeneratorFactory,
                 recoveryCleanupWorkCollector,
                 memoryTracker,
-                logTailMetadata,
-                metadataCache,
+                logMetadataProvider,
                 contextFactory,
                 pageCacheTracer,
                 versionStorage,
@@ -358,7 +356,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             PageCache pageCache,
             DatabaseReadOnlyChecker readOnlyChecker,
             CursorContextFactory contextFactory,
-            LogTailLogVersionsMetadata logTailMetadata,
             PageCacheTracer pageCacheTracer) {
         RecordDatabaseLayout databaseLayout = formatSpecificDatabaseLayout(layout);
         var idGeneratorFactory = readOnlyChecker.isReadOnly()
@@ -374,7 +371,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         readOnlyChecker.isReadOnly(),
-                        logTailMetadata,
                         StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(META_DATA)
                 .getMetaDataStore();
@@ -427,7 +423,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                logTailMetadata,
                 StoreIdGenerator.UNIQUE_ID);
         try (var cursorContext = contextFactory.create("loadSchemaRules");
                 var stores = factory.openNeoStores(
@@ -493,7 +488,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
         try (var cursorContext = contextFactory.create("loadSchemaRules");
                 var stores = factory.openAllNeoStores();
@@ -536,7 +530,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 true,
-                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                 StoreIdGenerator.UNIQUE_ID);
         try (NeoStores stores = factory.openNeoStores(
                 StoreType.PROPERTY_KEY_TOKEN,
@@ -572,7 +565,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 NullLogProvider.getInstance(),
                 contextFactory,
                 false,
-                logTail,
                 StoreIdGenerator.UNIQUE_ID);
 
         CursorContext cursorContext = contextFactory.create("schemaStoreMigration");
@@ -800,7 +792,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        logTailMetadata,
                         StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(storesToOpen);
         return new LenientStoreInput(
@@ -821,7 +812,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             LogService logService,
             PrintStream progressOutput,
             boolean verboseProgressOutput,
-            AdditionalInitialIds additionalInitialIds,
             LogTailMetadataFactory logTailMetadataFactory,
             Config dbConfig,
             Monitor monitor,
@@ -842,7 +832,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         logService,
                         progressOutput,
                         verboseProgressOutput,
-                        additionalInitialIds,
                         () -> logTailMetadataFactory.getLogTailMetadata(dbConfig, databaseLayout, this),
                         dbConfig,
                         monitor,
@@ -877,7 +866,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                         StoreIdGenerator.UNIQUE_ID)
                 .openNeoStores(StoreType.NODE_LABEL, StoreType.NODE, StoreType.RELATIONSHIP)) {
             var highId = Math.max(
@@ -919,7 +907,6 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                         NullLogProvider.getInstance(),
                         contextFactory,
                         true,
-                        logTailMetadata,
                         StoreIdGenerator.UNIQUE_ID)
                 .openAllNeoStores()) {
             neoStores.start(CursorContext.NULL_CONTEXT);
@@ -944,7 +931,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                     EntityBasedMemoryLimiter.defaultMemoryLimiter(maxOffHeapCachingMemory),
                     memoryTracker,
                     contextFactory,
-                    pageCacheTracer)) {
+                    pageCacheTracer,
+                    logTailMetadata.getLastCommittedTransaction().id())) {
                 checker.check();
             }
         } catch (IOException e) {

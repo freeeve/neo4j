@@ -61,7 +61,6 @@ import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
-import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
@@ -165,8 +164,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             InternalLogProvider internalLogProvider,
             InternalLogProvider userLogProvider,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
-            LogTailMetadata logTailMetadata,
-            MetadataCache metadataCache,
+            LogMetadataProvider logMetadataProvider,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
@@ -194,8 +192,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 internalLogProvider,
                 userLogProvider,
                 recoveryCleanupWorkCollector,
-                logTailMetadata,
-                metadataCache,
+                logMetadataProvider,
                 memoryTracker,
                 contextFactory,
                 pageCacheTracer,
@@ -268,18 +265,10 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             PageCache pageCache,
             DatabaseReadOnlyChecker readOnlyChecker,
             CursorContextFactory contextFactory,
-            LogTailLogVersionsMetadata logTailMetadata,
             PageCacheTracer pageCacheTracer)
             throws IOException {
         return delegate.transactionMetaDataStore(
-                fs,
-                databaseLayout,
-                config,
-                pageCache,
-                readOnlyChecker,
-                contextFactory,
-                logTailMetadata,
-                pageCacheTracer);
+                fs, databaseLayout, config, pageCache, readOnlyChecker, contextFactory, pageCacheTracer);
     }
 
     @Override
@@ -458,7 +447,6 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             LogService logService,
             PrintStream progressOutput,
             boolean verboseProgressOutput,
-            AdditionalInitialIds additionalInitialIds,
             LogTailMetadataFactory logTailMetadataFactory,
             Config dbConfig,
             Monitor monitor,
@@ -478,7 +466,6 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 logService,
                 progressOutput,
                 verboseProgressOutput,
-                additionalInitialIds,
                 logTailMetadataFactory,
                 dbConfig,
                 monitor,

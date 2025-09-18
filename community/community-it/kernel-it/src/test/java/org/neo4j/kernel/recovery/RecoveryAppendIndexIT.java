@@ -43,7 +43,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -91,7 +91,7 @@ public class RecoveryAppendIndexIT {
             createNodesWithRelationship(db, marker);
         }
         long lastAppendIndex = db.getDependencyResolver()
-                .resolveDependency(MetadataProvider.class)
+                .resolveDependency(LogMetadataProvider.class)
                 .getLastAppendIndex();
 
         restartDbms();
@@ -99,7 +99,7 @@ public class RecoveryAppendIndexIT {
         var restartedDb = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
         long restartedLastAppendIndex = restartedDb
                 .getDependencyResolver()
-                .resolveDependency(MetadataProvider.class)
+                .resolveDependency(LogMetadataProvider.class)
                 .getLastAppendIndex();
 
         assertEquals(lastAppendIndex, restartedLastAppendIndex);
@@ -115,7 +115,7 @@ public class RecoveryAppendIndexIT {
             createNodesWithRelationship(db, marker);
         }
         long lastAppendIndex = db.getDependencyResolver()
-                .resolveDependency(MetadataProvider.class)
+                .resolveDependency(LogMetadataProvider.class)
                 .getLastAppendIndex();
         Path[] checkpointFiles = db.getDependencyResolver()
                 .resolveDependency(LogFiles.class)
@@ -132,7 +132,7 @@ public class RecoveryAppendIndexIT {
         var restartedDb = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
         long restartedLastAppendIndex = restartedDb
                 .getDependencyResolver()
-                .resolveDependency(MetadataProvider.class)
+                .resolveDependency(LogMetadataProvider.class)
                 .getLastAppendIndex();
 
         assertEquals(lastAppendIndex, restartedLastAppendIndex);
@@ -156,7 +156,7 @@ public class RecoveryAppendIndexIT {
         }
 
         long lastAppendIndex = db.getDependencyResolver()
-                .resolveDependency(MetadataProvider.class)
+                .resolveDependency(LogMetadataProvider.class)
                 .getLastAppendIndex();
 
         dbms.shutdown();
@@ -167,7 +167,7 @@ public class RecoveryAppendIndexIT {
         var restartedDb = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
         long restartedLastAppendIndex = restartedDb
                 .getDependencyResolver()
-                .resolveDependency(MetadataProvider.class)
+                .resolveDependency(LogMetadataProvider.class)
                 .getLastAppendIndex();
 
         assertEquals(lastAppendIndex, restartedLastAppendIndex);
@@ -191,7 +191,7 @@ public class RecoveryAppendIndexIT {
         var restartedDb = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
         long restartedLastAppendIndex = restartedDb
                 .getDependencyResolver()
-                .resolveDependency(MetadataProvider.class)
+                .resolveDependency(LogMetadataProvider.class)
                 .getLastAppendIndex();
 
         // we do not create token indexes in this scenario
@@ -217,7 +217,7 @@ public class RecoveryAppendIndexIT {
         var restartedDb = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
         long restartedLastAppendIndex = restartedDb
                 .getDependencyResolver()
-                .resolveDependency(MetadataProvider.class)
+                .resolveDependency(LogMetadataProvider.class)
                 .getLastAppendIndex();
 
         if (RecordStorageEngineFactory.NAME.equals(restartedDb

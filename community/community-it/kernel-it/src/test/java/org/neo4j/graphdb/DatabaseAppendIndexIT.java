@@ -29,7 +29,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
@@ -37,7 +37,7 @@ import org.neo4j.test.extension.Inject;
 @DbmsExtension
 public class DatabaseAppendIndexIT {
     @Inject
-    private MetadataProvider metadataProvider;
+    private LogMetadataProvider metadataProvider;
 
     @Inject
     private CheckPointer checkPointer;

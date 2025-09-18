@@ -19,13 +19,11 @@
  */
 package org.neo4j.storageengine.api;
 
-import java.io.Closeable;
-import java.util.UUID;
-import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.database.MetadataCache;
+import org.neo4j.storageengine.AppendIndexProvider;
 
 /**
- * Provider for metadata that describes stores properties, ids, store level implementation details
+ * Provider for metadata that describes ids and versions related to the transaction log.
  */
-public interface MetadataProvider extends DatabaseIdStore, StoreIdProvider, Closeable {
-    void regenerateMetadata(StoreId storeId, UUID externalStoreUUID, CursorContext cursorContext);
-}
+public interface LogMetadataProvider
+        extends TransactionIdStore, LogVersionRepository, AppendIndexProvider, MetadataCache {}

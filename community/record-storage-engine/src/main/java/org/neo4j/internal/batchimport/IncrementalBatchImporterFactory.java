@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.NoSuchElementException;
 import org.neo4j.annotations.service.Service;
-import org.neo4j.batchimport.api.AdditionalInitialIds;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.IncrementalBatchImporter;
 import org.neo4j.batchimport.api.IndexImporterFactory;
@@ -62,7 +61,6 @@ public abstract class IncrementalBatchImporterFactory implements NamedService {
             LogService logService,
             PrintStream progressOutput,
             boolean verboseProgressOutput,
-            AdditionalInitialIds additionalInitialIds,
             ThrowingSupplier<LogTailMetadata, IOException> logTailMetadataSupplier,
             Config dbConfig,
             Monitor monitor,

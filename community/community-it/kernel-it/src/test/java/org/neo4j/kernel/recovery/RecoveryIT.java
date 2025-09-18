@@ -164,7 +164,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.service.Services;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StorageFileSelection;
@@ -1968,7 +1968,7 @@ class RecoveryIT {
         for (int i = 0; i < 10; i++) {
             checkpointFile.rotate();
         }
-        assertEquals(10, resolver.resolveDependency(MetadataProvider.class).getCheckpointLogVersion());
+        assertEquals(10, resolver.resolveDependency(LogMetadataProvider.class).getCheckpointLogVersion());
         managementService.shutdown();
 
         removeTransactionLogs();
@@ -1982,7 +1982,7 @@ class RecoveryIT {
                 0,
                 createDatabase()
                         .getDependencyResolver()
-                        .resolveDependency(MetadataProvider.class)
+                        .resolveDependency(LogMetadataProvider.class)
                         .getCheckpointLogVersion());
     }
 
@@ -2041,7 +2041,7 @@ class RecoveryIT {
                 2,
                 createDatabase()
                         .getDependencyResolver()
-                        .resolveDependency(MetadataProvider.class)
+                        .resolveDependency(LogMetadataProvider.class)
                         .getCheckpointLogVersion());
     }
 
@@ -2547,8 +2547,8 @@ class RecoveryIT {
         return additionalConfiguration(serviceBuilder).build();
     }
 
-    private static MetadataProvider getMetadataProvider(GraphDatabaseAPI db) {
-        return db.getDependencyResolver().resolveDependency(MetadataProvider.class);
+    private static LogMetadataProvider getMetadataProvider(GraphDatabaseAPI db) {
+        return db.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
     }
 
     private void verifyRecoveryMissingLogs() throws IOException {

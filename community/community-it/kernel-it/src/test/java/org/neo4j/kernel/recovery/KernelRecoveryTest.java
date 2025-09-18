@@ -45,7 +45,7 @@ import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.TransactionCommitmentFactory;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionWriteEvent;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -135,8 +135,9 @@ class KernelRecoveryTest {
     }
 
     private static long getLastClosedTransactionId(GraphDatabaseAPI database) {
-        MetadataProvider metaDataStore = database.getDependencyResolver().resolveDependency(MetadataProvider.class);
-        return metaDataStore.getLastClosedTransaction().transactionId().id();
+        LogMetadataProvider logMetadataProvider =
+                database.getDependencyResolver().resolveDependency(LogMetadataProvider.class);
+        return logMetadataProvider.getLastClosedTransaction().transactionId().id();
     }
 
     private GraphDatabaseService newDB(FileSystemAbstraction fs, String name) {

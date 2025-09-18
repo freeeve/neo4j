@@ -45,7 +45,6 @@ import org.neo4j.kernel.impl.store.StoreType;
 import org.neo4j.kernel.impl.store.cursor.CachedStoreCursors;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.StoreIdGenerator;
@@ -99,7 +98,6 @@ class DirectRecordStoreMigrator {
                                 NullLogProvider.getInstance(),
                                 contextFactory,
                                 true,
-                                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                                 StoreIdGenerator.UNIQUE_ID)
                         .openNeoStores(storesToOpen);
                 NeoStores toStores = new StoreFactory(
@@ -114,7 +112,6 @@ class DirectRecordStoreMigrator {
                                 NullLogProvider.getInstance(),
                                 contextFactory,
                                 false,
-                                LogTailLogVersionsMetadata.EMPTY_LOG_TAIL,
                                 StoreIdGenerator.UNIQUE_ID)
                         .openNeoStores(storesToOpen);
                 var cursorContext = contextFactory.create(DIRECT_STORE_MIGRATOR_TAG);

@@ -44,7 +44,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.monitoring.tracing.Tracers;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.storageengine.api.ClosedBatchMetadata;
-import org.neo4j.storageengine.api.MetadataProvider;
+import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
@@ -56,7 +56,7 @@ public class TransactionalBatchIT {
     private GraphDatabaseAPI db;
 
     @Inject
-    private MetadataProvider metadataProvider;
+    private LogMetadataProvider metadataProvider;
 
     private PostCommitChecker postCommitCallback;
 

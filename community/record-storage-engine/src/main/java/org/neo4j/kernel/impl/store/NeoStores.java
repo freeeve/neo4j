@@ -46,7 +46,6 @@ import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.impl.store.format.RecordFormats;
 import org.neo4j.kernel.impl.store.record.AbstractBaseRecord;
-import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.storageengine.StoreIdGenerator;
@@ -75,7 +74,6 @@ public class NeoStores implements AutoCloseable {
     private final StoreType[] initializedStores;
     private final RecordFormats recordFormats;
     private final CommonAbstractStore[] stores;
-    private final LogTailLogVersionsMetadata logTailMetadata;
     private final ImmutableSet<OpenOption> openOptions;
     private final StoreIdGenerator storeIdGenerator;
     private final boolean readOnly;
@@ -92,7 +90,6 @@ public class NeoStores implements AutoCloseable {
             RecordFormats recordFormats,
             CursorContextFactory contextFactory,
             boolean readOnly,
-            LogTailLogVersionsMetadata logTailMetadata,
             StoreType[] storeTypes,
             ImmutableSet<OpenOption> openOptions,
             StoreIdGenerator storeIdGenerator) {
@@ -107,7 +104,6 @@ public class NeoStores implements AutoCloseable {
         this.recordFormats = recordFormats;
         this.contextFactory = contextFactory;
         this.readOnly = readOnly;
-        this.logTailMetadata = logTailMetadata;
         this.openOptions = openOptions;
         this.storeIdGenerator = storeIdGenerator;
 
@@ -540,7 +536,6 @@ public class NeoStores implements AutoCloseable {
                         logProvider,
                         recordFormats.metaData(),
                         readOnly,
-                        logTailMetadata,
                         layout.getDatabaseName(),
                         openOptions,
                         () -> storeIdGenerator.generateNewStoreId(
