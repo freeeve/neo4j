@@ -36,11 +36,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.factory.Maps;
+import org.neo4j.exceptions.CypherTypeException;
+import org.neo4j.exceptions.InternalException;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.exceptions.InvalidSpatialArgumentException;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.BooleanValue;
@@ -109,7 +114,7 @@ public class IndexSettingUtil {
             case "cartesian-3d" -> SPATIAL_CARTESIAN_3D_MIN;
             case "wgs-84" -> SPATIAL_WGS84_MIN;
             case "wgs-84-3d" -> SPATIAL_WGS84_3D_MIN;
-            default -> throw new IllegalArgumentException("Unrecognized coordinate reference system " + crs);
+            default -> throw InvalidSpatialArgumentException.invalidCoordinateSystem(crs.getName());
         };
     }
 
@@ -119,7 +124,7 @@ public class IndexSettingUtil {
             case "cartesian-3d" -> SPATIAL_CARTESIAN_3D_MAX;
             case "wgs-84" -> SPATIAL_WGS84_MAX;
             case "wgs-84-3d" -> SPATIAL_WGS84_3D_MAX;
-            default -> throw new IllegalArgumentException("Unrecognized coordinate reference system " + crs);
+            default -> throw InvalidSpatialArgumentException.invalidCoordinateSystem(crs.getName());
         };
     }
 
@@ -152,8 +157,7 @@ public class IndexSettingUtil {
     private static IndexSetting asIndexSetting(String key) {
         final IndexSetting indexSetting = fromString(key);
         if (indexSetting == null) {
-            throw new IllegalArgumentException(
-                    String.format("Invalid index config key '%s', it was not recognized as an index setting.", key));
+            throw InvalidArgumentException.invalidIndexConfig(key, List.copyOf(INDEX_SETTING_REVERSE_LOOKUP.keySet()));
         }
         return indexSetting;
     }
@@ -180,16 +184,16 @@ public class IndexSettingUtil {
                 return parseAsInteger(value);
             }
         } catch (IndexSettingParseException e) {
-            throw new IllegalArgumentException(
-                    "Invalid value type for '" + indexSetting.getSettingName() + "' setting. "
-                            + "Expected a value of type "
-                            + type.getName() + ", " + "but got value '"
-                            + value + "' of type "
-                            + (value == null ? "null" : value.getClass().getName()) + ".",
-                    e);
+            throw CypherTypeException.invalidType(
+                    String.valueOf(value),
+                    List.of(type.getSimpleName()),
+                    value == null ? "null" : value.getClass().getSimpleName(),
+                    type.getSimpleName());
         }
-        throw new UnsupportedOperationException("Should not happen. Missing parser for type " + type.getSimpleName()
-                + ". This type is used by indexSetting " + indexSetting.getSettingName());
+        throw InternalException.internalError(
+                "Should not happen.",
+                "Missing parser for type " + type.getSimpleName() + ". This type is used by indexSetting "
+                        + indexSetting.getSettingName());
     }
 
     private static IntValue parseAsInteger(Object value) throws IndexSettingParseException {
@@ -236,9 +240,9 @@ public class IndexSettingUtil {
         }
 
         // Collection
-        if (value instanceof final Collection collection) {
+        if (value instanceof final Collection<?> collection) {
             final double[] doubleArray = new double[collection.size()];
-            final Iterator iterator = collection.iterator();
+            final Iterator<?> iterator = collection.iterator();
             for (int i = 0; iterator.hasNext(); i++) {
                 final Object next = iterator.next();
                 if (next instanceof Number) {

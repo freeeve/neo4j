@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.schema.ConstraintType
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.SchemaCommand.ConstraintCommand.Create.NodeExistence
@@ -358,6 +359,23 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           false,
           IndexConfig.`with`(util.Map.of("spatial.wgs-84.max", array60, "spatial.wgs-84.min", array40))
         ))
+      }
+
+      test(
+        s"CREATE POINT INDEX $ixName FOR (v:L) ON (v.name) OPTIONS {indexConfig : {`immaterial.wgs-84.max`: [60.0,60.0], `immaterial.wgs-84.min`: [-40.0,-40.0]}}"
+      ) {
+        val error = the[InvalidArgumentException] thrownBy (converterForDefaultCypherVersion.apply(pointNodeIndex(
+          List(prop("name")),
+          indexName(ixName),
+          ast.IfExistsThrowError,
+          ast.OptionsMap(Map("indexConfig" -> mapOf(
+            "immaterial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
+            "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
+          )))(InputPosition.NONE)
+        )))
+        error should have message ("Invalid index config key 'immaterial.wgs-84.max', it was not recognized as an index setting.")
+        error.gqlStatusObject().gqlStatus() shouldBe "22G03"
+        error.gqlStatusObject().cause().get().gqlStatus() shouldBe "22N27"
       }
 
       Seq(

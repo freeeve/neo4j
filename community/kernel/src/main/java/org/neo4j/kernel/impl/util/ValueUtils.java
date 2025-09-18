@@ -83,71 +83,83 @@ public final class ValueUtils {
         if (value != null) {
             return value;
         } else {
-            if (object instanceof Entity) {
-                if (object instanceof Node) {
-                    if (wrapEntities) {
-                        return maybeWrapNodeEntity((Node) object);
+            switch (object) {
+                case Entity entity -> {
+                    if (entity instanceof Node node) {
+                        if (wrapEntities) {
+                            return maybeWrapNodeEntity(node);
+                        } else {
+                            return fromNodeEntity(node);
+                        }
+                    } else if (entity instanceof Relationship rel) {
+                        if (wrapEntities) {
+                            return maybeWrapRelationshipEntity(rel);
+                        } else {
+                            return fromRelationshipEntity(rel);
+                        }
                     } else {
-                        return fromNodeEntity((Node) object);
+                        throw new IllegalArgumentException(
+                                "Unknown entity + " + object.getClass().getName());
                     }
-                } else if (object instanceof Relationship) {
-                    if (wrapEntities) {
-                        return maybeWrapRelationshipEntity((Relationship) object);
+                }
+                case Multimap<?, ?> multimap -> {
+                    return asMultimapValue((Multimap<String, Object>) multimap, wrapEntities);
+                }
+                case Map<?, ?> map -> {
+                    return asMapValue((Map<String, Object>) map, wrapEntities);
+                }
+                case Iterable<?> objects -> {
+                    if (objects instanceof Path path) {
+                        if (wrapEntities) {
+                            return maybeWrapPath(path);
+                        } else {
+                            return pathReferenceFromPath(path);
+                        }
+                    } else if (object instanceof List<?>) {
+                        return asListValue((List<Object>) object, wrapEntities);
                     } else {
-                        return fromRelationshipEntity((Relationship) object);
+                        return asListValue((Iterable<Object>) object, wrapEntities);
                     }
-                } else {
-                    throw new IllegalArgumentException(
-                            "Unknown entity + " + object.getClass().getName());
                 }
-            } else if (object instanceof Multimap<?, ?>) {
-                return asMultimapValue((Multimap<String, Object>) object, wrapEntities);
-            } else if (object instanceof Map<?, ?>) {
-                return asMapValue((Map<String, Object>) object, wrapEntities);
-            } else if (object instanceof Iterable<?>) {
-                if (object instanceof Path) {
-                    if (wrapEntities) {
-                        return maybeWrapPath((Path) object);
-                    } else {
-                        return pathReferenceFromPath((Path) object);
+                case Iterator<?> iterator -> {
+                    ListValueBuilder builder = ListValueBuilder.newListBuilder();
+                    while (iterator.hasNext()) {
+                        builder.add(ValueUtils.of(iterator.next(), wrapEntities));
                     }
-                } else if (object instanceof List<?>) {
-                    return asListValue((List<Object>) object, wrapEntities);
-                } else {
-                    return asListValue((Iterable<Object>) object, wrapEntities);
+                    return builder.build();
                 }
-            } else if (object instanceof Iterator<?> iterator) {
-                ListValueBuilder builder = ListValueBuilder.newListBuilder();
-                while (iterator.hasNext()) {
-                    builder.add(ValueUtils.of(iterator.next(), wrapEntities));
-                }
-                return builder.build();
-            } else if (object instanceof Object[] array) {
-                if (array.length == 0) {
-                    return VirtualValues.EMPTY_LIST;
-                }
+                case Object[] array -> {
+                    if (array.length == 0) {
+                        return VirtualValues.EMPTY_LIST;
+                    }
 
-                ListValueBuilder builder = ListValueBuilder.newListBuilder(array.length);
-                for (Object o : array) {
-                    builder.add(ValueUtils.of(o, wrapEntities));
+                    ListValueBuilder builder = ListValueBuilder.newListBuilder(array.length);
+                    for (Object o : array) {
+                        builder.add(ValueUtils.of(o, wrapEntities));
+                    }
+                    return builder.build();
                 }
-                return builder.build();
-            } else if (object instanceof Stream<?>) {
-                return asListValue(((Stream<Object>) object).collect(Collectors.toList()));
-            } else if (object instanceof Geometry) {
-                return asGeometryValue((Geometry) object);
-            } else {
-                ClassLoader classLoader = object.getClass().getClassLoader();
-                throw new IllegalArgumentException(String.format(
-                        "Cannot convert %s of type %s to AnyValue, classloader=%s, classloader-name=%s",
-                        object,
-                        object.getClass().getName(),
-                        classLoader != null ? classLoader.toString() : "null",
-                        classLoader != null ? classLoader.getName() : "null"));
+                case Stream<?> stream -> {
+                    return asListValue(((Stream<Object>) stream).collect(Collectors.toList()));
+                }
+                case Geometry geometry -> {
+                    return asGeometryValue(geometry);
+                }
+                case null -> throw new IllegalArgumentException("Cannot convert null of type Null to AnyValue");
+                default -> {
+                    ClassLoader classLoader = object.getClass().getClassLoader();
+                    throw new IllegalArgumentException(String.format(
+                            "Cannot convert %s of type %s to AnyValue, classloader=%s, classloader-name=%s",
+                            object,
+                            object.getClass().getName(),
+                            classLoader != null ? classLoader.toString() : "null",
+                            classLoader != null ? classLoader.getName() : "null"));
+                }
             }
         }
     }
 
+    @CalledFromGeneratedCode
     public static PointValue asPointValue(Point point) {
         return toPoint(point);
     }
@@ -194,35 +206,6 @@ public final class ValueUtils {
         return values.build();
     }
 
-    public static AnyValue asNodeOrEdgeValue(Entity container) {
-        if (container instanceof Node) {
-            return fromNodeEntity((Node) container);
-        } else if (container instanceof Relationship) {
-            return fromRelationshipEntity((Relationship) container);
-        } else {
-            throw new IllegalArgumentException(
-                    "Cannot produce a node or edge from " + container.getClass().getName());
-        }
-    }
-
-    public static ListValue asListOfEdges(Iterable<Relationship> rels) {
-        return VirtualValues.list(StreamSupport.stream(rels.spliterator(), false)
-                .map(ValueUtils::fromRelationshipEntity)
-                .toArray(VirtualRelationshipValue[]::new));
-    }
-
-    public static ListValue asListOfEdges(Relationship[] rels) {
-        if (rels.length == 0) {
-            return VirtualValues.EMPTY_LIST;
-        }
-
-        ListValueBuilder relValues = ListValueBuilder.newListBuilder(rels.length);
-        for (Relationship rel : rels) {
-            relValues.add(fromRelationshipEntity(rel));
-        }
-        return relValues.build();
-    }
-
     public static MapValue asMapValue(Map<String, ?> map) {
         return asMapValue(map, false);
     }
@@ -238,10 +221,6 @@ public final class ValueUtils {
             builder.add(entry.getKey(), ValueUtils.of(entry.getValue(), wrapEntities));
         }
         return builder.build();
-    }
-
-    public static MapValue asMultimapValue(Multimap<String, ?> map) {
-        return asMultimapValue(map, false);
     }
 
     public static MapValue asMultimapValue(Multimap<String, ?> map, boolean wrapEntities) {

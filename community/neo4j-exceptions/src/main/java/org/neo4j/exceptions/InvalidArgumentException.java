@@ -712,6 +712,18 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, String.format("Cannot assign %s to field %s", value, field));
     }
 
+    public static InvalidArgumentException invalidIndexConfig(String key, List<String> expected) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
+                        .withParam(GqlParams.StringParam.input, key)
+                        .withParam(GqlParams.StringParam.context, "index setting")
+                        .withParam(GqlParams.ListParam.valueTypeList, expected)
+                        .build())
+                .build();
+        return new InvalidArgumentException(
+                gql, String.format("Invalid index config key '%s', it was not recognized as an index setting.", key));
+    }
+
     public static InvalidArgumentException cannotAssignPointField(
             String value, String field, String prettyValue, List<String> expectedTypes) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
