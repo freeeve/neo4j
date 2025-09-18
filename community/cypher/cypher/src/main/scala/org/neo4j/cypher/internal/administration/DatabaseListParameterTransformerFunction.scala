@@ -97,26 +97,45 @@ class DatabaseListParameterTransformerFunction(
         (allReferences, Set.empty)
     }
 
-    val spdWithGraphShards: Set[(NamedDatabaseId, NamedDatabaseId, Set[NamedDatabaseId])] = filteredReferences.collect {
-      case ref: DatabaseReferenceImpl.VirtualSPD
-        if ref.isPrimary && securityContext.databaseAccessMode().canSeeDatabase(ref) =>
-        (
-          DatabaseIdFactory.from(ref.alias().name(), ref.id()),
-          DatabaseIdFactory.from(ref.graphShard().name(), ref.graphShard().id()),
-          ref.graphShard().propertyShards().values().asScala.map(propertyShard =>
-            DatabaseIdFactory.from(propertyShard.name(), propertyShard.id())
-          ).toSet
-        )
+    val filteredReferencesWithShards: Set[DatabaseReference] = filteredReferences.flatMap {
+      case db: DatabaseReferenceImpl.VirtualSPD =>
+        val graphShard = db.graphShard()
+        val propertyShards = graphShard.propertyShards().values()
+        Set(db) ++ Set(graphShard) ++ propertyShards.asScala
+      case db => Set(db)
     }
 
-    val spdMetadata: List[AnyValue] = spdWithGraphShards.toList.flatMap {
-      case (spd: NamedDatabaseId, graphShard: NamedDatabaseId, propertyShards: Set[NamedDatabaseId]) =>
+    val allDbInfos: util.Set[DatabaseDetails] =
+      infoService.databases(
+        transaction,
+        filteredReferencesWithShards.collect(db => db.namedDatabaseId()).asJava,
+        detailLevels(verbose, maybeYield)
+      )
+
+    val accessibleDatabases = filteredReferences
+      .collect {
+        case db
+          if db.isPrimary && !db.isInstanceOf[
+            DatabaseReferenceImpl.VirtualSPD
+          ] && securityContext.databaseAccessMode().canSeeDatabase(db) =>
+          DatabaseIdFactory.from(db.alias().name(), db.id())
+      }
+
+    val dbMetadata: List[AnyValue] = {
+      val dbInfos: util.Set[DatabaseDetails] =
+        allDbInfos.asScala.filter(info => accessibleDatabases.contains(info.namedDatabaseId())).toSet.asJava
+      dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)).toList
+    }
+
+    val spdMetadata: List[AnyValue] = filteredReferences.collect {
+      case ref: DatabaseReferenceImpl.VirtualSPD
+        if ref.isPrimary && securityContext.databaseAccessMode().canSeeDatabase(ref) =>
+        val spd = DatabaseIdFactory.from(ref.alias().name(), ref.id())
         val graphShardInfos =
-          infoService.databases(transaction, Set(graphShard).asJava, detailLevels(verbose, maybeYield)).asScala
-
+          allDbInfos.asScala.filter(info => ref.graphShard().namedDatabaseId().equals(info.namedDatabaseId()))
+        val propertyShardDatabaseIds = ref.graphShard().propertyShards().values().asScala.map(_.namedDatabaseId()).toSet
         val propertyShardInfos =
-          infoService.databases(transaction, propertyShards.asJava, TopologyInfoService.RequestedExtras.NONE).asScala
-
+          allDbInfos.asScala.filter(info => propertyShardDatabaseIds.contains(info.namedDatabaseId()))
         val groupedStatus = (graphShardInfos ++ propertyShardInfos).map(databaseDetail =>
           databaseDetail.status()
         ).groupBy(identity).view.mapValues(_.size)
@@ -151,22 +170,8 @@ class DatabaseListParameterTransformerFunction(
           DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)
         )
           .toList
-    }
 
-    val accessibleDatabases = filteredReferences
-      .collect {
-        case db
-          if db.isPrimary && !db.isInstanceOf[
-            DatabaseReferenceImpl.VirtualSPD
-          ] && securityContext.databaseAccessMode().canSeeDatabase(db) =>
-          DatabaseIdFactory.from(db.alias().name(), db.id())
-      }
-
-    val dbMetadata: List[AnyValue] = {
-      val dbInfos: util.Set[DatabaseDetails] =
-        infoService.databases(transaction, accessibleDatabases.asJava, detailLevels(verbose, maybeYield))
-      dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)).toList
-    }
+    }.toList.flatten
 
     (
       safeMergeParameters(
