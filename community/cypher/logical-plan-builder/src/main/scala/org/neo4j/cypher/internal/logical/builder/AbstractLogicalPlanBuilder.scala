@@ -1239,13 +1239,21 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   def unwind(projectionString: String): IMPL = {
     val (name, expression) = toVarMap(parser.parseProjections(projectionString)).head
-    appendAtCurrentIndent(UnaryOperator(lp => UnwindCollection(lp, name, expression)(_)))
+    val maybeVariable = name.name match {
+      case "_" => None
+      case _   => Some(name)
+    }
+    appendAtCurrentIndent(UnaryOperator(lp => UnwindCollection(lp, maybeVariable, expression)(_)))
     self
   }
 
   def partitionedUnwind(projectionString: String): IMPL = {
     val (name, expression) = toVarMap(parser.parseProjections(projectionString)).head
-    appendAtCurrentIndent(UnaryOperator(lp => PartitionedUnwindCollection(lp, name, expression)(_)))
+    val maybeVariable = name.name match {
+      case "_" => None
+      case _   => Some(name)
+    }
+    appendAtCurrentIndent(UnaryOperator(lp => PartitionedUnwindCollection(lp, maybeVariable, expression)(_)))
     self
   }
 

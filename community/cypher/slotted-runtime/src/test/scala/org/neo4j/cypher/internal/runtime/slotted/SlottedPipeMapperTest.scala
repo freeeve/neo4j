@@ -906,7 +906,7 @@ class SlottedPipeMapperTest extends CypherFunSuite with AstConstructionTestSuppo
               commands.expressions.Literal(bLit),
               commands.expressions.Literal(cLit)
             ),
-            0,
+            Some(0),
             `expectedSlots2`
           ),
           _

@@ -2350,7 +2350,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
       .expandAll("(b)-[:R]->(c)")
-      .unwind("[1, 2, 3] AS i")
+      .unwind("[1, 2, 3] AS _")
       .expandAll("(a)-[:R]->(b)")
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
@@ -2373,7 +2373,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
       .expandAll("(b)-[:R]->(c)")
-      .unwind("[1, 2, 3] AS i")
+      .unwind("[1, 2, 3] AS _")
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
       .expandAll("(a)-[:NARROW]->(b)")
@@ -2769,7 +2769,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     val plan = defaultConfig.plan(query).stripProduceResults
     plan shouldEqual defaultConfig.subPlanBuilder()
       .orderedDistinct(Seq("a"), "a AS a", "a AS b")
-      .unwind("[1, 2, 3] AS x")
+      .unwind("[1, 2, 3] AS _")
       .sort("b ASC")
       .projection("a AS b")
       .allNodeScan("a")

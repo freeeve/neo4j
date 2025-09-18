@@ -238,6 +238,24 @@ class RemoveUnusedVariablesRewriterTest extends CypherFunSuite with LogicalPlann
         .allNodeScan("a")
     ) should notBeRewritten
   }
+
+  test("should remove unused variables in UNWIND") {
+    thePlan(
+      _.produceResults("a")
+        .apply()
+        .|.unwind("[1, 2, 3] AS b")
+        .|.argument("a")
+        .unwind("[1, 2, 3] AS a")
+        .argument()
+    ) should beRewrittenTo(
+      _.produceResults("a")
+        .apply()
+        .|.unwind("[1, 2, 3] AS _")
+        .|.argument("a")
+        .unwind("[1, 2, 3] AS a")
+        .argument()
+    )
+  }
 }
 
 object RemoveUnusedVariablesRewriterTest extends CypherFunSuite {

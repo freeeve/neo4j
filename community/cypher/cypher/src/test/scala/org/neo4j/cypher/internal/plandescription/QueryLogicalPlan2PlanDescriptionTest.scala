@@ -5088,7 +5088,7 @@ class QueryLogicalPlan2PlanDescriptionTest extends LogicalPlan2PlanDescriptionTe
 
   test("PartitionedUnwind") {
     assertGood(
-      attach(PartitionedUnwindCollection(lhsLP, varFor("x"), varFor("list")), 1.0),
+      attach(PartitionedUnwindCollection(lhsLP, Some(varFor("x")), varFor("list")), 1.0),
       planDescription(id, "PartitionedUnwind", Seq(lhsPD), Seq(details("list AS x")), Set("a", "x"))
     )
   }

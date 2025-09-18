@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.OptionalExpand
 import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.RelationshipLogicalLeafPlan
+import org.neo4j.cypher.internal.logical.plans.UnwindCollection
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
@@ -38,7 +39,7 @@ import org.neo4j.cypher.internal.util.topDown
 case object RemoveUnusedVariablesRewriter extends Rewriter {
 
   override def apply(value: AnyRef): AnyRef = {
-    val variableUsage = value.folder.treeFold(Map.empty[LogicalVariable, Int]) {
+    lazy val variableUsage = value.folder.treeFold(Map.empty[LogicalVariable, Int]) {
       case v: LogicalVariable => acc =>
           TraverseChildren(acc.updatedWith(v) {
             case Some(v) => Some(v + 1)
@@ -69,6 +70,8 @@ case object RemoveUnusedVariablesRewriter extends Rewriter {
         expand.copy(maybeTo = remove(expand.maybeTo))(SameId(expand.id))
       case expand: PruningVarExpand =>
         expand.copy(maybeTo = remove(expand.maybeTo))(SameId(expand.id))
+      case unwind: UnwindCollection =>
+        unwind.copy(maybeVariable = remove(unwind.maybeVariable))(SameId(unwind.id))
 
     })(value)
   }

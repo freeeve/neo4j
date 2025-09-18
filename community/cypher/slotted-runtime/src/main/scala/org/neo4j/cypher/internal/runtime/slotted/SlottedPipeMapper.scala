@@ -1610,15 +1610,15 @@ class SlottedPipeMapper(
       case EmptyResult(_) =>
         EmptyResultPipe(source)(id)
 
-      case UnwindCollection(_, name, expression) =>
-        val offset = slots.refOffset(name)
-        UnwindSlottedPipe(source, convertExpressions(expression), offset, slots)(id)
+      case UnwindCollection(_, maybeName, expression) =>
+        val maybeOffset = maybeName.map(name => slots.refOffset(name))
+        UnwindSlottedPipe(source, convertExpressions(expression), maybeOffset, slots)(id)
 
       // Note: this plan shouldn't really be used here, but having it mapped here helps
       //      fallback and makes testing easier
-      case PartitionedUnwindCollection(_, name, expression) =>
-        val offset = slots.refOffset(name)
-        UnwindSlottedPipe(source, convertExpressions(expression), offset, slots)(id)
+      case PartitionedUnwindCollection(_, maybeName, expression) =>
+        val maybeOffset = maybeName.map(name => slots.refOffset(name))
+        UnwindSlottedPipe(source, convertExpressions(expression), maybeOffset, slots)(id)
 
       case Aggregation(_, groupingExpressions, aggregationExpression) =>
         val aggregation = aggregationExpression.map {

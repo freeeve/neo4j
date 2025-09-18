@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
+import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
 import org.neo4j.cypher.internal.frontend.phases.QualifiedName
@@ -378,9 +379,11 @@ object LogicalPlanToPlanBuilderString {
           seqParam(orderToLeverage)(_.quoted),
           spread(projectVars(groupingExpressions))
         )
-      case Projection(_, projectExpressions)                    => spread(projectVars(projectExpressions))
-      case UnwindCollection(_, variable, expression)            => spread(projectVars(Map(variable -> expression)))
-      case PartitionedUnwindCollection(_, variable, expression) => spread(projectVars(Map(variable -> expression)))
+      case Projection(_, projectExpressions) => spread(projectVars(projectExpressions))
+      case UnwindCollection(_, maybeVariable, expression) =>
+        spread(projectVars(Map(maybeVariable.getOrElse(varFor("_")) -> expression)))
+      case PartitionedUnwindCollection(_, variable, expression) =>
+        spread(projectVars(Map(variable.getOrElse(varFor("_")) -> expression)))
       case AllNodesScan(idName, argumentIds)            => params(idName.escaped, spread(argumentIds.map(_.escaped)))
       case PartitionedAllNodesScan(idName, argumentIds) => params(idName.escaped, spread(argumentIds.map(_.escaped)))
       case Argument(argumentIds)                        => spread(argumentIds)

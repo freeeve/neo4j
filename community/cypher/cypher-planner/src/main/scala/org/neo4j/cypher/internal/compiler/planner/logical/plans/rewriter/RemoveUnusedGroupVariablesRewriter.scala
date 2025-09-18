@@ -56,46 +56,48 @@ import org.neo4j.cypher.internal.util.topDown
 case object RemoveUnusedGroupVariablesRewriter extends Rewriter {
 
   override def apply(plan: AnyRef): AnyRef = {
-    val allVariableReferences = findAllVariableReferences(plan)
-    val allGroupVariableDeclarations = findGroupVariableDeclarations(plan)
-    val unusedGroupVariableDeclarations = allGroupVariableDeclarations.diff(allVariableReferences)
-    instance(unusedGroupVariableDeclarations)(plan)
-  }
-
-  def instance(unusedGroupVariables: Set[LogicalVariable]): Rewriter = topDown(Rewriter.lift {
-    case p: PlanWithVariableGroupings =>
-      val usedNodeVariables = p.nodeVariableGroupings.filterNot(g => unusedGroupVariables.contains(g.group))
-      val usedRelVariables = p.relationshipVariableGroupings.filterNot(g => unusedGroupVariables.contains(g.group))
-      p.withVariableGroupings(
-        nodeVariableGroupings = usedNodeVariables,
-        relationshipVariableGroupings = usedRelVariables
-      )(SameId(p.id))
-  })
-
-  def findGroupVariableDeclarations(plan: AnyRef): Set[LogicalVariable] = {
-    plan.folder.treeFold(Set.empty[LogicalVariable]) {
+    lazy val (allUsedVariableReferences, allGroupVariables) = findVariables(plan)
+    lazy val unusedGroupVariables = allGroupVariables.diff(allUsedVariableReferences)
+    topDown(Rewriter.lift {
       case p: PlanWithVariableGroupings =>
-        val groupVars = p.nodeVariableGroupings.map(_.group) ++ p.relationshipVariableGroupings.map(_.group)
-        acc => TraverseChildren(acc ++ groupVars)
-    }
+        val usedNodeVariables = p.nodeVariableGroupings.filterNot(g => unusedGroupVariables.contains(g.group))
+        val usedRelVariables = p.relationshipVariableGroupings.filterNot(g => unusedGroupVariables.contains(g.group))
+        p.withVariableGroupings(
+          nodeVariableGroupings = usedNodeVariables,
+          relationshipVariableGroupings = usedRelVariables
+        )(SameId(p.id))
+    })(plan)
   }
 
-  def findAllVariableReferences(plan: AnyRef): Set[LogicalVariable] = {
-    def inner(plan: AnyRef): Map[LogicalVariable, Int] =
-      plan.folder.treeFold(Map.empty[LogicalVariable, Int]) {
-        case variable: LogicalVariable => acc =>
-            SkipChildren(
-              acc.updatedWith(variable) {
-                case Some(existingCount) => Some(existingCount + 1)
-                case None                => Some(1)
-              }
-            )
-      }
+  case class ReferencesAndGroups(refs: Map[LogicalVariable, Int], groups: Set[LogicalVariable]) {
+
+    def registerAsSeen(variable: LogicalVariable): ReferencesAndGroups = copy(refs = refs.updatedWith(variable) {
+      case Some(existingCount) => Some(existingCount + 1)
+      case None                => Some(1)
+    })
+
+    def ++(added: Set[LogicalVariable]): ReferencesAndGroups = copy(groups = groups ++ added)
 
     // If a variable only appears once, that is the declaration of the variable and the variable is otherwise unused.
     // If a variable appears at least twice, there is a reference to the variable.
-    inner(plan)
-      .filter { case (_, count) => count > 1 }
+    def usedVariables: Set[LogicalVariable] = refs.filter { case (_, count) => count > 1 }
       .keySet
+  }
+
+  private object ReferencesAndGroups {
+    val empty: ReferencesAndGroups = ReferencesAndGroups(Map.empty, Set.empty)
+  }
+
+  private def findVariables(plan: AnyRef): (Set[LogicalVariable], Set[LogicalVariable]) = {
+    val refsAndGroups: ReferencesAndGroups =
+      plan.folder.treeFold(ReferencesAndGroups.empty) {
+        case p: PlanWithVariableGroupings =>
+          val groupVars = p.nodeVariableGroupings.map(_.group) ++ p.relationshipVariableGroupings.map(_.group)
+          acc => TraverseChildren(acc ++ groupVars)
+
+        case variable: LogicalVariable => acc => SkipChildren(acc.registerAsSeen(variable))
+      }
+
+    (refsAndGroups.usedVariables, refsAndGroups.groups)
   }
 }

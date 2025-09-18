@@ -242,7 +242,7 @@ class RemoteBatchPropertiesPlanningIntegrationTest
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projection("cacheN[x.prop] AS prop")
-      .unwind("range(1, 100) AS increaseCardinality")
+      .unwind("range(1, 100) AS _")
       .remoteBatchProperties("cacheNFromStore[x.prop]")
       .limit(1)
       .expandAll("(p)-[]->(x)")
@@ -263,7 +263,7 @@ class RemoteBatchPropertiesPlanningIntegrationTest
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projection("cacheN[creator.prop] AS prop")
-      .unwind("range(1, 100) AS increaseCardinality")
+      .unwind("range(1, 100) AS _")
       .remoteBatchProperties("cacheNFromStore[creator.prop]")
       .limit(1)
       .relationshipIndexOperator(

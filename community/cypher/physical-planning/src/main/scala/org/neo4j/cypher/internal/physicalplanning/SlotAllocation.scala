@@ -1461,7 +1461,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
   }
 
   private def allocateUnwind(
-    variable: LogicalVariable,
+    variable: Option[LogicalVariable],
     nullable: Boolean,
     expression: Expression,
     slots: SlotConfigurationBuilder
@@ -1477,7 +1477,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
       case _                  => true
     }
 
-    slots.newReference(variable, nullableExpression || nullable, CTAny)
+    variable.foreach(slots.newReference(_, nullableExpression || nullable, CTAny))
   }
 }
 

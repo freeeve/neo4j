@@ -725,7 +725,7 @@ class ABCDECardinalityDataCardinalityIntegrationTest extends CypherFunSuite with
     )
     expectPlanCardinality(
       {
-        case UnwindCollection(_, LogicalVariable("x"), _) => true
+        case UnwindCollection(_, Some(LogicalVariable("x")), _) => true
       },
       A * 2
     )

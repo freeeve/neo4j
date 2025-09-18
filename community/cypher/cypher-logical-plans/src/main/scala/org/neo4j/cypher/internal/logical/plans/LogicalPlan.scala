@@ -5995,14 +5995,25 @@ case class PartitionedSubtractionNodeByLabelsScan(
  * If 'expression' does evaluate to null, produce nothing.
  * If 'expression' does not evaluate to a list, produce a single row with the value.
  */
-case class UnwindCollection(override val source: LogicalPlan, variable: LogicalVariable, expression: Expression)(
+case class UnwindCollection(
+  override val source: LogicalPlan,
+  maybeVariable: Option[LogicalVariable],
+  expression: Expression
+)(
   implicit idGen: IdGen
 ) extends LogicalUnaryPlan(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
 
-  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + variable
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ maybeVariable
 
   override val distinctness: Distinctness = NotDistinct
+}
+
+object UnwindCollection {
+
+  def apply(source: LogicalPlan, variable: LogicalVariable, expression: Expression)(implicit
+    idGen: IdGen): UnwindCollection =
+    new UnwindCollection(source, Some(variable), expression)(idGen)
 }
 
 /**
@@ -6010,14 +6021,14 @@ case class UnwindCollection(override val source: LogicalPlan, variable: LogicalV
  */
 case class PartitionedUnwindCollection(
   override val source: LogicalPlan,
-  variable: LogicalVariable,
+  maybeVariable: Option[LogicalVariable],
   expression: Expression
 )(
   implicit idGen: IdGen
 ) extends LogicalUnaryPlan(idGen) with PartitionedScanPlan {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
 
-  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + variable
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ maybeVariable
 
   override val distinctness: Distinctness = NotDistinct
 }

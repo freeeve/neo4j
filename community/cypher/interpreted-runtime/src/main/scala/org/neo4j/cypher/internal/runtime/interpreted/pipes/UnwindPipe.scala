@@ -29,8 +29,14 @@ import org.neo4j.values.AnyValue
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-case class UnwindPipe(source: Pipe, collection: Expression, variable: String)(val id: Id = Id.INVALID_ID)
+case class UnwindPipe(source: Pipe, collection: Expression, maybeVariable: Option[String])(val id: Id = Id.INVALID_ID)
     extends PipeWithSource(source) with ListSupport {
+
+  private val write: (CypherRow, AnyValue) => CypherRow = maybeVariable match {
+    case Some(variable) => (row, value) => rowFactory.copyWith(row, variable, value)
+    case None =>
+      (row: CypherRow, _: AnyValue) => rowFactory.copyWith(row)
+  }
 
   protected def internalCreateResults(
     input: ClosingIterator[CypherRow],
@@ -67,7 +73,7 @@ case class UnwindPipe(source: Pipe, collection: Expression, variable: String)(va
     private def prefetch(): Unit = {
       nextItem = null
       if (unwindIterator != null && unwindIterator.hasNext) {
-        nextItem = rowFactory.copyWith(context, variable, unwindIterator.next())
+        nextItem = write(context, unwindIterator.next())
       } else {
         if (input.hasNext) {
           context = input.next()

@@ -33,7 +33,12 @@ import org.neo4j.values.AnyValue
 
 import scala.annotation.tailrec
 
-case class UnwindSlottedPipe(source: Pipe, collection: Expression, offset: Int, slots: SlotConfiguration)(val id: Id =
+case class UnwindSlottedPipe(
+  source: Pipe,
+  collection: Expression,
+  maybeOffset: Option[Int],
+  slots: SlotConfiguration
+)(val id: Id =
   Id.INVALID_ID) extends PipeWithSource(source) with ListSupport {
 
   override protected def internalCreateResults(
@@ -73,7 +78,8 @@ case class UnwindSlottedPipe(source: Pipe, collection: Expression, offset: Int, 
       if (unwindIterator != null && unwindIterator.hasNext) {
         val newItem = SlottedRow(slots)
         newItem.copyAllFrom(currentInputRow)
-        newItem.setRefAt(offset, unwindIterator.next())
+        val next = unwindIterator.next()
+        maybeOffset.foreach(offset => newItem.setRefAt(offset, next))
         nextItem = newItem
       } else {
         if (input.hasNext) {

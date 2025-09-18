@@ -2631,17 +2631,21 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case UnwindCollection(_, variable, expression) =>
-        val details = Details(projectedExpressionInfo(Map(variable -> expression)).mkPrettyString(SEPARATOR))
-        PlanDescriptionImpl(id, "Unwind", children, Seq(details), variables, withRawCardinalities, withDistinctness)
+      case UnwindCollection(_, maybeVariable, expression) =>
+        val details = maybeVariable.map(variable =>
+          Details(projectedExpressionInfo(Map(variable -> expression)).mkPrettyString(SEPARATOR))
+        ).toSeq
+        PlanDescriptionImpl(id, "Unwind", children, details, variables, withRawCardinalities, withDistinctness)
 
-      case PartitionedUnwindCollection(_, variable, expression) =>
-        val details = Details(projectedExpressionInfo(Map(variable -> expression)).mkPrettyString(SEPARATOR))
+      case PartitionedUnwindCollection(_, maybeVariable, expression) =>
+        val details = maybeVariable.map(variable =>
+          Details(projectedExpressionInfo(Map(variable -> expression)).mkPrettyString(SEPARATOR))
+        ).toSeq
         PlanDescriptionImpl(
           id,
           "PartitionedUnwind",
           children,
-          Seq(details),
+          details,
           variables,
           withRawCardinalities,
           withDistinctness

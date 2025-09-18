@@ -1696,13 +1696,13 @@ case class InterpretedPipeMapper(
           matchMode
         )(id = id)
 
-      case UnwindCollection(_, variable, collection) =>
-        UnwindPipe(source, buildExpression(collection), variable.name)(id = id)
+      case UnwindCollection(_, maybeVariable, collection) =>
+        UnwindPipe(source, buildExpression(collection), maybeVariable.map(_.name))(id = id)
 
       // Note: this plan shouldn't really be used here, but having it mapped here helps
       //      fallback and makes testing easier
-      case PartitionedUnwindCollection(_, variable, collection) =>
-        UnwindPipe(source, buildExpression(collection), variable.name)(id = id)
+      case PartitionedUnwindCollection(_, maybeVariable, collection) =>
+        UnwindPipe(source, buildExpression(collection), maybeVariable.map(_.name))(id = id)
 
       case ProcedureCall(_, call @ ResolvedCall(signature, callArguments, _, _, _, _, _)) =>
         val callMode = ProcedureCallMode.fromAccessMode(signature.accessMode)
