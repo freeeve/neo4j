@@ -191,26 +191,33 @@ class KernelTransactionTestBase {
         return storageReader;
     }
 
-    public KernelTransactionImplementation newTransaction(long transactionTimeoutMillis) {
+    public KernelTransactionImplementation newTransaction(long transactionTimeoutMillis, long startTimeMillis) {
         return newTransaction(
                 0,
                 AUTH_DISABLED,
                 new TransactionTimeout(
                         Duration.ofMillis(transactionTimeoutMillis), TransactionTimedOutClientConfiguration),
-                1L);
+                1L,
+                startTimeMillis);
     }
 
     public KernelTransactionImplementation newTransaction(LoginContext loginContext) {
-        return newTransaction(0, loginContext, defaultTransactionTimeoutMillis, 1L);
+        return newTransaction(loginContext, 0);
+    }
+
+    public KernelTransactionImplementation newTransaction(LoginContext loginContext, long startTimeMillis) {
+        return newTransaction(0, loginContext, defaultTransactionTimeoutMillis, 1L, startTimeMillis);
     }
 
     public KernelTransactionImplementation newTransaction(
             long lastTransactionIdWhenStarted,
             LoginContext loginContext,
             TransactionTimeout transactionTimeout,
-            long userTransactionId) {
+            long userTransactionId,
+            long startTimeMillis) {
         KernelTransactionImplementation tx = newNotInitializedTransaction();
-        initialize(lastTransactionIdWhenStarted, loginContext, transactionTimeout, userTransactionId, tx);
+        initialize(
+                lastTransactionIdWhenStarted, loginContext, transactionTimeout, userTransactionId, startTimeMillis, tx);
         return tx;
     }
 
@@ -219,6 +226,7 @@ class KernelTransactionTestBase {
             LoginContext loginContext,
             TransactionTimeout transactionTimeout,
             long userTransactionId,
+            long startTimeMillis,
             KernelTransactionImplementation tx) {
         SecurityContext securityContext =
                 loginContext.authorize(LoginContext.IdLookup.EMPTY, sessionDatabase, CommunitySecurityLog.NULL_LOG);
@@ -229,7 +237,8 @@ class KernelTransactionTestBase {
                 transactionTimeout,
                 userTransactionId,
                 EMBEDDED_CONNECTION,
-                procedureView);
+                procedureView,
+                startTimeMillis);
     }
 
     KernelTransactionImplementation newNotInitializedTransaction() {

@@ -334,7 +334,14 @@ class KernelTransactionTerminationTest {
 
         TestKernelTransaction initialize() {
             initialize(
-                    42, Type.IMPLICIT, AUTH_DISABLED, NO_TIMEOUT, 1L, EMBEDDED_CONNECTION, mock(ProcedureView.class));
+                    42,
+                    Type.IMPLICIT,
+                    AUTH_DISABLED,
+                    NO_TIMEOUT,
+                    1L,
+                    EMBEDDED_CONNECTION,
+                    mock(ProcedureView.class),
+                    0L);
             monitor.reset();
             return this;
         }

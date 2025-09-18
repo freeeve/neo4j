@@ -669,7 +669,8 @@ public class KernelTransactionImplementation
             TransactionTimeout transactionTimeout,
             long transactionSequenceNumber,
             ClientConnectionInfo clientInfo,
-            ProcedureView procedureView) {
+            ProcedureView procedureView,
+            long startTimeMillis) {
         assert transactionMemoryPool.usedHeap() == 0;
         assert transactionMemoryPool.usedNative() == 0;
         assert !failedCleanup : "This transaction should not be reused since it did not close properly";
@@ -683,7 +684,7 @@ public class KernelTransactionImplementation
         this.terminationMark = null;
         this.commit = false;
         this.writeState = TransactionWriteState.NONE;
-        this.startTimeMillis = clocks.systemClock().millis();
+        this.startTimeMillis = startTimeMillis;
         this.startTimeNanos = clocks.systemClock().nanos();
         this.timeout = transactionTimeout;
         this.lastTransactionIdWhenStarted = lastCommittedTx;

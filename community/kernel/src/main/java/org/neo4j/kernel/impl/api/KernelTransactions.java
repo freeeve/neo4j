@@ -296,9 +296,12 @@ public class KernelTransactions extends LifecycleAdapter
         ProcedureView procedureView = globalProcedures.getCurrentView();
         BooleanSupplier isStale = () -> !globalProcedures.getCurrentView().equals(procedureView);
         PrivilegeDatabaseReference sessionDatabase = getDatabaseReference(loginContext);
+        // startTimeMillis is captured here in preparation for being passed into the loginContext.authorize call. This
+        // will be done in a subsequent change.
+        long startTimeMillis = clock.millis();
         SecurityContext securityContext = loginContext.authorize(
                 new TokenHoldersIdLookup(tokenHolders, procedureView, isStale), sessionDatabase, securityLog);
-        var tx = newKernelTransaction(type, clientInfo, timeout, securityContext, procedureView);
+        var tx = newKernelTransaction(type, clientInfo, timeout, securityContext, procedureView, startTimeMillis);
         databaseSerialGuard.acquireSerialLock(tx);
         return tx;
     }
@@ -322,7 +325,8 @@ public class KernelTransactions extends LifecycleAdapter
             ClientConnectionInfo clientInfo,
             TransactionTimeout timeout,
             SecurityContext securityContext,
-            ProcedureView procedureView) {
+            ProcedureView procedureView,
+            long startTimeMillis) {
         try {
             while (!newTransactionsLock.readLock().tryLock(1, TimeUnit.SECONDS)) {
                 assertRunning();
@@ -338,7 +342,8 @@ public class KernelTransactions extends LifecycleAdapter
                         timeout,
                         transactionIdSequence.next(),
                         clientInfo,
-                        procedureView);
+                        procedureView,
+                        startTimeMillis);
                 return tx;
             } finally {
                 newTransactionsLock.readLock().unlock();

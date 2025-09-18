@@ -170,7 +170,8 @@ public final class KernelTransactionFactory {
                 NO_TIMEOUT,
                 1L,
                 EMBEDDED_CONNECTION,
-                mock(ProcedureView.class));
+                mock(ProcedureView.class),
+                0L);
 
         return new Instances(transaction);
     }

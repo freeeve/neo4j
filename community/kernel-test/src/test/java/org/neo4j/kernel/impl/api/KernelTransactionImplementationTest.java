@@ -449,7 +449,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                     DEFAULT_TX_TIMEOUT,
                     1L,
                     EMBEDDED_CONNECTION,
-                    mock(ProcedureView.class));
+                    mock(ProcedureView.class),
+                    startingTime);
             transaction.txState().nodeDoCreate(1L);
             // WHEN committing it at a later point
             clock.forward(5, MILLISECONDS);
@@ -606,7 +607,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
     @Test
     void transactionWithCustomTimeout() {
         long transactionTimeout = 5L;
-        KernelTransactionImplementation transaction = newTransaction(transactionTimeout);
+        KernelTransactionImplementation transaction = newTransaction(transactionTimeout, 0L);
         assertEquals(
                 new TransactionTimeout(Duration.ofMillis(transactionTimeout), TransactionTimedOutClientConfiguration),
                 transaction.timeout(),
@@ -615,9 +616,12 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
 
     @Test
     void transactionStartTime() {
-        long startTime = clock.forward(5, TimeUnit.MINUTES).millis();
-        KernelTransactionImplementation transaction = newTransaction(AUTH_DISABLED);
-        assertEquals(startTime, transaction.startTime(), "Transaction start time should be the same as clock time.");
+        long startTime = 1234L;
+        KernelTransactionImplementation transaction = newTransaction(AUTH_DISABLED, startTime);
+        assertEquals(
+                startTime,
+                transaction.startTime(),
+                "Transaction start time should be the same as the `startTimeMillis` parameter supplied to `KernelTransactionImplementation.initialize`.");
     }
 
     @ParameterizedTest
@@ -627,7 +631,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
         long userTransactionId = 10;
         Status.Transaction terminationReason = Status.Transaction.Terminated;
 
-        KernelTransactionImplementation tx = newTransaction(2L, AUTH_DISABLED, DEFAULT_TX_TIMEOUT, userTransactionId);
+        KernelTransactionImplementation tx =
+                newTransaction(2L, AUTH_DISABLED, DEFAULT_TX_TIMEOUT, userTransactionId, 0L);
 
         assertTrue(tx.markForTermination(userTransactionId, terminationReason));
 
@@ -642,7 +647,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
         long wrongUserTransactionId = userTransactionId + 2;
         Status.Transaction terminationReason = Status.Transaction.Terminated;
 
-        KernelTransactionImplementation tx = newTransaction(2L, AUTH_DISABLED, DEFAULT_TX_TIMEOUT, userTransactionId);
+        KernelTransactionImplementation tx =
+                newTransaction(2L, AUTH_DISABLED, DEFAULT_TX_TIMEOUT, userTransactionId, 0L);
 
         assertFalse(tx.markForTermination(wrongUserTransactionId, terminationReason));
 
@@ -651,7 +657,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
 
     @Test
     void resetTransactionStatisticsOnRelease() throws TransactionFailureException {
-        KernelTransactionImplementation transaction = newTransaction(1000);
+        KernelTransactionImplementation transaction = newTransaction(1000, 0);
         transaction.getStatistics().addWaitingTime(1);
         transaction.getStatistics().addWaitingTime(1);
         assertEquals(2, transaction.getStatistics().getWaitingTimeNanos(0));
@@ -661,7 +667,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
 
     @Test
     void reportTransactionStatistics() {
-        KernelTransactionImplementation transaction = newTransaction(100);
+        KernelTransactionImplementation transaction = newTransaction(100, 0);
         transaction.memoryTracker().allocateHeap(13);
         transaction.memoryTracker().allocateNative(14);
         KernelTransactionImplementation.Statistics statistics = new KernelTransactionImplementation.Statistics(
@@ -710,7 +716,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                 DEFAULT_TX_TIMEOUT,
                 1L,
                 EMBEDDED_CONNECTION,
-                mock(ProcedureView.class));
+                mock(ProcedureView.class),
+                0L);
         assertEquals("KernelTransaction[lease:" + leaseId + "]", transaction.toString());
     }
 
@@ -738,7 +745,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                 DEFAULT_TX_TIMEOUT,
                 1L,
                 EMBEDDED_CONNECTION,
-                mock(ProcedureView.class));
+                mock(ProcedureView.class),
+                0L);
 
         // when / then
         assertThrows(LeaseException.class, transaction::txState);
@@ -760,7 +768,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                 DEFAULT_TX_TIMEOUT,
                 1L,
                 EMBEDDED_CONNECTION,
-                mock(ProcedureView.class));
+                mock(ProcedureView.class),
+                0L);
 
         // when / then
         var rte = assertThrows(RuntimeException.class, transaction::txState);
@@ -786,7 +795,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                 DEFAULT_TX_TIMEOUT,
                 1L,
                 EMBEDDED_CONNECTION,
-                mock(ProcedureView.class));
+                mock(ProcedureView.class),
+                0L);
 
         verify(config, times(3)).addListener(any(), any());
 
@@ -799,7 +809,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
     @Test
     void dynamicChangeTransactionHeapLimit() throws TransactionFailureException {
         config.set(memory_transaction_max_size, mebiBytes(2));
-        try (KernelTransactionImplementation transaction = newTransaction(1000)) {
+        try (KernelTransactionImplementation transaction = newTransaction(1000, 0)) {
             // Limit should prevent this from succeeding
             assertThrows(
                     MemoryLimitExceededException.class,
@@ -815,7 +825,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                     DEFAULT_TX_TIMEOUT,
                     1L,
                     EMBEDDED_CONNECTION,
-                    mock(ProcedureView.class));
+                    mock(ProcedureView.class),
+                    0L);
 
             transaction.memoryTracker().allocateHeap(mebiBytes(3));
         }
@@ -907,7 +918,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                     DEFAULT_TX_TIMEOUT,
                     1L,
                     EMBEDDED_CONNECTION,
-                    mock(ProcedureView.class));
+                    mock(ProcedureView.class),
+                    0L);
             assertThat(((TxState) transaction.txState()).enrichmentMode()).isEqualTo(mode);
             if (createNode) {
                 transaction.dataWrite().nodeCreate();
@@ -948,6 +960,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                 AUTH_DISABLED,
                 new TransactionTimeout(Duration.ofSeconds(1), TransactionTimedOutClientConfiguration),
                 1L,
+                0L,
                 transaction);
         assertThatCode(transaction::commit).doesNotThrowAnyException();
     }
@@ -961,6 +974,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
                 AUTH_DISABLED,
                 new TransactionTimeout(Duration.ofSeconds(1), TransactionTimedOutClientConfiguration),
                 1L,
+                0L,
                 transaction);
         RuntimeException foo = new RuntimeException("foo");
         doThrow(foo).when(locksClient).close();
