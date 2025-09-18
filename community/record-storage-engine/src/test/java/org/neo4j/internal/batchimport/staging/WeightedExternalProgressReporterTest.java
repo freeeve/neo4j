@@ -24,13 +24,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.assertj.core.data.Percentage;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class WeightedExternalProgressReporterTest {
     @Inject
     private RandomSupport random;

@@ -55,7 +55,6 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.batchimport.api.PropertyValueLookup;
@@ -72,9 +71,9 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class EncodingIdMapperTest {
     private static final PropertyValueLookup CONVERT_TO_STRING = r -> new PropertyValueLookup.Lookup() {
         @Override

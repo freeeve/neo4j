@@ -37,7 +37,6 @@ import java.util.List;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.nativeimpl.NativeAccess;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
@@ -60,12 +59,12 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class EnvelopeFuzzerTest {
     private static final long ROTATION_PERIOD = 42L;
 

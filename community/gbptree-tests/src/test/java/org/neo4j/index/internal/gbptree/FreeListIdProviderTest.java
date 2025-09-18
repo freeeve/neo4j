@@ -42,15 +42,14 @@ import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.index.internal.gbptree.FreeListIdProvider.Monitor;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class FreeListIdProviderTest {
     private static final int PAYLOAD_SIZE = 128;
     private static final long GENERATION_ONE = GenerationSafePointer.MIN_GENERATION;

@@ -34,17 +34,16 @@ import static org.neo4j.values.storable.Values.stringValue;
 
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class GenericIndexKeyValidatorTest {
     private final IndexDescriptor descriptor = IndexPrototype.forSchema(SchemaDescriptors.forLabel(1, 1))
             .withName("test")

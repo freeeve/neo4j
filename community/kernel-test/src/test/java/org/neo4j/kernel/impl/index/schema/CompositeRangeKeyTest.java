@@ -23,13 +23,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.Values;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class CompositeRangeKeyTest {
     @Inject
     RandomSupport random;

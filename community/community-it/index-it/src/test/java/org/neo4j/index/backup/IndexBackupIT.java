@@ -35,7 +35,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.lucene.index.IndexFileNames;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -50,10 +49,10 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @DbmsExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class IndexBackupIT {
     private static final String PROPERTY_PREFIX = "property";
     private static final int NUMBER_OF_INDEXES = 10;

@@ -26,15 +26,14 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.Arrays;
 import java.util.Collection;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactory;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class LongCollisionValuesTest {
     @Inject
     private RandomSupport random;

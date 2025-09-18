@@ -34,18 +34,17 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.list.primitive.LongList;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.index.internal.gbptree.LoggingStructureWriteLog.Type;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class LoggingStructureWriteLogTest {
     @Inject
     private FileSystemAbstraction fs;

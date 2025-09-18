@@ -24,13 +24,12 @@ import static org.neo4j.internal.kernel.api.PopulationProgress.multiple;
 import static org.neo4j.internal.kernel.api.PopulationProgress.single;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class PopulationProgressTest {
     @Inject
     protected RandomSupport random;

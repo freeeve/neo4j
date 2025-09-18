@@ -34,7 +34,6 @@ import org.eclipse.collections.impl.list.primitive.LongInterval;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -57,12 +56,12 @@ import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
 
 @EphemeralPageCacheExtension
 @EphemeralNeo4jLayoutExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class RecordRelationshipScanCursorTest {
     private static final long RELATIONSHIP_ID = 1L;
 

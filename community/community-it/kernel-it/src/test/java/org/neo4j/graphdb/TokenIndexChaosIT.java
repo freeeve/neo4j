@@ -37,7 +37,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.graphdb.schema.IndexType;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -49,14 +48,14 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsController;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 /**
  * Tests functionality around missing or corrupted token indexes, and that
  * the database should repair (i.e. rebuild) that automatically and just work.
  */
 @DbmsExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class TokenIndexChaosIT {
     @Inject
     private RandomSupport random;

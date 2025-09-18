@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -48,7 +47,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.TextValue;
 
 /**
@@ -93,7 +92,7 @@ import org.neo4j.values.storable.TextValue;
  * Code navigation:
  */
 @DbmsExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class MultipleOpenCursorsTest {
     private static final Label indexLabel = Label.label("IndexLabel");
     private static final String numberProp1 = "numberProp1";

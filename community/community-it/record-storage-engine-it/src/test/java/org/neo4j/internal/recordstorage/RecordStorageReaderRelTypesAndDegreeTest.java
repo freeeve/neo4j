@@ -44,7 +44,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.function.LongConsumer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Direction;
@@ -65,11 +64,11 @@ import org.neo4j.storageengine.util.EagerDegrees;
 import org.neo4j.storageengine.util.SingleDegree;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.storage.RecordStorageEngineSupport;
 import org.neo4j.token.api.TokenConstants;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class RecordStorageReaderRelTypesAndDegreeTest extends RecordStorageReaderTestBase {
     protected static final int RELATIONSHIPS_COUNT = 20;
 

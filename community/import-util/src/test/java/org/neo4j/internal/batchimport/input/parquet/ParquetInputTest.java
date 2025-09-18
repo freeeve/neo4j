@@ -62,7 +62,6 @@ import org.assertj.core.api.Assertions;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -81,7 +80,7 @@ import org.neo4j.internal.helpers.collection.MapUtil;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.token.CreatingTokenHolder;
@@ -101,7 +100,7 @@ import org.neo4j.values.storable.VectorValue;
 import org.opentest4j.AssertionFailedError;
 
 @TestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class ParquetInputTest {
 
     @Inject

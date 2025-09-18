@@ -37,7 +37,6 @@ import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.PopulationProgress;
@@ -57,11 +56,11 @@ import org.neo4j.storageengine.api.StubStorageCursors;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class NodeStoreScanTest {
     private static final String KEY_NAME = "name";
     private static final String KEY_AGE = "age";

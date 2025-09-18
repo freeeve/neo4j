@@ -44,15 +44,14 @@ import java.util.function.LongSupplier;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PageCursorUtil;
 import org.neo4j.io.pagecache.impl.DelegatingPageCursor;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 abstract class SeekCursorTestBase<KEY, VALUE> {
     private static final int PAGE_SIZE = 256;
     private static final RootCatchup FAILING_ROOT_CATCHUP = (id, context) -> {

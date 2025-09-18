@@ -25,15 +25,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.kernel.impl.store.record.RelationshipGroupRecord;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class RelationshipGroupCacheTest {
     @Inject
     private RandomSupport random;

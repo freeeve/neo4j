@@ -27,7 +27,6 @@ import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.api.KernelTransaction.Type.IMPLICIT;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -42,12 +41,12 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.storable.Values;
 
 @DbmsExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class IndexPopulationFlipRaceIT {
     private static final int NODES_PER_INDEX = 10;
 

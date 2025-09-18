@@ -36,12 +36,11 @@ import java.util.Map;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.assertj.core.util.Maps;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.SyntaxException;
 import org.neo4j.exceptions.UnsupportedTemporalUnitException;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.LocalDateTimeValue;
@@ -49,7 +48,7 @@ import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TimeValue;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class Cypher5LiteralInterpreterTest {
     public static final ZoneId DEFAULT_ZONE_ID = ZoneId.systemDefault();
 

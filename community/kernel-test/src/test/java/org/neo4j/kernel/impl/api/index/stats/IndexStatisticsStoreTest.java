@@ -41,7 +41,6 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.index.internal.gbptree.TreeFileNotFoundException;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -57,12 +56,12 @@ import org.neo4j.kernel.api.index.IndexUsageStats;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @EphemeralPageCacheExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class IndexStatisticsStoreTest {
     private LifeSupport lifeSupport = new LifeSupport();
 

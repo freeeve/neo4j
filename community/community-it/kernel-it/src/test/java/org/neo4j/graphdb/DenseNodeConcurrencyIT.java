@@ -65,7 +65,6 @@ import java.util.stream.Stream;
 import org.assertj.core.description.Description;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -104,11 +103,11 @@ import org.neo4j.test.Tokens;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class DenseNodeConcurrencyIT {
     private static final int NUM_INITIAL_RELATIONSHIPS_PER_DENSE_NODE = 500;
     private static final int NUM_INITIAL_RELATIONSHIPS_PER_SPARSE_NODE = 10;

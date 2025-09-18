@@ -29,15 +29,14 @@ import org.eclipse.collections.api.block.procedure.primitive.LongFloatProcedure;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9ScoredEntityResultCollector.ScoredEntityPriorityQueue;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9ScoredEntityResultCollector.ScoredEntityResultsMaxQueueIterator;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9ScoredEntityResultCollector.ScoredEntityResultsMinQueueIterator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class Lucene9ScoredEntityResultCollectorTest {
     @Inject
     RandomSupport random;

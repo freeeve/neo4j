@@ -24,16 +24,15 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.kernel.impl.store.record.MetaDataRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipGroupRecord;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.StorageCommand;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class LogCommandSerializationV4_3D_3Test extends LogCommandSerializationV4_2Test {
     @Test
     void shouldReadAndWriteMetaDataCommand() throws IOException {

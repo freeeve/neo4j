@@ -22,12 +22,11 @@ package org.neo4j.internal.id;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class IdUtilsTest {
     @Inject
     private RandomSupport random;

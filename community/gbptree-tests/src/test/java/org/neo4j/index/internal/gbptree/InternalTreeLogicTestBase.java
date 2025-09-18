@@ -46,7 +46,6 @@ import java.util.TreeSet;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -57,10 +56,10 @@ import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PageCursorUtil;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @SuppressWarnings("unused")
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @ResourceLock(InternalTreeLogicTestBase.INDEX_RESOURCE)
 abstract class InternalTreeLogicTestBase<KEY, VALUE> {
     static final String INDEX_RESOURCE = "index";

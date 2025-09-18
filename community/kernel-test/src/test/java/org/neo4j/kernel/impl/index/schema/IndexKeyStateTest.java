@@ -76,7 +76,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -87,7 +86,7 @@ import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.string.UTF8;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.ByteArray;
 import org.neo4j.values.storable.ByteValue;
@@ -123,7 +122,7 @@ import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @TestInstance(PER_CLASS)
 abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @Inject

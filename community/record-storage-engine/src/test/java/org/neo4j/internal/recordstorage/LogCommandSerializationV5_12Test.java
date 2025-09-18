@@ -19,10 +19,9 @@
  */
 package org.neo4j.internal.recordstorage;
 
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class LogCommandSerializationV5_12Test extends LogCommandSerializationV5_11Test {
 
     @Override

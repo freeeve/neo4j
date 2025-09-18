@@ -25,13 +25,12 @@ import static org.neo4j.token.api.TokenConstants.NO_TOKEN;
 
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class RelationshipSelectionTest {
     @Inject
     private RandomSupport random;

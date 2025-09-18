@@ -25,16 +25,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.values.virtual.VirtualValues.fromArray;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.VirtualValues;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class ListValueFuzzTest {
     @Inject
     private RandomSupport random;

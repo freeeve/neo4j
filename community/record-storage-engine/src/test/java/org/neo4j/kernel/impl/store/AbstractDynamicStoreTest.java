@@ -42,7 +42,6 @@ import java.util.Iterator;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.recordstorage.RecordIdType;
@@ -62,11 +61,11 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
 
 @EphemeralPageCacheExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class AbstractDynamicStoreTest {
     protected static final int BLOCK_SIZE = 60;
 

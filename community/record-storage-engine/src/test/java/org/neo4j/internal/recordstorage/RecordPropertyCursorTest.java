@@ -45,7 +45,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
@@ -77,14 +76,14 @@ import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 
 @EphemeralPageCacheExtension
 @EphemeralNeo4jLayoutExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class RecordPropertyCursorTest {
     @Inject
     protected RandomSupport random;

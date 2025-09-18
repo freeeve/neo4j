@@ -32,7 +32,6 @@ import org.apache.commons.lang3.mutable.MutableLong;
 import org.assertj.core.api.Condition;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
@@ -41,12 +40,12 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @PageCacheExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class GBPTreeWithUndefinedValuesTest {
 
     public static final int MAX_NUMBERS = 2000;

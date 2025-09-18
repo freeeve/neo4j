@@ -49,7 +49,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.internal.helpers.collection.Iterables;
@@ -83,13 +82,13 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.ReflectionUtil;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
 import org.neo4j.util.BitBuffer;
 
 @EphemeralPageCacheExtension
 @EphemeralNeo4jLayoutExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class NodeLabelsFieldTest {
     @Inject
     private PageCache pageCache;

@@ -35,7 +35,6 @@ import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.collections.api.factory.Sets;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.internal.batchimport.staging.BatchSender;
 import org.neo4j.internal.batchimport.staging.ProcessorStep;
@@ -65,11 +64,11 @@ import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @PageCacheExtension
 @Neo4jLayoutExtension
 class ReadEntityIdsStepUsingTokenIndexTest {

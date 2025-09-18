@@ -26,7 +26,6 @@ import static org.neo4j.storageengine.api.cursor.StoreCursors.NULL;
 
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.internal.kernel.api.EntityLocks;
 import org.neo4j.internal.kernel.api.QueryContext;
@@ -46,9 +45,9 @@ import org.neo4j.storageengine.api.StubStorageCursors;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class DefaultNodeBasedRelationshipTypeIndexCursorTest {
     @Inject
     private RandomSupport random;

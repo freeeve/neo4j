@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -43,7 +42,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
@@ -51,7 +50,7 @@ import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.ValueType;
 import org.neo4j.values.storable.Values;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class IndexProvidedValuesRange10Test extends KernelAPIReadTestBase<ReadTestSupport> {
     private static final int N_ENTITIES = 10000;

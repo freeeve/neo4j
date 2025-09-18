@@ -28,7 +28,6 @@ import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.io.fs.BufferBackedChannel;
@@ -36,7 +35,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.enrichment.WriteEnrichmentChannel;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.ValueType;
@@ -50,7 +49,7 @@ import org.neo4j.values.virtual.VirtualPathValue;
 import org.neo4j.values.virtual.VirtualRelationshipValue;
 import org.neo4j.values.virtual.VirtualValues;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class ValuesReadWriteTest {
 
     @Inject

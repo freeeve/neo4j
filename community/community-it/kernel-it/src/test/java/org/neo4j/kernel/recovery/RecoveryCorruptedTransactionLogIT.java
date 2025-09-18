@@ -61,7 +61,6 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -139,14 +138,14 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 
 @SkipOnSpd(
         reason = "Assertions are quite specific tx log characteristic of a single db and starting db on "
                 + "failed recovery throws explicit exception in SPD setup, not in single-db setup")
 @Neo4jLayoutExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class RecoveryCorruptedTransactionLogIT {
     private int CHECKPOINT_RECORD_SIZE;
     private LogCommandSerialization LATEST_LOG_SERIALIZATION;

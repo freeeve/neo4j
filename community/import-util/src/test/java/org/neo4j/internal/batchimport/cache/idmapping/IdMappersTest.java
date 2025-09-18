@@ -26,12 +26,11 @@ import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.api.list.primitive.LongList;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class IdMappersTest {
     private static final long MAX_VALUE = 100;
 

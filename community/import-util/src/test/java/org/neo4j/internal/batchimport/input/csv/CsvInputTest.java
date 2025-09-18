@@ -91,7 +91,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.batchimport.api.InputIterator;
@@ -124,7 +123,7 @@ import org.neo4j.internal.helpers.collection.MapUtil;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.token.CreatingTokenHolder;
@@ -142,7 +141,7 @@ import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Values;
 
 @TestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class CsvInputTest {
 
     private static final PropertySizeCalculator PROPERTY_SIZE_CALCULATOR = (values, cursorContext, memoryTracker) -> 0;

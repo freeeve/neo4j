@@ -60,13 +60,13 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.LifeExtension;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.util.concurrent.Futures;
 
 @Neo4jLayoutExtension
 @ExtendWith(LifeExtension.class)
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class QueueTransactionAppenderConcurrencyIT {
     @Inject
     private FileSystemAbstraction fileSystem;

@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
@@ -66,10 +65,10 @@ import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.Values;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 abstract class LogCommandSerializationV5Base {
 
     @Inject

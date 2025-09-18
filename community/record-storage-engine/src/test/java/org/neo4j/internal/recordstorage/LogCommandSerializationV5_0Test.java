@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.recordstorage.Command.RecordEnrichmentCommand;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -35,9 +34,9 @@ import org.neo4j.storageengine.api.enrichment.CaptureMode;
 import org.neo4j.storageengine.api.enrichment.Enrichment;
 import org.neo4j.storageengine.api.enrichment.EnrichmentCommand;
 import org.neo4j.storageengine.api.enrichment.TxMetadata;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class LogCommandSerializationV5_0Test extends LogCommandSerializationV5Base {
 
     @RepeatedTest(10)

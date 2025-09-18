@@ -42,7 +42,6 @@ import org.eclipse.collections.api.set.MutableSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.common.EntityType;
@@ -76,7 +75,7 @@ import org.neo4j.internal.schema.constraints.TypeConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.UniquenessConstraintDescriptor;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.token.RegisteringCreatingTokenHolder;
 import org.neo4j.token.TokenCreator;
 import org.neo4j.token.TokenHolders;
@@ -84,7 +83,7 @@ import org.neo4j.token.api.TokenHolder;
 import org.neo4j.values.storable.Values;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class SchemaCommandTest {
 
     private static final String NAME = "testing";

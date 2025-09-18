@@ -30,14 +30,13 @@ import static org.neo4j.values.storable.Values.stringValue;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.RelationshipDirection;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class NodeStateImplTest {
     @Inject
     private RandomSupport random;

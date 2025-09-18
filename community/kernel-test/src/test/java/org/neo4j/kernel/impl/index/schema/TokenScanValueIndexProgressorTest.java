@@ -35,16 +35,15 @@ import org.eclipse.collections.api.iterator.LongIterator;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.impl.factory.Lists;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.kernel.api.index.EntityRange;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @SuppressWarnings("StatementWithEmptyBody")
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class TokenScanValueIndexProgressorTest {
     @Inject
     private RandomSupport random;

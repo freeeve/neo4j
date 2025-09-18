@@ -74,7 +74,6 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.counts.InvalidCountException;
 import org.neo4j.index.internal.gbptree.MultiRootGBPTree;
 import org.neo4j.internal.counts.GBPTreeGenericCountsStore.Rebuilder;
@@ -93,7 +92,7 @@ import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.util.concurrent.ArrayQueueOutOfOrderSequence;
@@ -101,7 +100,7 @@ import org.neo4j.util.concurrent.BinaryLatch;
 import org.neo4j.util.concurrent.OutOfOrderSequence;
 
 @PageCacheExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class GBPTreeGenericCountsStoreTest {
     private static final int HIGH_TOKEN_ID = 30;
     private static final int LABEL_ID_1 = 1;

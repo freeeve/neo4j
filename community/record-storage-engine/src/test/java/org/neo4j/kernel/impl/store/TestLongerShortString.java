@@ -27,14 +27,13 @@ import static org.neo4j.kernel.impl.store.format.standard.PropertyRecordFormat.D
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.kernel.impl.store.record.PropertyBlock;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.Values;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class TestLongerShortString {
     @Inject
     protected RandomSupport random;

@@ -39,7 +39,6 @@ import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -47,10 +46,10 @@ import org.neo4j.kernel.impl.store.PropertyType;
 import org.neo4j.kernel.impl.store.StandaloneDynamicRecordAllocator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.RandomValues;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class AbstractBaseRecordCopyTest {
     private static final int MAX_RANDOM_ARRAY = 128;
     private static final int MAX_RANDOM_LIST_SIZE = 16;

@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import org.eclipse.collections.api.set.ImmutableSet;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -46,12 +45,12 @@ import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.test.FormatCompatibilityVerifier;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheSupportExtension;
 import org.neo4j.test.tags.MultiVersionedTag;
 import org.neo4j.test.utils.PageCacheConfig;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class GBPTreeFormatTest<KEY, VALUE> extends FormatCompatibilityVerifier {
 
     private static final String STORE = "store";

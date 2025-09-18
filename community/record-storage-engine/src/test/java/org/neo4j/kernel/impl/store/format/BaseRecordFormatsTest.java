@@ -30,13 +30,12 @@ import static org.neo4j.internal.helpers.collection.Iterators.array;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.storageengine.api.format.CapabilityType;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class BaseRecordFormatsTest {
     private static final RecordStorageCapability[] CAPABILITIES = RecordStorageCapability.values();
     private static final CapabilityType[] CAPABILITY_TYPES = CapabilityType.values();

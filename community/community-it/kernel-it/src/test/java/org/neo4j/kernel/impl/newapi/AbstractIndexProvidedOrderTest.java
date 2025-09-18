@@ -34,7 +34,6 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -47,7 +46,7 @@ import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
@@ -55,7 +54,7 @@ import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.ValueType;
 
 @SuppressWarnings("FieldCanBeLocal")
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBase<ReadTestSupport> {
     private static final int N_ENTITIES = 10000;
     private static final int N_ITERATIONS = 100;

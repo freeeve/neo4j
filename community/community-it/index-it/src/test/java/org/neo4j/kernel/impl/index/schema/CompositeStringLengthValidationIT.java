@@ -29,7 +29,6 @@ import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -50,9 +49,9 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestLabels;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @DbmsExtension
 class CompositeStringLengthValidationIT {
     private static final Label LABEL = TestLabels.LABEL_ONE;

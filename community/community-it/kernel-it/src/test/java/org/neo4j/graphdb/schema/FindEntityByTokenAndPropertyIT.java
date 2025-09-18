@@ -35,7 +35,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.assertj.core.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -64,7 +63,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.RandomValuesUtils;
 
@@ -75,7 +74,7 @@ import org.neo4j.values.storable.RandomValuesUtils;
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @DbmsExtension(configurationCallback = "configuration")
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class FindEntityByTokenAndPropertyIT {
     private static final String TOKEN = "token";
     private static final String PROPERTY_KEY = "prop";

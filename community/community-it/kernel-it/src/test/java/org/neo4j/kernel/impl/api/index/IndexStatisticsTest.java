@@ -43,7 +43,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.exceptions.KernelException;
@@ -73,7 +72,7 @@ import org.neo4j.test.extension.DbmsController;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.concurrent.Futures;
 import org.neo4j.values.storable.Values;
@@ -89,7 +88,7 @@ import org.neo4j.values.storable.Values;
  * The area around when the index population is done is controlled using a {@link Barrier} so that we can assert sample data
  * with 100% accuracy against the updates we know that the test has done during the time the index was populating.
  */
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @DbmsExtension(configurationCallback = "configure")
 @SkipOnSpd
 class IndexStatisticsTest {

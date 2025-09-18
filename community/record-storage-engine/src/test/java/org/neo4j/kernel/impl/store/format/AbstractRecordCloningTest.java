@@ -25,7 +25,6 @@ import static org.neo4j.kernel.impl.store.NoStoreHeader.NO_STORE_HEADER;
 import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.id.BatchingIdSequence;
 import org.neo4j.internal.id.IdSequence;
@@ -40,10 +39,10 @@ import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.RandomValues;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public abstract class AbstractRecordCloningTest {
     @Inject
     private RandomSupport random;

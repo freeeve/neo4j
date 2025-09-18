@@ -41,7 +41,6 @@ import java.util.function.BiFunction;
 import org.assertj.core.api.AutoCloseableSoftAssertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.batchimport.api.BatchImporter;
 import org.neo4j.batchimport.api.IndexImporterFactory;
 import org.neo4j.batchimport.api.InputIterable;
@@ -88,7 +87,7 @@ import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.test.utils.TestDirectory;
@@ -99,7 +98,7 @@ import org.neo4j.values.storable.RandomValues;
  * Also updates are randomly streaming in during population. In the end all the indexes should have been populated
  * with correct data.
  */
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @TestDirectoryExtension
 class MultipleIndexPopulationStressIT {
     private static final String[] TOKENS = new String[] {"One", "Two", "Three", "Four"};

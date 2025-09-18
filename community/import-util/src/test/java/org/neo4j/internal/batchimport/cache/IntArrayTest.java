@@ -24,19 +24,18 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.neo4j.memory.LocalMemoryTracker;
 import org.neo4j.memory.MemoryPools;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class IntArrayTest {
     @Inject
     private TestDirectory testDirectory;

@@ -53,7 +53,6 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.configuration.SettingImpl;
 import org.neo4j.dbms.MemoryRecommendation;
@@ -70,7 +69,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
@@ -78,7 +77,7 @@ import org.neo4j.values.storable.RandomValuesUtils;
 import picocli.CommandLine;
 
 @Neo4jLayoutExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class MemoryRecommendationsCommandTest {
     @Inject
     private TestDirectory testDirectory;

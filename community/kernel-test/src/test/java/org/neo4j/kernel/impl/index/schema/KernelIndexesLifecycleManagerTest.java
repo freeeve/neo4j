@@ -58,7 +58,6 @@ import org.eclipse.collections.impl.factory.Multimaps;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -105,7 +104,7 @@ import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.token.CreatingTokenHolder;
 import org.neo4j.token.TokenHolders;
@@ -114,7 +113,7 @@ import org.neo4j.token.api.TokenHolder;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Values;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @Neo4jLayoutExtension
 @PageCacheExtension
 class KernelIndexesLifecycleManagerTest {

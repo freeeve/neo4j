@@ -34,7 +34,6 @@ import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -55,7 +54,7 @@ import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
@@ -64,7 +63,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 @PageCacheExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 abstract class BaseAccessorTilesTest<KEY extends NativeIndexKey<KEY>> {
     private static final CoordinateReferenceSystem crs = CoordinateReferenceSystem.WGS_84;
     private static final Config config = Config.defaults();

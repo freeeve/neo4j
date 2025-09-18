@@ -22,7 +22,6 @@ package org.neo4j.kernel;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -30,10 +29,10 @@ import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @ImpermanentDbmsExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class TransactionStoreConcurrentIT {
 
     public static final int TX_COUNT = 1000;

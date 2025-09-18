@@ -31,14 +31,13 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.memory.Measurable;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @SuppressWarnings("ConstantConditions")
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class DefaultComparatorTopTableTest {
     @Inject
     private RandomSupport random;

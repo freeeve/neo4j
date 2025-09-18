@@ -31,7 +31,6 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.Label;
@@ -54,10 +53,10 @@ import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.token.TokenHolders;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 @DbmsExtension
 public class DynamicIndexStoreViewIT {
     private static final Label PERSON = Label.label("person");

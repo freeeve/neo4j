@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.schema.IndexSettingUtil;
 import org.neo4j.internal.schema.IndexConfig;
@@ -34,11 +33,11 @@ import org.neo4j.kernel.impl.index.schema.config.ConfiguredSpaceFillingCurveSett
 import org.neo4j.kernel.impl.index.schema.config.SpaceFillingCurveSettings;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Value;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class SpatialIndexConfigTest {
     @Inject
     RandomSupport random;

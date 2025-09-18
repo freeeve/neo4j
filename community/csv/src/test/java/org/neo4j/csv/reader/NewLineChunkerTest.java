@@ -34,13 +34,12 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.csv.reader.CharReadableChunker.ChunkImpl;
 import org.neo4j.csv.reader.Source.Chunk;
 import org.neo4j.function.Predicates;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 class NewLineChunkerTest {
 
@@ -55,7 +54,7 @@ class NewLineChunkerTest {
             new CsvConfig('\t', '\''),
             new CsvConfig('|', '\''));
 
-    @ExtendWith(RandomExtension.class)
+    @RandomSupportExtension
     private abstract static class BaseTest {
 
         @Inject

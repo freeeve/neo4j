@@ -44,13 +44,12 @@ import java.util.function.Supplier;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.scheduler.DaemonThreadFactory;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class MpmcLongQueueTest {
     @Inject
     private RandomSupport random;

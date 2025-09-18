@@ -23,16 +23,15 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.util.HashSet;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.kernel.impl.api.LuceneIndexValueValidator;
 import org.neo4j.shaded.lucene9.index.Term;
 import org.neo4j.shaded.lucene9.search.IndexSearcher;
 import org.neo4j.shaded.lucene9.search.QueryVisitor;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class Lucene9TrigramQueryTest {
     @Inject
     private RandomSupport random;

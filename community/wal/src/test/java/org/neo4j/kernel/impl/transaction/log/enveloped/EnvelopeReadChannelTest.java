@@ -41,7 +41,6 @@ import java.util.zip.Checksum;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.EnumSource.Mode;
@@ -67,12 +66,12 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class EnvelopeReadChannelTest {
     private static final long START_INDEX = 0;
     private static final byte CONTENT_TYPE = (byte) 1;

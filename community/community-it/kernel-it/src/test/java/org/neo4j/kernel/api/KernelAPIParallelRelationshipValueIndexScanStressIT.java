@@ -25,7 +25,6 @@ import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unorderedValue
 import static org.neo4j.kernel.api.KernelTransaction.Type.EXPLICIT;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
@@ -44,10 +43,10 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @DbmsExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class KernelAPIParallelRelationshipValueIndexScanStressIT {
     private static final int N_THREADS = 10;
     private static final int N_RELS = 10_000;

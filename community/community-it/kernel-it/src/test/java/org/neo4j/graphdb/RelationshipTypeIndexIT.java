@@ -34,7 +34,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.schema.IndexDefinition;
@@ -61,10 +60,10 @@ import org.neo4j.test.TestLabels;
 import org.neo4j.test.extension.DbmsController;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @DbmsExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class RelationshipTypeIndexIT {
     private static final RelationshipType REL_TYPE = RelationshipType.withName("REL_TYPE");
     private static final RelationshipType OTHER_REL_TYPE = RelationshipType.withName("OTHER_REL_TYPE");

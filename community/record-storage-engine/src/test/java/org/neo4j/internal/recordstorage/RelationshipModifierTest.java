@@ -69,7 +69,6 @@ import org.eclipse.collections.impl.factory.primitive.LongObjectMaps;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.counts.DegreeUpdater;
 import org.neo4j.internal.helpers.Exceptions;
@@ -95,9 +94,9 @@ import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
 import org.neo4j.storageengine.api.txstate.RelationshipModifications;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class RelationshipModifierTest {
     private static final RelationshipDirection[] DIRECTIONS = {OUTGOING, INCOMING, LOOP};
     private static final Supplier<RelationshipDirection> OUT = () -> OUTGOING;

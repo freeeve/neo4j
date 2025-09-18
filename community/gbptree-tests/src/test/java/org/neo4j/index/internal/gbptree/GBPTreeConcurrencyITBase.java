@@ -57,7 +57,6 @@ import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -65,7 +64,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.pagecache.PageCacheSupportExtension;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -85,7 +84,7 @@ import org.neo4j.test.utils.TestDirectory;
  * about what they should do next.
  */
 @EphemeralTestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public abstract class GBPTreeConcurrencyITBase<KEY, VALUE> {
     @Inject
     private FileSystemAbstraction fileSystem;

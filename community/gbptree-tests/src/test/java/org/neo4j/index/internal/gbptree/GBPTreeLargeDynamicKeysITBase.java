@@ -41,7 +41,6 @@ import java.util.function.BiConsumer;
 import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
@@ -49,12 +48,12 @@ import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.string.UTF8;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 abstract class GBPTreeLargeDynamicKeysITBase {
     private static final Layout<RawBytes, RawBytes> layout = new SimpleByteArrayLayout(false);
 

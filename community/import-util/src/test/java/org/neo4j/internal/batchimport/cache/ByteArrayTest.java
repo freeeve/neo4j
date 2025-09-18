@@ -33,7 +33,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsSource;
@@ -42,12 +41,12 @@ import org.neo4j.internal.batchimport.cache.ArrayPermutationTesting.ByteArrayCre
 import org.neo4j.internal.batchimport.cache.ArrayPermutationTesting.NumberArrayFactoryCreator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class ByteArrayTest {
     private static final byte[] DEFAULT = new byte[50];
     private static final int LENGTH = 1_000;

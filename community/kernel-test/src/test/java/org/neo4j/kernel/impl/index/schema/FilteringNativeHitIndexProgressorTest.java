@@ -29,17 +29,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.index.internal.gbptree.Seeker;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.kernel.api.schema.index.TestIndexDescriptorFactory;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class FilteringNativeHitIndexProgressorTest {
     @Inject
     private RandomSupport random;

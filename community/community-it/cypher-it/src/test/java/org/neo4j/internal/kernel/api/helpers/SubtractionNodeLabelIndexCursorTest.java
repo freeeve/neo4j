@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.exceptions.KernelException;
@@ -45,10 +44,10 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @ImpermanentDbmsExtension
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class SubtractionNodeLabelIndexCursorTest {
     @Inject
     private Kernel kernel;

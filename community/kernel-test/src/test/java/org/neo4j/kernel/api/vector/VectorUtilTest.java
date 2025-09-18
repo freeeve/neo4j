@@ -39,7 +39,6 @@ import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.eclipse.collections.api.tuple.Pair;
 import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.RepeatedTest;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -49,14 +48,14 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.VectorCandidate;
 
 /**
  * Functions which are simply wrappers around {@link VectorUtilSupport} method are tested in
  * {@link VectorUtilSupportTest} rather than here.
  */
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 class VectorUtilTest {
 
     @Inject

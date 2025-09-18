@@ -53,14 +53,14 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.OtherThread;
 import org.neo4j.test.extension.OtherThreadExtension;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 @ExtendWith(OtherThreadExtension.class)
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 abstract class IndexOrderTestBase<ENTITY_VALUE_INDEX_CURSOR extends Cursor & ValueIndexCursor>
         extends KernelAPIWriteTestBase<WriteTestSupport> {
     protected static final String DEFAULT_PROPERTY_NAME = "prop";

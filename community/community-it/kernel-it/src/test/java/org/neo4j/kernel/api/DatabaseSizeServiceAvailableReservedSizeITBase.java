@@ -25,7 +25,6 @@ import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import java.io.IOException;
 import java.util.function.ToLongFunction;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
@@ -37,10 +36,10 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public abstract class DatabaseSizeServiceAvailableReservedSizeITBase {
     protected static final String PROPERTY_KEY_PREFIX = "property";
     protected static final Label NODE_LABEL = Label.label("Label");

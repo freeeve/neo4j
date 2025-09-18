@@ -38,7 +38,6 @@ import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import org.eclipse.collections.impl.factory.Sets;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.Config;
@@ -57,14 +56,14 @@ import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
-import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.RandomSupportExtension;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueCategory;
 import org.neo4j.values.storable.ValueType;
 import org.neo4j.values.storable.Values;
 
-@ExtendWith(RandomExtension.class)
+@RandomSupportExtension
 public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPopulatorUpdatesTest<PointKey> {
     private static final StandardConfiguration CONFIGURATION = new StandardConfiguration();
     private static final Config CONFIG = Config.defaults();
