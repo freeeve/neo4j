@@ -521,7 +521,35 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     the[Exception] thrownBy consume(execute(logicalQuery, runtime)) should not be a[NullCheckAssertException]
   }
 
+  // LABEL + PROPERTY SEEKS
+
   test("should filter for a single label and single property") {
+    val indexName = "the_index"
+    val expected = givenGraph {
+      // not matched
+      newNode("B", "prop" -> 1)
+      newNode("A", "prop" -> 2)
+      newNode("A", "paaaarp" -> 1)
+
+      // matched
+      Seq(
+        newNode("A", "prop" -> 1),
+        newNode("A", "B", "prop" -> 1),
+        newNode("A", "B", "prop" -> 1, "paaaarp" -> 1)
+      )
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .filter("true")
+      .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1"))
+      .build()
+
+    val matchExpectations = beColumns("x").withRows(singleColumn(expected))
+    profile(logicalQuery, runtime) should matchExpectations
+  }
+
+  test("should filter for a single label and single property using an index") {
     val indexName = "the_index"
     val expected = givenGraph {
       nodeIndex("A")(_.on("prop").withName(indexName))
@@ -552,6 +580,67 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
         beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
       }
 
+    profile(logicalQuery, runtime) should matchExpectations
+  }
+
+  test("should filter for a single label and multiple properties") {
+    val expected = givenGraph {
+      // not matched
+      newNode("B", "prop" -> 1, "name" -> "bob")
+      newNode("A", "prop" -> 2, "name" -> "bob")
+      newNode("A", "prop" -> 1, "name" -> "alice")
+      newNode("A", "prop" -> "bob", "name" -> 1)
+
+      // matched
+      Seq(
+        newNode("A", "prop" -> 1, "name" -> "bob"),
+        newNode("A", "B", "prop" -> 1, "name" -> "bob"),
+        newNode("A", "prop" -> 1, "name" -> "bob", "notes" -> "jumentous")
+      )
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .filter("true")
+      .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
+      .build()
+
+    val matchExpectations = beColumns("x").withRows(singleColumn(expected))
+    profile(logicalQuery, runtime) should matchExpectations
+  }
+
+  test("should filter for a single label and multiple properties using a single index") {
+    val indexName = "the_index"
+    val expected = givenGraph {
+      nodeIndex("A")(_.on("prop").withName(indexName))
+      nodeIndex("B")(_.on("name").withName("unused_index"))
+
+      // not matched
+      newNode("B", "prop" -> 1, "name" -> "bob")
+      newNode("A", "prop" -> 2, "name" -> "bob")
+      newNode("A", "prop" -> 1, "name" -> "alice")
+      newNode("A", "prop" -> "bob", "name" -> 1)
+
+      // matched
+      Seq(
+        newNode("A", "prop" -> 1, "name" -> "bob"),
+        newNode("A", "B", "prop" -> 1, "name" -> "bob"),
+        newNode("A", "prop" -> 1, "name" -> "bob", "notes" -> "jumentous")
+      )
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .filter("true")
+      .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
+      .build()
+
+    val matchExpectations =
+      if (canFuse) {
+        beColumns("x").withRows(singleColumn(expected))
+      } else {
+        beColumns("x").withRows(singleColumn(expected)).usingIndexes(2, indexName)
+      }
     profile(logicalQuery, runtime) should matchExpectations
   }
 
@@ -594,74 +683,8 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
     profile(logicalQuery, runtime) should matchExpectations
   }
 
-  test("should filter for a single label and multiple properties ignoring indexes") {
-    val indexName = "the_index"
+  test("should filter for all labels and multiple properties") {
     val expected = givenGraph {
-      nodeIndex("A")(_.on("prop").withName(indexName))
-
-      // not matched
-      newNode("B", "prop" -> 1, "name" -> "bob")
-      newNode("A", "prop" -> 2, "name" -> "bob")
-      newNode("A", "prop" -> 1, "name" -> "alice")
-      newNode("A", "prop" -> "bob", "name" -> 1)
-
-      // matched
-      Seq(
-        newNode("A", "prop" -> 1, "name" -> "bob"),
-        newNode("A", "B", "prop" -> 1, "name" -> "bob"),
-        newNode("A", "prop" -> 1, "name" -> "bob", "notes" -> "jumentous")
-      )
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x")
-      .filter("true")
-      .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
-      .build()
-
-    val matchExpectations =
-      if (canFuse) {
-        beColumns("x").withRows(singleColumn(expected))
-      } else {
-        beColumns("x").withRows(singleColumn(expected)).notUsingIndexes(2, indexName)
-      }
-    profile(logicalQuery, runtime) should matchExpectations
-  }
-
-  test("should filter for a single label and multiple properties with no indexes") {
-    val expected = givenGraph {
-      // not matched
-      newNode("B", "prop" -> 1, "name" -> "bob")
-      newNode("A", "prop" -> 2, "name" -> "bob")
-      newNode("A", "prop" -> 1, "name" -> "alice")
-      newNode("A", "prop" -> "bob", "name" -> 1)
-
-      // matched
-      Seq(
-        newNode("A", "prop" -> 1, "name" -> "bob"),
-        newNode("A", "B", "prop" -> 1, "name" -> "bob"),
-        newNode("A", "prop" -> 1, "name" -> "bob", "notes" -> "jumentous")
-      )
-    }
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("x")
-      .filter("true")
-      .dynamicLabelNodeLookup("x", "'A'", Any, Map("prop" -> "1", "name" -> "'bob'"))
-      .build()
-
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    runtimeResult should beColumns("x").withRows(singleColumn(expected))
-  }
-
-  test("should filter for multiple labels and multiple properties (AND)") {
-    val indexNameA = "indexA"
-    val indexNameB = "indexB"
-    val expected = givenGraph {
-      nodeIndex("A")(_.withName(indexNameA).on("age"))
-      nodeIndex("B")(_.withName(indexNameB).on("name"))
-
       // not matched
       newNode("B", "age" -> 21, "name" -> "bob")
       newNode("A", "age" -> 22, "name" -> "bob")
@@ -687,26 +710,19 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
       .dynamicLabelNodeLookup("x", "['B', 'A']", All, Map("age" -> "21", "name" -> "'bob'"))
       .build()
 
-    val matchExpectations =
-      if (canFuse) {
-        beColumns("x").withRows(singleColumn(expected))
-      } else {
-        beColumns("x").withRows(singleColumn(expected))
-          .notUsingIndexes(2, indexNameB, indexNameA)
-      }
-
+    val matchExpectations = beColumns("x").withRows(singleColumn(expected))
     profile(logicalQuery, runtime) should matchExpectations
   }
 
-  test("should filter for multiple labels and multiple properties not using any indexes (AND)") {
-    val indexName = "the_compound_index"
-    val indexNameA1 = "index_a1"
-    val indexNameA2 = "index_a2"
+  test("should filter for multiple labels and multiple properties using any relevant index") {
+    val compoundIndex = "the_compound_index"
+    val ageIndex = "age_index"
+    val nameIndex = "name_index"
 
     val expected = givenGraph {
-      nodeIndex("A")(_.withName(indexNameA1).on("age"))
-      nodeIndex("A")(_.withName(indexNameA2).on("name"))
-      nodeIndex("B")(_.withName(indexName).on("age").on("name"))
+      nodeIndex("A")(_.withName(ageIndex).on("age"))
+      nodeIndex("A")(_.withName(nameIndex).on("name"))
+      nodeIndex("B")(_.withName(compoundIndex).on("age").on("name"))
 
       // not matched
       newNode("B", "age" -> 21, "name" -> "bob")
@@ -738,7 +754,8 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
         beColumns("x").withRows(singleColumn(expected))
       } else {
         beColumns("x").withRows(singleColumn(expected))
-          .notUsingIndexes(2, indexName, indexNameA1, indexNameA2)
+          .notUsingIndexes(2, compoundIndex)
+          .usingAnyIndexes(2, ageIndex, nameIndex)
       }
 
     profile(logicalQuery, runtime) should matchExpectations

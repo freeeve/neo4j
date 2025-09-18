@@ -40,6 +40,7 @@ import org.scalatest.matchers.should.Matchers
 import java.util
 import java.util.concurrent.atomic.AtomicInteger
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.Map
 import scala.jdk.CollectionConverters.ListHasAsScala
@@ -277,6 +278,11 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
               .map(_.apply(left.runtimeResult.queryProfile()))
               .filter(_.matches == false)
           }
+          .orElse {
+            maybeIndexProfilesMatcher
+              .map(_.apply(left.runtimeResult.queryProfile()))
+              .filter(_.matches == false)
+          }
           .getOrElse {
             rowsMatcher.matches(columns, rows) match {
               case RowsMatch          => MatchResult(matches = true, "", "")
@@ -453,10 +459,15 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
   }
 
   class IndexProfilesMatcher extends Matcher[QueryProfile] {
-    private lazy val matchers: Map[Int, IndexProfilesMatcher.MatchOption] = Map()
+    private lazy val matchers: mutable.Map[Int, IndexProfilesMatcher.MatchOption] = mutable.Map()
 
     def addOne(operatorId: Int, profileMatcher: IndexProfilesMatcher.MatchOption): Unit = {
-      matchers(operatorId) = profileMatcher
+      matchers.updateWith(operatorId) {
+        case Some(value) =>
+          Some(IndexProfilesMatcher.All(Seq(value, profileMatcher)))
+        case None =>
+          Some(profileMatcher)
+      }
     }
 
     def indexProfilesMatch(
@@ -483,24 +494,28 @@ trait RuntimeResultMatchers[CONTEXT <: RuntimeContext] {
   }
 
   object IndexProfilesMatcher {
-    def anyOf(indexNames: String*): IndexProfilesMatcher.MatchOption = Any(indexNames)
-    def allOf(indexNames: String*): IndexProfilesMatcher.MatchOption = All(indexNames)
+    def anyOf(indexNames: String*): IndexProfilesMatcher.MatchOption = Any(indexNames.map(Unary))
+    def allOf(indexNames: String*): IndexProfilesMatcher.MatchOption = All(indexNames.map(Unary))
     def not(matcher: IndexProfilesMatcher.MatchOption): IndexProfilesMatcher.MatchOption = Not(matcher)
 
     sealed trait MatchOption {
       def doesMatch(targets: Seq[String]): Boolean
     }
 
-    case class Any(names: Seq[String]) extends MatchOption {
-      override def doesMatch(targets: Seq[String]): Boolean = targets.exists(names.toSet.contains)
+    case class Unary(name: String) extends MatchOption {
+      override def doesMatch(targets: Seq[String]): Boolean = targets.contains(name)
     }
 
-    case class All(names: Seq[String]) extends MatchOption {
-      override def doesMatch(targets: Seq[String]): Boolean = targets.toSet == names.toSet
+    case class Any(anyMatches: Seq[MatchOption]) extends MatchOption {
+      override def doesMatch(targets: Seq[String]): Boolean = anyMatches.exists(_.doesMatch(targets))
     }
 
-    case class Not(matcher: MatchOption) extends MatchOption {
-      override def doesMatch(targets: Seq[String]): Boolean = !matcher.doesMatch(targets)
+    case class All(allMatches: Seq[MatchOption]) extends MatchOption {
+      override def doesMatch(targets: Seq[String]): Boolean = allMatches.forall(_.doesMatch(targets))
+    }
+
+    case class Not(negativeMatch: MatchOption) extends MatchOption {
+      override def doesMatch(targets: Seq[String]): Boolean = !negativeMatch.doesMatch(targets)
     }
   }
 

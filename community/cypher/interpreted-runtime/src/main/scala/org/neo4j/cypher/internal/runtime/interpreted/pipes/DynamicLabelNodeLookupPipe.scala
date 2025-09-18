@@ -41,7 +41,6 @@ import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.PropertyCursor
 import org.neo4j.internal.kernel.api.PropertyIndexQuery
-import org.neo4j.internal.kernel.api.PropertyIndexQuery.ExactPredicate
 import org.neo4j.internal.kernel.api.Read
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.kernel.impl.newapi.CursorPredicates
@@ -77,19 +76,25 @@ object DynamicLabelNodeLookupPipe {
       CypherFunctions.getDynamicLabels(labelExpr.apply(context, state))
         .map(state.query.nodeLabel)
 
-    def filterProperties(
+    def hasProperties(
       iterator: ClosingLongIterator,
-      propertyPredicates: Iterator[ExactPredicate]
-    ): ClosingLongIterator =
+      propertyExprs: Map[PropertyKeyToken, Expression]
+    ): ClosingLongIterator = {
+      val otherPredicates = propertyExprs
+        .iterator
+        .map((predicate _).tupled)
+        .toArray[PropertyIndexQuery]
+
       new PropertyFilteringNodeIterator(
         iterator,
         state.query.dataRead,
         state.cursors.nodeCursor,
         state.cursors.propertyCursor,
-        propertyPredicates.toArray[PropertyIndexQuery]
+        otherPredicates
       )
+    }
 
-    def filterHasLabels(iterator: ClosingLongIterator, labels: Array[Int]): ClosingLongIterator =
+    def hasLabels(iterator: ClosingLongIterator, labels: Array[Int]): ClosingLongIterator =
       new LabelFilteringNodeIterator(
         iterator,
         state.query.dataRead,
@@ -163,23 +168,53 @@ object DynamicLabelNodeLookupPipe {
           .flatMap(label =>
             findIndex(label, Seq(propertyKey.nameId.id), Seq(propPredicate))
               .map(index =>
-                filterHasLabels(
+                hasLabels(
                   seek(index, Seq(propPredicate)),
                   labels.filterNot(_ == label)
                 )
               )
           ).nextOption()
+      case (Array(label), _, _) =>
+        // SINGLE LABEL, MULTIPLE PROPERTIES
+        propertyExprs.map {
+          case (propKeyToken, expr) =>
+            val exactPredicate = Seq(predicate(propKeyToken, expr))
+            findIndex(label, Seq(propKeyToken.nameId.id), exactPredicate)
+              .map { index =>
+                hasProperties(
+                  seek(index, exactPredicate),
+                  propertyExprs.filterNot(_._1 == propKeyToken)
+                )
+              }
+        }.iterator.next()
+      case (labels, _, All) =>
+        // ALL MULTIPLE LABELS, MULTIPLE PROPERTIES
+        labels.iterator.flatMap {
+          label =>
+            propertyExprs.map {
+              case (propKeyToken, expr) =>
+                val exactPredicate = Seq(predicate(propKeyToken, expr))
+                findIndex(label, Seq(propKeyToken.nameId.id), exactPredicate)
+                  .map { index =>
+                    // TODO: aside from including this outer label check, this whole inner block is identical
+                    //  to the single label / multiple property case. we should merge this behaviour innit.
+                    hasLabels(
+                      hasProperties(
+                        seek(index, exactPredicate),
+                        propertyExprs.filterNot(_._1 == propKeyToken)
+                      ),
+                      labels.filterNot(_ == label)
+                    )
+                  }
+            }.iterator.next()
+        }.nextOption()
       case _ =>
         None
     }
 
     iter.getOrElse {
-      val indexQueries = propertyExprs
-        .iterator
-        .map((predicate _).tupled)
-
-      if (indexQueries.hasNext) {
-        filterProperties(labelScan, indexQueries)
+      if (propertyExprs.nonEmpty) {
+        hasProperties(labelScan, propertyExprs)
       } else {
         labelScan
       }
