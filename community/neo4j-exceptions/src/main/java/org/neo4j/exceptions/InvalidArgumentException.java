@@ -1330,4 +1330,12 @@ public class InvalidArgumentException extends Neo4jException {
                 .build();
         return new InvalidArgumentException(gql, gql.getMessage());
     }
+
+    public static InvalidArgumentException listTooLarge(long size, long maxSize) {
+        var gql = GqlHelper.getGql22003_22N03("list size", "INTEGER", 0, maxSize, String.valueOf(size));
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "Cannot populate list values larger than %d elements. Requested size: %d", maxSize, size));
+    }
 }
