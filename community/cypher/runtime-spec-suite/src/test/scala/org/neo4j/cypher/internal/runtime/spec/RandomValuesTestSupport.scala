@@ -19,8 +19,9 @@
  */
 package org.neo4j.cypher.internal.runtime.spec
 
-import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.values.storable.RandomValues
+import org.neo4j.values.storable.RandomValuesUtils
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.ValueType
 import org.scalatest.Outcome
@@ -29,24 +30,26 @@ import org.scalatest.TestSuiteMixin
 
 import scala.util.Random
 
-trait RandomValuesTestSupport extends TestSuiteMixin with TestSuite {
-  self: CypherFunSuite =>
+trait RandomValuesTestSupport[CONTEXT <: RuntimeContext] extends TestSuiteMixin with TestSuite {
+  self: RuntimeTestSuite[CONTEXT] =>
 
   private val initialSeed = Random.nextLong()
 
-  val random = new Random(initialSeed)
+  // Only initialize the test fixtures that are used.
+  lazy val random = new Random(initialSeed)
 
-  val randomValues: RandomValues = {
-    RandomValues.create(new java.util.Random(initialSeed), randomValuesConfiguration())
-  }
+  // Not all tests run with a graphDb available. For these tests, just assume that all values are permitted
+  lazy val randomValues: RandomValues =
+    RandomValues.create(
+      new java.util.Random(initialSeed),
+      Option(graphDb).map(
+        RandomValuesUtils.selectStorageEngineDependentConfigurationBuilder
+      ).getOrElse(RandomValues.newConfigurationBuilder)
+        .maxCodePoint(10_000)
+        .build
+    )
 
-  def randomValuesConfiguration(): RandomValues.Configuration = {
-    RandomValues.newConfigurationBuilder.codePoints(
-      Character.MIN_CODE_POINT,
-      10_000
-    ).includeVectorTypes(false /* TODO: Vector cypher expression */ ).build
-  }
-
+  // Scala compat
   def randomValue(valueType: ValueType): Value = randomValues.nextValueOfType(valueType)
 
   def randomValues(size: Int, valueTypes: ValueType*): Array[Value] =
@@ -57,7 +60,7 @@ trait RandomValuesTestSupport extends TestSuiteMixin with TestSuite {
   abstract override def withFixture(test: NoArgTest): Outcome = {
     withClue(
       s"""
-         |${classOf[RandomValuesTestSupport].getSimpleName} test failed with initial seed:
+         |${classOf[RandomValuesTestSupport[CONTEXT]].getSimpleName} test failed with initial seed:
          |private val initialSeed = ${initialSeed}L
          |
          |""".stripMargin

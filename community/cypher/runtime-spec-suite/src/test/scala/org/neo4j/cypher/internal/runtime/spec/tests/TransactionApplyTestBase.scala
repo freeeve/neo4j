@@ -96,7 +96,7 @@ abstract class TransactionApplyTestBase[CONTEXT <: RuntimeContext](
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime, testPlanCombinationRewriterHints = Set(NoRewrites))
     with SideEffectingInputStream[CONTEXT]
     with RandomisedTransactionApplyTests[CONTEXT]
-    with RandomValuesTestSupport
+    with RandomValuesTestSupport[CONTEXT]
     with LoneElement {
 
   override protected def createRuntimeTestSupport(

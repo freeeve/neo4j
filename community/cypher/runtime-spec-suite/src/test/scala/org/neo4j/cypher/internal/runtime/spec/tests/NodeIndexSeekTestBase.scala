@@ -63,7 +63,7 @@ abstract class NodeIndexSeekTestBase[CONTEXT <: RuntimeContext](
   val sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](runtime = runtime, edition = edition)
     with PropertyIndexTestSupport[CONTEXT]
-    with RandomValuesTestSupport {
+    with RandomValuesTestSupport[CONTEXT] {
 
   // TODO Do we test exact seeks that gets the property without using the index enough?
 

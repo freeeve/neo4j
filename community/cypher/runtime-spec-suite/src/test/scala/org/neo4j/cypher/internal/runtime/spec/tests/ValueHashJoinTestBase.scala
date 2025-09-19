@@ -39,7 +39,7 @@ abstract class ValueHashJoinTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime)
-    with RandomValuesTestSupport {
+    with RandomValuesTestSupport[CONTEXT] {
 
   test("should support simple hash join between two identifiers") {
     // given

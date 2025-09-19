@@ -88,7 +88,7 @@ abstract class MemoryDeallocationTestBase[CONTEXT <: RuntimeContext](
       testPlanCombinationRewriterHints = Set(TestPlanCombinationRewriter.NoRewrites)
     )
     with InputStreams[CONTEXT]
-    with RandomValuesTestSupport {
+    with RandomValuesTestSupport[CONTEXT] {
 
   test("should deallocate memory between grouping aggregation - many groups") {
     // given

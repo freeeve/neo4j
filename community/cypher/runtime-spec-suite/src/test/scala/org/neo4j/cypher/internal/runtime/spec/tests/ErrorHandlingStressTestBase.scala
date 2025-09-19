@@ -52,7 +52,7 @@ abstract class ErrorHandlingStressTestBase[CONTEXT <: RuntimeContext](
       runtime
     )
     with SideEffectingInputStream[CONTEXT]
-    with RandomValuesTestSupport
+    with RandomValuesTestSupport[CONTEXT]
     with LoneElement {
 
   override protected def createRuntimeTestSupport(

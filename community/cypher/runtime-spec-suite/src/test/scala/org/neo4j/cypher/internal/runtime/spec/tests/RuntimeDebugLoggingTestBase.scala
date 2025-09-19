@@ -36,7 +36,7 @@ abstract class RuntimeDebugLoggingTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   val sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](withDebugLog(edition), runtime)
-    with RandomValuesTestSupport {
+    with RandomValuesTestSupport[CONTEXT] {
 
   test("log ignored errors in transaction foreach") {
     assume(runtime.name != "interpreted")

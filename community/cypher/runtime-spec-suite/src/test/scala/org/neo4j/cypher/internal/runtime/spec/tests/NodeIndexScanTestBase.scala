@@ -41,7 +41,7 @@ abstract class NodeIndexScanTestBase[CONTEXT <: RuntimeContext](
   sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime)
     with PropertyIndexTestSupport[CONTEXT]
-    with RandomValuesTestSupport {
+    with RandomValuesTestSupport[CONTEXT] {
 
   testWithIndex(_.supports(EXISTS), "should scan all nodes of an index with a property") { index =>
     val propertyType = randomAmong(index.querySupport(EXISTS))

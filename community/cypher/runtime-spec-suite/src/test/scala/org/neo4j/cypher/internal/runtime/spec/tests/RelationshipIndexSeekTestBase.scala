@@ -62,7 +62,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
   val sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](runtime = runtime, edition = edition)
     with PropertyIndexTestSupport[CONTEXT]
-    with RandomValuesTestSupport {
+    with RandomValuesTestSupport[CONTEXT] {
 
   testWithIndex(_.supports(EXACT), "should exact (single) directed relationship seek of an index with a property") {
     index =>

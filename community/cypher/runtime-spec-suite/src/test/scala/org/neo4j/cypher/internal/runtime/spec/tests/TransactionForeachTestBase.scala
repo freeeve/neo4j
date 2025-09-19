@@ -86,7 +86,7 @@ abstract class TransactionForeachTestBase[CONTEXT <: RuntimeContext](
   val sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime, testPlanCombinationRewriterHints = Set(NoRewrites))
     with SideEffectingInputStream[CONTEXT]
-    with RandomValuesTestSupport
+    with RandomValuesTestSupport[CONTEXT]
     with RandomisedTransactionForEachTests[CONTEXT] {
 
   override protected def createRuntimeTestSupport(

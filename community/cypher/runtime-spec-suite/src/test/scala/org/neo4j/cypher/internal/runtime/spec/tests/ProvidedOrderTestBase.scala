@@ -43,7 +43,7 @@ abstract class ProvidedOrderTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   val sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime)
-    with RandomValuesTestSupport {
+    with RandomValuesTestSupport[CONTEXT] {
 
   trait SeqMutator { def apply[X](in: Seq[X]): Seq[X] }
 

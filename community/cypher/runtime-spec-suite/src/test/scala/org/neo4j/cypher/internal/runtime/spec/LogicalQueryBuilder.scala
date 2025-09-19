@@ -100,7 +100,7 @@ class LogicalQueryBuilder(
     )
   }
 
-  def transactionApplyRandomErrorBehaviour(randomValuesTestSupport: RandomValuesTestSupport)(
+  def transactionApplyRandomErrorBehaviour(randomValuesTestSupport: RandomValuesTestSupport[_])(
     batchSize: Int = randomValuesTestSupport.random.between(1, 16),
     maybeReportAs: Option[String] = None
   ): LogicalQueryBuilder = {
@@ -113,7 +113,7 @@ class LogicalQueryBuilder(
     )
   }
 
-  def transactionForeachRandomErrorBehaviour(randomValuesTestSupport: RandomValuesTestSupport)(
+  def transactionForeachRandomErrorBehaviour(randomValuesTestSupport: RandomValuesTestSupport[_])(
     batchSize: Int = randomValuesTestSupport.random.between(1, 16),
     maybeReportAs: Option[String] = None
   ): LogicalQueryBuilder = {
@@ -130,7 +130,7 @@ class LogicalQueryBuilder(
 object LogicalQueryBuilder {
 
   def randomErrorBehaviour(
-    randomValuesTestSupport: RandomValuesTestSupport,
+    randomValuesTestSupport: RandomValuesTestSupport[_],
     maybeReportAs: Option[String] = None
   ): (InTransactionsOnErrorBehaviour, Option[InTransactionsRetryParameters]) = {
     val options = Seq(
@@ -147,7 +147,8 @@ object LogicalQueryBuilder {
     randomValuesTestSupport.randomAmong(options)
   }
 
-  def randomRetryParameters(randomValuesTestSupport: RandomValuesTestSupport): Option[InTransactionsRetryParameters] = {
+  def randomRetryParameters(randomValuesTestSupport: RandomValuesTestSupport[_])
+    : Option[InTransactionsRetryParameters] = {
     val timeout = randomValuesTestSupport.random.between(1.0, 10.0)
     randomValuesTestSupport.randomAmong(Seq(
       None,

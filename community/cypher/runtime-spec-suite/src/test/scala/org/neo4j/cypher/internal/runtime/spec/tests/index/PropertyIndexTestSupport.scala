@@ -29,6 +29,7 @@ import org.neo4j.internal.schema.IndexQuery.IndexQueryType
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider
 import org.neo4j.kernel.impl.index.schema.PointIndexProvider
 import org.neo4j.kernel.impl.index.schema.RangeIndexProvider
+import org.neo4j.values.storable.RandomValuesUtils
 import org.neo4j.values.storable.ValueCategory
 import org.neo4j.values.storable.ValueGroup
 import org.neo4j.values.storable.ValueType
@@ -37,25 +38,31 @@ import org.scalactic.source.Position
 trait PropertyIndexTestSupport[CONTEXT <: RuntimeContext] {
   self: RuntimeTestSuite[CONTEXT] =>
 
-  private val defaultSupportedTypes: Seq[ValueType] = {
+  private lazy val defaultSupportedTypes: Seq[ValueType] = {
     val unsupportedTypes = Set(
       ValueType.CHAR,
       ValueType.CHAR_ARRAY,
       ValueType.BYTE,
-      ValueType.BYTE_ARRAY,
-      // TODO: Vector cypher literal
-      ValueType.INT8_VECTOR,
-      ValueType.INT16_VECTOR,
-      ValueType.INT32_VECTOR,
-      ValueType.INT64_VECTOR,
-      ValueType.FLOAT32_VECTOR,
-      ValueType.FLOAT64_VECTOR
+      ValueType.BYTE_ARRAY
     )
-    ValueType.ALL_TYPES.toSeq.filterNot(unsupportedTypes.contains)
+    // graphDb can be null for some tests
+    val unsupportedVectorTypes: Set[ValueType] =
+      if (graphDb != null && RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb).includeVectorTypes())
+        Set.empty
+      else Set(
+        ValueType.INT8_VECTOR,
+        ValueType.INT16_VECTOR,
+        ValueType.INT32_VECTOR,
+        ValueType.INT64_VECTOR,
+        ValueType.FLOAT32_VECTOR,
+        ValueType.FLOAT64_VECTOR
+      )
+
+    (ValueType.ALL_TYPES.toSet -- unsupportedTypes -- unsupportedVectorTypes).toSeq.sorted
   }
 
   // Parallel has no support for functions so we are limited to values that have literals
-  protected val parallelSupportedTypes: Seq[ValueType] = {
+  protected lazy val parallelSupportedTypes: Seq[ValueType] = {
     val supportedGroups = Set(
       ValueGroup.NUMBER,
       ValueGroup.NUMBER_ARRAY,
