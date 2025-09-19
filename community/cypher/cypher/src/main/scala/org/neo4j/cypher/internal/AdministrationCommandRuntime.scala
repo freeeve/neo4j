@@ -962,8 +962,7 @@ object AdministrationCommandRuntime {
   /*
    * This is a bit of a kludge to get around database names being ambiguous in 5.0 for backward
    * compatibility. We assume that 'db.name' means 'name' in composite 'db' but in case db does
-   * not exist we need to rewrite the parameters to mean 'db.name' in the default namespace. Also flag
-   * this usage as deprecated.
+   * not exist we need to rewrite the parameters to mean 'db.name' in the default namespace.
    */
   def checkNamespaceExists(
     aliasNameFields: DatabaseNameFields,
