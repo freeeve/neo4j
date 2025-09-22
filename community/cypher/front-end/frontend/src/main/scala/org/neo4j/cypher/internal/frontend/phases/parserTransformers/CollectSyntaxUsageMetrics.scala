@@ -18,8 +18,14 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import IsolateSubqueriesInMutatingPatterns.SubqueriesInMutatingPatternsIsolated
 import org.neo4j.cypher.internal.ast.CollectExpression
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
+import org.neo4j.cypher.internal.ast.NextStatement
+import org.neo4j.cypher.internal.ast.ParsedAsFilter
+import org.neo4j.cypher.internal.ast.ParsedAsLet
+import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.MatchMode.RepeatableElements
@@ -70,6 +76,18 @@ case object CollectSyntaxUsageMetrics
         increaseMetric(SyntaxUsageMetricKey.COLLECT_SUBQUERY)
       case _: RepeatableElements =>
         increaseMetric(SyntaxUsageMetricKey.REPEATABLE_ELEMENTS)
+      case ParsedAsLet =>
+        increaseMetric(SyntaxUsageMetricKey.LET_CLAUSE)
+      case ParsedAsFilter =>
+        increaseMetric(SyntaxUsageMetricKey.FILTER_CLAUSE)
+      case _: ImportingWithSubqueryCall =>
+        increaseMetric(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY)
+      case _: ScopeClauseSubqueryCall =>
+        increaseMetric(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY)
+      case _: ConditionalQueryWhen =>
+        increaseMetric(SyntaxUsageMetricKey.CONDITIONAL_QUERY)
+      case _: NextStatement =>
+        increaseMetric(SyntaxUsageMetricKey.NEXT_STATEMENT)
     }
   }
 

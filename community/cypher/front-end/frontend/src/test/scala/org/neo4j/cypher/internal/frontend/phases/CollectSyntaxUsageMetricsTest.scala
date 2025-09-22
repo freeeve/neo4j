@@ -141,6 +141,88 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.REPEATABLE_ELEMENTS) should be(2)
   }
 
+  testVersionsExcept5("should find LET clause") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LET x = 1
+        |RETURN x
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LET_CLAUSE) should be(1)
+  }
+
+  testVersionsExcept5("should find FILTER clause") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LET x = 1
+        |FILTER x > 0
+        |RETURN x
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LET_CLAUSE) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.FILTER_CLAUSE) should be(1)
+  }
+
+  testVersionsExcept5("should find Importing with") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |
+        |LET x = 1
+        |CALL {
+        |   WITH x
+        |   RETURN x + 1 AS y
+        |}
+        |RETURN y
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LET_CLAUSE) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.IMPORTING_WITH_SUBQUERY) should be(1)
+  }
+
+  testVersionsExcept5("should find Scope clause") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |LET x = 1
+        |CALL (x) {
+        |   RETURN x + 1 AS y
+        |}
+        |RETURN y
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.LET_CLAUSE) should be(1)
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.SCOPE_CLAUSE_SUBQUERY) should be(1)
+  }
+
+  testVersionsExcept5("should find Conditional Query") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |WHEN true THEN RETURN 1 AS y
+        |WHEN false THEN RETURN 2 AS y
+        |ELSE RETURN 3 AS y
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.CONDITIONAL_QUERY) should be(1)
+  }
+
+  testVersionsExcept5("should find NEXT statement") { version =>
+    val stats = runPipeline(
+      version,
+      """
+        |RETURN 1 AS x
+        |
+        |NEXT
+        |
+        |RETURN x + 1 AS y
+        |""".stripMargin
+    )
+    stats.getSyntaxUsageCount(SyntaxUsageMetricKey.NEXT_STATEMENT) should be(1)
+  }
+
   private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
     val context = new ErrorCollectingContext(version, query = query) {
