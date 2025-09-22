@@ -65,7 +65,7 @@ public class EagerParserChunker implements Chunker {
                 config,
                 true,
                 (r, c) -> autoSkipHeaders
-                        ? new AutoSkipHeaderSource(r, c, idType)
+                        ? new AutoSkipHeaderSource(r, c, idType, header)
                         : new AutoReadingSource(r, c.bufferSize()));
         this.parser =
                 new CsvInputParser(seeker, config.delimiter(), idType, header, badCollector, extractors, delimitIds);
@@ -107,10 +107,10 @@ public class EagerParserChunker implements Chunker {
         private SectionedCharBuffer charBuffer;
         private String sourceDescription;
 
-        public AutoSkipHeaderSource(CharReadable reader, Configuration configuration, IdType idType) {
+        public AutoSkipHeaderSource(CharReadable reader, Configuration configuration, IdType idType, Header header) {
             this.reader = reader;
             this.charBuffer = new SectionedCharBuffer(configuration.bufferSize());
-            this.headerSkipper = CsvInputIterator.headerSkip(true, configuration, idType);
+            this.headerSkipper = CsvInputIterator.headerSkip(header, true, configuration, idType);
         }
 
         @Override

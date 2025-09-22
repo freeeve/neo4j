@@ -48,23 +48,12 @@ class CsvInputIteratorTest {
                 List.of(":ID,:LABEL", "1,foo", "2,bar"),
                 List.of(":ID,:LABEL,prop", "3,foo", "4,bar"),
                 List.of(":ID,prop:int", "5,1", "6,2")));
-        Configuration config = COMMAS;
-        try (CsvInputIterator iterator = new CsvInputIterator(
-                stream,
-                e -> e,
-                defaultFormatNodeFileHeader(),
-                IdType.ACTUAL,
-                config,
-                new Groups(),
-                EMPTY,
-                new Extractors(config.arrayDelimiter(), config.vectorDelimiter()),
-                0,
-                true,
-                false,
-                NO_MONITOR)) {
+
+        // then
+        try (CsvInputIterator iterator = csvIterator(stream, COMMAS, IdType.ACTUAL)) {
             CsvInputChunkProxy chunk = new CsvInputChunkProxy();
             InputEntity visitor = new InputEntity();
-            long nextExpectedId = 1;
+            int nextExpectedId = 1;
             while (iterator.next(chunk)) {
                 while (chunk.next(visitor)) {
                     assertThat(visitor.longId).isEqualTo(nextExpectedId++);
@@ -72,6 +61,44 @@ class CsvInputIteratorTest {
             }
             assertThat(nextExpectedId).isEqualTo(7);
         }
+    }
+
+    @Test
+    void shouldAutoSkipHeaderForHeaderLikeRow() throws IOException {
+        // given
+        CharReadable stream = readableOverFiles(List.of(
+                List.of(":ID,p1:int,p2:string,p3:boolean", "1,11,foo,true", "2,22,bar,false"),
+                List.of("ID,p1,p2,p3", "3,33,baz,true", "4,44,bash,false"),
+                List.of("ID,p2,p2,p3", "5,55,last,false")));
+
+        // then
+        try (CsvInputIterator iterator = csvIterator(stream, COMMAS, IdType.STRING)) {
+            CsvInputChunkProxy chunk = new CsvInputChunkProxy();
+            InputEntity visitor = new InputEntity();
+            int nextExpectedId = 1;
+            while (iterator.next(chunk)) {
+                while (chunk.next(visitor)) {
+                    assertThat(visitor.objectId).isEqualTo(String.valueOf(nextExpectedId++));
+                }
+            }
+        }
+    }
+
+    private static CsvInputIterator csvIterator(CharReadable stream, Configuration config, IdType idType)
+            throws IOException {
+        return new CsvInputIterator(
+                stream,
+                e -> e,
+                defaultFormatNodeFileHeader(),
+                idType,
+                config,
+                new Groups(),
+                EMPTY,
+                new Extractors(config.arrayDelimiter(), config.vectorDelimiter()),
+                0,
+                true,
+                false,
+                NO_MONITOR);
     }
 
     private CharReadable readableOverFiles(List<List<String>> data) {

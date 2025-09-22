@@ -25,6 +25,7 @@ import static org.neo4j.internal.batchimport.input.csv.DataFactories.parseHeader
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Locale;
@@ -42,6 +43,7 @@ import org.neo4j.csv.reader.ClosestNewLineChunker;
 import org.neo4j.csv.reader.Configuration;
 import org.neo4j.csv.reader.Extractors;
 import org.neo4j.csv.reader.HeaderSkipper;
+import org.neo4j.csv.reader.Mark;
 import org.neo4j.csv.reader.MultiLineChunker;
 import org.neo4j.csv.reader.Source;
 import org.neo4j.csv.reader.Source.Chunk;
@@ -97,7 +99,7 @@ class CsvInputIterator implements SourceTraceability, Closeable {
                     delimitIds);
             this.realInputChunkSupplier = EagerCsvInputChunk::new;
         } else {
-            this.chunker = createChunker(stream, config, headerSkip(autoSkipHeaders, config, idType));
+            this.chunker = createChunker(stream, config, headerSkip(header, autoSkipHeaders, config, idType));
             this.realInputChunkSupplier = () -> new LazyCsvInputChunk(
                     idType,
                     config.delimiter(),
@@ -162,7 +164,7 @@ class CsvInputIterator implements SourceTraceability, Closeable {
         return seeker(firstChunk, config);
     }
 
-    static HeaderSkipper headerSkip(boolean autoSkipHeaders, Configuration config, IdType idType) {
+    static HeaderSkipper headerSkip(Header header, boolean autoSkipHeaders, Configuration config, IdType idType) {
         if (!autoSkipHeaders) {
             return HeaderSkipper.NO_SKIP;
         }
@@ -176,33 +178,62 @@ class CsvInputIterator implements SourceTraceability, Closeable {
 
             char[] firstLine = extractFirstLineFrom(data, offset, length);
             if (firstLine.length > 0) {
-                CharSeeker seeker = seeker("", config, firstLine);
-                try {
-                    Header.Entry[] entries = parseHeaderEntries(
-                            seeker,
-                            config,
-                            idType,
-                            new Groups(),
-                            ZoneId::systemDefault,
-                            (sourceDescription, entryIndex, spec, extractors, idExtractor, groups, monitor) ->
-                                    new Header.Entry(
-                                            spec.rawEntry(),
-                                            spec.name(),
-                                            typeFromSpec(spec.type()),
-                                            null,
-                                            extractors.string()),
-                            Header.NO_MONITOR);
-                    // OK were able to parse this line as a header, skip it
-                    if (Arrays.stream(entries).anyMatch(e -> e.type() != Type.PROPERTY && e.type() != Type.IGNORE)) {
-                        // This line really looks like a header line
-                        return initialEolSkipped + firstLine.length;
-                    }
-                } catch (Exception e) {
-                    // This line didn't look like a header, keep it as a data line
+                if (isParsableHeader(config, idType, firstLine)
+                        || !valueTypesMatchesHeader(header, config, firstLine)) {
+                    return initialEolSkipped + firstLine.length;
                 }
             }
             return 0;
         };
+    }
+
+    private static boolean valueTypesMatchesHeader(Header header, Configuration config, char[] firstLine) {
+        try {
+            CharSeeker seeker = seeker("", config, firstLine);
+            Mark mark = new Mark();
+            char delimiter = config.delimiter();
+            for (int i = 0; i < header.entries().length; i++) {
+                var entry = header.entries()[i];
+                if (!seeker.seek(mark, delimiter)) {
+                    return false;
+                }
+                if (entry.type() == Type.IGNORE) {
+                    continue;
+                }
+                var extractor = entry.extractor();
+                try {
+                    seeker.tryExtract(mark, extractor, entry.optionalParameter());
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static boolean isParsableHeader(Configuration config, IdType idType, char[] firstLine) {
+        CharSeeker seeker = seeker("", config, firstLine);
+        try {
+            Header.Entry[] entries = parseHeaderEntries(
+                    seeker,
+                    config,
+                    idType,
+                    new Groups(),
+                    ZoneId::systemDefault,
+                    (sourceDescription, entryIndex, spec, extractors, idExtractor, groups, monitor) -> new Header.Entry(
+                            spec.rawEntry(), spec.name(), typeFromSpec(spec.type()), null, extractors.string()),
+                    Header.NO_MONITOR);
+            // OK were able to parse this line as a header, skip it
+            if (Arrays.stream(entries).anyMatch(e -> e.type() != Type.PROPERTY && e.type() != Type.IGNORE)) {
+                // This line really looks like a header line
+                return true;
+            }
+        } catch (Exception e) {
+            // This line didn't look like a header, keep it as a data line
+        }
+        return false;
     }
 
     private static Type typeFromSpec(String specType) {
