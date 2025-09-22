@@ -893,14 +893,18 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         jumpToTheLastClosedTxPosition(currentLogVersion);
         LogPosition position;
         try {
-            position = scanToEndOfLastLogEntry();
+            position = scanToEndOfLastLogEntry(false);
         } catch (Exception e) {
             // If we can't read the log, it could be that the last-closed-transaction position in the meta-data store is
             // wrong.
             // We can try again by scanning the log file from the start.
+            logger.info("Last closed tx position not found in logVersion " + currentLogVersion
+                    + " read ended with " + e.getMessage()
+                    + " Rescan for append position from log start");
             jumpToLogStart(currentLogVersion);
             try {
-                position = scanToEndOfLastLogEntry();
+                position = scanToEndOfLastLogEntry(true);
+                logger.info("Transaction log file append position: " + position);
             } catch (Exception exception) {
                 exception.addSuppressed(e);
                 throw exception;
@@ -909,11 +913,14 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         channel.position(position.getByteOffset());
     }
 
-    private LogPosition scanToEndOfLastLogEntry() throws IOException {
+    private LogPosition scanToEndOfLastLogEntry(boolean alignWithStart) throws IOException {
         // scroll all over possible checkpoints
         final var logHeader = extractHeader(channel.getLogVersion());
         try (var readAheadLogChannel =
                 ReadAheadUtils.newChannel(new UnclosableChannel(channel), logHeader, memoryTracker)) {
+            if (alignWithStart && readAheadLogChannel instanceof EnvelopeReadChannel envelopeReadChannel) {
+                envelopeReadChannel.alignWithStartEntry();
+            }
             final var logEntryReader = new VersionAwareLogEntryReader(
                     context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions(), memoryTracker);
             LogEntry entry;

@@ -98,7 +98,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     private final LogVersionBridge bridge;
     private final ScopedBuffer scopedBuffer;
     private final boolean raw;
-    private final ByteBuffer buffer;
+    protected final ByteBuffer buffer;
     private final int segmentBlockSize;
     private final int totalSegments;
     private final ByteBuffer checksumView;
@@ -668,7 +668,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
     }
 
-    private boolean checkForEndOfEnvelope() {
+    protected boolean checkForEndOfEnvelope() {
         assert buffer.position() <= payloadEndOffset : "Should not read past envelope";
         return buffer.position() == payloadEndOffset;
     }
