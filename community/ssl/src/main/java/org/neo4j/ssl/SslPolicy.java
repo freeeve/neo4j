@@ -21,6 +21,7 @@ package org.neo4j.ssl;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.PreferHeapByteBufAllocator;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
@@ -76,7 +77,6 @@ public class SslPolicy {
         this.privateKey = privateKey;
         this.keyCertChain = keyCertChain;
         this.tlsVersions = tlsVersions == null ? null : tlsVersions.toArray(new String[0]);
-        this.ciphers = ciphers;
         this.clientAuth = clientAuth;
         this.trustManagerFactory = trustManagerFactory;
         this.sslProvider = sslProvider;
@@ -85,6 +85,35 @@ public class SslPolicy {
         this.log = logProvider.getLog(SslPolicy.class);
         this.privateKeyFile = privateKeyFile;
         this.certificateFile = certificateFile;
+
+        var filteredCiphers = removeInsecureCiphersFromDefaults(ciphers);
+        this.ciphers = filteredCiphers;
+    }
+
+    private List<String> removeInsecureCiphersFromDefaults(List<String> ciphers) {
+        if (ciphers == null) // default ciphers
+        {
+            try {
+                var builder = SslContextBuilder.forClient()
+                        .sslProvider(sslProvider)
+                        .keyManager(privateKey, keyCertChain)
+                        .protocols(tlsVersions)
+                        .ciphers(ciphers)
+                        .trustManager(trustManagerFactory);
+                var context = builder.build();
+                var alloc = PreferHeapByteBufAllocator.DEFAULT;
+                var engine = context.newEngine(alloc);
+                var enabledCiphers = engine.getEnabledCipherSuites();
+
+                var filteredCiphers = Arrays.stream(enabledCiphers)
+                        .filter(cipher -> !cipher.contains("_CBC_"))
+                        .toList();
+                ciphers = filteredCiphers;
+            } catch (SSLException e) {
+                log.warn("Exception interrogating default enabled cipher suites", e);
+            }
+        }
+        return ciphers;
     }
 
     public SslContext nettyServerContext() throws SSLException {
