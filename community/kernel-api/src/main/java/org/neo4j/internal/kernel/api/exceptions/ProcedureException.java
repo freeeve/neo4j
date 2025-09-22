@@ -936,7 +936,7 @@ public class ProcedureException extends KernelException {
                 .withParam(GqlParams.StringParam.sig, signature)
                 .withParam(GqlParams.StringParam.msg, msg)
                 .build();
-        return new ProcedureException(gql, ProcedureCallFailed, msg);
+        return new ProcedureException(gql, ProcedureCallFailed, msg + ".");
     }
 
     public static ProcedureException graphPropertiesNotFound(String graphName) {

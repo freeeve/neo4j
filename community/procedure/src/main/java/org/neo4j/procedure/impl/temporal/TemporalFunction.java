@@ -172,7 +172,7 @@ public abstract class TemporalFunction<T extends AnyValue> implements CallableUs
                 && input[1] instanceof TextValue pattern
                 && !pattern.equals(DEFAULT_PATTERN_PARAMETER_VALUE.value())) {
             throw ProcedureException.invalidFunctionArgument(
-                    this.signature.toString(), "A pattern can only be used in conjunction with a `STRING` input.");
+                    this.signature.toString(), "A pattern can only be used in conjunction with a `STRING` input");
         } else if (input[0] instanceof TemporalValue) {
             return select(input[0], defaultZone);
         } else if (input[0] instanceof MapValue map) {

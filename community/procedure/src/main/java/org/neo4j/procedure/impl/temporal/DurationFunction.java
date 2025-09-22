@@ -143,7 +143,7 @@ class DurationFunction implements CallableUserFunction {
                 if (input[1] instanceof TextValue pattern && !pattern.equals(DEFAULT_PATTERN_PARAMETER_VALUE.value())) {
                     throw ProcedureException.invalidFunctionArgument(
                             this.signature.toString(),
-                            "A pattern can only be used in conjunction with a `STRING` input.");
+                            "A pattern can only be used in conjunction with a `STRING` input");
                 } else {
                     return DurationValue.build(map);
                 }
