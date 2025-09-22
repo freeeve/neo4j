@@ -826,33 +826,33 @@ class SubqueryCallTest extends CypherFunSuite with AstConstructionTestSupport {
 
     singleQuery(
       return_(varFor("x").as("y"))
-    ).importColumns
+    ).importColumns.map(_.name)
       .shouldEqual(Seq())
 
     singleQuery(
       with_(literal(1).as("x")),
       with_(varFor("x").aliased),
       return_(varFor("x").as("y"))
-    ).importColumns
+    ).importColumns.map(_.name)
       .shouldEqual(Seq())
 
     singleQuery(
       with_(literal(1).as("x"), varFor("x").aliased),
       return_(varFor("x").as("y"))
-    ).importColumns
+    ).importColumns.map(_.name)
       .shouldEqual(Seq())
 
     singleQuery(
       with_(varFor("x").aliased),
       return_(varFor("x").as("y"))
-    ).importColumns
+    ).importColumns.map(_.name)
       .shouldEqual(Seq("x"))
 
     singleQuery(
       use(List("foo"), resolveStrictly = true),
       with_(varFor("x").aliased),
       return_(varFor("x").as("y"))
-    ).importColumns
+    ).importColumns.map(_.name)
       .shouldEqual(Seq("x"))
   }
 

@@ -134,7 +134,28 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
   /**
    * Returns names of variables imported using importing WITH
    */
-  def importColumns: Seq[String]
+  def importColumns: Seq[LogicalVariable]
+
+  /**
+   * Returns the query stripped from importing WITH responsible for top-level importing.
+   *
+   * Example:
+   *
+   * WITH x
+   * RETURN x
+   * UNION
+   * WITH x
+   * CALL { WITH x RETURN x AS y }
+   * RETURN y AS x
+   *
+   * returns as
+   *
+   * RETURN x
+   * UNION
+   * CALL { WITH x RETURN x AS y }
+   * RETURN y AS x
+   */
+  def withoutImportingWith: Query
 
   /**
    * Return a copy of this query where the mapping function f is applied
@@ -192,6 +213,8 @@ sealed trait PartQuery extends Query {
   override def finalScope(scope: Scope): Scope =
     if (scope.children.size < 1) Scope.empty else scope.children.last
 
+  override def withoutImportingWith: PartQuery
+
 }
 
 case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extends PartQuery {
@@ -219,10 +242,14 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     partitionedClauses.importingWith.isDefined ||
       partitionedClauses.initialGraphSelection.exists(_.graphReference.dependencies.nonEmpty)
 
-  override def importColumns: Seq[String] = partitionedClauses.importingWith match {
-    case Some(w) => w.returnItems.items.map(_.name)
-    case _       => Seq.empty
+  override def importColumns: Seq[LogicalVariable] = partitionedClauses.importingWith match {
+    case Some(w) => w.returnItems.items.map(item =>
+        item.alias getOrElse { Variable(item.name)(item.position, Variable.isIsolatedDefault) }
+      )
+    case _ => Seq.empty
   }
+
+  override def withoutImportingWith: SingleQuery = SingleQuery(partitionedClauses.clausesExceptImportingWith)(position)
 
   private def leadingNonImportingWith: Option[With] =
     if (partitionedClauses.importingWith.isDefined)
@@ -711,6 +738,9 @@ object SingleQuery {
     lazy val leadingGraphSelection: Option[GraphSelection] =
       initialGraphSelection.orElse(subsequentGraphSelection)
 
+    lazy val clausesExceptImportingWith: Seq[Clause] =
+      leadingGraphSelection.toSeq ++ clausesExceptImportingWithAndLeadingGraphSelection
+
     lazy val clausesExceptImportingWithAndInitialGraphSelection: Seq[Clause] =
       subsequentGraphSelection.toSeq ++ clausesExceptImportingWithAndLeadingGraphSelection
 
@@ -836,7 +866,9 @@ case class TopLevelBraces(
 
   override def checkImportingWith: SemanticCheck = query.checkImportingWith
 
-  override def importColumns: Seq[String] = query.importColumns
+  override def importColumns: Seq[LogicalVariable] = query.importColumns
+
+  override def withoutImportingWith: TopLevelBraces = TopLevelBraces(query.withoutImportingWith, use)(position)
 
   override def isCorrelated: Boolean = query.isCorrelated
 
@@ -880,7 +912,7 @@ sealed trait Union extends Query {
     lhs.getReturns ++ rhs.getReturns
   }
 
-  override def importColumns: Seq[String] = lhs.importColumns ++ rhs.importColumns
+  override def importColumns: Seq[LogicalVariable] = lhs.importColumns ++ rhs.importColumns
 
   def containsUpdates: Boolean = lhs.containsUpdates || rhs.containsUpdates
 
@@ -1128,6 +1160,8 @@ final case class UnionAll(lhs: Query, rhs: PartQuery)(
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
+
+  override def withoutImportingWith: UnionAll = UnionAll(lhs.withoutImportingWith, rhs.withoutImportingWith)(position)
 }
 
 final case class UnionDistinct(lhs: Query, rhs: PartQuery)(
@@ -1136,6 +1170,9 @@ final case class UnionDistinct(lhs: Query, rhs: PartQuery)(
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
+
+  override def withoutImportingWith: UnionDistinct =
+    UnionDistinct(lhs.withoutImportingWith, rhs.withoutImportingWith)(position)
 }
 
 final case class ProjectingUnionAll(lhs: Query, rhs: PartQuery, unionMappings: List[UnionMapping])(
@@ -1144,6 +1181,9 @@ final case class ProjectingUnionAll(lhs: Query, rhs: PartQuery, unionMappings: L
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
+
+  override def withoutImportingWith: ProjectingUnionAll =
+    ProjectingUnionAll(lhs.withoutImportingWith, rhs.withoutImportingWith, unionMappings)(position)
 }
 
 final case class ProjectingUnionDistinct(lhs: Query, rhs: PartQuery, unionMappings: List[UnionMapping])(
@@ -1152,6 +1192,9 @@ final case class ProjectingUnionDistinct(lhs: Query, rhs: PartQuery, unionMappin
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(lhs.mapEachSingleQuery(f, nextFirst), f(rhs.singleQuery))(position)
+
+  override def withoutImportingWith: ProjectingUnionDistinct =
+    ProjectingUnionDistinct(lhs.withoutImportingWith, rhs.withoutImportingWith, unionMappings)(position)
 }
 
 // Predicate is None for Else branch
@@ -1205,6 +1248,8 @@ case class ConditionalQueryBranch(predicate: Option[Expression], query: PartQuer
 
   def wrapInnerQuery: ConditionalQueryBranch = this.copy(query = query.singleQuery)(position)
 
+  def withoutImportingWith: ConditionalQueryBranch =
+    ConditionalQueryBranch(predicate, query.withoutImportingWith)(position)
 }
 
 case object ConditionalQueryWhen extends UnaliasedNotAllowed {
@@ -1321,8 +1366,11 @@ case class ConditionalQueryWhen(
   override def isCorrelated: Boolean =
     allBranches.exists(_.query.isCorrelated)
 
-  override def importColumns: Seq[String] =
+  override def importColumns: Seq[LogicalVariable] =
     allBranches.flatMap(_.query.importColumns)
+
+  override def withoutImportingWith: ConditionalQueryWhen =
+    ConditionalQueryWhen(allBranches.map(_.withoutImportingWith), default.map(_.withoutImportingWith))(position)
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query =
     copy(branches.map(_.mapEachSingleQuery(f, nextFirst)), default.map(_.mapEachSingleQuery(f, nextFirst)))(position)
@@ -1348,7 +1396,9 @@ case class NextStatement(queries: Seq[Query])(val position: InputPosition) exten
 
   override def isCorrelated: Boolean = queries.exists(_.isCorrelated)
 
-  override def importColumns: Seq[String] = queries.flatMap(_.importColumns)
+  override def importColumns: Seq[LogicalVariable] = queries.flatMap(_.importColumns)
+
+  override def withoutImportingWith: NextStatement = NextStatement(queries.map(_.withoutImportingWith))(position)
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery, nextFirst: Boolean = false): Query = {
     if (nextFirst)

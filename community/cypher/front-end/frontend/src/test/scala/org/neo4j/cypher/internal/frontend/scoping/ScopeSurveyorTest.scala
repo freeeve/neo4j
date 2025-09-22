@@ -1553,6 +1553,92 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
   }
 
   test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
+         |  WITH a
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |}
+         |RETURN a, x""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |UNWIND [1, 2, 3] AS b
+              |CALL {
+              |  WITH a
+              |  UNWIND [1, 2, 3] AS x
+              |  RETURN a * x AS x
+              |}
+              |RETURN a, x""".stripMargin),
+        Outgoing(variables = Set("a", "x")),
+        ExpectedResult.TableResult("a", "x"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("UNWIND [1, 2, 3] AS b"),
+          Incoming(variables = Set("a")),
+          Declared(variables = Seq("b")),
+          Outgoing(variables = Set("a", "b")),
+          ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL {
+                |  WITH a
+                |  UNWIND [1, 2, 3] AS x
+                |  RETURN a * x AS x
+                |}""".stripMargin),
+          Incoming(variables = Set("a", "b")),
+          Referenced(Set("a")),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("a", "b", "x")),
+          ExpectedWorkingScope(
+            Ast("""UNWIND [1, 2, 3] AS x
+                  |RETURN a * x AS x""".stripMargin),
+            Incoming(variables = Set("a")),
+            Referenced(Set("a")),
+            Outgoing(variables = Set("x")),
+            ExpectedResult.TableResult("x"),
+            ExpectedWorkingScope(
+              Ast("UNWIND [1, 2, 3] AS x"),
+              Incoming(variables = Set("a")),
+              Declared(variables = Seq("x")),
+              Outgoing(variables = Set("a", "x")),
+              ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("RETURN a * x AS x"),
+              Incoming(variables = Set("a", "x")),
+              Referenced(Set("a", "x")),
+              Outgoing(variables = Set("x")),
+              ExpectedResult.TableResult("x"),
+              ExpectedWorkingScope(
+                Ast("a * x"),
+                Incoming(constants = Set("a", "x")),
+                Referenced(Set("a", "x")),
+                ExpectedWorkingScope.varExp("a", Set("a", "x")),
+                ExpectedWorkingScope.varExp("x", Set("a", "x"))
+              )
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN a, x"),
+          Incoming(variables = Set("a", "b", "x")),
+          Referenced(Set("a", "x")),
+          Outgoing(variables = Set("a", "x")),
+          ExpectedResult.TableResult("a", "x"),
+          ExpectedWorkingScope.varExp("a", Set("a", "b", "x")),
+          ExpectedWorkingScope.varExp("x", Set("a", "b", "x"))
+        )
+      )
+    )
+  }
+
+  test("""LET a = 10
          |CALL (a) {
          |  LET b = a
          |  WITH b, a
@@ -1635,6 +1721,447 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedResult.TableResult("a", "x"),
           ExpectedWorkingScope.varExp("a", Set("a", "x")),
           ExpectedWorkingScope.varExp("x", Set("a", "x"))
+        )
+      )
+    )
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  LET b = a
+         |  WITH b, a
+         |  RETURN a * b AS x
+         |}
+         |RETURN a, x""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |CALL {
+              |  WITH a
+              |  LET b = a
+              |  WITH b, a
+              |  RETURN a * b AS x
+              |}
+              |RETURN a, x""".stripMargin),
+        Outgoing(variables = Set("a", "x")),
+        ExpectedResult.TableResult("a", "x"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL {
+                |  WITH a
+                |  LET b = a
+                |  WITH b, a
+                |  RETURN a * b AS x
+                |}""".stripMargin),
+          Incoming(variables = Set("a")),
+          Referenced(Set("a")),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("a", "x")),
+          ExpectedWorkingScope(
+            Ast("""LET b = a
+                  |WITH b, a
+                  |RETURN a * b AS x""".stripMargin),
+            Incoming(variables = Set("a")),
+            Referenced(Set("a")),
+            Outgoing(variables = Set("x")),
+            ExpectedResult.TableResult("x"),
+            ExpectedWorkingScope(
+              Ast("LET b = a"),
+              Incoming(variables = Set("a")),
+              Referenced(Set("a")),
+              Declared(variables = Seq("b")),
+              Outgoing(variables = Set("a", "b")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("WITH b, a"),
+              Incoming(variables = Set("a", "b")),
+              Referenced(Set("a", "b")),
+              Declared(variables = Seq("b", "a")),
+              Outgoing(variables = Set("a", "b")),
+              ExpectedWorkingScope.varExp("b", Set("a", "b")),
+              ExpectedWorkingScope.varExp("a", Set("a", "b"))
+            ),
+            ExpectedWorkingScope(
+              Ast("RETURN a * b AS x"),
+              Incoming(variables = Set("a", "b")),
+              Referenced(Set("a", "b")),
+              Outgoing(variables = Set("x")),
+              ExpectedResult.TableResult("x"),
+              ExpectedWorkingScope(
+                Ast("a * b"),
+                Incoming(constants = Set("a", "b")),
+                Referenced(Set("a", "b")),
+                ExpectedWorkingScope.varExp("a", Set("a", "b")),
+                ExpectedWorkingScope.varExp("b", Set("a", "b"))
+              )
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN a, x"),
+          Incoming(variables = Set("a", "x")),
+          Referenced(Set("a", "x")),
+          Outgoing(variables = Set("a", "x")),
+          ExpectedResult.TableResult("a", "x"),
+          ExpectedWorkingScope.varExp("a", Set("a", "x")),
+          ExpectedWorkingScope.varExp("x", Set("a", "x"))
+        )
+      )
+    )
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL (a) {
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL
+         |RETURN a, x""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |UNWIND [1, 2, 3] AS b
+              |CALL (a) {
+              |  UNWIND [1, 2, 3] AS x
+              |  RETURN a * x AS x
+              |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL
+              |RETURN a, x""".stripMargin),
+        Outgoing(variables = Set("a", "x")),
+        ExpectedResult.TableResult("a", "x"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("UNWIND [1, 2, 3] AS b"),
+          Incoming(variables = Set("a")),
+          Declared(variables = Seq("b")),
+          Outgoing(variables = Set("a", "b")),
+          ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL (a) {
+                |  UNWIND [1, 2, 3] AS x
+                |  RETURN a * x AS x
+                |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL""".stripMargin),
+          Incoming(variables = Set("a", "b")),
+          Referenced(Set("a")),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("a", "b", "x")),
+          ExpectedWorkingScope(
+            Ast("""UNWIND [1, 2, 3] AS x
+                  |RETURN a * x AS x""".stripMargin),
+            Incoming(constants = Set("a")),
+            Referenced(Set("a")),
+            Outgoing(variables = Set("x")),
+            ExpectedResult.TableResult("x"),
+            ExpectedWorkingScope(
+              Ast("UNWIND [1, 2, 3] AS x"),
+              Incoming(constants = Set("a")),
+              Declared(variables = Seq("x")),
+              Outgoing(constants = Set("a"), variables = Set("x")),
+              ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("RETURN a * x AS x"),
+              Incoming(constants = Set("a"), variables = Set("x")),
+              Referenced(Set("a", "x")),
+              Outgoing(variables = Set("x")),
+              ExpectedResult.TableResult("x"),
+              ExpectedWorkingScope(
+                Ast("a * x"),
+                Incoming(constants = Set("a", "x")),
+                Referenced(Set("a", "x")),
+                ExpectedWorkingScope.varExp("a", Set("a", "x")),
+                ExpectedWorkingScope.varExp("x", Set("a", "x"))
+              )
+            )
+          ),
+          ExpectedWorkingScope.constExp("2 + 3"),
+          ExpectedWorkingScope.constExp("2.5")
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN a, x"),
+          Incoming(variables = Set("a", "b", "x")),
+          Referenced(Set("a", "x")),
+          Outgoing(variables = Set("a", "x")),
+          ExpectedResult.TableResult("a", "x"),
+          ExpectedWorkingScope.varExp("a", Set("a", "b", "x")),
+          ExpectedWorkingScope.varExp("x", Set("a", "b", "x"))
+        )
+      )
+    )
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
+         |  WITH a
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL
+         |RETURN a, x""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |UNWIND [1, 2, 3] AS b
+              |CALL {
+              |  WITH a
+              |  UNWIND [1, 2, 3] AS x
+              |  RETURN a * x AS x
+              |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL
+              |RETURN a, x""".stripMargin),
+        Outgoing(variables = Set("a", "x")),
+        ExpectedResult.TableResult("a", "x"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("UNWIND [1, 2, 3] AS b"),
+          Incoming(variables = Set("a")),
+          Declared(variables = Seq("b")),
+          Outgoing(variables = Set("a", "b")),
+          ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL {
+                |  WITH a
+                |  UNWIND [1, 2, 3] AS x
+                |  RETURN a * x AS x
+                |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL""".stripMargin),
+          Incoming(variables = Set("a", "b")),
+          Referenced(Set("a")),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("a", "b", "x")),
+          ExpectedWorkingScope(
+            Ast("""UNWIND [1, 2, 3] AS x
+                  |RETURN a * x AS x""".stripMargin),
+            Incoming(variables = Set("a")),
+            Referenced(Set("a")),
+            Outgoing(variables = Set("x")),
+            ExpectedResult.TableResult("x"),
+            ExpectedWorkingScope(
+              Ast("UNWIND [1, 2, 3] AS x"),
+              Incoming(variables = Set("a")),
+              Declared(variables = Seq("x")),
+              Outgoing(variables = Set("a", "x")),
+              ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("RETURN a * x AS x"),
+              Incoming(variables = Set("a", "x")),
+              Referenced(Set("a", "x")),
+              Outgoing(variables = Set("x")),
+              ExpectedResult.TableResult("x"),
+              ExpectedWorkingScope(
+                Ast("a * x"),
+                Incoming(constants = Set("a", "x")),
+                Referenced(Set("a", "x")),
+                ExpectedWorkingScope.varExp("a", Set("a", "x")),
+                ExpectedWorkingScope.varExp("x", Set("a", "x"))
+              )
+            )
+          ),
+          ExpectedWorkingScope.constExp("2 + 3"),
+          ExpectedWorkingScope.constExp("2.5")
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN a, x"),
+          Incoming(variables = Set("a", "b", "x")),
+          Referenced(Set("a", "x")),
+          Outgoing(variables = Set("a", "x")),
+          ExpectedResult.TableResult("a", "x"),
+          ExpectedWorkingScope.varExp("a", Set("a", "b", "x")),
+          ExpectedWorkingScope.varExp("x", Set("a", "b", "x"))
+        )
+      )
+    )
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL (a) {
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL REPORT STATUS AS r
+         |RETURN a, r""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |UNWIND [1, 2, 3] AS b
+              |CALL (a) {
+              |  UNWIND [1, 2, 3] AS x
+              |  RETURN a * x AS x
+              |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL REPORT STATUS AS r
+              |RETURN a, r""".stripMargin),
+        Outgoing(variables = Set("a", "r")),
+        ExpectedResult.TableResult("a", "r"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("UNWIND [1, 2, 3] AS b"),
+          Incoming(variables = Set("a")),
+          Declared(variables = Seq("b")),
+          Outgoing(variables = Set("a", "b")),
+          ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+        ),
+        ExpectedWorkingScope(
+          Ast(
+            """CALL (a) {
+              |  UNWIND [1, 2, 3] AS x
+              |  RETURN a * x AS x
+              |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL REPORT STATUS AS r""".stripMargin
+          ),
+          Incoming(variables = Set("a", "b")),
+          Referenced(Set("a")),
+          Declared(variables = Seq("x", "r")),
+          Outgoing(variables = Set("a", "b", "x", "r")),
+          ExpectedWorkingScope(
+            Ast("""UNWIND [1, 2, 3] AS x
+                  |RETURN a * x AS x""".stripMargin),
+            Incoming(constants = Set("a")),
+            Referenced(Set("a")),
+            Outgoing(variables = Set("x")),
+            ExpectedResult.TableResult("x"),
+            ExpectedWorkingScope(
+              Ast("UNWIND [1, 2, 3] AS x"),
+              Incoming(constants = Set("a")),
+              Declared(variables = Seq("x")),
+              Outgoing(constants = Set("a"), variables = Set("x")),
+              ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("RETURN a * x AS x"),
+              Incoming(constants = Set("a"), variables = Set("x")),
+              Referenced(Set("a", "x")),
+              Outgoing(variables = Set("x")),
+              ExpectedResult.TableResult("x"),
+              ExpectedWorkingScope(
+                Ast("a * x"),
+                Incoming(constants = Set("a", "x")),
+                Referenced(Set("a", "x")),
+                ExpectedWorkingScope.varExp("a", Set("a", "x")),
+                ExpectedWorkingScope.varExp("x", Set("a", "x"))
+              )
+            )
+          ),
+          ExpectedWorkingScope.constExp("2 + 3"),
+          ExpectedWorkingScope.constExp("2.5")
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN a, r"),
+          Incoming(variables = Set("a", "b", "x", "r")),
+          Referenced(Set("a", "r")),
+          Outgoing(variables = Set("a", "r")),
+          ExpectedResult.TableResult("a", "r"),
+          ExpectedWorkingScope.varExp("a", Set("a", "b", "x", "r")),
+          ExpectedWorkingScope.varExp("r", Set("a", "b", "x", "r"))
+        )
+      )
+    )
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
+         |  WITH a
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL REPORT STATUS AS r
+         |RETURN a, r""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |UNWIND [1, 2, 3] AS b
+              |CALL {
+              |  WITH a
+              |  UNWIND [1, 2, 3] AS x
+              |  RETURN a * x AS x
+              |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL REPORT STATUS AS r
+              |RETURN a, r""".stripMargin),
+        Outgoing(variables = Set("a", "r")),
+        ExpectedResult.TableResult("a", "r"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("UNWIND [1, 2, 3] AS b"),
+          Incoming(variables = Set("a")),
+          Declared(variables = Seq("b")),
+          Outgoing(variables = Set("a", "b")),
+          ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+        ),
+        ExpectedWorkingScope(
+          Ast(
+            """CALL {
+              |  WITH a
+              |  UNWIND [1, 2, 3] AS x
+              |  RETURN a * x AS x
+              |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY 2.5 SECONDS THEN FAIL REPORT STATUS AS r""".stripMargin
+          ),
+          Incoming(variables = Set("a", "b")),
+          Referenced(Set("a")),
+          Declared(variables = Seq("x", "r")),
+          Outgoing(variables = Set("a", "b", "x", "r")),
+          ExpectedWorkingScope(
+            Ast("""UNWIND [1, 2, 3] AS x
+                  |RETURN a * x AS x""".stripMargin),
+            Incoming(variables = Set("a")),
+            Referenced(Set("a")),
+            Outgoing(variables = Set("x")),
+            ExpectedResult.TableResult("x"),
+            ExpectedWorkingScope(
+              Ast("UNWIND [1, 2, 3] AS x"),
+              Incoming(variables = Set("a")),
+              Declared(variables = Seq("x")),
+              Outgoing(variables = Set("a", "x")),
+              ExpectedWorkingScope.constExp("[1, 2, 3]", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("RETURN a * x AS x"),
+              Incoming(variables = Set("a", "x")),
+              Referenced(Set("a", "x")),
+              Outgoing(variables = Set("x")),
+              ExpectedResult.TableResult("x"),
+              ExpectedWorkingScope(
+                Ast("a * x"),
+                Incoming(constants = Set("a", "x")),
+                Referenced(Set("a", "x")),
+                ExpectedWorkingScope.varExp("a", Set("a", "x")),
+                ExpectedWorkingScope.varExp("x", Set("a", "x"))
+              )
+            )
+          ),
+          ExpectedWorkingScope.constExp("2 + 3"),
+          ExpectedWorkingScope.constExp("2.5")
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN a, r"),
+          Incoming(variables = Set("a", "b", "x", "r")),
+          Referenced(Set("a", "r")),
+          Outgoing(variables = Set("a", "r")),
+          ExpectedResult.TableResult("a", "r"),
+          ExpectedWorkingScope.varExp("a", Set("a", "b", "x", "r")),
+          ExpectedWorkingScope.varExp("r", Set("a", "b", "x", "r"))
         )
       )
     )
@@ -1778,6 +2305,90 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         ExpectedWorkingScope(
           Ast("CALL db.info()"),
           ExpectedResult.TableResultWithNotYetKnownColumns
+        )
+      )
+    )
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  LET b = a
+         |  WITH b
+         |  RETURN b AS x
+         |}
+         |RETURN a, x""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |CALL {
+              |  WITH a
+              |  LET b = a
+              |  WITH b
+              |  RETURN b AS x
+              |}
+              |RETURN a, x""".stripMargin),
+        Outgoing(variables = Set("a", "x")),
+        ExpectedResult.TableResult("a", "x"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("""CALL {
+                |  WITH a
+                |  LET b = a
+                |  WITH b
+                |  RETURN b AS x
+                |}""".stripMargin),
+          Incoming(variables = Set("a")),
+          Referenced(Set("a")),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("a", "x")),
+          ExpectedWorkingScope(
+            Ast("""LET b = a
+                  |WITH b
+                  |RETURN b AS x""".stripMargin),
+            Incoming(variables = Set("a")),
+            Referenced(Set("a")),
+            Outgoing(variables = Set("x")),
+            ExpectedResult.TableResult("x"),
+            ExpectedWorkingScope(
+              Ast("LET b = a"),
+              Incoming(variables = Set("a")),
+              Referenced(Set("a")),
+              Declared(variables = Seq("b")),
+              Outgoing(variables = Set("a", "b")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("WITH b"),
+              Incoming(variables = Set("a", "b")),
+              Referenced(Set("b")),
+              Declared(variables = Seq("b")),
+              Outgoing(variables = Set("b")),
+              ExpectedWorkingScope.varExp("b", Set("a", "b"))
+            ),
+            ExpectedWorkingScope(
+              Ast("RETURN b AS x"),
+              Incoming(variables = Set("b")),
+              Referenced(Set("b")),
+              Outgoing(variables = Set("x")),
+              ExpectedResult.TableResult("x"),
+              ExpectedWorkingScope.varExp("b", Set("b"))
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN a, x"),
+          Incoming(variables = Set("a", "x")),
+          Referenced(Set("a", "x")),
+          Outgoing(variables = Set("a", "x")),
+          ExpectedResult.TableResult("a", "x"),
+          ExpectedWorkingScope.varExp("a", Set("a", "x")),
+          ExpectedWorkingScope.varExp("x", Set("a", "x"))
         )
       )
     )

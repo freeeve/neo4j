@@ -85,7 +85,7 @@ class FabricFragmenter(
             Init(
               use,
               previous.argumentColumns,
-              if (init.importColumns.nonEmpty) init.importColumns else sq.importColumns
+              if (init.importColumns.nonEmpty) init.importColumns else sq.importColumns.map(_.name)
             )
 
           case other => other

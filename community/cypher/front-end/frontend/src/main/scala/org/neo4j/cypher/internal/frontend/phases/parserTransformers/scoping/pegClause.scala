@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.ast.ParsedAsLimit
 import org.neo4j.cypher.internal.ast.ParsedAsOrderBy
 import org.neo4j.cypher.internal.ast.ParsedAsSkip
 import org.neo4j.cypher.internal.ast.ProjectionClause
+import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Remove
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemoveLabelItem
@@ -50,6 +51,13 @@ import org.neo4j.cypher.internal.ast.SetLabelItem
 import org.neo4j.cypher.internal.ast.SetPropertyItem
 import org.neo4j.cypher.internal.ast.SetPropertyItems
 import org.neo4j.cypher.internal.ast.SingleQuery
+import org.neo4j.cypher.internal.ast.SubqueryCall
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsBatchParameters
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsConcurrencyParameters
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsErrorParameters
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.With
@@ -71,28 +79,32 @@ object pegClause {
        */
       // composition
       // Importing With is already deprecated
-      case ImportingWithSubqueryCall(_, _, _) => UnexpectedAstNodeScopingError(astNode, incoming)
+      case call @ ImportingWithSubqueryCall(query, inTransactionsParameters, _) =>
+        val importedVariableSet: Set[LogicalVariable] = query.importColumns.toSet
+        val innerQueryIncoming = RegularContext(constants = unitVariables, variables = importedVariableSet)
+        val innerQuery = query.withoutImportingWith
+        scopeInlineSubquery(
+          call,
+          incoming,
+          importedVariableSet,
+          innerQueryIncoming,
+          innerQuery,
+          inTransactionsParameters
+        )
 
-      case ScopeClauseSubqueryCall(innerQuery, isImportingAll, importedVariables, _, _) =>
+      case call @ ScopeClauseSubqueryCall(innerQuery, isImportingAll, importedVariables, inTransactionsParameters, _) =>
+        val importedVariableSet: Set[LogicalVariable] = importedVariables.toSet
         val innerQueryIncoming =
           if (isImportingAll) incoming.constantChildContext()
-          else RegularContext.unitWithConstants(importedVariables.toSet)
-        val innerQueryScope = pegStatement(innerQuery, innerQueryIncoming)
-        val (outgoing, declaredVariables) = innerQueryScope.result match {
-          case TableResult(columns)              => (incoming.amendedWith(columns.toSet), columns)
-          case TableResultWithNotYetKnownColumns => (incoming, Seq.empty)
-          case OmittedResult                     => (incoming, Seq.empty)
-          case NoResult                          =>
-            // subquery does not end with the right clause,
-            // so this is a best effort:
-            (incoming, Seq.empty)
-          case ExpressionResult =>
-            throw new IllegalStateException("inner query cannot have an expression result")
-        }
-        val children = Seq(innerQueryScope)
-        val referenced = Some(innerQueryScope.referenced intersect importedVariables.toSet)
-        val declared = Declarations(Seq.empty, declaredVariables)
-        incoming.noResultScope(outgoing, children, referenced, declared)
+          else RegularContext.unitWithConstants(importedVariableSet)
+        scopeInlineSubquery(
+          call,
+          incoming,
+          importedVariableSet,
+          innerQueryIncoming,
+          innerQuery,
+          inTransactionsParameters
+        )
 
       // named call
       case UnresolvedCall(_, _, declaredArguments, declaredResult, _, _) =>
@@ -376,4 +388,59 @@ object pegClause {
 
   @inline private def returnItemAliases(items: Seq[ReturnItem]): Seq[LogicalVariable] =
     items.map(item => item.alias.getOrElse(UnPositionedVariable.varFor(item.name)))
+
+  @inline private def scopeInlineSubquery(
+    callClause: SubqueryCall,
+    incoming: RegularContext,
+    importedVariables: Set[LogicalVariable],
+    innerQueryIncoming: RegularContext,
+    innerQuery: Query,
+    inTransactionsParameters: Option[InTransactionsParameters]
+  ) = {
+    implicit val astNode: ASTNode = callClause
+
+    val innerQueryScope = pegStatement(innerQuery, innerQueryIncoming)
+    val (inTransactionsChildren, declaredInTransactionsVariables) =
+      scopeInTransactionParameters(inTransactionsParameters)
+    val (outgoing, declaredVariables) = innerQueryScope.result match {
+      case TableResult(columns) => (incoming.amendedWith((columns ++ declaredInTransactionsVariables).toSet), columns)
+      case TableResultWithNotYetKnownColumns => (incoming.amendedWith(declaredInTransactionsVariables.toSet), Seq.empty)
+      case OmittedResult                     => (incoming.amendedWith(declaredInTransactionsVariables.toSet), Seq.empty)
+      case NoResult                          =>
+        // subquery does not end with the right clause,
+        // so this is a best effort:
+        (incoming.amendedWith(declaredInTransactionsVariables.toSet), Seq.empty)
+      case ExpressionResult =>
+        throw new IllegalStateException("inner query cannot have an expression result")
+    }
+    val children = innerQueryScope +: inTransactionsChildren
+    val referenced = Some(innerQueryScope.referenced intersect importedVariables)
+    val declared = Declarations(Seq.empty, declaredVariables ++ declaredInTransactionsVariables)
+    incoming.noResultScope(outgoing, children, referenced, declared)
+  }
+
+  @inline private def scopeInTransactionParameters(inTransactionsParameters: Option[InTransactionsParameters])
+    : (Seq[WorkingScope], Seq[LogicalVariable]) = {
+    inTransactionsParameters match {
+      case None => (Seq.empty, Seq.empty)
+      case Some(InTransactionsParameters(batchParams, concurrencyParams, errorParams, reportParams)) =>
+        val batchParamsChild = batchParams.toSeq.map {
+          case InTransactionsBatchParameters(batchSize) => pegExpression(batchSize, RegularContext.unit)
+        }
+        val concurrencyParamsChild = concurrencyParams.toSeq.flatMap {
+          case InTransactionsConcurrencyParameters(Some(concurrency)) =>
+            Some(pegExpression(concurrency, RegularContext.unit))
+          case _ => None
+        }
+        val errorParamsChild = errorParams.toSeq.flatMap {
+          case InTransactionsErrorParameters(_, Some(InTransactionsRetryParameters(Some(timeout)))) =>
+            Some(pegExpression(timeout, RegularContext.unit))
+          case _ => None
+        }
+        val reportVariable = reportParams.toSeq.map {
+          case InTransactionsReportParameters(reportAs) => reportAs
+        }
+        (batchParamsChild ++ concurrencyParamsChild ++ errorParamsChild, reportVariable)
+    }
+  }
 }

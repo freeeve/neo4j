@@ -406,7 +406,7 @@ case class FabricStitcher(
         case apply: Fragment.Apply =>
           val before = stitchChain(apply.input, outermost, outerUse)
           val inner = stitch(apply.inner, outermost = false, Some(before.lastUse))
-          val innerImports = inner.query.importColumns
+          val innerImports = inner.query.importColumns.map(_.name)
           val scopeImports = apply.inner.importColumns
           val imports = (innerImports ++ scopeImports).distinct.map(Variable(_)(apply.pos, Variable.isIsolatedDefault))
           before.copy(

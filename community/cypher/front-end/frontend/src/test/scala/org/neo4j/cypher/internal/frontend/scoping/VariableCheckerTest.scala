@@ -33,7 +33,17 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
 
   test("""LET a = 10
          |UNWIND [1, 2, 3] AS b
-         |CALL (a) {
+         |CALL () {
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN b * x AS x
+         |}
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `b` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
          |  UNWIND [1, 2, 3] AS x
          |  RETURN b * x AS x
          |}
@@ -44,6 +54,100 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   test("""LET a = 10
          |UNWIND [1, 2, 3] AS b
          |CALL (a) {
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN b * x AS x
+         |}
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `b` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
+         |  WITH a
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN b * x AS x
+         |}
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `b` not defined.")
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  WITH 2 AS b
+         |  RETURN a AS x
+         |}
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `a` not defined.")
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  WITH 2 AS a
+         |  RETURN a AS y
+         |}
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL (a) {
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS OF 2 + a ROWS ON ERROR RETRY FOR 2.5 SECONDS
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `a` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
+         |  WITH a
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS OF 2 + a ROWS ON ERROR RETRY FOR 2.5 SECONDS
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `a` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL (a) {
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY FOR a + 1 SECONDS
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `a` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
+         |  WITH a
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS OF 2 + 3 ROWS ON ERROR RETRY FOR a + 1 SECONDS
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `a` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL (a) {
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS y
+         |}
+         |RETURN a, x""".stripMargin) {
+    error("42N62", "Variable `x` not defined.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
+         |  WITH a
          |  UNWIND [1, 2, 3] AS x
          |  RETURN a * x AS y
          |}
@@ -320,9 +424,64 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   }
 
   test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  LET a = a
+         |  RETURN a AS y
+         |}
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""LET a = 10
          |CALL (a) {
          |  LET a = a + 0
          |  RETURN a AS y
+         |}
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  LET a = a + 0
+         |  RETURN a AS y
+         |}
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""LET a = 10
+         |CALL (a) {
+         |  LET b = a
+         |  RETURN b AS a
+         |}
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  LET b = a
+         |  RETURN b AS a
+         |}
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""LET a = 10
+         |CALL () {
+         |  RETURN 20 AS a
+         |}
+         |RETURN *""".stripMargin) {
+    error("42N59", "Variable `a` already declared.")
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  RETURN 20 AS a
          |}
          |RETURN *""".stripMargin) {
     error("42N59", "Variable `a` already declared.")
@@ -338,12 +497,42 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   }
 
   test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  RETURN a AS y
+         |}
+         |RETURN *""".stripMargin) {
+    passes()
+  }
+
+  test("""LET a = 10
          |CALL (a) {
          |  WITH a AS a
          |  RETURN a AS y
          |}
          |RETURN *""".stripMargin) {
     passes()
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL (a) {
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS REPORT STATUS AS b
+         |RETURN a, x""".stripMargin) {
+    error("42N59", "Variable `b` already declared.")
+  }
+
+  test("""LET a = 10
+         |UNWIND [1, 2, 3] AS b
+         |CALL {
+         |  WITH a
+         |  UNWIND [1, 2, 3] AS x
+         |  RETURN a * x AS x
+         |} IN TRANSACTIONS REPORT STATUS AS b
+         |RETURN a, x""".stripMargin) {
+    error("42N59", "Variable `b` already declared.")
   }
 
   test("""LET n = 1

@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.StrictlyAdditiveProjection
+import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
@@ -69,8 +70,9 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
         val redeclarationOfVariables = astNode match {
           case pc: ProjectionClause if pc.returnItems.projectionType == StrictlyAdditiveProjection =>
             incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
-          case _: Unwind => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
-          case _         => Seq.empty
+          case _: Unwind        => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
+          case sc: SubqueryCall => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
+          case _                => Seq.empty
         }
         // multiple return columns in WITH
         val multipleDeclarations = {
