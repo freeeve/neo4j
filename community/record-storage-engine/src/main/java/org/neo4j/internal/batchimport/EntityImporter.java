@@ -126,7 +126,13 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
     @Override
     public boolean property(int propertyKeyId, Object value, boolean identifier) {
         assert !hasPropertyId;
-        encodeProperty(nextPropertyBlock(), propertyKeyId, value);
+        try {
+            encodeProperty(nextPropertyBlock(), propertyKeyId, value);
+        } catch (Exception e) {
+            // Didn't work, we must decrement the propertyBlocksCursor
+            propertyBlocksCursor--;
+            throw e;
+        }
         entityPropertyCount++;
         schemaMonitor.property(propertyKeyId, value, identifier);
         return true;
