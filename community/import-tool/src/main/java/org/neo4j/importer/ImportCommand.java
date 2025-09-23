@@ -96,6 +96,7 @@ import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
 import org.neo4j.kernel.impl.util.Converters;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
+import org.neo4j.logging.log4j.Log4jLogProvider;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
@@ -519,6 +520,7 @@ public class ImportCommand {
                         var logFile = new BufferedOutputStream(ctx.fs().openAsOutputStream(logFilePath, true));
                         var logProvider = FileImporter.getLog(logFile, verbose);
                         var fileSystem = new SchemeFileSystemAbstraction(ctx.fs(), databaseConfig, logProvider)) {
+                    preImport(fileSystem);
                     printf("Starting to import, output will be saved to: %s%n", logFilePath.toAbsolutePath());
                     final var importerBuilder = configureFileImporterBuilder(FileImporter.builder()
                             .withCsvConfig(csvConfiguration(fileSystem))
@@ -554,6 +556,7 @@ public class ImportCommand {
                     }
 
                     importerBuilder.build().doImport(this);
+                    postImport(fileSystem, databaseConfig, logProvider, databaseLayout);
                 } catch (FileLockException e) {
                     throw new CommandFailedException(
                             "The database is in use. Stop database '%s' and try again."
@@ -571,6 +574,15 @@ public class ImportCommand {
                 throw new UncheckedIOException(e);
             }
         }
+
+        protected void preImport(SchemeFileSystemAbstraction fs) throws IOException {}
+
+        protected void postImport(
+                SchemeFileSystemAbstraction fileSystem,
+                Config config,
+                Log4jLogProvider logProvider,
+                DatabaseLayout databaseLayout)
+                throws IOException {}
 
         public abstract String importType();
 
