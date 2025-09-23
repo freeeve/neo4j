@@ -21,7 +21,7 @@ package org.neo4j.io.async;
 
 @FunctionalInterface
 public interface AsyncCompletionHandler {
-    AsyncCompletionHandler EMPTY_COMPLETION_HANDLER = (pageRef, result) -> {};
+    AsyncCompletionHandler EMPTY_COMPLETION_HANDLER = (asyncBlockAccessor, pageRef, result) -> {};
 
-    void handleCompletion(long pageRef, int result);
+    void handleCompletion(AsyncBlockAccessor asyncBlockAccessor, long data, int result);
 }

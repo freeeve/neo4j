@@ -48,6 +48,8 @@ public interface AsyncBlockAccessor extends AutoCloseable {
 
     void completeSubmitted();
 
+    AsyncVectorIOData asyncVectorIOData(long key);
+
     @Override
     void close();
 
@@ -90,6 +92,11 @@ public interface AsyncBlockAccessor extends AutoCloseable {
 
         @Override
         public void completeSubmitted() {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public AsyncVectorIOData asyncVectorIOData(long key) {
             throw new UnsupportedOperationException();
         }
 

@@ -24,7 +24,7 @@ import org.neo4j.memory.MemoryTracker;
 /**
  * A MemoryAllocator is simple: it only allocates memory, until it is closed and frees it all in one go.
  */
-public interface MemoryAllocator {
+public interface MemoryAllocator extends AutoCloseable {
     static MemoryAllocator createAllocator(long expectedMemory, MemoryTracker memoryTracker) {
         return createAllocator(expectedMemory, null, memoryTracker);
     }
@@ -58,5 +58,6 @@ public interface MemoryAllocator {
      * It's up to implementations to guarantee correctness in scenario when multiple attempts will be made to release allocator resources.
      * As soon as allocated resources will be cleaned any code that will try to access previously available memory will not gonna be able to do so.
      */
+    @Override
     void close();
 }

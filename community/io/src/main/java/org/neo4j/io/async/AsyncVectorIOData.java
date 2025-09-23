@@ -19,15 +19,8 @@
  */
 package org.neo4j.io.async;
 
-public final class IllegalStateExceptionFailureHandler implements AsyncFailureHandler {
-
-    public static final IllegalStateExceptionFailureHandler ILLEGAL_STATE_HANDLER =
-            new IllegalStateExceptionFailureHandler();
-
-    private IllegalStateExceptionFailureHandler() {}
-
-    @Override
-    public void handleFailure(AsyncBlockAccessor asyncBlockAccessor, long data, int result, String failureMessage) {
-        throw new IllegalStateException(failureMessage);
+public record AsyncVectorIOData(long[] pages, long[] flushStamps) {
+    public AsyncVectorIOData(long page, long flushStamp) {
+        this(new long[] {page}, new long[] {flushStamp});
     }
 }

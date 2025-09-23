@@ -41,20 +41,21 @@ class LargePageListIT {
         long pageCacheSize = ByteUnit.gibiBytes(513) + pageSize;
         int pages = Math.toIntExact(pageCacheSize / pageSize);
 
-        MemoryAllocator mman = MemoryAllocator.createAllocator(GibiByte.toBytes(2), EmptyMemoryTracker.INSTANCE);
-        SwapperSet swappers = new SwapperSet();
-        long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
+        try (MemoryAllocator mman = MemoryAllocator.createAllocator(GibiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
+            SwapperSet swappers = new SwapperSet();
+            long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
 
-        PageList pageList = new PageList(pages, pageSize, mman, swappers, victimPage, Long.BYTES);
+            PageList pageList = new PageList(pages, pageSize, mman, swappers, victimPage, Long.BYTES);
 
-        // Verify we end up with the correct number of pages.
-        assertThat(pageList.getPageCount()).isEqualTo(pages);
+            // Verify we end up with the correct number of pages.
+            assertThat(pageList.getPageCount()).isEqualTo(pages);
 
-        // Spot-check the accessibility in the bulk of the pages.
-        IntStream.range(0, pages / 32).parallel().forEach(id -> verifyPageMetaDataIsAccessible(pageList, id * 32));
+            // Spot-check the accessibility in the bulk of the pages.
+            IntStream.range(0, pages / 32).parallel().forEach(id -> verifyPageMetaDataIsAccessible(pageList, id * 32));
 
-        // Thoroughly check the accessibility around the tail end of the page list.
-        IntStream.range(pages - 2000, pages).parallel().forEach(id -> verifyPageMetaDataIsAccessible(pageList, id));
+            // Thoroughly check the accessibility around the tail end of the page list.
+            IntStream.range(pages - 2000, pages).parallel().forEach(id -> verifyPageMetaDataIsAccessible(pageList, id));
+        }
     }
 
     private static void verifyPageMetaDataIsAccessible(PageList pageList, int id) {

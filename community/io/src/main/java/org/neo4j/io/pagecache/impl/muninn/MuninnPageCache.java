@@ -1100,18 +1100,20 @@ public class MuninnPageCache implements PageCache {
         }
     }
 
-    private void onPageEvictionComplete(long pageRef, int resultBytes) {
+    private void onPageEvictionComplete(AsyncBlockAccessor asyncBlockAccessor, long data, int resultBytes) {
+        // data on single page write is a pageRef
         try (var evictionCompletion = pageCacheTracer.asyncEvictionCompletion()) {
             // in write completed case result is the number of written bytes
-            pages.onPageEvictionCompletion(pageRef, resultBytes, evictionCompletion);
+            pages.onPageEvictionCompletion(data, resultBytes, evictionCompletion);
             clearEvictorException();
-            addFreePageToFreelist(pageRef, evictionCompletion);
+            addFreePageToFreelist(data, evictionCompletion);
         }
     }
 
-    private void onPageEvictionFailure(long pageRef, int result, String message) {
+    private void onPageEvictionFailure(AsyncBlockAccessor asyncBlockAccessor, long data, int result, String message) {
+        // data on single page write is a pageRef
         try (var evictionFailure = pageCacheTracer.asyncEvictionFailure()) {
-            pages.onPageEvictionFailure(pageRef);
+            pages.onPageEvictionFailure(data);
             evictorException = new IOException(message);
         }
     }

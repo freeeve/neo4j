@@ -17,17 +17,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.async;
+package org.neo4j.io.pagecache.impl.muninn;
 
-public final class IllegalStateExceptionFailureHandler implements AsyncFailureHandler {
+import static org.neo4j.io.pagecache.impl.muninn.PageList.unlockFlush;
 
-    public static final IllegalStateExceptionFailureHandler ILLEGAL_STATE_HANDLER =
-            new IllegalStateExceptionFailureHandler();
+import org.neo4j.io.async.AsyncBlockAccessor;
+import org.neo4j.io.async.AsyncFailureHandler;
 
-    private IllegalStateExceptionFailureHandler() {}
-
+public class AsyncCheckpointFailureHandler implements AsyncFailureHandler {
     @Override
-    public void handleFailure(AsyncBlockAccessor asyncBlockAccessor, long data, int result, String failureMessage) {
-        throw new IllegalStateException(failureMessage);
+    public void handleFailure(AsyncBlockAccessor accessor, long data, int result, String failureMessage) {
+        var asyncVectorIO = accessor.asyncVectorIOData(data);
+        long[] pages = asyncVectorIO.pages();
+        long[] flushStamps = asyncVectorIO.flushStamps();
+        for (int i = 0; i < pages.length; i++) {
+            unlockFlush(pages[i], flushStamps[i], false);
+        }
     }
 }

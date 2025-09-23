@@ -21,5 +21,5 @@ package org.neo4j.io.async;
 
 @FunctionalInterface
 public interface AsyncFailureHandler {
-    void handleFailure(long pageRef, int result, String failureMessage);
+    void handleFailure(AsyncBlockAccessor accessor, long data, int result, String failureMessage);
 }
