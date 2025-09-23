@@ -63,6 +63,7 @@ import org.neo4j.index.internal.gbptree.ValueHolder;
 import org.neo4j.index.internal.gbptree.Writer;
 import org.neo4j.internal.counts.CountsHeader.Reader;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCacheOpenOptions;
@@ -82,7 +83,7 @@ import org.neo4j.util.concurrent.OutOfOrderSequence;
  *
  * Updates that are {@link #updaterImpl(long, boolean, CursorContext) applied} are relative values (e.g. +10 or -5) and counts are read as their absolute values.
  * Multiple transactions can update counts concurrently where counts are CAS:ed to minimize contention.
- * Updates between {@link #checkpoint(FileFlushEvent, CursorContext) checkpoints} are kept in an internal {@link CountsChanges} map and only written
+ * Updates between {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext) checkpoints} are kept in an internal {@link CountsChanges} map and only written
  * as part of a checkpoint. Checkpoint has a very short critical section where it switches over to a new {@link CountsChanges} instance
  * and also snapshots data about which transactions have applied before letting updaters continue to make changes while the checkpointing thread
  * writes the changes to the backing tree concurrently.
@@ -352,7 +353,9 @@ public class GBPTreeGenericCountsStore implements AutoCloseable, ConsistencyChec
         }
     }
 
-    public void checkpoint(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    public void checkpoint(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         // Do an explicit read-only check here because in this store checkpoint implies also writing
         if (readOnly) {
             return;
@@ -378,7 +381,11 @@ public class GBPTreeGenericCountsStore implements AutoCloseable, ConsistencyChec
         // checkpoint does the final flushing or after since the checkpoint drains all writers.
         // The header is written after the writers have been drained which means the highest gap free
         // tx id is guaranteed to be the one belonging to the last written changes.
-        tree.checkpoint(CountsHeader.writer(this::getLastWrittenHighestGapFreeId), flushEvent, cursorContext);
+        tree.checkpoint(
+                CountsHeader.writer(this::getLastWrittenHighestGapFreeId),
+                flushEvent,
+                asyncBlockAccessor,
+                cursorContext);
         writeIdSnapshotWithChanges = false;
     }
 

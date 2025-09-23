@@ -30,6 +30,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_memory;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.batchimport.store.BatchingNeoStores.DOUBLE_RELATIONSHIP_RECORD_UNIT_THRESHOLD;
 import static org.neo4j.internal.batchimport.store.BatchingNeoStores.batchingNeoStores;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.kernel.impl.store.format.RecordFormatSelector.defaultFormat;
@@ -398,7 +399,7 @@ class BatchingNeoStoresTest {
                 PageCacheTracer.NULL,
                 openOptions)) {
             countsStore.start(NULL_CONTEXT, INSTANCE);
-            countsStore.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            countsStore.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // when
@@ -658,7 +659,7 @@ class BatchingNeoStoresTest {
                         node1,
                         node2);
                 apply(txState, commandCreationContext, storageEngine, storeCursors, transactionIdGenerator);
-                neoStores.flush(DatabaseFlushEvent.NULL, NULL_CONTEXT);
+                neoStores.flush(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             }
 
             TransactionLogInitializer.getLogFilesInitializer()

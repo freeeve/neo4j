@@ -26,6 +26,7 @@ import java.util.Arrays;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.impl.factory.primitive.LongObjectMaps;
 import org.neo4j.internal.helpers.Exceptions;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.monitoring.PageFileCounters;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
@@ -384,7 +385,7 @@ public class ByteArrayPageCursor extends PageCursor {
         }
 
         @Override
-        public void flushAndForce(FileFlushEvent flushEvent) {}
+        public void flushAndForce(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor) {}
 
         @Override
         public long getLastPageId() {

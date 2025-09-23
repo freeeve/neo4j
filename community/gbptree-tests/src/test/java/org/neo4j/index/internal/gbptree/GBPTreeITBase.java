@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.index.internal.gbptree.DataTree.W_SPLIT_KEEP_ALL_LEFT;
 import static org.neo4j.index.internal.gbptree.DataTree.W_SPLIT_KEEP_ALL_RIGHT;
 import static org.neo4j.index.internal.gbptree.GBPTreeTestUtil.consistencyCheckStrict;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.test.utils.PageCacheConfig.config;
 
@@ -160,7 +161,7 @@ abstract class GBPTreeITBase<KEY, VALUE> {
                 }
             }
 
-            index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             randomlyModifyIndex(index, data, random.random(), (double) round / totalNumberOfRounds, writerFactory);
         }
 
@@ -229,7 +230,7 @@ abstract class GBPTreeITBase<KEY, VALUE> {
         try (Seeker<KEY, VALUE> seek = index.seek(from, to, NULL_CONTEXT)) {
             assertFalse(seek.next());
         }
-        index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
     }
 
     private void randomlyModifyIndex(

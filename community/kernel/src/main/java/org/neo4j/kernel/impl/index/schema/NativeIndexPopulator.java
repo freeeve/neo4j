@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.index.schema;
 
 import static org.neo4j.index.internal.gbptree.DataTree.W_BATCHED_SINGLE_THREADED;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -32,6 +33,7 @@ import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.index.internal.gbptree.Writer;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -163,13 +165,13 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
                 // Successful and completed population
                 assertPopulatorOpen();
                 try (FileFlushEvent flushEvent = pageCacheTracer.beginFileFlush()) {
-                    flushTreeAndMarkAs(BYTE_ONLINE, flushEvent, cursorContext);
+                    flushTreeAndMarkAs(BYTE_ONLINE, flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
                 }
             } else if (failureBytes != null) {
                 // Failed population
                 ensureTreeInstantiated();
                 try (FileFlushEvent flushEvent = pageCacheTracer.beginFileFlush()) {
-                    markTreeAsFailed(flushEvent, cursorContext);
+                    markTreeAsFailed(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
                 }
             }
             // else cancelled population. Here we simply close the tree w/o checkpointing it and it will look like
@@ -201,18 +203,20 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
         return buildNonUniqueIndexSample(cursorContext);
     }
 
-    void flushTreeAndMarkAs(byte state, FileFlushEvent flushEvent, CursorContext cursorContext) {
-        tree.checkpoint(new NativeIndexHeaderWriter(state), flushEvent, cursorContext);
+    void flushTreeAndMarkAs(
+            byte state, FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
+        tree.checkpoint(new NativeIndexHeaderWriter(state), flushEvent, asyncBlockAccessor, cursorContext);
     }
 
     IndexSample buildNonUniqueIndexSample(CursorContext cursorContext) {
         return new FullScanNonUniqueIndexSampler<>(tree, layout).sample(cursorContext, new AtomicBoolean());
     }
 
-    private void markTreeAsFailed(FileFlushEvent flushEvent, CursorContext cursorContext) {
+    private void markTreeAsFailed(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
         Preconditions.checkState(
                 failureBytes != null, "markAsFailed hasn't been called, populator not actually failed?");
-        tree.checkpoint(new FailureHeaderWriter(failureBytes), flushEvent, cursorContext);
+        tree.checkpoint(new FailureHeaderWriter(failureBytes), flushEvent, asyncBlockAccessor, cursorContext);
     }
 
     private void processVersionedUpdates(

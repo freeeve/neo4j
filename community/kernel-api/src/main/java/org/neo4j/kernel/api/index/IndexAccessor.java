@@ -36,6 +36,7 @@ import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.io.IOUtils;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
@@ -74,11 +75,12 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
      * rotating the logical log. After completion of this call there cannot be any essential state that
      * hasn't been forced to disk.
      *
-     * @param flushEvent file flush event
-     * @param cursorContext underlying page cursor context
+     * @param flushEvent         file flush event
+     * @param asyncBlockAccessor async block accessor of current checkpoint
+     * @param cursorContext      underlying page cursor context
      * @throws UncheckedIOException if there was a problem forcing the state to persistent storage.
      */
-    void force(FileFlushEvent flushEvent, CursorContext cursorContext);
+    void force(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext);
 
     /**
      * Refreshes this index, so that {@link #newValueReader(IndexUsageTracking) readers} created after completion of this call
@@ -265,7 +267,8 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
         }
 
         @Override
-        public void force(FileFlushEvent flushEvent, CursorContext cursorContext) {}
+        public void force(
+                FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {}
 
         @Override
         public void refresh() {}
@@ -360,8 +363,9 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
         }
 
         @Override
-        public void force(FileFlushEvent flushEvent, CursorContext cursorContext) {
-            delegate.force(flushEvent, cursorContext);
+        public void force(
+                FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
+            delegate.force(flushEvent, asyncBlockAccessor, cursorContext);
         }
 
         @Override

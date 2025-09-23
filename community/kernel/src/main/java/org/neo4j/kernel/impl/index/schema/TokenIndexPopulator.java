@@ -30,6 +30,7 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -108,17 +109,18 @@ public class TokenIndexPopulator extends TokenIndex implements IndexPopulator {
 
         try {
             assertNotDropped();
+            AsyncBlockAccessor asyncBlockAccessor = AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
             if (populationCompletedSuccessfully) {
                 // Successful and completed population
                 assertTreeOpen();
                 try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                    flushTreeAndMarkAs(ONLINE, flushEvent, cursorContext);
+                    flushTreeAndMarkAs(ONLINE, flushEvent, asyncBlockAccessor, cursorContext);
                 }
             } else if (failureBytes != null) {
                 // Failed population
                 ensureTreeInstantiated();
                 try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                    markTreeAsFailed(flushEvent, cursorContext);
+                    markTreeAsFailed(flushEvent, asyncBlockAccessor, cursorContext);
                 }
             }
             // else cancelled population. Here we simply close the tree w/o checkpointing it and it will look like
@@ -129,14 +131,16 @@ public class TokenIndexPopulator extends TokenIndex implements IndexPopulator {
         }
     }
 
-    private void flushTreeAndMarkAs(byte state, FileFlushEvent flushEvent, CursorContext cursorContext) {
-        index.checkpoint(pageCursor -> pageCursor.putByte(state), flushEvent, cursorContext);
+    private void flushTreeAndMarkAs(
+            byte state, FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
+        index.checkpoint(pageCursor -> pageCursor.putByte(state), flushEvent, asyncBlockAccessor, cursorContext);
     }
 
-    private void markTreeAsFailed(FileFlushEvent flushEvent, CursorContext cursorContext) {
+    private void markTreeAsFailed(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
         Preconditions.checkState(
                 failureBytes != null, "markAsFailed hasn't been called, populator not actually failed?");
-        index.checkpoint(new FailureHeaderWriter(failureBytes, FAILED), flushEvent, cursorContext);
+        index.checkpoint(new FailureHeaderWriter(failureBytes, FAILED), flushEvent, asyncBlockAccessor, cursorContext);
     }
 
     @Override

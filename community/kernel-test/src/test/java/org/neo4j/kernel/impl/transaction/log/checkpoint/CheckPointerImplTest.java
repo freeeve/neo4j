@@ -127,7 +127,7 @@ class CheckPointerImplTest {
 
         // Then
         assertEquals(TRANSACTION_APPEND_INDEX, appendIndex);
-        verify(forceOperation).flushAndForce(any(), any());
+        verify(forceOperation).flushAndForce(any(), any(), any());
         verify(panic, times(2)).assertNoPanic(IOException.class);
         verify(appender)
                 .checkPoint(
@@ -162,7 +162,7 @@ class CheckPointerImplTest {
 
         // Then
         assertEquals(TRANSACTION_APPEND_INDEX, appendIndex);
-        verify(forceOperation).flushAndForce(any(), any());
+        verify(forceOperation).flushAndForce(any(), any(), any());
         verify(panic, times(2)).assertNoPanic(IOException.class);
         verify(appender)
                 .checkPoint(
@@ -196,7 +196,7 @@ class CheckPointerImplTest {
 
         // Then
         assertEquals(TRANSACTION_APPEND_INDEX, appendIndex);
-        verify(forceOperation).flushAndForce(any(), any());
+        verify(forceOperation).flushAndForce(any(), any(), any());
         verify(panic, times(2)).assertNoPanic(IOException.class);
         verify(appender)
                 .checkPoint(
@@ -230,7 +230,7 @@ class CheckPointerImplTest {
 
         // Then
         assertEquals(TRANSACTION_APPEND_INDEX, appendIndex);
-        verify(forceOperation).flushAndForce(any(), any());
+        verify(forceOperation).flushAndForce(any(), any(), any());
         verify(panic, times(2)).assertNoPanic(IOException.class);
         verify(appender)
                 .checkPoint(
@@ -378,7 +378,7 @@ class CheckPointerImplTest {
                     return null;
                 })
                 .when(forceOperation)
-                .flushAndForce(any(), any());
+                .flushAndForce(any(), any(), any());
 
         Thread forceCheckPointThread = new Thread(() -> {
             try {

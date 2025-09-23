@@ -48,6 +48,7 @@ import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.id.IdSequence;
 import org.neo4j.internal.id.IdType;
 import org.neo4j.internal.id.IdValidator;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCursor;
@@ -271,12 +272,14 @@ public abstract class CommonAbstractStore<RECORD extends AbstractBaseRecord, HEA
         // Map the file (w/ the CREATE flag) and initialize the header
         pagedFile = pageCache.map(storageFile, filePageSize, databaseName, openOptions.newWith(CREATE));
         try (FileFlushEvent flushEvent = pageCacheTracer.beginFileFlush()) {
-            initialiseNewStoreFile(flushEvent, cursorContext);
+            initialiseNewStoreFile(flushEvent, AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
         }
         return true;
     }
 
-    protected void initialiseNewStoreFile(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    protected void initialiseNewStoreFile(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         if (getNumberOfReservedLowIds() > 0) {
             try (PageCursor pageCursor = pagedFile.io(0, PF_SHARED_WRITE_LOCK | PF_EAGER_FLUSH, cursorContext)) {
                 if (pageCursor.next()) {
@@ -288,7 +291,7 @@ public abstract class CommonAbstractStore<RECORD extends AbstractBaseRecord, HEA
                     }
                 }
             }
-            pagedFile.flushAndForce(flushEvent);
+            pagedFile.flushAndForce(flushEvent, asyncBlockAccessor);
         }
 
         // Determine record size right after writing the header since some stores
@@ -659,10 +662,10 @@ public abstract class CommonAbstractStore<RECORD extends AbstractBaseRecord, HEA
     }
 
     @Override
-    public void flush(FileFlushEvent flushEvent, CursorContext cursorContext) {
+    public void flush(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
         try {
-            pagedFile.flushAndForce(flushEvent);
-            idGenerator.checkpoint(flushEvent, cursorContext);
+            pagedFile.flushAndForce(flushEvent, asyncBlockAccessor);
+            idGenerator.checkpoint(flushEvent, asyncBlockAccessor, cursorContext);
         } catch (IOException e) {
             throw new UnderlyingStorageException("Failed to flush", e);
         }

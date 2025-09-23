@@ -22,6 +22,7 @@ package org.neo4j.dbms.database;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.snapshot_query;
 import static org.neo4j.dbms.database.TicketMachine.Barrier.NO_BARRIER;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.CONTEXT_VERSION_UPDATES;
 
 import java.io.IOException;
@@ -39,6 +40,7 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.TicketMachine.Barrier;
 import org.neo4j.dbms.database.TicketMachine.Ticket;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCursor;
@@ -126,7 +128,7 @@ public class DatabasePageCache implements PageCache {
 
     @Override
     public void flushAndForce(DatabaseFlushEvent flushEvent) throws IOException {
-        flushAndForce(flushEvent, NO_BARRIER);
+        flushAndForce(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, NO_BARRIER);
     }
 
     @Override
@@ -134,11 +136,12 @@ public class DatabasePageCache implements PageCache {
         flushAndForce(flushEvent);
     }
 
-    private void flushAndForce(DatabaseFlushEvent flushEvent, Barrier barrier) throws IOException {
+    private void flushAndForce(DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, Barrier barrier)
+            throws IOException {
         for (DatabasePagedFile pagedFile : uniqueDatabasePagedFiles.values()) {
             if (barrier.canPass(pagedFile.flushTicket())) {
                 try (FileFlushEvent fileFlushEvent = flushEvent.beginFileFlush()) {
-                    pagedFile.flushAndForce(fileFlushEvent);
+                    pagedFile.flushAndForce(fileFlushEvent, asyncBlockAccessor);
                 }
             }
         }
@@ -211,9 +214,9 @@ public class DatabasePageCache implements PageCache {
         mappedListeners.remove(mappedListener);
     }
 
-    public FlushGuard flushGuard(DatabaseFlushEvent flushEvent) {
+    public FlushGuard flushGuard(DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor) {
         Barrier barrier = ticketMachine.nextBarrier();
-        return () -> flushAndForce(flushEvent, barrier);
+        return () -> flushAndForce(flushEvent, asyncBlockAccessor, barrier);
     }
 
     private synchronized void unmap(DatabasePagedFile databasePagedFile) {
@@ -272,8 +275,8 @@ public class DatabasePageCache implements PageCache {
         }
 
         @Override
-        public void flushAndForce(FileFlushEvent flushEvent) throws IOException {
-            delegate.flushAndForce(flushEvent);
+        public void flushAndForce(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor) throws IOException {
+            delegate.flushAndForce(flushEvent, asyncBlockAccessor);
             flushTicket.use();
         }
 

@@ -34,7 +34,7 @@ import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 class HeaderWriter implements Consumer<PageCursor> {
     /**
      * highId to write in the header. This is a supplier because of how this writer is constructed before entering the critical
-     * section inside {@link org.neo4j.index.internal.gbptree.MultiRootGBPTree#checkpoint(FileFlushEvent, CursorContext)}
+     * section inside {@link org.neo4j.index.internal.gbptree.MultiRootGBPTree#checkpoint(FileFlushEvent, org.neo4j.io.async.AsyncBlockAccessor, CursorContext)}
      * and so the highId may have changed between constructing this writer
      * and entering the checkpoint critical section.
      */

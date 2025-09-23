@@ -55,6 +55,7 @@ import org.neo4j.common.DependencyResolver;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.index.internal.gbptree.GBPTreeStructure;
 import org.neo4j.index.internal.gbptree.GBPTreeVisitor;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.DelegatingPageCache;
@@ -478,14 +479,14 @@ class DatabaseIT {
         }
 
         @Override
-        public void flushAndForce(FileFlushEvent flushEvent) throws IOException {
+        public void flushAndForce(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor) throws IOException {
             if (disabledIOController.get()) {
                 assertFalse(ioController.isEnabled());
                 ioControllerChecks.incrementAndGet();
             }
             globalFlushCounter.incrementAndGet();
             fileLocalFlushCounter.incrementAndGet();
-            super.flushAndForce(flushEvent);
+            super.flushAndForce(flushEvent, asyncBlockAccessor);
         }
 
         @Override

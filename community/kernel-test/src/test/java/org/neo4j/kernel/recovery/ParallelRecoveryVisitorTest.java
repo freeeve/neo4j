@@ -44,6 +44,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.counts.CountsStore;
 import org.neo4j.internal.diagnostics.DiagnosticsLogger;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
@@ -453,7 +454,8 @@ class ParallelRecoveryVisitorTest {
         }
 
         @Override
-        public void checkpoint(DatabaseFlushEvent flushEvent, CursorContext cursorTracer) {
+        public void checkpoint(
+                DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorTracer) {
             throw new UnsupportedOperationException();
         }
 

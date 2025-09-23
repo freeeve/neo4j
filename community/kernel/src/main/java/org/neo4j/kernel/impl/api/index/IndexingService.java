@@ -77,6 +77,7 @@ import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
@@ -802,16 +803,18 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
         return indexMapRef.getAllIndexProxies();
     }
 
-    public void checkpoint(DatabaseFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    public void checkpoint(
+            DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         try (var fileFlushEvent = flushEvent.beginFileFlush()) {
             internalLog.debug(
                     "Checkpointing %s", indexStatisticsStore.storeFile().getFileName());
-            indexStatisticsStore.checkpoint(fileFlushEvent, cursorContext);
+            indexStatisticsStore.checkpoint(fileFlushEvent, asyncBlockAccessor, cursorContext);
         }
         indexMapRef.indexMapSnapshot().forEachIndexProxy(indexProxyOperation("force", proxy -> {
             internalLog.debug("Checkpointing %s", proxy.getDescriptor().userDescription(tokenNameLookup));
             try (var fileFlushEvent = flushEvent.beginFileFlush()) {
-                proxy.force(fileFlushEvent, cursorContext);
+                proxy.force(fileFlushEvent, asyncBlockAccessor, cursorContext);
             }
         }));
     }

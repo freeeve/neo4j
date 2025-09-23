@@ -20,6 +20,7 @@
 package org.neo4j.internal.counts;
 
 import java.io.IOException;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.impl.index.schema.ConsistencyCheckable;
@@ -82,11 +83,13 @@ public interface RelationshipGroupDegreesStore extends AutoCloseable, Consistenc
     /**
      * Checkpoints changes made up until this point so that they are available even after next restart.
      *
-     * @param flushEvent page file flush event
-     * @param cursorContext page cache access context.
+     * @param flushEvent         page file flush event
+     * @param asyncBlockAccessor async block accessor of current checkpoint
+     * @param cursorContext      page cache access context.
      * @throws IOException on I/O error.
      */
-    void checkpoint(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException;
+    void checkpoint(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException;
 
     default DegreeUpdater directApply(CursorContext cursorContext) throws IOException {
         return updater(TransactionIdStore.BASE_TX_ID, true, cursorContext);

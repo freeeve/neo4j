@@ -27,6 +27,7 @@ import static org.neo4j.index.internal.gbptree.DataTree.W_BATCHED_SINGLE_THREADE
 import static org.neo4j.index.internal.gbptree.DataTree.W_SPLIT_KEEP_ALL_RIGHT;
 import static org.neo4j.index.internal.gbptree.GBPTreeOpenOptions.NO_FLUSH_ON_CLOSE;
 import static org.neo4j.index.internal.gbptree.GBPTreeTestUtil.consistencyCheck;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.test.utils.PageCacheConfig.config;
@@ -421,7 +422,7 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
                     writer.remove(layout.key(i));
                 }
             }
-            index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // When tree is closed we will overwrite treeState with in memory state so we need to open tree in special mode
@@ -455,7 +456,7 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
                     keyCount++;
                 }
             }
-            index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // When tree is closed we will overwrite treeState with in memory state so we need to open tree in special mode
@@ -487,7 +488,7 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
                     keyCount++;
                 }
             }
-            index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // When tree is closed we will overwrite treeState with in memory state so we need to open tree in special mode
@@ -520,7 +521,7 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
                 }
             }
 
-            index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         final long targetNode;
@@ -591,7 +592,7 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
                     keyCount++;
                 }
             }
-            index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // When tree is closed we will overwrite treeState with in memory state, so we need to open tree in special mode
@@ -835,7 +836,7 @@ abstract class GBPTreeConsistencyCheckerTestBase<KEY, VALUE> {
     @Test
     void shouldDetectDirtyOnStartup() throws IOException {
         try (GBPTree<KEY, VALUE> index = index().build()) {
-            index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             index.writer(W_BATCHED_SINGLE_THREADED, NULL_CONTEXT).close();
             // No checkpoint
         }

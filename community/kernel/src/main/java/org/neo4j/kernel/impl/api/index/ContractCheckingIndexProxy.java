@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -111,10 +112,11 @@ class ContractCheckingIndexProxy extends DelegatingIndexProxy {
     }
 
     @Override
-    public void force(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    public void force(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         if (tryOpenCall()) {
             try {
-                super.force(flushEvent, cursorContext);
+                super.force(flushEvent, asyncBlockAccessor, cursorContext);
             } finally {
                 closeCall();
             }

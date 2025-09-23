@@ -40,6 +40,7 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.index.internal.gbptree.TreeFileNotFoundException;
 import org.neo4j.index.internal.gbptree.Writer;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.CommonDatabaseStores;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -272,11 +273,13 @@ public class IndexStatisticsStore extends LifecycleAdapter
         }
     }
 
-    public void checkpoint(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    public void checkpoint(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         // There's an assumption that there will never be concurrent calls to checkpoint. This is guarded outside.
         clearTree(cursorContext);
         writeCacheContentsIntoTree(cursorContext);
-        tree.checkpoint(flushEvent, cursorContext);
+        tree.checkpoint(flushEvent, asyncBlockAccessor, cursorContext);
     }
 
     @Override

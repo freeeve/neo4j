@@ -27,6 +27,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.counts.CountsStore;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.diagnostics.DiagnosticsLogger;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.OutOfDiskSpaceException;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
@@ -154,11 +155,14 @@ public interface StorageEngine extends ReadableStorageEngine, Lifecycle {
 
     /**
      * Checkpoints underlying storage. Leaves no guarantee that files are flushed to persistable storage afterwards
-     * @param flushEvent flush event from checkpoint
-     * @param cursorContext underlying page cursor context
+     *
+     * @param flushEvent         flush event from checkpoint
+     * @param asyncBlockAccessor async block accessor of current checkpoint
+     * @param cursorContext      underlying page cursor context
      * @throws IOException on I/O error.
      */
-    void checkpoint(DatabaseFlushEvent flushEvent, CursorContext cursorContext) throws IOException;
+    void checkpoint(DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException;
 
     /**
      * Dump diagnostics about the storage.

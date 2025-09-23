@@ -29,6 +29,7 @@ import static org.neo4j.internal.recordstorage.Command.GroupDegreeCommand.combin
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.GROUP_CURSOR;
 import static org.neo4j.internal.recordstorage.RecordStorageEngineTestUtils.applyLogicalChanges;
 import static org.neo4j.internal.recordstorage.RecordStorageEngineTestUtils.openSimpleStorageEngine;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 
@@ -130,7 +131,7 @@ class DegreesRebuildFromStoreTest {
                     }
                 }
             }
-            storageEngine.checkpoint(DatabaseFlushEvent.NULL, NULL_CONTEXT);
+            storageEngine.checkpoint(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // when
@@ -159,7 +160,7 @@ class DegreesRebuildFromStoreTest {
                                     expectedDegrees.put(combinedKeyOnGroupAndDirection(groupId, direction), degree),
                             NULL_CONTEXT);
             assertThat(expectedDegrees.isEmpty()).isFalse();
-            storageEngine.checkpoint(DatabaseFlushEvent.NULL, NULL_CONTEXT);
+            storageEngine.checkpoint(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // when

@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.graphdb.Label.label;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 
 import java.io.IOException;
@@ -203,6 +204,6 @@ public class UniqueIndexRecoveryTest {
     private void flushAll() throws IOException {
         db.getDependencyResolver()
                 .resolveDependency(CheckPointerImpl.ForceOperation.class)
-                .flushAndForce(DatabaseFlushEvent.NULL, NULL_CONTEXT);
+                .flushAndForce(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
     }
 }

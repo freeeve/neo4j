@@ -29,6 +29,7 @@ import static org.neo4j.internal.kernel.api.PopulationProgress.DONE;
 import static org.neo4j.internal.schema.IndexPrototype.forSchema;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
 import static org.neo4j.io.ByteUnit.kibiBytes;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.api.impl.schema.LuceneTestTokenNameLookup.SIMPLE_TOKEN_LOOKUP;
@@ -143,7 +144,8 @@ class LuceneIndexProviderTest {
                 readOnlyConfig, DirectoryFactory.inMemory(luceneContext), fileSystem, graphDbDir);
 
         // We assert that 'force' does not throw an exception
-        getIndexAccessor(readOnlyConfig, readOnlyIndexProvider).force(FileFlushEvent.NULL, NULL_CONTEXT);
+        getIndexAccessor(readOnlyConfig, readOnlyIndexProvider)
+                .force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
     }
 
     @ParameterizedTest

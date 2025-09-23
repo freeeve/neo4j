@@ -29,6 +29,7 @@ import static org.neo4j.internal.id.IdSlotDistribution.SINGLE_IDS;
 import static org.neo4j.io.ByteUnit.gibiBytes;
 import static org.neo4j.io.IOUtils.closeAll;
 import static org.neo4j.io.IOUtils.uncheckedConsumer;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.mem.MemoryAllocator.createAllocator;
 import static org.neo4j.kernel.impl.store.StoreType.PROPERTY;
 import static org.neo4j.kernel.impl.store.StoreType.PROPERTY_ARRAY;
@@ -473,7 +474,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
                 var cursorContext = contextFactory.create("buildCountsStore")) {
             countsStore.start(cursorContext, memoryTracker);
             try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                countsStore.checkpoint(flushEvent, cursorContext);
+                countsStore.checkpoint(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -500,7 +501,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
                 var cursorContext = contextFactory.create("buildRelationshipDegreesStore")) {
             groupDegreesStore.start(cursorContext, memoryTracker);
             try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                groupDegreesStore.checkpoint(flushEvent, cursorContext);
+                groupDegreesStore.checkpoint(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -581,7 +582,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
                 var cursorContext = contextFactory.create("Rebuild ID generator")) {
             idGenerator.start(neoStores.getNodeStore().freeIds(cursorContext), cursorContext);
             try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                idGenerator.checkpoint(flushEvent, cursorContext);
+                idGenerator.checkpoint(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
         }
 
@@ -647,10 +648,10 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
 
     public void flushAndForce(CursorContext cursorContext) throws IOException {
         if (neoStores != null) {
-            neoStores.flush(DatabaseFlushEvent.NULL, cursorContext);
+            neoStores.flush(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
         }
         if (temporaryNeoStores != null) {
-            temporaryNeoStores.flush(DatabaseFlushEvent.NULL, cursorContext);
+            temporaryNeoStores.flush(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
         }
     }
 

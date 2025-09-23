@@ -80,6 +80,7 @@ import org.neo4j.internal.schema.SchemaCache;
 import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseFile;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
@@ -703,17 +704,19 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     @Override
-    public void checkpoint(DatabaseFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    public void checkpoint(
+            DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
 
         log.debug("Checkpointing %s", RecordDatabaseFile.COUNTS_STORE.getName());
         try (var fileFlushEvent = flushEvent.beginFileFlush()) {
-            countsStore.checkpoint(fileFlushEvent, cursorContext);
+            countsStore.checkpoint(fileFlushEvent, asyncBlockAccessor, cursorContext);
         }
         log.debug("Checkpointing %s", RecordDatabaseFile.RELATIONSHIP_GROUP_DEGREES_STORE.getName());
         try (var fileFlushEvent = flushEvent.beginFileFlush()) {
-            groupDegreesStore.checkpoint(fileFlushEvent, cursorContext);
+            groupDegreesStore.checkpoint(fileFlushEvent, asyncBlockAccessor, cursorContext);
         }
-        neoStores.checkpoint(flushEvent, cursorContext);
+        neoStores.checkpoint(flushEvent, asyncBlockAccessor, cursorContext);
     }
 
     @Override

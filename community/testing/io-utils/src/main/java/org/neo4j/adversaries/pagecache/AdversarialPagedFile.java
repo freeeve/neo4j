@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.util.Objects;
 import org.neo4j.adversaries.Adversary;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.DelegatingPagedFile;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PagedFile;
@@ -64,9 +65,9 @@ public class AdversarialPagedFile extends DelegatingPagedFile {
     }
 
     @Override
-    public void flushAndForce(FileFlushEvent flushEvent) throws IOException {
+    public void flushAndForce(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor) throws IOException {
         adversary.injectFailure(NoSuchFileException.class, IOException.class, SecurityException.class);
-        delegate.flushAndForce(flushEvent);
+        delegate.flushAndForce(flushEvent, asyncBlockAccessor);
     }
 
     @Override

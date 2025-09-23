@@ -20,6 +20,7 @@
 package org.neo4j.internal.recordstorage;
 
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 
 import java.io.IOException;
 import org.neo4j.exceptions.KernelException;
@@ -80,7 +81,7 @@ public class SchemaRuleMigrationAccessImpl implements SchemaRuleMigrationAccess 
     @Override
     public void close() throws IOException {
         storeCursors.close();
-        neoStores.flush(DatabaseFlushEvent.NULL, cursorContext);
+        neoStores.flush(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
         closeAllUnchecked(storeCursors, neoStores, cursorContext);
     }
 }

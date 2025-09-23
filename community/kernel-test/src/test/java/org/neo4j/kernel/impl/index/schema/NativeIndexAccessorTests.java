@@ -31,6 +31,7 @@ import static org.neo4j.function.Predicates.in;
 import static org.neo4j.internal.helpers.collection.Iterables.asUniqueSet;
 import static org.neo4j.internal.helpers.collection.Iterators.filter;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.api.index.IndexUpdateMode.ONLINE;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
@@ -338,7 +339,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         processAll(data);
 
         // when
-        accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+        accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         accessor.close();
 
         // then
@@ -536,7 +537,7 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     }
 
     private void forceAndCloseAccessor() {
-        accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+        accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         closeAccessor();
     }
 

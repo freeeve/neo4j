@@ -21,6 +21,7 @@ package org.neo4j.io.pagecache.randomharness;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 
 import java.nio.file.OpenOption;
@@ -150,7 +151,7 @@ class CommandPrimer {
                 public void perform() throws Exception {
                     PagedFile pagedFile = fileMap.get(file);
                     if (pagedFile != null) {
-                        pagedFile.flushAndForce(FileFlushEvent.NULL);
+                        pagedFile.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                     }
                 }
             };

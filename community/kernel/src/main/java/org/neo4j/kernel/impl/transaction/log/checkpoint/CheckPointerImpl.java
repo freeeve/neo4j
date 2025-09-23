@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.function.BooleanSupplier;
 import org.neo4j.graphdb.Resource;
 import org.neo4j.io.ByteUnit;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -240,9 +241,10 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
              */
             log.info(checkpointReason + " checkpoint started...");
             Stopwatch startTime = Stopwatch.start();
+            AsyncBlockAccessor asyncBlockAccessor = AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 
             try (var flushEvent = checkPointEvent.beginDatabaseFlush()) {
-                forceOperation.flushAndForce(flushEvent, cursorContext);
+                forceOperation.flushAndForce(flushEvent, asyncBlockAccessor, cursorContext);
                 flushEvent.ioControllerLimit(ioController.configuredLimit());
             }
 
@@ -343,9 +345,11 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
 
     @FunctionalInterface
     public interface ForceOperation {
-        ForceOperation NO_OP = (flushEvent, cursorContext) -> {};
+        ForceOperation NO_OP = (flushEvent, asyncBlockAccessor, cursorContext) -> {};
 
-        void flushAndForce(DatabaseFlushEvent flushEvent, CursorContext cursorContext) throws IOException;
+        void flushAndForce(
+                DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+                throws IOException;
     }
 
     private record NotCompletedTransactionInfo(long appendIndex, LogPosition logPosition) {}

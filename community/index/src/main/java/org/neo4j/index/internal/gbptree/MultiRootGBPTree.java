@@ -32,6 +32,7 @@ import static org.neo4j.index.internal.gbptree.GenerationSafePointer.FIRST_UNSTA
 import static org.neo4j.index.internal.gbptree.Header.CARRY_OVER_PREVIOUS_HEADER;
 import static org.neo4j.index.internal.gbptree.Header.replace;
 import static org.neo4j.index.internal.gbptree.PointerChecking.checkOutOfBounds;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.PageCacheOpenOptions.MULTI_VERSIONED;
 import static org.neo4j.io.pagecache.PagedFile.PF_SHARED_READ_LOCK;
 import static org.neo4j.io.pagecache.PagedFile.PF_SHARED_WRITE_LOCK;
@@ -63,6 +64,7 @@ import org.neo4j.index.internal.gbptree.Header.Reader;
 import org.neo4j.index.internal.gbptree.RootLayer.TreeRootsVisitor;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.NativeScopedBuffer;
@@ -84,8 +86,8 @@ import org.neo4j.util.VisibleForTesting;
  * Additionally internal and leaf nodes on same level are linked both left and right (sibling pointers),
  * this to provide correct reading when concurrently writing to the tree.
  * <p>
- * Generation is incremented on {@link #checkpoint(FileFlushEvent, CursorContext)} check-pointing}.
- * Generation awareness allows for recovery from last {@link #checkpoint(FileFlushEvent, CursorContext)}, provided the same updates
+ * Generation is incremented on {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)} check-pointing}.
+ * Generation awareness allows for recovery from last {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)}, provided the same updates
  * will be replayed onto the index since that point in time.
  * <p>
  * Changes to tree nodes are made so that stable nodes (i.e. nodes that have survived at least one checkpoint)
@@ -116,8 +118,8 @@ import org.neo4j.util.VisibleForTesting;
  * {@link GBPTree} is designed to be able to handle non-clean shutdown / crash, but needs external help
  * in order to do so.
  * {@link DataTree#writer(int, CursorContext) Writes} happen to the tree and are made durable and
- * safe on next call to {@link #checkpoint(FileFlushEvent, CursorContext)}. Writes which happens after the last
- * {@link #checkpoint(FileFlushEvent, CursorContext)} are not safe if there's a {@link #close()} or JVM crash in between, i.e:
+ * safe on next call to {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)}. Writes which happens after the last
+ * {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)} are not safe if there's a {@link #close()} or JVM crash in between, i.e:
  *
  * <pre>
  * w: write
@@ -280,14 +282,14 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         }
 
         /**
-         * Called when a {@link GBPTree#checkpoint(FileFlushEvent, CursorContext)} has started, right after
+         * Called when a {@link MultiRootGBPTree#checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)} has started, right after
          * current writers have been drained. Future writers after this point onwards and until the next call
          * to {@link #checkpointCompleted()} will do eager flushing of their changes.
          */
         void checkpointStarted();
 
         /**
-         * Called when a {@link GBPTree#checkpoint(FileFlushEvent, CursorContext)} has been completed and generation
+         * Called when a {@link MultiRootGBPTree#checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)} has been completed and generation
          * has been bumped, but right before {@link GBPTree#writer(CursorContext)} writers are re-enabled.
          * Writers from this point onwards and until the next call to {@link #checkpointStarted()} will not do
          * eager flushing of their changes.
@@ -397,8 +399,8 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
 
     /**
      * Tells whether there have been made changes (using {@link DataTree#writer(int, CursorContext)}) to this tree
-     * since last call to {@link #checkpoint(FileFlushEvent, CursorContext)}. This variable is set when calling {@link DataTree#writer(int, CursorContext)}
-     * and cleared inside {@link #checkpoint(FileFlushEvent, CursorContext)}.
+     * since last call to {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)}. This variable is set when calling {@link DataTree#writer(int, CursorContext)}
+     * and cleared inside {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)}.
      */
     private final AtomicBoolean changesSinceLastCheckpoint = new AtomicBoolean();
 
@@ -426,9 +428,9 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
      * Both stable and unstable generation are unsigned ints, i.e. 32 bits each.
      *
      * <ul>
-     * <li>stable generation, generation which has survived the last {@link #checkpoint(FileFlushEvent, CursorContext)}</li>
+     * <li>stable generation, generation which has survived the last {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)}</li>
      * <li>unstable generation, current generation under evolution. This generation will be the
-     * {@link Generation#stableGeneration(long)} after the next {@link #checkpoint(FileFlushEvent, CursorContext)}</li>
+     * {@link Generation#stableGeneration(long)} after the next {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)}</li>
      * </ul>
      */
     private volatile long generation;
@@ -558,7 +560,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
      * @param layout                       {@link Layout} to use in the tree, this must match the existing layout
      *                                     we're just opening the index
      * @param monitor                      {@link Monitor} for monitoring {@link GBPTree}.
-     * @param headerReader                 reads header data, previously written using {@link #checkpoint(Consumer, FileFlushEvent, CursorContext)}
+     * @param headerReader                 reads header data, previously written using {@link #checkpoint(Consumer, FileFlushEvent, AsyncBlockAccessor, CursorContext)}
      *                                     or {@link #close()}
      * @param recoveryCleanupWorkCollector collects recovery cleanup jobs for execution after recovery.
      * @param readOnly whether this tree should be opened in read-only mode. If {@code true} then no generation
@@ -648,7 +650,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                 if (!readOnly) {
                     clean = false;
                     try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                        forceState(flushEvent, cursorContext);
+                        forceState(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
                     }
                     cleaning = createCleanupJob(recoveryCleanupWorkCollector, dirtyOnStartup);
                 } else {
@@ -876,7 +878,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
      *
      * @param pageCache {@link PageCache} to use to map index file
      * @param indexFile {@link Path} containing the actual index
-     * @param headerReader reads header data, previously written using {@link #checkpoint( Consumer, FileFlushEvent, CursorContext)}
+     * @param headerReader reads header data, previously written using {@link #checkpoint(Consumer, FileFlushEvent, AsyncBlockAccessor, CursorContext)}
      * or {@link #close()}
      * @param databaseName name of the database index file belongs to.
      * @throws IOException On page cache error
@@ -1094,29 +1096,36 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
      * Header writer is expected to leave consumed {@link PageCursor} at end of written header for calculation of
      * header size.
      *
-     * @param headerWriter hook for writing header data, must leave cursor at end of written header.
-     * @param cursorContext underlying page cursor context
+     * @param headerWriter       hook for writing header data, must leave cursor at end of written header.
+     * @param asyncBlockAccessor async block accessor of current checkpoint
+     * @param cursorContext      underlying page cursor context
      * @throws UncheckedIOException on error flushing to storage.
      */
-    public void checkpoint(Consumer<PageCursor> headerWriter, FileFlushEvent flushEvent, CursorContext cursorContext) {
+    public void checkpoint(
+            Consumer<PageCursor> headerWriter,
+            FileFlushEvent flushEvent,
+            AsyncBlockAccessor asyncBlockAccessor,
+            CursorContext cursorContext) {
         try {
-            checkpoint(replace(headerWriter), flushEvent, cursorContext);
+            checkpoint(replace(headerWriter), flushEvent, asyncBlockAccessor, cursorContext);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     /**
-     * Performs a {@link #checkpoint( Consumer, FileFlushEvent, CursorContext)}  check point}, keeping any header information
+     * Performs a {@link #checkpoint(Consumer, FileFlushEvent, AsyncBlockAccessor, CursorContext)}  check point}, keeping any header information
      * written in previous check point.
      *
-     * @param cursorContext underlying page cursor context
+     * @param asyncBlockAccessor async block accessor of current checkpoint
+     * @param cursorContext      underlying page cursor context
      * @throws UncheckedIOException on error flushing to storage.
-     * @see #checkpoint( Header.Writer, FileFlushEvent, CursorContext)
+     * @see #checkpoint(Header.Writer, FileFlushEvent, AsyncBlockAccessor, CursorContext)
      */
-    public void checkpoint(FileFlushEvent flushEvent, CursorContext cursorContext) {
+    public void checkpoint(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
         try {
-            checkpoint(CARRY_OVER_PREVIOUS_HEADER, flushEvent, cursorContext);
+            checkpoint(CARRY_OVER_PREVIOUS_HEADER, flushEvent, asyncBlockAccessor, cursorContext);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -1141,7 +1150,11 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
      * During #2 (when the file is flushed) writers are unblocked and will eagerly flush their changes as they write.
      */
     private synchronized void checkpoint(
-            Header.Writer headerWriter, FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+            Header.Writer headerWriter,
+            FileFlushEvent flushEvent,
+            AsyncBlockAccessor asyncBlockAccessor,
+            CursorContext cursorContext)
+            throws IOException {
         if (readOnly) {
             return;
         }
@@ -1155,7 +1168,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
 
             // Do the file-global flush together with the flushing by any potential concurrent writer
             monitor.checkpointStarted();
-            pagedFile.flushAndForce(flushEvent);
+            pagedFile.flushAndForce(flushEvent, asyncBlockAccessor);
 
             // Drain writers, bump generation and do the final forcing of the file.
             // New writers after this section don't need to eagerly flush anymore.
@@ -1173,13 +1186,13 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                 // the state page. Only force is needed, but there's no method only doing force, although
                 // the flush part is really fast if there are no dirty pages.
                 structureWriteLog.checkpoint(stableGeneration, unstableGeneration, unstableGeneration + 1);
-                pagedFile.flushAndForce(flushEvent);
+                pagedFile.flushAndForce(flushEvent, asyncBlockAccessor);
 
                 // Increment generation, i.e. stable becomes current unstable and unstable increments by one
                 // and write the tree state (rootId, lastId, generation a.s.o.) to state page.
                 this.generation = Generation.generation(unstableGeneration, unstableGeneration + 1);
                 writeState(pagedFile, headerWriter, cursorContext);
-                pagedFile.flushAndForce(flushEvent);
+                pagedFile.flushAndForce(flushEvent, asyncBlockAccessor);
 
                 monitor.checkpointCompleted();
                 changesSinceLastCheckpoint.set(false);
@@ -1193,7 +1206,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
     /**
      * Closes this tree and its associated resources.
      * <p>
-     * NOTE: No {@link #checkpoint(FileFlushEvent flushEvent, CursorContext)} checkpoint} is performed.
+     * NOTE: No {@link #checkpoint(FileFlushEvent, AsyncBlockAccessor, CursorContext)} checkpoint} is performed.
      * @throws IOException on error closing resources.
      */
     @Override
@@ -1208,19 +1221,20 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                 if (closed) {
                     return;
                 }
+                AsyncBlockAccessor asyncBlockAccessor = EMPTY_ASYNC_BLOCK_ACCESSOR;
                 try {
                     try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                        maybeForceCleanState(flushEvent, cursorContext);
+                        maybeForceCleanState(flushEvent, asyncBlockAccessor, cursorContext);
                     }
                 } catch (IOException ioe) {
                     try {
                         if (!pagedFile.isDeleteOnClose()) {
                             try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                                pagedFile.flushAndForce(flushEvent);
+                                pagedFile.flushAndForce(flushEvent, asyncBlockAccessor);
                             }
                         }
                         try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                            maybeForceCleanState(flushEvent, cursorContext);
+                            maybeForceCleanState(flushEvent, asyncBlockAccessor, cursorContext);
                         }
                         doClose();
                     } catch (IOException e) {
@@ -1264,11 +1278,13 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         pagedFile.setDeleteOnClose(deleteOnClose);
     }
 
-    private void maybeForceCleanState(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    private void maybeForceCleanState(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         if (cleaning != null && !changesSinceLastCheckpoint.get() && !cleaning.needed()) {
             clean = true;
             if (!pagedFile.isDeleteOnClose()) {
-                forceState(flushEvent, cursorContext);
+                forceState(flushEvent, asyncBlockAccessor, cursorContext);
             }
         }
     }
@@ -1293,7 +1309,9 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         generation = generation(stableGeneration(generation), unstableGeneration(generation) + 1);
     }
 
-    private void forceState(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    private void forceState(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         if (changesSinceLastCheckpoint.get()) {
             throw new IllegalStateException("It seems that this method has been called in the wrong state. "
                     + "It's expected that this is called after opening this tree, but before any changes "
@@ -1301,7 +1319,7 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
         }
 
         writeState(pagedFile, CARRY_OVER_PREVIOUS_HEADER, cursorContext);
-        pagedFile.flushAndForce(flushEvent);
+        pagedFile.flushAndForce(flushEvent, asyncBlockAccessor);
     }
 
     /**

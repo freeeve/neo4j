@@ -42,6 +42,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.pagecache_flush_buffer_size_in_pages;
 import static org.neo4j.internal.helpers.Numbers.ceilingPowerOfTwo;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.memory.ByteBuffers.allocateDirect;
 import static org.neo4j.io.memory.ByteBuffers.releaseBuffer;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
@@ -237,7 +238,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 }
             }
 
-            pagedFile.flushAndForce(FileFlushEvent.NULL);
+            pagedFile.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
             verifyRecordsInFile(file("a"), recordCount);
             pagedFile.close();
@@ -298,7 +299,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
         // Dirty a bunch of data
         dirtyManyPages(pf, pagesToDirty);
 
-        pf.flushAndForce(FileFlushEvent.NULL);
+        pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
         pf.close();
 
         assertThat(callbackCounter.get()).isGreaterThan(0);
@@ -342,7 +343,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                     // running concurrently right now.
                     // Therefor, a flush right now would have a high chance of racing
                     // with eviction.
-                    pagedFile.flushAndForce(FileFlushEvent.NULL);
+                    pagedFile.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
                     // Race or not, a flush should still put all changes in storage,
                     // so we should be able to verify the contents of the file.
@@ -387,7 +388,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 }
 
                 Future<?> flusher = executor.submit(() -> {
-                    pfA.flushAndForce(FileFlushEvent.NULL);
+                    pfA.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                     return null;
                 });
 
@@ -433,15 +434,15 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
             }
 
             flushers.add(executor.submit(() -> {
-                pfA.flushAndForce(FileFlushEvent.NULL);
+                pfA.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                 return null;
             }));
             flushers.add(executor.submit(() -> {
-                pfB.flushAndForce(FileFlushEvent.NULL);
+                pfB.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                 return null;
             }));
             flushers.add(executor.submit(() -> {
-                pfC.flushAndForce(FileFlushEvent.NULL);
+                pfC.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                 return null;
             }));
 
@@ -517,7 +518,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 cursor.putInt(1);
             }
 
-            pagedFile.flushAndForce(FileFlushEvent.NULL);
+            pagedFile.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
             assertThat(writeCounter.get()).isGreaterThanOrEqualTo(2); // We might race with background flushing.
             assertThat(forceCounter.get()).isEqualTo(1);
@@ -541,7 +542,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 cursor.putInt(1);
             }
 
-            pagedFile.flushAndForce(FileFlushEvent.NULL);
+            pagedFile.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
             assertThat(writeCounter.get()).isGreaterThanOrEqualTo(1); // We might race with background flushing.
             assertThat(forceCounter.get()).isEqualTo(1);
@@ -933,7 +934,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 }
             }
 
-            pagedFile.flushAndForce(FileFlushEvent.NULL);
+            pagedFile.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
         });
     }
 
@@ -2497,7 +2498,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                                     assertTrue(writer.next(i));
                                 }
                             }
-                            otherPagedFile.flushAndForce(FileFlushEvent.NULL);
+                            otherPagedFile.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                         }
                     });
                 }
@@ -3715,7 +3716,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
         hasSpace.set(true);
 
         // Flushing the paged file implies the eviction exception gets cleared, and mustn't itself throw:
-        pagedFile.flushAndForce(FileFlushEvent.NULL);
+        pagedFile.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
         try (PageCursor cursor = pagedFile.io(0, PF_SHARED_READ_LOCK, NULL_CONTEXT)) {
             assertTrue(cursor.next()); // this should not throw
@@ -4175,7 +4176,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 try (PageCursor cursor = pf.io(20, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                     assertTrue(cursor.next());
                 }
-                pf.flushAndForce(FileFlushEvent.NULL);
+                pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                 assertEquals(21L * filePageSize, fs.getFileSize(file));
 
                 pf.truncate(10, FileTruncateEvent.NULL);
@@ -4195,7 +4196,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 try (PageCursor cursor = pf.io(25, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                     assertTrue(cursor.next());
                 }
-                pf.flushAndForce(FileFlushEvent.NULL);
+                pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
                 try (RegionCollectionEvent collectionEvent = storageTracer.beginRegionCollection()) {
                     try (var truncateEvent = collectionEvent.attemptTruncate()) {
@@ -4233,7 +4234,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 try (PageCursor cursor = pf.io(2, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                     assertTrue(cursor.next());
                 }
-                pf.flushAndForce(FileFlushEvent.NULL);
+                pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                 assertEquals(2, pf.getLastPageId());
 
                 pf.truncate(1, FileTruncateEvent.NULL);
@@ -4265,7 +4266,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                 try (PageCursor cursor = pf.io(2, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
                     assertTrue(cursor.next());
                 }
-                pf.flushAndForce(FileFlushEvent.NULL);
+                pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                 assertEquals(2, pf.getLastPageId());
 
                 pf.truncate(0, FileTruncateEvent.NULL);
@@ -4332,7 +4333,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                         pf.truncate(pagesToKeep, truncateEvent);
                     }
                     try (FileFlushEvent fileFlushEvent = cacheTracer.beginFileFlush()) {
-                        pf.flushAndForce(fileFlushEvent);
+                        pf.flushAndForce(fileFlushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR);
                     }
 
                     long expectedTruncatedBytes = beforeTruncation + (totalFilePages - pagesToKeep) * filePageSize;
@@ -4373,7 +4374,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                         cursor.putLong(i);
                     }
                 }
-                pf.flushAndForce(FileFlushEvent.NULL);
+                pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                 assertEquals(21L * filePageSize, fs.getFileSize(file));
 
                 pf.truncate(7, FileTruncateEvent.NULL);
@@ -4385,7 +4386,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                         cursor.putLong(i);
                     }
                 }
-                pf.flushAndForce(FileFlushEvent.NULL);
+                pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
                 assertEquals(25L * filePageSize, fs.getFileSize(file));
             }
         });
@@ -4403,7 +4404,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                         cursor.putLong(i);
                     }
                 }
-                pf.flushAndForce(FileFlushEvent.NULL);
+                pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
                 pf.truncate(5, FileTruncateEvent.NULL);
                 for (int i = 0; i < 4; i++) {
@@ -4428,7 +4429,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
                         cursor.putLong(i);
                     }
                 }
-                pf.flushAndForce(FileFlushEvent.NULL);
+                pf.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
                 pf.truncate(7, FileTruncateEvent.NULL);
 

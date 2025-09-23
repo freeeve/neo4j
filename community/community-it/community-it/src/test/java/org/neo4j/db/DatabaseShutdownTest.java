@@ -38,6 +38,7 @@ import org.neo4j.graphdb.facade.DatabaseManagementServiceFactory;
 import org.neo4j.graphdb.facade.ExternalDependencies;
 import org.neo4j.graphdb.factory.module.GlobalModule;
 import org.neo4j.graphdb.factory.module.edition.CommunityEditionModule;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.DelegatingPageCache;
@@ -151,12 +152,14 @@ class DatabaseShutdownTest {
                                             versionStorage);
                                     return new DelegatingPagedFile(pagedFile) {
                                         @Override
-                                        public void flushAndForce(FileFlushEvent flushEvent) throws IOException {
+                                        public void flushAndForce(
+                                                FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor)
+                                                throws IOException {
                                             if (failFlush) {
                                                 // this is simulating a failing check pointing on shutdown
                                                 throw new IOException("Boom!");
                                             }
-                                            super.flushAndForce(flushEvent);
+                                            super.flushAndForce(flushEvent, asyncBlockAccessor);
                                         }
                                     };
                                 }

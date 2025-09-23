@@ -22,6 +22,7 @@ package org.neo4j.index.internal.gbptree;
 import static java.lang.Integer.min;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.index.internal.gbptree.GBPTreeTestUtil.consistencyCheckStrict;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.test.Race.throwing;
@@ -142,7 +143,7 @@ abstract class GBPTreeParallelWritesIT<KEY, VALUE> {
                             1);
                 }
                 race.goUnchecked();
-                index.checkpoint(FileFlushEvent.NULL, cursorContext);
+                index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
 
             // then
@@ -230,7 +231,7 @@ abstract class GBPTreeParallelWritesIT<KEY, VALUE> {
             }));
             race.addContestant(throwing(() -> {
                 Thread.sleep(ThreadLocalRandom.current().nextInt(maxCheckpointDelay));
-                tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+                tree.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             }));
             race.goUnchecked();
 

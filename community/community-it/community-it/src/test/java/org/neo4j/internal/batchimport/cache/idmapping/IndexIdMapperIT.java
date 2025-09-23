@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.neo4j.batchimport.api.input.Collector.STRICT;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
@@ -339,7 +340,7 @@ class IndexIdMapperIT {
                         ValueIndexEntryUpdate.add(dataEntry.getValue(), descriptor, Values.of(dataEntry.getKey())));
             }
         }
-        accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+        accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         accessors.put(group.name(), accessor);
         descriptors.put(group.name(), descriptor);
     }

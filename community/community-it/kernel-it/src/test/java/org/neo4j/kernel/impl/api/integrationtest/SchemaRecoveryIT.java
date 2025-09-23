@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.graphdb.Label.label;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 
 import java.util.List;
@@ -130,7 +131,10 @@ class SchemaRecoveryIT {
         // Flush the property token store, but NOT the property token ~name~ store. This means tokens will refer to
         // unused dynamic records for their names.
         RecordStorageEngine storageEngine = db.getDependencyResolver().resolveDependency(RecordStorageEngine.class);
-        storageEngine.testAccessNeoStores().getPropertyKeyTokenStore().flush(FileFlushEvent.NULL, NULL_CONTEXT);
+        storageEngine
+                .testAccessNeoStores()
+                .getPropertyKeyTokenStore()
+                .flush(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
 
         killDb();
 

@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.store.counts;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -617,7 +618,7 @@ class CountsComputerTest {
                     INSTANCE);
             try (var countsStore = createCountsStore(countsComputer, neoStores.getOpenOptions())) {
                 countsStore.start(NULL_CONTEXT, INSTANCE);
-                countsStore.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+                countsStore.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

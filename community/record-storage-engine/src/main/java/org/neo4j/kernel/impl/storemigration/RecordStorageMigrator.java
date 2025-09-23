@@ -26,6 +26,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.recordstorage.RecordStorageEngineFactory.createMigrationTargetSchemaRuleAccess;
 import static org.neo4j.internal.recordstorage.StoreTokens.allTokens;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.kernel.impl.storemigration.FileOperation.COPY;
 import static org.neo4j.kernel.impl.storemigration.FileOperation.DELETE;
 import static org.neo4j.kernel.impl.storemigration.FileOperation.MOVE;
@@ -280,7 +281,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                     schemaStoreMigration.migrate(dstAccess, dstTokensHolders);
 
                     try (var databaseFlushEvent = pageCacheTracer.beginDatabaseFlush()) {
-                        dstStore.flush(databaseFlushEvent, cursorContext);
+                        dstStore.flush(databaseFlushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
                     }
                 }
             } else if (requiresPropertyMigration) {
@@ -718,7 +719,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
             }
 
             try (var databaseFlushEvent = pageCacheTracer.beginDatabaseFlush()) {
-                dstStore.flush(databaseFlushEvent, cursorContext);
+                dstStore.flush(databaseFlushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
         }
     }
@@ -798,7 +799,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                 for (long txId = txIdBeforeMigration + 1; txId <= txIdAfterMigration; txId++) {
                     countsStore.updater(txId, true, context).close();
                 }
-                countsStore.checkpoint(flushEvent, context);
+                countsStore.checkpoint(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, context);
             }
         }
 
@@ -835,7 +836,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                 for (long txId = txIdBeforeMigration + 1; txId <= txIdAfterMigration; txId++) {
                     degreesStore.updater(txId, true, context).close();
                 }
-                degreesStore.checkpoint(flushEvent, context);
+                degreesStore.checkpoint(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, context);
             }
         }
 

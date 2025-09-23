@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.store;
 
 import static org.eclipse.collections.impl.factory.Sets.immutable;
 import static org.neo4j.internal.id.EmptyIdGeneratorFactory.EMPTY_ID_GENERATOR_FACTORY;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.IOController.DISABLED;
 import static org.neo4j.io.pagecache.PagedFile.PF_SHARED_READ_LOCK;
 import static org.neo4j.kernel.impl.store.format.standard.MetaDataRecordFormat.RECORD_SIZE;
@@ -37,6 +38,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.UnderlyingStorageException;
 import org.neo4j.internal.diagnostics.DiagnosticsLogger;
 import org.neo4j.internal.id.IdSequence;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCacheOpenOptions;
@@ -138,8 +140,10 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
     }
 
     @Override
-    protected void initialiseNewStoreFile(FileFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
-        super.initialiseNewStoreFile(flushEvent, cursorContext);
+    protected void initialiseNewStoreFile(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
+        super.initialiseNewStoreFile(flushEvent, asyncBlockAccessor, cursorContext);
         var storeIds = storeIdFactory.get();
         generateMetadataFile(storeIds.storeId(), storeIds.externalStoreId().id(), null, cursorContext);
     }
@@ -249,7 +253,7 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
             throw new UnderlyingStorageException(e);
         }
         try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-            flush(flushEvent, cursorContext);
+            flush(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
         }
     }
 

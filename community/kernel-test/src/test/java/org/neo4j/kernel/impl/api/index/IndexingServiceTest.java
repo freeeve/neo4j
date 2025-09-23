@@ -71,6 +71,7 @@ import static org.neo4j.internal.schema.IndexPrototype.forSchema;
 import static org.neo4j.internal.schema.IndexPrototype.uniqueForSchema;
 import static org.neo4j.internal.schema.SchemaDescriptors.ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
@@ -1300,15 +1301,15 @@ class IndexingServiceTest {
                     throw new RuntimeException("Index deleted.");
                 })
                 .when(deletedIndexProxy)
-                .force(any(), any(CursorContext.class));
+                .force(any(), any(), any(CursorContext.class));
 
         IndexingService indexingService = createIndexServiceWithCustomIndexMap(indexMapReference);
 
-        indexingService.checkpoint(DatabaseFlushEvent.NULL, NULL_CONTEXT);
-        verify(validIndex1).force(FileFlushEvent.NULL, NULL_CONTEXT);
-        verify(validIndex2).force(FileFlushEvent.NULL, NULL_CONTEXT);
-        verify(validIndex3).force(FileFlushEvent.NULL, NULL_CONTEXT);
-        verify(validIndex4).force(FileFlushEvent.NULL, NULL_CONTEXT);
+        indexingService.checkpoint(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
+        verify(validIndex1).force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
+        verify(validIndex2).force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
+        verify(validIndex3).force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
+        verify(validIndex4).force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
     }
 
     @Test
@@ -1317,7 +1318,7 @@ class IndexingServiceTest {
         IndexProxy strangeIndexProxy = createIndexProxyMock(1);
         doThrow(new UncheckedIOException(new IOException("Can't force")))
                 .when(strangeIndexProxy)
-                .force(any(), any(CursorContext.class));
+                .force(any(), any(), any(CursorContext.class));
         indexMapReference.modify(indexMap -> {
             IndexProxy validIndex = createIndexProxyMock(0);
             indexMap.putIndexProxy(validIndex);
@@ -1332,7 +1333,7 @@ class IndexingServiceTest {
 
         var e = assertThrows(
                 UnderlyingStorageException.class,
-                () -> indexingService.checkpoint(DatabaseFlushEvent.NULL, NULL_CONTEXT));
+                () -> indexingService.checkpoint(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT));
         assertThat(e.getMessage()).startsWith("Unable to force");
     }
 
@@ -1696,7 +1697,7 @@ class IndexingServiceTest {
         clock.forward(1, SECONDS);
         var readerTimeMillis = clock.millis();
         try (var reader = proxy.newValueReader();
-                var client = new SimpleEntityValueClient(); ) {
+                var client = new SimpleEntityValueClient()) {
             reader.query(
                     client,
                     QueryContext.NULL_CONTEXT,

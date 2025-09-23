@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.api.impl.schema.AbstractTextIndexProvider.UPDATE_IGNORE_STRATEGY;
 import static org.neo4j.kernel.api.impl.schema.LuceneTestTokenNameLookup.SIMPLE_TOKEN_LOOKUP;
@@ -94,7 +95,7 @@ class TextIndexIT {
         // Given
         try (TextIndexAccessor indexAccessor = createDefaultIndexAccessor(luceneContext)) {
             generateUpdates(indexAccessor, 32);
-            indexAccessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+            indexAccessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
 
             // When & Then
             List<String> indexFileNames = asFileInsidePartitionNames(indexAccessor.snapshotFiles());

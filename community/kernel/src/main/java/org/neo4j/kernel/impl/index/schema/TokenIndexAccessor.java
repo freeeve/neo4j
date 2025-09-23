@@ -39,6 +39,7 @@ import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.index.IndexAccessor;
@@ -109,8 +110,8 @@ public class TokenIndexAccessor extends TokenIndex implements IndexAccessor {
     }
 
     @Override
-    public void force(FileFlushEvent flushEvent, CursorContext cursorContext) {
-        index.checkpoint(headerWriter, flushEvent, cursorContext);
+    public void force(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
+        index.checkpoint(headerWriter, flushEvent, asyncBlockAccessor, cursorContext);
     }
 
     @Override

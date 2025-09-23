@@ -29,6 +29,7 @@ import static org.neo4j.index.internal.gbptree.GBPTreeTestUtil.consistencyCheckS
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.index.internal.gbptree.RootLayerConfiguration.multipleRoots;
 import static org.neo4j.io.ByteUnit.kibiBytes;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.test.Race.throwing;
@@ -279,7 +280,7 @@ class MultiRootGBPTreeTest {
                 if (random.nextInt(100) == 0) {
                     // Checkpoint
                     writeTasks.add(() -> {
-                        tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+                        tree.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
                         return null;
                     });
                 } else {
@@ -381,7 +382,7 @@ class MultiRootGBPTreeTest {
         }));
         race.addContestant(throwing(() -> {
             Thread.sleep(200);
-            tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            tree.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }));
         race.goUnchecked();
 
@@ -499,7 +500,7 @@ class MultiRootGBPTreeTest {
 
         race.addContestant(throwing(() -> {
             Thread.sleep(50);
-            tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            tree.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             numCheckpoints.incrementAndGet();
         }));
         race.goUnchecked();
@@ -558,7 +559,7 @@ class MultiRootGBPTreeTest {
         assertSeek(externalId2, seed2, count2);
 
         // when
-        tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        tree.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         stop();
         start();
 
@@ -570,7 +571,7 @@ class MultiRootGBPTreeTest {
     @Test
     void shouldIdentifyWrongRootLayoutOnOpen() throws IOException {
         // given
-        tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        tree.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         stop();
 
         // when/then
@@ -600,7 +601,7 @@ class MultiRootGBPTreeTest {
     @Test
     void shouldIdentifyWrongDataLayoutOnOpen() throws IOException {
         // given
-        tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        tree.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         stop();
 
         // when/then
@@ -715,7 +716,7 @@ class MultiRootGBPTreeTest {
         var race = new Race().withEndCondition(() -> nextRootKey.get() > 1_000 && numCheckpoints.get() > 20);
         race.addContestant(throwing(() -> tree.create(rootKeyLayout.key(nextRootKey.getAndIncrement()), NULL_CONTEXT)));
         race.addContestant(throwing(() -> {
-            tree.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            tree.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             numCheckpoints.incrementAndGet();
         }));
 

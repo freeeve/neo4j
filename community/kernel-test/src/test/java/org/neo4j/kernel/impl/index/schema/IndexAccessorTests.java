@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.api.index.IndexUpdateMode.ONLINE;
 
@@ -101,7 +102,7 @@ abstract class IndexAccessorTests<KEY, VALUE, LAYOUT extends Layout<KEY, VALUE>>
             accessor = createAccessor(pageCache);
             long baseline = pageCacheTracer.flushes();
             try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                accessor.force(flushEvent, NULL_CONTEXT);
+                accessor.force(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             }
             long preDrop = pageCacheTracer.flushes();
             assertThat(preDrop).isGreaterThan(baseline);

@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.api.index.SchemaIndexTestHelper.mockIndexProxy;
 
@@ -32,6 +33,7 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -150,7 +152,7 @@ class ContractCheckingIndexProxyTest {
         IndexProxy outer = newContractCheckingIndexProxy(inner);
 
         // WHEN
-        outer.force(FileFlushEvent.NULL, NULL_CONTEXT);
+        outer.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         verifyNoMoreInteractions(inner);
     }
 
@@ -164,7 +166,7 @@ class ContractCheckingIndexProxyTest {
         outer.start();
         outer.close(NULL_CONTEXT);
 
-        outer.force(FileFlushEvent.NULL, NULL_CONTEXT);
+        outer.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         verify(inner).start();
         verify(inner).close(any());
         verifyNoMoreInteractions(inner);
@@ -253,7 +255,8 @@ class ContractCheckingIndexProxyTest {
         AtomicReference<Thread> actionThreadReference = new AtomicReference<>();
         final IndexProxy inner = new IndexProxyAdapter() {
             @Override
-            public void force(FileFlushEvent flushEvent, CursorContext cursorContext) {
+            public void force(
+                    FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
                 try {
                     actionThreadReference.get().start();
                     latch.await();
@@ -267,7 +270,8 @@ class ContractCheckingIndexProxyTest {
         actionThreadReference.set(actionThread);
 
         outer.start();
-        Thread thread = runInSeparateThread(() -> outer.force(FileFlushEvent.NULL, NULL_CONTEXT));
+        Thread thread =
+                runInSeparateThread(() -> outer.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT));
 
         ThreadTestUtils.awaitThreadState(actionThread, TEST_TIMEOUT, Thread.State.TIMED_WAITING);
         latch.countDown();

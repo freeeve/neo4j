@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.kernel.api.impl.schema.AbstractTextIndexProvider.UPDATE_IGNORE_STRATEGY;
 import static org.neo4j.kernel.api.impl.schema.LuceneTestTokenNameLookup.SIMPLE_TOKEN_LOOKUP;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
@@ -117,7 +118,7 @@ class TextIndexPopulationIT {
             try (TextIndexAccessor indexAccessor =
                     new TextIndexAccessor(index, descriptor, SIMPLE_TOKEN_LOOKUP, null, UPDATE_IGNORE_STRATEGY)) {
                 generateUpdates(indexAccessor, affectedNodes);
-                indexAccessor.force(FileFlushEvent.NULL, CursorContext.NULL_CONTEXT);
+                indexAccessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, CursorContext.NULL_CONTEXT);
 
                 // now index is online and should contain updates data
                 assertTrue(index.isOnline());

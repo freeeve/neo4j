@@ -73,6 +73,7 @@ import org.neo4j.internal.id.IdValidator;
 import org.neo4j.internal.id.range.ArrayBasedRange;
 import org.neo4j.internal.id.range.ContinuousIdRange;
 import org.neo4j.internal.id.range.PageIdRange;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -772,10 +773,12 @@ public class IndexedIdGenerator implements IdGenerator {
     }
 
     @Override
-    public void checkpoint(FileFlushEvent flushEvent, CursorContext cursorContext) {
+    public void checkpoint(
+            FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
         tree.checkpoint(
                 new HeaderWriter(highId::get, highestWrittenId::get, generation, idsPerEntry, numUnusedIds::get),
                 flushEvent,
+                asyncBlockAccessor,
                 cursorContext);
         monitor.checkpoint(highestWrittenId.get(), highId.get());
     }

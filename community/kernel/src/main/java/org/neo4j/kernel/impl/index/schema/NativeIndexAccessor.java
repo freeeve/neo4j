@@ -44,6 +44,7 @@ import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.IOUtils;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
@@ -317,8 +318,8 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
     }
 
     @Override
-    public void force(FileFlushEvent flushEvent, CursorContext cursorContext) {
-        tree.checkpoint(headerWriter, flushEvent, cursorContext);
+    public void force(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
+        tree.checkpoint(headerWriter, flushEvent, asyncBlockAccessor, cursorContext);
     }
 
     @Override

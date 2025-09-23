@@ -35,6 +35,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
 import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PageEvictionCallback;
@@ -370,7 +371,7 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable {
     }
 
     @Override
-    public void flushAndForce(FileFlushEvent flushEvent) throws IOException {
+    public void flushAndForce(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor) throws IOException {
         try (var buffer = bufferFactory.createBuffer()) {
             flushAndForceInternal(flushEvent, false, ioController, buffer, true);
         }

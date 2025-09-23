@@ -24,6 +24,7 @@ import static org.neo4j.index.internal.gbptree.DataTree.W_SPLIT_KEEP_ALL_LEFT;
 import static org.neo4j.internal.helpers.collection.Iterables.first;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.kernel.impl.index.schema.NativeIndexUpdater.initializeKeyFromUpdate;
 import static org.neo4j.util.concurrent.Runnables.runAll;
 
@@ -292,7 +293,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             // flush-and-mark-online during flip
             // becomes way faster and so the flip lock time is reduced.
             try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                flushTreeAndMarkAs(BYTE_POPULATING, flushEvent, cursorContext);
+                flushTreeAndMarkAs(BYTE_POPULATING, flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

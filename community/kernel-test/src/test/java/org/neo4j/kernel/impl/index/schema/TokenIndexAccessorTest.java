@@ -28,6 +28,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 import static org.neo4j.internal.helpers.collection.Iterators.single;
 import static org.neo4j.internal.schema.IndexPrototype.forSchema;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.api.index.IndexUpdateMode.ONLINE;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
@@ -483,12 +484,12 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
 
     private void maybeCheckpoint() {
         if (random.nextBoolean()) {
-            accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+            accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
     }
 
     private void forceAndCloseAccessor() {
-        accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+        accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         accessor.close();
     }
 

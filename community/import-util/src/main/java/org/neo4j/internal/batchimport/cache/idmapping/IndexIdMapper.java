@@ -24,6 +24,7 @@ import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.exact;
 import static org.neo4j.internal.kernel.api.QueryContext.NULL_CONTEXT;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -337,7 +338,7 @@ public class IndexIdMapper implements IdMapper {
                 () -> {
                     for (var accessor : accessors.values()) {
                         try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                            accessor.force(flushEvent, CursorContext.NULL_CONTEXT);
+                            accessor.force(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, CursorContext.NULL_CONTEXT);
                         }
                     }
                 },

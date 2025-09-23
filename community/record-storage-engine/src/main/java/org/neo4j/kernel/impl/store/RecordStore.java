@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import org.neo4j.internal.helpers.collection.Visitor;
 import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.internal.id.IdSequence;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.OutOfDiskSpaceException;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.context.CursorContext;
@@ -238,7 +239,7 @@ public interface RecordStore<RECORD extends AbstractBaseRecord> {
      * This call is blocking and will ensure all updates since last call to this method are durable
      * once the call returns.
      */
-    void flush(FileFlushEvent flushEvent, CursorContext cursorContext);
+    void flush(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext);
 
     /**
      * Called once all changes to a record is ready to be converted into a command.

@@ -22,6 +22,7 @@ package org.neo4j.consistency.checker.full;
 import static org.neo4j.consistency.checking.cache.CacheSlots.CACHE_LINE_SIZE_BYTES;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.graphdb.RelationshipType.withName;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 
 import java.io.IOException;
@@ -75,7 +76,7 @@ class LimitedFullCheckIT extends FullCheckIntegrationTest {
                     // There is already another node (created in generateInitialData()) that has this value
                     updater.process(ValueIndexEntryUpdate.add(nodeId, indexDescriptor, values(indexDescriptor)));
                 }
-                accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+                accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             }
         }
 
@@ -153,7 +154,7 @@ class LimitedFullCheckIT extends FullCheckIntegrationTest {
                 }
                 updater.process(ValueIndexEntryUpdate.remove(idToRemove, indexDescriptor, values(indexDescriptor)));
             }
-            accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+            accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
     }
 }

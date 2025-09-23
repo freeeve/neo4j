@@ -24,6 +24,7 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.index_popula
 import static org.neo4j.internal.batchimport.IncrementalBatchImportUtil.moveIndex;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.allEntries;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 
 import java.io.Closeable;
@@ -465,7 +466,7 @@ public class ImportIndexBuilder implements Closeable {
         @Override
         public void close() {
             flush();
-            accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
+            accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             accessor.close();
         }
     }

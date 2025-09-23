@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.index.internal.gbptree.DataTree.W_BATCHED_SINGLE_THREADED;
 import static org.neo4j.index.internal.gbptree.GBPTreeTestUtil.consistencyCheckStrict;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.test.utils.PageCacheConfig.config;
 
@@ -615,7 +616,7 @@ public abstract class GBPTreeConcurrencyITBase<KEY, VALUE> {
         return () -> {
             while (!endSignal.get()) {
                 try {
-                    index.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+                    index.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
                     // Sleep a little in between checkpoints
                     MILLISECONDS.sleep(20L);
                 } catch (Throwable e) {

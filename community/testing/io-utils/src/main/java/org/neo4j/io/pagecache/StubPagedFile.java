@@ -24,6 +24,7 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.monitoring.PageFileCounters;
@@ -82,7 +83,7 @@ public class StubPagedFile implements PagedFile {
     }
 
     @Override
-    public void flushAndForce(FileFlushEvent flushEvent) {}
+    public void flushAndForce(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor) {}
 
     @Override
     public long getLastPageId() {

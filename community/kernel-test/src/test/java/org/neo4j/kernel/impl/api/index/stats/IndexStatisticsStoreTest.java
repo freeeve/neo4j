@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.annotations.documented.ReporterFactories.noopReporterFactory;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.test.Race.throwing;
 
@@ -114,7 +115,7 @@ class IndexStatisticsStoreTest {
         for (int i = 0; i < 100; i++) {
             store.setSampleStats(i, new IndexSample());
         }
-        store.checkpoint(FileFlushEvent.NULL, CursorContext.NULL_CONTEXT);
+        store.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, CursorContext.NULL_CONTEXT);
 
         var checkPageCacheTracer = new DefaultPageCacheTracer();
         var checkContextFactory = new CursorContextFactory(checkPageCacheTracer, EMPTY_CONTEXT_SUPPLIER);
@@ -150,7 +151,7 @@ class IndexStatisticsStoreTest {
                 store.setSampleStats(i, new IndexSample());
             }
 
-            store.checkpoint(FileFlushEvent.NULL, cursorContext);
+            store.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             PageCursorTracer cursorTracer = cursorContext.getCursorTracer();
             assertThat(cursorTracer.pins()).isEqualTo(30);
             assertThat(cursorTracer.unpins()).isEqualTo(30);
@@ -209,7 +210,7 @@ class IndexStatisticsStoreTest {
     }
 
     private void restartStore() throws IOException {
-        store.checkpoint(FileFlushEvent.NULL, CursorContext.NULL_CONTEXT);
+        store.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, CursorContext.NULL_CONTEXT);
         lifeSupport.shutdown();
         lifeSupport = new LifeSupport();
         store = openStore("stats");
@@ -245,7 +246,7 @@ class IndexStatisticsStoreTest {
         race.addContestant(throwing(() -> {
             for (int i = 0; i < 20; i++) {
                 Thread.sleep(5);
-                store.checkpoint(FileFlushEvent.NULL, CursorContext.NULL_CONTEXT);
+                store.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, CursorContext.NULL_CONTEXT);
             }
             checkpointDone.set(true);
         }));

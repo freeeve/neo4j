@@ -60,6 +60,7 @@ import static org.neo4j.internal.id.IdUtils.usedFromCombinedId;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.IDS_PER_ENTRY;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_MONITOR;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.SMALL_CACHE_CAPACITY;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
@@ -120,6 +121,7 @@ import org.neo4j.internal.id.TestIdType;
 import org.neo4j.internal.id.range.PageIdRange;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.IOUtils;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCacheOpenOptions;
@@ -515,7 +517,7 @@ class IndexedIdGeneratorTest {
         // given
         open();
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
-        idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         idGenerator.close();
         open();
 
@@ -712,7 +714,7 @@ class IndexedIdGeneratorTest {
         open();
         long highId = idGenerator.getHighId();
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
-        idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         stop();
 
         // when
@@ -758,7 +760,7 @@ class IndexedIdGeneratorTest {
         Path file = directory.file("existing");
         try (var indexedIdGenerator = openIdGenerator(customization().with(file))) {
             indexedIdGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
-            indexedIdGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            indexedIdGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // Start in readOnly mode should not throw
@@ -812,7 +814,7 @@ class IndexedIdGeneratorTest {
         idGenerator.maintenance(NULL_CONTEXT);
         long reusedId = idGenerator.nextId(NULL_CONTEXT);
         verify(monitor).allocatedFromReused(reusedId, 1);
-        idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         // two times, one in start and one now in checkpoint
         verify(monitor, times(1)).checkpoint(anyLong(), anyLong());
         idGenerator.clearCache(true, NULL_CONTEXT);
@@ -967,7 +969,7 @@ class IndexedIdGeneratorTest {
             assertThat(cursorTracer.unpins()).isZero();
             assertThat(cursorTracer.hits()).isZero();
 
-            idGenerator.checkpoint(FileFlushEvent.NULL, cursorContext);
+            idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
 
             // 2 state pages involved into checkpoint (twice)
             assertThat(cursorTracer.pins()).isEqualTo(4);
@@ -999,7 +1001,7 @@ class IndexedIdGeneratorTest {
     @Test
     void tracePageCacheOnIdGeneratorStartWithoutRebuild() throws IOException {
         try (var prepareIndexWithoutRebuild = openIdGenerator(customization())) {
-            prepareIndexWithoutRebuild.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            prepareIndexWithoutRebuild.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
         try (var idGenerator = openIdGenerator(customization())) {
             var pageCacheTracer = new DefaultPageCacheTracer();
@@ -1279,7 +1281,7 @@ class IndexedIdGeneratorTest {
         idGenerator.stop();
         try (OtherThreadExecutor executor = new OtherThreadExecutor("test")) {
             Future<Object> future = executor.executeDontWait(() -> {
-                idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+                idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
                 return null;
             });
 
@@ -1309,7 +1311,7 @@ class IndexedIdGeneratorTest {
 
         // When
         idGenerator.stop(); // 3.
-        idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT); // 4.
+        idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT); // 4.
         assertThatThrownBy(() -> idGenerator.nextId(NULL_CONTEXT)).isInstanceOf(IllegalStateException.class);
         idGenerator.close(); // 5.
 
@@ -1355,7 +1357,7 @@ class IndexedIdGeneratorTest {
         try {
             waitStart.await();
             idGenerator.stop();
-            idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         } finally {
             stopped.set(true);
         }
@@ -1580,9 +1582,10 @@ class IndexedIdGeneratorTest {
         }
 
         @Override
-        public void checkpoint(FileFlushEvent flushEvent, CursorContext cursorContext) {
+        public void checkpoint(
+                FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
             for (var member : members) {
-                member.checkpoint(flushEvent, cursorContext);
+                member.checkpoint(flushEvent, asyncBlockAccessor, cursorContext);
             }
         }
 
@@ -1671,7 +1674,7 @@ class IndexedIdGeneratorTest {
         Path file = directory.file("existing");
         try (var indexedIdGenerator = openIdGenerator(customization().with(file))) {
             indexedIdGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
-            indexedIdGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            indexedIdGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // Start in readOnly mode
@@ -1926,7 +1929,7 @@ class IndexedIdGeneratorTest {
         Path file = directory.file("existing");
         try (var indexedIdGenerator = openIdGenerator(customization().with(file))) {
             indexedIdGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
-            indexedIdGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+            indexedIdGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
 
         // Start in readOnly mode
@@ -2054,7 +2057,7 @@ class IndexedIdGeneratorTest {
         open(customization().with(monitor));
         assertThat(readNumUnusedIds.longValue()).isEqualTo(0);
         idGenerator.start(freeIds(1, 10, 15), NULL_CONTEXT);
-        idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         stop();
         // and opening it up now should see the correct numUnusedIds in the header
         open(customization().with(monitor));
@@ -2070,7 +2073,7 @@ class IndexedIdGeneratorTest {
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
         assertThat(readNumUnusedIds.longValue()).isEqualTo(HeaderReader.UNINITIALIZED);
         assertThat(idGenerator.getUnusedIdCount()).isEqualTo(3);
-        idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         stop();
         // and opening it up now should see the correct numUnusedIds in the header
         open(customization().with(monitor));
@@ -2267,7 +2270,7 @@ class IndexedIdGeneratorTest {
     }
 
     private void restart(Customization customization) throws IOException {
-        idGenerator.checkpoint(FileFlushEvent.NULL, NULL_CONTEXT);
+        idGenerator.checkpoint(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         stop();
         open(customization);
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);

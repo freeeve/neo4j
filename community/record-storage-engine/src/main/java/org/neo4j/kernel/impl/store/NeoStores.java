@@ -37,6 +37,7 @@ import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.id.SchemaIdType;
 import org.neo4j.internal.recordstorage.RecordIdType;
 import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
@@ -155,16 +156,19 @@ public class NeoStores implements AutoCloseable {
         }
     }
 
-    public void flush(DatabaseFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    public void flush(DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         pageCache.flushAndForce(flushEvent);
-        checkpoint(flushEvent, cursorContext);
+        checkpoint(flushEvent, asyncBlockAccessor, cursorContext);
     }
 
-    public void checkpoint(DatabaseFlushEvent flushEvent, CursorContext cursorContext) throws IOException {
+    public void checkpoint(
+            DatabaseFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext)
+            throws IOException {
         visitStores(store -> {
             log.debug("Checkpointing %s", store.storageFile.getFileName());
             try (var fileFlushEvent = flushEvent.beginFileFlush()) {
-                store.getIdGenerator().checkpoint(fileFlushEvent, cursorContext);
+                store.getIdGenerator().checkpoint(fileFlushEvent, asyncBlockAccessor, cursorContext);
             }
         });
     }

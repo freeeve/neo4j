@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.index.schema;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.io.IOUtils.closeAll;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.impl.muninn.VersionStorage.EMPTY_STORAGE;
 import static org.neo4j.kernel.impl.api.index.IndexUpdateMode.ONLINE;
 
@@ -99,7 +100,7 @@ public class TokenIndexImporter implements IndexImporter {
     public void close() throws IOException {
         Closeable flush = () -> {
             try (var flushEvent = pageCacheTracer.beginFileFlush()) {
-                accessor.force(flushEvent, cursorContext);
+                accessor.force(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
             }
         };
         closeAll(flush, accessor);

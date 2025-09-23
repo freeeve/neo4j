@@ -29,6 +29,7 @@ import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.fulltextSearch;
 import static org.neo4j.internal.schema.IndexType.FULLTEXT;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.io.pagecache.impl.muninn.MuninnPageCache.config;
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
@@ -571,7 +572,7 @@ class FulltextIndexProviderTest {
                     index = index.withIndexConfig(IndexConfig.with(indexConfigMap));
                     storage.writeSchemaRule(
                             index, IdUpdateListener.DIRECT, allocatorProvider, cursorContext, INSTANCE, storeCursors);
-                    schemaStore.flush(FileFlushEvent.NULL, cursorContext);
+                    schemaStore.flush(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, cursorContext);
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);

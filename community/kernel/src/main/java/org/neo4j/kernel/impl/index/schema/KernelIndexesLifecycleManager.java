@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.index.schema;
 
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.kernel.database.Database.initialSchemaRulesLoader;
 import static org.neo4j.kernel.impl.api.TransactionVisibilityProvider.EMPTY_VISIBILITY_PROVIDER;
 import static org.neo4j.kernel.impl.locking.LockManager.NO_LOCKS_LOCK_MANAGER;
@@ -185,7 +186,7 @@ public class KernelIndexesLifecycleManager implements IndexesLifecycleManager {
         if (noErrors) {
             try (var creationContext = context.contextFactory().create("Indexing flushing");
                     var flushEvent = context.pageCacheTracer().beginDatabaseFlush()) {
-                indexingService.checkpoint(flushEvent, creationContext);
+                indexingService.checkpoint(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, creationContext);
                 creationListener.onCheckpointingCompleted();
             }
         }

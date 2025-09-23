@@ -36,6 +36,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.IOController.DISABLED;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
 import static org.neo4j.io.pagecache.impl.muninn.EvictionBouncer.ALWAYS_ALLOW;
@@ -188,10 +189,10 @@ class DatabasePageCacheTest {
             PagedFile originalPagedFile3 = findPagedFile(pagedFiles, mapFile3);
             PagedFile originalPagedFile4 = findPagedFile(pagedFiles, mapFile4);
 
-            verify(originalPagedFile1).flushAndForce(FileFlushEvent.NULL);
-            verify(originalPagedFile2).flushAndForce(FileFlushEvent.NULL);
-            verify(originalPagedFile3, never()).flushAndForce(FileFlushEvent.NULL);
-            verify(originalPagedFile4, never()).flushAndForce(FileFlushEvent.NULL);
+            verify(originalPagedFile1).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+            verify(originalPagedFile2).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+            verify(originalPagedFile3, never()).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+            verify(originalPagedFile4, never()).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
         }
     }
 
@@ -215,10 +216,10 @@ class DatabasePageCacheTest {
             PagedFile originalPagedFile3 = findPagedFile(pagedFiles, mapFile3);
             PagedFile originalPagedFile4 = findPagedFile(pagedFiles, mapFile4);
 
-            verify(originalPagedFile1).flushAndForce(FileFlushEvent.NULL);
-            verify(originalPagedFile2).flushAndForce(FileFlushEvent.NULL);
-            verify(originalPagedFile3, never()).flushAndForce(FileFlushEvent.NULL);
-            verify(originalPagedFile4, never()).flushAndForce(FileFlushEvent.NULL);
+            verify(originalPagedFile1).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+            verify(originalPagedFile2).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+            verify(originalPagedFile3, never()).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+            verify(originalPagedFile4, never()).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
         }
     }
 
@@ -290,15 +291,16 @@ class DatabasePageCacheTest {
         PagedFile originalPagedFile2 = findPagedFile(pagedFiles, mapFile2);
 
         // When
-        DatabasePageCache.FlushGuard flushGuard = databasePageCache.flushGuard(DatabaseFlushEvent.NULL);
-        pf1.flushAndForce(FileFlushEvent.NULL);
+        DatabasePageCache.FlushGuard flushGuard =
+                databasePageCache.flushGuard(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+        pf1.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
         // Then
-        verify(originalPagedFile1).flushAndForce(FileFlushEvent.NULL);
-        verify(originalPagedFile2, never()).flushAndForce(FileFlushEvent.NULL);
+        verify(originalPagedFile1).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+        verify(originalPagedFile2, never()).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
         // When (close)
         flushGuard.flushUnflushed();
         // Then
-        verify(originalPagedFile2).flushAndForce(FileFlushEvent.NULL);
+        verify(originalPagedFile2).flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
     }
 
     @Test
@@ -313,15 +315,19 @@ class DatabasePageCacheTest {
         PagedFile originalPagedFile1 = findPagedFileByMappingOrder(0, pagedFiles);
         PagedFile originalPagedFile2 = findPagedFileByMappingOrder(1, pagedFiles);
 
-        doThrow(new IOException("test")).when(originalPagedFile1).flushAndForce(FileFlushEvent.NULL);
+        doThrow(new IOException("test"))
+                .when(originalPagedFile1)
+                .flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
         // When
-        DatabasePageCache.FlushGuard flushGuard = databasePageCache.flushGuard(DatabaseFlushEvent.NULL);
+        DatabasePageCache.FlushGuard flushGuard =
+                databasePageCache.flushGuard(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
         // Then
         assertThatThrownBy(flushGuard::flushUnflushed)
                 .isInstanceOf(IOException.class)
                 .hasMessage("test");
-        verify(originalPagedFile2, never()).flushAndForce(FileFlushEvent.NULL); // This depends on mapped order
+        verify(originalPagedFile2, never())
+                .flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR); // This depends on mapped order
     }
 
     @Test
@@ -336,14 +342,17 @@ class DatabasePageCacheTest {
         PagedFile originalPagedFile1 = findPagedFile(pagedFiles, mapFile1);
         PagedFile originalPagedFile2 = findPagedFile(pagedFiles, mapFile2);
 
-        doThrow(new IOException("test")).when(originalPagedFile1).flushAndForce(FileFlushEvent.NULL);
+        doThrow(new IOException("test"))
+                .when(originalPagedFile1)
+                .flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
 
         // When
         assertThatThrownBy(() -> flushFileUnderGuard(pf))
                 .isInstanceOf(IOException.class)
                 .hasMessage("test");
         // Then
-        verify(originalPagedFile2, never()).flushAndForce(FileFlushEvent.NULL); // This depends on mapped order
+        verify(originalPagedFile2, never())
+                .flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR); // This depends on mapped order
     }
 
     @Test
@@ -405,8 +414,9 @@ class DatabasePageCacheTest {
     }
 
     private void flushFileUnderGuard(PagedFile file) throws IOException {
-        DatabasePageCache.FlushGuard flushGuard = databasePageCache.flushGuard(DatabaseFlushEvent.NULL);
-        file.flushAndForce(FileFlushEvent.NULL);
+        DatabasePageCache.FlushGuard flushGuard =
+                databasePageCache.flushGuard(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
+        file.flushAndForce(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR);
         flushGuard.flushUnflushed();
     }
 

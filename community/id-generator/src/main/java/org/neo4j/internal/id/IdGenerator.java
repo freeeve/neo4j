@@ -26,6 +26,7 @@ import org.neo4j.collection.PrimitiveLongResourceCollections;
 import org.neo4j.collection.PrimitiveLongResourceIterator;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.id.range.PageIdRange;
+import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
@@ -112,7 +113,7 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
     @Override
     void close();
 
-    void checkpoint(FileFlushEvent flushEvent, CursorContext cursorContext);
+    void checkpoint(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext);
 
     /**
      * Does some maintenance. This operation isn't critical for the functionality of an IdGenerator, but may make it perform better.
@@ -412,8 +413,9 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         }
 
         @Override
-        public void checkpoint(FileFlushEvent fileFlushEvent, CursorContext cursorContext) {
-            delegate.checkpoint(fileFlushEvent, cursorContext);
+        public void checkpoint(
+                FileFlushEvent fileFlushEvent, AsyncBlockAccessor asyncBlockAccessor, CursorContext cursorContext) {
+            delegate.checkpoint(fileFlushEvent, asyncBlockAccessor, cursorContext);
         }
 
         @Override

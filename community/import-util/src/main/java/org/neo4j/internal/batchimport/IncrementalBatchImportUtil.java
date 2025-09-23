@@ -23,6 +23,7 @@ import static java.lang.String.format;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.readOnly;
 import static org.neo4j.internal.helpers.collection.Iterators.filter;
 import static org.neo4j.internal.helpers.collection.Iterators.firstOrNull;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -424,7 +425,8 @@ public class IncrementalBatchImportUtil {
                                 progress);
                         toCloseBeforePageCacheClose.add(() -> {
                             try (targetIndex) {
-                                targetIndex.force(FileFlushEvent.NULL, CursorContext.NULL_CONTEXT);
+                                targetIndex.force(
+                                        FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, CursorContext.NULL_CONTEXT);
                             }
                         });
                     } catch (IndexEntryConflictException e) {

@@ -30,6 +30,7 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.counts_store
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.recordstorage.StoreTokens.createReadOnlyTokenHolder;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.lock.LockService.NO_LOCK_SERVICE;
@@ -337,7 +338,7 @@ class NeoStoresTest {
 
         try (NeoStores neoStores = factory.openAllNeoStores()) {
             neoStores.getMetaDataStore();
-            neoStores.flush(DatabaseFlushEvent.NULL, NULL_CONTEXT);
+            neoStores.flush(DatabaseFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
         }
         fileSystem.deleteFile(databaseLayout.metadataStore());
 
