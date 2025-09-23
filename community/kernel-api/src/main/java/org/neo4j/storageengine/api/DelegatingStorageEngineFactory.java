@@ -379,6 +379,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             PrintStream progressOutput,
             boolean verboseProgressOutput,
             AdditionalInitialIds additionalInitialIds,
+            LogTailMetadataFactory logTailMetadataFactory,
             Config dbConfig,
             Monitor monitor,
             JobScheduler jobScheduler,
@@ -387,9 +388,9 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
+            IndexProvidersAccess indexProvidersAccess,
             int numShards,
-            LogTailMetadataFactory logTailMetadataFactory,
-            IndexProvidersAccess indexProvidersAccess) {
+            DependencyResolver storageSpecificArguments) {
         return delegate.batchImporter(
                 databaseLayout,
                 fileSystem,
@@ -400,6 +401,7 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 progressOutput,
                 verboseProgressOutput,
                 additionalInitialIds,
+                logTailMetadataFactory,
                 dbConfig,
                 monitor,
                 jobScheduler,
@@ -408,9 +410,9 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 indexImporterFactory,
                 memoryTracker,
                 contextFactory,
+                indexProvidersAccess,
                 numShards,
-                logTailMetadataFactory,
-                indexProvidersAccess);
+                storageSpecificArguments);
     }
 
     @Override
@@ -457,7 +459,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
             IndexProvidersAccess indexProvidersAccess,
-            int numShards) {
+            int numShards,
+            DependencyResolver storageSpecificArguments) {
         return delegate.incrementalBatchImporter(
                 databaseLayout,
                 fileSystem,
@@ -476,7 +479,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 memoryTracker,
                 contextFactory,
                 indexProvidersAccess,
-                numShards);
+                numShards,
+                storageSpecificArguments);
     }
 
     @Override

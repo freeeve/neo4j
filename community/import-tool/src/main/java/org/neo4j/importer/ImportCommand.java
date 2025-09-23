@@ -919,6 +919,7 @@ public class ImportCommand {
                             stdOut,
                             verbose,
                             DefaultAdditionalIds.EMPTY,
+                            new LogTailMetadataFactoryImpl(fileSystem),
                             databaseConfig,
                             new PrintingImportLogicMonitor(stdOut, stdErr, monitor),
                             jobScheduler,
@@ -927,9 +928,9 @@ public class ImportCommand {
                             new IndexImporterFactoryImpl(),
                             memoryTracker,
                             contextFactory,
+                            indexProvidersAccess,
                             numShards,
-                            new LogTailMetadataFactoryImpl(fileSystem),
-                            indexProvidersAccess)
+                            null)
                     .doImport(input);
         }
 

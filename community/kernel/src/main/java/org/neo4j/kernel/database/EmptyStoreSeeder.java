@@ -191,6 +191,7 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 new PrintStream(nullOutputStream()),
                 false,
                 EMPTY,
+                new LogTailMetadataFactoryImpl(fs),
                 withoutTxLogPreAllocation(config),
                 NO_MONITOR,
                 jobScheduler,
@@ -199,9 +200,9 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
                 new IndexImporterFactoryImpl(),
                 INSTANCE,
                 NULL_CONTEXT_FACTORY,
+                indexProvidersAccess,
                 numShards,
-                new LogTailMetadataFactoryImpl(fs),
-                indexProvidersAccess);
+                null);
     }
 
     private DefaultIndexProvidersAccess indexProviders(StorageEngineFactory storageEngineFactory) {

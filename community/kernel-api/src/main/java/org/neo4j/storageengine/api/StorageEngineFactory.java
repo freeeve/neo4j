@@ -393,6 +393,11 @@ public interface StorageEngineFactory {
      */
     DatabaseLayout formatSpecificDatabaseLayout(DatabaseLayout plainLayout);
 
+    /**
+     * @param storageSpecificArguments any additional arguments for the importer that are specific to a given
+     * storage engine. The instances provided by this resolved should be considered optional and even this
+     * resolved is allowed to be {@code null}.
+     */
     BatchImporter batchImporter(
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
@@ -403,6 +408,7 @@ public interface StorageEngineFactory {
             PrintStream progressOutput,
             boolean verboseProgressOutput,
             AdditionalInitialIds additionalInitialIds,
+            LogTailMetadataFactory logTailMetadataFactory,
             Config dbConfig,
             Monitor monitor,
             JobScheduler jobScheduler,
@@ -411,9 +417,9 @@ public interface StorageEngineFactory {
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
+            IndexProvidersAccess indexProvidersAccess,
             int numShards,
-            LogTailMetadataFactory logTailMetadataFactory,
-            IndexProvidersAccess indexProvidersAccess);
+            DependencyResolver storageSpecificArguments);
 
     Input asBatchImporterInput(
             DatabaseLayout databaseLayout,
@@ -427,6 +433,11 @@ public interface StorageEngineFactory {
             CursorContextFactory contextFactory,
             LogTailMetadata logTailMetadata);
 
+    /**
+     * @param storageSpecificArguments any additional arguments for the importer that are specific to a given
+     * storage engine. The instances provided by this resolved should be considered optional and even this
+     * resolved is allowed to be {@code null}.
+     */
     IncrementalBatchImporter incrementalBatchImporter(
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
@@ -445,7 +456,8 @@ public interface StorageEngineFactory {
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
             IndexProvidersAccess indexProvidersAccess,
-            int numShards);
+            int numShards,
+            DependencyResolver storageSpecificArguments);
 
     LockManager createLockManager(Config config, SystemNanoClock clock);
 

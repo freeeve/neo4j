@@ -104,6 +104,7 @@ class AcrossEngineMigrationParticipantTest {
                         verboseCaptor.capture(),
                         any(),
                         any(),
+                        any(),
                         monitorCaptor.capture(),
                         any(),
                         any(),
@@ -111,8 +112,8 @@ class AcrossEngineMigrationParticipantTest {
                         any(),
                         any(),
                         any(),
-                        anyInt(),
                         any(),
+                        anyInt(),
                         any()))
                 .thenReturn(importer);
     }

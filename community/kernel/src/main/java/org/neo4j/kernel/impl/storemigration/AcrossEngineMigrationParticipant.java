@@ -193,6 +193,7 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                 progressOutput,
                 verboseOutput,
                 additionalInitialIds,
+                new LogTailMetadataFactoryImpl(fileSystem),
                 localConfig,
                 progressTrackingMonitor,
                 jobScheduler,
@@ -201,9 +202,9 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                 indexImporterFactory,
                 memoryTracker,
                 contextFactory,
+                indexProviders,
                 0,
-                new LogTailMetadataFactoryImpl(fileSystem),
-                indexProviders);
+                null);
 
         // Do the copy
         try (Input fromInput = srcStorageEngine.asBatchImporterInput(

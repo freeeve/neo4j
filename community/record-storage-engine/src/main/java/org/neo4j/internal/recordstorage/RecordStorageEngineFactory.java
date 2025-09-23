@@ -731,6 +731,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             PrintStream progressOutput,
             boolean verboseProgressOutput,
             AdditionalInitialIds additionalInitialIds,
+            LogTailMetadataFactory logTailMetadataFactory,
             Config dbConfig,
             Monitor monitor,
             JobScheduler jobScheduler,
@@ -739,9 +740,9 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             IndexImporterFactory indexImporterFactory,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
+            IndexProvidersAccess indexProvidersAccess,
             int numShards,
-            LogTailMetadataFactory logTailMetadataFactory,
-            IndexProvidersAccess indexProvidersAccess) {
+            DependencyResolver storageSpecificArguments) {
         ExecutionMonitor executionMonitor = progressOutput != null
                 ? verboseProgressOutput
                         ? new SpectrumExecutionMonitor(progressOutput)
@@ -822,7 +823,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
             IndexProvidersAccess indexProvidersAccess,
-            int numShards) {
+            int numShards,
+            DependencyResolver storageSpecificArguments) {
         return IncrementalBatchImporterFactory.withHighestPriority()
                 .instantiate(
                         databaseLayout,
