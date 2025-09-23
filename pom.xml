@@ -129,6 +129,7 @@
       -Djunit.jupiter.execution.parallel.enabled=${parallel.tests}
       -Djunit.jupiter.execution.timeout.default=${default.jupiter.test.timeout}
       -Djunit.jupiter.execution.parallel.mode.classes.default=${default.jupiter.test.mode}
+      -Djunit.platform.discovery.issue.severity.critical=WARNING
       -Dio.netty.leakDetection.level=${test.vm.netty.leakDetection.level}
       -Dio.netty.customResourceLeakDetector=org.neo4j.test.extension.netty.Neo4jResourceLeakDetectionFactory
       -XX:+UnlockExperimentalVMOptions

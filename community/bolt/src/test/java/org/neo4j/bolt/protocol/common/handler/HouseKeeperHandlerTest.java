@@ -66,7 +66,7 @@ public class HouseKeeperHandlerTest {
     private HouseKeeperHandler handler;
 
     @BeforeEach
-    private void prepare() throws Exception {
+    void prepare() throws Exception {
         this.logProvider = new AssertableLogProvider();
 
         this.connector = Mockito.mock(Connector.class, RETURNS_MOCKS);
