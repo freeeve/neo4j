@@ -579,4 +579,20 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |RETURN *""".stripMargin) {
     error("42N38", "duplicate return item name.")
   }
+
+  /**
+   * Invalid use of RETURN *
+   */
+  test("""RETURN *, 1 AS x""".stripMargin) {
+    error("42I37", "'RETURN *' is not allowed when there are no variables in scope.")
+  }
+
+  test("""MATCH () RETURN *, 1 AS x""".stripMargin) {
+    error("42I37", "'RETURN *' is not allowed when there are no variables in scope.")
+  }
+
+  test("""WITH *
+         |RETURN *""".stripMargin) {
+    error("42I37", "'RETURN *' is not allowed when there are no variables in scope.")
+  }
 }

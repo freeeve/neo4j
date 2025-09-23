@@ -89,6 +89,11 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
         findMultipleDeclarationsIn(variables, w)
       case StatementScope(r: Return, _, _, _, _, TableResult(columns), _) =>
         findMultipleDeclarationsIn(columns, r)
+    },
+    // invalid use of RETURN *
+    {
+      case StatementScope(Return.WithStar(r), in, _, _, _, _, _) if in.isVariablesEmpty =>
+        Seq(SemanticError.invalidUseOfReturnStar(r.position))
     }
   )
 

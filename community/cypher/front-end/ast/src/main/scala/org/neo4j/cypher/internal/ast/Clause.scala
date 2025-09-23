@@ -1956,6 +1956,17 @@ object Return {
 
   def apply(returnItems: ReturnItems)(pos: InputPosition): Return =
     Return(distinct = false, returnItems, None, None, None)(pos)
+
+  // Unapply for RETURN * ...
+  object WithStar {
+
+    def unapply(ret: Return): Option[Return] = {
+      ret match {
+        case Return(_, ReturnItems(AdditiveProjection, _, _), _, _, _, _, _, _) => Some(ret)
+        case _                                                                  => None
+      }
+    }
+  }
 }
 
 case class Return(
