@@ -77,6 +77,7 @@ import org.eclipse.collections.api.list.primitive.LongList;
 import org.eclipse.collections.api.set.SetIterable;
 import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
 import org.eclipse.collections.impl.list.fixed.ArrayAdapter;
+import org.eclipse.collections.impl.utility.Iterate;
 import org.eclipse.collections.impl.utility.LazyIterate;
 
 /**
@@ -129,11 +130,8 @@ public class RandomValues {
     public static final Configuration DEFAULT_CONFIGURATION =
             newConfigurationBuilder().build();
 
-    /* This information is duplicated and could end up out-of-sync,
-       but since it is a major hassle to decouple this everywhere the tradeoff is reasonable.
-    */
-    public static final int MAX_NUM_BYTES_IN_INDEX_KEY =
-            8175 - 100 /* Account for some extra type information in the key */;
+    // see maxSizeInKey, and assume one property for this helper constant
+    public static final int MAX_NUM_BYTES_IN_INDEX_KEY = maxSizeInIndexKey(1);
 
     public static final int MAX_BMP_CODE_POINT = 0xFFFF;
     static final int MAX_ASCII_CODE_POINT = 0x7F;
@@ -1669,6 +1667,14 @@ public class RandomValues {
                 .toArray();
     }
 
+    // This information is duplicated and could end up out-of-sync, but since it is a major hassle to decouple this
+    // everywhere the tradeoff is reasonable.
+    // Account for some extra type information in the key, and a 20% buffer just in case.
+    public static int maxSizeInIndexKey(int numberOfProperties) {
+        // 8 + numberOfProperties * (1 + sizeInIndexKey) <= 8175
+        return ((8175 - 8) / numberOfProperties - 1) * 8 / 10;
+    }
+
     private int maxArray() {
         return configuration.arrayMaxLength();
     }
@@ -1692,7 +1698,10 @@ public class RandomValues {
             assert dimensions.notEmpty();
             dimension = among(dimensions);
         } else {
-            dimension = intBetween(minDimensions(), Math.min(maxVectorNumBytes() / size, maxDimensions()));
+            final int min = minDimensions();
+            final int max = Math.min(maxVectorNumBytes() / size, maxDimensions());
+            assert min <= max : "Cannot choose dimensions from [" + min + " to " + max + "]";
+            dimension = intBetween(min, max);
         }
         assert dimension * size <= maxVectorNumBytes();
         return dimension;
@@ -2032,6 +2041,22 @@ public class RandomValues {
                     this.vectorDimensionChoices,
                     this.maxVectorNumBytes,
                     SortedSets.immutable.of(allowedTypes));
+        }
+
+        public ConfigurationBuilder allowedTypes(Iterable<ValueType> allowedTypes) {
+            assert Iterate.notEmpty(allowedTypes) : "must provide at least one type";
+            return new ConfigurationBuilder(
+                    this.stringMinLength,
+                    this.stringMaxLength,
+                    this.arrayMinLength,
+                    this.arrayMaxLength,
+                    this.minCodePoint,
+                    this.maxCodePoint,
+                    this.minVectorDimensions,
+                    this.maxVectorDimensions,
+                    this.vectorDimensionChoices,
+                    this.maxVectorNumBytes,
+                    SortedSets.immutable.ofAll(allowedTypes));
         }
     }
 

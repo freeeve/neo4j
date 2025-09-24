@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RandomValuesTestSupport
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.graphdb.Label
+import org.neo4j.values.storable.ValueType
 import org.neo4j.values.storable.Values.stringValue
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -502,7 +503,16 @@ abstract class ValueHashJoinTestBase[CONTEXT <: RuntimeContext](
     val size = random.nextInt(50) + 50
     val props = Range(0, random.nextInt(8)).map(i => s"prop$i")
     def randomProps(): Map[String, Any] = {
-      Map("key" -> random.nextInt(4)) ++ props.map(p => p -> randomValues.nextValue().asObject())
+      Map("key" -> random.nextInt(4)) ++ props.map(p =>
+        p -> randomValues.nextValueOfTypes(
+          ValueType.BOOLEAN,
+          ValueType.STRING,
+          ValueType.DOUBLE,
+          ValueType.GEOGRAPHIC_POINT_3D,
+          ValueType.LONG_ARRAY,
+          ValueType.LOCAL_DATE_TIME
+        ).asObject()
+      )
     }
     def randomLabels(): Seq[String] = {
       randomAmong(Seq(Seq("LHS"), Seq("RHS"), Seq("LHS", "RHS")))

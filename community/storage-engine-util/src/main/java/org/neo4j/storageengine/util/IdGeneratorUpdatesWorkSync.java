@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import org.eclipse.collections.api.list.primitive.MutableLongList;
 import org.eclipse.collections.impl.factory.primitive.LongLists;
@@ -44,7 +45,14 @@ import org.neo4j.util.concurrent.WorkSync;
 public class IdGeneratorUpdatesWorkSync {
     public static final String ID_GENERATOR_BATCH_APPLIER_TAG = "idGeneratorBatchApplier";
 
-    private final Map<IdGenerator, WorkSync<IdGenerator, IdGeneratorUpdateWork>> workSyncMap = new HashMap<>();
+    /**
+     * Vector stores can be added after DB startup, by any transaction (i.e. any Thread) creating a vector
+     * of a certain type for the first time. `VectorStore#VectorStore` calls `idGeneratorFactory.open`,
+     * which in turn leads to a modification of this map. Therefore, we need a thread-safe map.
+     */
+    private final Map<IdGenerator, WorkSync<IdGenerator, IdGeneratorUpdateWork>> workSyncMap =
+            new ConcurrentHashMap<>();
+
     private final boolean alwaysFreeOnDelete;
 
     public IdGeneratorUpdatesWorkSync() {

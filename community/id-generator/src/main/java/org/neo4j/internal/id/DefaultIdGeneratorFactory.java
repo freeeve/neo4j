@@ -25,11 +25,10 @@ import java.io.IOException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.configuration.Config;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
@@ -41,7 +40,13 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 
 public class DefaultIdGeneratorFactory implements IdGeneratorFactory {
-    private final Map<IdType, IndexedIdGenerator> generators = new HashMap<>();
+    /**
+     * Vector stores can be added after DB startup, by any transaction (i.e. any Thread) creating a vector
+     * of a certain type for the first time. `VectorStore#VectorStore` calls `idGeneratorFactory.open`,
+     * which in turn leads to a modification of this map. Therefore, we need a thread-safe map.
+     */
+    private final Map<IdType, IndexedIdGenerator> generators = new ConcurrentHashMap<>();
+
     protected final FileSystemAbstraction fs;
     private final RecoveryCleanupWorkCollector recoveryCleanupWorkCollector;
     protected final boolean allowLargeIdCaches;
@@ -220,6 +225,6 @@ public class DefaultIdGeneratorFactory implements IdGeneratorFactory {
 
     @Override
     public Collection<Path> listIdFiles() {
-        return generators.values().stream().map(IndexedIdGenerator::path).collect(Collectors.toList());
+        return generators.values().stream().map(IndexedIdGenerator::path).toList();
     }
 }

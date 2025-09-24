@@ -154,7 +154,7 @@ abstract class NativeIndexPopulatorTests<KEY extends NativeIndexKey<KEY>>
         // given
         populator.create();
         var cfg = RandomValues.newConfigurationBuilder()
-                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY / LARGE_AMOUNT_OF_UPDATES)
+                .maxVectorNumBytes(RandomValues.MAX_NUM_BYTES_IN_INDEX_KEY - Integer.BYTES)
                 .build();
         var randomValues = RandomValues.create(random.random(), cfg);
         Random updaterRandom = new Random(random.seed());

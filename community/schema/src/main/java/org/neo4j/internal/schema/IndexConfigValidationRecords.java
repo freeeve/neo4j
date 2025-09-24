@@ -85,8 +85,7 @@ public class IndexConfigValidationRecords {
         }
     }
 
-    public sealed interface IndexConfigValidationRecord extends NamedSetting, Comparable<IndexConfigValidationRecord>
-            permits Valid, Invalid {
+    public sealed interface IndexConfigValidationRecord extends NamedSetting, Comparable<IndexConfigValidationRecord> {
         Comparator<IndexConfigValidationRecord> COMPARATOR = Comparator.comparing(IndexConfigValidationRecord::state)
                 .thenComparing(NamedSetting::settingName, CASE_INSENSITIVE_ORDER);
 
@@ -114,8 +113,7 @@ public class IndexConfigValidationRecords {
         }
     }
 
-    public sealed interface Invalid extends IndexConfigValidationRecord
-            permits Pending, UnrecognizedSetting, MissingSetting, IncorrectType, InvalidValue {}
+    public sealed interface Invalid extends IndexConfigValidationRecord {}
 
     public record Pending(IndexSetting setting, AnyValue rawValue, Object value) implements KnownSetting, Invalid {
         public Pending(IndexSetting setting, AnyValue rawValue) {

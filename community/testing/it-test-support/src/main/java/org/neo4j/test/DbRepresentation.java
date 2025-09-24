@@ -123,21 +123,16 @@ public class DbRepresentation {
     }
 
     public static DbRepresentation of(DatabaseLayout databaseLayout) {
-        Neo4jLayout layout = databaseLayout.getNeo4jLayout();
-        return of(
-                databaseLayout.databaseDirectory(),
-                Config.newBuilder()
-                        .set(
-                                transaction_logs_root_path,
-                                layout.transactionLogsRootDirectory().toAbsolutePath())
-                        .set(databases_root_path, layout.databasesDirectory().toAbsolutePath())
-                        .set(initial_default_database, databaseLayout.getDatabaseName())
-                        .build());
+        return of(databaseLayout.databaseDirectory(), augmentConfig(databaseLayout, null));
     }
 
     public static DbRepresentation of(DatabaseLayout databaseLayout, Config config) {
+        return of(databaseLayout.databaseDirectory(), augmentConfig(databaseLayout, config));
+    }
+
+    public static Config augmentConfig(DatabaseLayout databaseLayout, Config config) {
         Neo4jLayout layout = databaseLayout.getNeo4jLayout();
-        Config cfg = Config.newBuilder()
+        return Config.newBuilder()
                 .fromConfig(config)
                 .setDefault(
                         transaction_logs_root_path,
@@ -145,7 +140,6 @@ public class DbRepresentation {
                 .setDefault(databases_root_path, layout.databasesDirectory().toAbsolutePath())
                 .setDefault(initial_default_database, databaseLayout.getDatabaseName())
                 .build();
-        return of(databaseLayout.databaseDirectory(), cfg);
     }
 
     @Override

@@ -96,7 +96,7 @@ public class Tokens {
          *
          * @param <TOKEN> the type of tokens to be created
          */
-        public abstract static sealed class Factory<TOKEN> permits Label, RelationshipType, PropertyKey {
+        public abstract static sealed class Factory<TOKEN> {
             /**
              * @param name the name of a {@code TOKEN}
              * @return a {@code TOKEN} corresponding to {@code name}
@@ -376,8 +376,7 @@ public class Tokens {
          *
          * @param <TOKEN> the type of tokens to be supplied
          */
-        public abstract static sealed class Supplier<TOKEN> implements java.util.function.Supplier<TOKEN>
-                permits Label, RelationshipType, PropertyKey {
+        public abstract static sealed class Supplier<TOKEN> implements java.util.function.Supplier<TOKEN> {
             private final String name;
             private final String separator;
             private final java.util.function.Supplier<String> suffix;
