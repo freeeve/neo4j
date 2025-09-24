@@ -29,6 +29,8 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.exceptions.InternalException;
+import org.neo4j.graphdb.WriteOperationsNotAllowedException;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.index.internal.gbptree.MetadataMismatchException;
@@ -117,7 +119,7 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour) {
         if (databaseIndexContext.readOnlyChecker.isReadOnly()) {
-            throw new UnsupportedOperationException("Can't create populator for read only index");
+            throw WriteOperationsNotAllowedException.noWriteOperationAllowed();
         }
 
         IndexFiles indexFiles = indexFiles(descriptor);
@@ -177,7 +179,7 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
                     openOptions);
             return defaultIfEmpty(failureMessage, StringUtils.EMPTY);
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw InternalException.internalError("Population Failure", e.getMessage(), e);
         }
     }
 

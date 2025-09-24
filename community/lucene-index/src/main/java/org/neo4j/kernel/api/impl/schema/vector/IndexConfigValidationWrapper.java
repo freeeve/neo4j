@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.schema;
+package org.neo4j.kernel.api.impl.schema.vector;
 
 import static org.neo4j.internal.schema.IndexConfigValidationRecords.State.INVALID_STATES;
 
@@ -26,8 +26,12 @@ import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
 import org.eclipse.collections.api.set.SetIterable;
 import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
 import org.eclipse.collections.api.tuple.Pair;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
+import org.neo4j.internal.schema.IndexConfig;
+import org.neo4j.internal.schema.IndexConfigValidationRecords;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.UnrecognizedSetting;
+import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.values.storable.Value;
 
 public abstract class IndexConfigValidationWrapper {
@@ -47,7 +51,6 @@ public abstract class IndexConfigValidationWrapper {
         this.descriptor = descriptor;
         this.validSettingNames = validSettingNames;
         this.possibleValidSettingNames = possibleValidSettingNames;
-
         this.config = validateSettingNames(config);
         this.settings = validatePossibleSettingNames(settings);
     }
@@ -62,7 +65,7 @@ public abstract class IndexConfigValidationWrapper {
 
     public <T extends Value> T getValue(String setting) {
         if (!validSettingNames.contains(setting)) {
-            throw unrecognizedSetting(setting, descriptor, validSettingNames);
+            throw unrecognizedSetting(setting, validSettingNames);
         }
         return config.get(setting);
     }
@@ -71,7 +74,7 @@ public abstract class IndexConfigValidationWrapper {
     public <T> T get(IndexSetting setting) {
         final var settingName = setting.getSettingName();
         if (!possibleValidSettingNames.contains(settingName)) {
-            throw unrecognizedSetting(settingName, descriptor, possibleValidSettingNames);
+            throw unrecognizedSetting(settingName, possibleValidSettingNames);
         }
         return (T) settings.get(setting);
     }
@@ -114,13 +117,10 @@ public abstract class IndexConfigValidationWrapper {
         // fail on first
         final var invalidRecord =
                 INVALID_STATES.asLazy().flatCollect(validationRecords::get).getFirst();
-        throw unrecognizedSetting(invalidRecord.settingName(), descriptor, validSettingNames);
+        throw unrecognizedSetting(invalidRecord.settingName(), validSettingNames);
     }
 
-    public static IllegalArgumentException unrecognizedSetting(
-            String settingName, IndexProviderDescriptor descriptor, Iterable<String> validSettingNames) {
-        return new IllegalArgumentException("'%s' is an unrecognized setting for index with provider '%s'. "
-                        .formatted(settingName, descriptor.name())
-                + "Supported: " + validSettingNames);
+    public static InvalidArgumentException unrecognizedSetting(String settingName, Iterable<String> validSettingNames) {
+        return InvalidArgumentException.invalidIndexConfig(settingName, validSettingNames);
     }
 }

@@ -64,7 +64,7 @@ public interface IndexingProvidersService {
     void validateBeforeCommit(IndexDescriptor index, Value[] tuple, long entityId);
 
     /**
-     * Validate the given index prototype, or throw an {@link IllegalArgumentException}.
+     * Validate the given index prototype, or throw an {@link org.neo4j.exceptions.InvalidArgumentException}.
      *
      * @param prototype The prototype to the validated.
      * @return

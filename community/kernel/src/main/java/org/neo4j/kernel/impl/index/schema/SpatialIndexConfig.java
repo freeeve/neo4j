@@ -26,6 +26,7 @@ import static org.neo4j.values.storable.CoordinateReferenceSystem.WGS_84_3D;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.schema.IndexSettingImpl;
 import org.neo4j.graphdb.schema.IndexSettingUtil;
@@ -103,19 +104,20 @@ public final class SpatialIndexConfig {
 
     private static SpaceFillingCurveSettings settingFromIndexConfig(
             IndexConfig indexConfig, CoordinateReferenceSystem crs) {
-        final double[] min = asDoubleArray(
-                indexConfig.get(IndexSettingUtil.spatialMinSettingForCrs(crs).getSettingName()));
-        final double[] max = asDoubleArray(
-                indexConfig.get(IndexSettingUtil.spatialMaxSettingForCrs(crs).getSettingName()));
+        String minSettingName = IndexSettingUtil.spatialMinSettingForCrs(crs).getSettingName();
+        String maxSettingName = IndexSettingUtil.spatialMaxSettingForCrs(crs).getSettingName();
+        final double[] min = asDoubleArray(indexConfig.get(minSettingName), minSettingName);
+        final double[] max = asDoubleArray(indexConfig.get(maxSettingName), maxSettingName);
         final Envelope envelope = new Envelope(min, max);
         return new SpaceFillingCurveSettings(crs.getDimension(), envelope);
     }
 
-    private static double[] asDoubleArray(Value value) {
+    private static double[] asDoubleArray(Value value, String settingName) {
         if (value instanceof DoubleArray) {
             return ((DoubleArray) value).asObjectCopy();
+        } else {
+            throw InvalidArgumentException.invalidType(
+                    settingName, value.prettyPrint(), "DoubleArray", value.getTypeName());
         }
-        throw new IllegalStateException(
-                String.format("Expected value to be of type %s but was %s.", DoubleArray.class, value));
     }
 }

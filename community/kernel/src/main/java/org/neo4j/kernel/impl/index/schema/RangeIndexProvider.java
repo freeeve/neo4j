@@ -25,6 +25,7 @@ import java.nio.file.OpenOption;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -188,15 +189,22 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
         IndexType indexType = prototype.getIndexType();
         if (indexType != IndexType.RANGE) {
             String providerName = getProviderDescriptor().name();
-            throw new IllegalArgumentException("The '" + providerName + "' index provider does not support " + indexType
-                    + " indexes: " + prototype);
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
+                    "The '%s' index provider does not support %s indexes: %s"
+                            .formatted(providerName, indexType, prototype));
         }
 
         if (!(prototype.schema().isLabelSchemaDescriptor()
                 || prototype.schema().isRelationshipTypeSchemaDescriptor())) {
-            throw new IllegalArgumentException("The " + prototype.schema()
-                    + " index schema is not a range index schema, which it is required to be for the '"
-                    + getProviderDescriptor().name() + "' index provider to be able to create an index.");
+            String providerName = getProviderDescriptor().name();
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
+                    "The " + prototype.schema()
+                            + " index schema is not a range index schema, which it is required to be for the '"
+                            + getProviderDescriptor().name() + "' index provider to be able to create an index.");
         }
         return prototype;
     }

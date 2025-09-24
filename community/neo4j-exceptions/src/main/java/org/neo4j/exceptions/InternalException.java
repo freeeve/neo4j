@@ -22,6 +22,7 @@ package org.neo4j.exceptions;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -73,6 +74,14 @@ public class InternalException extends Neo4jException {
              |and `%s` to allow
              |for a larger sub-plan table and longer planning time.""",
                         setting1, setting2));
+    }
+
+    public static InternalException indexNotApplicable(String indexName, String msg) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N15)
+                .withParam(GqlParams.StringParam.idx, indexName)
+                .build();
+
+        return new InternalException(gql, msg);
     }
 
     @Override

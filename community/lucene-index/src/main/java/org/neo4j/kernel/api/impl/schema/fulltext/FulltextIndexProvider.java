@@ -36,9 +36,14 @@ import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.FulltextSettings;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
+import org.neo4j.exceptions.CypherExecutionException;
+import org.neo4j.exceptions.InternalException;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.graphdb.WriteOperationsNotAllowedException;
 import org.neo4j.graphdb.schema.AnalyzerProvider;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.InternalIndexState;
+import org.neo4j.internal.kernel.api.exceptions.PropertyKeyIdNotFoundKernelException;
 import org.neo4j.internal.schema.IndexCapability;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -233,7 +238,7 @@ public class FulltextIndexProvider extends IndexProvider {
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour) {
         if (isReadOnly()) {
-            throw new UnsupportedOperationException("Can't create populator for read only index");
+            throw WriteOperationsNotAllowedException.noWriteOperationAllowed();
         }
         try {
             PartitionedIndexStorage indexStorage = getIndexStorage(descriptor.getId());
@@ -331,13 +336,18 @@ public class FulltextIndexProvider extends IndexProvider {
     private void validateIndexRef(IndexRef<?> ref) {
         String providerName = getProviderDescriptor().name();
         if (ref.getIndexType() != IndexType.FULLTEXT) {
-            throw new IllegalArgumentException(
+            throw InvalidArgumentException.invalidIndexInput(
+                    ref.getIndexType().toString(),
+                    providerName,
                     "The '" + providerName + "' index provider only supports FULLTEXT index types: " + ref);
         }
         if (!ref.schema().isFulltextSchemaDescriptor()) {
-            throw new IllegalArgumentException("The " + ref.schema() + " index schema is not a full-text index schema, "
-                    + "which it is required to be for the '" + providerName
-                    + "' index provider to be able to create an index.");
+            throw InvalidArgumentException.invalidIndexInput(
+                    ref.schema().toString(),
+                    providerName,
+                    "The " + ref.schema() + " index schema is not a full-text index schema, "
+                            + "which it is required to be for the '" + providerName
+                            + "' index provider to be able to create an index.");
         }
         Value value = ref.getIndexConfig().get(ANALYZER);
         if (value != null) {
@@ -352,17 +362,24 @@ public class FulltextIndexProvider extends IndexProvider {
                         Objects.requireNonNull(
                                 analyzer, "The '" + analyzerName + "' analyzer returned a 'null' analyzer.");
                     } catch (Throwable t) {
-                        throw new IllegalArgumentException(
+                        throw InternalException.internalError(
+                                "Fail to create full-text analyzer",
                                 "Fail to create full-text analyzer: '" + analyzerName
                                         + "'. Please make sure its compatible with underlying version of Neo4j.",
                                 t);
                     }
                 } else {
-                    throw new IllegalArgumentException("No such full-text analyzer: '" + analyzerName + "'.");
+                    throw InvalidArgumentException.noSuchFullTextAnalyzer(
+                            analyzerName,
+                            listAvailableAnalyzers()
+                                    .map(AnalyzerProvider::getName)
+                                    .toList());
                 }
             } else {
-                throw new IllegalArgumentException(
-                        "Wrong index setting value type for fulltext analyzer: '" + value + "'.");
+                throw InvalidArgumentException.expectedString(
+                        "Wrong index setting value type for fulltext analyzer: '" + value.prettyPrint() + "'.",
+                        value.prettyPrint(),
+                        value.getTypeName());
             }
         }
 
@@ -371,13 +388,14 @@ public class FulltextIndexProvider extends IndexProvider {
             try {
                 NamedToken token = propertyKeyTokens.getTokenById(propertyId);
                 if (token.name().equals(LuceneFulltextDocumentStructure.FIELD_ENTITY_ID)) {
-                    throw new IllegalArgumentException(
+                    throw InternalException.internalError(
+                            "Unable to index property",
                             "Unable to index the property, the name is reserved for internal use "
                                     + LuceneFulltextDocumentStructure.FIELD_ENTITY_ID);
                 }
             } catch (TokenNotFoundException e) {
-                throw new IllegalArgumentException(
-                        "Schema references non-existing property key token id: " + propertyId + ".", e);
+                throw CypherExecutionException.wrapError(
+                        PropertyKeyIdNotFoundKernelException.propertyKeyIdNotFound(propertyId, e));
             }
         }
     }

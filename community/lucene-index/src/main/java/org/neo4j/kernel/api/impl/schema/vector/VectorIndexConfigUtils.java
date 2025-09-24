@@ -22,7 +22,8 @@ package org.neo4j.kernel.api.impl.schema.vector;
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 import static org.neo4j.internal.schema.IndexConfigValidationRecords.State.INVALID_STATES;
 import static org.neo4j.internal.schema.IndexConfigValidationRecords.State.VALID;
-import static org.neo4j.internal.schema.IndexConfigValidationWrapper.unrecognizedSetting;
+import static org.neo4j.kernel.api.impl.schema.vector.IndexConfigValidationWrapper.unrecognizedSetting;
+import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Comparator;
 import java.util.Objects;
@@ -33,6 +34,8 @@ import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
 import org.eclipse.collections.impl.block.factory.Predicates;
 import org.eclipse.collections.impl.map.sorted.mutable.TreeSortedMap;
 import org.eclipse.collections.impl.tuple.Tuples;
+import org.neo4j.exceptions.InternalException;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
@@ -43,8 +46,6 @@ import org.neo4j.internal.schema.IndexConfigValidationRecords.Valid;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.util.Preconditions;
-import org.neo4j.values.storable.Values;
-import org.neo4j.values.utils.PrettyPrinter;
 
 public class VectorIndexConfigUtils {
     static final Comparator<IndexSetting> INDEX_SETTING_COMPARATOR =
@@ -113,7 +114,7 @@ public class VectorIndexConfigUtils {
                 .asLazy()
                 .select(filter)
                 .select(Predicates.attributeNotNull(Valid::stored))
-                .select(Predicates.attributeNotEqual(Valid::stored, Values.NO_VALUE))
+                .select(Predicates.attributeNotEqual(Valid::stored, NO_VALUE))
                 .toMap(valid -> valid.setting().getSettingName(), Valid::stored));
     }
 
@@ -134,41 +135,49 @@ public class VectorIndexConfigUtils {
         throw switch (invalidRecord.state()) {
             // this is a logic error
             case VALID ->
-                new IllegalStateException("%s should not be %s at this point. Provided: %s"
-                        .formatted(IndexConfigValidationRecord.class.getSimpleName(), VALID, invalidRecord));
+                InternalException.indexNotApplicable(
+                        descriptor.name(),
+                        "%s should not be %s at this point. Provided: %s"
+                                .formatted(IndexConfigValidationRecord.class.getSimpleName(), VALID, invalidRecord));
 
             // this is an implementation mistake
-            case PENDING -> new IllegalStateException("Validation for '%s' is incomplete.".formatted(settingName));
+            case PENDING ->
+                InternalException.indexNotApplicable(
+                        descriptor.name(), "Validation for '%s' is incomplete.".formatted(settingName));
 
             // these are likely user mistakes
-            case UNRECOGNIZED_SETTING ->
-                unrecognizedSetting(invalidRecord.settingName(), descriptor, validSettingNames);
-            case MISSING_SETTING ->
-                new IllegalArgumentException("'%s' is expected to have been set".formatted(settingName));
+            case UNRECOGNIZED_SETTING -> unrecognizedSetting(invalidRecord.settingName(), validSettingNames);
+            case MISSING_SETTING -> InvalidArgumentException.missingIndexConfig(settingName);
             case INCORRECT_TYPE -> {
                 final var incorrectType = (IncorrectType) invalidRecord;
-                yield new IllegalArgumentException("'%s' is expected to have been '%s', but was '%s'"
-                        .formatted(
-                                settingName,
-                                incorrectType.targetType().getSimpleName(),
-                                incorrectType.providedType().getSimpleName()));
+                yield InvalidArgumentException.invalidType(
+                        settingName,
+                        incorrectType.rawValue().prettify(),
+                        incorrectType.targetType().getSimpleName(),
+                        incorrectType.rawValue().getTypeName());
             }
             case INVALID_VALUE -> {
                 final var invalidValue = (InvalidValue) invalidRecord;
                 final var valid = invalidValue.valid();
                 if (valid instanceof final Range<?> range) {
-                    yield new IllegalArgumentException("'%s' must be between %s and %s inclusively"
-                            .formatted(settingName, range.min(), range.max()));
+                    var actualRawValue = invalidValue.rawValue() != null ? invalidValue.rawValue() : NO_VALUE;
+                    yield InvalidArgumentException.outOfRange(
+                            settingName,
+                            actualRawValue.prettify(),
+                            actualRawValue.getTypeName(),
+                            range.min().toString(),
+                            range.max().toString());
                 } else if (valid instanceof Iterable<?> || valid instanceof PrimitiveIterable) {
-                    final var pp = new PrettyPrinter();
-                    invalidValue.rawValue().writeTo(pp);
-                    yield new IllegalArgumentException(
-                            "'%s' is an unsupported '%s'. Supported: %s".formatted(pp.value(), settingName, valid));
+                    yield InvalidArgumentException.invalidIndexInput(
+                            invalidValue.rawValue().prettify(),
+                            settingName,
+                            "'%s' is an unsupported '%s'. Supported: %s"
+                                    .formatted(invalidValue.rawValue().prettify(), settingName, valid));
                 }
 
                 // this is an implementation mistake
-                yield new IllegalStateException("Unhandled valid value type '%s' for '%s'. Provided: %s"
-                        .formatted(valid.getClass().getSimpleName(), settingName, valid));
+                yield InternalException.indexNotApplicable(
+                        descriptor.name(), "Unhandled valid value type '%s' for '%s'. Provided: %s");
             }
         };
     }

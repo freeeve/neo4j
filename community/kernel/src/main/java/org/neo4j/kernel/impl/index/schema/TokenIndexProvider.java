@@ -28,6 +28,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.graphdb.WriteOperationsNotAllowedException;
 import org.neo4j.index.internal.gbptree.MetadataMismatchException;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.InternalIndexState;
@@ -103,7 +105,7 @@ public class TokenIndexProvider extends IndexProvider {
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour) {
         if (databaseIndexContext.readOnlyChecker.isReadOnly()) {
-            throw new UnsupportedOperationException("Can't create populator for read only index");
+            throw WriteOperationsNotAllowedException.noWriteOperationAllowed();
         }
 
         return new WorkSyncedIndexPopulator(createPopulator(descriptor, openOptions, indexingBehaviour));
@@ -204,22 +206,35 @@ public class TokenIndexProvider extends IndexProvider {
     @Override
     public IndexPrototype validatePrototype(IndexPrototype prototype) {
         IndexType indexType = prototype.getIndexType();
+        String providerName = getProviderDescriptor().name();
         if (indexType != IndexType.LOOKUP) {
-            throw new IllegalArgumentException("The '" + getProviderDescriptor().name()
-                    + "' index provider does not support " + indexType + " indexes: " + prototype);
+            throw InvalidArgumentException.invalidIndexInput(
+                    providerName,
+                    indexType.name(),
+                    "The '" + providerName + "' index provider does not support " + indexType + " indexes: "
+                            + prototype);
         }
         if (!prototype.schema().isAnyTokenSchemaDescriptor()) {
-            throw new IllegalArgumentException("The " + prototype.schema()
-                    + " index schema is not an any-token index schema, which it is required to be for the '"
-                    + getProviderDescriptor().name() + "' index provider to be able to create an index.");
+            throw InvalidArgumentException.invalidIndexInput(
+                    providerName,
+                    indexType.name(),
+                    "The " + prototype.schema()
+                            + " index schema is not an any-token index schema, which it is required to be for the '"
+                            + getProviderDescriptor().name() + "' index provider to be able to create an index.");
         }
         if (!prototype.getIndexProvider().equals(AllIndexProviderDescriptors.TOKEN_DESCRIPTOR)) {
-            throw new IllegalArgumentException("The '" + getProviderDescriptor().name()
-                    + "' index provider does not support " + prototype.getIndexProvider() + " indexes: " + prototype);
+            throw InvalidArgumentException.invalidIndexInput(
+                    providerName,
+                    indexType.name(),
+                    "The " + prototype.schema()
+                            + " index schema is not an any-token index schema, which it is required to be for the '"
+                            + getProviderDescriptor().name() + "' index provider to be able to create an index.");
         }
         if (prototype.isUnique()) {
-            throw new IllegalArgumentException("The '" + getProviderDescriptor().name()
-                    + "' index provider does not support uniqueness indexes: " + prototype);
+            throw InvalidArgumentException.invalidIndexInput(
+                    providerName,
+                    indexType.name(),
+                    "The '" + providerName + "' index provider does not support uniqueness indexes: " + prototype);
         }
         return prototype;
     }

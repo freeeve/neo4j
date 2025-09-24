@@ -39,6 +39,7 @@ import org.eclipse.collections.api.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.InvalidValue;
@@ -125,11 +126,8 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .isEqualTo(unrecognisedSetting.getSettingName());
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll(
-                        unrecognisedSetting.getSettingName(),
-                        "is an unrecognized setting for index with provider",
-                        VERSION.descriptor().name());
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Invalid index config key 'fulltext.analyzer', it was not recognized as an index setting.");
     }
 
     @Test
@@ -148,7 +146,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .isEqualTo(DIMENSIONS);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(DIMENSIONS.getSettingName(), "is expected to have been set");
     }
 
@@ -169,7 +167,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .containsExactly(DIMENSIONS, null);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         DIMENSIONS.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxDimensions()));
     }
@@ -202,9 +200,8 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .isAssignableTo(IntegralValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll(
-                        DIMENSIONS.getSettingName(), "is expected to have been", IntegralValue.class.getSimpleName());
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Wrong type for vector.dimensions. Expected IntegralValue, got String");
     }
 
     @ParameterizedTest
@@ -251,7 +248,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .containsExactly(DIMENSIONS, OptionalInt.of(invalidDimensions));
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         DIMENSIONS.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxDimensions()));
     }
@@ -272,7 +269,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .isEqualTo(SIMILARITY_FUNCTION);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(SIMILARITY_FUNCTION.getSettingName(), "is expected to have been set");
     }
 
@@ -293,7 +290,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .containsExactly(SIMILARITY_FUNCTION, null);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "null",
                         "is an unsupported",
@@ -331,11 +328,8 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .isAssignableTo(TextValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll(
-                        SIMILARITY_FUNCTION.getSettingName(),
-                        "is expected to have been",
-                        TextValue.class.getSimpleName());
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Wrong type for vector.similarity_function. Expected TextValue, got Long");
     }
 
     @Test
@@ -356,7 +350,7 @@ class VectorIndexV1ForV512ConfigValidationTest {
                 .containsExactly(SIMILARITY_FUNCTION, Values.stringValue(invalidSimilarityFunction));
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         invalidSimilarityFunction,
                         "is an unsupported",

@@ -43,6 +43,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
@@ -232,7 +233,7 @@ public class VectorIndexCreationTest {
 
             private static void assertUnsupported(VectorIndexVersion version, ThrowingCallable callable) {
                 assertThatThrownBy(callable)
-                        .isInstanceOf(IllegalArgumentException.class)
+                        .isInstanceOf(InvalidArgumentException.class)
                         .hasMessageContainingAll(
                                 SETTING.getSettingName(),
                                 "must be between 1 and",
@@ -392,7 +393,7 @@ public class VectorIndexCreationTest {
 
             private static void assertUnsupported(VectorIndexVersion version, ThrowingCallable callable) {
                 assertThatThrownBy(callable)
-                        .isInstanceOf(IllegalArgumentException.class)
+                        .isInstanceOf(InvalidArgumentException.class)
                         .hasMessageContainingAll(
                                 "is an unsupported",
                                 SETTING.getSettingName(),
@@ -680,7 +681,7 @@ public class VectorIndexCreationTest {
 
             private static void assertUnsupported(VectorIndexVersion version, ThrowingCallable callable) {
                 assertThatThrownBy(callable)
-                        .isInstanceOf(IllegalArgumentException.class)
+                        .isInstanceOf(InvalidArgumentException.class)
                         .hasMessageContainingAll(
                                 IndexSetting.vector_Hnsw_M().getSettingName(),
                                 "must be between 1 and",
@@ -807,7 +808,7 @@ public class VectorIndexCreationTest {
 
             private static void assertUnsupported(VectorIndexVersion version, ThrowingCallable callable) {
                 assertThatThrownBy(callable)
-                        .isInstanceOf(IllegalArgumentException.class)
+                        .isInstanceOf(InvalidArgumentException.class)
                         .hasMessageContainingAll(
                                 IndexSetting.vector_Hnsw_Ef_Construction().getSettingName(),
                                 "must be between 1 and",
@@ -830,7 +831,7 @@ public class VectorIndexCreationTest {
 
         private static void assertMissingExpectedSetting(IndexSetting setting, ThrowingCallable callable) {
             assertThatThrownBy(callable)
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidArgumentException.class)
                     .hasMessageContainingAll(setting.getSettingName(), "is expected to have been set");
         }
     }

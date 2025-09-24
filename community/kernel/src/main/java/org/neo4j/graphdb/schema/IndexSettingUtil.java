@@ -42,7 +42,6 @@ import java.util.Objects;
 import java.util.stream.Stream;
 import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.factory.Maps;
-import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.InternalException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.InvalidSpatialArgumentException;
@@ -184,11 +183,11 @@ public class IndexSettingUtil {
                 return parseAsInteger(value);
             }
         } catch (IndexSettingParseException e) {
-            throw CypherTypeException.invalidType(
+            throw InvalidArgumentException.invalidType(
+                    indexSetting.getSettingName(),
                     String.valueOf(value),
-                    List.of(type.getSimpleName()),
-                    value == null ? "null" : value.getClass().getSimpleName(),
-                    type.getSimpleName());
+                    type.getSimpleName(),
+                    value == null ? "null" : value.getClass().getSimpleName());
         }
         throw InternalException.internalError(
                 "Should not happen.",

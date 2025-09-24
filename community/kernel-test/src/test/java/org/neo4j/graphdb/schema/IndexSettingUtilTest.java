@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.neo4j.exceptions.CypherTypeException;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.DoubleArray;
 import org.neo4j.values.storable.StringValue;
@@ -162,11 +162,11 @@ class IndexSettingUtilTest {
         }
         {
             String[] object = new String[] {"45", "40"};
-            assertThrows(CypherTypeException.class, () -> IndexSettingUtil.asIndexSettingValue(setting, object));
+            assertThrows(InvalidArgumentException.class, () -> IndexSettingUtil.asIndexSettingValue(setting, object));
         }
         {
             List<String> object = Arrays.asList("45", "40");
-            assertThrows(CypherTypeException.class, () -> IndexSettingUtil.asIndexSettingValue(setting, object));
+            assertThrows(InvalidArgumentException.class, () -> IndexSettingUtil.asIndexSettingValue(setting, object));
         }
     }
 

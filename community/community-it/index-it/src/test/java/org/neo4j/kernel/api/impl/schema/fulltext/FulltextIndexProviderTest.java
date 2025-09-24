@@ -58,6 +58,7 @@ import org.neo4j.common.EntityType;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.FulltextSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -497,7 +498,7 @@ class FulltextIndexProviderTest {
                     IndexPrototype.forSchema(schema).withIndexType(FULLTEXT).withName(NAME);
             SchemaWrite schemaWrite = transaction.schemaWrite();
             assertThatThrownBy(() -> schemaWrite.indexCreate(prototype))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidArgumentException.class)
                     .hasMessageContaining("schema is not a full-text index schema");
         }
     }

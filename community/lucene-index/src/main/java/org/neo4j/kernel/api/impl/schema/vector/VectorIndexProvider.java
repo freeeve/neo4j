@@ -27,6 +27,7 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
+import org.neo4j.graphdb.WriteOperationsNotAllowedException;
 import org.neo4j.internal.schema.IndexCapability;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -131,7 +132,7 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
                 .build();
 
         if (luceneIndex.isReadOnly()) {
-            throw new UnsupportedOperationException("Can't create populator for read only index");
+            throw WriteOperationsNotAllowedException.noWriteOperationAllowed();
         }
 
         final var ignoreStrategy = new IgnoreStrategy(version, dimensions);

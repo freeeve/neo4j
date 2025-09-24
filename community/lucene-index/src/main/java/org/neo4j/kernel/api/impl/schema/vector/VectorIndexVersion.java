@@ -40,6 +40,7 @@ import org.eclipse.collections.api.set.primitive.ImmutableBooleanSet;
 import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.tuple.Tuples;
 import org.neo4j.configuration.Config;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
@@ -72,10 +73,12 @@ public enum VectorIndexVersion {
         protected RichIterable<Pair<KernelVersion, VectorIndexSettingsValidator>> configureValidators() {
             return Lists.mutable.of(Tuples.pair(
                     KernelVersion.EARLIEST,
-                    new ValidatorNotFound(new IllegalStateException("%s not found for '%s'"
-                            .formatted(
-                                    VectorIndexSettingsValidator.class.getSimpleName(),
-                                    descriptor().name())))));
+                    new ValidatorNotFound(InvalidArgumentException.internalError(
+                            "Validator Not Found",
+                            "%s not found for '%s'"
+                                    .formatted(
+                                            VectorIndexSettingsValidator.class.getSimpleName(),
+                                            descriptor().name())))));
         }
 
         @Override

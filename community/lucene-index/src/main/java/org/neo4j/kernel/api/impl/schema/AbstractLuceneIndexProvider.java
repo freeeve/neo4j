@@ -27,6 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
@@ -92,11 +93,16 @@ public abstract class AbstractLuceneIndexProvider extends IndexProvider {
         final var indexType = prototype.getIndexType();
         final var providerName = getProviderDescriptor().name();
         if (indexType != supportedIndexType) {
-            throw new IllegalArgumentException("The '%s' index provider does not support %s indexes: %s"
-                    .formatted(providerName, indexType, prototype));
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
+                    "The '%s' index provider does not support %s indexes: %s"
+                            .formatted(providerName, indexType, prototype));
         }
         if (prototype.isUnique()) {
-            throw new IllegalArgumentException(
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
                     "The '%s' index provider does not support unique indexes: %s".formatted(providerName, prototype));
         }
         return prototype;

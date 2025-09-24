@@ -27,6 +27,7 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
@@ -171,28 +172,43 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
     @Override
     public IndexPrototype validatePrototype(IndexPrototype prototype) {
         IndexType indexType = prototype.getIndexType();
+        String providerName = getProviderDescriptor().name();
         if (indexType != IndexType.POINT) {
-            String providerName = getProviderDescriptor().name();
-            throw new IllegalArgumentException("The '" + providerName + "' index provider does not support " + indexType
-                    + " indexes: " + prototype);
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
+                    "The '%s' index provider does not support %s indexes: %s"
+                            .formatted(providerName, indexType, prototype));
         }
         if (!(prototype.schema().isLabelSchemaDescriptor()
                 || prototype.schema().isRelationshipTypeSchemaDescriptor())) {
-            throw new IllegalArgumentException("The " + prototype.schema()
-                    + " index schema is not a point index schema, which it is required to be for the '"
-                    + getProviderDescriptor().name() + "' index provider to be able to create an index.");
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
+                    "The " + prototype.schema()
+                            + " index schema is not a point index schema, which it is required to be for the '"
+                            + providerName + "' index provider to be able to create an index.");
         }
         if (!prototype.getIndexProvider().equals(AllIndexProviderDescriptors.POINT_DESCRIPTOR)) {
-            throw new IllegalArgumentException("The '" + getProviderDescriptor().name()
-                    + "' index provider does not support " + prototype.getIndexProvider() + " indexes: " + prototype);
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
+                    "The " + prototype.schema() + " index schema is not a full-text index schema, "
+                            + "which it is required to be for the '" + providerName
+                            + "' index provider to be able to create an index.");
         }
         if (prototype.isUnique()) {
-            throw new IllegalArgumentException("The '" + getProviderDescriptor().name()
-                    + "' index provider does not support uniqueness indexes: " + prototype);
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
+                    "The '" + providerName + "' index provider does not support uniqueness indexes: " + prototype);
         }
         if (prototype.schema().getPropertyIds().length != 1) {
-            throw new IllegalArgumentException("The '" + getProviderDescriptor().name()
-                    + "' index provider does not support composite indexes: " + prototype);
+            throw InvalidArgumentException.invalidIndexInput(
+                    indexType.toString(),
+                    providerName,
+                    "The '" + getProviderDescriptor().name() + "' index provider does not support composite indexes: "
+                            + prototype);
         }
 
         IndexConfig indexConfig = prototype.getIndexConfig();
@@ -200,7 +216,7 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
         try {
             SpatialIndexConfig.validateSpatialConfig(indexConfig);
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid spatial index settings.", e);
+            throw InvalidArgumentException.invalidArgument("Invalid spatial index settings.", e);
         }
         return prototype;
     }

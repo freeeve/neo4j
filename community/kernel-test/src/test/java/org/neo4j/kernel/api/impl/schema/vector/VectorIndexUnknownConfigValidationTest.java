@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.KernelVersion;
@@ -48,35 +49,35 @@ public class VectorIndexUnknownConfigValidationTest {
         assertThat(validator).isInstanceOf(ValidatorNotFound.class);
 
         assertThatThrownBy(() -> validator.validate(any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
                         version.descriptor().name());
 
         assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
                         version.descriptor().name());
 
         assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(), any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
                         version.descriptor().name());
 
         assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(SettingsAccessor.class)))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
                         version.descriptor().name());
 
         assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -93,7 +94,7 @@ public class VectorIndexUnknownConfigValidationTest {
         assertThat(validator).isInstanceOf(ValidatorNotFoundForKernelVersion.class);
 
         assertThatThrownBy(() -> validator.validate(any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -102,7 +103,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         kernelVersion.toString());
 
         assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -111,7 +112,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         kernelVersion.toString());
 
         assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(), any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -120,7 +121,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         kernelVersion.toString());
 
         assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(SettingsAccessor.class)))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -129,7 +130,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         kernelVersion.toString());
 
         assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -146,7 +147,7 @@ public class VectorIndexUnknownConfigValidationTest {
         assertThat(validator).isInstanceOf(ValidatorNotFoundForKernelVersion.class);
 
         assertThatThrownBy(() -> validator.validate(any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -155,7 +156,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         kernelVersion.toString());
 
         assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -164,7 +165,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         kernelVersion.toString());
 
         assertThatThrownBy(() -> validator.validateToVectorIndexConfig(any(), any()))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -173,7 +174,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         kernelVersion.toString());
 
         assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(SettingsAccessor.class)))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",
@@ -182,7 +183,7 @@ public class VectorIndexUnknownConfigValidationTest {
                         kernelVersion.toString());
 
         assertThatThrownBy(() -> validator.trustIsValidToVectorIndexConfig(any(IndexConfigValidationRecords.class)))
-                .isInstanceOf(IllegalStateException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         VectorIndexSettingsValidator.class.getSimpleName(),
                         "not found for",

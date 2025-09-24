@@ -38,6 +38,7 @@ import org.eclipse.collections.api.tuple.Pair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.IncorrectType;
 import org.neo4j.internal.schema.IndexConfigValidationRecords.InvalidValue;
@@ -142,11 +143,9 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .isEqualTo(unrecognisedSetting.getSettingName());
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
-                        unrecognisedSetting.getSettingName(),
-                        "is an unrecognized setting for index with provider",
-                        VERSION.descriptor().name());
+                        "Invalid index config key 'fulltext.analyzer', it was not recognized as an index setting.");
     }
 
     @Test
@@ -163,7 +162,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .containsExactly(DIMENSIONS, null);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         DIMENSIONS.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxDimensions()));
     }
@@ -195,9 +194,8 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .isAssignableTo(IntegralValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll(
-                        DIMENSIONS.getSettingName(), "is expected to have been", IntegralValue.class.getSimpleName());
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Wrong type for vector.dimensions. Expected IntegralValue, got String");
     }
 
     @ParameterizedTest
@@ -229,7 +227,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .containsExactly(DIMENSIONS, OptionalInt.of(invalidDimensions));
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         DIMENSIONS.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxDimensions()));
     }
@@ -249,7 +247,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .containsExactly(SIMILARITY_FUNCTION, null);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         "null",
                         "is an unsupported",
@@ -286,11 +284,8 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .isAssignableTo(TextValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll(
-                        SIMILARITY_FUNCTION.getSettingName(),
-                        "is expected to have been",
-                        TextValue.class.getSimpleName());
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessageContainingAll("Wrong type for vector.similarity_function. Expected TextValue, got Long");
     }
 
     @Test
@@ -310,7 +305,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .containsExactly(SIMILARITY_FUNCTION, Values.stringValue(invalidSimilarityFunction));
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         invalidSimilarityFunction,
                         "is an unsupported",
@@ -347,11 +342,8 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .isAssignableTo(BooleanValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll(
-                        QUANTIZATION_ENABLED.getSettingName(),
-                        "is expected to have been",
-                        BooleanValue.class.getSimpleName());
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Wrong type for vector.quantization.enabled. Expected BooleanValue, got Long");
     }
 
     @Test
@@ -368,7 +360,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .containsExactly(HNSW_M, null);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         HNSW_M.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxHnswM()));
     }
@@ -399,9 +391,8 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .isAssignableTo(IntegralValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll(
-                        HNSW_M.getSettingName(), "is expected to have been", IntegralValue.class.getSimpleName());
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Wrong type for vector.hnsw.m. Expected IntegralValue, got String");
     }
 
     @ParameterizedTest
@@ -439,7 +430,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .containsExactly(HNSW_M, invalidM);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         HNSW_M.getSettingName(), "must be between 1 and", String.valueOf(VERSION.maxHnswM()));
     }
@@ -459,7 +450,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .containsExactly(HNSW_EF_CONSTRUCTION, null);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         HNSW_EF_CONSTRUCTION.getSettingName(),
                         "must be between 1 and",
@@ -493,11 +484,8 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .isAssignableTo(IntegralValue.class);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContainingAll(
-                        HNSW_EF_CONSTRUCTION.getSettingName(),
-                        "is expected to have been",
-                        IntegralValue.class.getSimpleName());
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Wrong type for vector.hnsw.ef_construction. Expected IntegralValue, got String");
     }
 
     @ParameterizedTest
@@ -531,7 +519,7 @@ class VectorIndexV3ForV523ConfigValidationTest {
                 .containsExactly(HNSW_EF_CONSTRUCTION, invalidHnswEfConstruction);
 
         assertThatThrownBy(() -> VALIDATOR.validateToVectorIndexConfig(settings))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidArgumentException.class)
                 .hasMessageContainingAll(
                         HNSW_EF_CONSTRUCTION.getSettingName(),
                         "must be between 1 and",

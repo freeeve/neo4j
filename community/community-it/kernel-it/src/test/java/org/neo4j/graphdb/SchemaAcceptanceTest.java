@@ -58,7 +58,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.exceptions.CypherExecutionException;
-import org.neo4j.exceptions.CypherTypeException;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.function.ThrowingFunction;
 import org.neo4j.graphdb.schema.AnyTokens;
 import org.neo4j.graphdb.schema.ConstraintCreator;
@@ -1669,34 +1669,34 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                             .withIndexType(IndexType.FULLTEXT)
                             .withIndexConfiguration(Map.of(IndexSettingImpl.FULLTEXT_ANALYZER, 1))
                             .create())
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(InvalidArgumentException.class);
             assertThatThrownBy(() -> indexCreator
                             .withIndexType(IndexType.FULLTEXT)
                             .withIndexConfiguration(Map.of(IndexSettingImpl.FULLTEXT_ANALYZER, true))
                             .create())
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(InvalidArgumentException.class);
             assertThatThrownBy(() -> indexCreator
                             .withIndexType(IndexType.FULLTEXT)
                             .withIndexConfiguration(Map.of(IndexSettingImpl.FULLTEXT_EVENTUALLY_CONSISTENT, "true"))
                             .create())
-                    .isInstanceOf(CypherTypeException.class);
+                    .isInstanceOf(InvalidArgumentException.class);
             assertThatThrownBy(() -> indexCreator
                             .withIndexType(IndexType.FULLTEXT)
                             .withIndexConfiguration(Map.of(IndexSettingImpl.FULLTEXT_EVENTUALLY_CONSISTENT, 1))
                             .create())
-                    .isInstanceOf(CypherTypeException.class);
+                    .isInstanceOf(InvalidArgumentException.class);
             assertThatThrownBy(() -> indexCreator
                             .withIndexConfiguration(Map.of(IndexSettingImpl.SPATIAL_CARTESIAN_MAX, "1"))
                             .create())
-                    .isInstanceOf(CypherTypeException.class);
+                    .isInstanceOf(InvalidArgumentException.class);
             assertThatThrownBy(() -> indexCreator
                             .withIndexConfiguration(Map.of(IndexSettingImpl.SPATIAL_CARTESIAN_MAX, 1))
                             .create())
-                    .isInstanceOf(CypherTypeException.class);
+                    .isInstanceOf(InvalidArgumentException.class);
             assertThatThrownBy(() -> indexCreator
                             .withIndexConfiguration(Map.of(IndexSettingImpl.SPATIAL_CARTESIAN_MAX, 1.0))
                             .create())
-                    .isInstanceOf(CypherTypeException.class);
+                    .isInstanceOf(InvalidArgumentException.class);
 
             tx.commit();
         }
@@ -1751,7 +1751,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                             .withIndexConfiguration(
                                     Map.of(IndexSettingImpl.FULLTEXT_ANALYZER, "analyzer that does not exist"))
                             .create())
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidArgumentException.class)
                     .hasMessageContaining("'analyzer that does not exist'");
 
             assertThatThrownBy(() -> indexCreator
@@ -1759,7 +1759,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                             .withIndexConfiguration(
                                     Map.of(IndexSettingImpl.SPATIAL_CARTESIAN_MAX, new double[] {100.0, 10.0, 1.0}))
                             .create())
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(InvalidArgumentException.class)
                     .hasMessageContaining("Invalid spatial index settings");
 
             tx.commit();

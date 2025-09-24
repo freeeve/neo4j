@@ -26,6 +26,7 @@ import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityAlreadyExists;
 import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityNotFound;
 
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -712,6 +713,16 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, String.format("Cannot assign %s to field %s", value, field));
     }
 
+    public static InvalidArgumentException invalidIndexConfig(String key, Iterable<String> expected) {
+        if (expected instanceof List<String> list) {
+            return invalidIndexConfig(key, list);
+        } else {
+            List<String> list = new ArrayList<>();
+            expected.forEach(list::add);
+            return invalidIndexConfig(key, list);
+        }
+    }
+
     public static InvalidArgumentException invalidIndexConfig(String key, List<String> expected) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
@@ -722,6 +733,23 @@ public class InvalidArgumentException extends Neo4jException {
                 .build();
         return new InvalidArgumentException(
                 gql, String.format("Invalid index config key '%s', it was not recognized as an index setting.", key));
+    }
+
+    public static InvalidArgumentException missingIndexConfig(String setting) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .build();
+        return new InvalidArgumentException(gql, "'%s' is expected to have been set".formatted(setting));
+    }
+
+    public static InvalidArgumentException noSuchFullTextAnalyzer(String analyzerName, List<String> expected) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N27)
+                        .withParam(GqlParams.StringParam.input, analyzerName)
+                        .withParam(GqlParams.StringParam.context, "index setting")
+                        .withParam(GqlParams.ListParam.valueTypeList, expected)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, "No such full-text analyzer: '" + analyzerName + "'.");
     }
 
     public static InvalidArgumentException cannotAssignPointField(
@@ -783,6 +811,12 @@ public class InvalidArgumentException extends Neo4jException {
     public static InvalidArgumentException invalidNanosecond(long upper, long value) {
         var gql = GqlHelper.getGql22007_22N03("Nanosecond", "INTEGER", 0, upper, value);
         return new InvalidArgumentException(gql, "Invalid nanosecond: " + value);
+    }
+
+    public static InvalidArgumentException invalidArgument(String msg, Throwable t) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .build();
+        throw new InvalidArgumentException(gql, msg, t);
     }
 
     public static InvalidArgumentException argumentOutOfRange(
@@ -1337,5 +1371,40 @@ public class InvalidArgumentException extends Neo4jException {
                 gql,
                 String.format(
                         "Cannot populate list values larger than %d elements. Requested size: %d", maxSize, size));
+    }
+
+    public static InvalidArgumentException invalidType(
+            String context, String value, String expectedType, String actualType) {
+        var gql = GqlHelper.getGql22G03_22N01(value, List.of(expectedType), actualType);
+        return new InvalidArgumentException(
+                gql, String.format("Wrong type for %s. Expected %s, got %s", context, expectedType, actualType));
+    }
+
+    public static InvalidArgumentException expectedString(String msg, String gotPretty, String gotCypherType) {
+        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("STRING"), gotCypherType);
+        return new InvalidArgumentException(gql, msg);
+    }
+
+    public static InvalidArgumentException outOfRange(
+            String component, String value, String valueType, String min, String max) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
+                        .withParam(GqlParams.StringParam.component, component)
+                        .withParam(GqlParams.StringParam.valueType, valueType)
+                        .withParam(GqlParams.StringParam.lower, min)
+                        .withParam(GqlParams.StringParam.upper, max)
+                        .withParam(GqlParams.StringParam.value, String.valueOf(value))
+                        .build())
+                .build();
+        return new InvalidArgumentException(
+                gql, "'%s' must be between %s and %s inclusively".formatted(component, min, max));
+    }
+
+    public static InvalidArgumentException invalidIndexInput(String input, String context, String msg) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                .withParam(GqlParams.StringParam.input, input)
+                .withParam(GqlParams.StringParam.context, context)
+                .build();
+        return new InvalidArgumentException(gql, msg);
     }
 }

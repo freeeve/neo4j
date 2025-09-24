@@ -33,7 +33,6 @@ import org.eclipse.collections.api.map.sorted.ImmutableSortedMap;
 import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfig;
-import org.neo4j.internal.schema.IndexConfigValidationWrapper;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
 
 public class VectorIndexConfig extends IndexConfigValidationWrapper {

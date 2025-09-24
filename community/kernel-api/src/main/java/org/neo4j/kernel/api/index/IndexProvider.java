@@ -297,7 +297,7 @@ public abstract class IndexProvider extends LifecycleAdapter implements IndexCon
             IndexDescriptor descriptor, CursorContext cursorContext, ImmutableSet<OpenOption> openOptions);
 
     /**
-     * Validate that the given index prototype can be used to create an index with the given index provider, or throw an {@link IllegalArgumentException} if
+     * Validate that the given index prototype can be used to create an index with the given index provider, or throw an {@link org.neo4j.exceptions.InvalidArgumentException} if
      * that is not the case.
      *
      * @param prototype The prototype to be validated.

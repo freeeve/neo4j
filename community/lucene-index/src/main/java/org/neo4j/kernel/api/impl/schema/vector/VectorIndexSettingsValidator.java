@@ -30,9 +30,9 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.factory.SortedSets;
 import org.eclipse.collections.api.set.sorted.ImmutableSortedSet;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.internal.schema.IndexConfigValidationRecords;
-import org.neo4j.internal.schema.IndexConfigValidationWrapper;
 import org.neo4j.internal.schema.SettingsAccessor;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.IndexSettingValidators.IndexSettingValidator;
@@ -155,9 +155,9 @@ public interface VectorIndexSettingsValidator {
     }
 
     class ValidatorNotFound implements VectorIndexSettingsValidator {
-        private final IllegalStateException exception;
+        private final InvalidArgumentException exception;
 
-        ValidatorNotFound(IllegalStateException exception) {
+        ValidatorNotFound(InvalidArgumentException exception) {
             this.exception = exception;
         }
 
@@ -195,11 +195,13 @@ public interface VectorIndexSettingsValidator {
 
     class ValidatorNotFoundForKernelVersion extends ValidatorNotFound {
         ValidatorNotFoundForKernelVersion(VectorIndexVersion version, KernelVersion kernelVersion) {
-            super(new IllegalStateException("%s not found for '%s' on '%s'."
-                    .formatted(
-                            VectorIndexSettingsValidator.class.getSimpleName(),
-                            version.descriptor().name(),
-                            kernelVersion)));
+            super(InvalidArgumentException.internalError(
+                    "Validator Not Found",
+                    ("%s not found for '%s' on '%s'."
+                            .formatted(
+                                    VectorIndexSettingsValidator.class.getSimpleName(),
+                                    version.descriptor().name(),
+                                    kernelVersion))));
         }
     }
 }

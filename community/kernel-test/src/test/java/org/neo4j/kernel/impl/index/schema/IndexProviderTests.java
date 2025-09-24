@@ -40,6 +40,8 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.graphdb.WriteOperationsNotAllowedException;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.schema.IndexCapability;
@@ -142,7 +144,7 @@ abstract class IndexProviderTests {
 
         // then
         for (IndexPrototype invalidPrototype : invalidPrototypes) {
-            assertThrows(IllegalArgumentException.class, () -> provider.validatePrototype(invalidPrototype));
+            assertThrows(InvalidArgumentException.class, () -> provider.validatePrototype(invalidPrototype));
         }
     }
 
@@ -170,7 +172,7 @@ abstract class IndexProviderTests {
         provider = newReadOnlyProvider();
 
         assertThrows(
-                UnsupportedOperationException.class,
+                WriteOperationsNotAllowedException.class,
                 () -> provider.getPopulator(
                         descriptor(),
                         samplingConfig(),
