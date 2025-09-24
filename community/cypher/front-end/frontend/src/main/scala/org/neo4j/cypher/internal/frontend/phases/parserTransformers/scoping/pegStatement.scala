@@ -45,7 +45,7 @@ object pegStatement {
         incoming.resultScope(children.last.outgoing, children.last.result, children, referenced)
       case u: Union =>
         val children = Seq(u.lhs, u.rhs).map(q => apply(q, incoming))
-        incoming.resultScope(children.last.outgoing, children.last.result, children)
+        incoming.resultScope(children.head.outgoing, children.head.result, children)
       case ConditionalQueryWhen(branches, defaultOpt) =>
         val allBranched = branches.appendedAll(defaultOpt)
         val branchIncoming = incoming.constantChildContext()
@@ -59,7 +59,7 @@ object pegStatement {
             implicit val astNode: ASTNode = branch
             branchIncoming.resultScope(queryScope.outgoing, queryScope.result, branchChildren, referenced)
         }
-        incoming.resultScope(children.last.outgoing, children.last.result, children)
+        incoming.resultScope(children.head.outgoing, children.head.result, children)
       case SingleQuery(clauses) =>
         if (clauses.size == 1 && clauses.head.isInstanceOf[UnresolvedCall]) {
           val child = pegClause(clauses.head, incoming)

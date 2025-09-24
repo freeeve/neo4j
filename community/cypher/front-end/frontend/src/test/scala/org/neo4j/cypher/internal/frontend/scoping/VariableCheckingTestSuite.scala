@@ -189,14 +189,16 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
-  private def runQuery(query: String): Either[BaseState, Seq[SemanticError]] = {
+  private def runQuery(query: String, skipVariableChecker: Boolean = false): Either[BaseState, Seq[SemanticError]] = {
     val version = CypherVersion.Cypher25
     val context =
       new ErrorCollectingContext(version, isComposite = false, defaultDatabaseName, query, Seq(ScopeQueries)) {
         override def errorMessageProvider: ErrorMessageProvider = messageProvider
       }
-    val state =
-      (Parse andThen ScopeSurveyor andThen VariableChecker).transform(initialStateWithQuery(query), context)
+    val transformers =
+      if (skipVariableChecker) Parse andThen ScopeSurveyor
+      else Parse andThen ScopeSurveyor andThen VariableChecker
+    val state = transformers.transform(initialStateWithQuery(query), context)
     if (context.errors.isEmpty) {
       Left(state)
     } else {
@@ -293,9 +295,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
-  def hasScope(expected: ExpectedWorkingScope): Unit = {
+  def hasScope(expected: ExpectedWorkingScope, skipVariableChecker: Boolean = false): Unit = {
     val query = testName
-    runQuery(query) match {
+    runQuery(query, skipVariableChecker) match {
       case Left(state) =>
         state.maybeWorkingScope should not be empty
         val ws = state.maybeWorkingScope.get

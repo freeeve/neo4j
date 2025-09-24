@@ -581,6 +581,39 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   }
 
   /**
+   * Incompatible return columns
+   */
+  test("""RETURN 1 AS x
+         |UNION
+         |RETURN 2 AS y""".stripMargin) {
+    error("42N39", "incompatible return column names.")
+  }
+
+  test("""WHEN true THEN RETURN 1 AS x
+         |WHEN false THEN RETURN 2 AS x
+         |ELSE RETURN 3 AS y""".stripMargin) {
+    error("42N39", "incompatible return column names.")
+  }
+
+  test("""WHEN true THEN RETURN 1 AS x
+         |WHEN false THEN RETURN 2 AS y
+         |ELSE RETURN 3 AS z""".stripMargin) {
+    error("42N39", "incompatible return column names.")
+  }
+
+  test("""WHEN true THEN RETURN 1 AS x, 2 AS y
+         |WHEN false THEN RETURN 2 AS x
+         |ELSE RETURN 2 AS x, 3 AS y""".stripMargin) {
+    error("42N3B", "incompatible number of return columns.")
+  }
+
+  test("""WHEN true THEN RETURN 1 AS x
+         |WHEN false THEN RETURN 2 AS x
+         |ELSE FINISH""".stripMargin) {
+    error("42N3A", "incompatible conditional query.")
+  }
+
+  /**
    * Invalid use of RETURN *
    */
   test("""RETURN *, 1 AS x""".stripMargin) {

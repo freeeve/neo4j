@@ -119,6 +119,7 @@ object pegClause {
           val resultColumns = declaredResult.map(_.items.map(_.variable)).getOrElse(Seq.empty)
           val declared = Declarations(Seq.empty, resultColumns)
           val outgoing = incoming.amendedWith(resultColumns.toSet)
+          // TODO explore if this should note result in both the in-query call and standalone case.
           incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced, declared)
         }
       // query clauses

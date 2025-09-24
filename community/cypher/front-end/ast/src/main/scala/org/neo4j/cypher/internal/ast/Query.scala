@@ -21,7 +21,6 @@ import org.neo4j.cypher.internal.ast.ConditionalQueryWhen.msg
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen.name
 import org.neo4j.cypher.internal.ast.ReturnItems.ReturnVariables
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
-import org.neo4j.cypher.internal.ast.UnmappedUnion.errorParam
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.Scope
 import org.neo4j.cypher.internal.ast.semantics.Scope.DeclarationsAndDependencies
@@ -885,6 +884,9 @@ object Union {
     variableInLhs: LogicalVariable,
     variableInRhs: LogicalVariable
   )
+
+  val errorParam = "UNION subqueries"
+
 }
 
 sealed trait Union extends Query {
@@ -1140,13 +1142,9 @@ sealed trait UnmappedUnion extends Union {
     val rhsScope = if (rhs.isReturning) rhs.finalScope(state.scope(rhs).getOrElse(Scope.empty)) else Scope.empty
     val errors =
       if (lhsScope.symbolNames == rhsScope.symbolNames) Seq.empty
-      else Seq(SemanticError.incompatibleReturnColumns(errorParam, position))
+      else Seq(SemanticError.incompatibleReturnColumns(Union.errorParam, position))
     SemanticCheckResult(state, errors)
   }
-}
-
-object UnmappedUnion {
-  val errorParam = "UNION subqueries"
 }
 
 sealed trait ProjectingUnion extends Union {

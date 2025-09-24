@@ -17,7 +17,7 @@
 package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.ast.Ast.p
-import org.neo4j.cypher.internal.ast.UnmappedUnion
+import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N07
@@ -343,7 +343,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(UnmappedUnion.errorParam, 72, 5, 5),
+      getGql42001_42N39(Union.errorParam, 72, 5, 5),
       "All sub queries in an UNION must have the same return column names",
       p(72, 5, 5)
     )
@@ -359,7 +359,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(UnmappedUnion.errorParam, 54, 4, 5),
+      getGql42001_42N39(Union.errorParam, 54, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(54, 4, 5)
     )
@@ -375,7 +375,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(UnmappedUnion.errorParam, 67, 5, 5),
+      getGql42001_42N39(Union.errorParam, 67, 5, 5),
       "All sub queries in an UNION must have the same return column names",
       p(67, 5, 5)
     )
@@ -391,7 +391,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(UnmappedUnion.errorParam, 54, 4, 5),
+      getGql42001_42N39(Union.errorParam, 54, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(54, 4, 5)
     )
@@ -409,7 +409,7 @@ class CountExpressionSemanticAnalysisTest
          |RETURN person.name
      """.stripMargin) {
     run().hasError(
-      getGql42001_42N39(UnmappedUnion.errorParam, 54, 4, 5),
+      getGql42001_42N39(Union.errorParam, 54, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       p(54, 4, 5)
     )
@@ -430,12 +430,12 @@ class CountExpressionSemanticAnalysisTest
      """.stripMargin) {
     run().hasErrors(
       SemanticError(
-        getGql42001_42N39(UnmappedUnion.errorParam, 67, 5, 5),
+        getGql42001_42N39(Union.errorParam, 67, 5, 5),
         "All sub queries in an UNION must have the same return column names",
         p(67, 5, 5)
       ),
       SemanticError(
-        getGql42001_42N39(UnmappedUnion.errorParam, 104, 8, 5),
+        getGql42001_42N39(Union.errorParam, 104, 8, 5),
         "All sub queries in an UNION must have the same return column names",
         p(104, 8, 5)
       )

@@ -16,10 +16,14 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.ProjectionClause
+import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.StrictlyAdditiveProjection
 import org.neo4j.cypher.internal.ast.SubqueryCall
+import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
@@ -94,6 +98,29 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
     {
       case StatementScope(Return.WithStar(r), in, _, _, _, _, _) if in.isVariablesEmpty =>
         Seq(SemanticError.invalidUseOfReturnStar(r.position))
+    },
+    // incompatible return columns
+    {
+      case StatementScope(u: Union, _, _, _, _, result, children)
+        if children.map(_.result).exists(_ != result) ||
+          children.exists(_.astNode.asInstanceOf[Query].isReturning != u.isReturning) =>
+        Seq(SemanticError.incompatibleReturnColumns(Union.errorParam, u.position))
+      case StatementScope(_: ConditionalQueryWhen, _, _, _, _, result, children) =>
+        children.tail
+          .filter(_.result != result)
+          .flatMap { x =>
+            (x.result, result) match {
+              case (TableResult(tailCols), TableResult(headCols)) if tailCols.size != headCols.size =>
+                Seq(SemanticError.incompatibleNumberOfReturnColumns(ConditionalQueryWhen.name, x.astNode.position))
+              case (TableResult(tailCols), TableResult(headCols)) if tailCols.map(_.name) != headCols.map(_.name) =>
+                Seq(SemanticError.incompatibleWhenReturnColumns(ConditionalQueryWhen.name, x.astNode.position))
+              case _ =>
+                Seq(SemanticError.incompatibleSubqueryType(
+                  ConditionalQueryWhen.name,
+                  x.astNode.asInstanceOf[ConditionalQueryBranch].query.position
+                ))
+            }
+          }
     }
   )
 

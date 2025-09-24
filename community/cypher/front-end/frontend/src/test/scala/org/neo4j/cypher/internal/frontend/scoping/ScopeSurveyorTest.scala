@@ -347,8 +347,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
         Ast("""RETURN 1 AS a
               |UNION
               |RETURN 2 AS b""".stripMargin),
-        Outgoing(variables = Set("b")),
-        ExpectedResult.TableResult("b"),
+        Outgoing(variables = Set("a")),
+        ExpectedResult.TableResult("a"),
         ExpectedWorkingScope(
           Ast("RETURN 1 AS a"), // query level
           Outgoing(variables = Set("a")),
@@ -371,7 +371,8 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
             ExpectedWorkingScope.constExp("2")
           )
         )
-      )
+      ),
+      skipVariableChecker = true
     )
   }
 
