@@ -40,8 +40,19 @@ trait CypherExceptionFactory {
     ex: SyntaxException
   ): RuntimeException = {
     val exceptionCause = ex.gqlStatusObject()
+    val (offset, line, col) = exceptionCause match {
+      case c: ErrorGqlStatusObjectImplementation =>
+        val pos = c.getDiagnosticPosition
+        (
+          pos.get("offset").intValue(),
+          pos.get("line").intValue(),
+          pos.get("column").intValue()
+        )
+      case _ => (0, 1, 1)
+    }
     val gql_42I67 =
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I67)
+        .atPosition(offset, line, col)
         .withParam(GqlParams.StringParam.feat1, unsupportedVersion)
         .withParam(GqlParams.StringParam.feat2, supportedVersion).buildImpl()
 
