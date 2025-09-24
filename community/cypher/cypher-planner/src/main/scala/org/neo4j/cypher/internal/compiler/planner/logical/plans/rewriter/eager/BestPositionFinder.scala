@@ -100,23 +100,22 @@ object BestPositionFinder {
       if (buffer.isEmpty) {
         buffer += listA
       } else {
-        var merged = false
+        var listAPossiblyMergedWithBuffer: CandidateSetWithMinimum = listA
+        val mergedBufferIndexes = mutable.ListBuffer[Int]()
         val it = buffer.zipWithIndex.iterator
 
         // Go through all lists already in results and see if the current one can get merged with any other list.
-        while (!merged && it.hasNext) {
+        while (it.hasNext) {
           val (listB, i) = it.next()
-          tryMerge(listA, listB).foreach { mergedList =>
-            // If so, only keep the merged list
-            merged = true
-            buffer.remove(i)
-            buffer += mergedList
+          tryMerge(listAPossiblyMergedWithBuffer, listB).foreach { mergedList =>
+            listAPossiblyMergedWithBuffer = mergedList
+            mergedBufferIndexes.addOne(i)
           }
         }
-        if (!merged) {
-          // Otherwise keep all lists and add the new one.
-          buffer += listA
+        for (idx <- mergedBufferIndexes.reverse) {
+          buffer.remove(idx)
         }
+        buffer += listAPossiblyMergedWithBuffer
       }
     }
     buffer.toSeq

@@ -1325,13 +1325,11 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         // IR eagerness interprets the conflict to be with the last projection
         .|.setNodePropertiesFromMap("var1", "$param1", removeOtherProps = false)
         .|.eager(ListSet(
-          EagernessReason.UnknownPropertyReadSetConflict
-            .withConflict(EagernessReason.Conflict(Id(5), Id(7)))
+          EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(5), Id(7)))
         ))
         .|.filter("cacheN[var1.P0] = coalesce($param2, 0) + 1")
         .|.eager(ListSet(
-          EagernessReason.PropertyReadSetConflict(propName("P0"))
-            .withConflict(EagernessReason.Conflict(Id(9), Id(0))),
+          EagernessReason.PropertyReadSetConflict(propName("P0")).withConflict(EagernessReason.Conflict(Id(9), Id(0))),
           EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(5), Id(9))),
           EagernessReason.PropertyReadSetConflict(propName("P0")).withConflict(EagernessReason.Conflict(Id(9), Id(7)))
         ))
@@ -1544,7 +1542,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     plan should equal(
       planner.planBuilder()
         .produceResults("n")
-        .eager(ListSet(PropertyReadSetConflict(propName("year")).withConflict(Conflict(Id(2), Id(0)))))
+        .eager(ListSet(
+          PropertyReadSetConflict(propName("year")).withConflict(Conflict(Id(2), Id(0)))
+        ))
         .setNodeProperty("n", "year", "NULL")
         .eager(ListSet(
           PropertyReadSetConflict(propName("genre")).withConflict(Conflict(Id(4), Id(0))),

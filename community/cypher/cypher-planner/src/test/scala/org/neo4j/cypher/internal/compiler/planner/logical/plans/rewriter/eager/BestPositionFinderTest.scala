@@ -244,4 +244,98 @@ class BestPositionFinderTest extends CypherFunSuite {
     // the best solution.
   }
 
+  test("(1, [2]), (1, [3]), ([1])") {
+    val plans = 0 until 4
+
+    val candidateSets = Seq(
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2)), plans(2), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(3)), plans(3), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1)), plans(1), Set(EagernessReason.Unknown))
+    )
+
+    BestPositionFinder.mergeCandidateSets(candidateSets).toSet should equal(Set(
+      CandidateSetWithMinimum(BitSet(plans(1)), plans(1), Set(EagernessReason.Unknown))
+    ))
+  }
+
+  test("([1], 2, 3), (1, [4]), (1, [5])") {
+    val plans = 0 until 6
+
+    def testSolution(solution: Seq[CandidateSetWithMinimum]): Unit = {
+      solution.toSet should equal(Set(
+        CandidateSetWithMinimum(BitSet(plans(1)), plans(1), Set(EagernessReason.Unknown))
+      ))
+    }
+
+    val t123 = Seq(
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2), plans(3)), plans(1), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(4)), plans(4), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(5)), plans(5), Set(EagernessReason.Unknown))
+    )
+    val t132 = Seq(
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2), plans(3)), plans(1), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(5)), plans(5), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(4)), plans(4), Set(EagernessReason.Unknown))
+    )
+    val t213 = Seq(
+      CandidateSetWithMinimum(BitSet(plans(1), plans(4)), plans(4), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2), plans(3)), plans(1), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(5)), plans(5), Set(EagernessReason.Unknown))
+    )
+    val t231 = Seq(
+      CandidateSetWithMinimum(BitSet(plans(1), plans(4)), plans(4), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(5)), plans(5), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2), plans(3)), plans(1), Set(EagernessReason.Unknown))
+    )
+    val t312 = Seq(
+      CandidateSetWithMinimum(BitSet(plans(1), plans(5)), plans(5), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2), plans(3)), plans(1), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(4)), plans(4), Set(EagernessReason.Unknown))
+    )
+    val t321 = Seq(
+      CandidateSetWithMinimum(BitSet(plans(1), plans(5)), plans(5), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(4)), plans(4), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2), plans(3)), plans(1), Set(EagernessReason.Unknown))
+    )
+    testSolution(BestPositionFinder.mergeCandidateSets(t123))
+    testSolution(BestPositionFinder.mergeCandidateSets(t132))
+    testSolution(BestPositionFinder.mergeCandidateSets(t213))
+    testSolution(BestPositionFinder.mergeCandidateSets(t231))
+    testSolution(BestPositionFinder.mergeCandidateSets(t312))
+    testSolution(BestPositionFinder.mergeCandidateSets(t321))
+  }
+
+  test("(1, [2]), (3, [4]), (4, [6]), (2, 4, [5])") {
+    val plans = 0 until 7
+
+    val candidateSets = Seq(
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2)), plans(2), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(3), plans(4)), plans(4), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(4), plans(6)), plans(6), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(2), plans(4), plans(5)), plans(5), Set(EagernessReason.Unknown))
+    )
+
+    BestPositionFinder.mergeCandidateSets(candidateSets).toSet should equal(Set(
+      CandidateSetWithMinimum(BitSet(plans(2)), plans(2), Set(EagernessReason.Unknown)), // (1, [2]) and (2, 4, [5])
+      CandidateSetWithMinimum(BitSet(plans(4)), plans(4), Set(EagernessReason.Unknown)) // (3, [4]) and (4, [6])
+    ))
+  }
+
+  test("(3, [4]), (4, [6]), (2, 4, [5]), (1, [2])") {
+    val plans = 0 until 7
+
+    val candidateSets = Seq(
+      CandidateSetWithMinimum(BitSet(plans(3), plans(4)), plans(4), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(4), plans(6)), plans(6), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(2), plans(4), plans(5)), plans(5), Set(EagernessReason.Unknown)),
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2)), plans(2), Set(EagernessReason.Unknown))
+    )
+
+    BestPositionFinder.mergeCandidateSets(candidateSets).toSet should equal(Set(
+      CandidateSetWithMinimum(BitSet(plans(4)), plans(4), Set(EagernessReason.Unknown)),
+      // (3, [4]), (4, [6]) and (2, 4, [5])
+      CandidateSetWithMinimum(BitSet(plans(1), plans(2)), plans(2), Set(EagernessReason.Unknown))
+      // (1, [2])
+    ))
+  }
 }
