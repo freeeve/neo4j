@@ -28,7 +28,6 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.Neo4jLogMessage;
-import org.neo4j.logging.Neo4jMessageSupplier;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.util.VisibleForTesting;
@@ -98,13 +97,7 @@ public class Neo4jConfigValidator implements ConfigValidator {
         public void debug(Neo4jLogMessage message) {}
 
         @Override
-        public void debug(Neo4jMessageSupplier supplier) {}
-
-        @Override
         public void info(Neo4jLogMessage message) {}
-
-        @Override
-        public void info(Neo4jMessageSupplier supplier) {}
 
         @Override
         public void warn(Neo4jLogMessage message) {
@@ -112,18 +105,8 @@ public class Neo4jConfigValidator implements ConfigValidator {
         }
 
         @Override
-        public void warn(Neo4jMessageSupplier supplier) {
-            warn(supplier.get());
-        }
-
-        @Override
         public void error(Neo4jLogMessage message) {
             error(message, message.getThrowable());
-        }
-
-        @Override
-        public void error(Neo4jMessageSupplier supplier) {
-            error(supplier.get());
         }
 
         @Override

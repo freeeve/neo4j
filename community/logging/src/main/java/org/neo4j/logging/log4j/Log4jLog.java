@@ -23,7 +23,6 @@ import org.apache.logging.log4j.spi.ExtendedLogger;
 import org.apache.logging.log4j.spi.ExtendedLoggerWrapper;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.Neo4jLogMessage;
-import org.neo4j.logging.Neo4jMessageSupplier;
 
 /**
  * A {@link InternalLog} implementation that uses the Log4j configuration the logger is connected to.
@@ -48,18 +47,8 @@ public class Log4jLog extends ExtendedLoggerWrapper implements InternalLog {
     }
 
     @Override
-    public void debug(Neo4jMessageSupplier supplier) {
-        logger.debug(supplier);
-    }
-
-    @Override
     public void info(Neo4jLogMessage message) {
         logger.info(message);
-    }
-
-    @Override
-    public void info(Neo4jMessageSupplier supplier) {
-        logger.info(supplier);
     }
 
     @Override
@@ -68,18 +57,8 @@ public class Log4jLog extends ExtendedLoggerWrapper implements InternalLog {
     }
 
     @Override
-    public void warn(Neo4jMessageSupplier supplier) {
-        logger.warn(supplier);
-    }
-
-    @Override
     public void error(Neo4jLogMessage message) {
         logger.error(message);
-    }
-
-    @Override
-    public void error(Neo4jMessageSupplier supplier) {
-        logger.error(supplier);
     }
 
     @Override

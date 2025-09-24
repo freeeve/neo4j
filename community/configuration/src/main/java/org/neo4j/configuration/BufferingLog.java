@@ -23,7 +23,6 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.Neo4jLogMessage;
-import org.neo4j.logging.Neo4jMessageSupplier;
 
 /**
  * Buffers all messages sent to it, and is able to replay those messages into
@@ -122,18 +121,8 @@ public class BufferingLog implements InternalLog {
     }
 
     @Override
-    public synchronized void debug(Neo4jMessageSupplier supplier) {
-        buffer.add(other -> other.debug(supplier));
-    }
-
-    @Override
     public synchronized void info(Neo4jLogMessage message) {
         buffer.add(other -> other.info(message));
-    }
-
-    @Override
-    public synchronized void info(Neo4jMessageSupplier supplier) {
-        buffer.add(other -> other.info(supplier));
     }
 
     @Override
@@ -142,18 +131,8 @@ public class BufferingLog implements InternalLog {
     }
 
     @Override
-    public synchronized void warn(Neo4jMessageSupplier supplier) {
-        buffer.add(other -> other.warn(supplier));
-    }
-
-    @Override
     public synchronized void error(Neo4jLogMessage message) {
         buffer.add(other -> other.error(message));
-    }
-
-    @Override
-    public synchronized void error(Neo4jMessageSupplier supplier) {
-        buffer.add(other -> other.error(supplier));
     }
 
     @Override

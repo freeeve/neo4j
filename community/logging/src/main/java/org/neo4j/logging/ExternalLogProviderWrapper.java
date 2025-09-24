@@ -56,18 +56,8 @@ public class ExternalLogProviderWrapper implements InternalLogProvider {
         }
 
         @Override
-        public void debug(Neo4jMessageSupplier supplier) {
-            delegate.debug(supplier.get().getFormattedMessage());
-        }
-
-        @Override
         public void info(Neo4jLogMessage message) {
             delegate.info(message.getFormattedMessage());
-        }
-
-        @Override
-        public void info(Neo4jMessageSupplier supplier) {
-            delegate.info(supplier.get().getFormattedMessage());
         }
 
         @Override
@@ -76,18 +66,8 @@ public class ExternalLogProviderWrapper implements InternalLogProvider {
         }
 
         @Override
-        public void warn(Neo4jMessageSupplier supplier) {
-            delegate.warn(supplier.get().getFormattedMessage());
-        }
-
-        @Override
         public void error(Neo4jLogMessage message) {
             delegate.error(message.getFormattedMessage());
-        }
-
-        @Override
-        public void error(Neo4jMessageSupplier supplier) {
-            delegate.error(supplier.get().getFormattedMessage());
         }
 
         @Override

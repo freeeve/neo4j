@@ -79,25 +79,13 @@ public final class NullLog implements InternalLog {
     public void debug(Neo4jLogMessage message) {}
 
     @Override
-    public void debug(Neo4jMessageSupplier supplier) {}
-
-    @Override
     public void info(Neo4jLogMessage message) {}
-
-    @Override
-    public void info(Neo4jMessageSupplier supplier) {}
 
     @Override
     public void warn(Neo4jLogMessage message) {}
 
     @Override
-    public void warn(Neo4jMessageSupplier supplier) {}
-
-    @Override
     public void error(Neo4jLogMessage message) {}
-
-    @Override
-    public void error(Neo4jMessageSupplier supplier) {}
 
     @Override
     public void error(Neo4jLogMessage message, Throwable throwable) {}

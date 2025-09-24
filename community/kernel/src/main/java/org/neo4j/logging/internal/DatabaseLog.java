@@ -23,7 +23,6 @@ import static java.util.Objects.requireNonNull;
 
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.Neo4jLogMessage;
-import org.neo4j.logging.Neo4jMessageSupplier;
 
 public class DatabaseLog implements InternalLog {
     private final DatabaseLogIdentifier databaseLogIdentifier;
@@ -41,17 +40,7 @@ public class DatabaseLog implements InternalLog {
     }
 
     @Override
-    public void debug(Neo4jMessageSupplier supplier) {
-        throw new UnsupportedOperationException("");
-    }
-
-    @Override
     public void info(Neo4jLogMessage message) {
-        throw new UnsupportedOperationException("");
-    }
-
-    @Override
-    public void info(Neo4jMessageSupplier supplier) {
         throw new UnsupportedOperationException("");
     }
 
@@ -61,13 +50,7 @@ public class DatabaseLog implements InternalLog {
     }
 
     @Override
-    public void warn(Neo4jMessageSupplier supplier) {}
-
-    @Override
     public void error(Neo4jLogMessage message) {}
-
-    @Override
-    public void error(Neo4jMessageSupplier supplier) {}
 
     @Override
     public void error(Neo4jLogMessage message, Throwable throwable) {}

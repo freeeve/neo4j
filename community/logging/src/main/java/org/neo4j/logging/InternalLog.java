@@ -29,19 +29,9 @@ public interface InternalLog extends Log {
     void debug(Neo4jLogMessage message);
 
     /**
-     * @param supplier The supplier of the message to be written
-     */
-    void debug(Neo4jMessageSupplier supplier);
-
-    /**
      * @param message The message to be written
      */
     void info(Neo4jLogMessage message);
-
-    /**
-     * @param supplier The supplier of the message to be written
-     */
-    void info(Neo4jMessageSupplier supplier);
 
     /**
      * @param message The message to be written
@@ -49,19 +39,9 @@ public interface InternalLog extends Log {
     void warn(Neo4jLogMessage message);
 
     /**
-     * @param supplier The supplier of the message to be written
-     */
-    void warn(Neo4jMessageSupplier supplier);
-
-    /**
      * @param message The message to be written
      */
     void error(Neo4jLogMessage message);
-
-    /**
-     * @param supplier The supplier of the message to be written
-     */
-    void error(Neo4jMessageSupplier supplier);
 
     /**
      * @param message   The message to be written

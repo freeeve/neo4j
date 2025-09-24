@@ -25,7 +25,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.provider.Arguments;
 import org.neo4j.logging.Level;
-import org.neo4j.logging.Neo4jMessageSupplier;
 
 abstract class Log4jLogTestBase {
     protected final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
@@ -52,8 +51,6 @@ abstract class Log4jLogTestBase {
         void log(Log4jLog logger, String msg, Throwable cause);
 
         void log(Log4jLog logger, String format, Object... arguments);
-
-        void log(Log4jLog logger, Neo4jMessageSupplier supplier);
     }
 
     protected static Stream<Arguments> logMethods() {
@@ -72,11 +69,6 @@ abstract class Log4jLogTestBase {
             public void log(Log4jLog logger, String format, Object... arguments) {
                 logger.debug(format, arguments);
             }
-
-            @Override
-            public void log(Log4jLog logger, Neo4jMessageSupplier supplier) {
-                logger.debug(supplier);
-            }
         };
         LogMethod info = new LogMethod() {
             @Override
@@ -92,11 +84,6 @@ abstract class Log4jLogTestBase {
             @Override
             public void log(Log4jLog logger, String format, Object... arguments) {
                 logger.info(format, arguments);
-            }
-
-            @Override
-            public void log(Log4jLog logger, Neo4jMessageSupplier supplier) {
-                logger.info(supplier);
             }
         };
         LogMethod warn = new LogMethod() {
@@ -114,11 +101,6 @@ abstract class Log4jLogTestBase {
             public void log(Log4jLog logger, String format, Object... arguments) {
                 logger.warn(format, arguments);
             }
-
-            @Override
-            public void log(Log4jLog logger, Neo4jMessageSupplier supplier) {
-                logger.warn(supplier);
-            }
         };
         LogMethod error = new LogMethod() {
             @Override
@@ -134,11 +116,6 @@ abstract class Log4jLogTestBase {
             @Override
             public void log(Log4jLog logger, String format, Object... arguments) {
                 logger.error(format, arguments);
-            }
-
-            @Override
-            public void log(Log4jLog logger, Neo4jMessageSupplier supplier) {
-                logger.error(supplier);
             }
         };
 

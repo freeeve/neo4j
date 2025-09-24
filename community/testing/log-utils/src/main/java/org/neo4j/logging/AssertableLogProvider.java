@@ -231,22 +231,8 @@ public class AssertableLogProvider extends AbstractLogProvider<InternalLog> {
         }
 
         @Override
-        public void debug(Neo4jMessageSupplier supplier) {
-            Neo4jLogMessage neo4jLogMessage = supplier.get();
-            logCalls.add(new LogCall(
-                    context, Level.DEBUG, neo4jLogMessage.getFormattedMessage(), null, neo4jLogMessage.getThrowable()));
-        }
-
-        @Override
         public void info(Neo4jLogMessage message) {
             logCalls.add(new LogCall(context, Level.INFO, message.getFormattedMessage(), null, message.getThrowable()));
-        }
-
-        @Override
-        public void info(Neo4jMessageSupplier supplier) {
-            Neo4jLogMessage neo4jLogMessage = supplier.get();
-            logCalls.add(new LogCall(
-                    context, Level.INFO, neo4jLogMessage.getFormattedMessage(), null, neo4jLogMessage.getThrowable()));
         }
 
         @Override
@@ -255,23 +241,9 @@ public class AssertableLogProvider extends AbstractLogProvider<InternalLog> {
         }
 
         @Override
-        public void warn(Neo4jMessageSupplier supplier) {
-            Neo4jLogMessage neo4jLogMessage = supplier.get();
-            logCalls.add(new LogCall(
-                    context, Level.WARN, neo4jLogMessage.getFormattedMessage(), null, neo4jLogMessage.getThrowable()));
-        }
-
-        @Override
         public void error(Neo4jLogMessage message) {
             logCalls.add(
                     new LogCall(context, Level.ERROR, message.getFormattedMessage(), null, message.getThrowable()));
-        }
-
-        @Override
-        public void error(Neo4jMessageSupplier supplier) {
-            Neo4jLogMessage neo4jLogMessage = supplier.get();
-            logCalls.add(new LogCall(
-                    context, Level.ERROR, neo4jLogMessage.getFormattedMessage(), null, neo4jLogMessage.getThrowable()));
         }
 
         @Override

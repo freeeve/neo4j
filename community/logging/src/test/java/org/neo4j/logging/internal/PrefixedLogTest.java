@@ -34,7 +34,6 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.Test;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.Neo4jLogMessage;
-import org.neo4j.logging.Neo4jMessageSupplier;
 
 class PrefixedLogTest {
     private final String prefix = "prefix";
@@ -141,37 +140,6 @@ class PrefixedLogTest {
         verify(mockedLog).error(any(Neo4jLogMessage.class));
         verify(mockedLog).error(any(Neo4jLogMessage.class), eq(exception));
         verifyNoMoreInteractions(mockedLog);
-    }
-
-    @Test
-    void shouldDelegateForNeo4jMessageSupplierMethods() {
-        doAnswer(args -> assertNeo4jLogMessageSupplier(args.getArgument(0)))
-                .when(mockedLog)
-                .debug(any(Neo4jMessageSupplier.class));
-        doAnswer(args -> assertNeo4jLogMessageSupplier(args.getArgument(0)))
-                .when(mockedLog)
-                .info(any(Neo4jMessageSupplier.class));
-        doAnswer(args -> assertNeo4jLogMessageSupplier(args.getArgument(0)))
-                .when(mockedLog)
-                .warn(any(Neo4jMessageSupplier.class));
-        doAnswer(args -> assertNeo4jLogMessageSupplier(args.getArgument(0)))
-                .when(mockedLog)
-                .error(any(Neo4jMessageSupplier.class));
-
-        prefixedLog.debug(() -> neo4jMessage);
-        prefixedLog.info(() -> neo4jMessage);
-        prefixedLog.warn(() -> neo4jMessage);
-        prefixedLog.error(() -> neo4jMessage);
-
-        verify(mockedLog).debug(any(Neo4jMessageSupplier.class));
-        verify(mockedLog).info(any(Neo4jMessageSupplier.class));
-        verify(mockedLog).warn(any(Neo4jMessageSupplier.class));
-        verify(mockedLog).error(any(Neo4jMessageSupplier.class));
-        verifyNoMoreInteractions(mockedLog);
-    }
-
-    private Object assertNeo4jLogMessageSupplier(Neo4jMessageSupplier message) {
-        return assertNeo4jLogMessage(message.get());
     }
 
     private Object assertNeo4jLogMessage(Neo4jLogMessage message) {

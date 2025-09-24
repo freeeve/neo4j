@@ -26,18 +26,8 @@ public class DelegatingLog implements InternalLog {
     }
 
     @Override
-    public void debug(Neo4jMessageSupplier supplier) {
-        delegate.debug(supplier);
-    }
-
-    @Override
     public void info(Neo4jLogMessage message) {
         delegate.info(message);
-    }
-
-    @Override
-    public void info(Neo4jMessageSupplier supplier) {
-        delegate.info(supplier);
     }
 
     @Override
@@ -46,18 +36,8 @@ public class DelegatingLog implements InternalLog {
     }
 
     @Override
-    public void warn(Neo4jMessageSupplier supplier) {
-        delegate.warn(supplier);
-    }
-
-    @Override
     public void error(Neo4jLogMessage message) {
         delegate.error(message);
-    }
-
-    @Override
-    public void error(Neo4jMessageSupplier supplier) {
-        delegate.error(supplier);
     }
 
     @Override

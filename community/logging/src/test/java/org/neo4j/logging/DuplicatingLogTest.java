@@ -66,24 +66,6 @@ class DuplicatingLogTest {
         verifyNoMoreInteractions(log2);
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"debug", "info", "warn", "error"})
-    void shouldOutputToMultipleLogsWithStructureAwareMessageSupplier(String type) throws Exception {
-        // Given
-        DuplicatingLog log = new DuplicatingLog(log1, log2);
-        Method messageLog = InternalLog.class.getMethod(type, Neo4jMessageSupplier.class);
-
-        // When
-        Neo4jMessageSupplier supplier = MyMessage::new;
-        messageLog.invoke(log, supplier);
-
-        // Then
-        messageLog.invoke(verify(log1), supplier);
-        messageLog.invoke(verify(log2), supplier);
-        verifyNoMoreInteractions(log1);
-        verifyNoMoreInteractions(log2);
-    }
-
     private static class MyMessage implements Neo4jLogMessage {
         @Override
         public String getFormattedMessage() {

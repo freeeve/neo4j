@@ -31,7 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.configuration.Config;
 import org.neo4j.logging.InternalLog;
-import org.neo4j.logging.Neo4jMessageSupplier;
+import org.neo4j.logging.Neo4jLogMessage;
 
 class Neo4jConfigValidatorTest {
     @Test
@@ -109,14 +109,7 @@ class Neo4jConfigValidatorTest {
         });
         issues.clear();
 
-        logger.warn(Neo4jMessageSupplier.forMessage(testMessage));
-        assertThat(issues).hasSize(1).first().satisfies(issue -> {
-            assertThat(issue.getMessage()).isEqualTo("Warning: " + testMessage);
-            assertThat(issue.getThrowable()).isNull();
-        });
-        issues.clear();
-
-        logger.warn(() -> Neo4jMessageSupplier.forMessage(testMessage));
+        logger.warn(forMessage(testMessage));
         assertThat(issues).hasSize(1).first().satisfies(issue -> {
             assertThat(issue.getMessage()).isEqualTo("Warning: " + testMessage);
             assertThat(issue.getThrowable()).isNull();
@@ -155,25 +148,44 @@ class Neo4jConfigValidatorTest {
         });
         issues.clear();
 
-        logger.error(Neo4jMessageSupplier.forMessage(testMessage));
+        logger.error(forMessage(testMessage));
         assertThat(issues).hasSize(1).first().satisfies(issue -> {
             assertThat(issue.getMessage()).isEqualTo("Error: " + testMessage);
             assertThat(issue.getThrowable()).isNull();
         });
         issues.clear();
 
-        logger.error(Neo4jMessageSupplier.forMessage(testMessage), testThrowable);
+        logger.error(forMessage(testMessage), testThrowable);
         assertThat(issues).hasSize(1).first().satisfies(issue -> {
             assertThat(issue.getMessage()).isEqualTo("Error: " + testMessage);
             assertThat(issue.getThrowable()).isSameAs(testThrowable);
         });
         issues.clear();
+    }
 
-        logger.error(() -> Neo4jMessageSupplier.forMessage(testMessage));
-        assertThat(issues).hasSize(1).first().satisfies(issue -> {
-            assertThat(issue.getMessage()).isEqualTo("Error: " + testMessage);
-            assertThat(issue.getThrowable()).isNull();
-        });
-        issues.clear();
+    static Neo4jLogMessage forMessage(String format, Object... args) {
+        return new Neo4jLogMessage() {
+            private final String formattedMessage = String.format(format, args);
+
+            @Override
+            public String getFormattedMessage() {
+                return formattedMessage;
+            }
+
+            @Override
+            public String getFormat() {
+                return format;
+            }
+
+            @Override
+            public Object[] getParameters() {
+                return args;
+            }
+
+            @Override
+            public Throwable getThrowable() {
+                return null;
+            }
+        };
     }
 }

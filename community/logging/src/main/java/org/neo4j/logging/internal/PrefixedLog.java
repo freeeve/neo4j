@@ -23,7 +23,6 @@ import static java.util.Objects.requireNonNull;
 
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.Neo4jLogMessage;
-import org.neo4j.logging.Neo4jMessageSupplier;
 
 public class PrefixedLog implements InternalLog {
     private final String prefix;
@@ -107,18 +106,8 @@ public class PrefixedLog implements InternalLog {
     }
 
     @Override
-    public void debug(Neo4jMessageSupplier supplier) {
-        delegate.debug(() -> new PrefixedNeo4jLogMessage(supplier.get()));
-    }
-
-    @Override
     public void info(Neo4jLogMessage message) {
         delegate.info(new PrefixedNeo4jLogMessage(message));
-    }
-
-    @Override
-    public void info(Neo4jMessageSupplier supplier) {
-        delegate.info(() -> new PrefixedNeo4jLogMessage(supplier.get()));
     }
 
     @Override
@@ -127,18 +116,8 @@ public class PrefixedLog implements InternalLog {
     }
 
     @Override
-    public void warn(Neo4jMessageSupplier supplier) {
-        delegate.warn(() -> new PrefixedNeo4jLogMessage(supplier.get()));
-    }
-
-    @Override
     public void error(Neo4jLogMessage message) {
         delegate.error(new PrefixedNeo4jLogMessage(message));
-    }
-
-    @Override
-    public void error(Neo4jMessageSupplier supplier) {
-        delegate.error(() -> new PrefixedNeo4jLogMessage(supplier.get()));
     }
 
     @Override
