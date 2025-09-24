@@ -375,6 +375,35 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
         }
     }
 
+    @Override
+    public IndexEntriesReader newAllEntriesValueReader(Value[] from, Value[] to, CursorContext cursorContext) {
+        KEY fromKey = layout.newKey();
+        fromKey.initialize(Long.MIN_VALUE);
+        if (from == null) {
+            fromKey.initValuesAsLowest();
+        } else {
+            for (int i = 0; i < from.length; i++) {
+                fromKey.initFromValue(i, from[i], NativeIndexKey.Inclusion.NEUTRAL);
+            }
+        }
+
+        KEY toKey = layout.newKey();
+        toKey.initialize(Long.MIN_VALUE);
+        if (to == null) {
+            toKey.initValuesAsHighest();
+        } else {
+            for (int i = 0; i < to.length; i++) {
+                toKey.initFromValue(i, to[i], NativeIndexKey.Inclusion.NEUTRAL);
+            }
+        }
+
+        try {
+            return new NativeIndexEntriesReader(tree.seek(fromKey, toKey, cursorContext));
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     private KEY highestKey() {
         KEY highest = layout.newKey();
         highest.initialize(Long.MAX_VALUE);

@@ -39,10 +39,12 @@ import static org.neo4j.kernel.impl.index.schema.ValueCreatorUtil.countUniqueVal
 import static org.neo4j.storageengine.api.ValueIndexEntryUpdate.remove;
 import static org.neo4j.values.storable.Values.of;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
@@ -51,6 +53,8 @@ import java.util.stream.Stream;
 import org.eclipse.collections.api.iterator.LongIterator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.neo4j.collection.PrimitiveLongCollections;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.QueryContext;
@@ -64,6 +68,7 @@ import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.storable.Value;
+import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.ValueType;
 
 abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
@@ -399,6 +404,65 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
         }
     }
 
+    @ParameterizedTest
+    @CsvSource({"false,false", "false,true", "true,false", "true,true"})
+    void shouldSeeAllEntriesBetweenSpecificValues(boolean fromBeginning, boolean toEnd) throws Exception {
+        // given
+        var valueTypeCandidates = Arrays.stream(valueCreatorUtil.supportedTypes())
+                .filter(type -> type != ValueType.STRING_ARRAY)
+                .toArray(ValueType[]::new);
+        var updates = someUpdatesSingleType(valueTypeCandidates);
+        processAll(updates);
+
+        // when
+        try (var cursorContext = contextFactory.create("test")) {
+            Arrays.sort(
+                    updates,
+                    (o1, o2) -> ValueTuple.COMPARATOR.compare(ValueTuple.of(o1.values()), ValueTuple.of(o2.values())));
+            int fromIndex = fromBeginning ? 0 : random.nextInt(updates.length / 2);
+            int toIndex = toEnd ? updates.length : random.nextInt(updates.length / 2, updates.length - 1);
+
+            // Any entries right below fromIndex that has the same exact values should also be included
+            if (!fromBeginning) {
+                for (int i = fromIndex - 1; i >= 0; i--) {
+                    if (ValueTuple.COMPARATOR.compare(
+                                    ValueTuple.of(updates[i].values()), ValueTuple.of(updates[fromIndex].values()))
+                            == 0) {
+                        fromIndex--;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            // Any entries right below toIndex that has the same exact values should also be excluded
+            if (!toEnd) {
+                for (int i = toIndex - 1; i >= 0; i--) {
+                    if (ValueTuple.COMPARATOR.compare(
+                                    ValueTuple.of(updates[i].values()), ValueTuple.of(updates[toIndex].values()))
+                            == 0) {
+                        toIndex--;
+                    } else {
+                        break;
+                    }
+                }
+            }
+
+            List<ValueIndexEntryUpdate> found = new ArrayList<>();
+            Value[] from = fromBeginning ? null : updates[fromIndex].values();
+            Value[] to = toEnd ? null : updates[toIndex].values();
+            try (var reader = accessor.newAllEntriesValueReader(from, to, cursorContext)) {
+                while (reader.hasNext()) {
+                    found.add(ValueIndexEntryUpdate.add(reader.next(), indexDescriptor, reader.values()));
+                }
+            }
+
+            // then
+            List<ValueIndexEntryUpdate> expected = List.of(Arrays.copyOfRange(updates, fromIndex, toIndex));
+            assertThat(found).isEqualTo(expected);
+        }
+    }
+
     @Test
     void shouldSeeNoEntriesInAllEntriesReaderOnEmptyIndex() {
         // when
@@ -553,7 +617,11 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
     }
 
     ValueIndexEntryUpdate[] someUpdatesSingleType() {
-        ValueType type = random.randomValues().among(valueCreatorUtil.supportedTypes());
+        return someUpdatesSingleType(valueCreatorUtil.supportedTypes());
+    }
+
+    ValueIndexEntryUpdate[] someUpdatesSingleType(ValueType[] valueTypeCandidates) {
+        ValueType type = random.randomValues().among(valueTypeCandidates);
         return valueCreatorUtil.someUpdates(random, new ValueType[] {type}, true);
     }
 

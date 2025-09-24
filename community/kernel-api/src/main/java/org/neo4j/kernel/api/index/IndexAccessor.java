@@ -181,6 +181,19 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
     }
 
     /**
+     * Returns an {@link IndexEntriesReader} over the data in this index between {@code from} (inclusive)
+     * and {@code to} (exclusive)
+     * @param from the values (an array since the index may be a composite index) to read from (inclusive).
+     * @param to the values (an array since the index may be a composite index) to read to (exclusive).
+     * @param cursorContext underlying page cursor context.
+     * @return an {@link IndexEntriesReader} that can be used to iterate over the index entries that are found
+     * between {@code from} and {@code to}.
+     */
+    default IndexEntriesReader newAllEntriesValueReader(Value[] from, Value[] to, CursorContext cursorContext) {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
      * Validates the {@link Value value tuple} before transaction determines that it can commit.
      */
     default void validateBeforeCommit(long entityId, Value[] tuple) {

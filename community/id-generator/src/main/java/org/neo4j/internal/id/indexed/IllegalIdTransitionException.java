@@ -21,6 +21,7 @@ package org.neo4j.internal.id.indexed;
 
 import static org.neo4j.internal.id.indexed.IdRange.toPaddedBinaryString;
 
+import java.util.Arrays;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 
 public class IllegalIdTransitionException extends IllegalStateException {
@@ -28,8 +29,13 @@ public class IllegalIdTransitionException extends IllegalStateException {
 
     public IllegalIdTransitionException(long idRangeIdx, long firstId, long lastId, long into, long from) {
         super(String.format(
-                "Illegal addition ID state for range: %d (IDs %d-%d) transition%ninto: %s%nfrom: %s",
-                idRangeIdx, firstId, lastId, toPaddedBinaryString(into), toPaddedBinaryString(from)));
+                "Illegal addition ID state for range: %d (IDs %d-%d) transition%ninto: %s%nfrom: %s, illegal IDs: %s",
+                idRangeIdx,
+                firstId,
+                lastId,
+                toPaddedBinaryString(into),
+                toPaddedBinaryString(from),
+                Arrays.toString(findCollidingIds(firstId, into, from))));
 
         this.ids = findCollidingIds(firstId, into, from);
     }
@@ -38,7 +44,7 @@ public class IllegalIdTransitionException extends IllegalStateException {
         return ids;
     }
 
-    private long[] findCollidingIds(long firstId, long into, long from) {
+    private static long[] findCollidingIds(long firstId, long into, long from) {
         var list = LongLists.mutable.empty();
         for (int i = 0; i < Long.SIZE; i++) {
             var mask = 1L << i;

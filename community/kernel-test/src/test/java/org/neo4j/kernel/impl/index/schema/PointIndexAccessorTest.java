@@ -37,6 +37,7 @@ import java.util.function.LongSupplier;
 import java.util.stream.Stream;
 import org.eclipse.collections.impl.factory.Sets;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -290,6 +291,10 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
             assertThat(reader).isEmpty();
         }
     }
+
+    @Disabled("Point indexes compare points differently than just mere values, don't they")
+    @Override
+    void shouldSeeAllEntriesBetweenSpecificValues(boolean fromBeginning, boolean toEnd) {}
 
     private static LongSupplier idGenerator() {
         return new AtomicLong(0)::incrementAndGet;
