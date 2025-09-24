@@ -26,18 +26,22 @@ import java.util.function.LongPredicate;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.batchimport.api.input.Collector;
+import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.index.IndexAccessor;
 
 public interface SchemaMonitors extends Closeable {
     SchemaMonitors NO_SCHEMA = new SchemaMonitors() {
         @Override
-        public LongSet validate(Collector collector) {
+        public LongSet validate(Collector collector, ProgressMonitorFactory progressMonitorFactory) {
             return LongSets.immutable.empty();
         }
 
         @Override
-        public void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) {}
+        public void writeToTarget(
+                LongPredicate violatingIdMapperEntityIds,
+                LongSet otherViolatingEntityIds,
+                ProgressMonitorFactory progressMonitorFactory) {}
 
         @Override
         public LongSet affectedIndexes() {
@@ -67,10 +71,11 @@ public interface SchemaMonitors extends Closeable {
      * Validates indexes for correctness (mostly uniqueness for those that have such constraints)
      * and returns a {@link LongSet} of entity IDs that violate such constraints.
      * @param collector for reporting the violating entities.
+     * @param progressMonitorFactory for progress reporting.
      * @return a {@link LongSet} of entity IDs that violate any constraints.
      * @throws IOException on I/O error.
      */
-    LongSet validate(Collector collector) throws IOException;
+    LongSet validate(Collector collector, ProgressMonitorFactory progressMonitorFactory) throws IOException;
 
     /**
      * Writes the built indexes into their target index. For full import this is just moving the index into
@@ -78,10 +83,15 @@ public interface SchemaMonitors extends Closeable {
      *
      * @param violatingIdMapperEntityIds entity IDs from the {@link org.neo4j.internal.batchimport.cache.idmapping.IdMapper}
      * that violate constraints
-     * @param otherViolatingEntityIds entity IDs from e.g. {@link #validate(Collector)}.
+     * @param otherViolatingEntityIds entity IDs from e.g. {@link #validate(Collector, ProgressMonitorFactory)}.
+     * @param progressMonitorFactory for progress reporting.
      * @throws IOException on I/O error.
      */
-    void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) throws IOException;
+    void writeToTarget(
+            LongPredicate violatingIdMapperEntityIds,
+            LongSet otherViolatingEntityIds,
+            ProgressMonitorFactory progressMonitorFactory)
+            throws IOException;
 
     LongSet affectedIndexes();
 

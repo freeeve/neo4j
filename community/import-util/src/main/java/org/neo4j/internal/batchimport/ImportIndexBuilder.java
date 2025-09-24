@@ -53,6 +53,7 @@ import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.helpers.progress.ProgressListener;
+import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -222,7 +223,11 @@ public class ImportIndexBuilder implements Closeable {
      * Schedules "scanCompleted" calls to any index populations that are part of this ID mapper,
      * such that they can be scheduled with "scanCompleted" calls to other index populations.
      */
-    private void completeBuild(MutableLongSet violatingEntityIds, Collector collector, Consumer<Runnable> scheduler) {
+    private void completeBuild(
+            MutableLongSet violatingEntityIds,
+            Collector collector,
+            Consumer<Runnable> scheduler,
+            ProgressListener progress) {
         for (var population : indexBuilders.entrySet()) {
             // Complete the population of the increment index
             var builder = population.getValue();
@@ -237,9 +242,27 @@ public class ImportIndexBuilder implements Closeable {
                         entityIdFromIndexIdConverter);
                 boolean successful = false;
                 try {
-                    populator.scanCompleted(PhaseTracker.nullInstance, workScheduler, conflictHandler, NULL_CONTEXT);
+                    populator.scanCompleted(
+                            new PhaseTracker() {
+                                @Override
+                                public void enterPhase(Phase phase) {
+                                    if (phase == Phase.BUILD || phase == Phase.APPLY_EXTERNAL) {
+                                        progress.add(1);
+                                    }
+                                }
+
+                                @Override
+                                public void registerTime(Phase phase, long millis) {}
+
+                                @Override
+                                public void stop() {}
+                            },
+                            workScheduler,
+                            conflictHandler,
+                            NULL_CONTEXT);
                     indexStatisticsStore.setSampleStats(population.getKey().getId(), populator.sample(NULL_CONTEXT));
                     successful = true;
+                    progress.add(1);
                 } catch (IndexEntryConflictException e) {
                     // Should not happen
                     throw new RuntimeException(e);
@@ -253,52 +276,67 @@ public class ImportIndexBuilder implements Closeable {
     /**
      * @return a list of entity IDs that violated constraints during complete (e.g. merging of indexes).
      */
-    public LongSet validate(Collector collector) throws IOException {
-        // Merge increments into copied-target-indexes and skip (and remember) those that violate constraints
-        var violatingEntityIds = LongSets.mutable.empty().asSynchronized();
-        try (var scheduler = new BuildCompletionScheduler(workScheduler.jobScheduler())) {
-            completeBuild(violatingEntityIds, collector, scheduler);
-        }
-
-        for (var population : indexBuilders.entrySet()) {
-            var descriptor = population.getKey();
-            var builder = population.getValue();
-            var conflictHandler = new RecordingIndexEntryConflictHandler(
-                    collector, violatingEntityIds, descriptor, tokenNameLookup, entityIdFromIndexIdConverter);
-            // For constraint indexes checking violations
-            if (descriptor.isUnique() && !isEmpty(builder.accessor)) {
-                // Validate uniqueness, since it's a constraint index
-                try (var builtIncrementIndex = tempIndexes
-                        .lookup(descriptor.getIndexProvider())
-                        .getOnlineAccessor(
-                                descriptor,
-                                indexSamplingConfig,
-                                tokenNameLookup,
-                                ElementIdMapper.PLACEHOLDER,
-                                openOptions,
-                                indexingBehaviour)) {
-                    builder.accessor.validate(
-                            builtIncrementIndex,
-                            true,
-                            conflictHandler,
-                            configuration.maxNumberOfWorkerThreads(),
-                            workScheduler.jobScheduler());
-                }
+    public LongSet validate(Collector collector, ProgressMonitorFactory progressMonitorFactory) throws IOException {
+        int totalProgressGoal = 0;
+        for (var indexDescriptor : indexBuilders.keySet()) {
+            totalProgressGoal += 2; // 1 for merge and 1 for building the tree
+            if (indexDescriptor.isUnique()) {
+                totalProgressGoal++; // for uniqueness validation
             }
         }
-        return violatingEntityIds;
+        try (var progress = progressMonitorFactory.singlePart("Validate indexes", totalProgressGoal)) {
+            // Merge increments into copied-target-indexes and skip (and remember) those that violate constraints
+            var violatingEntityIds = LongSets.mutable.empty().asSynchronized();
+            try (var scheduler = new BuildCompletionScheduler(workScheduler.jobScheduler())) {
+                completeBuild(violatingEntityIds, collector, scheduler, progress);
+            }
+
+            for (var population : indexBuilders.entrySet()) {
+                var descriptor = population.getKey();
+                var builder = population.getValue();
+                var conflictHandler = new RecordingIndexEntryConflictHandler(
+                        collector, violatingEntityIds, descriptor, tokenNameLookup, entityIdFromIndexIdConverter);
+                // For constraint indexes checking violations
+                if (descriptor.isUnique() && !isEmpty(builder.accessor)) {
+                    // Validate uniqueness, since it's a constraint index
+                    try (var builtIncrementIndex = tempIndexes
+                            .lookup(descriptor.getIndexProvider())
+                            .getOnlineAccessor(
+                                    descriptor,
+                                    indexSamplingConfig,
+                                    tokenNameLookup,
+                                    ElementIdMapper.PLACEHOLDER,
+                                    openOptions,
+                                    indexingBehaviour)) {
+                        builder.accessor.validate(
+                                builtIncrementIndex,
+                                true,
+                                conflictHandler,
+                                configuration.maxNumberOfWorkerThreads(),
+                                workScheduler.jobScheduler());
+                    }
+                    progress.add(1);
+                }
+            }
+            return violatingEntityIds;
+        }
     }
 
     /**
      * Writes new data (from "temp" indexes) into the target indexes. After this call all index data
      * will exist in the target {@link IndexAccessor} for each index.
+     *
      * @param violatingIdMapperEntityIds entity IDs found by the
      * {@link org.neo4j.internal.batchimport.cache.idmapping.IdMapper} to be duplicates.
      * @param otherViolatingEntityIds entity IDs found by other indexes to be duplicates, e.g. from
-     * {@link #validate(Collector)}.
+     * {@link #validate(Collector, ProgressMonitorFactory)}.
+     * @param progressMonitorFactory for progress reporting.
      */
-    public void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) {
-        try {
+    public void writeToTarget(
+            LongPredicate violatingIdMapperEntityIds,
+            LongSet otherViolatingEntityIds,
+            ProgressMonitorFactory progressMonitorFactory) {
+        try (var progress = progressMonitorFactory.singlePart("Write indexes into target", indexBuilders.size())) {
             // When all violations are known then merge all increment indexes
             LongPredicate filter = violatingIdMapperEntityIds == null && otherViolatingEntityIds.isEmpty()
                     ? null
@@ -338,6 +376,7 @@ public class ImportIndexBuilder implements Closeable {
                                 ProgressListener.NONE);
                     }
                 }
+                progress.add(1);
             }
         } catch (IndexEntryConflictException e) {
             // This will not be thrown, but the method is declared to throw it so just catch it here

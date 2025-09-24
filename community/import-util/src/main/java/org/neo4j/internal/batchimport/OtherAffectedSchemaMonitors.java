@@ -44,6 +44,7 @@ import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
+import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaCache;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
@@ -136,13 +137,16 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
      * @return a list of entity IDs that violated constraints during complete (e.g. merging of indexes).
      */
     @Override
-    public LongSet validate(Collector collector) throws IOException {
-        return indexBuilder.validate(collector);
+    public LongSet validate(Collector collector, ProgressMonitorFactory progressMonitorFactory) throws IOException {
+        return indexBuilder.validate(collector, progressMonitorFactory);
     }
 
     @Override
-    public void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) {
-        indexBuilder.writeToTarget(violatingIdMapperEntityIds, otherViolatingEntityIds);
+    public void writeToTarget(
+            LongPredicate violatingIdMapperEntityIds,
+            LongSet otherViolatingEntityIds,
+            ProgressMonitorFactory progressMonitorFactory) {
+        indexBuilder.writeToTarget(violatingIdMapperEntityIds, otherViolatingEntityIds, progressMonitorFactory);
     }
 
     @Override

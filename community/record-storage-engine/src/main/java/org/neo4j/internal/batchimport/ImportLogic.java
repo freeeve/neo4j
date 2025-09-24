@@ -67,6 +67,7 @@ import org.neo4j.internal.batchimport.staging.ExecutionSupervisors;
 import org.neo4j.internal.batchimport.staging.Stage;
 import org.neo4j.internal.batchimport.store.BatchingNeoStores;
 import org.neo4j.internal.counts.CountsBuilder;
+import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
@@ -284,9 +285,10 @@ public class ImportLogic implements Closeable {
         }
 
         // Compare notes with schema monitors
-        var otherViolatingNodes = schemaMonitors.validate(badCollector);
+        var otherViolatingNodes = schemaMonitors.validate(badCollector, ProgressMonitorFactory.NONE);
         prepareIdMapper(otherViolatingNodes);
-        schemaMonitors.writeToTarget(idMapper.leftOverDuplicateNodesIdsPredicate(), otherViolatingNodes);
+        schemaMonitors.writeToTarget(
+                idMapper.leftOverDuplicateNodesIdsPredicate(), otherViolatingNodes, ProgressMonitorFactory.NONE);
     }
 
     /**
@@ -356,8 +358,8 @@ public class ImportLogic implements Closeable {
         putState(typeDistribution);
 
         // Compare notes with schema monitors
-        var otherViolatingRelationships = schemaMonitors.validate(badCollector);
-        schemaMonitors.writeToTarget(null, otherViolatingRelationships);
+        var otherViolatingRelationships = schemaMonitors.validate(badCollector, ProgressMonitorFactory.NONE);
+        schemaMonitors.writeToTarget(null, otherViolatingRelationships, ProgressMonitorFactory.NONE);
         removeViolatingRelationships(otherViolatingRelationships);
     }
 
