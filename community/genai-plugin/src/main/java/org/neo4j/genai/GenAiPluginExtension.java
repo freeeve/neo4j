@@ -17,39 +17,37 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.genai.util;
+package org.neo4j.genai;
 
-import org.neo4j.genai.vector.VectorEncoding;
+import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.genai.util.HttpService;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.extension.ExtensionFactory;
+import org.neo4j.kernel.extension.ExtensionType;
 import org.neo4j.kernel.extension.context.ExtensionContext;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
-/**
- * Can be used with {@link TestDatabaseManagementServiceBuilder#addExtension(ExtensionFactory)}
- * to register the GenAI plugin procedures and functions.
- */
-public class GenAIExtension extends ExtensionFactory<GenAIExtension.Dependencies> {
-    interface Dependencies {
-        GlobalProcedures procedures();
-    }
+@ServiceProvider
+public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.Dependencies> {
 
-    public GenAIExtension() {
-        super("GenAI");
+    public GenAiPluginExtension() {
+        super(ExtensionType.GLOBAL, "gen-ai-plugin-extension");
     }
 
     @Override
     public Lifecycle newInstance(ExtensionContext context, Dependencies dependencies) {
         return new LifecycleAdapter() {
             @Override
-            public void start() throws Exception {
-                final var procedures = dependencies.procedures();
-
-                procedures.registerProcedure(VectorEncoding.class);
-                procedures.registerFunction(VectorEncoding.class);
+            public void init() {
+                dependencies
+                        .procedures()
+                        .registerComponent(HttpService.class, (ctx) -> new HttpService(ctx.urlAccessChecker()), true);
             }
         };
+    }
+
+    public interface Dependencies {
+        GlobalProcedures procedures();
     }
 }

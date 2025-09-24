@@ -70,7 +70,8 @@ public class VectorDatabases {
     @Context
     public ProcedureCallContext procedureCallContext;
 
-    private static final HttpService httpService = new HttpService();
+    @Context
+    public HttpService httpService;
 
     @Internal
     @Procedure(name = "genai.vector.external.listProviders")

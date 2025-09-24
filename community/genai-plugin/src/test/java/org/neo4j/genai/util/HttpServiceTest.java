@@ -28,6 +28,7 @@ import java.io.UncheckedIOException;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.URL;
 import java.net.http.HttpRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
@@ -37,6 +38,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.graphdb.security.URLAccessChecker;
 import org.neo4j.test.ports.PortAuthority;
 
 class HttpServiceTest {
@@ -74,7 +76,12 @@ class HttpServiceTest {
             secureRandom.nextBytes(buffer);
             var body = Base64.getUrlEncoder().withoutPadding().encodeToString(buffer);
 
-            var service = new HttpService();
+            var service = new HttpService(new URLAccessChecker() {
+                @Override
+                public URL checkURL(URL url) {
+                    return url;
+                }
+            });
             var result = service.request(
                     URI.create("http://localhost:%d/test".formatted(port)),
                     (builder -> {

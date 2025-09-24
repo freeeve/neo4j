@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -47,12 +48,15 @@ import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.ImmutableIntSet;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.genai.vector.VectorEncoding;
+import org.neo4j.graphdb.security.URLAccessChecker;
+import org.neo4j.graphdb.security.URLAccessValidationError;
 
 public final class HttpService {
 
     private static final String USER_AGENT = "Neo4j-GenAIProcedures/" + VectorEncoding.VERSION;
+    private static final ImmutableIntSet defaultAcceptableStatusCodes = IntSets.immutable.of(200);
 
-    private final ImmutableIntSet defaultAcceptableStatusCodes = IntSets.immutable.of(200);
+    private final URLAccessChecker urlAccessChecker;
 
     public static final Function<InputStream, Map<String, Object>> DEFAULT_RESPONSE_TO_MAP_TRANSFORMER =
             (inputStream -> {
@@ -62,6 +66,10 @@ public final class HttpService {
                     throw new RuntimeException(e);
                 }
             });
+
+    public HttpService(URLAccessChecker urlAccessChecker) {
+        this.urlAccessChecker = urlAccessChecker;
+    }
 
     /**
      * Creates a pipe from an output stream the given consumer should write to, to an {@link InputStream} that is supplied to a {@link BodyPublisher}.
@@ -171,6 +179,11 @@ public final class HttpService {
             IntSet acceptableStatusCodes,
             IntObjectMap<Supplier<GenAIProcedureException>> unacceptableStatusCodes,
             BiFunction<Integer, String, Optional<GenAIProcedureException>> providerSpecificStatusHandler) {
+        try {
+            urlAccessChecker.checkURL(target.toURL());
+        } catch (MalformedURLException | URLAccessValidationError e) {
+            throw new GenAIProcedureException("Request failed: " + e.getMessage(), e);
+        }
         try (var httpClient = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .executor(Executors.newVirtualThreadPerTaskExecutor())

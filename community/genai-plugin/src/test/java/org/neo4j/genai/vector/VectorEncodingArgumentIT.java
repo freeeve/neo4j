@@ -26,7 +26,8 @@ import java.util.List;
 import java.util.Map;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.Test;
-import org.neo4j.genai.util.GenAIExtension;
+import org.neo4j.genai.GenAiPluginExtension;
+import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.genai.vector.providers.TestProvider;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.ResultTransformer;
@@ -46,7 +47,7 @@ class VectorEncodingArgumentIT extends VectorEncodingArgumentBase {
 
     @ExtensionCallback
     public void configure(TestDatabaseManagementServiceBuilder builder) {
-        builder.addExtension(new GenAIExtension());
+        builder.addExtension(new GenAITestExtension()).addExtension(new GenAiPluginExtension());
     }
 
     static Value singleResultItem(Result result) {

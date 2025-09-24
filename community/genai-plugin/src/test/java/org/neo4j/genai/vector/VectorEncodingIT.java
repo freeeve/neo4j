@@ -25,7 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Comparator;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.neo4j.genai.util.GenAIExtension;
+import org.neo4j.genai.GenAiPluginExtension;
+import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.genai.vector.providers.TestProvider;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -40,7 +41,7 @@ public class VectorEncodingIT {
 
     @ExtensionCallback
     public void configure(TestDatabaseManagementServiceBuilder builder) {
-        builder.addExtension(new GenAIExtension());
+        builder.addExtension(new GenAITestExtension()).addExtension(new GenAiPluginExtension());
     }
 
     @Test

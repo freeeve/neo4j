@@ -70,10 +70,8 @@ public class VectorEncoding {
     @Context
     public GraphDatabaseService graphDatabaseService;
 
-    // Needs to be static, otherwise Neo4j complains:
-    // > "Field `httpService` on `VectorEncoding` is not annotated as a @Context and is not static. If you want to store
-    // state along with your procedure, please use a static field.".
-    private static final HttpService httpService = new HttpService();
+    @Context
+    public HttpService httpService;
 
     @Procedure(name = "genai.vector.listEncodingProviders")
     @Description("Lists the available vector embedding providers.")
