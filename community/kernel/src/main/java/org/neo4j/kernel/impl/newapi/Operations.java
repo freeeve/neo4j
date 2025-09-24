@@ -2162,7 +2162,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 kernelRead.nodeLabelScan(
                         session, cursor, unconstrained(), new TokenPredicate(schema.getLabelId()), ktx.cursorContext());
                 constraintSemantics.validateNodeKeyConstraint(
-                        cursor, nodeCursor, propertyCursor, schema.asLabelSchemaDescriptor(), token);
+                        cursor, nodeCursor, propertyCursor, schema.asLabelSchemaDescriptor(), token, memoryTracker);
             }
         } else {
             try (var cursor = cursors.allocateFullAccessNodeCursor(ktx.cursorContext(), memoryTracker)) {
@@ -2171,7 +2171,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         new FilteringNodeCursorWrapper(cursor, CursorPredicates.hasLabel(schema.getLabelId())),
                         propertyCursor,
                         schema.asLabelSchemaDescriptor(),
-                        token);
+                        token,
+                        memoryTracker);
             }
         }
     }
@@ -2189,7 +2190,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         new TokenPredicate(schema.getRelTypeId()),
                         ktx.cursorContext());
                 constraintSemantics.validateRelKeyConstraint(
-                        cursor, relationshipCursor, propertyCursor, schema.asRelationshipTypeSchemaDescriptor(), token);
+                        cursor,
+                        relationshipCursor,
+                        propertyCursor,
+                        schema.asRelationshipTypeSchemaDescriptor(),
+                        token,
+                        memoryTracker);
             }
         } else {
             try (var cursor = cursors.allocateFullAccessRelationshipScanCursor(ktx.cursorContext(), memoryTracker)) {
@@ -2199,7 +2205,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                                 cursor, CursorPredicates.hasType(schema.getRelTypeId())),
                         propertyCursor,
                         schema.asRelationshipTypeSchemaDescriptor(),
-                        token);
+                        token,
+                        memoryTracker);
             }
         }
     }
@@ -2248,10 +2255,16 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 schema,
                 (allNodes, nodeCursor, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateNodePropertyExistenceConstraint(
-                                allNodes, nodeCursor, propertyCursor, schema, tokenNameLookup, isDependent),
+                                allNodes,
+                                nodeCursor,
+                                propertyCursor,
+                                schema,
+                                tokenNameLookup,
+                                isDependent,
+                                memoryTracker),
                 (nodeCursor, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateNodePropertyExistenceConstraint(
-                                nodeCursor, propertyCursor, schema, tokenNameLookup, isDependent));
+                                nodeCursor, propertyCursor, schema, tokenNameLookup, isDependent, memoryTracker));
     }
 
     private void enforceNodePropertyTypeConstraint(TypeConstraintDescriptor descriptor) throws KernelException {
@@ -2259,9 +2272,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 descriptor.schema().asLabelSchemaDescriptor(),
                 (allNodes, nodeCursor, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateNodePropertyTypeConstraint(
-                                allNodes, nodeCursor, propertyCursor, descriptor, tokenNameLookup),
+                                allNodes, nodeCursor, propertyCursor, descriptor, tokenNameLookup, memoryTracker),
                 (nodeCursor, propertyCursor, tokenNameLookup) -> constraintSemantics.validateNodePropertyTypeConstraint(
-                        nodeCursor, propertyCursor, descriptor, tokenNameLookup));
+                        nodeCursor, propertyCursor, descriptor, tokenNameLookup, memoryTracker));
     }
 
     @Override
@@ -2316,10 +2329,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 schema,
                 (relationships, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateRelationshipPropertyExistenceConstraint(
-                                relationships, propertyCursor, schema, tokenNameLookup, isDependent),
+                                relationships, propertyCursor, schema, tokenNameLookup, isDependent, memoryTracker),
                 (relationships, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateRelationshipPropertyExistenceConstraint(
-                                relationships, propertyCursor, schema, tokenNameLookup, isDependent));
+                                relationships, propertyCursor, schema, tokenNameLookup, isDependent, memoryTracker));
     }
 
     private void enforceRelationshipPropertyTypeConstraint(TypeConstraintDescriptor descriptor) throws KernelException {
@@ -2327,10 +2340,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 descriptor.schema().asRelationshipTypeSchemaDescriptor(),
                 (relationships, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateRelationshipPropertyTypeConstraint(
-                                relationships, propertyCursor, descriptor, tokenNameLookup),
+                                relationships, propertyCursor, descriptor, tokenNameLookup, memoryTracker),
                 (relationships, propertyCursor, tokenNameLookup) ->
                         constraintSemantics.validateRelationshipPropertyTypeConstraint(
-                                relationships, propertyCursor, descriptor, tokenNameLookup));
+                                relationships, propertyCursor, descriptor, tokenNameLookup, memoryTracker));
     }
 
     @Override
@@ -2854,7 +2867,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     @FunctionalInterface
     private interface NodeValidatorWithoutIndex {
-        void validate(NodeCursor nodeCursor, PropertyCursor propertyCursor, TokenNameLookup tokenNameLookup)
+        void validate(
+                FilteringNodeCursorWrapper nodeCursor, PropertyCursor propertyCursor, TokenNameLookup tokenNameLookup)
                 throws CreateConstraintFailureException;
     }
 
@@ -2870,7 +2884,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     @FunctionalInterface
     private interface RelValidatorWithoutIndex {
         void validate(
-                RelationshipScanCursor relationshipCursor,
+                FilteringRelationshipScanCursorWrapper relationshipCursor,
                 PropertyCursor propertyCursor,
                 TokenNameLookup tokenNameLookup)
                 throws CreateConstraintFailureException;

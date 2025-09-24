@@ -56,6 +56,10 @@ public class FilteringRelationshipScanCursorWrapper implements RelationshipScanC
         this.resources = resources;
     }
 
+    public RelationshipScanCursor internalRelationshipCursor() {
+        return delegate;
+    }
+
     @Override
     public boolean next() {
         while (delegate.next()) {

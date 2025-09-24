@@ -56,6 +56,10 @@ public class FilteringNodeCursorWrapper implements NodeCursor {
         this.resources = resources;
     }
 
+    public NodeCursor internalNodeCursor() {
+        return delegate;
+    }
+
     @Override
     public boolean next() {
         while (delegate.next()) {

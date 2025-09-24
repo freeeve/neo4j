@@ -43,6 +43,8 @@ import org.neo4j.internal.schema.constraints.RelationshipEndpointLabelConstraint
 import org.neo4j.internal.schema.constraints.TypeConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.UniquenessConstraintDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.impl.newapi.FilteringNodeCursorWrapper;
+import org.neo4j.kernel.impl.newapi.FilteringRelationshipScanCursorWrapper;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StandardConstraintRuleAccessor;
 import org.neo4j.storageengine.api.StorageReader;
@@ -81,7 +83,8 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             NodeCursor nodeCursor,
             PropertyCursor propertyCursor,
             LabelSchemaDescriptor descriptor,
-            TokenNameLookup tokenNameLookup)
+            TokenNameLookup tokenNameLookup,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
@@ -92,7 +95,8 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             RelationshipScanCursor relCursor,
             PropertyCursor propertyCursor,
             RelationTypeSchemaDescriptor descriptor,
-            TokenNameLookup tokenNameLookup)
+            TokenNameLookup tokenNameLookup,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
@@ -104,18 +108,20 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             PropertyCursor propertyCursor,
             LabelSchemaDescriptor descriptor,
             TokenNameLookup tokenNameLookup,
-            boolean isDependent)
+            boolean isDependent,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw propertyExistenceConstraintsNotAllowed(descriptor, tokenNameLookup, isDependent);
     }
 
     @Override
     public void validateRelationshipPropertyExistenceConstraint(
-            RelationshipScanCursor relationshipCursor,
+            FilteringRelationshipScanCursorWrapper relationshipCursor,
             PropertyCursor propertyCursor,
             RelationTypeSchemaDescriptor descriptor,
             TokenNameLookup tokenNameLookup,
-            boolean isDependent)
+            boolean isDependent,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw propertyExistenceConstraintsNotAllowed(descriptor, tokenNameLookup, isDependent);
     }
@@ -126,7 +132,8 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             PropertyCursor propertyCursor,
             RelationTypeSchemaDescriptor descriptor,
             TokenNameLookup tokenNameLookup,
-            boolean isDependent)
+            boolean isDependent,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw propertyExistenceConstraintsNotAllowed(descriptor, tokenNameLookup, isDependent);
     }
@@ -242,41 +249,45 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
 
     @Override
     public void validateNodePropertyExistenceConstraint(
-            NodeCursor nodeCursor,
+            FilteringNodeCursorWrapper nodeCursor,
             PropertyCursor propertyCursor,
             LabelSchemaDescriptor descriptor,
             TokenNameLookup tokenNameLookup,
-            boolean isDependent)
+            boolean isDependent,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw propertyExistenceConstraintsNotAllowed(descriptor, tokenNameLookup, isDependent);
     }
 
     @Override
     public void validateNodeKeyConstraint(
-            NodeCursor nodeCursor,
+            FilteringNodeCursorWrapper nodeCursor,
             PropertyCursor propertyCursor,
             LabelSchemaDescriptor descriptor,
-            TokenNameLookup tokenNameLookup)
+            TokenNameLookup tokenNameLookup,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
     public void validateRelKeyConstraint(
-            RelationshipScanCursor relCursor,
+            FilteringRelationshipScanCursorWrapper relCursor,
             PropertyCursor propertyCursor,
             RelationTypeSchemaDescriptor descriptor,
-            TokenNameLookup tokenNameLookup)
+            TokenNameLookup tokenNameLookup,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
     public void validateNodePropertyTypeConstraint(
-            NodeCursor nodeCursor,
+            FilteringNodeCursorWrapper nodeCursor,
             PropertyCursor propertyCursor,
             TypeConstraintDescriptor descriptor,
-            TokenNameLookup tokenNameLookup)
+            TokenNameLookup tokenNameLookup,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
@@ -287,17 +298,19 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             NodeCursor nodeCursor,
             PropertyCursor propertyCursor,
             TypeConstraintDescriptor descriptor,
-            TokenNameLookup tokenNameLookup)
+            TokenNameLookup tokenNameLookup,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
     public void validateRelationshipPropertyTypeConstraint(
-            RelationshipScanCursor relationshipCursor,
+            FilteringRelationshipScanCursorWrapper relationshipCursor,
             PropertyCursor propertyCursor,
             TypeConstraintDescriptor descriptor,
-            TokenNameLookup tokenNameLookup)
+            TokenNameLookup tokenNameLookup,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
@@ -307,7 +320,8 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             RelationshipTypeIndexCursor allRelationships,
             PropertyCursor propertyCursor,
             TypeConstraintDescriptor descriptor,
-            TokenNameLookup tokenNameLookup)
+            TokenNameLookup tokenNameLookup,
+            MemoryTracker memoryTracker)
             throws CreateConstraintFailureException {
         throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
