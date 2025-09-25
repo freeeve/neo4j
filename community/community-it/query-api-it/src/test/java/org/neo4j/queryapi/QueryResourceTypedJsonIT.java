@@ -34,6 +34,7 @@ import static org.neo4j.server.queryapi.response.format.Fieldnames._RELATIONSHIP
 import static org.neo4j.server.queryapi.response.format.Fieldnames._START_NODE_ELEMENT_ID;
 
 import java.io.IOException;
+import java.util.List;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,7 @@ import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.queryapi.testclient.QueryAPITestClient;
+import org.neo4j.queryapi.testclient.QueryContentType;
 import org.neo4j.queryapi.testclient.QueryRequest;
 import org.neo4j.server.queryapi.response.format.Fieldnames;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -70,7 +72,10 @@ class QueryResourceTypedJsonIT {
         var portRegister = QueryApiTestUtil.resolveDependency(dbms, ConnectorPortRegister.class);
         var queryEndpoint =
                 "http://" + portRegister.getLocalAddress(ConnectorType.HTTP) + "/db/{databaseName}/query/v2";
-        testClient = new QueryAPITestClient(queryEndpoint, true);
+        testClient = new QueryAPITestClient(
+                queryEndpoint,
+                QueryContentType.TYPED_V1_0,
+                List.of(QueryContentType.TYPED_V1_0, QueryContentType.TYPED, QueryContentType.UNTYPED));
     }
 
     @AfterAll
@@ -84,7 +89,10 @@ class QueryResourceTypedJsonIT {
                 .statement("RETURN true as bool, 1 as number, 1.23 as float, 'hello' as string")
                 .build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("bool", "number", "float", "string");
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful()
+                .hasFieldNames("bool", "number", "float", "string");
 
         var parsedJson = response.body().data();
 
@@ -102,7 +110,10 @@ class QueryResourceTypedJsonIT {
         var response = testClient.autoCommit(
                 QueryRequest.newBuilder().statement("RETURN null as aNull").build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("aNull");
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful()
+                .hasFieldNames("aNull");
 
         assertTrue(response.body()
                 .data()
@@ -133,6 +144,7 @@ class QueryResourceTypedJsonIT {
                 .build());
 
         QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
                 .wasSuccessful()
                 .hasFieldNames(
                         "theOffsetDateTime",
@@ -161,7 +173,10 @@ class QueryResourceTypedJsonIT {
                 .statement("RETURN duration('P14DT16H12M') AS theDuration")
                 .build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("theDuration");
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful()
+                .hasFieldNames("theDuration");
 
         QueryAssertions.assertThat(response.body().data()).hasTypedResultAt(0, "Duration", "P14DT16H12M");
     }
@@ -176,7 +191,9 @@ class QueryResourceTypedJsonIT {
         var response = testClient.autoCommit(
                 QueryRequest.newBuilder().statement("MATCH (n:FindMe) return n").build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
         var results = parsedJson.get(VALUES_KEY);
@@ -197,7 +214,9 @@ class QueryResourceTypedJsonIT {
                         + "point({longitude: 56.7, latitude: 12.78, height: 8})")
                 .build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
         var parsedJson = response.body().data();
 
         var results = parsedJson.get(VALUES_KEY).get(0);
@@ -217,7 +236,10 @@ class QueryResourceTypedJsonIT {
                 .statement("RETURN {key: 'Value', listKey: [{inner1: 'Map1'}, {inner2: 'Map2'}]} AS map")
                 .build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("map");
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful()
+                .hasFieldNames("map");
 
         var parsedJson = response.body().data();
 
@@ -265,7 +287,10 @@ class QueryResourceTypedJsonIT {
                 .statement("RETURN [1,true,'hello',date('+2015-W13-4'), {amap: 'hello'}] as list")
                 .build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful().hasFieldNames("list");
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful()
+                .hasFieldNames("list");
 
         var parsedJson = response.body().data();
 
@@ -305,7 +330,9 @@ class QueryResourceTypedJsonIT {
                 .statement("CREATE (n:MyLabel {aNumber: 1234}) RETURN n")
                 .build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
 
@@ -324,7 +351,9 @@ class QueryResourceTypedJsonIT {
                 .statement("CREATE (a)-[r:RELTYPE {onFire: 'owch!'}]->(b) RETURN r")
                 .build());
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
         var rel = parsedJson.get(VALUES_KEY).get(0).get(0);
@@ -378,7 +407,9 @@ class QueryResourceTypedJsonIT {
                 .statement("CREATE (a:LabelA)-[rel1:RELAB]->(b:LabelB)<-[rel2:RELCB]-(c:LabelC)")
                 .build());
 
-        QueryResponseAssertions.assertThat(createPathReq).wasSuccessful();
+        QueryResponseAssertions.assertThat(createPathReq)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
         var response = testClient.autoCommit(QueryRequest.newBuilder()
                 .statement("MATCH p=(a:LabelA)-[rel1:RELAB]->(b:LabelB)<-[rel2:RELCB]-(c:LabelC) RETURN p")
                 .build());

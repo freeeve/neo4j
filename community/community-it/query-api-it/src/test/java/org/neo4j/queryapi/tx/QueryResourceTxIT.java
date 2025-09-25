@@ -29,11 +29,15 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
@@ -46,6 +50,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.queryapi.QueryApiTestUtil;
 import org.neo4j.queryapi.testclient.QueryAPITestClient;
+import org.neo4j.queryapi.testclient.QueryContentType;
 import org.neo4j.queryapi.testclient.QueryRequest;
 import org.neo4j.server.configuration.ConfigurableServerModules;
 import org.neo4j.server.configuration.ServerSettings;
@@ -336,9 +341,10 @@ public class QueryResourceTxIT {
         assertThat(commit).wasNotFound();
     }
 
-    @Test
-    void shouldRespondWithTypedFormat() throws IOException, InterruptedException {
-        var typedClient = new QueryAPITestClient(queryEndpoint, true);
+    @ParameterizedTest
+    @MethodSource("typedMimes")
+    void shouldRespondWithTypedFormat(QueryContentType format) throws IOException, InterruptedException {
+        var typedClient = new QueryAPITestClient(queryEndpoint, format);
 
         var param = new LinkedHashMap<String, Object>();
         param.put("$type", "Integer");
@@ -360,9 +366,10 @@ public class QueryResourceTxIT {
         assertThat(commit).wasSuccessful().hasTypedRecord();
     }
 
-    @Test
-    void shouldHandleBlankTypedTx() throws IOException, InterruptedException {
-        var typedClient = new QueryAPITestClient(queryEndpoint, true);
+    @ParameterizedTest
+    @MethodSource("typedMimes")
+    void shouldHandleBlankTypedTx(QueryContentType format) throws IOException, InterruptedException {
+        var typedClient = new QueryAPITestClient(queryEndpoint, format);
 
         var res = typedClient.beginTx();
         assertThat(res).wasSuccessful();
@@ -395,5 +402,9 @@ public class QueryResourceTxIT {
                 .get(0)
                 .get(0)
                 .asInt();
+    }
+
+    public static Stream<Arguments> typedMimes() {
+        return Stream.of(QueryContentType.TYPED, QueryContentType.TYPED_V1_0).map(Arguments::of);
     }
 }

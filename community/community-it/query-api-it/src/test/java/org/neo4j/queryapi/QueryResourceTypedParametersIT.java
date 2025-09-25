@@ -29,6 +29,7 @@ import static org.neo4j.server.queryapi.response.format.Fieldnames.FIELDS_KEY;
 import static org.neo4j.server.queryapi.response.format.Fieldnames.VALUES_KEY;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,6 +47,7 @@ import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.queryapi.testclient.QueryAPITestClient;
+import org.neo4j.queryapi.testclient.QueryContentType;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 class QueryResourceTypedParametersIT {
@@ -68,7 +70,10 @@ class QueryResourceTypedParametersIT {
         var portRegister = QueryApiTestUtil.resolveDependency(dbms, ConnectorPortRegister.class);
         var queryEndpoint =
                 "http://" + portRegister.getLocalAddress(ConnectorType.HTTP) + "/db/{databaseName}/query/v2";
-        testClient = new QueryAPITestClient(queryEndpoint, true);
+        testClient = new QueryAPITestClient(
+                queryEndpoint,
+                QueryContentType.TYPED_V1_0,
+                List.of(QueryContentType.TYPED_V1_0, QueryContentType.TYPED, QueryContentType.UNTYPED));
     }
 
     @AfterAll
@@ -104,7 +109,9 @@ class QueryResourceTypedParametersIT {
                         + "\"parameters\": {\"parameter\": {\"$type\":\"%s\",\"_value\": \"%s\"}}}}}",
                 typeString, value));
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
         var parsedJson = response.body().data();
 
         assertThat(parsedJson.get(FIELDS_KEY).size()).isEqualTo(1);
@@ -119,7 +126,9 @@ class QueryResourceTypedParametersIT {
         var response = testClient.sendRaw("{\"statement\": \"RETURN $parameter\","
                 + "\"parameters\": {\"parameter\": {\"$type\":\"Boolean\",\"_value\": true}}}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
 
@@ -135,7 +144,9 @@ class QueryResourceTypedParametersIT {
         var response = testClient.sendRaw("{\"statement\": \"RETURN $parameter\","
                 + "\"parameters\": {\"parameter\": {\"$type\":\"String\",\"_value\": \"Hello\"}}}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
 
@@ -151,7 +162,9 @@ class QueryResourceTypedParametersIT {
         var response = testClient.sendRaw("{\"statement\": \"RETURN $parameter\","
                 + "\"parameters\": {\"parameter\": {\"$type\":\"Null\",\"_value\": null}}}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
 
@@ -168,7 +181,9 @@ class QueryResourceTypedParametersIT {
                 + "\"parameters\": {\"parameter\": {\"$type\":\"Map\",\"_value\":" + "{\"mappy\": {\"$type\":\""
                 + typeString + "\", \"_value\": \"" + value.toString() + "\"} }}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
 
@@ -189,7 +204,9 @@ class QueryResourceTypedParametersIT {
                 + "{\"true\": {\"$type\":\"Boolean\", \"_value\": true},"
                 + "\"false\": {\"$type\":\"Boolean\", \"_value\": false} }}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
 
@@ -212,7 +229,9 @@ class QueryResourceTypedParametersIT {
                 + "{\"$type\": \"Map\", \"_value\": {\"inception\": "
                 + "{\"$type\": \"Integer\", \"_value\": \"123\"}}}}}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
         var result = parsedJson.get(VALUES_KEY).get(0).get(0);
@@ -244,7 +263,9 @@ class QueryResourceTypedParametersIT {
                 + "[{\"$type\":\"Map\",\"_value\":{\"innerMap\": "
                 + "{\"$type\":\"Boolean\",\"_value\":true}}}]}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
 
@@ -289,7 +310,9 @@ class QueryResourceTypedParametersIT {
         var response = testClient.sendRaw("{\"statement\": \"RETURN $parameter\"," + "\"parameters\": {\"parameter\": "
                 + "{\"$type\": \"Map\", \"_value\": {}}}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
         var result = parsedJson.get(VALUES_KEY).get(0).get(0);
@@ -325,7 +348,9 @@ class QueryResourceTypedParametersIT {
         var response = testClient.sendRaw("{\"statement\": \"RETURN $parameter\"," + "\"parameters\": {\"parameter\": "
                 + "{\"$type\": \"List\", \"_value\": []}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
         var result = parsedJson.get(VALUES_KEY).get(0).get(0);
@@ -340,7 +365,9 @@ class QueryResourceTypedParametersIT {
                 "{\"statement\": \"RETURN $parameter\","
                         + "\"parameters\": {\"parameter\": {\"$type\":\"List\",\"_value\": [{\"$type\":\"List\",\"_value\":[{\"$type\":\"Boolean\",\"_value\":true}]}]}}}");
 
-        QueryResponseAssertions.assertThat(response).wasSuccessful();
+        QueryResponseAssertions.assertThat(response)
+                .hasContentType(QueryContentType.TYPED_V1_0)
+                .wasSuccessful();
 
         var parsedJson = response.body().data();
 

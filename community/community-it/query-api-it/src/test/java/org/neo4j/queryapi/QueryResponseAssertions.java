@@ -19,6 +19,7 @@
  */
 package org.neo4j.queryapi;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.Assertions.within;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,6 +41,7 @@ import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.notifications.NotificationCodeWithDescription;
+import org.neo4j.queryapi.testclient.QueryContentType;
 import org.neo4j.queryapi.testclient.QueryResponse;
 
 public final class QueryResponseAssertions
@@ -54,6 +56,12 @@ public final class QueryResponseAssertions
 
     public static QueryResponseAssertions assertThat(HttpResponse<QueryResponse> queryResponse) {
         return new QueryResponseAssertions(queryResponse);
+    }
+
+    public QueryResponseAssertions hasContentType(QueryContentType queryContentType) {
+        var contentType = queryResponse.headers().firstValue("Content-Type").orElse("");
+        Assertions.assertThat(contentType).isEqualTo(queryContentType.mimeType());
+        return this;
     }
 
     public QueryResponseAssertions wasSuccessful() {

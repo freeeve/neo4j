@@ -29,7 +29,9 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class QueryAPITestClient {
 
@@ -37,21 +39,36 @@ public class QueryAPITestClient {
     private final String endpoint;
     private final String credentials;
     private final ObjectMapper MAPPER = new ObjectMapper();
-    private final boolean requiresTypedFormat;
+    private final QueryContentType contentType;
+    private final List<QueryContentType> acceptedContentTypes;
 
     public QueryAPITestClient(String endpoint) {
-        this(endpoint, null, null, false);
+        this(endpoint, null, null, QueryContentType.UNTYPED);
     }
 
     public QueryAPITestClient(String endpoint, String username, String password) {
-        this(endpoint, username, password, false);
+        this(endpoint, username, password, QueryContentType.UNTYPED);
     }
 
-    public QueryAPITestClient(String endpoint, boolean requiresTypedFormat) {
-        this(endpoint, null, null, requiresTypedFormat);
+    public QueryAPITestClient(String endpoint, QueryContentType contentType) {
+        this(endpoint, null, null, contentType);
     }
 
-    public QueryAPITestClient(String endpoint, String username, String password, boolean requiresTypedFormat) {
+    public QueryAPITestClient(
+            String endpoint, QueryContentType contentType, List<QueryContentType> acceptedContentTypes) {
+        this(endpoint, null, null, contentType, acceptedContentTypes);
+    }
+
+    public QueryAPITestClient(String endpoint, String username, String password, QueryContentType contentType) {
+        this(endpoint, username, password, contentType, List.of(contentType));
+    }
+
+    public QueryAPITestClient(
+            String endpoint,
+            String username,
+            String password,
+            QueryContentType contentType,
+            List<QueryContentType> acceptedContentTypes) {
         this.endpoint = endpoint;
         if (username != null && password != null) {
             this.credentials = encodedCredentials(username, password);
@@ -59,7 +76,8 @@ public class QueryAPITestClient {
             this.credentials = null;
         }
         this.client = HttpClient.newHttpClient();
-        this.requiresTypedFormat = requiresTypedFormat;
+        this.contentType = contentType;
+        this.acceptedContentTypes = acceptedContentTypes;
     }
 
     public HttpResponse<QueryResponse> autoCommit(QueryRequest request) throws IOException, InterruptedException {
@@ -129,10 +147,8 @@ public class QueryAPITestClient {
         return client.send(
                 HttpRequest.newBuilder()
                         .uri(URI.create(endpoint.replace("{databaseName}", "neo4j")))
-                        .header(
-                                "Content-Type",
-                                requiresTypedFormat ? "application/vnd.neo4j.query" : "application/json")
-                        .header("Accept", requiresTypedFormat ? "application/vnd.neo4j.query" : "application/json")
+                        .header("Content-Type", this.contentType.mimeType())
+                        .header("Accept", this.acceptedContentTypesHeader())
                         .POST(HttpRequest.BodyPublishers.ofString(rawJson))
                         .build(),
                 responseHandler());
@@ -141,14 +157,9 @@ public class QueryAPITestClient {
     private HttpResponse<QueryResponse> sendRequest(QueryRequest request, String endpoint)
             throws IOException, InterruptedException {
         var reqBuilder = HttpRequest.newBuilder().uri(URI.create(endpoint));
-
-        if (requiresTypedFormat) {
-            reqBuilder
-                    .header("Content-Type", "application/vnd.neo4j.query")
-                    .header("Accept", "application/vnd.neo4j.query");
-        } else {
-            reqBuilder.header("Accept", "application/json").header("Content-Type", "application/json");
-        }
+        reqBuilder
+                .header("Content-Type", this.contentType.mimeType())
+                .header("Accept", this.acceptedContentTypesHeader());
 
         if (request != null) {
             reqBuilder.POST(requestPublisher(request));
@@ -196,5 +207,11 @@ public class QueryAPITestClient {
                 throw new UncheckedIOException(e);
             }
         };
+    }
+
+    private String acceptedContentTypesHeader() {
+        return this.acceptedContentTypes.stream()
+                .map(QueryContentType::mimeType)
+                .collect(Collectors.joining(","));
     }
 }
