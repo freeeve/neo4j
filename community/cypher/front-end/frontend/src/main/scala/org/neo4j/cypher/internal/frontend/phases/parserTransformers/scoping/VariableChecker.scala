@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.StrictlyAdditiveProjection
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.Union
@@ -61,6 +62,10 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
       case ExpressionScope(variable: LogicalVariable, incoming, _, _, _)
         if !(incoming.constants contains variable) =>
         Seq(SemanticError.variableNotDefined(variable.name, variable.position))
+      case StatementScope(ScopeClauseSubqueryCall(_, false, imports, _, _), incoming, _, _, _, _, _)
+        if imports.nonEmpty =>
+        imports.filter(v => !incoming.allSymbols.exists(_.name == v.name))
+          .flatMap(v => Seq(SemanticError.variableNotDefined(v.name, v.position)))
     },
     // variable already declared
     {
