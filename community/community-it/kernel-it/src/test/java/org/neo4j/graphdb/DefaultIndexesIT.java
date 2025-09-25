@@ -20,15 +20,20 @@
 package org.neo4j.graphdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.schema.IndexDefinition;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.LogAssertions;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsController;
 import org.neo4j.test.extension.DbmsExtension;
+import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
 
-@DbmsExtension
+@DbmsExtension(configurationCallback = "configuration")
 public class DefaultIndexesIT {
 
     @Inject
@@ -37,9 +42,23 @@ public class DefaultIndexesIT {
     @Inject
     DbmsController dbmsController;
 
+    private AssertableLogProvider logProvider;
+
+    @ExtensionCallback
+    void configuration(TestDatabaseManagementServiceBuilder builder) {
+        logProvider = new AssertableLogProvider(true);
+        builder.setInternalLogProvider(logProvider);
+    }
+
     @Test
     void defaultIndexesCreatedOnFirstStart() {
         IndexingTestUtil.assertOnlyDefaultTokenIndexesExists(db);
+        LogAssertions.assertThat(logProvider).doesNotContainMessage("No token lookup indexes found.");
+
+        dbmsController.restartDbms();
+        assertThat(db.isAvailable(TimeUnit.MINUTES.toMillis(5))).isTrue();
+        // Should not have logged on restart either.
+        LogAssertions.assertThat(logProvider).doesNotContainMessage("No token lookup indexes found.");
     }
 
     @Test
@@ -56,5 +75,6 @@ public class DefaultIndexesIT {
         try (var tx = db.beginTx()) {
             assertThat(tx.schema().getIndexes()).isEmpty();
         }
+        LogAssertions.assertThat(logProvider).forLevel(WARN).containsMessages("No token lookup indexes found.");
     }
 }

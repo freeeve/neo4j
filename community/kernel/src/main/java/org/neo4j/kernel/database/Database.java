@@ -64,6 +64,7 @@ import org.neo4j.function.Suppliers;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.index.internal.gbptree.GroupingRecoveryCleanupWorkCollector;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.id.IdController;
 import org.neo4j.internal.id.IdGeneratorFactory;
 import org.neo4j.internal.kernel.api.IndexMonitor;
@@ -668,7 +669,20 @@ public class Database extends AbstractDatabase {
                 tx.commit();
             }
             checkpointAfterStartupInit();
+        } else if (checkIfTokenIndexesMissing()) {
+            internalLog.warn("No token lookup indexes found. Token lookup indexes improve the performance of "
+                    + "Cypher queries and the population of other indexes. Not having these indexes may lead to "
+                    + "severe performance degradation.");
         }
+    }
+
+    private boolean checkIfTokenIndexesMissing() {
+        return Iterables.count(
+                        getDependencyResolver()
+                                .resolveDependency(IndexingService.class)
+                                .getIndexProxies(),
+                        proxy -> proxy.getDescriptor().getIndexType() == LOOKUP)
+                == 0;
     }
 
     private void checkpointAfterStartupInit() throws IOException {
