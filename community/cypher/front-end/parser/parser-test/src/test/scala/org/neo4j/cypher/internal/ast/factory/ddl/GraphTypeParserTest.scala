@@ -1085,6 +1085,50 @@ class GraphTypeParserTest extends AstParsingTestBase with AstGraphTypeConstructi
     }
   }
 
+  test("ALTER CURRENT GRAPH TYPE SET { (:L => {p :: STRING IS KEY OPTIONS {}}) }") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'OPTIONS': expected ',' or '}'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input 'OPTIONS', expected: ',' or '}'."
+        )
+    }
+  }
+
+  test("ALTER CURRENT GRAPH TYPE SET { (:L => {p :: STRING IS UNIQUE OPTIONS {}}) }") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'OPTIONS': expected ',' or '}'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input 'OPTIONS', expected: ',' or '}'."
+        )
+    }
+  }
+
+  test("ALTER CURRENT GRAPH TYPE SET { ()-[:R => {p :: STRING IS KEY OPTIONS {}}]->() }") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'OPTIONS': expected ',' or '}'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input 'OPTIONS', expected: ',' or '}'."
+        )
+    }
+  }
+
+  test("ALTER CURRENT GRAPH TYPE SET { ()-[:R => {p :: STRING IS UNIQUE OPTIONS {}}]->() }") {
+    failsParsing[Statements].in {
+      case Cypher5 => cypher5Error
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input 'OPTIONS': expected ',' or '}'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input 'OPTIONS', expected: ',' or '}'."
+        )
+    }
+  }
+
   // SET generated examples
 
   // negative example SNT-NE-NEIL-1-1
