@@ -50,7 +50,6 @@ class AccessControlDataProvider implements SelectedPropertiesProvider, AutoClose
 
     private StoragePropertyCursor propertyCursor;
     private DefaultNodeCursor nodeCursor;
-    private DefaultRelationshipScanCursor relationshipCursor;
 
     public AccessControlDataProvider(
             Supplier<BiConsumer<StoragePropertyCursor, PropertySelection>> propertyInitializer,
@@ -124,17 +123,6 @@ class AccessControlDataProvider implements SelectedPropertiesProvider, AutoClose
         return cursor.labelsIgnoringTxStateSetRemove();
     }
 
-    public int getRelType(long reference) {
-        if (relationshipCursor == null) {
-            relationshipCursor = internalCursors.allocateFullAccessRelationshipScanCursor();
-        }
-        readSupplier.get().singleRelationship(reference, relationshipCursor);
-        if (!relationshipCursor.next()) {
-            throw new IllegalStateException("Relationship " + reference + " not found for security check");
-        }
-        return relationshipCursor.type();
-    }
-
     @Override
     public void close() {
         if (propertyCursor != null) {
@@ -144,10 +132,6 @@ class AccessControlDataProvider implements SelectedPropertiesProvider, AutoClose
         if (nodeCursor != null) {
             nodeCursor.close();
             nodeCursor = null;
-        }
-        if (relationshipCursor != null) {
-            relationshipCursor.close();
-            relationshipCursor = null;
         }
     }
 
@@ -160,11 +144,6 @@ class AccessControlDataProvider implements SelectedPropertiesProvider, AutoClose
             nodeCursor.close();
             nodeCursor.release();
             nodeCursor = null;
-        }
-        if (relationshipCursor != null) {
-            relationshipCursor.close();
-            relationshipCursor.release();
-            relationshipCursor = null;
         }
     }
 }

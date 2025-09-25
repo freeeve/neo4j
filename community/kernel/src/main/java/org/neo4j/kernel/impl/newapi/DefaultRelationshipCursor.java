@@ -209,6 +209,7 @@ abstract class DefaultRelationshipCursor<SELF extends DefaultRelationshipCursor<
     public void properties(PropertyCursor cursor, PropertySelection selection) {
         ((DefaultPropertyCursor) cursor)
                 .initRelationship(
+                        this.type(),
                         selection,
                         read,
                         txStateHolder,

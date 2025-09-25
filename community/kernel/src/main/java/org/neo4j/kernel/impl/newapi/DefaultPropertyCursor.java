@@ -144,6 +144,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
 
     void initRelationship(
             long relationshipReference,
+            int type,
             Reference reference,
             PropertySelection selection,
             Read read,
@@ -159,13 +160,11 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
                 propertyCursor.initRelationshipProperties(reference, propertySelection);
         securityPredicate = accessModeProvider
                 .getAccessMode()
-                .allowedToReadRelationshipProperties(
-                        () -> this.getSelectedPropertiesProvider().getRelType(relationshipReference),
-                        this::getSelectedPropertiesProvider,
-                        selection);
+                .allowedToReadRelationshipProperties(() -> type, this::getSelectedPropertiesProvider, selection);
     }
 
     void initRelationship(
+            int type,
             PropertySelection selection,
             Read read,
             TxStateHolder txStateHolder,
@@ -188,10 +187,7 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
                 propertyCursor.initRelationshipProperties(storageRelationshipCursor, propertySelection);
         securityPredicate = accessModeProvider
                 .getAccessMode()
-                .allowedToReadRelationshipProperties(
-                        () -> this.getSelectedPropertiesProvider().getRelType(relationshipReference),
-                        this::getSelectedPropertiesProvider,
-                        selection);
+                .allowedToReadRelationshipProperties(() -> type, this::getSelectedPropertiesProvider, selection);
     }
 
     private void initializeRelationshipTransactionState(long relationshipReference, TxStateHolder txStateHolder) {

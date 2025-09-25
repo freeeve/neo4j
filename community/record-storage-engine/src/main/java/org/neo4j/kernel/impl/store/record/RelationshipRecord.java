@@ -24,19 +24,24 @@ import static org.neo4j.kernel.impl.store.record.Record.NO_NEXT_RELATIONSHIP;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
 
 import java.util.Objects;
+import org.neo4j.storageengine.api.LongReference;
 import org.neo4j.string.Mask;
+import org.neo4j.token.api.TokenConstants;
 
 public class RelationshipRecord extends PrimitiveRecord {
     public static final long SHALLOW_SIZE = shallowSizeOfInstance(RelationshipRecord.class);
-    private long firstNode;
-    private long secondNode;
-    private int type;
-    private long firstPrevRel;
-    private long firstNextRel;
-    private long secondPrevRel;
-    private long secondNextRel;
-    private boolean firstInFirstChain;
-    private boolean firstInSecondChain;
+
+    private static final long NO_FIRST_REL_ID = 1L;
+
+    private long firstNode = LongReference.NULL;
+    private long secondNode = LongReference.NULL;
+    private int type = TokenConstants.NO_TOKEN;
+    private long firstPrevRel = NO_FIRST_REL_ID;
+    private long firstNextRel = NO_NEXT_RELATIONSHIP.intValue();
+    private long secondPrevRel = NO_FIRST_REL_ID;
+    private long secondNextRel = NO_NEXT_RELATIONSHIP.intValue();
+    private boolean firstInFirstChain = true;
+    private boolean firstInSecondChain = true;
 
     public RelationshipRecord(long id) {
         super(id);
@@ -85,12 +90,12 @@ public class RelationshipRecord extends PrimitiveRecord {
         initialize(
                 false,
                 NO_NEXT_PROPERTY.intValue(),
-                -1,
-                -1,
-                -1,
-                1,
+                LongReference.NULL,
+                LongReference.NULL,
+                TokenConstants.NO_TOKEN,
+                NO_FIRST_REL_ID,
                 NO_NEXT_RELATIONSHIP.intValue(),
-                1,
+                NO_FIRST_REL_ID,
                 NO_NEXT_RELATIONSHIP.intValue(),
                 true,
                 true);

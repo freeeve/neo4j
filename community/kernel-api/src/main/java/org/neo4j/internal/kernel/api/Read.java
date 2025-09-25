@@ -520,12 +520,17 @@ public interface Read {
 
     /**
      * @param relationshipReference the owner of the properties.
+     * @param type                  the type of the relationship
      * @param reference             a reference from {@link RelationshipCursor#propertiesReference()}.
-     * @param selection
-     * @param cursor
+     * @param selection             the filter to restrict which properties to read
+     * @param cursor                the cursor used to read the properties
      */
     void relationshipProperties(
-            long relationshipReference, Reference reference, PropertySelection selection, PropertyCursor cursor);
+            long relationshipReference,
+            int type,
+            Reference reference,
+            PropertySelection selection,
+            PropertyCursor cursor);
 
     /**
      * Checks if a node was deleted in the current transaction
