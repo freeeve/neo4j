@@ -17,6 +17,7 @@
 package org.neo4j.export;
 
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 import java.io.IOException;
@@ -175,7 +176,7 @@ public class UploadCommand extends AbstractAdminCommand {
     public long readSizeFromTarMetaData(ExecutionContext ctx, Path tar, String dbName) {
         final var fileSystem = ctx.fs();
 
-        try (TarArchiveInputStream tais = new TarArchiveInputStream(maybeGzipped(tar, fileSystem))) {
+        try (TarArchiveInputStream tais = new TarArchiveInputStream(maybeGzipped(tar, fileSystem), UTF_8.name())) {
             TarArchiveEntry entry;
             while ((entry = tais.getNextEntry()) != null) {
                 if (entry.getName().endsWith(dbName + Dumper.DUMP_EXTENSION)) {

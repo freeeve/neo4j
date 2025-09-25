@@ -19,6 +19,7 @@
  */
 package org.neo4j.dbms.archive;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.dbms.archive.LoggingArchiveProgressPrinter.createProgressPrinter;
 import static org.neo4j.dbms.archive.Utils.checkWritableDirectory;
@@ -177,7 +178,7 @@ public class Dumper {
             writeArchiveMetadata(compress);
         }
 
-        TarArchiveOutputStream tarball = new TarArchiveOutputStream(compress);
+        TarArchiveOutputStream tarball = new TarArchiveOutputStream(compress, UTF_8.name());
         tarball.setLongFileMode(TarArchiveOutputStream.LONGFILE_POSIX);
         tarball.setBigNumberMode(TarArchiveOutputStream.BIGNUMBER_POSIX);
         return tarball;

@@ -19,6 +19,7 @@
  */
 package org.neo4j.dbms.archive;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.neo4j.dbms.archive.LoggingArchiveProgressPrinter.createProgressPrinter;
 import static org.neo4j.dbms.archive.Utils.checkWritableDirectory;
 import static org.neo4j.dbms.archive.printer.ProgressPrinters.emptyPrinter;
@@ -220,7 +221,7 @@ public class Loader {
                 progressPrinter.maxBytes(fab.bytes());
             }
 
-            return new TarArchiveInputStream(decompressor);
+            return new TarArchiveInputStream(decompressor, UTF_8.name());
         } catch (NoSuchFileException ioe) {
             throw ioe;
         } catch (IOException e) {

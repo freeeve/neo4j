@@ -19,6 +19,7 @@
  */
 package org.neo4j.dbms.archive;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -114,7 +115,7 @@ class LoaderTest {
 
         final Path testFile = testDirectory.file("testFile");
         try (TarArchiveOutputStream tar = new TarArchiveOutputStream(
-                new GzipCompressorOutputStream(fileSystem.openAsOutputStream(archive, false)))) {
+                new GzipCompressorOutputStream(fileSystem.openAsOutputStream(archive, false)), UTF_8.name())) {
             var archiveEntry = tar.createArchiveEntry(testFile.toFile(), "../../../../etc/shadow");
             tar.putArchiveEntry(archiveEntry);
             tar.closeArchiveEntry();
