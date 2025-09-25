@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping.ScopeSurveyor.unitVariables
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.InputPosition
 
 sealed trait WorkingContext {
   def allSymbols: Set[LogicalVariable]
@@ -50,22 +51,26 @@ case class RegularContext(constants: Set[LogicalVariable], variables: Set[Logica
 
   @inline def checkIfVariablesAreAlreadyDeclaredAsConstant(newVariables: Iterable[LogicalVariable])
     : Seq[SemanticError] = {
-    checkIfVariablesAreAlreadyDeclaredIn(constants, newVariables)
+    checkIfVariablesAreAlreadyDeclaredIn(constants, newVariables, SemanticError.variableAlreadyDeclaredInOuterScope)
   }
 
-  @inline def checkIfVariablesAreAlreadyDeclaredAsVariable(newVariables: Iterable[LogicalVariable])
+  @inline def checkIfVariablesAreAlreadyDeclaredAsVariable(
+    newVariables: Iterable[LogicalVariable],
+    errorFunc: (String, InputPosition) => SemanticError = (n, p) => SemanticError.variableAlreadyDeclared(n, p)
+  )
     : Seq[SemanticError] = {
-    checkIfVariablesAreAlreadyDeclaredIn(variables, newVariables)
+    checkIfVariablesAreAlreadyDeclaredIn(variables, newVariables, errorFunc)
   }
 
   @inline private def checkIfVariablesAreAlreadyDeclaredIn(
     existingVariables: Set[LogicalVariable],
-    newVariables: Iterable[LogicalVariable]
+    newVariables: Iterable[LogicalVariable],
+    errorFunc: (String, InputPosition) => SemanticError
   ): Seq[SemanticError] = {
     if (existingVariables.nonEmpty) {
       newVariables.collect {
         case variable if existingVariables contains variable =>
-          SemanticError.variableAlreadyDeclared(variable.name, variable.position)
+          errorFunc.apply(variable.name, variable.position)
       }.toSeq
     } else {
       Seq.empty

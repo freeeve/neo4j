@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.StrictlyAdditiveProjection
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.Union
+import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.ast.Unwind
 import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
@@ -63,7 +64,7 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
     },
     // variable already declared
     {
-      case StatementScope(astNode, incoming, _, d @ Declarations(constants, variables), _, _, _)
+      case StatementScope(astNode, incoming, _, d @ Declarations(constants, variables), outgoing, _, children)
         if !d.isEmpty &&
           // expressions only declare for inner operands and allow shadowing
           !astNode.isInstanceOf[Expression] =>
@@ -74,9 +75,18 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
         val redeclarationOfVariables = astNode match {
           case pc: ProjectionClause if pc.returnItems.projectionType == StrictlyAdditiveProjection =>
             incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
-          case _: Unwind        => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
-          case sc: SubqueryCall => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
-          case _                => Seq.empty
+          case _: UnresolvedCall => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
+          case _: Unwind         => incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(variables)
+          case _: SubqueryCall =>
+            incoming.checkIfVariablesAreAlreadyDeclaredAsVariable(
+              variables,
+              (n, p) => {
+                if (children.head.outgoing.variables.exists(_.name == n))
+                  SemanticError.variableAlreadyDeclaredInOuterScope(n, p) // Inner query throws 42N07
+                else SemanticError.variableAlreadyDeclared(n, p) // IN TRANSACTIONS throw 42N59
+              }
+            )
+          case _ => Seq.empty
         }
         // multiple return columns in WITH
         val multipleDeclarations = {

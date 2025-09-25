@@ -300,24 +300,6 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `x` not defined.")
   }
 
-  test("""LET a = 1
-         |CALL (a) {
-         |  RETURN x + 1 AS a
-         |  UNION
-         |  RETURN a + 2 AS a
-         |}""".stripMargin) {
-    error("42N62", "Variable `x` not defined.")
-  }
-
-  test("""LET a = 1
-         |CALL (a) {
-         |  RETURN a + 1 AS a
-         |  UNION
-         |  RETURN x + 2 AS a
-         |}""".stripMargin) {
-    error("42N62", "Variable `x` not defined.")
-  }
-
   test("""UNWIND [1, 2, 3] AS x
          |RETURN x AS y
          |NEXT
@@ -415,27 +397,9 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
   }
 
   test("""LET a = 10
-         |CALL (a) {
-         |  LET a = a
-         |  RETURN a AS y
-         |}
-         |RETURN *""".stripMargin) {
-    error("42N59", "Variable `a` already declared.")
-  }
-
-  test("""LET a = 10
          |CALL {
          |  WITH a
          |  LET a = a
-         |  RETURN a AS y
-         |}
-         |RETURN *""".stripMargin) {
-    error("42N59", "Variable `a` already declared.")
-  }
-
-  test("""LET a = 10
-         |CALL (a) {
-         |  LET a = a + 0
          |  RETURN a AS y
          |}
          |RETURN *""".stripMargin) {
@@ -447,41 +411,6 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |  WITH a
          |  LET a = a + 0
          |  RETURN a AS y
-         |}
-         |RETURN *""".stripMargin) {
-    error("42N59", "Variable `a` already declared.")
-  }
-
-  test("""LET a = 10
-         |CALL (a) {
-         |  LET b = a
-         |  RETURN b AS a
-         |}
-         |RETURN *""".stripMargin) {
-    error("42N59", "Variable `a` already declared.")
-  }
-
-  test("""LET a = 10
-         |CALL {
-         |  WITH a
-         |  LET b = a
-         |  RETURN b AS a
-         |}
-         |RETURN *""".stripMargin) {
-    error("42N59", "Variable `a` already declared.")
-  }
-
-  test("""LET a = 10
-         |CALL () {
-         |  RETURN 20 AS a
-         |}
-         |RETURN *""".stripMargin) {
-    error("42N59", "Variable `a` already declared.")
-  }
-
-  test("""LET a = 10
-         |CALL {
-         |  RETURN 20 AS a
          |}
          |RETURN *""".stripMargin) {
     error("42N59", "Variable `a` already declared.")
@@ -560,6 +489,105 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |LET node = 1
          |RETURN node ORDER BY score ASCENDING LIMIT 3""".stripMargin) {
     passes()
+  }
+
+  /**
+   * Shadowing variable in outer scope
+   */
+
+  test("""LET a = 1
+         |CALL (a) {
+         |  RETURN x + 1 AS a
+         |  UNION
+         |  RETURN a + 2 AS a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""LET a = 1
+         |CALL (a) {
+         |  RETURN a + 1 AS a
+         |  UNION
+         |  RETURN x + 2 AS a
+         |}""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""LET a = 10
+         |CALL (a) {
+         |  LET a = a
+         |  RETURN a AS y
+         |}
+         |RETURN *""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""LET a = 10
+         |CALL (a) {
+         |  LET a = a + 0
+         |  RETURN a AS y
+         |}
+         |RETURN *""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""LET a = 10
+         |CALL (a) {
+         |  LET b = a
+         |  RETURN b AS a
+         |}
+         |RETURN *""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  WITH a
+         |  LET b = a
+         |  RETURN b AS a
+         |}
+         |RETURN *""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""LET a = 10
+         |CALL () {
+         |  RETURN 20 AS a
+         |}
+         |RETURN *""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
+  }
+
+  test("""LET a = 10
+         |CALL {
+         |  RETURN 20 AS a
+         |}
+         |RETURN *""".stripMargin) {
+    error(
+      "42N07",
+      "The variable `a` is shadowing a variable with the same name from the outer scope and needs to be renamed."
+    )
   }
 
   /**
