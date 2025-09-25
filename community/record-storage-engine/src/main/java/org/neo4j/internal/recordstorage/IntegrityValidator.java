@@ -26,6 +26,7 @@ import static org.neo4j.kernel.KernelVersion.VERSION_REL_UNIQUE_CONSTRAINTS_INTR
 import static org.neo4j.kernel.KernelVersion.VERSION_TYPE_CONSTRAINTS_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_VECTOR_2_INTRODUCED;
+import static org.neo4j.kernel.KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING;
 import static org.neo4j.kernel.KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED;
 
 import org.neo4j.internal.kernel.api.exceptions.DeletedNodeStillHasRelationshipsException;
@@ -33,6 +34,7 @@ import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.internal.schema.constraints.TypeRepresentation;
 import org.neo4j.kernel.KernelVersion;
@@ -64,10 +66,11 @@ class IntegrityValidator {
         }
 
         if (schemaRule instanceof final IndexDescriptor index) {
-            final var schemaType = "index";
+            final String schemaType = "index";
 
+            final SchemaDescriptor schema = index.schema();
             if (index.getIndexType() == IndexType.VECTOR) {
-                switch (index.schema().entityType()) {
+                switch (schema.entityType()) {
                     case NODE -> {
                         if (kernelVersion.isLessThan(VERSION_NODE_VECTOR_INDEX_INTRODUCED)) {
                             throw upgradeNeededForSchemaRule(
@@ -80,6 +83,12 @@ class IntegrityValidator {
                                     schemaType, index, kernelVersion, VERSION_VECTOR_2_INTRODUCED);
                         }
                     }
+                }
+
+                if ((schema.getEntityTokenIds().length > 1 || (schema.getPropertyIds().length > 1))
+                        && kernelVersion.isLessThan(VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING)) {
+                    throw upgradeNeededForSchemaRule(
+                            schemaType, index, kernelVersion, VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING);
                 }
             }
 

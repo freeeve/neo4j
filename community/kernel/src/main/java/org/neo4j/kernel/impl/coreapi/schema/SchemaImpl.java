@@ -35,7 +35,7 @@ import static org.neo4j.internal.schema.SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_
 import static org.neo4j.internal.schema.SchemaDescriptors.ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
 import static org.neo4j.internal.schema.SchemaDescriptors.forRelType;
-import static org.neo4j.internal.schema.SchemaDescriptors.fulltext;
+import static org.neo4j.internal.schema.SchemaDescriptors.forSemanticSearch;
 import static org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl.labelNameList;
 import static org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl.relTypeNameList;
 import static org.neo4j.kernel.impl.coreapi.schema.PropertyNameUtils.getOrCreatePropertyKeyIds;
@@ -446,7 +446,7 @@ public class SchemaImpl implements Schema {
                     resolveAndValidateTokens("Label", index.getLabelArrayShared(), Label::name, tokenRead::nodeLabel);
 
             if (index.isMultiTokenIndex()) {
-                schema = fulltext(EntityType.NODE, labelIds, propertyKeyIds);
+                schema = forSemanticSearch(EntityType.NODE, labelIds, propertyKeyIds);
             } else if (index.getIndexType() == IndexType.LOOKUP) {
                 schema = ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR;
             } else {
@@ -460,7 +460,7 @@ public class SchemaImpl implements Schema {
                     tokenRead::relationshipType);
 
             if (index.isMultiTokenIndex()) {
-                schema = fulltext(EntityType.RELATIONSHIP, relTypes, propertyKeyIds);
+                schema = forSemanticSearch(EntityType.RELATIONSHIP, relTypes, propertyKeyIds);
             } else if (index.getIndexType() == IndexType.LOOKUP) {
                 schema = ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR;
             } else {
@@ -607,14 +607,12 @@ public class SchemaImpl implements Schema {
                 IndexConfig indexConfig,
                 String... propertyKeys) {
             try {
-                TokenWrite tokenWrite = transaction.tokenWrite();
-                String[] labelNames = Arrays.stream(labels).map(Label::name).toArray(String[]::new);
-                int[] labelIds = new int[labels.length];
-                tokenWrite.labelGetOrCreateForNames(labelNames, labelIds);
-                int[] propertyKeyIds = getOrCreatePropertyKeyIds(tokenWrite, propertyKeys);
-                SchemaDescriptor schema;
-                if (indexType == IndexType.FULLTEXT) {
-                    schema = fulltext(EntityType.NODE, labelIds, propertyKeyIds);
+                final TokenWrite tokenWrite = transaction.tokenWrite();
+                final int[] labelIds = getOrCreateLabelIds(tokenWrite, labels);
+                final int[] propertyKeyIds = getOrCreatePropertyKeyIds(tokenWrite, propertyKeys);
+                final SchemaDescriptor schema;
+                if (indexType == IndexType.FULLTEXT || indexType == IndexType.VECTOR) {
+                    schema = forSemanticSearch(EntityType.NODE, labelIds, propertyKeyIds);
                 } else if (labelIds.length == 1) {
                     schema = forLabel(labelIds[0], propertyKeyIds);
                 } else {
@@ -622,7 +620,7 @@ public class SchemaImpl implements Schema {
                             indexType + " indexes can only be created with exactly one label, " + "but got "
                                     + (labelIds.length == 0 ? "no" : String.valueOf(labelIds.length)) + " labels.");
                 }
-                IndexDescriptor indexReference = createIndex(indexName, schema, indexType, indexConfig);
+                final IndexDescriptor indexReference = createIndex(indexName, schema, indexType, indexConfig);
                 return new IndexDefinitionImpl(this, indexReference, labels, propertyKeys, false);
             } catch (IllegalTokenNameException e) {
                 throw new IllegalArgumentException(e);
@@ -642,15 +640,12 @@ public class SchemaImpl implements Schema {
                 IndexConfig indexConfig,
                 String... propertyKeys) {
             try {
-                TokenWrite tokenWrite = transaction.tokenWrite();
-                String[] typeNames =
-                        Arrays.stream(types).map(RelationshipType::name).toArray(String[]::new);
-                int[] typeIds = new int[types.length];
-                tokenWrite.relationshipTypeGetOrCreateForNames(typeNames, typeIds);
-                int[] propertyKeyIds = getOrCreatePropertyKeyIds(tokenWrite, propertyKeys);
-                SchemaDescriptor schema;
-                if (indexType == IndexType.FULLTEXT) {
-                    schema = fulltext(EntityType.RELATIONSHIP, typeIds, propertyKeyIds);
+                final TokenWrite tokenWrite = transaction.tokenWrite();
+                final int[] typeIds = getOrCreateTypeIds(tokenWrite, types);
+                final int[] propertyKeyIds = getOrCreatePropertyKeyIds(tokenWrite, propertyKeys);
+                final SchemaDescriptor schema;
+                if (indexType == IndexType.FULLTEXT || indexType == IndexType.VECTOR) {
+                    schema = forSemanticSearch(EntityType.RELATIONSHIP, typeIds, propertyKeyIds);
                 } else if (typeIds.length == 1) {
                     schema = forRelType(typeIds[0], propertyKeyIds);
                 } else {
@@ -658,7 +653,7 @@ public class SchemaImpl implements Schema {
                             + " indexes can only be created with exactly one relationship type, " + "but got "
                             + (types.length == 0 ? "no" : String.valueOf(types.length)) + " relationship types.");
                 }
-                IndexDescriptor indexReference = createIndex(indexName, schema, indexType, indexConfig);
+                final IndexDescriptor indexReference = createIndex(indexName, schema, indexType, indexConfig);
                 return new IndexDefinitionImpl(this, indexReference, types, propertyKeys, false);
             } catch (IllegalTokenNameException e) {
                 throw new IllegalArgumentException(e);
@@ -975,5 +970,25 @@ public class SchemaImpl implements Schema {
                         e.gqlStatusObject(), "Unknown error trying to create token ids", e, e.status());
             }
         }
+    }
+
+    private static int[] getOrCreateLabelIds(TokenWrite tokenWrite, Label... labels) throws KernelException {
+        final int[] labelIds = new int[labels.length];
+        final String[] labelNames = new String[labels.length];
+        for (int i = 0; i < labels.length; i++) {
+            labelNames[i] = labels[i].name();
+        }
+        tokenWrite.labelGetOrCreateForNames(labelNames, labelIds);
+        return labelIds;
+    }
+
+    private static int[] getOrCreateTypeIds(TokenWrite tokenWrite, RelationshipType... types) throws KernelException {
+        final int[] typeIds = new int[types.length];
+        final String[] typeNames = new String[types.length];
+        for (int i = 0; i < types.length; i++) {
+            typeNames[i] = types[i].name();
+        }
+        tokenWrite.relationshipTypeGetOrCreateForNames(typeNames, typeIds);
+        return typeIds;
     }
 }

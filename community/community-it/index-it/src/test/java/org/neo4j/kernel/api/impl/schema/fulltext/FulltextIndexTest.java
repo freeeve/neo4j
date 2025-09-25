@@ -50,7 +50,6 @@ import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexBehaviour;
 import org.neo4j.internal.schema.IndexCapability;
 import org.neo4j.internal.schema.IndexConfig;
@@ -60,6 +59,7 @@ import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexQuery;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.internal.schema.SchemaDescriptors;
+import org.neo4j.internal.schema.SemanticSearchSchemaDescriptor;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer;
@@ -628,7 +628,8 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
         }
 
         IndexConfig indexConfig = IndexConfig.with(EVENTUALLY_CONSISTENT, Values.booleanValue(true));
-        FulltextSchemaDescriptor schema = SchemaDescriptors.fulltext(NODE, new int[] {label}, new int[] {propertyKey});
+        SemanticSearchSchemaDescriptor schema =
+                SchemaDescriptors.forSemanticSearch(NODE, new int[] {label}, new int[] {propertyKey});
 
         IndexProviderDescriptor providerDescriptor = indexProvider.getProviderDescriptor();
         IndexDescriptor descriptor = indexProvider.completeConfiguration(
@@ -649,7 +650,7 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
     @Test
     void completeConfigurationMustNotOverwriteExistingConfiguration() {
         IndexConfig indexConfig = IndexConfig.with("A", Values.stringValue("B"));
-        FulltextSchemaDescriptor schema = SchemaDescriptors.fulltext(NODE, new int[] {1}, new int[] {1});
+        SemanticSearchSchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(NODE, new int[] {1}, new int[] {1});
         IndexProviderDescriptor providerDescriptor = indexProvider.getProviderDescriptor();
         IndexDescriptor descriptor = indexProvider
                 .completeConfiguration(
@@ -663,7 +664,7 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
 
     @Test
     void completeConfigurationMustBeIdempotent() {
-        FulltextSchemaDescriptor schema = SchemaDescriptors.fulltext(NODE, new int[] {1}, new int[] {1});
+        SemanticSearchSchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(NODE, new int[] {1}, new int[] {1});
         IndexProviderDescriptor providerDescriptor = indexProvider.getProviderDescriptor();
         IndexDescriptor onceCompleted = indexProvider.completeConfiguration(
                 IndexPrototype.forSchema(schema, providerDescriptor)
@@ -676,7 +677,7 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
 
     @Test
     void mustAssignCapabilitiesToDescriptorsThatHaveNone() {
-        FulltextSchemaDescriptor schema = SchemaDescriptors.fulltext(NODE, new int[] {1}, new int[] {1});
+        SemanticSearchSchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(NODE, new int[] {1}, new int[] {1});
         IndexProviderDescriptor providerDescriptor = indexProvider.getProviderDescriptor();
         IndexDescriptor completed = indexProvider.completeConfiguration(
                 IndexPrototype.forSchema(schema, providerDescriptor)
@@ -726,7 +727,7 @@ class FulltextIndexTest extends LuceneFulltextTestSupport {
                 return false;
             }
         };
-        FulltextSchemaDescriptor schema = SchemaDescriptors.fulltext(NODE, new int[] {1}, new int[] {1});
+        SemanticSearchSchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(NODE, new int[] {1}, new int[] {1});
         IndexProviderDescriptor providerDescriptor = indexProvider.getProviderDescriptor();
         IndexDescriptor index = IndexPrototype.forSchema(schema, providerDescriptor)
                 .withName("index_1")

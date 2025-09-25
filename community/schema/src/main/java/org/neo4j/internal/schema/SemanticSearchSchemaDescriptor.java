@@ -21,9 +21,7 @@ package org.neo4j.internal.schema;
 
 import org.neo4j.util.MarkerInterface;
 
-/**
- * Schema descriptors of this sub-type are guaranteed to be of {@link IndexType#FULLTEXT}, and capture index updates with
- * {@link SchemaPatternMatchingType#PARTIAL_ANY_TOKEN}.
- */
+/// Schema descriptors of this sub-type are guaranteed to be our semantic search indexes, [IndexType#FULLTEXT] and
+/// [IndexType#VECTOR], and capture index updates with [SchemaPatternMatchingType#PARTIAL_ANY_TOKEN].
 @MarkerInterface
-public interface FulltextSchemaDescriptor extends SchemaDescriptor {}
+public interface SemanticSearchSchemaDescriptor extends SchemaDescriptor {}

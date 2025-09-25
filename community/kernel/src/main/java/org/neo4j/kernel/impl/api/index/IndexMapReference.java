@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.api.index;
 
-import java.util.Collection;
 import java.util.function.UnaryOperator;
 import org.neo4j.function.ThrowingFunction;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
@@ -56,7 +55,7 @@ public class IndexMapReference implements IndexMapSnapshotProvider {
         return proxy;
     }
 
-    Collection<IndexProxy> getAllIndexProxies() {
+    Iterable<IndexProxy> getAllIndexProxies() {
         return indexMap.getAllIndexProxies();
     }
 

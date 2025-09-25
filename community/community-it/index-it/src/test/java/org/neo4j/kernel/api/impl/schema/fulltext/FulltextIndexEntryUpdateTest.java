@@ -164,7 +164,7 @@ class FulltextIndexEntryUpdateTest {
         life.add(provider);
         life.start();
 
-        final var schema = SchemaDescriptors.fulltext(EntityType.NODE, new int[] {123}, new int[] {321});
+        final var schema = SchemaDescriptors.forSemanticSearch(EntityType.NODE, new int[] {123}, new int[] {321});
         index = provider.completeConfiguration(
                 IndexPrototype.forSchema(schema)
                         .withIndexType(provider.getIndexType())

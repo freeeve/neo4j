@@ -20,7 +20,7 @@
 package org.neo4j.kernel.impl.coreapi.schema;
 
 import static org.neo4j.graphdb.schema.IndexSettingUtil.toIndexConfigFromIndexSettingObjectMap;
-import static org.neo4j.kernel.impl.coreapi.schema.IndexCreatorImpl.copyAndAdd;
+import static org.neo4j.kernel.impl.coreapi.schema.IndexCreatorImpl.copyAndAppend;
 
 import java.util.List;
 import java.util.Map;
@@ -49,7 +49,7 @@ public class NodePropertyUniqueConstraintCreator extends BaseNodeConstraintCreat
     @Override
     public final NodePropertyUniqueConstraintCreator assertPropertyIsUnique(String propertyKey) {
         return new NodePropertyUniqueConstraintCreator(
-                actions, name, label, copyAndAdd(propertyKeys, propertyKey), indexType, indexConfig);
+                actions, name, label, copyAndAppend(propertyKeys, propertyKey), indexType, indexConfig);
     }
 
     @Override

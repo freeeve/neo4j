@@ -296,7 +296,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
 
   private val fulltextNodeIndexDescriptor =
     IndexPrototype.forSchema(
-      SchemaDescriptors.fulltext(EntityType.NODE, Array(0), Array(0)),
+      SchemaDescriptors.forSemanticSearch(EntityType.NODE, Array(0), Array(0)),
       AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR
     )
       .withIndexType(IndexType.FULLTEXT)
@@ -309,7 +309,7 @@ class ShowIndexesCommandTest extends ShowCommandTestBase {
 
   private val fulltextRelIndexDescriptor =
     IndexPrototype.forSchema(
-      SchemaDescriptors.fulltext(EntityType.RELATIONSHIP, Array(0), Array(0)),
+      SchemaDescriptors.forSemanticSearch(EntityType.RELATIONSHIP, Array(0), Array(0)),
       AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR
     )
       .withIndexType(IndexType.FULLTEXT)

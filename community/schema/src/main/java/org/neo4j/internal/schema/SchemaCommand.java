@@ -284,7 +284,7 @@ public sealed interface SchemaCommand {
                             name,
                             forSchema(
                                             this,
-                                            SchemaDescriptors.fulltext(
+                                            SchemaDescriptors.forSemanticSearch(
                                                     EntityType.NODE,
                                                     tokenHolders.labelsForNames(labels),
                                                     tokenHolders.propertiesForName(properties)),
@@ -314,7 +314,7 @@ public sealed interface SchemaCommand {
                             name,
                             forSchema(
                                             this,
-                                            SchemaDescriptors.fulltext(
+                                            SchemaDescriptors.forSemanticSearch(
                                                     EntityType.RELATIONSHIP,
                                                     tokenHolders.relationshipsForNames(types),
                                                     tokenHolders.propertiesForName(properties)),

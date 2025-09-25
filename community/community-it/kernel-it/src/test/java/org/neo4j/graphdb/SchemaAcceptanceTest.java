@@ -699,7 +699,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         // WHEN
         assertThatThrownBy(() -> dropIndex(index))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No index found with the name 'index_1efc11af'.");
+                .hasMessageContaining("No index found with the name 'index_aa553e56'.");
 
         // THEN
         try (Transaction tx = db.beginTx()) {
@@ -866,7 +866,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
             assertThat(constraint.getConstraintType()).isEqualTo(ConstraintType.UNIQUENESS);
             assertThat(constraint.getLabel().name()).isEqualTo(label.name());
             assertThat(constraint.getPropertyKeys()).containsExactly(propertyKey);
-            assertThat(constraint.getName()).isEqualTo("constraint_d3208c60");
+            assertThat(constraint.getName()).isEqualTo("constraint_ed3c650");
             tx.commit();
         }
     }
@@ -882,7 +882,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
             assertThat(constraint.getConstraintType()).isEqualTo(ConstraintType.RELATIONSHIP_UNIQUENESS);
             assertThat(constraint.getRelationshipType().name()).isEqualTo(relType.name());
             assertThat(constraint.getPropertyKeys()).containsExactly(propertyKey);
-            assertThat(constraint.getName()).isEqualTo("constraint_c5954bea");
+            assertThat(constraint.getName()).isEqualTo("constraint_14cb7f33");
             tx.commit();
         }
     }
@@ -930,7 +930,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
             assertThat(constraint.getConstraintType()).isEqualTo(ConstraintType.UNIQUENESS);
             assertThat(constraint.getLabel().name()).isEqualTo(label.name());
             assertThat(constraint.getPropertyKeys()).containsExactly(propertyKey, secondPropertyKey);
-            assertThat(constraint.getName()).isEqualTo("constraint_860007cd");
+            assertThat(constraint.getName()).isEqualTo("constraint_1ce8f344");
             tx.commit();
         }
     }
@@ -947,7 +947,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
             assertThat(constraint.getConstraintType()).isEqualTo(ConstraintType.RELATIONSHIP_UNIQUENESS);
             assertThat(constraint.getRelationshipType().name()).isEqualTo(relType.name());
             assertThat(constraint.getPropertyKeys()).containsExactly(propertyKey, secondPropertyKey);
-            assertThat(constraint.getName()).isEqualTo("constraint_ba789ec");
+            assertThat(constraint.getName()).isEqualTo("constraint_3a7e719e");
 
             tx.commit();
         }
@@ -1071,7 +1071,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
                 .isInstanceOf(ConstraintViolationException.class)
                 .hasMessageContainingAll(
                         "Unable to create Constraint",
-                        "name='constraint_d3208c60'",
+                        "name='constraint_ed3c650'",
                         "type='NODE PROPERTY UNIQUENESS'",
                         "schema=(:MY_LABEL {my_property_key})",
                         "Note that only the first found violation is shown.");
@@ -1118,7 +1118,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
 
     @Test
     void indexNamesMustBeUniqueEvenWhenGenerated2() {
-        IndexDefinition index = createIndex(db, "index_1efc11af", otherLabel, secondPropertyKey);
+        IndexDefinition index = createIndex(db, "index_aa553e56", otherLabel, secondPropertyKey);
 
         assertThatThrownBy(() -> createIndex(db, label, propertyKey))
                 .isInstanceOf(ConstraintViolationException.class)
@@ -1226,7 +1226,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
             IndexDefinition index = tx.schema()
                     .indexFor(otherLabel)
                     .on(secondPropertyKey)
-                    .withName("index_1efc11af")
+                    .withName("index_aa553e56")
                     .create();
             IndexCreator indexCreator = tx.schema().indexFor(label).on(propertyKey);
 
@@ -1282,7 +1282,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
             ConstraintDefinition constraint = tx.schema()
                     .constraintFor(otherLabel)
                     .assertPropertyIsUnique(secondPropertyKey)
-                    .withName("constraint_d3208c60")
+                    .withName("constraint_ed3c650")
                     .create();
             ConstraintCreator constraintCreator =
                     tx.schema().constraintFor(label).assertPropertyIsUnique(propertyKey);
@@ -1766,13 +1766,14 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         }
     }
 
-    @Test
-    void creatingFullTextIndexOnMultipleLabelsMustBePossible() {
+    @ParameterizedTest
+    @EnumSource(names = {"FULLTEXT", "VECTOR"})
+    void creatingSemanticSearchIndexesOnMultipleLabelsMustBePossible(IndexType indexType) {
         try (Transaction tx = db.beginTx()) {
             IndexDefinition index = tx.schema()
                     .indexFor(label, otherLabel)
                     .on(propertyKey)
-                    .withIndexType(IndexType.FULLTEXT)
+                    .withIndexType(indexType)
                     .withName("index")
                     .create();
             assertThat(index.getLabels()).contains(label, otherLabel);

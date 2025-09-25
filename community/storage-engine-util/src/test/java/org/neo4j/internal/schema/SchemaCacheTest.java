@@ -35,7 +35,7 @@ import static org.neo4j.internal.helpers.collection.Iterators.single;
 import static org.neo4j.internal.schema.SchemaCache.NO_LOGICAL_KEYS;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
 import static org.neo4j.internal.schema.SchemaDescriptors.forRelType;
-import static org.neo4j.internal.schema.SchemaDescriptors.fulltext;
+import static org.neo4j.internal.schema.SchemaDescriptors.forSemanticSearch;
 import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.existsForLabel;
 import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.keyForSchema;
 import static org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory.uniqueForLabel;
@@ -77,11 +77,12 @@ class SchemaCacheTest {
     private final IndexDescriptor schema3_4 = newIndexRule(10, 3, 4);
     private final IndexDescriptor schema5_6_7 = newIndexRule(11, 5, 6, 7);
     private final IndexDescriptor schema5_8 = newIndexRule(12, 5, 8);
-    private final IndexDescriptor node35_8 = IndexPrototype.forSchema(fulltext(NODE, new int[] {3, 5}, new int[] {8}))
+    private final IndexDescriptor node35_8 = IndexPrototype.forSchema(
+                    forSemanticSearch(NODE, new int[] {3, 5}, new int[] {8}))
             .withName("index_13")
             .materialise(13);
     private final IndexDescriptor rel35_8 = IndexPrototype.forSchema(
-                    fulltext(RELATIONSHIP, new int[] {3, 5}, new int[] {8}))
+                    forSemanticSearch(RELATIONSHIP, new int[] {3, 5}, new int[] {8}))
             .withName("index_14")
             .materialise(14);
 
@@ -485,7 +486,7 @@ class SchemaCacheTest {
 
         final int id = 1;
         final int[] repeatedLabels = {0, 1, 0};
-        final FulltextSchemaDescriptor schema = fulltext(NODE, repeatedLabels, new int[] {1});
+        final SemanticSearchSchemaDescriptor schema = forSemanticSearch(NODE, repeatedLabels, new int[] {1});
         IndexDescriptor index = newIndexRule(schema, id);
         cache.addSchemaRule(index);
         cache.removeSchemaRule(index);
@@ -497,7 +498,7 @@ class SchemaCacheTest {
 
         final int id = 1;
         final int[] repeatedRelTypes = {0, 1, 0};
-        final FulltextSchemaDescriptor schema = fulltext(RELATIONSHIP, repeatedRelTypes, new int[] {1});
+        final SemanticSearchSchemaDescriptor schema = forSemanticSearch(RELATIONSHIP, repeatedRelTypes, new int[] {1});
         IndexDescriptor index = newIndexRule(schema, id);
         cache.addSchemaRule(index);
         cache.removeSchemaRule(index);

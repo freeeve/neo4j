@@ -65,7 +65,7 @@ class IndexOpAcceptanceTest extends ExecutionEngineFunSuite with QueryStatistics
     val message = e.getCause.getMessage
     message should startWith("An equivalent index already exists")
     message should include(
-      "name='index_4b2e9408', type='RANGE', schema=(:Person {name}), indexProvider='range-1.0'"
+      "name='index_dd44806a', type='RANGE', schema=(:Person {name}), indexProvider='range-1.0'"
     )
   }
 

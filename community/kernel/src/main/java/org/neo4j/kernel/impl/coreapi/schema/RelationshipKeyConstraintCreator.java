@@ -20,7 +20,7 @@
 package org.neo4j.kernel.impl.coreapi.schema;
 
 import static org.neo4j.graphdb.schema.IndexSettingUtil.toIndexConfigFromIndexSettingObjectMap;
-import static org.neo4j.kernel.impl.coreapi.schema.IndexCreatorImpl.copyAndAdd;
+import static org.neo4j.kernel.impl.coreapi.schema.IndexCreatorImpl.copyAndAppend;
 
 import java.util.List;
 import java.util.Map;
@@ -59,7 +59,7 @@ public class RelationshipKeyConstraintCreator extends BaseRelationshipConstraint
     @Override
     public ConstraintCreator assertPropertyIsRelationshipKey(String propertyKey) {
         return new RelationshipKeyConstraintCreator(
-                actions, name, type, copyAndAdd(propertyKeys, propertyKey), indexType, indexConfig);
+                actions, name, type, copyAndAppend(propertyKeys, propertyKey), indexType, indexConfig);
     }
 
     @Override

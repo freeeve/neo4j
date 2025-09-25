@@ -904,7 +904,7 @@ public class PlainOperationsTest extends OperationsTest {
         when(storageReader.indexGetForSchema(any())).thenReturn(Collections.emptyIterator());
         operations.indexCreate(IndexPrototype.forSchema(SchemaDescriptors.forLabel(1, 1)));
         operations.indexCreate(
-                IndexPrototype.forSchema(SchemaDescriptors.fulltext(NODE, new int[] {2, 3}, new int[] {1, 2}))
+                IndexPrototype.forSchema(SchemaDescriptors.forSemanticSearch(NODE, new int[] {2, 3}, new int[] {1, 2}))
                         .withIndexType(IndexType.FULLTEXT));
         operations.indexCreate(IndexPrototype.forSchema(SchemaDescriptors.forLabel(3, 1))
                 .withIndexProvider(operations.indexProviderByName("provider-1.0")));
@@ -925,13 +925,13 @@ public class PlainOperationsTest extends OperationsTest {
                 .isEqualTo(3L);
         assertThat(indexDescriptors[0].getName())
                 .as(indexDescriptors[0].toString())
-                .isEqualTo("index_b5ad8e5c");
+                .isEqualTo("index_c345e44b");
         assertThat(indexDescriptors[1].getName())
                 .as(indexDescriptors[1].toString())
-                .isEqualTo("index_2813986a");
+                .isEqualTo("index_9f96844d");
         assertThat(indexDescriptors[2].getName())
                 .as(indexDescriptors[2].toString())
-                .isEqualTo("index_b6cde845");
+                .isEqualTo("index_ef214dd5");
     }
 
     @Test
@@ -1170,8 +1170,8 @@ public class PlainOperationsTest extends OperationsTest {
         // given
         when(tokenHolders.labelTokens().getTokenById(anyInt())).thenReturn(new NamedToken("Label", 123));
         when(tokenHolders.propertyKeyTokens().getTokenById(anyInt())).thenReturn(new NamedToken("prop", 456));
-        SchemaDescriptor schema =
-                SchemaDescriptors.fulltext(NODE, this.schema.getEntityTokenIds(), this.schema.getPropertyIds());
+        SchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(
+                NODE, this.schema.getEntityTokenIds(), this.schema.getPropertyIds());
         IndexPrototype prototype = IndexPrototype.uniqueForSchema(schema)
                 .withName("constraint name")
                 .withIndexProvider(AllIndexProviderDescriptors.RANGE_DESCRIPTOR);
@@ -1186,7 +1186,7 @@ public class PlainOperationsTest extends OperationsTest {
 
         // when
         var e = assertThrows(KernelException.class, () -> operations.uniquePropertyConstraintCreate(prototype));
-        assertThat(e.getUserMessage(tokenHolders)).contains("full-text schema");
+        assertThat(e.getUserMessage(tokenHolders)).contains("semantic search schema");
     }
 
     @Test

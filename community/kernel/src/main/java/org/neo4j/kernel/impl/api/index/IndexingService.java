@@ -44,6 +44,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
@@ -394,18 +395,19 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
 
         // Wait for refresh
         Duration interval = config.get(FulltextSettings.eventually_consistent_refresh_interval);
-        if (!interval.isZero()) {
-            for (IndexProxy indexProxy : indexMapRef.getAllIndexProxies()) {
-                try {
-                    if (indexProxy.getDescriptor().schema().isFulltextSchemaDescriptor()) {
-                        indexProxy.refresh();
-                    }
-                } catch (IOException e) {
-                    throw new UncheckedIOException(e);
+        if (interval.isZero()) {
+            return; // refresh is done by the index update threads.
+        }
+
+        for (IndexProxy indexProxy : indexMapRef.getAllIndexProxies()) {
+            try {
+                if (indexProxy.getDescriptor().getIndexType() == IndexType.FULLTEXT) {
+                    indexProxy.refresh();
                 }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
         }
-        // else if the refresh interval is zero then refresh is done by the index update threads.
     }
 
     private void startEventuallyConsistentFulltextIndexRefreshThread() {
@@ -735,11 +737,17 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     @VisibleForTesting
     public void forceIndexState(String indexName, InternalIndexState state) {
         indexMapRef.modify(indexMap -> {
-            var descriptor = indexMap.getAllIndexProxies().stream()
-                    .map(IndexProxy::getDescriptor)
-                    .filter(id -> indexName.equals(id.getName()))
-                    .findFirst()
-                    .orElseThrow();
+            IndexDescriptor descriptor = null;
+            for (IndexProxy indexProxy : indexMap.getAllIndexProxies()) {
+                descriptor = indexProxy.getDescriptor();
+                if (descriptor.getName().equals(indexName)) {
+                    break;
+                }
+            }
+            if (descriptor == null) {
+                throw new NoSuchElementException("No index descriptor with name: " + indexName);
+            }
+
             indexMap.removeIndexProxy(descriptor.getId());
             indexMap.putIndexProxy(
                     switch (state) {

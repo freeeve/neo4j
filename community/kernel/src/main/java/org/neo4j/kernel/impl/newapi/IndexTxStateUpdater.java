@@ -40,6 +40,7 @@ import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
+import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.memory.MemoryTracker;
@@ -95,35 +96,37 @@ public class IndexTxStateUpdater {
         assert noSchemaChangedInTx();
 
         // Check all indexes of the changed label
-        if (!indexes.isEmpty()) {
-            MutableIntObjectMap<Value> materializedProperties = IntObjectMaps.mutable.empty();
-            for (IndexDescriptor index : indexes) {
-                MemoryTracker memoryTracker = txStateHolder.txState().memoryTracker();
-                if (stateBehaviour.useIndexCommands()
-                        && changeType == LabelChangeType.REMOVED_LABEL
-                        && index.schema().isFulltextSchemaDescriptor()
-                        && isFullTextStillCovered(node, removedLabelId, index)) {
-                    continue;
+        if (indexes.isEmpty()) {
+            return;
+        }
+
+        TransactionState txState = txStateHolder.txState();
+        MemoryTracker memoryTracker = txState.memoryTracker();
+        MutableIntObjectMap<Value> materializedProperties = IntObjectMaps.mutable.empty();
+        for (IndexDescriptor index : indexes) {
+            if (stateBehaviour.useIndexCommands()
+                    && changeType == LabelChangeType.REMOVED_LABEL
+                    && index.schema().isSemanticSearchSchemaDescriptor()
+                    && isMultiTokenIndexStillCovered(node, removedLabelId, index)) {
+                continue;
+            }
+            int[] indexPropertyIds = index.schema().getPropertyIds();
+            Value[] values = getValueTuple(
+                    node,
+                    propertyCursor,
+                    NO_SUCH_PROPERTY_KEY,
+                    NO_VALUE,
+                    indexPropertyIds,
+                    materializedProperties,
+                    memoryTracker);
+            ValueTuple valueTuple = ValueTuple.of(values);
+            memoryTracker.allocateHeap(valueTuple.getShallowSize());
+            switch (changeType) {
+                case ADDED_LABEL -> {
+                    indexingService.validateBeforeCommit(index, values, node.nodeReference());
+                    txState.indexDoUpdateEntry(index, node.nodeReference(), null, valueTuple);
                 }
-                int[] indexPropertyIds = index.schema().getPropertyIds();
-                Value[] values = getValueTuple(
-                        node,
-                        propertyCursor,
-                        NO_SUCH_PROPERTY_KEY,
-                        NO_VALUE,
-                        indexPropertyIds,
-                        materializedProperties,
-                        memoryTracker);
-                ValueTuple valueTuple = ValueTuple.of(values);
-                memoryTracker.allocateHeap(valueTuple.getShallowSize());
-                switch (changeType) {
-                    case ADDED_LABEL -> {
-                        indexingService.validateBeforeCommit(index, values, node.nodeReference());
-                        txStateHolder.txState().indexDoUpdateEntry(index, node.nodeReference(), null, valueTuple);
-                    }
-                    case REMOVED_LABEL ->
-                        txStateHolder.txState().indexDoUpdateEntry(index, node.nodeReference(), valueTuple, null);
-                }
+                case REMOVED_LABEL -> txState.indexDoUpdateEntry(index, node.nodeReference(), valueTuple, null);
             }
         }
     }
@@ -428,7 +431,7 @@ public class IndexTxStateUpdater {
         return values;
     }
 
-    private static boolean isFullTextStillCovered(NodeCursor node, int removedLabelId, IndexDescriptor index) {
+    private static boolean isMultiTokenIndexStillCovered(NodeCursor node, int removedLabelId, IndexDescriptor index) {
         int[] nodeLabels = node.labels().all();
         int[] entityTokenIds = index.schema().getEntityTokenIds();
         for (int nodeLabel : nodeLabels) {

@@ -43,10 +43,12 @@ class IndexMapTest {
     private final LabelSchemaDescriptor schema5_8 = SchemaDescriptors.forLabel(5, 8);
     private final IndexDescriptor index5_8 =
             forSchema(schema5_8).withName("index_3").materialise(3);
-    private final SchemaDescriptor node35_8 = SchemaDescriptors.fulltext(NODE, new int[] {3, 5}, new int[] {8});
+    private final SchemaDescriptor node35_8 =
+            SchemaDescriptors.forSemanticSearch(NODE, new int[] {3, 5}, new int[] {8});
     private final IndexDescriptor index_node35_8 =
             forSchema(node35_8).withName("index_4").materialise(4);
-    private final SchemaDescriptor rel35_8 = SchemaDescriptors.fulltext(RELATIONSHIP, new int[] {3, 5}, new int[] {8});
+    private final SchemaDescriptor rel35_8 =
+            SchemaDescriptors.forSemanticSearch(RELATIONSHIP, new int[] {3, 5}, new int[] {8});
     private final IndexDescriptor index_rel35_8 =
             forSchema(rel35_8).withName("index_5").materialise(5);
 

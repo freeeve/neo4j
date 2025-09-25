@@ -29,7 +29,7 @@ import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.imme
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.NODE_CURSOR;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.PROPERTY_CURSOR;
 import static org.neo4j.internal.recordstorage.RecordCursorTypes.RELATIONSHIP_CURSOR;
-import static org.neo4j.internal.schema.SchemaDescriptors.fulltext;
+import static org.neo4j.internal.schema.SchemaDescriptors.forSemanticSearch;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
@@ -54,10 +54,10 @@ import org.neo4j.internal.counts.GBPTreeGenericCountsStore;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.internal.recordstorage.Command.NodeCommand;
 import org.neo4j.internal.recordstorage.Command.PropertyCommand;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaCache;
+import org.neo4j.internal.schema.SemanticSearchSchemaDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
@@ -216,7 +216,8 @@ class OnlineIndexUpdatesTest {
         PropertyCommand propertyCommand = new PropertyCommand(
                 LATEST_LOG_SERIALIZATION, recordAccess.getIfLoaded(propertyId).forReadingData(), propertyBlocks);
 
-        IndexDescriptor indexDescriptor = IndexPrototype.forSchema(fulltext(NODE, ENTITY_TOKENS, new int[] {1, 4, 6}))
+        IndexDescriptor indexDescriptor = IndexPrototype.forSchema(
+                        forSemanticSearch(NODE, ENTITY_TOKENS, new int[] {1, 4, 6}))
                 .withName("index")
                 .materialise(0);
         createIndexes(indexDescriptor);
@@ -257,7 +258,7 @@ class OnlineIndexUpdatesTest {
                 LATEST_LOG_SERIALIZATION, recordAccess.getIfLoaded(propertyId).forReadingData(), propertyBlocks);
 
         IndexDescriptor indexDescriptor = IndexPrototype.forSchema(
-                        fulltext(RELATIONSHIP, ENTITY_TOKENS, new int[] {1, 4, 6}))
+                        forSemanticSearch(RELATIONSHIP, ENTITY_TOKENS, new int[] {1, 4, 6}))
                 .withName("index")
                 .materialise(0);
         createIndexes(indexDescriptor);
@@ -299,7 +300,7 @@ class OnlineIndexUpdatesTest {
                 nodePropertyBlocks);
 
         IndexDescriptor nodeIndexDescriptor = IndexPrototype.forSchema(
-                        fulltext(NODE, ENTITY_TOKENS, new int[] {1, 4, 6}))
+                        forSemanticSearch(NODE, ENTITY_TOKENS, new int[] {1, 4, 6}))
                 .withName("index")
                 .materialise(0);
         createIndexes(nodeIndexDescriptor);
@@ -322,7 +323,7 @@ class OnlineIndexUpdatesTest {
                 recordAccess.getIfLoaded(propertyId).forReadingData(),
                 relationshipPropertyBlocks);
 
-        FulltextSchemaDescriptor schema = fulltext(RELATIONSHIP, ENTITY_TOKENS, new int[] {1, 4, 6});
+        SemanticSearchSchemaDescriptor schema = forSemanticSearch(RELATIONSHIP, ENTITY_TOKENS, new int[] {1, 4, 6});
         IndexDescriptor relationshipIndexDescriptor =
                 IndexPrototype.forSchema(schema).withName("index").materialise(1);
         createIndexes(relationshipIndexDescriptor);
@@ -374,15 +375,15 @@ class OnlineIndexUpdatesTest {
                 LATEST_LOG_SERIALIZATION, recordAccess.getIfLoaded(propertyId2).forReadingData(), propertyBlocks2);
 
         IndexDescriptor indexDescriptor0 = IndexPrototype.forSchema(
-                        fulltext(RELATIONSHIP, ENTITY_TOKENS, new int[] {1, 4, 6}))
+                        forSemanticSearch(RELATIONSHIP, ENTITY_TOKENS, new int[] {1, 4, 6}))
                 .withName("index_0")
                 .materialise(0);
         IndexDescriptor indexDescriptor1 = IndexPrototype.forSchema(
-                        fulltext(RELATIONSHIP, ENTITY_TOKENS, new int[] {2, 4, 6}))
+                        forSemanticSearch(RELATIONSHIP, ENTITY_TOKENS, new int[] {2, 4, 6}))
                 .withName("index_1")
                 .materialise(1);
         IndexDescriptor indexDescriptor = IndexPrototype.forSchema(
-                        fulltext(RELATIONSHIP, new int[] {ENTITY_TOKEN, OTHER_ENTITY_TOKEN}, new int[] {1}))
+                        forSemanticSearch(RELATIONSHIP, new int[] {ENTITY_TOKEN, OTHER_ENTITY_TOKEN}, new int[] {1}))
                 .withName("index_2")
                 .materialise(2);
         createIndexes(indexDescriptor0, indexDescriptor1, indexDescriptor);

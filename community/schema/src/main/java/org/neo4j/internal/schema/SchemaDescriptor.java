@@ -52,16 +52,16 @@ public interface SchemaDescriptor {
     RelationTypeSchemaDescriptor asRelationshipTypeSchemaDescriptor();
 
     /**
-     * Test if this schema descriptor is a {@link FulltextSchemaDescriptor}.
-     * @return {@code true} if calling {@link #asFulltextSchemaDescriptor()} will not throw an exception.
+     * Test if this schema descriptor is a {@link SemanticSearchSchemaDescriptor}.
+     * @return {@code true} if calling {@link #asSemanticSearchSchemaDescritor()} will not throw an exception.
      */
-    boolean isFulltextSchemaDescriptor();
+    boolean isSemanticSearchSchemaDescriptor();
 
     /**
-     * If this schema descriptor matches the structure required by {@link FulltextSchemaDescriptor}, then return this descriptor as that type.
+     * If this schema descriptor matches the structure required by {@link SemanticSearchSchemaDescriptor}, then return this descriptor as that type.
      * Otherwise, throw an {@link IllegalStateException}.
      */
-    FulltextSchemaDescriptor asFulltextSchemaDescriptor();
+    SemanticSearchSchemaDescriptor asSemanticSearchSchemaDescritor();
 
     /**
      * Test if this schema descriptor is a {@link AnyTokenSchemaDescriptor}.

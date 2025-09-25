@@ -39,10 +39,10 @@ import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenWrite;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
+import org.neo4j.internal.schema.SemanticSearchSchemaDescriptor;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.exceptions.schema.RepeatedLabelInSchemaException;
@@ -195,7 +195,7 @@ public class NodeConstraintTest extends ConstraintTestBase<WriteTestSupport> {
         }
 
         // when
-        final FulltextSchemaDescriptor descriptor = SchemaDescriptors.fulltext(
+        final SemanticSearchSchemaDescriptor descriptor = SchemaDescriptors.forSemanticSearch(
                 org.neo4j.common.EntityType.NODE,
                 new int[] {labelId0, labelId1, labelId2, labelId1, labelId3},
                 new int[] {propId});
@@ -224,8 +224,8 @@ public class NodeConstraintTest extends ConstraintTestBase<WriteTestSupport> {
         }
 
         // when
-        final FulltextSchemaDescriptor descriptor =
-                SchemaDescriptors.fulltext(org.neo4j.common.EntityType.NODE, new int[] {labelId}, new int[] {
+        final SemanticSearchSchemaDescriptor descriptor =
+                SchemaDescriptors.forSemanticSearch(org.neo4j.common.EntityType.NODE, new int[] {labelId}, new int[] {
                     propId0, propId1, propId2, propId1, propId3
                 });
         // then

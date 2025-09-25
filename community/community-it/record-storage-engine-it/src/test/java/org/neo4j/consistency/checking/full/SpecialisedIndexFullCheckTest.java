@@ -487,12 +487,13 @@ class SpecialisedIndexFullCheckTest {
     class FullTextIndex extends TestBase {
         @Override
         SchemaDescriptor nodeIndexSchema(int labelId, int propKeyId) {
-            return SchemaDescriptors.fulltext(EntityType.NODE, new int[] {labelId}, new int[] {propKeyId});
+            return SchemaDescriptors.forSemanticSearch(EntityType.NODE, new int[] {labelId}, new int[] {propKeyId});
         }
 
         @Override
         SchemaDescriptor relIndexSchema(int relTypeId, int propKeyId) {
-            return SchemaDescriptors.fulltext(EntityType.RELATIONSHIP, new int[] {relTypeId}, new int[] {propKeyId});
+            return SchemaDescriptors.forSemanticSearch(
+                    EntityType.RELATIONSHIP, new int[] {relTypeId}, new int[] {propKeyId});
         }
 
         @Override

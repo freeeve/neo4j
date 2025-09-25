@@ -107,7 +107,7 @@ class IndexSizes {
         indexes.sort(Comparator.comparingLong(this::getEstimatedIndexSize).reversed());
         int threshold = 0;
         for (IndexDescriptor index : indexes) {
-            if (!index.schema().isFulltextSchemaDescriptor() && !hasValues(index)) {
+            if (!hasValues(index) && !index.schema().isSemanticSearchSchemaDescriptor()) {
                 // Skip those that we cannot read values from. They should not be checked by the IndexChecker,
                 // but the "inefficient" way of doing a lookup per node/index in NodeChecker instead
                 continue;
@@ -122,8 +122,7 @@ class IndexSizes {
     }
 
     static boolean hasValues(IndexDescriptor index) {
-        return index.getCapability().supportsReturningValues()
-                && !index.schema().isFulltextSchemaDescriptor();
+        return index.getCapability().supportsReturningValues();
     }
 
     private double getSizeFactor(IndexDescriptor index, EntityType entityType) {

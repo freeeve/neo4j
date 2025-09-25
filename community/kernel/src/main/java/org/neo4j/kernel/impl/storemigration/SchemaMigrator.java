@@ -419,8 +419,8 @@ public class SchemaMigrator {
         }
         boolean forNodes = EntityType.NODE.equals(schema.entityType());
 
-        // Fulltext is special and can have multiple entityTokens
-        if (schema.isFulltextSchemaDescriptor()) {
+        // Semantic search indexes are special and can have multiple entityTokens
+        if (schema.isSemanticSearchSchemaDescriptor()) {
             int[] entityTokenIds = schema.getEntityTokenIds();
             int[] newEntityTokenIds = new int[entityTokenIds.length];
             for (int i = 0; i < entityTokenIds.length; i++) {
@@ -430,7 +430,7 @@ public class SchemaMigrator {
                                 .relationshipTypeTokens()
                                 .getOrCreateId(tokenRead.relationshipTypeName(entityTokenIds[i]));
             }
-            return SchemaDescriptors.fulltext(schema.entityType(), newEntityTokenIds, newPropertyIds);
+            return SchemaDescriptors.forSemanticSearch(schema.entityType(), newEntityTokenIds, newPropertyIds);
         }
 
         if (forNodes) {

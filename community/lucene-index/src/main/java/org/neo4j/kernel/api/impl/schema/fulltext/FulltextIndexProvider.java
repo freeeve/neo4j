@@ -341,7 +341,7 @@ public class FulltextIndexProvider extends IndexProvider {
                     providerName,
                     "The '" + providerName + "' index provider only supports FULLTEXT index types: " + ref);
         }
-        if (!ref.schema().isFulltextSchemaDescriptor()) {
+        if (!ref.schema().isSemanticSearchSchemaDescriptor()) {
             throw InvalidArgumentException.invalidIndexInput(
                     ref.schema().toString(),
                     providerName,

@@ -47,12 +47,12 @@ class SchemaRuleTest {
     private final LabelSchemaDescriptor labelSchema = SchemaDescriptors.forLabel(1, 2, 3);
     private final LabelSchemaDescriptor labelSchema2 = SchemaDescriptors.forLabel(0, 0, 1);
     private final RelationTypeSchemaDescriptor relTypeSchema = SchemaDescriptors.forRelType(1, 2, 3);
-    private final FulltextSchemaDescriptor fulltextNodeSchema =
-            SchemaDescriptors.fulltext(NODE, new int[] {1, 2}, new int[] {1, 2});
-    private final FulltextSchemaDescriptor fulltextRelSchema =
-            SchemaDescriptors.fulltext(RELATIONSHIP, new int[] {1, 2}, new int[] {1, 2});
-    private final FulltextSchemaDescriptor fulltextNodeSchema2 =
-            SchemaDescriptors.fulltext(NODE, new int[] {0, 1}, new int[] {0, 1});
+    private final SemanticSearchSchemaDescriptor fulltextNodeSchema =
+            SchemaDescriptors.forSemanticSearch(NODE, new int[] {1, 2}, new int[] {1, 2});
+    private final SemanticSearchSchemaDescriptor fulltextRelSchema =
+            SchemaDescriptors.forSemanticSearch(RELATIONSHIP, new int[] {1, 2}, new int[] {1, 2});
+    private final SemanticSearchSchemaDescriptor fulltextNodeSchema2 =
+            SchemaDescriptors.forSemanticSearch(NODE, new int[] {0, 1}, new int[] {0, 1});
     private final AnyTokenSchemaDescriptor allLabelsSchema = ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR;
     private final AnyTokenSchemaDescriptor allRelTypesSchema = ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR;
     private final LabelSchemaDescriptor labelSinglePropSchema = SchemaDescriptors.forLabel(1, 2);
@@ -230,36 +230,36 @@ class SchemaRuleTest {
      */
     @Test
     void mustGenerateDeterministicNames() {
-        assertName(rangeLabelPrototype, "index_5b87d2c3");
-        assertName(rangeLabelUniquePrototype, "index_9d28ea5a");
-        assertName(rangeRelTypePrototype, "index_9e6d798a");
-        assertName(rangeRelTypeUniquePrototype, "index_44dad3fd");
-        assertName(nodeFtsPrototype, "index_a585279c");
-        assertName(relFtsPrototype, "index_61cf3bcd");
-        assertName(uniqueLabelConstraint, "constraint_696e08");
-        assertName(uniqueRelTypeConstraint, "constraint_f8b599ad");
-        assertName(existsLabelConstraint, "constraint_b757431a");
-        assertName(nodeKeyConstraint, "constraint_b9c6f39a");
-        assertName(relKeyConstraint, "constraint_1ee340ba");
-        assertName(existsRelTypeConstraint, "constraint_d73daf0a");
-        assertName(nodeTypeConstraintIntBool, "constraint_f37a6b9f");
-        assertName(nodeTypeConstraintBoolInt, "constraint_f37a6b9f");
-        assertName(nodeTypeConstraintBoolString, "constraint_c99ece6");
-        assertName(nodeTypeConstraintIntBool, "constraint_f37a6b9f");
-        assertName(nodeTypeConstraintBoolInt, "constraint_f37a6b9f");
-        assertName(relationshipEndpointLabelStartConstraint, "constraint_45a43ff5");
-        assertName(relationshipEndpointLabelStartAnotherLabelConstraint, "constraint_dc30653e");
-        assertName(relationshipEndpointLabelStartAnotherRelTypeConstraint, "constraint_22d39b8c");
-        assertName(relationshipEndpointLabelEndConstraint, "constraint_32fd396b");
-        assertName(nodeLabelExistenceConstraint, "constraint_e9e53eab");
-        assertName(nodeLabelExistenceAnotherConstrainedLabelConstraint, "constraint_29315144");
-        assertName(nodeLabelExistenceAnotherRequiredLabelConstraint, "constraint_e19ffddf");
-        assertName(allLabelsPrototype, "index_343aff4e");
-        assertName(allRelTypesPrototype, "index_f7700477");
-        assertName(textLabelPrototype, "index_19f9e602");
-        assertName(textRelTypePrototype, "index_1e2b31d");
-        assertName(pointLabelPrototype, "index_f083f269");
-        assertName(pointRelTypePrototype, "index_72cf76e2");
+        assertName(rangeLabelPrototype, "index_d1102d81");
+        assertName(rangeLabelUniquePrototype, "index_4bc572bd");
+        assertName(rangeRelTypePrototype, "index_5375b6a1");
+        assertName(rangeRelTypeUniquePrototype, "index_3d38ec3a");
+        assertName(nodeFtsPrototype, "index_43bd4380");
+        assertName(relFtsPrototype, "index_eda167c6");
+        assertName(uniqueLabelConstraint, "constraint_d68af99b");
+        assertName(uniqueRelTypeConstraint, "constraint_c289e715");
+        assertName(existsLabelConstraint, "constraint_a21dea66");
+        assertName(nodeKeyConstraint, "constraint_b902d068");
+        assertName(relKeyConstraint, "constraint_3e0cfb8a");
+        assertName(existsRelTypeConstraint, "constraint_e7fdd59c");
+        assertName(nodeTypeConstraintIntBool, "constraint_b63f02cc");
+        assertName(nodeTypeConstraintBoolInt, "constraint_b63f02cc");
+        assertName(nodeTypeConstraintBoolString, "constraint_d62f8724");
+        assertName(nodeTypeConstraintIntBool, "constraint_b63f02cc");
+        assertName(nodeTypeConstraintBoolInt, "constraint_b63f02cc");
+        assertName(relationshipEndpointLabelStartConstraint, "constraint_a91552f1");
+        assertName(relationshipEndpointLabelStartAnotherLabelConstraint, "constraint_71750c54");
+        assertName(relationshipEndpointLabelStartAnotherRelTypeConstraint, "constraint_1129c6f4");
+        assertName(relationshipEndpointLabelEndConstraint, "constraint_8fede701");
+        assertName(nodeLabelExistenceConstraint, "constraint_fbe5f296");
+        assertName(nodeLabelExistenceAnotherConstrainedLabelConstraint, "constraint_4a716cb0");
+        assertName(nodeLabelExistenceAnotherRequiredLabelConstraint, "constraint_baf79396");
+        assertName(allLabelsPrototype, "index_460996c0");
+        assertName(allRelTypesPrototype, "index_1b9dcc97");
+        assertName(textLabelPrototype, "index_5671d826");
+        assertName(textRelTypePrototype, "index_57d7e912");
+        assertName(pointLabelPrototype, "index_91c2db3");
+        assertName(pointRelTypePrototype, "index_48139637");
     }
 
     @Test

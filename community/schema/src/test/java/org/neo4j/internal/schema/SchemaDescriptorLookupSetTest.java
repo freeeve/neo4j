@@ -239,7 +239,7 @@ class SchemaDescriptorLookupSetTest {
         int numberOfPropertyKeys = random.nextInt(1, maxNumberOfPropertyKeys);
         int[] propertyKeys = randomUniqueUnsortedIntArray(highPropertyKeyId, numberOfPropertyKeys);
         return entityKeys.length > 1
-                ? SchemaDescriptors.fulltext(EntityType.NODE, entityKeys, propertyKeys)
+                ? SchemaDescriptors.forSemanticSearch(EntityType.NODE, entityKeys, propertyKeys)
                 : SchemaDescriptors.forLabel(entityKeys[0], propertyKeys);
     }
 

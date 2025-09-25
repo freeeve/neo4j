@@ -41,10 +41,10 @@ import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenWrite;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
+import org.neo4j.internal.schema.SemanticSearchSchemaDescriptor;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.exceptions.schema.RepeatedPropertyInSchemaException;
@@ -152,7 +152,7 @@ public class RelationshipConstraintTest extends ConstraintTestBase<WriteTestSupp
         }
 
         // when
-        final FulltextSchemaDescriptor descriptor = SchemaDescriptors.fulltext(
+        final SemanticSearchSchemaDescriptor descriptor = SchemaDescriptors.forSemanticSearch(
                 org.neo4j.common.EntityType.RELATIONSHIP,
                 new int[] {relTypeId0, relTypeId1, relTypeId2, relTypeId1, relTypeId3},
                 new int[] {propId});
@@ -181,10 +181,10 @@ public class RelationshipConstraintTest extends ConstraintTestBase<WriteTestSupp
         }
 
         // when
-        final FulltextSchemaDescriptor descriptor =
-                SchemaDescriptors.fulltext(org.neo4j.common.EntityType.RELATIONSHIP, new int[] {relTypeId}, new int[] {
-                    propId0, propId1, propId2, propId1, propId3
-                });
+        final SemanticSearchSchemaDescriptor descriptor = SchemaDescriptors.forSemanticSearch(
+                org.neo4j.common.EntityType.RELATIONSHIP,
+                new int[] {relTypeId},
+                new int[] {propId0, propId1, propId2, propId1, propId3});
         // then
         try (KernelTransaction tx = beginTransaction()) {
             var e = assertThrows(RepeatedPropertyInSchemaException.class, () -> tx.schemaWrite()

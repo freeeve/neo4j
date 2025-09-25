@@ -21,7 +21,7 @@ package org.neo4j.kernel.impl.index.schema;
 
 import static org.neo4j.internal.schema.IndexPrototype.forSchema;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
-import static org.neo4j.internal.schema.SchemaDescriptors.fulltext;
+import static org.neo4j.internal.schema.SchemaDescriptors.forSemanticSearch;
 import static org.neo4j.kernel.api.impl.index.storage.DirectoryFactory.directoryFactory;
 import static org.neo4j.kernel.impl.api.index.TestIndexProviderDescriptor.PROVIDER_DESCRIPTOR;
 
@@ -139,7 +139,7 @@ class VectorIndexProviderTest {
                     // Unsupported index types
                     forSchema(SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR)
                             .withName("unsupported"),
-                    forSchema(fulltext(EntityType.NODE, new int[] {labelId}, new int[] {propId}))
+                    forSchema(forSemanticSearch(EntityType.NODE, new int[] {labelId}, new int[] {propId}))
                             .withName("unsupported"),
                     forSchema(schemaDescriptor()).withIndexType(IndexType.POINT).withName("unsupported"),
                     forSchema(schemaDescriptor()).withIndexType(IndexType.TEXT).withName("unsupported"),
@@ -182,7 +182,7 @@ class VectorIndexProviderTest {
                     // Unsupported index types
                     forSchema(SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR)
                             .withName("unsupported"),
-                    forSchema(fulltext(EntityType.NODE, new int[] {labelId}, new int[] {propId}))
+                    forSchema(forSemanticSearch(EntityType.NODE, new int[] {labelId}, new int[] {propId}))
                             .withName("unsupported"),
                     forSchema(schemaDescriptor()).withIndexType(IndexType.POINT).withName("unsupported"),
                     forSchema(schemaDescriptor()).withIndexType(IndexType.TEXT).withName("unsupported"),
@@ -225,7 +225,7 @@ class VectorIndexProviderTest {
                     // Unsupported index types
                     forSchema(SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR)
                             .withName("unsupported"),
-                    forSchema(fulltext(EntityType.NODE, new int[] {labelId}, new int[] {propId}))
+                    forSchema(forSemanticSearch(EntityType.NODE, new int[] {labelId}, new int[] {propId}))
                             .withName("unsupported"),
                     forSchema(schemaDescriptor()).withIndexType(IndexType.POINT).withName("unsupported"),
                     forSchema(schemaDescriptor()).withIndexType(IndexType.TEXT).withName("unsupported"),

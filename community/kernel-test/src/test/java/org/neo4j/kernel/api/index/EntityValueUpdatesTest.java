@@ -101,7 +101,7 @@ class EntityValueUpdatesTest {
     private static final List<IndexDescriptor> NODE_INDEXES =
             Arrays.asList(NODE_INDEX_1, NODE_INDEX_2, NODE_INDEX_3, NODE_INDEX_123);
     private static final IndexDescriptor NON_SCHEMA_NODE_INDEX = IndexPrototype.forSchema(
-                    SchemaDescriptors.fulltext(EntityType.NODE, new int[] {TOKEN_ID_1, TOKEN_ID_2}, new int[] {
+                    SchemaDescriptors.forSemanticSearch(EntityType.NODE, new int[] {TOKEN_ID_1, TOKEN_ID_2}, new int[] {
                         PROPERTY_KEY_ID_1, PROPERTY_KEY_ID_2, PROPERTY_KEY_ID_3
                     }))
             .withName("index_5")
@@ -825,7 +825,7 @@ class EntityValueUpdatesTest {
                     .withName("index_4")
                     .materialise(4);
             private final List<IndexDescriptor> indexes = Arrays.asList(index1, index2, index3, index123);
-            private final IndexDescriptor nonSchemaIndex = IndexPrototype.forSchema(SchemaDescriptors.fulltext(
+            private final IndexDescriptor nonSchemaIndex = IndexPrototype.forSchema(SchemaDescriptors.forSemanticSearch(
                             EntityType.RELATIONSHIP,
                             new int[] {TOKEN_ID_1, TOKEN_ID_2},
                             new int[] {PROPERTY_KEY_ID_1, PROPERTY_KEY_ID_2, PROPERTY_KEY_ID_3}))

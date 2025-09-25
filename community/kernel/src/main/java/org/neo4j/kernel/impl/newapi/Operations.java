@@ -196,6 +196,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private final boolean dependentConstraintsEnabled;
     private final boolean relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled;
     private final boolean alwaysUseLatestIndexProvider;
+    private final boolean singleStageFilteringEnabled;
     private final TransactionStateBehaviour transactionStateBehaviour;
     private DefaultNodeCursor nodeCursor;
     private NodeCursor restrictedNodeCursor;
@@ -247,6 +248,8 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         this.relationshipEndpointLabelAndNodeLabelExistenceConstraintsEnabled = config.get(
                 GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints);
         this.alwaysUseLatestIndexProvider = config.get(GraphDatabaseInternalSettings.always_use_latest_index_provider);
+        this.singleStageFilteringEnabled =
+                config.get(GraphDatabaseInternalSettings.vector_single_stage_filtering_enabled);
         this.transactionStateBehaviour = transactionStateBehaviour;
     }
 
@@ -1663,24 +1666,25 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         prototype = decideIndexProvider(prototype);
 
         // valid schema checks
-        final var indexType = prototype.getIndexType();
+        final SchemaDescriptor schema = prototype.schema();
+        final IndexType indexType = prototype.getIndexType();
         if (indexType == IndexType.VECTOR) {
-            switch (prototype.schema().entityType()) {
+            switch (schema.entityType()) {
                 case NODE -> {
-                    IndexProviderDescriptor descriptor = prototype.getIndexProvider();
-                    VectorIndexVersion version = VectorIndexVersion.fromDescriptor(descriptor);
+                    final IndexProviderDescriptor descriptor = prototype.getIndexProvider();
+                    final VectorIndexVersion version = VectorIndexVersion.fromDescriptor(descriptor);
                     assertSupportedInVersion(
                             version.minimumRequiredKernelVersion(), "Failed to create node vector index.");
                 }
                 case RELATIONSHIP -> {
                     boolean supported = true;
-                    final var descriptor = prototype.getIndexProvider();
-                    final var version = VectorIndexVersion.fromDescriptor(descriptor);
-                    final var unsupportedMessage =
+                    final IndexProviderDescriptor descriptor = prototype.getIndexProvider();
+                    final VectorIndexVersion version = VectorIndexVersion.fromDescriptor(descriptor);
+                    final StringBuilder unsupportedMessage =
                             new StringBuilder().append("Failed to create relationship vector index.");
                     if (version == VectorIndexVersion.V1_0) {
                         supported = false;
-                        final var latestDescriptor = VectorIndexVersion.latestSupportedVersion(
+                        final IndexProviderDescriptor latestDescriptor = VectorIndexVersion.latestSupportedVersion(
                                         dbmsRuntimeVersionProvider.getVersion().kernelVersion())
                                 .descriptor();
                         unsupportedMessage
@@ -1704,12 +1708,21 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     }
                 }
             }
+
+            if (singleStageFilteringEnabled
+                    && (schema.getEntityTokenIds().length > 1 || schema.getPropertyIds().length > 1)) {
+                assertSupportedInVersion(
+                        KernelVersion.VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING,
+                        "Failed to create metadata filter vector index.");
+            }
         }
 
-        assertValidDescriptor(prototype.schema(), INDEX_CREATION);
+        assertValidDescriptor(schema, INDEX_CREATION);
 
-        if ((indexType == IndexType.TEXT || indexType == IndexType.POINT || indexType == IndexType.VECTOR)
-                && prototype.schema().getPropertyIds().length > 1) {
+        if ((indexType == IndexType.TEXT
+                        || indexType == IndexType.POINT
+                        || indexType == IndexType.VECTOR && !singleStageFilteringEnabled)
+                && schema.getPropertyIds().length > 1) {
             throw new UnsupportedOperationException(
                     "Composite indexes are not supported for " + indexType.name() + " index type.");
         }
@@ -1732,7 +1745,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         // ensure named
         prototype = ensureIndexPrototypeHasName(prototype);
-        final var name = prototype.getName().orElseThrow();
+        final String name = prototype.getName().orElseThrow();
 
         // take locks
         ktx.assertOpen();
@@ -2781,11 +2794,11 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint, token, "Cannot create backing constraint index with index type " + indexType + ".");
             }
-            if (prototype.schema().isFulltextSchemaDescriptor()) {
+            if (prototype.schema().isSemanticSearchSchemaDescriptor()) {
                 throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint,
                         token,
-                        "Cannot create backing constraint index using a full-text schema: "
+                        "Cannot create backing constraint index using a semantic search schema: "
                                 + prototype.schema().userDescription(token));
             }
             if (prototype.schema().isAnyTokenSchemaDescriptor()) {

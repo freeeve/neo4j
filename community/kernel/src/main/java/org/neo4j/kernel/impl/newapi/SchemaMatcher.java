@@ -62,7 +62,7 @@ public class SchemaMatcher {
         while (schemaSuppliers.hasNext()) {
             SUPPLIER schemaSupplier = schemaSuppliers.next();
             SchemaDescriptor schema = schemaSupplier.schema();
-            if (stateBehaviour.useIndexCommands() && schema.isFulltextSchemaDescriptor()) {
+            if (stateBehaviour.useIndexCommands() && schema.isSemanticSearchSchemaDescriptor()) {
                 if (contains(schema.getPropertyIds(), specialPropertyId) || specialPropertyId < 0) {
                     callback.accept(schemaSupplier);
                 }

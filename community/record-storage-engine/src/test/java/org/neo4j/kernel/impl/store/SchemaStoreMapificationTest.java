@@ -40,13 +40,13 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.exceptions.schema.MalformedSchemaRuleException;
 import org.neo4j.internal.recordstorage.RandomSchema;
 import org.neo4j.internal.schema.ConstraintDescriptor;
-import org.neo4j.internal.schema.FulltextSchemaDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.RelationTypeSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaRule;
+import org.neo4j.internal.schema.SemanticSearchSchemaDescriptor;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
 import org.neo4j.internal.schema.constraints.SchemaValueType;
@@ -59,10 +59,10 @@ class SchemaStoreMapificationTest {
 
     private final LabelSchemaDescriptor labelSchema = SchemaDescriptors.forLabel(1, 2, 3);
     private final RelationTypeSchemaDescriptor relTypeSchema = SchemaDescriptors.forRelType(1, 2, 3);
-    private final FulltextSchemaDescriptor fulltextNodeSchema =
-            SchemaDescriptors.fulltext(NODE, new int[] {1, 2}, new int[] {1, 2});
-    private final FulltextSchemaDescriptor fulltextRelSchema =
-            SchemaDescriptors.fulltext(RELATIONSHIP, new int[] {1, 2}, new int[] {1, 2});
+    private final SemanticSearchSchemaDescriptor fulltextNodeSchema =
+            SchemaDescriptors.forSemanticSearch(NODE, new int[] {1, 2}, new int[] {1, 2});
+    private final SemanticSearchSchemaDescriptor fulltextRelSchema =
+            SchemaDescriptors.forSemanticSearch(RELATIONSHIP, new int[] {1, 2}, new int[] {1, 2});
     private final IndexProviderDescriptor tree = new IndexProviderDescriptor("range", "1.0");
     private final IndexProviderDescriptor fts = new IndexProviderDescriptor("fulltext", "1.0");
     private final IndexDescriptor labelIndex =

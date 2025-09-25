@@ -238,7 +238,7 @@ class FulltextIndexProviderTest {
     void createAndRetainRelationshipFulltextIndex() throws Exception {
         IndexDescriptor indexReference;
         try (KernelTransactionImplementation transaction = getKernelTransaction()) {
-            SchemaDescriptor schema = SchemaDescriptors.fulltext(
+            SchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(
                     EntityType.RELATIONSHIP,
                     new int[] {labelIdHej, labelIdHa, labelIdHe},
                     new int[] {propIdHej, propIdHa, propIdHe, propIdHo});
@@ -270,7 +270,7 @@ class FulltextIndexProviderTest {
     void createAndQueryFulltextRelationshipIndex() throws Exception {
         IndexDescriptor indexReference;
         try (KernelTransactionImplementation transaction = getKernelTransaction()) {
-            SchemaDescriptor schema = SchemaDescriptors.fulltext(
+            SchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(
                     EntityType.RELATIONSHIP,
                     new int[] {labelIdHej, labelIdHa, labelIdHe},
                     new int[] {propIdHej, propIdHa, propIdHe, propIdHo});
@@ -512,7 +512,8 @@ class FulltextIndexProviderTest {
         long indexId;
         try (KernelTransactionImplementation transaction = getKernelTransaction()) {
             int[] propertyIds = {propIdHa};
-            SchemaDescriptor schema = SchemaDescriptors.fulltext(EntityType.NODE, new int[] {labelIdHa}, propertyIds);
+            SchemaDescriptor schema =
+                    SchemaDescriptors.forSemanticSearch(EntityType.NODE, new int[] {labelIdHa}, propertyIds);
             IndexPrototype prototype =
                     IndexPrototype.forSchema(schema).withIndexType(FULLTEXT).withName(NAME);
             SchemaWrite schemaWrite = transaction.schemaWrite();
@@ -849,7 +850,7 @@ class FulltextIndexProviderTest {
             throws KernelException {
         IndexDescriptor fulltext;
         try (KernelTransactionImplementation transaction = getKernelTransaction()) {
-            SchemaDescriptor schema = SchemaDescriptors.fulltext(entityType, entityTokens, propertyIds);
+            SchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(entityType, entityTokens, propertyIds);
             IndexConfig config = IndexConfig.with(FulltextIndexSettingsKeys.ANALYZER, Values.stringValue(analyzer))
                     .withIfAbsent(FulltextIndexSettingsKeys.EVENTUALLY_CONSISTENT, Values.of(eventuallyConsistent));
             IndexPrototype prototype = IndexPrototype.forSchema(

@@ -57,12 +57,12 @@ class NoSchemaDescriptor implements SchemaDescriptor {
     }
 
     @Override
-    public boolean isFulltextSchemaDescriptor() {
+    public boolean isSemanticSearchSchemaDescriptor() {
         return false;
     }
 
     @Override
-    public FulltextSchemaDescriptor asFulltextSchemaDescriptor() {
+    public SemanticSearchSchemaDescriptor asSemanticSearchSchemaDescritor() {
         throw new IllegalStateException("NO_SCHEMA cannot be cast to a FulltextSchemaDescriptor.");
     }
 

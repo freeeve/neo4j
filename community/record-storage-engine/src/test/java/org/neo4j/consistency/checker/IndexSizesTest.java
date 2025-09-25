@@ -174,9 +174,11 @@ class IndexSizesTest {
     void shouldTreatFulltextAsLargeEvenThoughHasNoValueCapability(EntityType entityType) throws Exception {
         // given
         int highId = entityType == NODE ? highNodeId : highRelationshipId;
-        indexes.add(IndexPrototype.forSchema(SchemaDescriptors.fulltext(entityType, new int[] {1}, new int[] {2}))
-                .withName("foobar")
-                .materialise(highId / 2) /*w/o value capability*/);
+        indexes.add(
+                IndexPrototype.forSchema(SchemaDescriptors.forSemanticSearch(entityType, new int[] {1}, new int[] {2}))
+                        .withName("foobar")
+                        .withIndexType(IndexType.FULLTEXT)
+                        .materialise(highId / 2) /*w/o value capability*/);
         sizes.initialize();
 
         // when/then
@@ -188,9 +190,10 @@ class IndexSizesTest {
     @EnumSource(EntityType.class)
     void shouldTreatSmallFulltextAsSmall(EntityType entityType) throws Exception {
         // given
-        indexes.add(IndexPrototype.forSchema(SchemaDescriptors.fulltext(entityType, new int[] {1}, new int[] {2}))
-                .withName("foobar")
-                .materialise(1) /*w/o value capability*/);
+        indexes.add(
+                IndexPrototype.forSchema(SchemaDescriptors.forSemanticSearch(entityType, new int[] {1}, new int[] {2}))
+                        .withName("foobar")
+                        .materialise(1) /*w/o value capability*/);
         sizes.initialize();
 
         // when/then

@@ -32,7 +32,7 @@ import static org.neo4j.internal.schema.IndexDescriptor.NO_INDEX;
 import static org.neo4j.internal.schema.IndexPrototype.uniqueForSchema;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
 import static org.neo4j.internal.schema.SchemaDescriptors.forRelType;
-import static org.neo4j.internal.schema.SchemaDescriptors.fulltext;
+import static org.neo4j.internal.schema.SchemaDescriptors.forSemanticSearch;
 
 import java.util.Iterator;
 import org.junit.jupiter.api.Assertions;
@@ -1527,10 +1527,10 @@ public abstract class SchemaReadWriteTestBase<G extends KernelAPIWriteTestSuppor
                                 IndexPrototype.forSchema(forLabel(label, prop1)).withName("a"));
                 overlapping
                         .schemaWrite()
-                        .indexCreate(
-                                IndexPrototype.forSchema(fulltext(RELATIONSHIP, new int[] {type}, new int[] {prop2}))
-                                        .withIndexType(IndexType.FULLTEXT)
-                                        .withName("b"));
+                        .indexCreate(IndexPrototype.forSchema(
+                                        forSemanticSearch(RELATIONSHIP, new int[] {type}, new int[] {prop2}))
+                                .withIndexType(IndexType.FULLTEXT)
+                                .withName("b"));
                 overlapping.commit();
             }
 

@@ -390,8 +390,8 @@ class IndexIT extends KernelIntegrationTest {
     void shouldListMultiTokenIndexesInTheCoreAPI() throws Exception {
         KernelTransaction transaction = newTransaction(AUTH_DISABLED);
         long initialIndexCount = Iterators.count(transaction.schemaRead().indexesGetAll());
-        SchemaDescriptor schema =
-                SchemaDescriptors.fulltext(EntityType.NODE, new int[] {labelId, labelId2}, new int[] {propertyKeyId});
+        SchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(
+                EntityType.NODE, new int[] {labelId, labelId2}, new int[] {propertyKeyId});
         IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_V2_DESCRIPTOR)
                 .withIndexType(IndexType.FULLTEXT)
                 .withName("multi token index");
@@ -469,7 +469,7 @@ class IndexIT extends KernelIntegrationTest {
     void shouldListCompositeMultiTokenRelationshipIndexesInTheCoreAPI() throws Exception {
         KernelTransaction transaction = newTransaction(AUTH_DISABLED);
         long initialIndexCount = Iterators.count(transaction.schemaRead().indexesGetAll());
-        SchemaDescriptor schema = SchemaDescriptors.fulltext(
+        SchemaDescriptor schema = SchemaDescriptors.forSemanticSearch(
                 EntityType.RELATIONSHIP, new int[] {relType, relType2}, new int[] {propertyKeyId, propertyKeyId2});
         IndexPrototype prototype = IndexPrototype.forSchema(schema, AllIndexProviderDescriptors.FULLTEXT_V1_DESCRIPTOR)
                 .withIndexType(IndexType.FULLTEXT)

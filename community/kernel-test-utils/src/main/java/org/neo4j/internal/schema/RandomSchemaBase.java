@@ -115,15 +115,16 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
                     default -> throw new RuntimeException("Bad index choice: " + choice);
                 };
 
-        boolean isUnique = rng.nextBoolean() && !schema.isFulltextSchemaDescriptor();
+        boolean isUnique = rng.nextBoolean() && !schema.isSemanticSearchSchemaDescriptor();
         IndexPrototype prototype = isUnique ? IndexPrototype.uniqueForSchema(schema) : IndexPrototype.forSchema(schema);
 
         IndexProviderDescriptor providerDescriptor = new IndexProviderDescriptor(nextName(), nextName());
         prototype = prototype.withIndexProvider(providerDescriptor);
 
         prototype = prototype.withName(nextName());
-        if (schema.isFulltextSchemaDescriptor()) {
-            prototype = prototype.withIndexType(IndexType.FULLTEXT);
+        if (schema.isSemanticSearchSchemaDescriptor()) {
+            IndexType indexType = IndexType.FULLTEXT;
+            prototype = prototype.withIndexType(indexType);
         }
 
         long ruleId = nextRuleIdForIndex();
@@ -237,11 +238,11 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
     }
 
     public SchemaDescriptor nextNodeFulltextSchema() {
-        return SchemaDescriptors.fulltext(EntityType.NODE, nextLabelIdsArray(), nextPropertyKeyIdsArray());
+        return SchemaDescriptors.forSemanticSearch(EntityType.NODE, nextLabelIdsArray(), nextPropertyKeyIdsArray());
     }
 
     public SchemaDescriptor nextRelationshipFulltextSchema() {
-        return SchemaDescriptors.fulltext(
+        return SchemaDescriptors.forSemanticSearch(
                 EntityType.RELATIONSHIP, nextRelationTypeIdsArray(), nextPropertyKeyIdsArray());
     }
 

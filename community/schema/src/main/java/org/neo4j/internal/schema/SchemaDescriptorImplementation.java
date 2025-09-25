@@ -39,7 +39,7 @@ public final class SchemaDescriptorImplementation
         implements SchemaDescriptor,
                 LabelSchemaDescriptor,
                 RelationTypeSchemaDescriptor,
-                FulltextSchemaDescriptor,
+                SemanticSearchSchemaDescriptor,
                 AnyTokenSchemaDescriptor,
                 RelationshipEndpointLabelSchemaDescriptor,
                 NodeLabelExistenceSchemaDescriptor {
@@ -199,12 +199,12 @@ public final class SchemaDescriptorImplementation
     }
 
     @Override
-    public boolean isFulltextSchemaDescriptor() {
+    public boolean isSemanticSearchSchemaDescriptor() {
         return schemaArchetype == SchemaArchetype.MULTI_TOKEN;
     }
 
     @Override
-    public FulltextSchemaDescriptor asFulltextSchemaDescriptor() {
+    public SemanticSearchSchemaDescriptor asSemanticSearchSchemaDescritor() {
         if (schemaArchetype != SchemaArchetype.MULTI_TOKEN) {
             throw cannotCastException("FulltextSchemaDescriptor");
         }
@@ -320,16 +320,18 @@ public final class SchemaDescriptorImplementation
         if (!(o instanceof SchemaDescriptor that)) {
             return false;
         }
-        return entityType == that.entityType()
-                && schemaPatternMatchingType == that.schemaPatternMatchingType()
-                && Arrays.equals(entityTokens, that.getEntityTokenIds())
-                && Arrays.equals(propertyKeyIds, that.getPropertyIds());
+        return this.entityType == that.entityType()
+                && effectiveSchemaPatternMatchingTypeFeature(this.schemaPatternMatchingType, this.propertyKeyIds)
+                        == effectiveSchemaPatternMatchingTypeFeature(
+                                that.schemaPatternMatchingType(), that.getPropertyIds())
+                && Arrays.equals(this.entityTokens, that.getEntityTokenIds())
+                && Arrays.equals(this.propertyKeyIds, that.getPropertyIds());
     }
 
     @Override
     public int hashCode() {
         int result = entityType.hashCode();
-        result = 31 * result + schemaPatternMatchingType.hashCode();
+        result = 31 * result + effectiveSchemaPatternMatchingTypeFeature(schemaPatternMatchingType, propertyKeyIds);
         result = 31 * result + Arrays.hashCode(entityTokens);
         result = 31 * result + Arrays.hashCode(propertyKeyIds);
         return result;
@@ -338,6 +340,21 @@ public final class SchemaDescriptorImplementation
     @Override
     public String toString() {
         return userDescription(TOKEN_ID_NAME_LOOKUP);
+    }
+
+    /// For single property keys [SchemaPatternMatchingType#COMPLETE_ALL_TOKENS] and
+    /// [SchemaPatternMatchingType#PARTIAL_ANY_TOKEN] are equivalent.
+    static int effectiveSchemaPatternMatchingTypeFeature(
+            SchemaPatternMatchingType schemaPatternMatchingType, int... propertyKeyIds) {
+        return shouldMatchSinglePropertyKey(schemaPatternMatchingType, propertyKeyIds)
+                ? 1 << COMPLETE_ALL_TOKENS.ordinal() | 1 << PARTIAL_ANY_TOKEN.ordinal()
+                : 1 << schemaPatternMatchingType.ordinal();
+    }
+
+    private static boolean shouldMatchSinglePropertyKey(
+            SchemaPatternMatchingType schemaPatternMatchingType, int... propertyKeyIds) {
+        return propertyKeyIds.length == 1
+                && (schemaPatternMatchingType == COMPLETE_ALL_TOKENS || schemaPatternMatchingType == PARTIAL_ANY_TOKEN);
     }
 
     /**

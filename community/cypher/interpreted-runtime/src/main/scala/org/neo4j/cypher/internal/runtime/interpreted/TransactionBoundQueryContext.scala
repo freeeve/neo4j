@@ -286,7 +286,7 @@ sealed class TransactionBoundQueryContext(
     provider: Option[IndexProviderDescriptor],
     indexConfig: IndexConfig
   ): IndexDescriptor = {
-    val descriptor = SchemaDescriptors.fulltext(entityType, entityIds.toArray, propertyKeyIds.toArray)
+    val descriptor = SchemaDescriptors.forSemanticSearch(entityType, entityIds.toArray, propertyKeyIds.toArray)
     val prototype =
       provider.map(p => IndexPrototype.forSchema(descriptor, p)).getOrElse(IndexPrototype.forSchema(descriptor))
         .withIndexType(IndexType.FULLTEXT)
@@ -943,7 +943,7 @@ private[internal] class TransactionBoundReadQueryContext(
     entityType: EntityType,
     properties: Int*
   ): IndexDescriptor = {
-    val descriptor = SchemaDescriptors.fulltext(entityType, entityIds.toArray, properties.toArray)
+    val descriptor = SchemaDescriptors.forSemanticSearch(entityType, entityIds.toArray, properties.toArray)
     Iterators.single(transactionalContext.schemaRead.index(descriptor))
   }
 
