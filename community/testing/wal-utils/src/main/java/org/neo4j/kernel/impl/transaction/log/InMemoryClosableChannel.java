@@ -225,6 +225,16 @@ public class InMemoryClosableChannel
     }
 
     @Override
+    public int directRead(ByteBuffer dst) throws IOException {
+        return read(dst);
+    }
+
+    @Override
+    public long alignWithStartEntry() throws IOException {
+        return reader.alignWithStartEntry();
+    }
+
+    @Override
     public int endChecksumAndValidate() throws IOException {
         return reader.endChecksumAndValidate();
     }
@@ -489,6 +499,16 @@ public class InMemoryClosableChannel
         @Override
         public boolean rewindAfterMarkAndGetVersion() {
             return currentVersion.isLessThan(VERSION_ENVELOPED_TRANSACTION_LOGS_GUARANTEED);
+        }
+
+        @Override
+        public int directRead(ByteBuffer dst) throws IOException {
+            return read(dst);
+        }
+
+        @Override
+        public long alignWithStartEntry() {
+            return position();
         }
 
         @Override

@@ -90,6 +90,16 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     }
 
     @Override
+    public int directRead(ByteBuffer dst) throws IOException {
+        return delegate.directRead(dst);
+    }
+
+    @Override
+    public long alignWithStartEntry() throws IOException {
+        return delegate.alignWithStartEntry();
+    }
+
+    @Override
     public LogPositionMarker getCurrentLogPosition(LogPositionMarker positionMarker) throws IOException {
         return delegate.getCurrentLogPosition(positionMarker);
     }

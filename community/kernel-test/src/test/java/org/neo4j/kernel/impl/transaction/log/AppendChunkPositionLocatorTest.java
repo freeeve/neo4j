@@ -78,6 +78,7 @@ class AppendChunkPositionLocatorTest {
     @Test
     void findLogPositionByStartAppendIndex() throws IOException {
         when(channel.getCurrentLogPosition()).thenReturn(BEFORE_START);
+        when(channel.alignWithStartEntry()).thenReturn(BEFORE_START.getByteOffset());
         when(logEntryReader.readLogEntry(channel)).thenReturn(START, COMMAND, COMMIT, null);
 
         final var locator = new AppendedChunkPositionLocator(APPEND_INDEX, logEntryReader);
@@ -89,6 +90,7 @@ class AppendChunkPositionLocatorTest {
     @Test
     void findLogPositionByChunkStartAppendIndex() throws IOException {
         when(channel.getCurrentLogPosition()).thenReturn(BEFORE_START);
+        when(channel.alignWithStartEntry()).thenReturn(BEFORE_START.getByteOffset());
         when(logEntryReader.readLogEntry(channel)).thenReturn(CHUNK_START, COMMAND, COMMIT, null);
 
         final var locator = new AppendedChunkPositionLocator(APPEND_INDEX, logEntryReader);
@@ -100,6 +102,7 @@ class AppendChunkPositionLocatorTest {
     @Test
     void findLogPositionByRollbackAppendIndex() throws IOException {
         when(channel.getCurrentLogPosition()).thenReturn(BEFORE_START);
+        when(channel.alignWithStartEntry()).thenReturn(BEFORE_START.getByteOffset());
         when(logEntryReader.readLogEntry(channel)).thenReturn(ROLLBACK, (LogEntry) null);
 
         final var locator = new AppendedChunkPositionLocator(APPEND_INDEX, logEntryReader);

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import org.neo4j.io.fs.ReadableChannel;
 
 public interface ReadableLogPositionAwareChannel extends ReadableChannel, LogPositionAwareChannel {
@@ -42,4 +43,25 @@ public interface ReadableLogPositionAwareChannel extends ReadableChannel, LogPos
     default boolean rewindAfterMarkAndGetVersion() {
         return true;
     }
+
+    /**
+     * Reads raw byte data from the channel into the provided buffer
+     * including any headers, or other elided data that would not
+     * normally be visible using read
+     *
+     * @param dst buffer to copy data into
+     * @return The number of bytes read, possibly zero, or -1 if the channel has reached end-of-stream
+     * @throws IOException if unable to read the channel for data
+     */
+    int directRead(ByteBuffer dst) throws IOException;
+
+    /**
+     * Move chanel position forward to the next full entry start. This is a no op on
+     * non-enveloped channels, but on enveloped files may even require bridging across several files
+     *
+     * @return byte offset within current log file that should be used to seek to the entry in the future.
+     * N.B. This may differ from the value returned by position() as that may include headers skipped over.
+     * @throws IOException if unable to alter channel position
+     */
+    long alignWithStartEntry() throws IOException;
 }

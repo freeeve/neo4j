@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.neo4j.io.fs.ReadAheadChannel;
 import org.neo4j.io.fs.StoreChannel;
@@ -103,6 +104,16 @@ public class ReadAheadLogChannel extends ReadAheadChannel<LogVersionedStoreChann
             marker.mark(channel.getLogVersion(), position() - Byte.BYTES);
         }
         return data;
+    }
+
+    @Override
+    public int directRead(ByteBuffer dst) throws IOException {
+        return read(dst);
+    }
+
+    @Override
+    public long alignWithStartEntry() throws IOException {
+        return position();
     }
 
     @Override

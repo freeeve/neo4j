@@ -201,6 +201,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
      *
      * @return starting position of the start entry, or end of the last entry if there are no start entries to be found
      */
+    @Override
     public long alignWithStartEntry() throws IOException {
         try {
             if (payloadType == null) {
@@ -412,17 +413,15 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
     public byte markAndGetVersion(LogPositionMarker marker) throws IOException {
         // initialise the marker in case the channel is empty or already at the correct position
         getCurrentLogPosition(marker);
-        if (checkForEndOfEnvelope()) {
-            readEnvelopeHeader();
-        }
 
-        checkState(payloadVersion != IGNORE_KERNEL_VERSION, "Could not find a valid envelope header.");
+        byte versionByte = getVersion();
+        checkState(versionByte != IGNORE_KERNEL_VERSION, "Could not find a valid envelope header.");
 
         if (!marker.isMarkerInLog(channel.getLogVersion())) {
             // reading the header forced the channel to move to the next log - let's re-mark at the correct location
             marker.mark(channel.getLogVersion(), position() - HEADER_SIZE);
         }
-        return payloadVersion;
+        return versionByte;
     }
 
     @Override
@@ -1011,6 +1010,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return length;
     }
 
+    @Override
     public int directRead(ByteBuffer dst) throws IOException {
         // Skip all the envelope handling
         int length = dst.remaining();

@@ -28,7 +28,6 @@ import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
-import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.memory.EmptyMemoryTracker;
 
 public class TailUtils {
@@ -57,11 +56,7 @@ public class TailUtils {
             boolean endReached = false;
             do {
                 try {
-                    if (channel instanceof EnvelopeReadChannel envelopeReadChannel) {
-                        envelopeReadChannel.directRead(buffer);
-                    } else {
-                        channel.read(buffer);
-                    }
+                    channel.directRead(buffer);
                 } catch (ReadPastEndException ee) {
                     // end of the file is encountered while checking ahead we ignore that and checking as much data as
                     // we got

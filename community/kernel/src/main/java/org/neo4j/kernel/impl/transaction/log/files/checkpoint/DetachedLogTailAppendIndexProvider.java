@@ -38,7 +38,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
-import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -100,9 +99,7 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
                     }
                     try (var reader =
                             logFile.getReader(logFileStartPosition, ReaderLogVersionBridge.forFile(logFile))) {
-                        if (reader instanceof EnvelopeReadChannel envelopeReadChannel) {
-                            envelopeReadChannel.alignWithStartEntry();
-                        }
+                        reader.alignWithStartEntry();
                         try (var cursor = new LogEntryCursor(logEntryReader, reader)) {
                             while (cursor.next()) {
                                 var entry = cursor.get();

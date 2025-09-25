@@ -33,7 +33,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
-import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -98,16 +97,12 @@ public class TransactionLogFileInformation implements LogFileInformation {
                 if (logHeader != null) {
                     LogPosition position = logHeader.getStartPosition();
                     try (ReadableLogChannel channel = logFile.getRawReader(position)) {
-                        // Use instanceof rather than logHeader.getLogFormatVersion().usesSegments()
-                        // as this interacts better with mocked channels
-                        if (channel instanceof EnvelopeReadChannel envelopeReadChannel) {
-                            try {
-                                // Make sure we look at the beginning of a transaction
-                                envelopeReadChannel.alignWithStartEntry();
-                            } catch (ReadPastEndException e) {
-                                // If there was no start/full envelopes in the file we could reach the end
-                                return -1;
-                            }
+                        try {
+                            // Make sure we look at the beginning of a transaction
+                            channel.alignWithStartEntry();
+                        } catch (ReadPastEndException e) {
+                            // If there was no start/full envelopes in the file we could reach the end
+                            return -1;
                         }
                         var logEntryReader = logEntryReaderFactory.get();
                         LogEntry entry;

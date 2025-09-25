@@ -106,6 +106,20 @@ public class DelegateReadableChannel implements ReadableLogPositionAwareChannel 
     }
 
     @Override
+    public int directRead(ByteBuffer dst) throws IOException {
+        assertAssigned();
+        return delegate.read(dst);
+    }
+
+    @Override
+    public long alignWithStartEntry() throws IOException {
+        if (delegate instanceof ReadableLogPositionAwareChannel ch) {
+            return ch.alignWithStartEntry();
+        }
+        return position();
+    }
+
+    @Override
     public LogPositionMarker getCurrentLogPosition(LogPositionMarker positionMarker) {
         positionMarker.unspecified();
         return positionMarker;
