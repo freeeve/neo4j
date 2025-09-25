@@ -28,14 +28,14 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
+import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.PrimitiveCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.ReferenceCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicLabelNodeLookupPipe.getNodes
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.IntersectionNodeByLabelsScanPipe.intersectionIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.UnionNodeByLabelsScanPipe.unionIterator
 import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
+import org.neo4j.cypher.internal.util.SeqSupport.RichSeq
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.internal.kernel.api.NodeCursor
@@ -47,7 +47,10 @@ import org.neo4j.kernel.impl.newapi.CursorPredicates
 import org.neo4j.token.api.TokenConstants.NO_TOKEN
 import org.neo4j.values.virtual.VirtualValues
 
+import java.util.Comparator
+
 import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.math.Ordering.comparatorToOrdering
 
 case class DynamicLabelNodeLookupPipe(
   ident: String,
@@ -58,217 +61,233 @@ case class DynamicLabelNodeLookupPipe(
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val baseContext = state.newRowWithArgument(rowFactory)
-    val nodes = getNodes(labelExpr, operator, baseContext, state, propertyExpressions)
-    PrimitiveLongHelper.map(nodes, n => rowFactory.copyWith(baseContext, ident, VirtualValues.node(n)))
+    DynamicLabelNodeLookupIterator(baseContext, state, labelExpr, propertyExpressions, operator)
+      .toIterator(n => rowFactory.copyWith(baseContext, ident, VirtualValues.node(n)))
   }
 }
 
-object DynamicLabelNodeLookupPipe {
+abstract class DynamicLabelNodeLookupBase[A](context: ReadableRow, state: QueryState) {
+  protected def propertyFilter(iterator: A, propertyExprs: Array[PropertyIndexQuery]): A
+  protected def labelFilter(iterator: A, labels: Array[Int]): A
+  protected def seek(index: IndexDescriptor, properties: Seq[PropertyIndexQuery.ExactPredicate]): A
+  protected def allNodes: A
+  protected def empty: A
+  protected def allLabels(labels: Array[Int]): A
+  protected def anyLabel(labels: Array[Int]): A
+
+  private def findIndicesForLabel(
+    labelId: Int,
+    predicates: Seq[PropertyIndexQuery]
+  ): Iterator[IndexDescriptor] = {
+    predicates.orderedSubsets.flatMap { predicateSubset =>
+      val indices = state.query.indexReferences(labelId, EntityType.NODE, predicateSubset.map(_.propertyKeyId): _*)
+      indices.asScala.filter {
+        index => predicateSubset.forall(p => index.getCapability.isQuerySupported(p.`type`(), p.valueCategory()))
+      }
+    }
+  }
+
+  private def findIndicesForLabels(
+    labelIds: Seq[Int],
+    predicates: Seq[PropertyIndexQuery]
+  ): Iterator[IndexDescriptor] = {
+    labelIds.iterator.flatMap(findIndicesForLabel(_, predicates))
+  }
+
+  private def getIndexComparator: Comparator[IndexDescriptor] =
+    Comparator.comparingLong(_.getId) // TODO: this is arbitrary; planner to provide comparator
+
+  private def predicate(propertyKey: PropertyKeyToken, expression: Expression): PropertyIndexQuery.ExactPredicate = {
+    val value = expression.apply(context, state)
+    PropertyIndexQuery.exact(propertyKey.nameId.id, makeValueNeoSafe(value))
+  }
+
+  private def labelScan(labels: Array[Int], operator: DynamicElement.SetOperator): A = {
+    operator match {
+      case All if labels.isEmpty => allNodes
+      case Any if labels.isEmpty => empty
+      case All                   => allLabels(labels)
+      case Any                   => anyLabel(labels)
+    }
+  }
 
   def getNodes(
     labelExpr: Expression,
     operator: DynamicElement.SetOperator,
-    context: CypherRow,
-    state: QueryState,
     propertyExprs: Map[PropertyKeyToken, Expression]
-  ): ClosingLongIterator = {
+  ): A = {
     val labels =
       CypherFunctions.getDynamicLabels(labelExpr.apply(context, state))
         .map(state.query.nodeLabel)
 
-    def hasProperties(
-      iterator: ClosingLongIterator,
-      propertyExprs: Map[PropertyKeyToken, Expression]
-    ): ClosingLongIterator = {
-      val otherPredicates = propertyExprs
-        .iterator
-        .map((predicate _).tupled)
-        .toArray[PropertyIndexQuery]
-
-      new PropertyFilteringNodeIterator(
-        iterator,
-        state.query.dataRead,
-        state.cursors.nodeCursor,
-        state.cursors.propertyCursor,
-        otherPredicates
-      )
-    }
-
-    def hasLabels(iterator: ClosingLongIterator, labels: Array[Int]): ClosingLongIterator =
-      new LabelFilteringNodeIterator(
-        iterator,
-        state.query.dataRead,
-        state.cursors.nodeCursor,
-        labels
-      )
-
-    def labelScan = {
-      operator match {
-        case All if labels.isEmpty => state.query.nodeReadOps.all
-        case Any if labels.isEmpty => ClosingLongIterator.empty
-
-        case Any =>
-          unionIterator(state.query, labels, IndexOrderNone, state.nodeLabelTokenReadSession.get)
-
-        case All =>
-          intersectionIterator(state.query, labels, IndexOrderNone, state.nodeLabelTokenReadSession.get)
-      }
-    }
-
-    def predicate(propertyKey: PropertyKeyToken, expression: Expression) = {
-      val value = expression.apply(context, state)
-      PropertyIndexQuery.exact(propertyKey.nameId.id, makeValueNeoSafe(value))
-    }
-
-    def seek(index: IndexDescriptor, properties: Seq[PropertyIndexQuery]) = {
-      val cursor = state.query.nodeIndexSeek(
-        state.query.dataRead.indexReadSession(index),
-        needsValues = false, // we already know the values because we only support ExactPredicate
-        IndexOrderNone,
-        properties
-      )
-      new ReferenceCursorIterator(cursor)
-    }
-
-    def findIndex(
-      labelId: Int,
-      propertyIds: Seq[Int],
-      predicates: Seq[PropertyIndexQuery]
-    ): Option[IndexDescriptor] = {
-      if (labelId == NO_TOKEN) {
-        None
-      } else {
-        state.query.indexReferences(labelId, EntityType.NODE, propertyIds: _*)
-          .asScala.find {
-            index =>
-              predicates.forall(p => index.getCapability.isQuerySupported(p.`type`(), p.valueCategory()))
-          }
-      }
-    }
-
-    val iter = (labels, propertyExprs.size, operator) match {
+    val iter = (labels, propertyExprs, operator) match {
       case (Array(), _, _) =>
         None
-      case (_, 0, _) =>
-        Some(labelScan)
-      case (labels, _, _) if labels.contains(NO_TOKEN) =>
+      case (_, _, _) if propertyExprs.isEmpty =>
+        Some(labelScan(labels, operator))
+      case (labels, _, All) if labels.contains(NO_TOKEN) =>
         None
-      case (Array(label), 1, _) =>
-        // SINGLE LABEL, SINGLE PROPERTY
-        val (propertyKey, expr) = propertyExprs.head
-        val propPredicate = predicate(propertyKey, expr)
-        findIndex(label, Seq(propertyKey.nameId.id), Seq(propPredicate))
-          .map(seek(_, Seq(propPredicate)))
-      case (labels, 1, All) =>
-        // ALL MULTIPLE LABELS, SINGLE PROPERTY
-        val (propertyKey, expr) = propertyExprs.head
-        // naive implementation: use the first index that is found for any of the labels and then apply label filter
-        val propPredicate = predicate(propertyKey, expr)
-        labels.iterator
-          .flatMap(label =>
-            findIndex(label, Seq(propertyKey.nameId.id), Seq(propPredicate))
-              .map(index =>
-                hasLabels(
-                  seek(index, Seq(propPredicate)),
-                  labels.filterNot(_ == label)
+      case (labels, _, Any) if labels.forall(_ == NO_TOKEN) =>
+        None
+
+      case (labels, propertyExprs, All) =>
+        val propPredicates = propertyExprs.map((predicate _).tupled).toSeq
+        findIndicesForLabels(labels, propPredicates).maxOption(comparatorToOrdering(getIndexComparator))
+          .map { index =>
+            val otherLabels = labels.filterNot(_ == index.schema().getLabelId)
+            val (indexProps, otherProps) =
+              propPredicates.partition(p => index.schema().getPropertyIds.contains(p.propertyKeyId()))
+
+            (otherLabels.nonEmpty, otherProps.nonEmpty) match {
+              case (true, true) =>
+                labelFilter(
+                  propertyFilter(seek(index, indexProps), otherProps.toArray),
+                  otherLabels
                 )
-              )
-          ).nextOption()
-      case (Array(label), _, _) =>
-        // SINGLE LABEL, MULTIPLE PROPERTIES
-        propertyExprs.map {
-          case (propKeyToken, expr) =>
-            val exactPredicate = Seq(predicate(propKeyToken, expr))
-            findIndex(label, Seq(propKeyToken.nameId.id), exactPredicate)
-              .map { index =>
-                hasProperties(
-                  seek(index, exactPredicate),
-                  propertyExprs.filterNot(_._1 == propKeyToken)
-                )
-              }
-        }.iterator.next()
-      case (labels, _, All) =>
-        // ALL MULTIPLE LABELS, MULTIPLE PROPERTIES
-        labels.iterator.flatMap {
-          label =>
-            propertyExprs.map {
-              case (propKeyToken, expr) =>
-                val exactPredicate = Seq(predicate(propKeyToken, expr))
-                findIndex(label, Seq(propKeyToken.nameId.id), exactPredicate)
-                  .map { index =>
-                    // TODO: aside from including this outer label check, this whole inner block is identical
-                    //  to the single label / multiple property case. we should merge this behaviour innit.
-                    hasLabels(
-                      hasProperties(
-                        seek(index, exactPredicate),
-                        propertyExprs.filterNot(_._1 == propKeyToken)
-                      ),
-                      labels.filterNot(_ == label)
-                    )
-                  }
-            }.iterator.next()
-        }.nextOption()
+              case (true, false) =>
+                labelFilter(seek(index, indexProps), otherLabels)
+              case (false, true) =>
+                propertyFilter(seek(index, indexProps), otherProps.toArray)
+              case (false, false) =>
+                seek(index, indexProps)
+            }
+          }
+
+      // for Any we can't union results of index value seeks because they don't have guaranteed order, so only support
+      // single label
+      case (Array(label), _, Any) =>
+        val comparator = getIndexComparator
+        val propPredicates = propertyExprs.map((predicate _).tupled).toSeq
+        findIndicesForLabel(label, propPredicates).maxOption(comparatorToOrdering(comparator))
+          .map { index =>
+            val (indexProps, otherProps) =
+              propPredicates.partition(p => index.schema().getPropertyIds.contains(p.propertyKeyId()))
+
+            if (otherProps.nonEmpty) {
+              propertyFilter(seek(index, indexProps), otherProps.toArray)
+            } else {
+              seek(index, indexProps)
+            }
+          }
+
       case _ =>
         None
     }
 
     iter.getOrElse {
       if (propertyExprs.nonEmpty) {
-        hasProperties(labelScan, propertyExprs)
+        propertyFilter(labelScan(labels, operator), propertyExprs.map((predicate _).tupled).toArray)
       } else {
-        labelScan
+        labelScan(labels, operator)
       }
     }
   }
+}
 
-  abstract class FilteringNodeIterator(
-    nodeIdIterator: ClosingLongIterator,
-    read: Read,
-    nodeCursor: NodeCursor
-  ) extends PrimitiveCursorIterator {
+case class DynamicLabelNodeLookupIterator(
+  context: CypherRow,
+  state: QueryState,
+  labelExpression: Expression,
+  propertyExpressions: Map[PropertyKeyToken, Expression],
+  operator: DynamicElement.SetOperator
+) extends DynamicLabelNodeLookupBase[ClosingLongIterator](context, state) {
 
-    protected def test(nodeCursor: NodeCursor): Boolean
+  private lazy val nodeIterator = getNodes(labelExpression, operator, propertyExpressions)
 
-    protected def fetchNext(): Long = {
-      while (nodeIdIterator.hasNext) {
-        val id = nodeIdIterator.next()
-        read.singleNode(id, nodeCursor)
+  override protected def propertyFilter(
+    iterator: ClosingLongIterator,
+    propertyExprs: Array[PropertyIndexQuery]
+  ): ClosingLongIterator = {
+    new PropertyFilteringNodeIterator(
+      iterator,
+      state.query.dataRead,
+      state.cursors.nodeCursor,
+      state.cursors.propertyCursor,
+      propertyExprs
+    )
+  }
 
-        // The node may have been deleted in this transaction, so check that it has not been
-        if (nodeCursor.next() && test(nodeCursor)) {
-          return id
-        }
+  override protected def labelFilter(iterator: ClosingLongIterator, labels: Array[Int]): ClosingLongIterator =
+    new LabelFilteringNodeIterator(
+      iterator,
+      state.query.dataRead,
+      state.cursors.nodeCursor,
+      labels
+    )
+
+  override protected def seek(
+    index: IndexDescriptor,
+    properties: Seq[PropertyIndexQuery.ExactPredicate]
+  ): ReferenceCursorIterator = {
+    val cursor = state.query.nodeIndexSeek(
+      state.query.dataRead.indexReadSession(index),
+      needsValues = false, // we already know the values because we only support ExactPredicate
+      IndexOrderNone,
+      properties
+    )
+    new ReferenceCursorIterator(cursor)
+  }
+
+  override protected def allNodes: ClosingLongIterator = state.query.nodeReadOps.all
+
+  override protected def allLabels(labels: Array[Int]): ClosingLongIterator =
+    intersectionIterator(state.query, labels, IndexOrderNone, state.nodeLabelTokenReadSession.get)
+
+  override protected def anyLabel(labels: Array[Int]): ClosingLongIterator =
+    unionIterator(state.query, labels, IndexOrderNone, state.nodeLabelTokenReadSession.get)
+
+  override protected def empty: ClosingLongIterator = ClosingLongIterator.empty
+
+  def toIterator(rowMapper: Long => CypherRow): ClosingIterator[CypherRow] = nodeIterator.mapToObj(rowMapper)
+}
+
+abstract class FilteringNodeIterator(
+  nodeIdIterator: ClosingLongIterator,
+  read: Read,
+  nodeCursor: NodeCursor
+) extends PrimitiveCursorIterator {
+
+  protected def test(nodeCursor: NodeCursor): Boolean
+
+  protected def fetchNext(): Long = {
+    while (nodeIdIterator.hasNext) {
+      val id = nodeIdIterator.next()
+      read.singleNode(id, nodeCursor)
+
+      // The node may have been deleted in this transaction, so check that it has not been
+      if (nodeCursor.next() && test(nodeCursor)) {
+        return id
       }
-
-      -1L
     }
 
-    def close(): Unit = nodeIdIterator.close()
+    -1L
   }
 
-  class PropertyFilteringNodeIterator(
-    scan: ClosingLongIterator,
-    read: Read,
-    nodeCursor: NodeCursor,
-    propCursor: PropertyCursor,
-    indexQueries: Array[PropertyIndexQuery]
-  ) extends FilteringNodeIterator(scan, read, nodeCursor) {
+  def close(): Unit = nodeIdIterator.close()
+}
 
-    protected def test(nodeCursor: NodeCursor): Boolean = {
-      nodeCursor.properties(propCursor)
-      CursorPredicates.propertiesMatch(propCursor, indexQueries)
-    }
+class PropertyFilteringNodeIterator(
+  scan: ClosingLongIterator,
+  read: Read,
+  nodeCursor: NodeCursor,
+  propCursor: PropertyCursor,
+  indexQueries: Array[PropertyIndexQuery]
+) extends FilteringNodeIterator(scan, read, nodeCursor) {
+
+  protected def test(nodeCursor: NodeCursor): Boolean = {
+    nodeCursor.properties(propCursor)
+    CursorPredicates.propertiesMatch(propCursor, indexQueries)
   }
+}
 
-  class LabelFilteringNodeIterator(
-    scan: ClosingLongIterator,
-    read: Read,
-    nodeCursor: NodeCursor,
-    labels: Seq[Int]
-  ) extends FilteringNodeIterator(scan, read, nodeCursor) {
+class LabelFilteringNodeIterator(
+  scan: ClosingLongIterator,
+  read: Read,
+  nodeCursor: NodeCursor,
+  labels: Seq[Int]
+) extends FilteringNodeIterator(scan, read, nodeCursor) {
 
-    protected def test(nodeCursor: NodeCursor): Boolean = {
-      labels.forall(nodeCursor.hasLabel)
-    }
+  protected def test(nodeCursor: NodeCursor): Boolean = {
+    labels.forall(nodeCursor.hasLabel)
   }
 }

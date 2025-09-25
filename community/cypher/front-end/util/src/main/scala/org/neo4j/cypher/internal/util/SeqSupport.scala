@@ -108,5 +108,35 @@ object SeqSupport {
         }
         Some((init.result(), last))
       }
+
+    /**
+     * Lazily generate all possible ordered subsets of this sequence, excluding the empty set.
+     * @return An iterator of ordered subsets.
+     */
+    def orderedSubsets: Iterator[Seq[T]] = {
+      (1 to inner.length).iterator.flatMap { k =>
+        inner.combinations(k).flatMap(_.permutations)
+      }
+    }
+
+    /**
+     * Remove the first matching element from the sequence, and return it in a tuple alongside
+     * the elements that remain. Order is preserved.
+     * @param f the matching function to test each element with
+     * @return a tuple of the first matching element and the remaining unmatched elements,
+     *         or a tuple of (None, this) if no element was matched.
+     */
+    def pluck(f: T => Boolean): (Option[T], Seq[T]) = {
+      inner.indexWhere(f) match {
+        case -1 =>
+          (None, inner)
+        case 0 =>
+          (Some(inner.head), inner.tail)
+        case index if index == inner.length - 1 =>
+          (Some(inner.last), inner.take(index - 1))
+        case index =>
+          (Some(inner(index)), inner.patch(index, Nil, 1))
+      }
+    }
   }
 }

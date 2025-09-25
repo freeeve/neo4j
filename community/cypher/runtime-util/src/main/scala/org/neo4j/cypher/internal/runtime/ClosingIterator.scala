@@ -453,6 +453,14 @@ abstract class ClosingLongIterator extends LongIterator {
     }
     _hasNext
   }
+
+  def mapToObj[A](mapper: Long => A): ClosingIterator[A] = new ClosingIterator[A] {
+    override protected[this] def closeMore(): Unit = ClosingLongIterator.this.close()
+
+    override def next(): A = mapper(ClosingLongIterator.this.next)
+
+    override protected[this] def innerHasNext: Boolean = ClosingLongIterator.this.hasNext
+  }
 }
 
 object ClosingLongIterator {

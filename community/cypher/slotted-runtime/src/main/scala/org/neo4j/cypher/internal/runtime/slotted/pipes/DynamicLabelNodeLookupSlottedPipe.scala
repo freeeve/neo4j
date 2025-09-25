@@ -23,12 +23,13 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyToken
 import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
-import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicLabelNodeLookupPipe.getNodes
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicLabelNodeLookupIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
+
+import scala.util.chaining.scalaUtilChainingOps
 
 case class DynamicLabelNodeLookupSlottedPipe(
   nodeOffset: Int,
@@ -38,19 +39,8 @@ case class DynamicLabelNodeLookupSlottedPipe(
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    PrimitiveLongHelper.map(
-      getNodes(
-        labelExpr,
-        operator,
-        state.newRowWithArgument(rowFactory),
-        state,
-        propertyExpressions
-      ),
-      n => {
-        val context = state.newRowWithArgument(rowFactory)
-        context.setLongAt(nodeOffset, n)
-        context
-      }
-    )
+    val context = state.newRowWithArgument(rowFactory)
+    DynamicLabelNodeLookupIterator(context, state, labelExpr, propertyExpressions, operator)
+      .toIterator(n => state.newRowWithArgument(rowFactory).tap(_.setLongAt(nodeOffset, n)))
   }
 }

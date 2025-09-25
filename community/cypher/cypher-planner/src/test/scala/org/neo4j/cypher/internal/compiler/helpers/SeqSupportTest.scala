@@ -24,6 +24,8 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
 import org.scalatest.matchers.should.Matchers
 
+import scala.math.Ordering.Implicits.seqOrdering
+
 class SeqSupportTest extends CypherFunSuite with Matchers with CypherScalaCheckDrivenPropertyChecks {
 
   test("prefix strings with their offset using foldMap") {
@@ -70,5 +72,38 @@ class SeqSupportTest extends CypherFunSuite with Matchers with CypherScalaCheckD
       val expected = is.lastOption.map(last => (is.init, last))
       is.initAndLastOption shouldEqual expected
     }
+  }
+
+  test("orderedSubsets returns all possible ordered subsets") {
+    val xs = Seq("a", "b", "c")
+    val subsets = Seq(
+      Seq("a"),
+      Seq("b"),
+      Seq("c"),
+      Seq("a", "b"),
+      Seq("b", "a"),
+      Seq("a", "c"),
+      Seq("c", "a"),
+      Seq("b", "c"),
+      Seq("c", "b"),
+      Seq("a", "b", "c"),
+      Seq("a", "c", "b"),
+      Seq("b", "a", "c"),
+      Seq("b", "c", "a"),
+      Seq("c", "a", "b"),
+      Seq("c", "b", "a")
+    )
+
+    xs.orderedSubsets.toSeq.sorted == subsets.sorted
+  }
+
+  test("orderedSubsets returns an empty iterator for an empty input") {
+    Seq.empty.orderedSubsets.toSeq == Seq.empty
+  }
+
+  test("pluck extracts an element based on a matcher function") {
+    val xs = Seq("a", "b", "c")
+    xs.pluck(_ == "b") shouldEqual (Some("b"), Seq("a", "c"))
+    xs.pluck(_ == "d") shouldEqual (None, xs)
   }
 }

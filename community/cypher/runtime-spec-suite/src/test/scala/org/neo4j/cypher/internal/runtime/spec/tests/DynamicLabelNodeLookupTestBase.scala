@@ -754,8 +754,7 @@ abstract class DynamicLabelNodeLookupTestBase[CONTEXT <: RuntimeContext](
         beColumns("x").withRows(singleColumn(expected))
       } else {
         beColumns("x").withRows(singleColumn(expected))
-          .notUsingIndexes(2, compoundIndex)
-          .usingAnyIndexes(2, ageIndex, nameIndex)
+          .usingAnyIndexes(2, compoundIndex, ageIndex, nameIndex)
       }
 
     profile(logicalQuery, runtime) should matchExpectations
