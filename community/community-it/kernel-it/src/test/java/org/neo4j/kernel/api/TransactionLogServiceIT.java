@@ -408,9 +408,7 @@ class TransactionLogServiceIT {
         }
 
         LogFile logFile = logFiles.getLogFile();
-        var logFileInformation = logFile.getLogFileInformation();
         for (int version = (int) logVersionBefore + 1; version < logVersionBefore + appendIterations; version++) {
-            assertEquals(indexShift - 1 + version, logFileInformation.getPreviousAppendIndexFromHeader(version));
             assertEquals(
                     indexShift - 1 + version, logFile.extractHeader(version).getLastAppendIndex());
         }

@@ -938,6 +938,8 @@ public class Database extends AbstractDatabase {
         TransactionMetadataCache transactionMetadataCache = new TransactionMetadataCache();
         databaseDependencies.satisfyDependencies(transactionMetadataCache);
 
+        BinarySupportedKernelVersions binarySupportedKernelVersions =
+                databaseDependencies.resolveDependency(BinarySupportedKernelVersions.class);
         Lock pruneLock = new ReentrantLock();
         final LogPruning logPruning = new LogPruningImpl(
                 fs,
@@ -947,7 +949,10 @@ public class Database extends AbstractDatabase {
                 clock,
                 databaseConfig,
                 pruneLock,
-                logMetadataProvider);
+                logMetadataProvider,
+                commandReaderFactory,
+                binarySupportedKernelVersions,
+                memoryTracker);
 
         var transactionAppender = createTransactionAppender(
                 logFiles,
@@ -1004,7 +1009,7 @@ public class Database extends AbstractDatabase {
                 logProvider,
                 checkPointer,
                 commandReaderFactory,
-                databaseDependencies.resolveDependency(BinarySupportedKernelVersions.class));
+                binarySupportedKernelVersions);
         databaseDependencies.satisfyDependencies(
                 checkPointer, logFiles, logicalTransactionStore, transactionAppender, transactionLogService);
 

@@ -59,7 +59,7 @@ public class FileLogRotation implements LogRotation {
                 clock,
                 databasePanic,
                 monitor,
-                () -> logFile.getLogFileInformation().getLastEntryAppendIndex(),
+                logFile::getLastEntryAppendIndexInLogFiles,
                 checkpointLogFile::getCurrentLogVersion,
                 kernelVersionProvider);
     }
@@ -76,7 +76,7 @@ public class FileLogRotation implements LogRotation {
                 clock,
                 databasePanic,
                 monitor,
-                () -> logFile.getLogFileInformation().getLastEntryAppendIndex(),
+                logFile::getLastEntryAppendIndexInLogFiles,
                 logFile::getCurrentLogVersion,
                 kernelVersionProvider);
     }

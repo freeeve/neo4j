@@ -31,10 +31,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.LongConsumer;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.TransactionIdStore;
 
 /**
@@ -50,6 +53,7 @@ public class LogPruningImpl implements LogPruning {
     private final Clock clock;
     private final InternalLogProvider logProvider;
     private final int checkpointFilesToKeep;
+    private final TransactionLogFileInformation logFileInformation;
     private volatile LogPruneStrategy pruneStrategy;
 
     public LogPruningImpl(
@@ -60,7 +64,10 @@ public class LogPruningImpl implements LogPruning {
             Clock clock,
             Config config,
             Lock pruneLock,
-            TransactionIdStore transactionIdStore) {
+            TransactionIdStore transactionIdStore,
+            CommandReaderFactory commandReaderFactory,
+            BinarySupportedKernelVersions binarySupportedKernelVersions,
+            MemoryTracker memoryTracker) {
         this.fs = fs;
         this.logFiles = logFiles;
         this.logProvider = logProvider;
@@ -69,8 +76,10 @@ public class LogPruningImpl implements LogPruning {
         this.clock = clock;
         this.pruneLock = pruneLock;
         this.transactionIdStore = transactionIdStore;
+        this.logFileInformation = new TransactionLogFileInformation(
+                logFiles, commandReaderFactory, binarySupportedKernelVersions, memoryTracker);
         this.pruneStrategy = strategyFactory.strategyFromConfigValue(
-                fs, logFiles, logProvider, clock, config.get(keep_logical_logs));
+                fs, logFiles, logProvider, clock, config.get(keep_logical_logs), logFileInformation);
         this.checkpointFilesToKeep = config.get(checkpoint_logical_log_keep_threshold);
 
         // Register listener for updates
@@ -78,8 +87,8 @@ public class LogPruningImpl implements LogPruning {
     }
 
     private void updateConfiguration(String pruningConf) {
-        LogPruneStrategy strategy =
-                strategyFactory.strategyFromConfigValue(fs, logFiles, logProvider, clock, pruningConf);
+        LogPruneStrategy strategy = strategyFactory.strategyFromConfigValue(
+                fs, logFiles, logProvider, clock, pruningConf, logFileInformation);
         this.pruneStrategy = strategy;
         log.info("Retention policy updated to '" + strategy
                 + "', which will take effect next time a checkpoint completes.");
@@ -92,7 +101,7 @@ public class LogPruningImpl implements LogPruning {
             LogFile logFile = logFiles.getLogFile();
             LogPruneStrategy strategy = this.pruneStrategy;
 
-            CountingDeleter deleter = new CountingDeleter(logFile);
+            CountingDeleter deleter = new CountingDeleter(logFile, logFileInformation);
             LogPruneStrategy.VersionRange versionsToDelete = strategy.findLogVersionsToDelete(upToVersion);
             // make sure to do the arithmetics only for non-empty ranges
             if (versionsToDelete.isNotEmpty()) {
@@ -142,11 +151,13 @@ public class LogPruningImpl implements LogPruning {
     private static class CountingDeleter implements LongConsumer {
         private static final int NO_VERSION = -1;
         private final LogFile logFile;
+        private final TransactionLogFileInformation logFileInformation;
         private long fromVersion;
         private long toVersion;
 
-        private CountingDeleter(LogFile logFile) {
+        private CountingDeleter(LogFile logFile, TransactionLogFileInformation logFileInformation) {
             this.logFile = logFile;
+            this.logFileInformation = logFileInformation;
             fromVersion = NO_VERSION;
             toVersion = NO_VERSION;
         }
@@ -174,7 +185,7 @@ public class LogPruningImpl implements LogPruning {
         long highestDeletedAppendIndex() {
             assert toVersion != NO_VERSION;
             try {
-                return logFile.getLogFileInformation().getPreviousAppendIndexFromHeader(toVersion + 1);
+                return logFileInformation.getPreviousAppendIndexFromHeader(toVersion + 1);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

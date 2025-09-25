@@ -82,8 +82,6 @@ public interface LogFile extends VersionedFile, RotatableFile {
 
     void accept(LogFileVisitor visitor, LogPosition startingFromPosition) throws IOException;
 
-    TransactionLogFileInformation getLogFileInformation();
-
     NativeScopedBuffer createScopedBuffer();
 
     PhysicalLogVersionedStoreChannel openForVersion(long version, boolean raw) throws IOException;
@@ -166,4 +164,6 @@ public interface LogFile extends VersionedFile, RotatableFile {
     record PositionWithPrevAppendIndex(LogPosition position, long prevAppendIndexAtPosition) {}
 
     PositionWithPrevAppendIndex findSafeTruncationPointInPreviousFile(PositionWithPrevAppendIndex basePosition);
+
+    long getLastEntryAppendIndexInLogFiles();
 }

@@ -715,6 +715,7 @@ public final class Recovery {
 
         var doParallelRecovery = config.get(GraphDatabaseInternalSettings.do_parallel_recovery);
         RecoveryMonitor recoveryMonitor = monitors.newMonitor(RecoveryMonitor.class);
+        BinarySupportedKernelVersions binarySupportedKernelVersions = new BinarySupportedKernelVersions(config);
         TransactionLogsRecovery transactionLogsRecovery = transactionLogRecovery(
                 fs,
                 logMetadataProvider,
@@ -738,7 +739,7 @@ public final class Recovery {
                 rollbackIncompleteTransactions,
                 cursorContextFactory,
                 mode,
-                new BinarySupportedKernelVersions(config),
+                binarySupportedKernelVersions,
                 storageFilesState);
 
         CheckPointerImpl.ForceOperation forceOperation =
@@ -752,7 +753,10 @@ public final class Recovery {
                 clock,
                 config,
                 new ReentrantLock(),
-                logMetadataProvider);
+                logMetadataProvider,
+                storageEngineFactory.commandReaderFactory(),
+                binarySupportedKernelVersions,
+                memoryTracker);
         CheckPointerImpl checkPointer = new CheckPointerImpl(
                 logMetadataProvider,
                 RecoveryThreshold.INSTANCE,

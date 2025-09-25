@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.files;
+package org.neo4j.kernel.impl.transaction.log.pruning;
 
 import java.io.IOException;
 import java.util.function.Supplier;
 import org.neo4j.internal.helpers.collection.LfuCache;
 import org.neo4j.io.fs.ReadPastEndException;
+import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.impl.transaction.log.LogFileInformation;
-import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
@@ -34,60 +34,41 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
+import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.util.VisibleForTesting;
 
 public class TransactionLogFileInformation implements LogFileInformation {
     private final LogFiles logFiles;
-    private final LogHeaderCache logHeaderCache;
-    private final TransactionLogFilesContext logFileContext;
     private final TransactionLogFileTimestampMapper logFileTimestampMapper;
 
     TransactionLogFileInformation(
-            LogFiles logFiles, LogHeaderCache logHeaderCache, TransactionLogFilesContext context) {
+            LogFiles logFiles,
+            CommandReaderFactory commandReaderFactory,
+            BinarySupportedKernelVersions binarySupportedKernelVersions,
+            MemoryTracker memoryTracker) {
         this(
                 logFiles,
-                logHeaderCache,
-                context,
                 () -> new VersionAwareLogEntryReader(
-                        context.getCommandReaderFactory(),
-                        context.getBinarySupportedKernelVersions(),
-                        context.getMemoryTracker()));
+                        commandReaderFactory, binarySupportedKernelVersions, memoryTracker));
     }
 
     @VisibleForTesting
-    TransactionLogFileInformation(
-            LogFiles logFiles,
-            LogHeaderCache logHeaderCache,
-            TransactionLogFilesContext context,
-            Supplier<LogEntryReader> logEntryReaderFactory) {
+    TransactionLogFileInformation(LogFiles logFiles, Supplier<LogEntryReader> logEntryReaderFactory) {
         this.logFiles = logFiles;
-        this.logHeaderCache = logHeaderCache;
-        this.logFileContext = context;
         this.logFileTimestampMapper = new TransactionLogFileTimestampMapper(logFiles, logEntryReaderFactory);
     }
 
     @Override
     public long getPreviousAppendIndexFromHeader(long version) throws IOException {
-        LogHeader logHeader = logHeaderCache.getLogHeader(version);
-        if (logHeader != null) { // It existed in cache
-            return logHeader.getLastAppendIndex();
-        }
-
-        // Wasn't cached, go look for it
-        var logFile = logFiles.getLogFile();
-        if (logFile.versionExists(version)) {
-            logHeader = logFile.extractHeader(version);
-            if (logHeader != null) {
-                logHeaderCache.putHeader(version, logHeader);
-                return logHeader.getLastAppendIndex();
-            }
-        }
-        return -1;
+        LogHeader logHeader = logFiles.getLogFile().extractHeader(version);
+        return logHeader != null ? logHeader.getLastAppendIndex() : -1;
     }
 
     @Override
     public long getLastEntryAppendIndex() {
-        return logFileContext.getLastAppendIndexLogFilesProvider().getLastAppendIndex(logFiles);
+        return logFiles.getLogFile().getLastEntryAppendIndexInLogFiles();
     }
 
     @Override

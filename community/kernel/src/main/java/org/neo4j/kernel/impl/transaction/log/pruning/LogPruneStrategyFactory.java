@@ -66,7 +66,8 @@ public class LogPruneStrategyFactory {
             LogFiles logFiles,
             InternalLogProvider logProvider,
             Clock clock,
-            String configValue) {
+            String configValue,
+            TransactionLogFileInformation transactionLogFileInformation) {
         ThresholdConfigValue value = parse(configValue);
 
         if (value == ThresholdConfigValue.NO_PRUNING) {
@@ -74,7 +75,7 @@ public class LogPruneStrategyFactory {
         }
 
         Threshold thresholdToUse = getThresholdByType(fileSystem, logProvider, clock, value, configValue);
-        return new ThresholdBasedPruneStrategy(logFiles.getLogFile(), thresholdToUse);
+        return new ThresholdBasedPruneStrategy(logFiles.getLogFile(), thresholdToUse, transactionLogFileInformation);
     }
 
     @VisibleForTesting

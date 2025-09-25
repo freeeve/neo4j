@@ -101,7 +101,6 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private final TransactionLogFilesContext context;
     private final LogVersionBridge readerLogVersionBridge;
     private final MemoryTracker memoryTracker;
-    private final TransactionLogFileInformation logFileInformation;
     private final TransactionLogChannelAllocator channelAllocator;
     private final DatabaseHealth databaseHealth;
     private final LogFiles logFiles;
@@ -112,6 +111,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     private final LogFileVersionTracker versionTracker;
     private final InternalLog logger;
     private final LogRotationMonitor rotationMonitor;
+    private final LastAppendIndexLogFilesProvider lastAppendIndexLogFilesProvider;
     private volatile PhysicalLogVersionedStoreChannel channel;
     private PhysicalFlushableLogPositionAwareChannel writer;
     private LogVersionRepository logVersionRepository;
@@ -126,7 +126,6 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         this.versionTracker = context.getLogFileVersionTracker();
         this.fileHelper = TransactionLogFilesHelper.forTransactions(fileSystem, logFiles.logFilesDirectory());
         this.logHeaderCache = new LogHeaderCache(1000);
-        this.logFileInformation = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
         this.channelAllocator = new TransactionLogChannelAllocator(
                 context, fileHelper, logHeaderCache, new LogFileChannelNativeAccessor(fileSystem, context));
         this.readerLogVersionBridge = ReaderLogVersionBridge.forFile(this);
@@ -135,6 +134,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                 this, context.getClock(), databaseHealth, rotationMonitor, context.getKernelVersionProvider());
         this.memoryTracker = context.getMemoryTracker();
         this.logger = context.getLogProvider().getLog(TransactionLogFile.class);
+        this.lastAppendIndexLogFilesProvider = context.getLastAppendIndexLogFilesProvider();
     }
 
     @Override
@@ -474,11 +474,6 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     }
 
     @Override
-    public TransactionLogFileInformation getLogFileInformation() {
-        return logFileInformation;
-    }
-
-    @Override
     public long getLogVersion(Path file) {
         return TransactionLogFilesHelper.getLogVersion(file);
     }
@@ -784,6 +779,11 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         }
 
         return basePosition;
+    }
+
+    @Override
+    public long getLastEntryAppendIndexInLogFiles() {
+        return lastAppendIndexLogFilesProvider.getLastAppendIndex(logFiles);
     }
 
     /**

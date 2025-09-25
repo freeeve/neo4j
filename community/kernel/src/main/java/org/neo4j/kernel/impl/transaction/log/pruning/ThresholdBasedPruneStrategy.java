@@ -22,16 +22,16 @@ package org.neo4j.kernel.impl.transaction.log.pruning;
 import static org.neo4j.storageengine.api.LogVersionRepository.INITIAL_LOG_VERSION;
 
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
-import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFileInformation;
 
 public class ThresholdBasedPruneStrategy implements LogPruneStrategy {
     private final LogFile logFile;
     private final Threshold threshold;
     private final TransactionLogFileInformation logFileInformation;
 
-    ThresholdBasedPruneStrategy(LogFile logFile, Threshold threshold) {
+    ThresholdBasedPruneStrategy(
+            LogFile logFile, Threshold threshold, TransactionLogFileInformation logFileInformation) {
         this.logFile = logFile;
-        this.logFileInformation = logFile.getLogFileInformation();
+        this.logFileInformation = logFileInformation;
         this.threshold = threshold;
     }
 

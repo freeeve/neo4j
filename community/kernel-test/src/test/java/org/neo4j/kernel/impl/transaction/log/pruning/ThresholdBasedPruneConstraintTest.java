@@ -84,7 +84,8 @@ class ThresholdBasedPruneConstraintTest {
 
         when(threshold.reached(any(), anyLong(), any())).thenReturn(false);
 
-        ThresholdBasedPruneStrategy strategy = new ThresholdBasedPruneStrategy(logFile, threshold);
+        ThresholdBasedPruneStrategy strategy =
+                new ThresholdBasedPruneStrategy(logFile, threshold, mock(TransactionLogFileInformation.class));
 
         // When
         var versionsToDelete = strategy.findLogVersionsToDelete(7L);
@@ -115,7 +116,8 @@ class ThresholdBasedPruneConstraintTest {
 
         when(fileSystem.getFileSize(any(Path.class))).thenReturn(LATEST_LOG_FORMAT.getHeaderSize() + 1L);
 
-        ThresholdBasedPruneStrategy strategy = new ThresholdBasedPruneStrategy(logFile, threshold);
+        ThresholdBasedPruneStrategy strategy =
+                new ThresholdBasedPruneStrategy(logFile, threshold, mock(TransactionLogFileInformation.class));
 
         // When
         var versionsToDelete = strategy.findLogVersionsToDelete(7L);
@@ -137,7 +139,8 @@ class ThresholdBasedPruneConstraintTest {
         when(logFile.getLogRangeInfo()).thenReturn(new LogRangeInfo(10L, null, 10L, null));
         when(threshold.reached(any(), anyLong(), any())).thenReturn(true);
 
-        ThresholdBasedPruneStrategy strategy = new ThresholdBasedPruneStrategy(logFile, threshold);
+        ThresholdBasedPruneStrategy strategy =
+                new ThresholdBasedPruneStrategy(logFile, threshold, mock(TransactionLogFileInformation.class));
 
         var versionsToDelete = strategy.findLogVersionsToDelete(5);
         var anyFound = new MutableBoolean();
@@ -151,7 +154,8 @@ class ThresholdBasedPruneConstraintTest {
         when(threshold.reached(any(), anyLong(), any())).thenReturn(true);
         when(fileSystem.fileExists(any(Path.class))).thenReturn(false);
 
-        ThresholdBasedPruneStrategy strategy = new ThresholdBasedPruneStrategy(logFile, threshold);
+        ThresholdBasedPruneStrategy strategy =
+                new ThresholdBasedPruneStrategy(logFile, threshold, mock(TransactionLogFileInformation.class));
 
         var versionsToDelete = strategy.findLogVersionsToDelete(15);
         assertThat(versionsToDelete.fromInclusive()).isEqualTo(10);
@@ -174,7 +178,8 @@ class ThresholdBasedPruneConstraintTest {
                 return "Super-duper threshold";
             }
         };
-        ThresholdBasedPruneStrategy strategy = new ThresholdBasedPruneStrategy(logFile, threshold);
+        ThresholdBasedPruneStrategy strategy =
+                new ThresholdBasedPruneStrategy(logFile, threshold, mock(TransactionLogFileInformation.class));
         assertEquals("Super-duper threshold", strategy.toString());
     }
 
@@ -189,7 +194,8 @@ class ThresholdBasedPruneConstraintTest {
         setUpFileSizeForLogVersion(3, 20);
         try (var logProvider = new AssertableLogProvider()) {
             var threshold = new FileSizeThreshold(fileSystem, 100, logProvider);
-            var strategy = new ThresholdBasedPruneStrategy(logFile, threshold);
+            var strategy =
+                    new ThresholdBasedPruneStrategy(logFile, threshold, mock(TransactionLogFileInformation.class));
 
             // when
             var versionRange = strategy.findLogVersionsToDelete(3);

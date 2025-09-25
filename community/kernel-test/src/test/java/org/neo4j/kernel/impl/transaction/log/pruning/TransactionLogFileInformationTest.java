@@ -17,40 +17,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.files;
+package org.neo4j.kernel.impl.transaction.log.pruning;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
+import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
+import static org.neo4j.test.LatestVersions.BINARY_VERSIONS;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
+import org.neo4j.kernel.impl.transaction.log.files.LogFile;
+import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
+import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFile;
+import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
+import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.LatestVersions;
 
 class TransactionLogFileInformationTest {
     private final LogFiles logFiles = mock(TransactionLogFiles.class);
     private final LogFile logFile = mock(TransactionLogFile.class);
-    private final LogHeaderCache logHeaderCache = mock(LogHeaderCache.class);
-    private final TransactionLogFilesContext context = mock(TransactionLogFilesContext.class);
     private final StoreId storeId = new StoreId(1, 1, "engine-1", "format-1", 1, 1);
+    private final CommandReaderFactory commandReaderFactory = mock(CommandReaderFactory.class);
 
     @BeforeEach
     void setUp() {
@@ -58,44 +61,21 @@ class TransactionLogFileInformationTest {
     }
 
     @Test
-    void shouldReadAndCacheFirstCommittedTransactionIdForAGivenVersionWhenNotCached() throws Exception {
-        TransactionLogFileInformation info = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
-        long baseId = 5;
-        long expectedAppendIndex = baseId + 2;
-
-        long version = 10L;
-        when(logHeaderCache.getLogHeader(version)).thenReturn(null);
-        when(logFiles.getLogFile().versionExists(version)).thenReturn(true);
-        LogHeader expectedHeader = LATEST_LOG_FORMAT.newHeader(
-                2,
-                baseId + 1L,
-                LogHeader.UNKNOWN_TERM,
-                storeId,
-                LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
-                BASE_TX_CHECKSUM,
-                LATEST_KERNEL_VERSION);
-        when(logFiles.getLogFile().extractHeader(version)).thenReturn(expectedHeader);
-
-        long lastAppendIndexBeforeFile = info.getPreviousAppendIndexFromHeader(version);
-        assertEquals(expectedAppendIndex - 1, lastAppendIndexBeforeFile);
-        verify(logHeaderCache).putHeader(version, expectedHeader);
-    }
-
-    @Test
     void fileWithoutHeaderDoesNotHaveFirstEntry() throws IOException {
-        TransactionLogFileInformation info = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
+        TransactionLogFileInformation info =
+                new TransactionLogFileInformation(logFiles, commandReaderFactory, BINARY_VERSIONS, INSTANCE);
 
         int version = 42;
         when(logFiles.getLogFile().versionExists(version)).thenReturn(true);
         when(logFiles.getLogFile().extractHeader(version)).thenReturn(null);
 
         assertEquals(-1, info.getPreviousAppendIndexFromHeader(version));
-        verify(logHeaderCache, never()).putHeader(eq(version), any());
     }
 
     @Test
     void firstStartRecordTimestampForFileWithoutHeader() throws IOException {
-        TransactionLogFileInformation info = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
+        TransactionLogFileInformation info =
+                new TransactionLogFileInformation(logFiles, commandReaderFactory, BINARY_VERSIONS, INSTANCE);
 
         int version = 42;
         when(logFiles.getLogFile().versionExists(version)).thenReturn(true);
@@ -105,8 +85,9 @@ class TransactionLogFileInformationTest {
     }
 
     @Test
-    void shouldReadFirstCommittedTransactionIdForAGivenVersionWhenCached() throws Exception {
-        TransactionLogFileInformation info = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
+    void shouldReadFirstCommittedTransactionIdForAGivenVersion() throws Exception {
+        TransactionLogFileInformation info =
+                new TransactionLogFileInformation(logFiles, commandReaderFactory, BINARY_VERSIONS, INSTANCE);
         long baseId = 5;
         long expectedAppendIndex = baseId + 2;
 
@@ -119,7 +100,7 @@ class TransactionLogFileInformationTest {
                 LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);
-        when(logHeaderCache.getLogHeader(version)).thenReturn(expectedHeader);
+        when(logFile.extractHeader(version)).thenReturn(expectedHeader);
 
         long lastAppendIndexBeforeFile = info.getPreviousAppendIndexFromHeader(version);
         assertEquals(expectedAppendIndex - 1, lastAppendIndexBeforeFile);
@@ -131,7 +112,7 @@ class TransactionLogFileInformationTest {
         var readableLogChannel = mock(ReadableLogChannel.class);
         when(logEntryReader.readLogEntry(readableLogChannel))
                 .thenReturn(new LogEntryChunkStart(LatestVersions.LATEST_KERNEL_VERSION, 42, 1, UNKNOWN_APPEND_INDEX));
-        var fileInfo = new TransactionLogFileInformation(logFiles, logHeaderCache, context, () -> logEntryReader);
+        var fileInfo = new TransactionLogFileInformation(logFiles, () -> logEntryReader);
 
         var expectedHeader = LATEST_LOG_FORMAT.newHeader(
                 2,
@@ -158,7 +139,7 @@ class TransactionLogFileInformationTest {
         var readableLogChannel = mock(ReadableLogChannel.class);
         when(logEntryReader.readLogEntry(readableLogChannel))
                 .thenReturn(newStartEntry(LatestVersions.LATEST_KERNEL_VERSION, 1, 1, 1, 1, new byte[] {}));
-        var fileInfo = new TransactionLogFileInformation(logFiles, logHeaderCache, context, () -> logEntryReader);
+        var fileInfo = new TransactionLogFileInformation(logFiles, () -> logEntryReader);
 
         var expectedHeader = LATEST_LOG_FORMAT.newHeader(
                 2,
@@ -186,7 +167,7 @@ class TransactionLogFileInformationTest {
         long version = 321;
         when(logFile.versionExists(version)).thenReturn(false);
 
-        var fileInfo = new TransactionLogFileInformation(logFiles, logHeaderCache, context);
+        var fileInfo = new TransactionLogFileInformation(logFiles, commandReaderFactory, BINARY_VERSIONS, INSTANCE);
 
         assertEquals(-1, fileInfo.getFirstStartRecordTimestamp(version));
     }
