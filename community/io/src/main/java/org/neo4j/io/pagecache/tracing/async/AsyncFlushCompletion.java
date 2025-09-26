@@ -21,24 +21,50 @@ package org.neo4j.io.pagecache.tracing.async;
 
 import org.neo4j.io.pagecache.tracing.AutoCloseablePageCacheTracerEvent;
 
-public interface SubmitEvent extends AutoCloseablePageCacheTracerEvent {
-    SubmitEvent NULL = new SubmitEvent() {
+public interface AsyncFlushCompletion extends AutoCloseablePageCacheTracerEvent {
+    AsyncFlushCompletion NULL = new AsyncFlushCompletion() {
         @Override
-        public void addSubmittedPages(int pageCount) {}
+        public void addBytesWritten(int bytes) {}
 
         @Override
-        public void setException(Exception e) {}
+        public void addPagesCompleted(int pageCount) {}
 
         @Override
-        public void addPagesMerged(int pageCount) {}
+        public void reportIO(int completedIOs) {}
+
+        @Override
+        public void reset() {}
+
+        @Override
+        public long pagesFlushed() {
+            return 0;
+        }
+
+        @Override
+        public long ioPerformed() {
+            return 0;
+        }
+
+        @Override
+        public long getLocalBytesWritten() {
+            return 0;
+        }
 
         @Override
         public void close() {}
     };
 
-    void addSubmittedPages(int pageCount);
+    void addBytesWritten(int bytes);
 
-    void setException(Exception e);
+    void addPagesCompleted(int pageCount);
 
-    void addPagesMerged(int pageCount);
+    void reportIO(int completedIOs);
+
+    void reset();
+
+    long pagesFlushed();
+
+    long ioPerformed();
+
+    long getLocalBytesWritten();
 }

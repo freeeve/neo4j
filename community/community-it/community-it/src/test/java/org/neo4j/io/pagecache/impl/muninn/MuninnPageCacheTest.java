@@ -123,6 +123,7 @@ import org.neo4j.io.pagecache.tracing.PinEvent;
 import org.neo4j.io.pagecache.tracing.PinPageFaultEvent;
 import org.neo4j.io.pagecache.tracing.VectoredPageFaultEvent;
 import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
+import org.neo4j.io.pagecache.tracing.async.SubmitEvent;
 import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 import org.neo4j.io.pagecache.tracing.recording.RecordingPageCacheTracer;
@@ -2792,6 +2793,11 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
                     int pagesToFlush,
                     int mergedPages) {
                 return FlushEvent.NULL;
+            }
+
+            @Override
+            public SubmitEvent beginAsyncSubmit() {
+                return SubmitEvent.NULL;
             }
 
             @Override

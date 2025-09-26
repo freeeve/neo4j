@@ -21,13 +21,16 @@ package org.neo4j.io.pagecache.tracing;
 
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent.FileFlushEventProvider;
+import org.neo4j.io.pagecache.tracing.async.AsyncFlushCompletion;
+import org.neo4j.io.pagecache.tracing.async.AsyncFlushFailure;
 
 /**
  * Please note that this event is not thread safe since we only can have one database flush in a time.
  */
 public class DatabaseFlushEvent implements AutoCloseablePageCacheTracerEvent, FileFlushEventProvider {
 
-    public static final DatabaseFlushEvent NULL = new DatabaseFlushEvent(FileFlushEvent.NULL) {};
+    public static final DatabaseFlushEvent NULL =
+            new DatabaseFlushEvent(FileFlushEvent.NULL, AsyncFlushCompletion.NULL, AsyncFlushFailure.NULL);
 
     private long pagesFlushed;
     private long ioPerformed;
@@ -35,9 +38,14 @@ public class DatabaseFlushEvent implements AutoCloseablePageCacheTracerEvent, Fi
     private long timesLimited;
     private long millisLimited;
     private final FileFlushEvent flushEvent;
+    private final AsyncFlushCompletion asyncFlushCompletion;
+    private final AsyncFlushFailure asyncFlushFailure;
 
-    public DatabaseFlushEvent(FileFlushEvent flushEvent) {
+    public DatabaseFlushEvent(
+            FileFlushEvent flushEvent, AsyncFlushCompletion asyncFlushCompletion, AsyncFlushFailure asyncFlushFailure) {
         this.flushEvent = flushEvent;
+        this.asyncFlushCompletion = asyncFlushCompletion;
+        this.asyncFlushFailure = asyncFlushFailure;
     }
 
     public void reset() {
@@ -47,12 +55,14 @@ public class DatabaseFlushEvent implements AutoCloseablePageCacheTracerEvent, Fi
         millisLimited = 0;
         ioLimit = 0;
         flushEvent.reset();
+        asyncFlushCompletion.reset();
+        asyncFlushFailure.reset();
     }
 
     @Override
     public void close() {
-        pagesFlushed += flushEvent.pagesFlushed();
-        ioPerformed += flushEvent.ioPerformed();
+        pagesFlushed += flushEvent.pagesFlushed() + asyncFlushCompletion.pagesFlushed();
+        ioPerformed += flushEvent.ioPerformed() + asyncFlushCompletion.ioPerformed() + asyncFlushFailure.ioPerformed();
         timesLimited += flushEvent.limitedNumberOfTimes();
         millisLimited += flushEvent.limitedMillis();
     }
@@ -65,6 +75,20 @@ public class DatabaseFlushEvent implements AutoCloseablePageCacheTracerEvent, Fi
     @Override
     public FileFlushEvent beginFileFlush() {
         return flushEvent;
+    }
+
+    /*
+     * Successfully completed async page eviction event.
+     */
+    public AsyncFlushCompletion asyncFlushCompletion() {
+        return asyncFlushCompletion;
+    }
+
+    /**
+     * Async page eviction failure event.
+     */
+    public AsyncFlushFailure asyncFlushFailure() {
+        return asyncFlushFailure;
     }
 
     public FileFlushEvent getFlushEvent() {

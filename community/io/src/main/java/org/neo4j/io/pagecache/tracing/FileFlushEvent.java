@@ -20,6 +20,7 @@
 package org.neo4j.io.pagecache.tracing;
 
 import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
+import org.neo4j.io.pagecache.tracing.async.SubmitEvent;
 
 /**
  * Begin a mass-flushing of file pages.
@@ -36,6 +37,11 @@ public interface FileFlushEvent extends AutoCloseablePageCacheTracerEvent {
                 int pagesToFlush,
                 int mergedPages) {
             return FlushEvent.NULL;
+        }
+
+        @Override
+        public SubmitEvent beginAsyncSubmit() {
+            return SubmitEvent.NULL;
         }
 
         @Override
@@ -99,6 +105,11 @@ public interface FileFlushEvent extends AutoCloseablePageCacheTracerEvent {
             PageReferenceTranslator pageReferenceTranslator,
             int pagesToFlush,
             int mergedPages);
+
+    /**
+     * Begin async submit triggered by flush event
+     */
+    SubmitEvent beginAsyncSubmit();
 
     /**
      * Begin flushing the given single page.

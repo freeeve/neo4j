@@ -105,6 +105,7 @@ import org.neo4j.io.pagecache.tracing.FlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageReferenceTranslator;
 import org.neo4j.io.pagecache.tracing.PinEvent;
+import org.neo4j.io.pagecache.tracing.async.SubmitEvent;
 import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.test.Barrier;
@@ -2694,6 +2695,11 @@ class GBPTreeTest {
                 int pagesToFlush,
                 int mergedPages) {
             return currentDelegate.beginFlush(pageRefs, swapper, pageReferenceTranslator, pagesToFlush, mergedPages);
+        }
+
+        @Override
+        public SubmitEvent beginAsyncSubmit() {
+            return currentDelegate.beginAsyncSubmit();
         }
 
         @Override

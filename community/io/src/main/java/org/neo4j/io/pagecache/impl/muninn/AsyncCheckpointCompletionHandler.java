@@ -21,16 +21,29 @@ package org.neo4j.io.pagecache.impl.muninn;
 
 import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.async.AsyncCompletionHandler;
+import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 
 public class AsyncCheckpointCompletionHandler implements AsyncCompletionHandler {
 
+    private final DatabaseFlushEvent flushEvent;
+
+    public AsyncCheckpointCompletionHandler(DatabaseFlushEvent flushEvent) {
+        this.flushEvent = flushEvent;
+    }
+
     @Override
     public void handleCompletion(AsyncBlockAccessor accessor, long data, int result) {
-        var asyncVectorIO = accessor.asyncVectorIOData(data);
-        long[] ioPages = asyncVectorIO.pages();
-        long[] ioFlushStamps = asyncVectorIO.flushStamps();
-        for (int i = 0; i < ioPages.length; i++) {
-            PageList.unlockFlush(ioPages[i], ioFlushStamps[i], true);
+        try (var completionEvent = flushEvent.asyncFlushCompletion()) {
+            var asyncVectorIO = accessor.asyncVectorIOData(data);
+            long[] ioPages = asyncVectorIO.pages();
+            long[] ioFlushStamps = asyncVectorIO.flushStamps();
+            for (int i = 0; i < ioPages.length; i++) {
+                PageList.unlockFlush(ioPages[i], ioFlushStamps[i], true);
+            }
+            completionEvent.addBytesWritten(ioPages.length * PageCache.PAGE_SIZE);
+            completionEvent.addPagesCompleted(ioPages.length);
+            completionEvent.reportIO(asyncVectorIO.numberOfBuffers());
         }
     }
 }

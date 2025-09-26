@@ -17,11 +17,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.async;
+package org.neo4j.io.pagecache.tracing.async;
 
-public record AsyncVectorIOData(long[] pages, long[] flushStamps, int numberOfBuffers) {
+import org.neo4j.io.pagecache.tracing.AutoCloseablePageCacheTracerEvent;
 
-    public AsyncVectorIOData(long page, long flushStamp) {
-        this(new long[] {page}, new long[] {flushStamp}, 1);
-    }
+public interface AsyncFlushFailure extends AutoCloseablePageCacheTracerEvent {
+    AsyncFlushFailure NULL = new AsyncFlushFailure() {
+        @Override
+        public void addPagesFailed(int pageCount) {}
+
+        @Override
+        public void reportIO(int completedIOs) {}
+
+        @Override
+        public void reset() {}
+
+        @Override
+        public long ioPerformed() {
+            return 0;
+        }
+
+        @Override
+        public void close() {}
+    };
+
+    void addPagesFailed(int pageCount);
+
+    void reportIO(int completedIOs);
+
+    void reset();
+
+    long ioPerformed();
 }

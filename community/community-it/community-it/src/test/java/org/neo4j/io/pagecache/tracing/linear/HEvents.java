@@ -217,6 +217,11 @@ class HEvents {
         }
 
         @Override
+        public SubmitEvent beginAsyncSubmit() {
+            return SubmitEvent.NULL;
+        }
+
+        @Override
         public FlushEvent beginFlush(
                 long pageRef, PageSwapper swapper, PageReferenceTranslator pageReferenceTranslator) {
             return tracer.add(new FlushHEvent(tracer, new long[] {pageRef}, swapper, 1, 0));

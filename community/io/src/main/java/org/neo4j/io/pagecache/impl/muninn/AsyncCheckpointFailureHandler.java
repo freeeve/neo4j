@@ -23,15 +23,26 @@ import static org.neo4j.io.pagecache.impl.muninn.PageList.unlockFlush;
 
 import org.neo4j.io.async.AsyncBlockAccessor;
 import org.neo4j.io.async.AsyncFailureHandler;
+import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 
 public class AsyncCheckpointFailureHandler implements AsyncFailureHandler {
+    private final DatabaseFlushEvent flushEvent;
+
+    public AsyncCheckpointFailureHandler(DatabaseFlushEvent flushEvent) {
+        this.flushEvent = flushEvent;
+    }
+
     @Override
     public void handleFailure(AsyncBlockAccessor accessor, long data, int result, String failureMessage) {
-        var asyncVectorIO = accessor.asyncVectorIOData(data);
-        long[] pages = asyncVectorIO.pages();
-        long[] flushStamps = asyncVectorIO.flushStamps();
-        for (int i = 0; i < pages.length; i++) {
-            unlockFlush(pages[i], flushStamps[i], false);
+        try (var asyncEvictionFailure = flushEvent.asyncFlushFailure()) {
+            var asyncVectorIO = accessor.asyncVectorIOData(data);
+            long[] pages = asyncVectorIO.pages();
+            long[] flushStamps = asyncVectorIO.flushStamps();
+            for (int i = 0; i < pages.length; i++) {
+                unlockFlush(pages[i], flushStamps[i], false);
+            }
+            asyncEvictionFailure.addPagesFailed(pages.length);
+            asyncEvictionFailure.reportIO(asyncVectorIO.numberOfBuffers());
         }
     }
 }

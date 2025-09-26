@@ -28,6 +28,8 @@ import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.async.AsyncEvictionCompletion;
 import org.neo4j.io.pagecache.tracing.async.AsyncEvictionEvent;
 import org.neo4j.io.pagecache.tracing.async.AsyncEvictionFailure;
+import org.neo4j.io.pagecache.tracing.async.AsyncFlushCompletion;
+import org.neo4j.io.pagecache.tracing.async.AsyncFlushFailure;
 import org.neo4j.io.pagecache.tracing.async.SubmitEvent;
 import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer;
 import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
@@ -83,7 +85,8 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
     private final AsyncEvictionCompletionEvent asyncEvictionCompletion = new AsyncEvictionCompletionEvent();
     private final AsyncEvictionFailure asyncEvictionFailure = new AsyncEvictionFailureEvent();
     private final AsyncPageCacheSubmitEvent asyncPageCacheSubmitEvent = new AsyncPageCacheSubmitEvent();
-    private final DatabaseFlushEvent databaseFlushEvent = new DatabaseFlushEvent(new DefaultPageCacheFileFlushEvent());
+    private final DatabaseFlushEvent databaseFlushEvent = new DatabaseFlushEvent(
+            new DefaultPageCacheFileFlushEvent(), new DefaultAsyncFlushCompletion(), new DefaultAsyncFlushFailure());
 
     public DefaultPageCacheTracer() {
         this(false);
@@ -617,6 +620,11 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
         }
 
         @Override
+        public SubmitEvent beginAsyncSubmit() {
+            return asyncPageCacheSubmitEvent;
+        }
+
+        @Override
         public FlushEvent beginFlush(
                 long pageRef, PageSwapper swapper, PageReferenceTranslator pageReferenceTranslator) {
             flushEvent.swapperTracer = swapper.fileSwapperTracer();
@@ -647,7 +655,8 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
 
         @Override
         public long localBytesWritten() {
-            return flushEvent.getLocalBytesWritten();
+            return flushEvent.getLocalBytesWritten()
+                    + databaseFlushEvent.asyncFlushCompletion().getLocalBytesWritten();
         }
 
         @Override
@@ -716,6 +725,11 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
         }
 
         @Override
+        public void addPagesMerged(int pageCount) {
+            merges.add(pageCount);
+        }
+
+        @Override
         public void setException(Exception e) {}
 
         @Override
@@ -748,6 +762,85 @@ public class DefaultPageCacheTracer implements PageCacheTracer {
         @Override
         public void evicted() {
             evictions.increment();
+        }
+
+        @Override
+        public void close() {}
+    }
+
+    private class DefaultAsyncFlushCompletion implements AsyncFlushCompletion {
+
+        private long pagesFlushed;
+        private long ioPerformed;
+        private final LongAdder localBytesWritten = new LongAdder();
+
+        @Override
+        public void addBytesWritten(int bytes) {
+            bytesWritten.add(bytes);
+            localBytesWritten.add(bytes);
+        }
+
+        @Override
+        public void addPagesCompleted(int pageCount) {
+            asyncIoCompleted.add(pageCount);
+            pagesFlushed += pageCount;
+            flushes.add(pageCount);
+        }
+
+        @Override
+        public void reportIO(int completedIOs) {
+            ioPerformed += completedIOs;
+            iopqPerformed.add(completedIOs);
+        }
+
+        @Override
+        public void reset() {
+            pagesFlushed = 0;
+            ioPerformed = 0;
+            localBytesWritten.reset();
+        }
+
+        @Override
+        public long pagesFlushed() {
+            return pagesFlushed;
+        }
+
+        @Override
+        public long ioPerformed() {
+            return ioPerformed;
+        }
+
+        @Override
+        public long getLocalBytesWritten() {
+            return localBytesWritten.longValue();
+        }
+
+        @Override
+        public void close() {}
+    }
+
+    private class DefaultAsyncFlushFailure implements AsyncFlushFailure {
+        private long iosPerformed;
+
+        @Override
+        public void addPagesFailed(int pageCount) {
+            asyncIoFailed.add(pageCount);
+        }
+
+        @Override
+        public void reportIO(int completedIOs) {
+            iosPerformed += completedIOs;
+            iopqPerformed.add(completedIOs);
+        }
+
+        @Override
+        public void reset() {
+            this.iosPerformed = 0;
+        }
+
+        @Override
+        public long ioPerformed() {
+            return iosPerformed;
         }
 
         @Override

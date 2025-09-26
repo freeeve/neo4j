@@ -20,6 +20,7 @@
 package org.neo4j.io.pagecache.impl.muninn;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.io.ByteUnit.MebiByte;
@@ -29,6 +30,10 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.async.AsyncVectorIOData;
 import org.neo4j.io.mem.MemoryAllocator;
+import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
+import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
+import org.neo4j.io.pagecache.tracing.async.AsyncFlushCompletion;
 import org.neo4j.memory.EmptyMemoryTracker;
 
 class AsyncCheckpointCompletionHandlerTest {
@@ -55,7 +60,7 @@ class AsyncCheckpointCompletionHandlerTest {
             long flushLock = PageList.tryFlushLock(pageRef);
             assertThat(flushLock).isNotZero();
 
-            var completionHandler = new AsyncCheckpointCompletionHandler();
+            var completionHandler = new AsyncCheckpointCompletionHandler(DatabaseFlushEvent.NULL);
             completionHandler.handleCompletion(
                     new AsyncBlockAccessorWithResult(new AsyncVectorIOData(pageRef, flushLock)), 4, 0);
             // page is not modified anymore since flush lock was releases with success flag
@@ -107,11 +112,12 @@ class AsyncCheckpointCompletionHandlerTest {
             assertThat(flushLock2).isNotZero();
             assertThat(flushLock3).isNotZero();
 
-            var completionHandler = new AsyncCheckpointCompletionHandler();
+            var completionHandler = new AsyncCheckpointCompletionHandler(DatabaseFlushEvent.NULL);
             completionHandler.handleCompletion(
                     new AsyncBlockAccessorWithResult(new AsyncVectorIOData(
                             new long[] {pageRef1, pageRef2, pageRef3},
-                            new long[] {flushLock1, flushLock2, flushLock3})),
+                            new long[] {flushLock1, flushLock2, flushLock3},
+                            3)),
                     4,
                     0);
 
@@ -127,6 +133,66 @@ class AsyncCheckpointCompletionHandlerTest {
             assertThat(flushLockAfterHandle2).isNotZero();
             long flushLockAfterHandle3 = PageList.tryFlushLock(pageRef3);
             assertThat(flushLockAfterHandle3).isNotZero();
+        }
+    }
+
+    @Test
+    void reportEventsOnCompletion() {
+        int pageSize = (int) ByteUnit.kibiBytes(8);
+        int pages = 10;
+        DefaultPageCacheTracer defaultPageCacheTracer = new DefaultPageCacheTracer();
+        try (DatabaseFlushEvent databaseFlush = defaultPageCacheTracer.beginDatabaseFlush()) {
+
+            try (MemoryAllocator mman =
+                    MemoryAllocator.createAllocator(MebiByte.toBytes(2), EmptyMemoryTracker.INSTANCE)) {
+                SwapperSet swappers = new SwapperSet();
+                long victimPage = VictimPageReference.getVictimPage(pageSize, INSTANCE);
+
+                PageList pageList = new PageList(pages, pageSize, mman, swappers, victimPage, Long.BYTES);
+
+                long pageRef1 = pageList.deref(0);
+                long pageRef2 = pageList.deref(1);
+                long pageRef3 = pageList.deref(2);
+
+                PageList.unlockExclusive(pageRef1);
+                PageList.unlockExclusive(pageRef2);
+                PageList.unlockExclusive(pageRef3);
+
+                // flush locks
+                long flushLock1 = PageList.tryFlushLock(pageRef1);
+                long flushLock2 = PageList.tryFlushLock(pageRef2);
+                long flushLock3 = PageList.tryFlushLock(pageRef3);
+
+                assertThat(flushLock1).isNotZero();
+                assertThat(flushLock2).isNotZero();
+                assertThat(flushLock3).isNotZero();
+
+                var completionHandler = new AsyncCheckpointCompletionHandler(databaseFlush);
+                completionHandler.handleCompletion(
+                        new AsyncBlockAccessorWithResult(new AsyncVectorIOData(
+                                new long[] {pageRef1, pageRef2}, new long[] {flushLock1, flushLock2}, 1)),
+                        4,
+                        0);
+
+                completionHandler.handleCompletion(
+                        new AsyncBlockAccessorWithResult(
+                                new AsyncVectorIOData(new long[] {pageRef3}, new long[] {flushLock3}, 1)),
+                        4,
+                        0);
+
+                try (AsyncFlushCompletion asyncFlushCompletion = databaseFlush.asyncFlushCompletion()) {
+                    assertEquals(2, asyncFlushCompletion.ioPerformed());
+                    assertEquals(3, asyncFlushCompletion.pagesFlushed());
+                    assertEquals(0, databaseFlush.pagesFlushed());
+                    assertEquals(0, databaseFlush.ioPerformed());
+                }
+            }
+
+            databaseFlush.close();
+
+            assertEquals(3, databaseFlush.pagesFlushed());
+            assertEquals(2, databaseFlush.ioPerformed());
+            assertEquals(3 * PageCache.PAGE_SIZE, defaultPageCacheTracer.bytesWritten());
         }
     }
 }

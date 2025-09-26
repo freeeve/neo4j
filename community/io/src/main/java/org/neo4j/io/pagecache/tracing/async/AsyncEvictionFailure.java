@@ -22,9 +22,5 @@ package org.neo4j.io.pagecache.tracing.async;
 import org.neo4j.io.pagecache.tracing.AutoCloseablePageCacheTracerEvent;
 
 public interface AsyncEvictionFailure extends AutoCloseablePageCacheTracerEvent {
-    AsyncEvictionFailure NULL = new AsyncEvictionFailure() {
-
-        @Override
-        public void close() {}
-    };
+    AsyncEvictionFailure NULL = () -> {};
 }

@@ -601,12 +601,14 @@ public class DefaultPageCursorTracer implements PageCursorTracer {
         }
     }
 
-    private class AsyncSubmitEvent implements SubmitEvent {
+    private static class AsyncSubmitEvent implements SubmitEvent {
         @Override
         public void addSubmittedPages(int pageCount) {}
 
         @Override
         public void setException(Exception e) {}
+
+        public void addPagesMerged(int pageCount) {}
 
         @Override
         public void close() {}
