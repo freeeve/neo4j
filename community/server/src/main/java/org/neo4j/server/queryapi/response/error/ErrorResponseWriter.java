@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.server.queryapi.response;
+package org.neo4j.server.queryapi.response.error;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import java.io.IOException;
