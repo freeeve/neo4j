@@ -26,12 +26,13 @@ import static org.neo4j.util.Preconditions.requireNonNegative;
 
 import java.util.Arrays;
 import java.util.Objects;
+import org.eclipse.collections.api.iterator.LongIterator;
 import org.neo4j.collection.PrimitiveLongResourceCollections;
 import org.neo4j.collection.PrimitiveLongResourceIterator;
 import org.neo4j.graphdb.Resource;
 import org.neo4j.memory.MemoryTracker;
 
-public class HeapTrackingLongArrayList implements Resource {
+public class HeapTrackingLongArrayList extends LongIterableAdapter implements Resource {
     private static final long SHALLOW_SIZE = shallowSizeOfInstance(HeapTrackingLongArrayList.class);
 
     private final MemoryTracker memoryTracker;
@@ -100,6 +101,7 @@ public class HeapTrackingLongArrayList implements Resource {
         size = s + 1;
     }
 
+    @Override
     public int size() {
         return size;
     }
@@ -184,5 +186,21 @@ public class HeapTrackingLongArrayList implements Resource {
         if (index > size || index < 0) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: " + size);
         }
+    }
+
+    @Override
+    public LongIterator longIterator() {
+        return iterator();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof HeapTrackingLongArrayList that)) return false;
+        return size == that.size && Objects.deepEquals(elementData, that.elementData);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(size, Arrays.hashCode(elementData));
     }
 }

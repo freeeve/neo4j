@@ -19,12 +19,16 @@
  */
 package org.neo4j.collection.trackable;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.eclipse.collections.api.LongIterable;
+import org.eclipse.collections.api.list.primitive.MutableLongList;
+import org.eclipse.collections.impl.factory.primitive.LongLists;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -147,5 +151,32 @@ class HeapTrackingLongArrayListTest {
             assertEquals(longArray[i++], iterator.next());
         }
         assertEquals(i, longArray.length);
+    }
+
+    @Test
+    void asLongIterable() {
+        try (HeapTrackingLongArrayList trackedList = HeapTrackingLongArrayList.newLongArrayList(memoryTracker)) {
+            // Given
+            LongIterable list = trackedList;
+            // Then
+            assertThat(list.toArray()).isEmpty();
+            assertThat(list.size()).isZero();
+            assertThat(list.makeString()).isEmpty();
+
+            // When
+            trackedList.addAll(3, 2, 1);
+            // Then
+            assertThat(list.toArray()).isEqualTo(new long[] {3, 2, 1});
+            assertThat(list.size()).isEqualTo(3);
+            assertThat(list.contains(2)).isTrue();
+            assertThat(list.contains(4)).isFalse();
+            assertThat(list.min()).isEqualTo(1);
+            assertThat(list.max()).isEqualTo(3);
+            assertThat(list.sum()).isEqualTo(6);
+            MutableLongList otherList = LongLists.mutable.empty();
+            list.forEach(otherList::add);
+            assertThat(otherList.toArray()).isEqualTo(new long[] {3, 2, 1});
+            assertThat(list.makeString()).isEqualTo("3, 2, 1");
+        }
     }
 }
