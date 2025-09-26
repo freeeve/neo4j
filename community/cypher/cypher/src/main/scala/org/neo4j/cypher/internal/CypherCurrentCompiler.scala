@@ -247,7 +247,8 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
         query.options.queryOptions.operatorEngine,
         query.options.queryOptions.interpretedPipesFallback,
         planState.anonymousVariableNameGenerator,
-        logicalPlanResult.plannerContext.executionModel
+        logicalPlanResult.plannerContext.executionModel,
+        logicalPlanResult.indexSelector
       )
 
     val planningAttributesCopy = planState.planningAttributes

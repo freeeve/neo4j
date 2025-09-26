@@ -123,7 +123,8 @@ trait InterpretedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTE
       context.config.memoryTrackingController,
       query.hasLoadCSV,
       transactionsMode,
-      context.config.warnOnAggregationSkipNull
+      context.config.warnOnAggregationSkipNull,
+      context.indexComparatorFactory
     )
 
     new InterpretedExecutionPlan(

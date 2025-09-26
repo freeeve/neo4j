@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.compiler.ExecutionModel
+import org.neo4j.cypher.internal.ir.IndexComparatorFactory
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
@@ -45,7 +46,8 @@ case class CommunityRuntimeContext(
   log: InternalLog,
   config: CypherRuntimeConfiguration,
   anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-  assertOpen: AssertOpen
+  assertOpen: AssertOpen,
+  indexComparatorFactory: IndexComparatorFactory
 ) extends RuntimeContext {
 
   override def compileExpressions: Boolean = false
@@ -67,7 +69,8 @@ case class CommunityRuntimeContextManager(log: InternalLog, config: CypherRuntim
     ignore3: CypherOperatorEngineOption,
     ignore4: CypherInterpretedPipesFallbackOption,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    ignore5: ExecutionModel
+    ignore5: ExecutionModel,
+    indexComparatorFactory: IndexComparatorFactory
   ): CommunityRuntimeContext = {
     val kernelTransaction = transactionalContext.kernelTransaction()
     val configToUse = transactionalContext.databaseMode() match {
@@ -82,7 +85,8 @@ case class CommunityRuntimeContextManager(log: InternalLog, config: CypherRuntim
       log,
       configToUse,
       anonymousVariableNameGenerator,
-      kernelTransaction
+      kernelTransaction,
+      indexComparatorFactory
     )
   }
 

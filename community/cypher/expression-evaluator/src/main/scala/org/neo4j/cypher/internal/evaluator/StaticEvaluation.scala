@@ -27,6 +27,7 @@ import org.neo4j.csv.reader.CharReadable
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.ir.NoPreferenceIndexComparatorFactory
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
 import org.neo4j.cypher.internal.runtime.ConstraintInfo
@@ -114,7 +115,8 @@ object StaticEvaluation {
       expressionVariables = new Array(nExpressionSlots),
       subscriber = QuerySubscriber.DO_NOTHING_SUBSCRIBER,
       queryMemoryTracker = NoOpQueryMemoryTracker,
-      memoryTrackerForOperatorProvider = NoOpMemoryTrackerForOperatorProvider
+      memoryTrackerForOperatorProvider = NoOpMemoryTrackerForOperatorProvider,
+      indexComparatorFactory = NoPreferenceIndexComparatorFactory
     )
 
     override def evaluate(expression: Expression, params: MapValue, context: CypherRow): AnyValue = {

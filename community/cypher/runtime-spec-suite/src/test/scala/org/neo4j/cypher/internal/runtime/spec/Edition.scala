@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.RuntimeContextManager
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.ir.IndexComparatorFactory
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
@@ -191,7 +192,8 @@ object COMMUNITY {
       operatorEngine: CypherOperatorEngineOption,
       interpretedPipesFallback: CypherInterpretedPipesFallbackOption,
       anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-      executionModel: ExecutionModel
+      executionModel: ExecutionModel,
+      indexComparatorFactory: IndexComparatorFactory
     ): CommunityRuntimeContext = {
       delegate.create(
         cypherVersion,
@@ -204,7 +206,8 @@ object COMMUNITY {
         operatorEngine,
         interpretedPipesFallback,
         anonymousVariableNameGenerator,
-        executionModel
+        executionModel,
+        indexComparatorFactory
       )
     }
 

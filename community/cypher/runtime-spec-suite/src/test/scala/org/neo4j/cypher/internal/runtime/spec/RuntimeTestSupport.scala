@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedSingleThreaded
+import org.neo4j.cypher.internal.ir.NoPreferenceIndexComparatorFactory
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
@@ -1108,7 +1109,8 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
       operatorEngine = queryOptions.queryOptions.operatorEngine,
       interpretedPipesFallback = queryOptions.queryOptions.interpretedPipesFallback,
       anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(),
-      executionModel
+      executionModel,
+      indexComparatorFactory = NoPreferenceIndexComparatorFactory
     )
   }
 

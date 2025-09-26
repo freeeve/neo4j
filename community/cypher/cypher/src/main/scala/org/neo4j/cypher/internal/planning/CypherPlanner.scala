@@ -76,6 +76,8 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
+import org.neo4j.cypher.internal.ir.IndexComparatorFactory
+import org.neo4j.cypher.internal.ir.NoPreferenceIndexComparatorFactory
 import org.neo4j.cypher.internal.logical.plans.AdministrationCommandLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -559,7 +561,8 @@ case class CypherPlanner(
       plannerContext,
       (notificationLogger.notifications ++ cacheableLogicalPlan.notifications).toIndexedSeq,
       cacheableLogicalPlan.shouldBeCached,
-      obfuscator
+      obfuscator,
+      NoPreferenceIndexComparatorFactory // TODO: replace me
     )
   }
 
@@ -737,5 +740,6 @@ case class LogicalPlanResult(
   plannerContext: PlannerContext,
   notifications: IndexedSeq[InternalNotification],
   shouldBeCached: Boolean,
-  queryObfuscator: QueryObfuscator
+  queryObfuscator: QueryObfuscator,
+  indexSelector: IndexComparatorFactory
 )

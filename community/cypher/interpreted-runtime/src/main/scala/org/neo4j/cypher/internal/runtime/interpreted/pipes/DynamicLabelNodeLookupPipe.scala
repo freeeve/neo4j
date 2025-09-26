@@ -95,7 +95,7 @@ abstract class DynamicLabelNodeLookupBase[A](context: ReadableRow, state: QueryS
   }
 
   private def getIndexComparator: Comparator[IndexDescriptor] =
-    Comparator.comparingLong(_.getId) // TODO: this is arbitrary; planner to provide comparator
+    state.indexComparatorFactory.createComparator()
 
   private def predicate(propertyKey: PropertyKeyToken, expression: Expression): PropertyIndexQuery.ExactPredicate = {
     val value = expression.apply(context, state)

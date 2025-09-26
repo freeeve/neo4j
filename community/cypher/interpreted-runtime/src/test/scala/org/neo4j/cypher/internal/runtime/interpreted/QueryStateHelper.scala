@@ -24,6 +24,8 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.when
 import org.mockito.invocation.InvocationOnMock
+import org.neo4j.cypher.internal.ir.IndexComparatorFactory
+import org.neo4j.cypher.internal.ir.NoPreferenceIndexComparatorFactory
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.NoInput
@@ -83,6 +85,7 @@ object QueryStateHelper extends MockitoSugar {
     subscriber: QuerySubscriber = QuerySubscriber.DO_NOTHING_SUBSCRIBER,
     decorator: PipeDecorator = NullPipeDecorator,
     initialContext: Option[CypherRow] = None,
+    indexComparatorFactory: IndexComparatorFactory = NoPreferenceIndexComparatorFactory,
     input: InputDataStream = NoInput
   ): QueryState =
     new QueryState(
@@ -98,8 +101,9 @@ object QueryStateHelper extends MockitoSugar {
       subscriber,
       NoOpQueryMemoryTracker,
       NoOpMemoryTrackerForOperatorProvider,
-      decorator = decorator,
-      initialContext = initialContext,
+      decorator,
+      initialContext,
+      indexComparatorFactory = indexComparatorFactory,
       input = input
     )
 

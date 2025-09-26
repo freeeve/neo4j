@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.GQLExceptionsHelper.requireImplicitTransaction
+import org.neo4j.cypher.internal.ir.IndexComparatorFactory
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.InputDataStream
@@ -68,6 +69,7 @@ class QueryState(
   val decorator: PipeDecorator = NullPipeDecorator,
   val initialContext: Option[CypherRow] = None,
   val cachedIn: InCache = createDefaultInCache(),
+  val indexComparatorFactory: IndexComparatorFactory,
   val lenientCreateRelationship: Boolean = false,
   val prePopulateResults: Boolean = false,
   val input: InputDataStream = NoInput,
@@ -131,6 +133,7 @@ class QueryState(
       decorator,
       initialContext,
       cachedIn,
+      indexComparatorFactory,
       lenientCreateRelationship,
       prePopulateResults,
       input,
@@ -156,6 +159,7 @@ class QueryState(
       decorator,
       Some(initialContext),
       cachedIn,
+      indexComparatorFactory,
       lenientCreateRelationship,
       prePopulateResults,
       input,
@@ -181,6 +185,7 @@ class QueryState(
       newDecorator,
       Some(initialContext),
       cachedIn,
+      indexComparatorFactory,
       lenientCreateRelationship,
       prePopulateResults,
       input,
@@ -206,6 +211,7 @@ class QueryState(
       decorator,
       initialContext,
       cachedIn,
+      indexComparatorFactory,
       lenientCreateRelationship,
       prePopulateResults,
       input,
@@ -276,6 +282,7 @@ class QueryState(
       newDecorator,
       initialContext,
       newCachedIn,
+      indexComparatorFactory,
       lenientCreateRelationship,
       prePopulateResults,
       input,
@@ -303,6 +310,7 @@ class QueryState(
       decorator,
       initialContext,
       cachedIn,
+      indexComparatorFactory,
       lenientCreateRelationship,
       prePopulateResults,
       input,
@@ -387,6 +395,7 @@ object QueryState {
     decorator: PipeDecorator,
     initialContext: Option[CypherRow],
     cachedIn: InCache,
+    indexComparatorFactory: IndexComparatorFactory,
     lenientCreateRelationship: Boolean,
     prePopulateResults: Boolean,
     input: InputDataStream,
@@ -413,6 +422,7 @@ object QueryState {
       decorator,
       initialContext,
       cachedIn,
+      indexComparatorFactory,
       lenientCreateRelationship,
       prePopulateResults,
       input,

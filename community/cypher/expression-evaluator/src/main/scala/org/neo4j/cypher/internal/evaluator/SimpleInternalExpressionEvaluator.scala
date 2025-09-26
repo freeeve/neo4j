@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator.CON
 import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator.NULL_CURSOR_FACTORY
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Parameter
+import org.neo4j.cypher.internal.ir.NoPreferenceIndexComparatorFactory
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
@@ -103,7 +104,8 @@ class SimpleInternalExpressionEvaluator extends InternalExpressionEvaluator {
       expressionVariables = new Array(nExpressionSlots),
       subscriber = QuerySubscriber.DO_NOTHING_SUBSCRIBER,
       queryMemoryTracker = NoOpQueryMemoryTracker,
-      memoryTrackerForOperatorProvider = NoOpMemoryTrackerForOperatorProvider
+      memoryTrackerForOperatorProvider = NoOpMemoryTrackerForOperatorProvider,
+      indexComparatorFactory = NoPreferenceIndexComparatorFactory
     )
 
   private def withSlottedParams(input: Expression, params: MapValue): (Expression, Array[AnyValue]) = {

@@ -168,7 +168,8 @@ trait SlottedRuntime[-CONTEXT <: RuntimeContext] extends CypherRuntime[CONTEXT] 
           context.config.memoryTrackingController,
           query.hasLoadCSV,
           transactionMode,
-          context.config.warnOnAggregationSkipNull
+          context.config.warnOnAggregationSkipNull,
+          context.indexComparatorFactory
         )
 
       if (ENABLE_DEBUG_PRINTS) {

@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.compiler.ExecutionModel
+import org.neo4j.cypher.internal.ir.IndexComparatorFactory
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
@@ -118,6 +119,7 @@ abstract class RuntimeContext {
   def compileExpressions: Boolean
   def log: InternalLog
   def anonymousVariableNameGenerator: AnonymousVariableNameGenerator
+  def indexComparatorFactory: IndexComparatorFactory
   def materializedEntitiesMode: Boolean
   def isCommunity: Boolean
 
@@ -145,7 +147,8 @@ trait RuntimeContextManager[+CONTEXT <: RuntimeContext] {
     operatorEngine: CypherOperatorEngineOption,
     interpretedPipesFallback: CypherInterpretedPipesFallbackOption,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    executionModel: ExecutionModel
+    executionModel: ExecutionModel,
+    indexComparatorFactory: IndexComparatorFactory
   ): CONTEXT
 
   def config: CypherRuntimeConfiguration
