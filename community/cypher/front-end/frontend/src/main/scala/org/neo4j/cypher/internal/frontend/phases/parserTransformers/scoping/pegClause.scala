@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Finish
 import org.neo4j.cypher.internal.ast.Foreach
 import org.neo4j.cypher.internal.ast.FreeProjection
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
+import org.neo4j.cypher.internal.ast.InputDataStream
 import org.neo4j.cypher.internal.ast.Insert
 import org.neo4j.cypher.internal.ast.LoadCSV
 import org.neo4j.cypher.internal.ast.Match
@@ -224,6 +225,11 @@ object pegClause {
       case Finish() =>
         val children = WorkingScope.noChildren
         incoming.omittedResultScope(RegularContext.unit, children)
+
+      // InputDataStream is not implemented in the parser
+      case InputDataStream(variables) =>
+        val vars = variables.toSet[LogicalVariable]
+        incoming.noResultScope(incoming.amendedWith(vars), Seq.empty, declared = Declarations(Seq.empty, variables))
 
       case projectionClause: ProjectionClause => scopeProjectionClause(projectionClause, incoming)
 
