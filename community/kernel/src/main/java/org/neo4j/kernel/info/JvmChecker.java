@@ -34,8 +34,8 @@ import org.neo4j.logging.InternalLog;
 public class JvmChecker {
     public static final Pattern SUPPORTED_JAVA_NAME_PATTERN =
             compile("(Java HotSpot\\(TM\\)|OpenJDK) (64-Bit Server|Server) VM");
-    public static final String NEO4J_JAVA_WARNING_MESSAGE = "Please use Java(TM) 21 to run Neo4j.";
-    private static final IntSet SUPPORTED_JVM_VERSIONS = IntSets.immutable.of(21);
+    public static final String NEO4J_JAVA_WARNING_MESSAGE = "Please use Java(TM) 21 or Java(TM) 25 to run Neo4j.";
+    private static final IntSet SUPPORTED_JVM_VERSIONS = IntSets.immutable.of(21, 25);
     static final String INCOMPATIBLE_JVM_WARNING =
             "You are using an unsupported Java runtime. " + NEO4J_JAVA_WARNING_MESSAGE;
     static final String INCOMPATIBLE_JVM_VERSION_WARNING =

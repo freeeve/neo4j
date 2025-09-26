@@ -175,7 +175,7 @@ abstract class BootloaderOsAbstraction {
 
     private void checkJavaVersion() {
         int version = bootloader.environment.version().feature();
-        if (version != 21 && version != TEST_VERSION) {
+        if (version != 21 && version != 25 && version != TEST_VERSION) {
             // too new java
             printBadRuntime();
         } else {
