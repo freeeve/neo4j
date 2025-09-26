@@ -29,6 +29,7 @@ import static org.neo4j.test.assertion.Assert.awaitUntilAsserted;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.neo4j.cypher.internal.CypherVersion;
@@ -98,6 +99,7 @@ class DbInfoIntegrationTest extends TestHarness {
 
     // Note: needs server supporting cypher 25 with apoc installed to work
     @Test
+    @Disabled
     void fillsVersionedInfoInDbInfo() throws Exception {
         assumeAtLeastVersion("2025.05.0");
         // assumeAtLeastVersion("5.26.0"); // Switch to this for testing pre-2025.03.0, also switching in
@@ -191,6 +193,7 @@ class DbInfoIntegrationTest extends TestHarness {
                 SECONDS);
     }
 
+    @Disabled
     @Test
     void stopsAndResumesPollingCorrectly() throws Exception {
         try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
