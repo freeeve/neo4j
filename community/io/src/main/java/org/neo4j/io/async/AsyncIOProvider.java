@@ -58,9 +58,9 @@ public interface AsyncIOProvider extends PrioritizedService {
                 try {
                     createTestAccessor(provider);
                     return provider;
-                } catch (Exception e) {
+                } catch (Throwable t) {
                     if (PRINT_SERVICE_LOADER_STACK_TRACES) {
-                        e.printStackTrace();
+                        t.printStackTrace();
                     }
                 }
             }
