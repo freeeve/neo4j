@@ -80,7 +80,7 @@
     <maven.compiler.release>${vm.target.version}</maven.compiler.release>
     <generate-config-docs-phase>prepare-package</generate-config-docs-phase>
     <test.runner.mockito.agent>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</test.runner.mockito.agent>
-    <jdk24.custom.options/>
+    <jdk25.custom.options/>
     <jdk.custom.options>
       --add-opens=java.base/java.nio=ALL-UNNAMED
       --add-opens=java.base/java.io=ALL-UNNAMED
@@ -88,7 +88,7 @@
       --add-opens=java.base/java.util.concurrent=ALL-UNNAMED
       --enable-native-access=ALL-UNNAMED
       --add-modules=jdk.incubator.vector
-      ${jdk24.custom.options}
+      ${jdk25.custom.options}
     </jdk.custom.options>
     <test.runner.jvm/>
     <test.runner.jvm.settings.additional/>
@@ -1055,14 +1055,13 @@
 
   <profiles>
     <profile>
-      <id>jdk-24</id>
+      <id>jdk-25</id>
       <activation>
-          <jdk>24</jdk>
+          <jdk>25</jdk>
       </activation>
         <properties>
             <dependency.analyze.skip>true</dependency.analyze.skip>
-          <!--     UnlockExperimentalVMOptions can be removed in 25-->
-            <jdk24.custom.options>-XX:+UnlockExperimentalVMOptions -XX:+UseCompactObjectHeaders --sun-misc-unsafe-memory-access=allow</jdk24.custom.options>
+            <jdk25.custom.options>-XX:+UseCompactObjectHeaders --sun-misc-unsafe-memory-access=allow</jdk25.custom.options>
         </properties>
     </profile>
     <profile>

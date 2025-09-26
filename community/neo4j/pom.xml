@@ -195,16 +195,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <profiles>
-        <profile>
-            <id>jdk-24-temp-test</id>
-            <activation>
-                <jdk>24</jdk>
-            </activation>
-            <properties>
-                <test.runner.jvm.settings.additional>-Dtest.temp.vm.version=24</test.runner.jvm.settings.additional>
-            </properties>
-        </profile>
-    </profiles>
 </project>
