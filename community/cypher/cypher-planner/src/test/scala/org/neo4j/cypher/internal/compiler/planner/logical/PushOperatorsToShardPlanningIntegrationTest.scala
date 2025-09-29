@@ -81,10 +81,6 @@ class PushOperatorsToShardPlanningIntegrationTest
       GraphDatabaseInternalSettings.cypher_remote_batch_properties_implementation,
       RemoteBatchPropertiesImplementation.PLANNER
     )
-    .withSetting(
-      GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled,
-      TRUE
-    )
     .withSetting(GraphDatabaseInternalSettings.push_operators_into_remote_batch_properties, TRUE)
 
   // Graph counts based on a subset of LDBC SF 1
@@ -320,9 +316,8 @@ class PushOperatorsToShardPlanningIntegrationTest
         .projection("cacheN[person.firstName] AS name")
         .semiApply()
         .|.remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "dog", properties = "name")(PushdownOperators()
-          .filter("cacheNFromStore[person.firstName] = dog.name")
-          .arguments("person")
-          .previouslyCachedProperties("cacheNFromStore[person.firstName]"))
+          .filter("anon_0 = dog.name")
+          .importedPerRowValues(Map("anon_0" -> "cacheN[person.firstName]")))
         .|.filter("dog:Dog")
         .|.expandAll("(person)-[:HAS_DOG]->(dog)")
         .|.argument("person")
@@ -477,9 +472,8 @@ class PushOperatorsToShardPlanningIntegrationTest
       .remoteBatchProperties("cacheRFromStore[knows.creationDate]")
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "person", properties = "firstName")(
         PushdownOperators()
-          .filter("person.lastName = cacheNFromStore[friend.lastName]")
-          .arguments("friend")
-          .previouslyCachedProperties("cacheNFromStore[friend.lastName]")
+          .filter("person.lastName = anon_0")
+          .importedPerRowValues(Map("anon_0" -> "cacheN[friend.lastName]"))
       )
       .filter("person:Person")
       .expandAll("(friend)<-[knows:KNOWS]-(person)")
@@ -586,9 +580,8 @@ class PushOperatorsToShardPlanningIntegrationTest
         .|.argument("friend")
         .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "friend", properties = "firstName", "lastName")(
           PushdownOperators()
-            .filter("cacheNFromStore[person.firstName] = friend.firstName")
-            .arguments("person")
-            .previouslyCachedProperties("cacheNFromStore[person.firstName]")
+            .filter("anon_0 = friend.firstName")
+            .importedPerRowValues(Map("anon_0" -> "cacheN[person.firstName]"))
         )
         .expand("(person)-[:KNOWS*1..2]-(friend)", expandMode = ExpandAll, projectedDir = OUTGOING)
         .remoteBatchProperties("cacheNFromStore[person.firstName]")
@@ -764,9 +757,8 @@ class PushOperatorsToShardPlanningIntegrationTest
         "firstName",
         "lastName"
       )(PushdownOperators()
-        .filter("NOT cacheNFromStore[person.id] = friend.id")
-        .arguments("person")
-        .previouslyCachedProperties("cacheNFromStore[person.id]"))
+        .filter("NOT anon_0 = friend.id")
+        .importedPerRowValues(Map("anon_0" -> "cacheN[person.id]")))
       .expand("(person)-[:KNOWS*1..2]-(friend)")
       .nodeIndexOperator(
         "person:Person(id = ???)",
@@ -975,7 +967,9 @@ class PushOperatorsToShardPlanningIntegrationTest
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "person", properties = "age", "name")(
         PushdownOperators()
           .filter("person.age = maxAge")
-          .arguments("maxAge")
+          .importedPerRowValues(Map(
+            "maxAge" -> "maxAge"
+          )) // This is an interesting example of perRowValue that should be maybe be considered a constant?
       )
       .aggregation(Seq("person AS person"), Seq("MAX(cacheN[person.age]) AS maxAge"))
       .remoteBatchProperties("cacheNFromStore[person.age]")
@@ -1056,7 +1050,7 @@ class PushOperatorsToShardPlanningIntegrationTest
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "friend", properties = "firstName")(
         PushdownOperators()
           .filter("friend.lastName = foo")
-          .arguments("foo")
+          .importedPerRowValues(Map("foo" -> "foo"))
       )
       .filter("friend:Person")
       .expandAll("(n)-[:KNOWS]-(friend)")
@@ -1185,9 +1179,8 @@ class PushOperatorsToShardPlanningIntegrationTest
       .apply()
       .|.optional("p")
       .|.remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "s", properties = "firstName")(PushdownOperators()
-        .filter("NOT s.firstName = cacheNFromStore[p.firstName]")
-        .arguments("p")
-        .previouslyCachedProperties("cacheNFromStore[p.firstName]"))
+        .filter("NOT s.firstName = anon_0")
+        .importedPerRowValues(Map("anon_0" -> "cacheN[p.firstName]")))
       .|.filter("s:Person")
       .|.expandAll("(p)-[:KNOWS]-(s)")
       .|.argument("p")
@@ -1207,9 +1200,8 @@ class PushOperatorsToShardPlanningIntegrationTest
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "p", properties = "firstName")(PushdownOperators()
-        .filter("NOT cacheNFromStore[s.firstName] = p.firstName")
-        .arguments("s")
-        .previouslyCachedProperties("cacheNFromStore[s.firstName]"))
+        .filter("NOT anon_0 = p.firstName")
+        .importedPerRowValues(Map("anon_0" -> "cacheN[s.firstName]")))
       .expandAll("(s)-[:KNOWS]-(p)")
       .nodeIndexOperator("s:Person(firstName)", getValue = Map("firstName" -> GetValue))
       .build())
@@ -1363,9 +1355,8 @@ class PushOperatorsToShardPlanningIntegrationTest
       .|.projection("cacheN[b.name] AS `b.name`")
       .|.remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "b", properties = "name")(PushdownOperators()
         .limit("1") // TODO: we will have to pushdown sort as well.
-        .filter("b.name = cacheNFromStore[a.firstName]")
-        .arguments("a")
-        .previouslyCachedProperties("cacheNFromStore[a.firstName]"))
+        .filter("b.name = anon_0")
+        .importedPerRowValues(Map("anon_0" -> "cacheN[a.firstName]")))
       .|.expandAll("(a)-[:KNOWS]->(b)")
       .|.remoteBatchProperties("cacheNFromStore[a.firstName]")
       .|.argument("a")
@@ -1562,9 +1553,8 @@ class PushOperatorsToShardPlanningIntegrationTest
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "p", properties = "firstName")(PushdownOperators()
-        .filter("NOT cacheNFromStore[s.lastName] = p.lastName")
-        .arguments("s")
-        .previouslyCachedProperties("cacheNFromStore[s.lastName]"))
+        .filter("NOT anon_0 = p.lastName")
+        .importedPerRowValues(Map("anon_0" -> "cacheN[s.lastName]")))
       .expandAll("(s)-[:KNOWS]-(p)")
       .remoteBatchProperties("cacheNFromStore[s.lastName]", "cacheNFromStore[s.firstName]")
       .nodeByLabelScan("s", "Person")
@@ -1901,7 +1891,7 @@ class PushOperatorsToShardPlanningIntegrationTest
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "friend", properties = "lastName")(
         PushdownOperators()
           .filter("friend.firstName = friends_name")
-          .arguments("friends_name")
+          .importedPerRowValues(Map("friends_name" -> "friends_name")) // todo: this should be a constant value
       )
       .expandAll("(person)-[:KNOWS]->(friend)")
       .projection("'Patrick' AS friends_name")
@@ -1920,9 +1910,8 @@ class PushOperatorsToShardPlanningIntegrationTest
       .projection("cacheR[friend_knows.creationDate] AS `friend_knows.creationDate`")
       .remoteBatchPropertiesWithPushdownOperatorsOnRelationship(variable = "friend_knows", properties = "creationDate")(
         PushdownOperators()
-          .filter("friend_knows.creationDate < cacheRFromStore[knows.creationDate]")
-          .arguments("knows")
-          .previouslyCachedProperties("cacheRFromStore[knows.creationDate]")
+          .filter("friend_knows.creationDate < anon_0")
+          .importedPerRowValues(Map("anon_0" -> "cacheR[knows.creationDate]"))
       )
       .filter("NOT friend_knows = knows")
       .expandAll("(friend)-[friend_knows:KNOWS]->()")
@@ -1947,7 +1936,7 @@ class PushOperatorsToShardPlanningIntegrationTest
       .remoteBatchPropertiesWithPushdownOperatorsOnNode(variable = "anon_0", properties = "canAffordDog")(
         PushdownOperators()
           .filter("anon_0.canAffordDog = anon_2")
-          .arguments("anon_2")
+          .importedPerRowValues(Map("anon_2" -> "anon_2"))
       )
       .letSemiApply("anon_2")
       .|.projection("0 AS 0")

@@ -88,6 +88,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Pa
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.concat
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.conditional
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.convertableToParam
+import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.mapParam
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.multilineParams
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.optional
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.params
@@ -323,18 +324,7 @@ object LogicalPlanToPlanBuilderString {
       case _: UndirectedRelationshipByIdSeek                  => "relationshipByIdSeek"
       case _: DirectedRelationshipByElementIdSeek             => "relationshipByElementIdSeek"
       case _: UndirectedRelationshipByElementIdSeek           => "relationshipByElementIdSeek"
-      case RemoteBatchPropertiesWithPushdownOperators(
-          _,
-          _,
-          NODE_TYPE,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _,
-          _
-        ) =>
+      case RemoteBatchPropertiesWithPushdownOperators(_, _, NODE_TYPE, _, _, _, _, _, _, _) =>
         "remoteBatchPropertiesWithPushdownOperatorsOnNode"
       case RemoteBatchPropertiesWithPushdownOperators(
           _,
@@ -1894,14 +1884,14 @@ object LogicalPlanToPlanBuilderString {
         "filter",
         spread(remoteBatchPropertiesWithPushdownOperators.predicates.map(_.quoted))
       )),
-      conditional(remoteBatchPropertiesWithPushdownOperators.arguments.nonEmpty)(call(
-        "arguments",
-        spread(remoteBatchPropertiesWithPushdownOperators.arguments)
+      conditional(remoteBatchPropertiesWithPushdownOperators.importedConstantValues.nonEmpty)(call(
+        "importedConstantValues",
+        spread(remoteBatchPropertiesWithPushdownOperators.importedConstantValues.map(_.quoted))
       )),
-      conditional(remoteBatchPropertiesWithPushdownOperators.previouslyCachedProperties.nonEmpty)(
+      conditional(remoteBatchPropertiesWithPushdownOperators.importedPerRowValues.nonEmpty)(
         call(
-          "previouslyCachedProperties",
-          spread(remoteBatchPropertiesWithPushdownOperators.previouslyCachedProperties.map(_.quoted))
+          "importedPerRowValues",
+          mapParam(remoteBatchPropertiesWithPushdownOperators.importedPerRowValues)(_._1, _._2.quoted)
         )
       )
     )

@@ -64,7 +64,12 @@ case class ShardPredicatePushdownPartition(
   filterOnMainWithRemoteProperties: Set[Expression]
 )
 
-case class PushedPredicatesDetails(logicalVariable: LogicalVariable, expressions: Set[Expression])
+case class PushedPredicatesDetails(
+  logicalVariable: LogicalVariable,
+  expressions: Set[Expression],
+  importedPerRowValues: Set[Expression],
+  importedConstantValues: Set[Expression]
+)
 
 object ShardPredicatePushdownPartition {
 
@@ -74,8 +79,17 @@ object ShardPredicatePushdownPartition {
   def withFilterOnMainWithRemoteProperties(exprs: Set[Expression]): ShardPredicatePushdownPartition =
     new ShardPredicatePushdownPartition(Set.empty, None, exprs)
 
-  def withPredicatesOnShards(variable: LogicalVariable, exprs: Set[Expression]): ShardPredicatePushdownPartition =
-    new ShardPredicatePushdownPartition(Set.empty, Some(PushedPredicatesDetails(variable, exprs)), Set.empty)
+  def withPredicatesOnShards(
+    variable: LogicalVariable,
+    exprs: Set[Expression],
+    importedPerRowValues: Set[Expression],
+    importedConstantValues: Set[Expression]
+  ): ShardPredicatePushdownPartition =
+    new ShardPredicatePushdownPartition(
+      Set.empty,
+      Some(PushedPredicatesDetails(variable, exprs, importedPerRowValues, importedConstantValues)),
+      Set.empty
+    )
 
   /**
    * Identifies how the given set of predicates must be applied. All the predicates that can be pushed down to the shard must meet the following criteria:
@@ -102,7 +116,7 @@ object ShardPredicatePushdownPartition {
 
     val (noPropAccesses, supportedPropAccesses, unsupportedPropAccesses) =
       predicates.foldLeft(
-        (Set.empty[Expression], Map.empty[LogicalVariable, Set[Expression]], Set.empty[Expression])
+        (Set.empty[Expression], Map.empty[LogicalVariable, PushedPredicatesDetails], Set.empty[Expression])
       ) {
         (acc, expr) =>
           acc match {
@@ -111,15 +125,24 @@ object ShardPredicatePushdownPartition {
                 context.semanticTable,
                 expr,
                 alreadyCachedProperties,
-                input.availableSymbols,
-                context
+                input.availableSymbols
               ) match {
-                case PredicatePushdownSupported(logicalVariable) =>
+                case PredicatePushdownSupported(logicalVariable, importedPerRowValues, importedConstantValues) =>
                   (
                     noUncachedPropAccesses,
                     supportedUncachedPropAccesses.updatedWith(logicalVariable) {
-                      case Some(existingExprs) => Some(existingExprs + expr)
-                      case None                => Some(Set(expr))
+                      case Some(existingPushedPredicates) => Some(existingPushedPredicates.copy(
+                          expressions = existingPushedPredicates.expressions + expr,
+                          importedPerRowValues = existingPushedPredicates.importedPerRowValues ++ importedPerRowValues,
+                          importedConstantValues =
+                            existingPushedPredicates.importedConstantValues ++ importedConstantValues
+                        ))
+                      case None => Some(PushedPredicatesDetails(
+                          logicalVariable,
+                          Set(expr),
+                          importedPerRowValues,
+                          importedConstantValues
+                        ))
                     },
                     unsupportedUncachedPropAccesses
                   )
@@ -135,7 +158,7 @@ object ShardPredicatePushdownPartition {
       ShardPredicatePushdownPartition(
         noPropAccesses,
         None,
-        unsupportedPropAccesses ++ supportedPropAccesses.values.flatten
+        unsupportedPropAccesses ++ supportedPropAccesses.values.flatMap(_.expressions)
       )
     } else {
       val predicatesToPushdownToShard = mostSelectivePredicates(input, context, supportedPropAccesses)
@@ -144,8 +167,9 @@ object ShardPredicatePushdownPartition {
         noPropAccesses,
         predicatesToPushdownToShard,
         unsupportedPropAccesses ++ supportedPropAccesses.flatMap {
-          case (variable, exprs) if predicatesToPushdownToShard.exists(_.logicalVariable != variable) => exprs
-          case _                                                                                      => Set.empty
+          case (variable, propertyPredicateDetails)
+            if predicatesToPushdownToShard.exists(_.logicalVariable != variable) => propertyPredicateDetails.expressions
+          case _ => Set.empty
         }
       )
     }
@@ -160,13 +184,11 @@ object ShardPredicatePushdownPartition {
   private def mostSelectivePredicates(
     input: LogicalPlan,
     context: LogicalPlanningContext,
-    candidates: Map[LogicalVariable, Set[Expression]]
+    candidates: Map[LogicalVariable, PushedPredicatesDetails]
   ): Option[PushedPredicatesDetails] = {
     if (candidates.size < 2) {
       // No need to identify predicates in this case.
-      candidates.headOption.map(dependencyWithPreds =>
-        PushedPredicatesDetails(dependencyWithPreds._1, dependencyWithPreds._2)
-      )
+      candidates.values.headOption
     } else {
       val labelAndRelTypeInfo =
         LabelAndRelTypeInfo(context.plannerState.input.labelInfo, context.plannerState.input.relTypeInfo)
@@ -203,10 +225,12 @@ object ShardPredicatePushdownPartition {
       }
 
       val mostSelectiveOption = candidates.minBy {
-        case (variable, preds) => calculateCardinality(variable, preds)
+        case (variable, preds) =>
+          // TODO: could we also consider the cost of importing values per row here?
+          calculateCardinality(variable, preds.expressions)
       }
 
-      Some(PushedPredicatesDetails(mostSelectiveOption._1, mostSelectiveOption._2))
+      Some(mostSelectiveOption._2)
     }
   }
 
@@ -220,15 +244,16 @@ object ShardPredicatePushdownPartition {
 
   private case class AccumulatedPropertyAccesses(
     variable: Option[LogicalVariable],
-    nonCachedProperties: Set[PropertyKeyName]
+    nonCachedProperties: Set[PropertyKeyName],
+    importedPerRowValues: Set[Expression] = Set.empty,
+    importedConstantValues: Set[Expression] = Set.empty
   )
 
   private def supportsPredicatesPushdown(
     semanticTable: SemanticTable,
     expression: Expression,
     alreadyCachedProperties: CachedProperties,
-    availableSymbols: Set[LogicalVariable],
-    context: LogicalPlanningContext
+    availableSymbols: Set[LogicalVariable]
   ): PredicatesPushdownSupport = {
     @tailrec
     def findAllSupportedPropertyAccesses(
@@ -237,62 +262,41 @@ object ShardPredicatePushdownPartition {
     ): Either[PredicatesPushdownSupport, AccumulatedPropertyAccesses] = expressionQueue match {
       case Nil => Right(knownUncachedPropertyAccesses)
       case firstExpression :: nextExpressions => firstExpression match {
-          case _: LogicalVariable if context.settings.pushDownArgumentsRBPWFEnabled =>
+          case variable: LogicalVariable =>
+            val importedPerRowValues =
+              if (availableSymbols.contains(variable))
+                knownUncachedPropertyAccesses.importedPerRowValues + variable // TODO: further check if this is a constant.
+              else knownUncachedPropertyAccesses.importedPerRowValues
             findAllSupportedPropertyAccesses(
               nextExpressions,
-              knownUncachedPropertyAccesses
+              knownUncachedPropertyAccesses.copy(importedPerRowValues = importedPerRowValues)
             )
 
-          case variable: LogicalVariable if !context.settings.pushDownArgumentsRBPWFEnabled => // Remove case together with feature flag
-            if (knownUncachedPropertyAccesses.variable.exists(_ != variable)) {
-              // multiple variables found in the expression, cannot push to shard.
-              Left(PredicatePushdownUnsupported)
-            } else if (semanticTable.typeFor(variable).isAnyOf(CTNode, CTRelationship)) {
-              findAllSupportedPropertyAccesses(
-                nextExpressions,
-                AccumulatedPropertyAccesses(Some(variable), knownUncachedPropertyAccesses.nonCachedProperties)
+          case prop @ Property(variable: LogicalVariable, propertyKey)
+            if alreadyCachedProperties.contains(variable, propertyKey) =>
+            findAllSupportedPropertyAccesses(
+              nextExpressions,
+              knownUncachedPropertyAccesses.copy(importedPerRowValues =
+                knownUncachedPropertyAccesses.importedPerRowValues + prop
               )
-            } else {
-              Left(PredicatePushdownUnsupported)
-            }
+            )
 
-          case Property(variable: LogicalVariable, propertyKeyName) =>
-            if (!availableSymbols.contains(variable)) {
-              Left(PredicatePushdownUnsupported)
-            } else if (
-              (
-                knownUncachedPropertyAccesses.variable.exists(_ != variable) &&
-                  !alreadyCachedProperties.contains(variable, propertyKeyName) &&
-                  context.settings.pushDownArgumentsRBPWFEnabled
-              ) ||
-              (knownUncachedPropertyAccesses.variable.exists(_ != variable) &&
-                !context.settings.pushDownArgumentsRBPWFEnabled) // Remove RHS of OR together with feature flag
-            ) {
-              // multiple variables found in the expression, cannot push to shard.
-              Left(PredicatePushdownUnsupported)
-            } else if (semanticTable.typeFor(variable).isAnyOf(CTNode, CTRelationship)) {
-              if (alreadyCachedProperties.contains(variable, propertyKeyName)) {
-                // property is already cached, no need to push to shard, we'll just pass to the next iteration to check for duplicate variables
-                findAllSupportedPropertyAccesses(
+          case Property(variable: LogicalVariable, propertyKeyName)
+            if availableSymbols.contains(variable) && semanticTable.typeFor(variable).isAnyOf(CTNode, CTRelationship) =>
+            knownUncachedPropertyAccesses.variable match {
+              case Some(existingVariable) if existingVariable != variable =>
+                // multiple variables found in the expression, cannot push to shard.
+                Left(PredicatePushdownUnsupported)
+              case _ => findAllSupportedPropertyAccesses(
                   nextExpressions,
-                  if (context.settings.pushDownArgumentsRBPWFEnabled)
-                    knownUncachedPropertyAccesses
-                  else
-                    AccumulatedPropertyAccesses(Some(variable), knownUncachedPropertyAccesses.nonCachedProperties)
-                )
-              } else {
-                // property not cached lets add to the set of properties
-                findAllSupportedPropertyAccesses(
-                  nextExpressions,
-                  AccumulatedPropertyAccesses(
-                    Some(variable),
+                  knownUncachedPropertyAccesses.copy(
+                    variable = Some(variable),
                     nonCachedProperties = knownUncachedPropertyAccesses.nonCachedProperties + propertyKeyName
                   )
                 )
-              }
-            } else {
-              Left(PredicatePushdownUnsupported)
             }
+          case Property(_: LogicalVariable, _) =>
+            Left(PredicatePushdownUnsupported)
           case Property(nestedExpression, _) =>
             findAllSupportedPropertyAccesses(nextExpressions :+ nestedExpression, knownUncachedPropertyAccesses)
           case e: BinaryOperatorExpression =>
@@ -328,13 +332,23 @@ object ShardPredicatePushdownPartition {
     }
 
     findAllSupportedPropertyAccesses(List(expression), AccumulatedPropertyAccesses(None, Set.empty)) match {
-      case Right(AccumulatedPropertyAccesses(Some(variable), nonCachedProperties)) if nonCachedProperties.nonEmpty =>
-        PredicatePushdownSupported(variable)
+      case Right(AccumulatedPropertyAccesses(
+          Some(variable),
+          nonCachedProperties,
+          importedPerRowValues,
+          importedConstantValues
+        )) if nonCachedProperties.nonEmpty =>
+        PredicatePushdownSupported(variable, importedPerRowValues, importedConstantValues)
       case _ => PredicatePushdownUnsupported
     }
   }
 
   sealed private trait PredicatesPushdownSupport
-  private case class PredicatePushdownSupported(logicalVariable: LogicalVariable) extends PredicatesPushdownSupport
+
+  private case class PredicatePushdownSupported(
+    logicalVariable: LogicalVariable,
+    importedPerRowValues: Set[Expression],
+    importedConstantValues: Set[Expression]
+  ) extends PredicatesPushdownSupport
   private case object PredicatePushdownUnsupported extends PredicatesPushdownSupport
 }

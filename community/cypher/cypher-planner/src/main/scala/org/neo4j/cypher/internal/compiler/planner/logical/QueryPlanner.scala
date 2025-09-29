@@ -144,7 +144,6 @@ case object QueryPlanner
       shardOperatorPushdownStrategy =
         ShardOperatorPushdownStrategy.fromConfig(from.query, context),
       multiRelationshipExpansion = context.config.multiRelationshipExpansionEnabled(),
-      pushDownArgumentsRBPWFEnabled = context.config.pushDownArgumentsRBPWFEnabled(),
       dynamicLabelScansEnabled = context.config.dynamicLabelScansEnabled(),
       dynamicLabelIndexUseEnabled = context.config.dynamicLabelIndexUseEnabled(),
       existsWithImplicitLimitEnabled = context.config.existsWithImplicitLimitEnabled(),

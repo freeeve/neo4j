@@ -2860,10 +2860,10 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         properties = properties.map(PropertyKeyName(_)(pos)).toSet,
         predicates = pushdownOperators.filter,
         distinctBy = pushdownOperators.distinct,
-        limit = pushdownOperators.limit,
         orderBy = pushdownOperators.orderBy,
-        arguments = pushdownOperators.arguments,
-        previouslyCachedProperties = pushdownOperators.previouslyCachedProperties
+        limit = pushdownOperators.limit,
+        importedConstantValues = pushdownOperators.importedConstantValues,
+        importedPerRowValues = pushdownOperators.importedPerRowValues
       )(_)
     ))
   }
@@ -3936,8 +3936,8 @@ object AbstractLogicalPlanBuilder {
     distinct: Option[Expression] = None,
     orderBy: Seq[Expression] = Seq.empty,
     limit: Option[Expression] = None,
-    arguments: Set[LogicalVariable] = Set.empty,
-    previouslyCachedProperties: Set[LogicalProperty] = Set.empty
+    importedConstantValues: Set[Expression] = Set.empty,
+    importedPerRowValues: Map[LogicalVariable, Expression] = Map.empty
   ) {
 
     def filter(exprs: String*): PushdownOperators = {
@@ -3962,13 +3962,16 @@ object AbstractLogicalPlanBuilder {
       copy(limit = Some(Parser.Latest.parseExpression(expr)))
     }
 
-    def arguments(exprs: String*): PushdownOperators = {
-      copy(arguments = arguments ++ exprs.map(varFor).toSet)
+    def importedConstantValues(exprs: String*): PushdownOperators = {
+      copy(importedConstantValues = importedConstantValues ++ exprs.map(Parser.Latest.parseExpression).toSet)
     }
 
-    def previouslyCachedProperties(exprs: String*): PushdownOperators = {
-      copy(previouslyCachedProperties =
-        previouslyCachedProperties ++ exprs.map(Parser.Latest.parseExpression(_).asInstanceOf[LogicalProperty]).toSet
+    def importedPerRowValues(exprs: Map[String, String]): PushdownOperators = {
+      copy(importedPerRowValues =
+        importedPerRowValues ++ exprs.map {
+          case (assignedVariable, importedValue) =>
+            varFor(assignedVariable) -> Parser.Latest.parseExpression(importedValue)
+        }
       )
     }
   }

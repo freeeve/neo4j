@@ -113,9 +113,6 @@ class CypherConfiguration private (val config: Config) {
   val gpmShortestToLegacyShortestEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.gpm_shortest_to_legacy_shortest_enabled)
 
-  val pushDownArgumentsRBPWFEnabled: Boolean =
-    config.get(GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled)
-
   val multiRelationshipExpansionEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.multi_relationship_expansion_enabled)
 

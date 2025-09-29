@@ -102,7 +102,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -123,7 +125,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -144,7 +148,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -165,7 +171,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -186,7 +194,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -207,7 +217,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -228,7 +240,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -249,7 +263,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -270,7 +286,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -291,7 +309,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = Option(PushedPredicatesDetails(
         varFor("a"),
-        supportedForPushdown
+        supportedForPushdown,
+        Set.empty,
+        Set.empty
       )),
       filterOnMainWithRemoteProperties = unsupportedForPushdown
     )
@@ -303,7 +323,12 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       fakePlanWithAvailableSymbolsForPredicates(Set(listLiteralExpr)),
       context,
       Set(listLiteralExpr)
-    ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(varFor("n"), Set(listLiteralExpr))
+    ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(
+      varFor("n"),
+      Set(listLiteralExpr),
+      Set.empty,
+      Set.empty
+    )
   }
 
   test("should allow anded property inequalities") {
@@ -316,7 +341,12 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       fakePlanWithAvailableSymbolsForPredicates(Set(andedPropertyInequality)),
       context,
       Set(andedPropertyInequality)
-    ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(varFor("n"), Set(andedPropertyInequality))
+    ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(
+      varFor("n"),
+      Set(andedPropertyInequality),
+      Set.empty,
+      Set.empty
+    )
   }
 
   test("should use the most selective variable to pushdown to shards") {
@@ -351,7 +381,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
         preFilterBeforePushdown = Set.empty,
         filterOnShards = Option(PushedPredicatesDetails(
           varFor("a"),
-          Set(selectivePredicate1, selectivePredicate2)
+          Set(selectivePredicate1, selectivePredicate2),
+          Set.empty,
+          Set.empty
         )),
         filterOnMainWithRemoteProperties = Set(otherPredicate)
       )
@@ -412,7 +444,9 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       predicates
     ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(
       varFor("a"),
-      predicates
+      predicates,
+      Set.empty,
+      Set.empty
     )
   }
 
@@ -472,6 +506,60 @@ class ShardPredicatePushdownPartitionTest extends CypherFunSuite with LogicalPla
       preFilterBeforePushdown = Set.empty,
       filterOnShards = None,
       filterOnMainWithRemoteProperties = predicates
+    )
+  }
+
+  test("should recorded imported cached properties from different variables in pushdown") {
+    val context: LogicalPlanningContext =
+      newMockedLogicalPlanningContext(newMockedPlanContext(), semanticTable = mockedSemanticTable)
+
+    val predicates: Set[Expression] = Set(
+      equals(prop("b", "num"), prop("a", "num"))
+    )
+    val fakePlan: FakeLeafPlan = fakePlanWithAvailableSymbolsForPredicates(predicates)
+
+    // given the property num is already cached for variable a
+    context.staticComponents.planningAttributes.cachedPropertiesPerPlan.set(
+      fakePlan.id,
+      CachedProperties.singleton(varFor("a"), varFor("a"), NODE_TYPE, Set(PropertyKeyName("num")(InputPosition.NONE)))
+    )
+
+    ShardPredicatePushdownPartition(
+      fakePlan,
+      context,
+      predicates
+    ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(
+      variable = varFor("b"),
+      exprs = predicates,
+      importedPerRowValues = Set(prop("a", "num")),
+      importedConstantValues = Set.empty
+    )
+  }
+
+  test("should recorded imported cached properties for the same variable being pushed down") {
+    val context: LogicalPlanningContext =
+      newMockedLogicalPlanningContext(newMockedPlanContext(), semanticTable = mockedSemanticTable)
+
+    val predicates: Set[Expression] = Set(
+      equals(prop("a", "num2"), prop("a", "num1"))
+    )
+    val fakePlan: FakeLeafPlan = fakePlanWithAvailableSymbolsForPredicates(predicates)
+
+    // given the property num1 is already cached for variable a
+    context.staticComponents.planningAttributes.cachedPropertiesPerPlan.set(
+      fakePlan.id,
+      CachedProperties.singleton(varFor("a"), varFor("a"), NODE_TYPE, Set(PropertyKeyName("num1")(InputPosition.NONE)))
+    )
+
+    ShardPredicatePushdownPartition(
+      fakePlan,
+      context,
+      predicates
+    ) shouldEqual ShardPredicatePushdownPartition.withPredicatesOnShards(
+      variable = varFor("a"),
+      exprs = predicates,
+      importedPerRowValues = Set(prop("a", "num1")),
+      importedConstantValues = Set.empty
     )
   }
 }

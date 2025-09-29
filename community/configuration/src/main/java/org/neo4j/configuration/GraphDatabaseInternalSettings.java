@@ -269,13 +269,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
     @Internal
     @Description(
-            "Feature flag to push down predicates containing arguments and already cached properties to RemoteBatchPropertiesWithFilter")
-    public static final Setting<Boolean> push_down_arguments_rbpwf_enabled = newBuilder(
-                    "internal.cypher.push_down_arguments_rbpwf_enabled", BOOL, true)
-            .build();
-
-    @Internal
-    @Description(
             "Feature flag to enable/disable the usage of MultiRelationship Expansions inside StatefulShortestPath NFA")
     public static final Setting<Boolean> multi_relationship_expansion_enabled = newBuilder(
                     "internal.cypher.enable_multi_relationship_expansion", BOOL, false)

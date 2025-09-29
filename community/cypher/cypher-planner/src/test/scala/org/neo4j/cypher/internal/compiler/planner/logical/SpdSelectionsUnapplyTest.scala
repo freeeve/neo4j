@@ -84,7 +84,9 @@ class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegr
         preFilterBeforePushdown = Set(hasLabels("b", "Person")), // b:Person
         filterOnShards = Some(PushedPredicatesDetails(
           SpdSelections.dummyVar,
-          Set(equals(prop("b", "prop"), literalInt(1)))
+          Set(equals(prop("b", "prop"), literalInt(1))),
+          Set.empty,
+          Set.empty
         )), // b.prop = 1
         filterOnMainWithRemoteProperties =
           Set(equals(prop("b", "prop2"), literalInt(2))) // b.prop2 = 2
@@ -114,7 +116,9 @@ class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegr
         preFilterBeforePushdown = Set.empty, // Nothing
         filterOnShards = Some(PushedPredicatesDetails(
           SpdSelections.dummyVar,
-          Set(equals(prop("b", "prop"), literalInt(1)))
+          Set(equals(prop("b", "prop"), literalInt(1))),
+          Set.empty,
+          Set.empty
         )), // b.prop = 1
         filterOnMainWithRemoteProperties =
           Set(equals(prop("b", "prop2"), literalInt(2))) // b.prop2 = 2
@@ -198,7 +202,9 @@ class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegr
         preFilterBeforePushdown = Set(hasLabels("b", "Person")), // b:Person
         filterOnShards = Some(PushedPredicatesDetails(
           SpdSelections.dummyVar,
-          Set(equals(prop("b", "prop"), literalInt(1)))
+          Set(equals(prop("b", "prop"), literalInt(1))),
+          Set.empty,
+          Set.empty
         )), // b.prop = 1
         filterOnMainWithRemoteProperties = Set(
           equals(prop("a", "prop"), prop("b", "prop"))
@@ -229,7 +235,9 @@ class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegr
         preFilterBeforePushdown = Set.empty, // Nothing
         filterOnShards = Some(PushedPredicatesDetails(
           SpdSelections.dummyVar,
-          Set(equals(prop("b", "prop"), literalInt(1)))
+          Set(equals(prop("b", "prop"), literalInt(1))),
+          Set.empty,
+          Set.empty
         )), // b.prop = 1
         filterOnMainWithRemoteProperties = Set(
           equals(prop("a", "prop"), prop("b", "prop"))
@@ -260,7 +268,9 @@ class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegr
         preFilterBeforePushdown = Set(hasLabels("b", "Person")), // b:Person
         filterOnShards = Some(PushedPredicatesDetails(
           SpdSelections.dummyVar,
-          Set(equals(prop("b", "prop"), literalInt(1)))
+          Set(equals(prop("b", "prop"), literalInt(1))),
+          Set.empty,
+          Set.empty
         )), // b.prop = 1
         filterOnMainWithRemoteProperties = Set.empty // Nothing
       ),
@@ -289,7 +299,9 @@ class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegr
         preFilterBeforePushdown = Set.empty, // Nothing
         filterOnShards = Some(PushedPredicatesDetails(
           SpdSelections.dummyVar,
-          Set(equals(prop("b", "prop"), literalInt(1)))
+          Set(equals(prop("b", "prop"), literalInt(1))),
+          Set.empty,
+          Set.empty
         )), // b.prop = 1
         filterOnMainWithRemoteProperties = Set.empty // Nothing
       ),
@@ -370,7 +382,9 @@ class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegr
         preFilterBeforePushdown = Set(hasLabels("b", "Person")), // b:Person
         filterOnShards = Some(PushedPredicatesDetails(
           SpdSelections.dummyVar,
-          Set(equals(prop("b", "prop"), literalInt(1)))
+          Set(equals(prop("b", "prop"), literalInt(1))),
+          Set.empty,
+          Set.empty
         )), // b.prop = 1
         filterOnMainWithRemoteProperties = Set.empty // Nothing
       ),
@@ -399,7 +413,9 @@ class SpdSelectionsUnapplyTest extends CypherFunSuite with LogicalPlanningIntegr
         preFilterBeforePushdown = Set.empty, // Nothing
         filterOnShards = Some(PushedPredicatesDetails(
           SpdSelections.dummyVar,
-          Set(equals(prop("b", "prop"), literalInt(1)))
+          Set(equals(prop("b", "prop"), literalInt(1))),
+          Set.empty,
+          Set.empty
         )), // b.prop = 1
         filterOnMainWithRemoteProperties = Set.empty // Nothing
       ),

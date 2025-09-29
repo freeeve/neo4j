@@ -298,13 +298,6 @@ class CypherPlannerConfiguration(
     () => config.gpmShortestToLegacyShortestEnabled
   }
 
-  val pushDownArgumentsRBPWFEnabled: () => Boolean = {
-    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
-      !GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.dynamic()
-    )
-    () => config.pushDownArgumentsRBPWFEnabled
-  }
-
   val multiRelationshipExpansionEnabled: () => Boolean = {
     AssertMacros.checkOnlyWhenAssertionsAreEnabled(
       !GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.dynamic()

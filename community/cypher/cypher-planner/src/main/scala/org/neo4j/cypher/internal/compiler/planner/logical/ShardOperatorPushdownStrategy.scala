@@ -27,12 +27,12 @@ import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
+import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.QueryProjection
@@ -151,6 +151,7 @@ object ShardOperatorPushdownStrategy {
     ): Option[SelectionCandidate] = {
       val operatorSequence = operatorSequenceForSelections(queryGraph, input, context, predicatesToSolve)
       val alreadyCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
+      val rewriter = alreadyCachedPropertiesRewriter(input, context)
       val planWithPrefetchedSelection = operatorSequence.preBatchSelection.map(preFilter => {
 
         val prefilteredSelection = context.staticComponents.logicalPlanProducer.planSelectionWithSolvedPredicates(
@@ -162,20 +163,24 @@ object ShardOperatorPushdownStrategy {
       })
 
       val planWithPushedDownPredicates = operatorSequence.pushedDownPredicates.map(pushedDownPredicates => {
+        val pushedDownPredicatesRewritten =
+          RewrittenSubQueryPredicatesMap(pushedDownPredicates.pushedPredicatesDetails.expressions.map(expr =>
+            expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
+          ).toMap)
         val propertiesToFetch =
           pushedDownPredicates.propertiesToFetch.map(cachedProperty(context, alreadyCachedProperties, _))
         val plan = context.staticComponents.logicalPlanProducer.planRemoteBatchPropertiesWithFilter(
           planWithPrefetchedSelection.map(_.plan).getOrElse(input),
           propertiesToFetch,
           context,
-          pushedDownPredicates.predicatesToExecute.allRewrittenExpressions.toSeq,
-          pushedDownPredicates.predicatesToExecute.originalExpressions.toSeq
+          pushedDownPredicatesRewritten.allRewrittenExpressions.toSeq,
+          pushedDownPredicatesRewritten.originalExpressions.toSeq
         )
         SelectionCandidate(
           plan,
           planWithPrefetchedSelection.map(_.solvedPredicates).getOrElse(
             Set.empty
-          ) ++ pushedDownPredicates.predicatesToExecute.originalExpressions
+          ) ++ pushedDownPredicatesRewritten.originalExpressions
         )
       })
 
@@ -217,19 +222,24 @@ object ShardOperatorPushdownStrategy {
 
       operatorSequence.pushedDownPredicates match {
         case Some(pushedDownPredicates) =>
+          val rewriter = alreadyCachedPropertiesRewriter(input, context)
+          val pushedDownPredicatesRewritten =
+            RewrittenSubQueryPredicatesMap(pushedDownPredicates.pushedPredicatesDetails.expressions.map(expr =>
+              expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
+            ).toMap)
           val propertiesToFetch =
             pushedDownPredicates.propertiesToFetch.map(cachedProperty(context, alreadyCachedProperties, _))
           val plan = context.staticComponents.logicalPlanProducer.planRemoteBatchPropertiesForHorizonFilters(
             planWithPrefetchedSelection.map(_.plan).getOrElse(input),
             propertiesToFetch,
             context,
-            pushedDownPredicates.predicatesToExecute
+            pushedDownPredicatesRewritten
           )
           Some(SelectionCandidate(
             plan,
             planWithPrefetchedSelection.map(_.solvedPredicates).getOrElse(
               Set.empty
-            ) ++ pushedDownPredicates.predicatesToExecute.originalExpressions
+            ) ++ pushedDownPredicatesRewritten.originalExpressions
           ))
         case None => planWithPrefetchedSelection
       }
@@ -285,10 +295,10 @@ object ShardOperatorPushdownStrategy {
 
             RemoteBatchPropertiesWithPushdownOperators(
               source =
-                inputPlan, // if it is an empty apply we should still point to it. The logical plan producer will merge the two operators correctly.
-              properties = op.properties,
+                inputPlan,
               variable = op.variable,
               entityType = op.entityType,
+              properties = op.properties,
               limit = maybeLimit
             )(
               context.staticComponents.idGen
@@ -304,6 +314,7 @@ object ShardOperatorPushdownStrategy {
       context: LogicalPlanningContext,
       predicatesToSolve: RewrittenSubQueryPredicatesMap
     ): Option[SelectionCandidate] = {
+      val alreadyCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
       val operatorSequence = operatorSequenceForSelections(queryGraph, input, context, predicatesToSolve)
       val planWithPrefetchedSelection = operatorSequence.preBatchSelection.map(preFilter => {
 
@@ -316,8 +327,13 @@ object ShardOperatorPushdownStrategy {
       })
 
       val planWithPushedDownPredicates = operatorSequence.pushedDownPredicates.map(pushedDownPredicates => {
-        val (previouslyCachedProperties, arguments) =
-          findPreviousCachedPropsAndArgs(pushedDownPredicates.logicalVariable, pushedDownPredicates.predicatesToExecute)
+        val (importedRowValuesWithVariable, rewrittenPredicates) =
+          replaceImportedRowValues(
+            predicatesToSolve,
+            pushedDownPredicates.pushedPredicatesDetails,
+            context,
+            alreadyCachedProperties
+          )
         val remoteBatchPropertiesWithPushdownOperators = RemoteBatchPropertiesWithPushdownOperators(
           source = planWithPrefetchedSelection.map(_.plan).getOrElse(input),
           variable = pushedDownPredicates.logicalVariable,
@@ -326,39 +342,74 @@ object ShardOperatorPushdownStrategy {
             PropertyKeyName(propertyAccess.propertyName)(InputPosition.NONE)
           ),
           predicates =
-            pushedDownPredicates.predicatesToExecute.allRewrittenExpressions.toSeq,
-          arguments = arguments,
-          previouslyCachedProperties = previouslyCachedProperties
+            rewrittenPredicates.allRewrittenExpressions.toSeq,
+          importedConstantValues = pushedDownPredicates.pushedPredicatesDetails.importedConstantValues,
+          importedPerRowValues = importedRowValuesWithVariable
         )(context.staticComponents.idGen)
 
         val plan = context.staticComponents.logicalPlanProducer.planShardSelections(
           remoteBatchPropertiesWithPushdownOperators,
-          pushedDownPredicates.predicatesToExecute,
+          rewrittenPredicates,
           context
         )
         SelectionCandidate(
           plan,
           planWithPrefetchedSelection.map(_.solvedPredicates).getOrElse(
             Set.empty
-          ) ++ pushedDownPredicates.predicatesToExecute.originalExpressions
+          ) ++ rewrittenPredicates.originalExpressions
         )
       })
 
       planWithPushedDownPredicates.orElse(planWithPrefetchedSelection)
     }
 
-    private def findPreviousCachedPropsAndArgs(
-      pushDownVariable: LogicalVariable,
-      rewrittenSubQueryPredicates: RewrittenSubQueryPredicatesMap
-    ): (Set[LogicalProperty], Set[LogicalVariable]) = {
-      rewrittenSubQueryPredicates.allRewrittenExpressions.folder.treeFold((
-        Set.empty[LogicalProperty],
-        Set.empty[LogicalVariable]
-      )) {
-        case cachedProperty: CachedProperty if cachedProperty.entityVariable != pushDownVariable =>
-          acc => SkipChildren((acc._1 + cachedProperty, acc._2 + cachedProperty.entityVariable))
-        case logicalVariable: LogicalVariable if logicalVariable != pushDownVariable =>
-          acc => SkipChildren((acc._1, acc._2 + logicalVariable))
+    private def importedRowValueRewriter(
+      exprToAnonymousVar: Map[Expression, LogicalVariable],
+      context: LogicalPlanningContext
+    ) = {
+      bottomUp.apply(
+        rewriter = Rewriter.lift {
+          case expression: Expression
+            if exprToAnonymousVar.contains(expression) => exprToAnonymousVar(expression)
+        },
+        cancellation = context.staticComponents.cancellationChecker
+      )
+    }
+
+    private def replaceImportedRowValues(
+      predicatesToSolve: RewrittenSubQueryPredicatesMap,
+      pushedPredicatesDetails: PushedPredicatesDetails,
+      context: LogicalPlanningContext,
+      alreadyCachedProperties: CachedProperties
+    ): (Map[LogicalVariable, Expression], RewrittenSubQueryPredicatesMap) = {
+      val importedRowValuesToNewVariablesMap = pushedPredicatesDetails.importedPerRowValues.map {
+        case variable: LogicalVariable => variable -> variable
+        case expr =>
+          expr -> varFor(context.staticComponents.anonymousVariableNameGenerator.nextName)
+      }.toMap
+      if (importedRowValuesToNewVariablesMap.nonEmpty) {
+        val rewriter = importedRowValueRewriter(importedRowValuesToNewVariablesMap, context)
+        (
+          importedRowValuesToNewVariablesMap.map {
+            case (propExpr @ Property(propertyVariable: LogicalVariable, propertyKey), variable) =>
+              // if property is already cached, we store the cached property in the importedRowValues, to make it unambiguous in the runtime regarding where to lookup the property.
+              variable -> alreadyCachedProperty(
+                alreadyCachedProperties,
+                propertyVariable,
+                propertyKey,
+                propertyKey.position
+              ).getOrElse(propExpr)
+            case (expr, variable) => variable -> expr
+          },
+          RewrittenSubQueryPredicates.forMap(pushedPredicatesDetails.expressions.map(expr =>
+            expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
+          ).toMap)
+        )
+      } else {
+        (
+          Map.empty[LogicalVariable, Expression],
+          RewrittenSubQueryPredicates.withNoRewrittenExprs(pushedPredicatesDetails.expressions)
+        )
       }
     }
 
@@ -371,6 +422,7 @@ object ShardOperatorPushdownStrategy {
       interestingOrderConfig: InterestingOrderConfig,
       predicatesToSolve: RewrittenSubQueryPredicatesMap
     ): Option[SelectionCandidate] = {
+      val alreadyCachedProperties = context.staticComponents.planningAttributes.cachedPropertiesPerPlan.get(input.id)
       val operatorSequence = operatorSequenceForSelections(queryGraph, input, context, predicatesToSolve)
       val planWithPrefetchedSelection = operatorSequence.preBatchSelection.map(selectionOnMain => {
         val prefilteredSelection = context.staticComponents.logicalPlanProducer.planHorizonSelection(
@@ -383,8 +435,13 @@ object ShardOperatorPushdownStrategy {
       })
 
       val planWithPushedDownPredicates = operatorSequence.pushedDownPredicates.map(pushedDownPredicates => {
-        val (previouslyCachedProperties, arguments) =
-          findPreviousCachedPropsAndArgs(pushedDownPredicates.logicalVariable, pushedDownPredicates.predicatesToExecute)
+        val (importedRowValuesWithVariable, rewrittenPredicates) =
+          replaceImportedRowValues(
+            predicatesToSolve,
+            pushedDownPredicates.pushedPredicatesDetails,
+            context,
+            alreadyCachedProperties
+          )
         val remoteBatchPropertiesWithPushdownOperators = RemoteBatchPropertiesWithPushdownOperators(
           source = planWithPrefetchedSelection.map(_.plan).getOrElse(input),
           variable = pushedDownPredicates.logicalVariable,
@@ -393,21 +450,21 @@ object ShardOperatorPushdownStrategy {
             PropertyKeyName(propertyAccess.propertyName)(InputPosition.NONE)
           ),
           predicates =
-            pushedDownPredicates.predicatesToExecute.allRewrittenExpressions.toSeq,
-          arguments = arguments,
-          previouslyCachedProperties = previouslyCachedProperties
+            rewrittenPredicates.allRewrittenExpressions.toSeq,
+          importedConstantValues = pushedDownPredicates.pushedPredicatesDetails.importedConstantValues,
+          importedPerRowValues = importedRowValuesWithVariable
         )(context.staticComponents.idGen)
 
         val plan = context.staticComponents.logicalPlanProducer.planProjectionsOnShards(
           remoteBatchPropertiesWithPushdownOperators,
-          operatorSequence.pushedDownPredicates.map(_.predicatesToExecute).getOrElse(RewrittenSubQueryPredicates.empty),
+          rewrittenPredicates,
           context
         )
         SelectionCandidate(
           plan,
           planWithPrefetchedSelection.map(_.solvedPredicates).getOrElse(
             Set.empty
-          ) ++ pushedDownPredicates.predicatesToExecute.originalExpressions
+          ) ++ rewrittenPredicates.originalExpressions
         )
       })
       planWithPushedDownPredicates.orElse(planWithPrefetchedSelection)
@@ -529,9 +586,7 @@ object ShardOperatorPushdownStrategy {
           pushedPredicatesDetails.logicalVariable,
           entityType,
           propertiesToFetch,
-          RewrittenSubQueryPredicates.forMap(pushedPredicatesDetails.expressions.map(expr =>
-            expr.endoRewrite(rewriter) -> predicatesToSolve.originalExpressionOrSelf(expr)
-          ).toMap)
+          pushedPredicatesDetails
         ))
       case _ => None
     }
@@ -556,8 +611,7 @@ object ShardOperatorPushdownStrategy {
     alreadyCachedProperties: CachedProperties,
     logicalVariable: LogicalVariable,
     propertyKeyName: PropertyKeyName,
-    position: InputPosition,
-    knownToCacheStore: Boolean = true
+    position: InputPosition
   ): Option[CachedProperty] = {
     alreadyCachedProperties.entries.get(logicalVariable) match {
       case Some(CachedProperties.Entry(originalEntity, entityType, properties)) =>
@@ -567,7 +621,7 @@ object ShardOperatorPushdownStrategy {
             logicalVariable,
             propertyKeyName,
             entityType,
-            knownToCacheStore
+            knownToAccessStore = false
           )(
             position
           ))
@@ -608,6 +662,6 @@ object ShardOperatorPushdownStrategy {
     logicalVariable: LogicalVariable,
     entityType: EntityType,
     propertiesToFetch: Set[PropertyAccess],
-    predicatesToExecute: RewrittenSubQueryPredicatesMap
+    pushedPredicatesDetails: PushedPredicatesDetails
   )
 }

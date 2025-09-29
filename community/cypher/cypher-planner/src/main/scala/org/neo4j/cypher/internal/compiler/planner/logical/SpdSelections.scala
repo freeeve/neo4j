@@ -85,7 +85,7 @@ object SpdSelections {
         Some(SpdSelectionAndChild(
           ShardPredicatePushdownPartition(
             preFilterBeforePushdown = nonPropertyPredsOnMain,
-            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates)),
+            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates, Set.empty, Set.empty)),
             filterOnMainWithRemoteProperties = propertyPredsOnMain.endoRewrite(CachedPropertiesToPropertiesRewriter)
           ),
           child = child
@@ -102,7 +102,7 @@ object SpdSelections {
         Some(SpdSelectionAndChild(
           ShardPredicatePushdownPartition(
             preFilterBeforePushdown = Set.empty,
-            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates)),
+            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates, Set.empty, Set.empty)),
             filterOnMainWithRemoteProperties = propertyPredsOnMain.endoRewrite(CachedPropertiesToPropertiesRewriter)
           ),
           child = child
@@ -149,7 +149,7 @@ object SpdSelections {
         Some(SpdSelectionAndChild(
           ShardPredicatePushdownPartition(
             preFilterBeforePushdown = nonPropertyPredsOnMain,
-            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates)),
+            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates, Set.empty, Set.empty)),
             filterOnMainWithRemoteProperties = propertyPredsOnMain.endoRewrite(CachedPropertiesToPropertiesRewriter)
           ),
           child = child
@@ -162,7 +162,7 @@ object SpdSelections {
         Some(SpdSelectionAndChild(
           ShardPredicatePushdownPartition(
             preFilterBeforePushdown = Set.empty,
-            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates)),
+            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates, Set.empty, Set.empty)),
             filterOnMainWithRemoteProperties = propertyPredsOnMain.endoRewrite(CachedPropertiesToPropertiesRewriter)
           ),
           child = child
@@ -179,7 +179,7 @@ object SpdSelections {
         Some(SpdSelectionAndChild(
           ShardPredicatePushdownPartition(
             preFilterBeforePushdown = nonPropertyPredsOnMain,
-            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates)),
+            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates, Set.empty, Set.empty)),
             filterOnMainWithRemoteProperties = Set.empty
           ),
           child = child
@@ -192,7 +192,7 @@ object SpdSelections {
         Some(SpdSelectionAndChild(
           ShardPredicatePushdownPartition(
             preFilterBeforePushdown = Set.empty,
-            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates)),
+            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates, Set.empty, Set.empty)),
             filterOnMainWithRemoteProperties = Set.empty
           ),
           child = child
@@ -234,7 +234,7 @@ object SpdSelections {
         Some(SpdSelectionAndChild(
           ShardPredicatePushdownPartition(
             preFilterBeforePushdown = nonPropertyPredsOnMain,
-            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates)),
+            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates, Set.empty, Set.empty)),
             filterOnMainWithRemoteProperties = Set.empty
           ),
           child = child
@@ -246,7 +246,7 @@ object SpdSelections {
         Some(SpdSelectionAndChild(
           ShardPredicatePushdownPartition(
             preFilterBeforePushdown = Set.empty,
-            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates)),
+            filterOnShards = Some(PushedPredicatesDetails(dummyVar, rbpwfPropsPredicates, Set.empty, Set.empty)),
             filterOnMainWithRemoteProperties = Set.empty
           ),
           child = child

@@ -75,8 +75,6 @@ import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-import java.lang.Boolean.TRUE
-
 import scala.collection.immutable.ArraySeq
 
 class RemoteBatchPropertiesPlanningIntegrationTest
@@ -219,7 +217,7 @@ class RemoteBatchPropertiesPlanningIntegrationTest
         .produceResults("name")
         .projection("cacheN[person.firstName] AS name")
         .semiApply()
-        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[dog.name]")("cacheNFromStore[person.firstName] = dog.name")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[dog.name]")("cacheN[person.firstName] = dog.name")
         .|.filter("dog:Dog")
         .|.expandAll("(person)-[:HAS_DOG]->(dog)")
         .|.argument("person")
@@ -319,10 +317,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     .withSetting(
       GraphDatabaseInternalSettings.cypher_remote_batch_properties_implementation,
       RemoteBatchPropertiesImplementation.PLANNER
-    )
-    .withSetting(
-      GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled,
-      TRUE
     )
     .setExecutionModel(executionModel)
 
@@ -566,7 +560,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .filter("cacheR[knows.creationDate] < $max_creation_date")
       .remoteBatchProperties("cacheRFromStore[knows.creationDate]")
       .remoteBatchPropertiesWithFilter("cacheNFromStore[person.firstName]")(
-        "person.lastName = cacheNFromStore[friend.lastName]"
+        "person.lastName = cacheN[friend.lastName]"
       )
       .filter("person:Person")
       .expandAll("(friend)<-[knows:KNOWS]-(person)")
@@ -673,7 +667,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .remoteBatchPropertiesWithFilter(
           "cacheNFromStore[friend.firstName]",
           "cacheNFromStore[friend.lastName]"
-        )("cacheNFromStore[person.firstName] = friend.firstName")
+        )("cacheN[person.firstName] = friend.firstName")
         .expand("(person)-[:KNOWS*1..2]-(friend)", expandMode = ExpandAll, projectedDir = OUTGOING)
         .remoteBatchProperties("cacheNFromStore[person.firstName]")
         .nodeIndexOperator(
@@ -843,7 +837,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "cacheNFromStore[friend.id]",
         "cacheNFromStore[friend.firstName]",
         "cacheNFromStore[friend.lastName]"
-      )("NOT cacheNFromStore[person.id] = friend.id")
+      )("NOT cacheN[person.id] = friend.id")
       .expand("(person)-[:KNOWS*1..2]-(friend)")
       .nodeIndexOperator(
         "person:Person(id = ???)",
@@ -1253,7 +1247,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .apply()
       .|.optional("p")
       .|.remoteBatchPropertiesWithFilter("cacheNFromStore[s.firstName]")(
-        "NOT s.firstName = cacheNFromStore[p.firstName]"
+        "NOT s.firstName = cacheN[p.firstName]"
       )
       .|.filter("s:Person")
       .|.expandAll("(p)-[:KNOWS]-(s)")
@@ -1273,7 +1267,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.firstName]")("NOT cacheNFromStore[s.firstName] = p.firstName")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.firstName]")("NOT cacheN[s.firstName] = p.firstName")
       .expandAll("(s)-[:KNOWS]-(p)")
       .nodeIndexOperator("s:Person(firstName)", getValue = Map("firstName" -> GetValue))
       .build())
@@ -1431,7 +1425,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .apply()
       .|.top(1, "`b.name` ASC")
       .|.projection("cacheN[b.name] AS `b.name`")
-      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheNFromStore[a.firstName]")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheN[a.firstName]")
       .|.expandAll("(a)-[:KNOWS]->(b)")
       .|.remoteBatchProperties("cacheNFromStore[a.firstName]")
       .|.argument("a")
@@ -1647,7 +1641,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     val plan = planner.plan(query).stripProduceResults
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.firstName]")("NOT cacheNFromStore[s.lastName] = p.lastName")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.firstName]")("NOT cacheN[s.lastName] = p.lastName")
       .expandAll("(s)-[:KNOWS]-(p)")
       .remoteBatchProperties("cacheNFromStore[s.lastName]", "cacheNFromStore[s.firstName]")
       .nodeByLabelScan("s", "Person")
@@ -1992,7 +1986,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
       .projection("cacheR[friend_knows.creationDate] AS `friend_knows.creationDate`")
       .remoteBatchPropertiesWithFilter("cacheRFromStore[friend_knows.creationDate]")(
-        "friend_knows.creationDate < cacheRFromStore[knows.creationDate]"
+        "friend_knows.creationDate < cacheR[knows.creationDate]"
       )
       .filter("NOT friend_knows = knows")
       .expandAll("(friend)-[friend_knows:KNOWS]->()")
@@ -2475,7 +2469,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       planner.subPlanBuilder()
         .projection("cacheN[a.prop] AS `prop`")
         .repeatTrail(`(a) ((left) ... (right))+ (b)`)
-        .|.remoteBatchPropertiesWithFilter("cacheRFromStore[rel.prop]")("rel.prop = cacheNFromStore[a.prop]")
+        .|.remoteBatchPropertiesWithFilter("cacheRFromStore[rel.prop]")("rel.prop = cacheN[a.prop]")
         .|.filterExpression(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")
         .|.argument("left", "a")
@@ -2521,8 +2515,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .projection("cacheN[start.min] AS `startMin`", "cacheR[x.max] AS `xMax`")
         .repeatTrail(`(a) ((left) ... (right))+ (b)`)
         .|.remoteBatchPropertiesWithFilter("cacheRFromStore[rel.prop]")(
-          "cacheNFromStore[start.min] < rel.prop",
-          "rel.prop < cacheRFromStore[x.max]"
+          "cacheN[start.min] < rel.prop",
+          "rel.prop < cacheR[x.max]"
         )
         .|.filterExpression(isRepeatTrailUnique("rel"))
         .|.expandAll("(left)-[rel]->(right)")

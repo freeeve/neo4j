@@ -1275,10 +1275,9 @@ case class RemoteBatchPropertiesWithPushdownOperators(
   distinctBy: Option[Expression] = None,
   orderBy: Seq[Expression] = Seq.empty,
   limit: Option[Expression] = None,
-  // the next two are variables and properties (from other variables) that are used in other expressions.
-  arguments: Set[LogicalVariable] = Set.empty,
-  previouslyCachedProperties: Set[LogicalProperty] = Set.empty
-)(implicit idGen: IdGen) extends LogicalUnaryPlan(idGen) {
+  importedConstantValues: Set[Expression] = Set.empty,
+  importedPerRowValues: Map[LogicalVariable, Expression] = Map.empty
+)(idGen: IdGen) extends LogicalUnaryPlan(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols
 

@@ -4147,15 +4147,15 @@ case class LogicalPlanProducer(
     case RemoteBatchProperties(nestedInner, nestedProperties)
       if nestedProperties.forall(_.dependencies == Set(remoteBatchPropertiesWithPushdownOperators.variable)) =>
       remoteBatchPropertiesWithPushdownOperators.copy(
-        properties = remoteBatchPropertiesWithPushdownOperators.properties ++ nestedProperties.map(_.propertyKey),
-        source = nestedInner
-      )
+        source = nestedInner,
+        properties = remoteBatchPropertiesWithPushdownOperators.properties ++ nestedProperties.map(_.propertyKey)
+      )(idGen)
     case Apply(RemoteBatchProperties(nestedInner, nestedProperties), _: Argument)
       if nestedProperties.forall(_.dependencies == Set(remoteBatchPropertiesWithPushdownOperators.variable)) =>
       remoteBatchPropertiesWithPushdownOperators.copy(
-        properties = remoteBatchPropertiesWithPushdownOperators.properties ++ nestedProperties.map(_.propertyKey),
-        source = nestedInner
-      )
+        source = nestedInner,
+        properties = remoteBatchPropertiesWithPushdownOperators.properties ++ nestedProperties.map(_.propertyKey)
+      )(idGen)
     case innerRemoteBatchPropertiesWithPushdown: RemoteBatchPropertiesWithPushdownOperators
       if innerRemoteBatchPropertiesWithPushdown.variable == remoteBatchPropertiesWithPushdownOperators.variable =>
       mergeRemoteBatchPropertiesWithPushdownOperators(
@@ -4178,23 +4178,23 @@ case class LogicalPlanProducer(
   ) = {
     RemoteBatchPropertiesWithPushdownOperators(
       source = innerRemoteBatchPropertiesWithPushdown.source,
-      entityType = innerRemoteBatchPropertiesWithPushdown.entityType,
       variable = innerRemoteBatchPropertiesWithPushdown.variable,
+      entityType = innerRemoteBatchPropertiesWithPushdown.entityType,
       properties =
         innerRemoteBatchPropertiesWithPushdown.properties ++ remoteBatchPropertiesWithPushdownOperators.properties,
       predicates =
         innerRemoteBatchPropertiesWithPushdown.predicates ++ remoteBatchPropertiesWithPushdownOperators.predicates,
-      orderBy = innerRemoteBatchPropertiesWithPushdown.orderBy ++ remoteBatchPropertiesWithPushdownOperators.orderBy,
-      limit =
-        remoteBatchPropertiesWithPushdownOperators.limit.orElse(innerRemoteBatchPropertiesWithPushdown.limit), // we give precedence to the latest limit operator. If the current limit is higher that's still fine since both the limits will still be evaluated on the graph shard.
       distinctBy = innerRemoteBatchPropertiesWithPushdown.distinctBy.orElse(
         remoteBatchPropertiesWithPushdownOperators.distinctBy
-      ), // TODO: when implementing pushdown distinctness we will need to figure out how to combine the two.
-      previouslyCachedProperties =
-        innerRemoteBatchPropertiesWithPushdown.previouslyCachedProperties ++ remoteBatchPropertiesWithPushdownOperators.previouslyCachedProperties,
-      arguments =
-        innerRemoteBatchPropertiesWithPushdown.arguments ++ remoteBatchPropertiesWithPushdownOperators.arguments
-    )
+      ),
+      orderBy = innerRemoteBatchPropertiesWithPushdown.orderBy ++ remoteBatchPropertiesWithPushdownOperators.orderBy,
+      limit =
+        remoteBatchPropertiesWithPushdownOperators.limit.orElse(innerRemoteBatchPropertiesWithPushdown.limit),
+      importedConstantValues =
+        innerRemoteBatchPropertiesWithPushdown.importedConstantValues ++ remoteBatchPropertiesWithPushdownOperators.importedConstantValues,
+      importedPerRowValues =
+        innerRemoteBatchPropertiesWithPushdown.importedPerRowValues ++ remoteBatchPropertiesWithPushdownOperators.importedPerRowValues
+    )(idGen)
   }
 
   /**

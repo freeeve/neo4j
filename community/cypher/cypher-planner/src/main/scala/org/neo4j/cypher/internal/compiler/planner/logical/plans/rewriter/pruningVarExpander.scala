@@ -317,7 +317,11 @@ case class pruningVarExpander(
           (distinctHorizon.withAddedDependencies(predicates), DistinctHorizon.empty)
         case pushedDownOperators: RemoteBatchPropertiesWithPushdownOperators if distinctHorizon.isInDistinctHorizon =>
           (
-            distinctHorizon.withAddedDependencies(pushedDownOperators.arguments + pushedDownOperators.variable),
+            distinctHorizon.withAddedDependencies(
+              pushedDownOperators.importedConstantValues ++ pushedDownOperators.importedPerRowValues.values.flatMap(
+                _.dependencies + pushedDownOperators.variable
+              )
+            ),
             DistinctHorizon.empty
           )
 

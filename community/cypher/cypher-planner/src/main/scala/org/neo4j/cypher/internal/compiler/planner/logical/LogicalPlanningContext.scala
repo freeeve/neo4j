@@ -134,8 +134,6 @@ object LogicalPlanningContext {
    *                                      Relevant for caching.
    * @param multiRelationshipExpansion a setting whether to expand multiple relationships in one transition in shortest path NFAs.
    *                                   Relevant for caching.
-   * @param pushDownArgumentsRBPWFEnabled a setting whether to push down predicates containing an argument in RemoteBatchPropertiesWithFilter.
-   *                                      Relevant for caching.
    * @param dynamicLabelScansEnabled a setting whether dynamic label scans should be planned.
    *                                 Relevant for caching.
    * @param dynamicLabelIndexUseEnabled a setting whether indexes should be used to plan queries with dynamic labels.
@@ -168,8 +166,6 @@ object LogicalPlanningContext {
     shardOperatorPushdownStrategy: ShardOperatorPushdownStrategy = ShardOperatorPushdownStrategy.defaultValue(),
     multiRelationshipExpansion: Boolean =
       GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.defaultValue(),
-    pushDownArgumentsRBPWFEnabled: Boolean =
-      GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.defaultValue(),
     dynamicLabelScansEnabled: Boolean = GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.defaultValue(),
     dynamicLabelIndexUseEnabled: Boolean =
       GraphDatabaseInternalSettings.cypher_enable_dynamic_label_index_use.defaultValue(),
@@ -198,7 +194,6 @@ object LogicalPlanningContext {
           remoteBatchPropertiesStrategy: RemoteBatchingStrategy,
           shardOperatorPushdownStrategy: ShardOperatorPushdownStrategy,
           multiRelationshipExpansion: Boolean,
-          pushDownArgumentsRBPWFEnabled: Boolean,
           dynamicLabelScansEnabled: Boolean,
           dynamicLabelIndexUseEnabled: Boolean,
           existsWithImplicitLimitEnabled: Boolean,
@@ -246,9 +241,6 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.dynamic())
           builder.addOne(multiRelationshipExpansion)
-
-        if (GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled.dynamic())
-          builder.addOne(pushDownArgumentsRBPWFEnabled)
 
         if (GraphDatabaseInternalSettings.cypher_enable_dynamic_label_scan.dynamic())
           builder.addOne(dynamicLabelScansEnabled)
