@@ -60,11 +60,11 @@ trait OptionsConverter[T] {
       // If there are mandatory options we should call convert with empty options to throw expected errors
       convert(VirtualValues.EMPTY_MAP, config, version)
     case NoOptions => Nothing
-    case OptionsMap(map) => convert(
-        VirtualValues.map(
-          map.keys.map(_.toLowerCase(Locale.ROOT)).toArray,
-          map.view.mapValues(evaluate(version, _, params, procedures)).values.toArray
-        ),
+    case OptionsMap(map) =>
+      val builder = new MapValueBuilder()
+      map.foreach(kv => builder.add(kv._1.toLowerCase(Locale.ROOT), evaluate(version, kv._2, params, procedures)))
+      convert(
+        builder.build(),
         config,
         version
       )
