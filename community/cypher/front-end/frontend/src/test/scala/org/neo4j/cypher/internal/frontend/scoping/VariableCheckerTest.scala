@@ -403,6 +403,38 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     passes()
   }
 
+  test(
+    """MATCH (n)-[:REL]->(d)
+      |WHERE any(prefix in b WHERE n.name = prefix)
+      |RETURN n.name""".stripMargin
+  ) {
+    error("42N62", "Variable `b` not defined.")
+  }
+
+  test(
+    """MATCH (n)-[:REL]->(d)
+      |WHERE any(prefix in ["a", "b", "c"] WHERE b.name = prefix)
+      |RETURN n.name""".stripMargin
+  ) {
+    error("42N62", "Variable `b` not defined.")
+  }
+
+  test(
+    """MATCH (n)-[:REL]->(d)
+      |WHERE any(d in ["a", "b", "c"] WHERE n.name = d)
+      |RETURN n.name""".stripMargin
+  ) {
+    passes()
+  }
+
+  test(
+    """MATCH (n)-[:REL]->(d)
+      |WHERE any(prefix in ["a", "b", "c"] WHERE n.name = prefix)
+      |RETURN n.name""".stripMargin
+  ) {
+    passes()
+  }
+
   /**
    * Variable already declared
    */

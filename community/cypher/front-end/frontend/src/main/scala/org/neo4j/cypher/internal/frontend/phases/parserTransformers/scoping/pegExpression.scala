@@ -20,7 +20,9 @@ import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ExtractScope
+import org.neo4j.cypher.internal.expressions.FilterScope
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.expressions.IterablePredicateExpression
 import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.ReduceExpression
@@ -105,6 +107,20 @@ object pegExpression {
         }
         val declared = Declarations(Seq(variable), Seq.empty)
         collect(incoming.expressionResultScope(lc, children, referenced, declared))
+
+      case iter: IterablePredicateExpression =>
+        val FilterScope(variable, innerPredicate) = iter.scope
+        val innerIncoming = incoming.amendedWithConstant(variable)
+        val innerResult = innerPredicate.fold(Seq.empty[WorkingScope]) { ex => Seq(apply(ex, innerIncoming)) }
+        val expressionResult = apply(iter.expression, incoming)
+        val children = expressionResult +: innerResult
+        val referenced = {
+          val innerReferenced = WorkingScope.referencedInChildren(innerResult) excl variable
+          val expressionReference = expressionResult.referenced
+          Some(innerReferenced union expressionReference)
+        }
+        val declared = Declarations(Seq(variable), Seq.empty)
+        collect(incoming.expressionResultScope(iter, children, referenced, declared))
 
       case r @ ReduceExpression(ReduceScope(accumulator, variable, expression), init, list) =>
         val innerIncoming = incoming.amendedWithConstant(Set(accumulator, variable))

@@ -3000,4 +3000,50 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
       )
     )
   }
+
+  test(
+    """WITH "d" AS word
+      |RETURN any(prefix IN ["a", "b", "c", word] WHERE word = prefix) AS check""".stripMargin
+  ) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""WITH "d" AS word
+              |RETURN any(prefix IN ["a", "b", "c", word] WHERE word = prefix) AS check""".stripMargin), // query level
+        Outgoing(variables = Set("check")),
+        ExpectedResult.TableResult("check"),
+        ExpectedWorkingScope(
+          Ast("""WITH "d" AS word"""),
+          Declared(variables = Seq("word")),
+          Outgoing(variables = Set("word")),
+          ExpectedWorkingScope.constExp("\"d\"")
+        ),
+        ExpectedWorkingScope(
+          Ast("""RETURN any(prefix IN ["a", "b", "c", word] WHERE word = prefix) AS check""".stripMargin),
+          Incoming(variables = Set("word")),
+          Referenced(Set("word")),
+          Outgoing(variables = Set("check")),
+          ExpectedResult.TableResult("check"),
+          ExpectedWorkingScope(
+            Ast("""any(prefix IN ["a", "b", "c", word] WHERE word = prefix)""".stripMargin),
+            Incoming(constants = Set("word")),
+            Referenced(Set("word")),
+            Declared(Seq("prefix")),
+            ExpectedWorkingScope(
+              Ast("""["a", "b", "c", word]"""),
+              Incoming(constants = Set("word")),
+              Referenced(Set("word")),
+              ExpectedWorkingScope.varExp("word", Set("word"))
+            ),
+            ExpectedWorkingScope(
+              Ast("word = prefix"),
+              Incoming(constants = Set("prefix", "word")),
+              Referenced(Set("prefix", "word")),
+              ExpectedWorkingScope.varExp("word", incomingConstants = Set("prefix", "word")),
+              ExpectedWorkingScope.varExp("prefix", incomingConstants = Set("prefix", "word"))
+            )
+          )
+        )
+      )
+    )
+  }
 }
