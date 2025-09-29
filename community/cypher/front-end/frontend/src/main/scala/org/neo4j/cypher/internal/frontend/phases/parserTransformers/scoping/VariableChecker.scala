@@ -32,6 +32,8 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.RelationshipChain
+import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -136,6 +138,14 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
                 ))
             }
           }
+    },
+    // relationship variable already bound
+    {
+      case PatternScope(sppp @ ShortestPathsPatternPart(element, _), incoming, _, _, _, _) => element match {
+          case RelationshipChain(_, rel, _) if rel.variable.exists(incoming.topologicalConstants.contains) =>
+            Seq(SemanticError.relationshipVariableAlreadyBound(sppp.name, rel.position))
+          case _ => Seq.empty
+        }
     }
   )
 

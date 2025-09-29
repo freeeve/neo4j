@@ -719,4 +719,14 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
          |RETURN *""".stripMargin) {
     error("42I37", "'RETURN *' is not allowed when there are no variables in scope.")
   }
+
+  /**
+   * Relationship already bound
+   */
+  test("""WITH [] AS r LIMIT 1
+         |MATCH p = shortestPath((src)-[r*]->(dst))
+         |RETURN src, dst""".stripMargin) {
+    error("42N66", "relationship variable already bound")
+  }
+
 }
