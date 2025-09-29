@@ -27,6 +27,7 @@ import static org.neo4j.shell.expect.ExpectTestExtension.CYPHER_SHELL_PATH;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -64,8 +65,8 @@ public class ExpectTestExtension implements BeforeAllCallback, AfterAllCallback 
 
     @Override
     public void afterAll(ExtensionContext context) {
-        this.neo4jContainer.close();
-        this.expectContainer.close();
+        if (this.neo4jContainer != null) this.neo4jContainer.close();
+        if (this.expectContainer != null) this.expectContainer.close();
     }
 
     public void runTestCase(Path expectResourcePath) throws IOException, InterruptedException {
@@ -131,12 +132,20 @@ public class ExpectTestExtension implements BeforeAllCallback, AfterAllCallback 
         final var neo4jAddress = "neo4j";
 
         final var network = Network.newNetwork();
+        final var cypherShellZipProp = "org.neo4j.cypher.shell.zip";
+        final var cypherShellZipPath = Path.of(System.getProperty(cypherShellZipProp));
+
+        if (!Files.exists(cypherShellZipPath)) {
+            throw new FileNotFoundException(
+                    "Neo4j cypher shell zip file not found, it needs to be set to property '%s': %s"
+                            .formatted(cypherShellZipProp, cypherShellZipPath));
+        }
 
         // Create a docker container that will be used to run Cypher Shell with expect
         final var expectImage = new ImageFromDockerfile()
                 .withFileFromClasspath("Dockerfile", "/expect/docker/Dockerfile")
                 .withFileFromClasspath("expect", "/expect/tests")
-                .withFileFromClasspath("cypher-shell.zip", "/cypher-shell.zip");
+                .withFileFromPath("cypher-shell.zip", cypherShellZipPath);
         final var expectContainer = new GenericContainer(expectImage)
                 .withNetwork(network)
                 .withEnv("NEO4J_USER", neo4jUser)

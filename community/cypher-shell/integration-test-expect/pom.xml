@@ -21,6 +21,10 @@
     <moduleName>org.neo4j.shell.it</moduleName>
     <default.jupiter.test.mode>concurrent</default.jupiter.test.mode>
     <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+    <cypher.shell.zip.dir>${project.build.directory}/cypher-shell/dist</cypher.shell.zip.dir>
+    <test.runner.jvm.settings.additional>
+      -Dorg.neo4j.cypher.shell.zip=${cypher.shell.zip.dir}/cypher-shell.zip
+    </test.runner.jvm.settings.additional>
   </properties>
 
   <scm>
@@ -102,25 +106,27 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
+        <!-- Hack to CI tests work without breaking testCompile. -->
+        <!-- We can't copy the cypher-shell.zip before compile because it's created in package. -->
+        <configuration>
+          <artifactItems>
+            <artifactItem>
+              <groupId>org.neo4j</groupId>
+              <artifactId>cypher-shell</artifactId>
+              <version>${project.version}</version>
+              <type>zip</type>
+              <outputDirectory>${cypher.shell.zip.dir}</outputDirectory>
+              <destFileName>cypher-shell.zip</destFileName>
+            </artifactItem>
+          </artifactItems>
+        </configuration>
         <executions>
           <execution>
-            <id>copy-cypher-shell-to-classpath</id>
-            <phase>generate-test-resources</phase>
+            <id>copy-cypher-shell-zip</id>
+            <phase>pre-integration-test</phase>
             <goals>
               <goal>copy</goal>
             </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>org.neo4j</groupId>
-                  <artifactId>cypher-shell</artifactId>
-                  <version>${project.version}</version>
-                  <type>zip</type>
-                  <outputDirectory>${project.build.outputDirectory}</outputDirectory>
-                  <destFileName>cypher-shell.zip</destFileName>
-                </artifactItem>
-              </artifactItems>
-            </configuration>
           </execution>
           <execution>
             <id>analyze</id>
