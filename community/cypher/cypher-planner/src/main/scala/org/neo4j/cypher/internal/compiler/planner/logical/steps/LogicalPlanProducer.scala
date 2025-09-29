@@ -3194,14 +3194,16 @@ case class LogicalPlanProducer(
 
   def planProjectionForUnionMapping(
     inner: LogicalPlan,
-    expressions: Map[LogicalVariable, Expression],
+    unionMapping: Map[LogicalVariable, Expression],
     context: LogicalPlanningContext
   ): LogicalPlan = {
+    val previouslyCachedProperties = cachedPropertiesPerPlan.get(inner.id)
+    val cachedPropertiesForUnionMapping = previouslyCachedProperties.rename(renamedVariables(unionMapping))
     annotate(
-      Projection(inner, expressions),
+      Projection(inner, unionMapping),
       solveds.get(inner.id),
       ProvidedOrder.Left,
-      cachedPropertiesPerPlan.get(inner.id),
+      cachedPropertiesForUnionMapping,
       context
     )
   }
@@ -4477,8 +4479,8 @@ case class LogicalPlanProducer(
           case (
               newVar,
               Property(`v`, PropertyKeyName(`propName`)) | CachedProperty(
-                `v`,
                 _,
+                `v`,
                 PropertyKeyName(`propName`),
                 _,
                 _,

@@ -21,10 +21,13 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchPropertiesImplementation
 import org.neo4j.cypher.internal.ast.ExistsExpression
+import org.neo4j.cypher.internal.ast.Union.UnionMapping
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.compiler.helpers.EntityAliases
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.ContextualPropertyAccess
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
+import org.neo4j.cypher.internal.compiler.helpers.RenameChain
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.ExtraRequirement
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -39,7 +42,13 @@ import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
+import org.neo4j.cypher.internal.ir.CallSubqueryHorizon
+import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.ir.QueryHorizon
+import org.neo4j.cypher.internal.ir.RegularQueryProjection
+import org.neo4j.cypher.internal.ir.SinglePlannerQuery
+import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
@@ -60,6 +69,8 @@ import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.topDown
+
+import scala.annotation.tailrec
 
 sealed trait RemoteBatchingStrategy {
 
@@ -109,6 +120,10 @@ sealed trait RemoteBatchingStrategy {
     predicatesToSolve: Set[Expression],
     interestingOrderConfig: InterestingOrderConfig
   ): RemoteBatchingSubQueryResult
+
+  def findGlobalPropertyAccessesWithContext(
+    query: SinglePlannerQuery
+  ): ContextualPropertyAccess
 
   /**
    * Properties of external available symbols that are accessed by predicates inside the QPP.
@@ -281,16 +296,17 @@ object RemoteBatchingStrategy {
       propsAccessForPredsMap: PropertyAccessInPredicates,
       contextualPropertyAccess: ContextualPropertyAccess
     ): Boolean = {
+      val propertyAccess = PropertyAccess(propertyPredicate.variable, propertyPredicate.propertyKeyName.name)
+
       val allHorizonAcceses = contextualPropertyAccess.horizon ++ contextualPropertyAccess.interestingOrder
-      val propertyAccess = PropertyAccess(
-        propertyPredicate.variable,
-        propertyPredicate.propertyKeyName.name
-      )
 
       isPredicateExecutedLater(propertyPredicate) ||
       propsAccessForPredsMap
         .propertyAccessInPredicatesOtherThat(propertyAccess, propertyPredicate.predicate) ||
-      allHorizonAcceses.contains(propertyAccess) ||
+      allHorizonAcceses.exists(propAccess =>
+        propAccess.propertyName == propertyPredicate.propertyKeyName.name &&
+          contextualPropertyAccess.entityAliases.isSameEntityAs(propertyPredicate.variable, propAccess.variable)
+      ) ||
       contextualPropertyAccess.propertyAccessInOtherComponents.contains(propertyAccess)
     }
 
@@ -617,6 +633,77 @@ object RemoteBatchingStrategy {
       def propertyAccessInPredicatesOtherThat(propertyAccess: PropertyAccess, inputPredicate: Expression): Boolean =
         backingMap.get(propertyAccess).exists(_.exists(expr => expr != inputPredicate))
     }
+
+    override def findGlobalPropertyAccessesWithContext(
+      query: SinglePlannerQuery
+    ): ContextualPropertyAccess = {
+      @tailrec
+      def rec(currentQuery: SinglePlannerQuery, acc: ContextualPropertyAccess): ContextualPropertyAccess = {
+        val accumulatedPropertyAccesses = ContextualPropertyAccess(
+          queryGraph = acc.queryGraph ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.queryGraph)),
+          horizon = acc.horizon ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.horizon)),
+          interestingOrder =
+            acc.interestingOrder ++ PropertyAccessHelper.findPropertyAccesses(Seq(currentQuery.interestingOrder)),
+          entityAliases = findEntityAliases(acc.entityAliases, currentQuery.horizon)
+        )
+        currentQuery.tail match {
+          case Some(tailQuery) => rec(tailQuery, accumulatedPropertyAccesses)
+          case None            => accumulatedPropertyAccesses
+        }
+      }
+
+      rec(query, ContextualPropertyAccess.empty)
+    }
+
+    private def findEntityAliases(
+      renamedVariablesFromPrevHorizons: EntityAliases,
+      horizon: QueryHorizon
+    ): EntityAliases = {
+      val renamedVariablesForCurrentHorizon = horizon match {
+        case rqp: RegularQueryProjection => EntityAliases(rqp.projections.collect {
+            case (newVar: LogicalVariable, oldVar: LogicalVariable) if newVar != oldVar =>
+              newVar -> (renamedVariablesFromPrevHorizons.getOriginalVariables(oldVar) + oldVar)
+          })
+
+        case CallSubqueryHorizon(subqueryPlannerQuery, _, _, _, _, importedVariables) if importedVariables.nonEmpty =>
+          findEntityAliasesInSubquery(renamedVariablesFromPrevHorizons, subqueryPlannerQuery)
+
+        case _ => EntityAliases.empty
+      }
+      renamedVariablesFromPrevHorizons ++ renamedVariablesForCurrentHorizon
+    }
+
+    private def findEntityAliasesInSubquery(
+      renamedVariablesFromPrevHorizons: EntityAliases,
+      query: PlannerQuery
+    ): EntityAliases = query match {
+      case singlePlannerQuery: SinglePlannerQuery =>
+        val currentHorizonfindEntityAliases =
+          findEntityAliases(renamedVariablesFromPrevHorizons, singlePlannerQuery.horizon)
+        singlePlannerQuery.tail match {
+          case Some(tail) => findEntityAliasesInSubquery(currentHorizonfindEntityAliases, tail)
+          case None       => currentHorizonfindEntityAliases
+        }
+      case unionQuery: UnionQuery =>
+        val renameOnRHS = findEntityAliasesInSubquery(renamedVariablesFromPrevHorizons, unionQuery.rhs)
+        val renameOnLHS = findEntityAliasesInSubquery(renamedVariablesFromPrevHorizons, unionQuery.lhs)
+        val renamesOnUnionMappings =
+          unionQuery.unionMappings.map { case UnionMapping(unionVariable, variableInLhs, variableInRhs) =>
+            val lhsOriginals = renameOnLHS.getOriginalVariables(variableInLhs)
+            val rhsOriginals = renameOnRHS.getOriginalVariables(variableInRhs)
+            // We will only propagate the renaming of the union variable that which had the same original source variable on both sides.
+            // CachedProperties will require knowlege of the source variable. If the source is different on either branch, we cannot create a single cached property out of the union variable.
+            // For example if UnionMapping is (u, a1, b1)
+            // where a was previously renamed from a1 and b was previously renamed from b1, we will not propagate the renaming of u.
+            // However if UnionMapping is (u, a1, a2)
+            // where both a1 and a2 was previously renamed from a, we will propagate the renaming of u.
+            // lhsOrginals and rhsOriginals are the chain of renames, and the first value in the ListSet is the original variable.
+            if (lhsOriginals.nonEmpty && lhsOriginals.originalDefinition == rhsOriginals.originalDefinition)
+              unionVariable -> lhsOriginals.commonRenames(rhsOriginals)
+            else unionVariable -> RenameChain.empty
+          }.filter(_._2.nonEmpty).toMap
+        renameOnLHS ++ renameOnLHS ++ EntityAliases(renamesOnUnionMappings)
+    }
   }
 
   private case object SkipRemoteBatching extends RemoteBatchingStrategy {
@@ -681,5 +768,11 @@ object RemoteBatchingStrategy {
       semanticTable: SemanticTable
     ): CachedProperties =
       CachedProperties.empty
+
+    override def findGlobalPropertyAccessesWithContext(
+      query: SinglePlannerQuery
+    ): ContextualPropertyAccess = {
+      ContextualPropertyAccess.empty
+    }
   }
 }

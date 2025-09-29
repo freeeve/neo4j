@@ -29,8 +29,51 @@ import org.neo4j.cypher.internal.ir.QueryProjection
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 import scala.annotation.tailrec
+
+case class RenameChain(renames: ListSet[LogicalVariable]) extends AnyVal {
+  def contains(variable: LogicalVariable): Boolean = renames.contains(variable)
+  def +(logicalVariable: LogicalVariable): RenameChain = RenameChain(renames + logicalVariable)
+  def ++(other: RenameChain): RenameChain = RenameChain(renames ++ other.renames)
+  def isEmpty: Boolean = renames.isEmpty
+  def nonEmpty: Boolean = renames.nonEmpty
+  def originalDefinition: Option[LogicalVariable] = renames.headOption
+
+  def commonRenames(other: RenameChain): RenameChain = RenameChain(renames.zip(other.renames).takeWhile { case (a, b) =>
+    a == b
+  }.map(_._1).to(ListSet))
+}
+
+case object RenameChain {
+  val empty: RenameChain = RenameChain(ListSet.empty)
+}
+
+case class EntityAliases(renamedVariablesToOriginal: Map[LogicalVariable, RenameChain]) {
+
+  def isSameEntityAs(original: LogicalVariable, renamed: LogicalVariable): Boolean = {
+    renamedVariablesToOriginal.get(renamed) match {
+      case Some(originals) => originals.contains(original)
+      case None => original == renamed // False if the renamed variable and the original don't have the same name.
+    }
+  }
+
+  def getOriginalVariables(renamed: LogicalVariable): RenameChain = {
+    renamedVariablesToOriginal.getOrElse(renamed, RenameChain.empty)
+  }
+
+  def ++(
+    other: EntityAliases
+  ): EntityAliases = {
+    val combinedMap = renamedVariablesToOriginal ++ other.renamedVariablesToOriginal
+    EntityAliases(combinedMap)
+  }
+}
+
+object EntityAliases {
+  def empty: EntityAliases = EntityAliases(Map.empty)
+}
 
 object PropertyAccessHelper {
 
@@ -41,7 +84,8 @@ object PropertyAccessHelper {
     horizon: Set[PropertyAccess],
     interestingOrder: Set[PropertyAccess],
     propertyAccessInOtherComponents: Set[PropertyAccess] =
-      Set.empty // keeps property accesses from parts of the query graphs that are not in the connected component.
+      Set.empty, // keeps property accesses from parts of the query graphs that are not in the connected component.
+    entityAliases: EntityAliases = EntityAliases.empty
   ) {
     def allPropertyAccesses: Set[PropertyAccess] = queryGraph ++ horizon ++ interestingOrder
     def isEmpty: Boolean = queryGraph.isEmpty && horizon.isEmpty && interestingOrder.isEmpty
@@ -67,22 +111,6 @@ object PropertyAccessHelper {
       case Property(v: Variable, PropertyKeyName(propName)) => set =>
           SkipChildren(set + PropertyAccess(v, propName))
     }
-  }
-
-  def findGlobalPropertyAccessesWithContext(query: SinglePlannerQuery): ContextualPropertyAccess = {
-    @tailrec
-    def rec(currentQuery: SinglePlannerQuery, acc: ContextualPropertyAccess): ContextualPropertyAccess = {
-      val accumulatedPropertyAccesses = ContextualPropertyAccess(
-        queryGraph = acc.queryGraph ++ findPropertyAccesses(Seq(currentQuery.queryGraph)),
-        horizon = acc.horizon ++ findPropertyAccesses(Seq(currentQuery.horizon)),
-        interestingOrder = acc.interestingOrder ++ findPropertyAccesses(Seq(currentQuery.interestingOrder))
-      )
-      currentQuery.tail match {
-        case Some(tailQuery) => rec(tailQuery, accumulatedPropertyAccesses)
-        case None            => accumulatedPropertyAccesses
-      }
-    }
-    rec(query, ContextualPropertyAccess.empty)
   }
 
   def findPropertyAccesses(propertyAccessLocations: Iterable[Any]): Set[PropertyAccess] = {

@@ -41,7 +41,8 @@ case class PlanHead(
   ): (BestPlans, LogicalPlanningContext) = {
     val aggregationPropertyAccesses = PropertyAccessHelper.findAggregationPropertyAccesses(headQuery)
     val localPropertyAccess = PropertyAccessHelper.findLocalPropertyAccesses(headQuery)
-    val contextualPropertyAccess = PropertyAccessHelper.findGlobalPropertyAccessesWithContext(headQuery)
+    val contextualPropertyAccess =
+      context.settings.remoteBatchPropertiesStrategy.findGlobalPropertyAccessesWithContext(headQuery)
     val updatedContext = context.withModifiedPlannerState(_
       .withAggregationProperties(aggregationPropertyAccesses)
       .withAccessedProperties(localPropertyAccess ++ aggregationPropertyAccesses)

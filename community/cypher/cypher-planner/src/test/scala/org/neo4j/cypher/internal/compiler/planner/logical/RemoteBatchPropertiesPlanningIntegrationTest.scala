@@ -2602,16 +2602,18 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
                   |WHERE p.firstName STARTS WITH "J" AND p.lastName STARTS WITH "Smith"
                   |RETURN p
                   |""".stripMargin
-    planner.plan(query) shouldEqual planner.planBuilder()
-      .produceResults("p")
-      .filter("cacheN[p.lastName] STARTS WITH 'Smith'")
-      .nodeIndexOperator(
-        "p:Person(firstName STARTS WITH 'J', lastName)",
-        indexOrder = IndexOrderNone,
-        getValue = Map("firstName" -> DoNotGetValue, "lastName" -> GetValue),
-        supportPartitionedScan = false
-      )
-      .build()
+
+    planner.plan(query) shouldEqual
+      planner.planBuilder()
+        .produceResults("p")
+        .filter("cacheN[p.lastName] STARTS WITH 'Smith'")
+        .nodeIndexOperator(
+          "p:Person(firstName STARTS WITH 'J', lastName)",
+          indexOrder = IndexOrderNone,
+          getValue = Map("firstName" -> DoNotGetValue, "lastName" -> GetValue),
+          supportPartitionedScan = false
+        )
+        .build()
   }
 
   test("should fetch property from a single index when filtering using composed queries") {
@@ -2706,6 +2708,148 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .build()
   }
 
+  test("should get value from index when property is used later") {
+    val query =
+      """
+        |MATCH (n:Person {firstName: "Me"}) RETURN n.firstName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`n.firstName`")
+      .projection("cacheN[n.firstName] AS `n.firstName`")
+      .nodeIndexOperator("n:Person(firstName = 'Me')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test("should get value from index when property is used later - when index entity has been renamed") {
+    val query =
+      """
+        |MATCH (n:Person {firstName: "Me"}) WITH n AS m RETURN m.firstName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`m.firstName`")
+      .projection(Map("m.firstName" -> cachedNodeProp("n", "firstName", "m")))
+      .projection("n AS m")
+      .nodeIndexOperator("n:Person(firstName = 'Me')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "should get value from index when property is used later - when index entity has been renamed and other property is returned"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person {firstName: "Me"}) WITH n AS m RETURN m.firstName, m.lastName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`m.firstName`", "`m.lastName`")
+      .projection(Map(
+        "m.firstName" -> cachedNodeProp("n", "firstName", "m"),
+        "m.lastName" -> cachedNodeProp("n", "lastName", "m")
+      ))
+      .remoteBatchPropertiesByExpr(Set(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true)))
+      .projection("n AS m")
+      .nodeIndexOperator("n:Person(firstName = 'Me')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "should not get value from index when property not used - when index entity has been renamed"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person {firstName: "Me"}) WITH n as m RETURN m.lastName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`m.lastName`")
+      .projection("cacheN[m.lastName] AS `m.lastName`")
+      .remoteBatchProperties("cacheNFromStore[m.lastName]")
+      .projection("n AS m")
+      .nodeIndexOperator("n:Person(firstName = 'Me')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  // Eager Aggregation clears the cache, so we cannot get renamed variable from cache after aggregation
+  test(
+    "should run remoteBatchProperties after aggregation on indexed property"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person {firstName: "Me"}) WITH n, COUNT(*) AS c RETURN n.firstName, c
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`n.firstName`", "c")
+      .projection("cacheN[n.firstName] AS `n.firstName`")
+      .remoteBatchProperties("cacheNFromStore[n.firstName]")
+      .aggregation(Seq("n AS n"), Seq("count(*) AS c"))
+      .nodeIndexOperator("n:Person(firstName = 'Me')", getValue = Map("firstName" -> GetValue)) // DoNotGetValue?
+      .build()
+  }
+
+  test(
+    "should not get value from index when indexed node is returned after renaming in aggregation"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person {firstName: "Me"}) WITH n AS m, COUNT(*) AS c RETURN m, c
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("m", "c")
+      .aggregation(Seq("n AS m"), Seq("count(*) AS c"))
+      .nodeIndexOperator("n:Person(firstName = 'Me')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test(
+    "should not get value from index when property is not used afterwards"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person {firstName: "Me"}) WITH n AS m, 1 AS n RETURN n
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("n")
+      .projection("n AS m", "1 AS n")
+      .nodeIndexOperator("n:Person(firstName = 'Me')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test(
+    "should get value from index when used in another predicate later after renaming"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person {firstName: $fn}) WITH n AS m WHERE m.firstName <> "me" RETURN m.lastName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`m.lastName`")
+      .projection(Map("m.lastName" -> cachedNodeProp("n", "lastName", "m")))
+      .remoteBatchPropertiesByExpr(Set(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true)))
+      .filterExpression(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("me"))))
+      .projection("n AS m")
+      .nodeIndexOperator(
+        "n:Person(firstName = ???)",
+        paramExpr = Some(parameter("fn", CTAny)),
+        getValue = Map("firstName" -> GetValue)
+      )
+      .build()
+  }
+
   test("should SEEK from a selective index and filter by the rest of the predicates on the shard.") {
     val query =
       """
@@ -2780,6 +2924,210 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.argument("this")
       .remoteBatchPropertiesWithFilter("cacheNFromStore[this.name]")("this.name STARTS WITH 'A'")
       .nodeByLabelScan("this", "Person")
+      .build()
+  }
+
+  test("index seek should identify renames within a call subquery") {
+    val query =
+      """
+        |MATCH (n:Person)
+        |WHERE n.firstName STARTS WITH "A"
+        |CALL (*) {
+        |  WITH n AS m
+        |  WHERE m.firstName <> "Adam"
+        |  RETURN m AS k
+        |}
+        |RETURN k.firstName, k.lastName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`k.firstName`", "`k.lastName`")
+      .projection(Map(
+        "k.firstName" -> cachedNodeProp("n", "firstName", "k"),
+        "k.lastName" -> cachedNodeProp("n", "lastName", "k")
+      ))
+      .remoteBatchPropertiesByExpr(Set(cachedNodeProp("n", "lastName", "k", knownToAccessStore = true)))
+      .projection("m AS k")
+      .filterExpression(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("Adam"))))
+      .projection("n AS m")
+      .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test("index seek should identify renames within a call subquery with union") {
+    val query =
+      """
+        |MATCH (n:Person)
+        |WHERE n.firstName STARTS WITH "A"
+        |CALL (*) {
+        |  WITH n AS m
+        |  WHERE m.lastName <> "Smith"
+        |  RETURN m AS k
+        |  UNION
+        |  WITH n AS m
+        |  WHERE m.age > 25
+        |  RETURN m AS k
+        |}
+        |RETURN k.firstName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`k.firstName`")
+      .projection(Map("k.firstName" -> cachedNodeProp("n", "firstName", "k")))
+      .apply()
+      .|.distinct("n AS n", "k AS k")
+      .|.union()
+      .|.|.projection("k AS k")
+      .|.|.projection("m AS k")
+      .|.|.remoteBatchPropertiesWithFilter(
+        expressions = Set(greaterThan(prop("m", "age"), literalInt(25))),
+        properties = Set(cachedNodeProp("n", "age", "m", knownToAccessStore = true))
+      )
+      .|.|.projection("n AS m")
+      .|.|.argument("n")
+      .|.projection("k AS k")
+      .|.projection("m AS k")
+      .|.remoteBatchPropertiesWithFilter(
+        expressions = Set(not(equals(prop("m", "lastName"), literal("Smith")))),
+        properties = Set(cachedNodeProp("n", "lastName", "m", knownToAccessStore = true))
+      )
+      .|.projection("n AS m")
+      .|.argument("n")
+      .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> GetValue))
+      .build()
+  }
+
+  test(
+    "index seek should not fetch values if rename on one side of union matches a newly introduced variable on the other side"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person)
+        |WHERE n.firstName STARTS WITH "A"
+        |CALL (*) {
+        |  MATCH (m:Person)
+        |  WHERE m.lastName <> "Smith"
+        |  RETURN m AS k
+        |  UNION
+        |  WITH n AS m
+        |  WHERE m.age > 25
+        |  RETURN m AS k
+        |}
+        |RETURN k.firstName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`k.firstName`")
+      .projection(Map("k.firstName" -> cachedNodeProp("k", "firstName", "k")))
+      .remoteBatchProperties("cacheNFromStore[k.firstName]")
+      .apply()
+      .|.distinct("n AS n", "k AS k")
+      .|.union()
+      .|.|.projection("k AS k")
+      .|.|.projection("m AS k")
+      .|.|.remoteBatchPropertiesWithFilter(
+        expressions = Set(greaterThan(prop("m", "age"), literalInt(25))),
+        properties = Set(cachedNodeProp("m", "age", "m", knownToAccessStore = true))
+      )
+      .|.|.projection("n AS m")
+      .|.|.argument("n")
+      .|.projection("k AS k")
+      .|.projection("m AS k")
+      .|.remoteBatchPropertiesWithFilter(
+        expressions = Set(not(equals(prop("m", "lastName"), literal("Smith")))),
+        properties = Set(cachedNodeProp("m", "lastName", "m", knownToAccessStore = true))
+      )
+      .|.nodeByLabelScan("m", "Person", IndexOrderNone, "n")
+      .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test(
+    "index seek should not get values for renames within a call subquery with unions each renaming a different variable"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person)-[:KNOWS]->(p:Person)
+        |WHERE n.firstName STARTS WITH "A"
+        |CALL (*) {
+        |  WITH n AS m
+        |  WHERE m.lastName <> "Smith"
+        |  RETURN m AS k
+        |  UNION
+        |  WITH p AS m
+        |  WHERE m.firstName <> "Alice"
+        |  RETURN m AS k
+        |}
+        |RETURN k.firstName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`k.firstName`")
+      .projection("cacheN[k.firstName] AS `k.firstName`")
+      .remoteBatchProperties("cacheNFromStore[k.firstName]")
+      .apply()
+      .|.distinct("p AS p", "k AS k", "n AS n")
+      .|.union()
+      .|.|.projection("k AS k")
+      .|.|.projection("m AS k")
+      .|.|.remoteBatchPropertiesWithFilter("cacheNFromStore[m.firstName]")("NOT m.firstName = 'Alice'")
+      .|.|.projection("p AS m")
+      .|.|.argument("n", "p")
+      .|.projection("k AS k")
+      .|.projection("m AS k")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[m.lastName]")("NOT m.lastName = 'Smith'")
+      .|.projection("n AS m")
+      .|.argument("n", "p")
+      .filter("p:Person")
+      .expandAll("(n)-[:KNOWS]->(p)")
+      .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test(
+    "index seek should get values for renames within a call subquery with unions each renaming a different variable if the property is used within the union"
+  ) {
+    val query =
+      """
+        |MATCH (n:Person)-[:KNOWS]->(p:Person)
+        |WHERE n.firstName STARTS WITH "A"
+        |CALL (*) {
+        |  WITH n AS m
+        |  WHERE m.firstName <> "Adam"
+        |  RETURN m AS k
+        |  UNION
+        |  WITH p AS m
+        |  WHERE m.firstName <> "Alice"
+        |  RETURN m AS k
+        |}
+        |RETURN k.firstName
+        |""".stripMargin
+
+    val plan = planner.plan(query)
+    plan shouldEqual planner.subPlanBuilder()
+      .produceResults("`k.firstName`")
+      .projection("cacheN[k.firstName] AS `k.firstName`")
+      .remoteBatchProperties("cacheNFromStore[k.firstName]")
+      .apply()
+      .|.distinct("p AS p", "k AS k", "n AS n")
+      .|.union()
+      .|.|.projection("k AS k")
+      .|.|.projection("m AS k")
+      .|.|.remoteBatchPropertiesWithFilter("cacheNFromStore[m.firstName]")("NOT m.firstName = 'Alice'")
+      .|.|.projection("p AS m")
+      .|.|.argument("n", "p")
+      .|.projection("k AS k")
+      .|.projection("m AS k")
+      .|.filterExpression(not(equals(cachedNodeProp("n", "firstName", "m"), literalString("Adam"))))
+      .|.projection("n AS m")
+      .|.argument("n", "p")
+      .filter("p:Person")
+      .expandAll("(n)-[:KNOWS]->(p)")
+      .nodeIndexOperator("n:Person(firstName STARTS WITH 'A')", getValue = Map("firstName" -> GetValue))
       .build()
   }
 
