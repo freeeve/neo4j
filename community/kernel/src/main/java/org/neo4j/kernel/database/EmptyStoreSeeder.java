@@ -35,6 +35,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.zip.ZipEntry;
@@ -134,21 +136,39 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
     @Override
     public void seedStore(byte[] seed) throws IOException {
         var filter = pathFilter();
+        Map<Path, byte[]> metaDataFiles = new HashMap<>();
         try (var stream = new ZipInputStream(new ByteArrayInputStream(seed))) {
             ZipEntry entry;
             while ((entry = stream.getNextEntry()) != null) {
                 if (!entry.isDirectory() && filter.test(entry.getName())) {
                     var targetPath =
                             databaseLayout.getNeo4jLayout().homeDirectory().resolve(entry.getName());
-                    var directory = targetPath.getParent();
-                    if (!fs.fileExists(directory)) {
+                    if (targetPath.equals(databaseLayout.pathForExistsMarker())) {
+                        // Defer creation of the metadata store file until last, so just keep it in memory for now
+                        try (var bytesOutput = new ByteArrayOutputStream()) {
+                            stream.transferTo(bytesOutput);
+                            bytesOutput.flush();
+                            metaDataFiles.put(targetPath, bytesOutput.toByteArray());
+                        }
+                    } else {
+                        var directory = targetPath.getParent();
                         fs.mkdirs(directory);
-                    }
-                    try (var fileOutput = fs.openAsOutputStream(targetPath, false)) {
-                        stream.transferTo(fileOutput);
+                        try (var fileOutput = fs.openAsOutputStream(targetPath, false)) {
+                            stream.transferTo(fileOutput);
+                        }
                     }
                 }
             }
+        }
+
+        // Write the metadata store file(s), thereby completing the seed
+        for (var metaDataStore : metaDataFiles.keySet()) {
+            var tempPath = metaDataStore.resolveSibling(metaDataStore + ".temp");
+            try (var input = new ByteArrayInputStream(metaDataFiles.get(metaDataStore));
+                    var fileOutput = fs.openAsOutputStream(tempPath, false)) {
+                input.transferTo(fileOutput);
+            }
+            fs.renameFile(tempPath, metaDataStore);
         }
     }
 
