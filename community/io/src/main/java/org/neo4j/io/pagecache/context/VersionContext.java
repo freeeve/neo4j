@@ -165,4 +165,9 @@ public interface VersionContext {
     default VersionContext createRelatedContext() {
         return this;
     }
+
+    default VersionContext createUnboundedReadRelatedContext() {
+        return new UnboundedReadVersionContext(
+                committingTransactionId(), committingAppendIndex(), oldestVisibleTransactionNumber());
+    }
 }

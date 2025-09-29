@@ -26,12 +26,15 @@ import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
  */
 public class UnboundedReadVersionContext implements VersionContext {
     private static final long INVALID_TRANSACTION_ID = 0;
+    private final long oldestTransactionId;
     private long committingTransactionId = INVALID_TRANSACTION_ID;
     private long committingAppendIndex = INVALID_TRANSACTION_ID;
 
-    public UnboundedReadVersionContext(long committingTransactionId, long committingAppendIndex) {
+    public UnboundedReadVersionContext(
+            long committingTransactionId, long committingAppendIndex, long oldestTransactionId) {
         this.committingTransactionId = committingTransactionId;
         this.committingAppendIndex = committingAppendIndex;
+        this.oldestTransactionId = oldestTransactionId;
     }
 
     @Override
@@ -82,7 +85,7 @@ public class UnboundedReadVersionContext implements VersionContext {
 
     @Override
     public long oldestVisibleTransactionNumber() {
-        return INVALID_TRANSACTION_ID;
+        return oldestTransactionId;
     }
 
     @Override
@@ -124,8 +127,9 @@ public class UnboundedReadVersionContext implements VersionContext {
 
     @Override
     public String toString() {
-        return "UnboundedReadVersionContext{" + "transactionId="
-                + committingTransactionId + ", appendIndex="
+        return "UnboundedReadVersionContext{" + "oldestTransactionId="
+                + oldestTransactionId + ", committingTransactionId="
+                + committingTransactionId + ", committingAppendIndex="
                 + committingAppendIndex + '}';
     }
 }

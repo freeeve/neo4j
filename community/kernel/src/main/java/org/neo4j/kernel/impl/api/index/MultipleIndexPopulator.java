@@ -199,7 +199,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         this.monitor = monitor;
         this.transactionIdCreatedIndexes =
                 cursorContextOfIndexCreator.getVersionContext().committingTransactionId();
-        this.populationHorizon = this.transactionIdCreatedIndexes;
+        this.populationHorizon = Long.MAX_VALUE;
     }
 
     IndexPopulation addPopulator(

@@ -26,6 +26,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 import org.neo4j.io.pagecache.context.OldestTransactionIdFactory;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
+import org.neo4j.io.pagecache.context.UnboundedReadVersionContext;
 import org.neo4j.io.pagecache.context.VersionContext;
 
 /**
@@ -191,6 +192,12 @@ public class TransactionVersionContext implements VersionContext {
                 dirty,
                 nonVisibleHead,
                 currentStamp);
+    }
+
+    @Override
+    public VersionContext createUnboundedReadRelatedContext() {
+        return new UnboundedReadVersionContext(
+                transactionId, appendIndex, oldestTransactionIdFactory.oldestTransactionId());
     }
 
     @Override
