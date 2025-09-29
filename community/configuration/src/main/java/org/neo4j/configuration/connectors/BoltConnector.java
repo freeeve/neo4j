@@ -230,7 +230,7 @@ public final class BoltConnector implements SettingsDeclaration {
             .build();
 
     @Description(
-            "Enable or disable the Bolt Unix Domain Socket connector."
+            "Enable or disable the Bolt Unix Domain Socket connector. "
                     + "Requests submitted via this connector will be placed within a dedicated thread pool which is isolated from all other Bolt connections.")
     public static final Setting<Boolean> enable_unix_socket =
             newBuilder("server.bolt.unix_socket_enabled", BOOL, false).build();
