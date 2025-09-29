@@ -90,6 +90,7 @@ public final class UndirectedSingleShortestLoopCursor extends UndirectedShortest
         HeapTrackingLongHashSet nextFrontier = HeapTrackingCollections.newLongSet(memoryTracker);
         HeapTrackingLongHashSet currentFrontier = HeapTrackingCollections.newLongSet(memoryTracker);
         HeapTrackingLongLongHashMap roots = HeapTrackingCollections.newLongLongMap(memoryTracker);
+        HeapTrackingLongHashSet currentRoots = HeapTrackingCollections.newLongSet(memoryTracker);
         try {
             currentFrontier.add(startNode);
             LongIterator currentFrontierIterator = currentFrontier.longIterator();
@@ -100,8 +101,10 @@ public final class UndirectedSingleShortestLoopCursor extends UndirectedShortest
                 return false;
             }
             while (2 * (currentDepth + 1) <= maxDepth) {
+                currentRoots.clear();
                 while (currentFrontierIterator.hasNext()) {
                     long origin = currentFrontierIterator.next();
+                    currentRoots.add(roots.get(origin));
                     read.singleNode(origin, nodeCursor);
                     if (!nodeCursor.next()) {
                         throw EntityNotFoundException.nodeUnexpectedlyDeleted(origin);
@@ -119,6 +122,7 @@ public final class UndirectedSingleShortestLoopCursor extends UndirectedShortest
                                     roots.put(foundNode, roots.get(origin));
                                 }
                             }
+                            currentRoots.add(roots.get(foundNode));
                             Loop loop = checkForLoop(pathTracing, currentFrontier, nextFrontier, foundNode, origin);
                             switch (loop) {
                                 case LOOP_IN_CURRENT_FRONTIER, LOOP_IN_NEXT_FRONTIER -> {
@@ -156,7 +160,9 @@ public final class UndirectedSingleShortestLoopCursor extends UndirectedShortest
                     } // If there is just one relation from startNode then we cannot find a loop (in trail mode)
                 }
                 if (nextFrontier.isEmpty()) {
-                    closeInternal();
+                    return false;
+                }
+                if (currentDepth > 1 && currentRoots.size() < 2) {
                     return false;
                 }
                 var tmp = currentFrontier;
@@ -166,9 +172,9 @@ public final class UndirectedSingleShortestLoopCursor extends UndirectedShortest
                 nextFrontier.clear();
                 currentDepth++;
             }
-            closeInternal();
             return false;
         } finally {
+            currentRoots.close();
             pathTracing.close();
             currentFrontier.close();
             nextFrontier.close();

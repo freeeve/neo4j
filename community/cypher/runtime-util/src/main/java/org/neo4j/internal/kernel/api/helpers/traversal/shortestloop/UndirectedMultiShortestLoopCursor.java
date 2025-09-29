@@ -131,10 +131,13 @@ public final class UndirectedMultiShortestLoopCursor extends UndirectedShortestL
 
     private boolean bfs() {
         int pathLength = -1;
+        HeapTrackingLongHashSet currentRoots = HeapTrackingCollections.newLongSet(memoryTracker);
         while (2 * (currentDepth + 1) - 1 <= maxDepth
                 && currentDepth <= intersectionDepth) { // We only check current frontier for loops so this is fine
+            currentRoots.clear();
             while (currentFrontierIterator.hasNext()) {
                 long origin = currentFrontierIterator.next();
+                currentRoots.add(pathTracer.originRelationship(origin));
                 read.singleNode(origin, nodeCursor);
                 if (!nodeCursor.next()) {
                     throw EntityNotFoundException.nodeUnexpectedlyDeleted(origin);
@@ -146,6 +149,7 @@ public final class UndirectedMultiShortestLoopCursor extends UndirectedShortestL
                     if (relationshipsFilter.test(selectionCursor)) {
                         long foundNode = selectionCursor.otherNodeReference();
                         Loop loop = checkForLoop(pathTracer, currentFrontier, nextFrontier, foundNode, origin);
+                        currentRoots.add(pathTracer.originRelationship(foundNode));
                         int temp = handleLoop(
                                 loop, foundNode, intersectionFoundEarly, origin, selectionCursor.reference());
                         if (temp != -1) {
@@ -154,8 +158,13 @@ public final class UndirectedMultiShortestLoopCursor extends UndirectedShortestL
                     }
                 }
                 if (relCount == 1 && startNode == origin) {
+                    currentRoots.close();
                     return false;
                 } // If there is just one relation from startNode then we cannot find a loop (in trail mode)
+                if (currentDepth > 1 && currentRoots.size() < 2) {
+                    currentRoots.close();
+                    return false;
+                }
             }
             if (nextFrontier.isEmpty()) {
                 break;
@@ -167,6 +176,7 @@ public final class UndirectedMultiShortestLoopCursor extends UndirectedShortestL
             nextFrontier.clear();
             currentDepth++;
         }
+        currentRoots.close();
         if (intersections.isEmpty()) {
             closeInternal();
             return false;
