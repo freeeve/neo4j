@@ -200,6 +200,11 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
             public IndexConfig indexConfig() {
                 return IndexConfig.create().withLabelIndex().withRelationshipTypeIndex();
             }
+
+            @Override
+            public int maxNumberOfWorkerThreads() {
+                return 1;
+            }
         };
         return storageEngineFactory.batchImporter(
                 tempDatabaseLayout,

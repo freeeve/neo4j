@@ -325,6 +325,7 @@ public class EncodingIdMapper implements IdMapper {
     }
 
     private void updateRadix(LongArray values, Radix radix, long highestSetIndex) {
+        radix.initialize(highestSetIndex + 1);
         runInParallel("update radix", highestSetIndex + 1, partition -> () -> {
             for (long dataIndex = partition.startInclusive(); dataIndex < partition.endExclusive(); dataIndex++) {
                 radix.registerRadixOf(values.get(dataIndex));
@@ -570,6 +571,7 @@ public class EncodingIdMapper implements IdMapper {
         collisionNodeIdCache =
                 cacheFactory.newByteArray(pessimisticNumberOfCollisions, new byte[COLLISION_ENTRY_SIZE], memoryTracker);
         collisionValues = collisionValuesFactory.apply(pessimisticNumberOfCollisions);
+        radix.initialize(numberOfCollisions);
         runInParallel("build collision info", highestSetIndex + 1, partition -> () -> {
             int workerId = partition.partitionId();
             long nextLocalCollisionId = 0;

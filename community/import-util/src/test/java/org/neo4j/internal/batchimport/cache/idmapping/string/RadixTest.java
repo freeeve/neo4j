@@ -41,6 +41,7 @@ class RadixTest {
         for (long i = 0; i < count; i++) {
             radix.preRegisterRadixOf(value);
         }
+        radix.initialize(count);
         for (long i = 0; i < count; i++) {
             radix.registerRadixOf(value);
         }
@@ -68,6 +69,7 @@ class RadixTest {
         for (long value : values) {
             radix.preRegisterRadixOf(value);
         }
+        radix.initialize(values.length);
         for (long value : values) {
             radix.registerRadixOf(value);
         }

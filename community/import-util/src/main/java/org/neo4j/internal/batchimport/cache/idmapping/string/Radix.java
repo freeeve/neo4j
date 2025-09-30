@@ -35,7 +35,7 @@ public abstract class Radix {
     public static final Factory<Radix> STRING = StringRadix::new;
 
     private final LongAdder nullCount = new LongAdder();
-    final AtomicLongArray radixIndexCount = new AtomicLongArray((int) pow(2, RadixCalculator.RADIX_BITS - 1));
+    private AtomicLongArray radixIndexCount;
 
     /**
      * A way of noting radix of a certain value, without actually registering that radix.
@@ -45,7 +45,14 @@ public abstract class Radix {
      */
     public void preRegisterRadixOf(long value) {}
 
+    public void initialize(long numberOfItems) {
+        if (numberOfItems > 0) {
+            radixIndexCount = new AtomicLongArray((int) pow(2, RadixCalculator.RADIX_BITS - 1));
+        }
+    }
+
     public void registerRadixOf(long value) {
+        assert radixIndexCount != null : "This instance should have been initialized prior to registering values";
         int radix = calculator().radixOf(value);
         if (radix == RadixCalculator.NULL_RADIX) {
             nullCount.add(1);
@@ -59,6 +66,10 @@ public abstract class Radix {
     }
 
     public long[] getRadixIndexCounts() {
+        if (radixIndexCount == null) {
+            return new long[0];
+        }
+
         // TODO expose something other than long[] as getter instead
         long[] array = new long[radixIndexCount.length()];
         for (int i = 0; i < array.length; i++) {
