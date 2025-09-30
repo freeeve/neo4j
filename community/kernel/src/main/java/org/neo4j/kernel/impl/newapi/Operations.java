@@ -1704,7 +1704,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         unsupportedMessage.append('.');
                     }
 
-                    supported &= checkSupportedInVersion(unsupportedMessage, KernelVersion.VERSION_VECTOR_2_INTRODUCED);
+                    final KernelVersion minimumSupportedVersion = KernelVersion.getForVersion((byte) Math.max(
+                            KernelVersion.VERSION_VECTOR_2_INTRODUCED.version(),
+                            version.minimumRequiredKernelVersion().version()));
+                    supported &= checkSupportedInVersion(unsupportedMessage, minimumSupportedVersion);
                     if (!supported) {
                         throw new UnsupportedOperationException(unsupportedMessage.toString());
                     }

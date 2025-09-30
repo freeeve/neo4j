@@ -28,6 +28,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.eclipse.collections.api.LazyIterable;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.factory.primitive.ByteLists;
 import org.eclipse.collections.api.factory.primitive.DoubleLists;
 import org.eclipse.collections.api.factory.primitive.FloatLists;
@@ -35,8 +36,10 @@ import org.eclipse.collections.api.factory.primitive.IntLists;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.factory.primitive.ShortLists;
 import org.eclipse.collections.api.map.MutableMap;
+import org.eclipse.collections.api.set.SetIterable;
 import org.eclipse.collections.api.tuple.Pair;
 import org.eclipse.collections.impl.factory.Maps;
+import org.eclipse.collections.impl.utility.LazyIterate;
 import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.graphdb.schema.IndexSettingUtil;
 import org.neo4j.internal.schema.IndexConfig;
@@ -45,6 +48,7 @@ import org.neo4j.internal.schema.SettingsAccessor.IndexSettingObjectMapAccessor;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
+import org.neo4j.test.LatestVersions;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.SequenceValue;
 import org.neo4j.values.storable.ArrayValue;
@@ -640,6 +644,23 @@ public class VectorTestUtils {
             perms.add(VirtualValues.list(perm));
         }
         return perms.asLazy();
+    }
+
+    public static VectorIndexVersion max(VectorIndexVersion... versions) {
+        return Sets.mutable.of(versions).max();
+    }
+
+    public static SetIterable<VectorIndexVersion> inclusiveVersionRangeFrom(VectorIndexVersion from) {
+        return inclusiveVersionRange(
+                from, VectorIndexVersion.latestSupportedVersion(LatestVersions.LATEST_KERNEL_VERSION));
+    }
+
+    public static SetIterable<VectorIndexVersion> inclusiveVersionRange(
+            VectorIndexVersion from, VectorIndexVersion to) {
+        return LazyIterate.select(
+                        VectorIndexVersion.KNOWN_VERSIONS,
+                        version -> from.compareTo(version) <= 0 && version.compareTo(to) <= 0)
+                .toSet();
     }
 
     public static class VectorIndexSettings {

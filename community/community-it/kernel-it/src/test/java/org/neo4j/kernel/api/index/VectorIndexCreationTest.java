@@ -23,6 +23,9 @@ import static java.lang.Math.ceilDiv;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.neo4j.kernel.api.schema.vector.VectorTestUtils.inclusiveVersionRange;
+import static org.neo4j.kernel.api.schema.vector.VectorTestUtils.inclusiveVersionRangeFrom;
+import static org.neo4j.kernel.api.schema.vector.VectorTestUtils.max;
 
 import java.util.List;
 import java.util.Map;
@@ -30,7 +33,6 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.factory.Lists;
-import org.eclipse.collections.api.factory.Sets;
 import org.eclipse.collections.api.set.SetIterable;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -516,7 +518,7 @@ public class VectorIndexCreationTest {
 
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(settings, PROP_KEYS.get(1))));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), Values.booleanValue(quantizationEnabled));
@@ -541,7 +543,7 @@ public class VectorIndexCreationTest {
 
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(version, settings, propKeyIds[0])));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), DEFAULT_VALUE);
@@ -556,7 +558,7 @@ public class VectorIndexCreationTest {
 
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(settings, PROP_KEYS.get(1))));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), DEFAULT_VALUE);
@@ -582,7 +584,7 @@ public class VectorIndexCreationTest {
                 final var settings = defaultSettings().withHnswM(M);
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(version, settings, propKeyIds[0])));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), Values.intValue(M));
@@ -603,7 +605,7 @@ public class VectorIndexCreationTest {
                 final var settings = defaultSettings().withHnswM(M);
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(settings, PROP_KEYS.get(1))));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), Values.intValue(M));
@@ -627,7 +629,7 @@ public class VectorIndexCreationTest {
 
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(version, settings, propKeyIds[0])));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), DEFAULT_VALUE);
@@ -642,7 +644,7 @@ public class VectorIndexCreationTest {
 
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(settings, PROP_KEYS.get(1))));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), DEFAULT_VALUE);
@@ -707,7 +709,7 @@ public class VectorIndexCreationTest {
                 final var settings = defaultSettings().withHnswEfConstruction(efConstruction);
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(version, settings, propKeyIds[0])));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), Values.intValue(efConstruction));
@@ -729,7 +731,7 @@ public class VectorIndexCreationTest {
                 final var settings = defaultSettings().withHnswEfConstruction(efConstruction);
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(settings, PROP_KEYS.get(1))));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), Values.intValue(efConstruction));
@@ -754,7 +756,7 @@ public class VectorIndexCreationTest {
 
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(version, settings, propKeyIds[0])));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), DEFAULT_VALUE);
@@ -769,7 +771,7 @@ public class VectorIndexCreationTest {
 
                 final var ref = new MutableObject<IndexDescriptor>();
                 assertDoesNotThrow(() -> ref.setValue(createVectorIndex(settings, PROP_KEYS.get(1))));
-                final var index = ref.getValue();
+                final var index = ref.get();
 
                 // config committed in tx
                 assertSettingHasValue(SETTING, index.getIndexConfig(), DEFAULT_VALUE);
@@ -903,22 +905,6 @@ public class VectorIndexCreationTest {
 
         protected boolean latestIsValid() {
             return validVersions.contains(LATEST);
-        }
-
-        protected static VectorIndexVersion max(VectorIndexVersion... versions) {
-            return Sets.mutable.of(versions).max();
-        }
-
-        protected static SetIterable<VectorIndexVersion> inclusiveVersionRangeFrom(VectorIndexVersion from) {
-            return inclusiveVersionRange(from, LATEST);
-        }
-
-        protected static SetIterable<VectorIndexVersion> inclusiveVersionRange(
-                VectorIndexVersion from, VectorIndexVersion to) {
-            return VectorIndexVersion.KNOWN_VERSIONS
-                    .asLazy()
-                    .select(version -> from.compareTo(version) <= 0 && version.compareTo(to) <= 0)
-                    .toSet();
         }
 
         protected IndexDescriptor createVectorIndex(
