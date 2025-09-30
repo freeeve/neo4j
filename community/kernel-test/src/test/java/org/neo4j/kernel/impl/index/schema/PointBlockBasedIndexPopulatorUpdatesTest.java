@@ -45,6 +45,7 @@ import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -98,7 +99,8 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
                 EmptyMemoryTracker.INSTANCE,
                 BlockBasedIndexPopulator.NO_MONITOR,
                 Sets.immutable.empty(),
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
         populator.create();
         return populator;
     }
@@ -240,7 +242,8 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
                 CONFIGURATION,
                 Sets.immutable.empty(),
                 false,
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
     }
 
     private enum ScanUpdateOrder {

@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.index.schema;
 
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.values.storable.Value;
@@ -27,15 +28,18 @@ import org.neo4j.values.storable.ValueTuple;
 final class ThrowingConflictDetector<KEY extends NativeIndexKey<KEY>>
         extends ConflictDetectingValueMerger<KEY, Value[]> {
     private final SchemaDescriptor schemaDescriptor;
+    private final TokenNameLookup tokenNameLookup;
 
-    ThrowingConflictDetector(boolean compareEntityIds, SchemaDescriptor schemaDescriptor) {
+    ThrowingConflictDetector(
+            boolean compareEntityIds, SchemaDescriptor schemaDescriptor, TokenNameLookup tokenNameLookup) {
         super(compareEntityIds);
         this.schemaDescriptor = schemaDescriptor;
+        this.tokenNameLookup = tokenNameLookup;
     }
 
     @Override
     void doReportConflict(long existingNodeId, long addedNodeId, Value[] values) throws IndexEntryConflictException {
         throw IndexEntryConflictException.indexEntryConflict(
-                schemaDescriptor, existingNodeId, addedNodeId, ValueTuple.of(values));
+                schemaDescriptor, existingNodeId, addedNodeId, tokenNameLookup, ValueTuple.of(values));
     }
 }

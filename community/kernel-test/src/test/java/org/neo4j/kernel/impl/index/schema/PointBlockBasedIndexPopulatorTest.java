@@ -40,6 +40,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
@@ -93,7 +94,8 @@ public class PointBlockBasedIndexPopulatorTest extends BlockBasedIndexPopulatorT
                 memoryTracker,
                 monitor,
                 Sets.immutable.empty(),
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
         populator.create();
         return populator;
     }
@@ -163,6 +165,7 @@ public class PointBlockBasedIndexPopulatorTest extends BlockBasedIndexPopulatorT
                 CONFIGURATION,
                 Sets.immutable.empty(),
                 false,
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
     }
 }

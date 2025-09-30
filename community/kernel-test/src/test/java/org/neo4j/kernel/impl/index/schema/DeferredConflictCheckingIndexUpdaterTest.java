@@ -35,6 +35,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -65,8 +66,8 @@ class DeferredConflictCheckingIndexUpdaterTest {
         updates.add(ValueIndexEntryUpdate.change(
                 nodeId++, descriptor, tuple((byte) 2, (byte) 3), tuple((byte) 4, (byte) 5)));
         updates.add(add(nodeId, descriptor, tuple(5, "5")));
-        try (DeferredConflictCheckingIndexUpdater updater =
-                new DeferredConflictCheckingIndexUpdater(actual, () -> reader, descriptor)) {
+        try (DeferredConflictCheckingIndexUpdater updater = new DeferredConflictCheckingIndexUpdater(
+                actual, () -> reader, descriptor, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP)) {
             // when
             for (ValueIndexEntryUpdate update : updates) {
                 updater.process(update);
@@ -97,8 +98,8 @@ class DeferredConflictCheckingIndexUpdaterTest {
         doAnswer(new NodeIdsIndexReaderQueryAnswer(descriptor, 101, 202))
                 .when(reader)
                 .query(any(), any(), any(), any(), any(PropertyIndexQuery[].class));
-        DeferredConflictCheckingIndexUpdater updater =
-                new DeferredConflictCheckingIndexUpdater(actual, () -> reader, descriptor);
+        DeferredConflictCheckingIndexUpdater updater = new DeferredConflictCheckingIndexUpdater(
+                actual, () -> reader, descriptor, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
 
         // when
         updater.process(add(0, descriptor, tuple(10, 11)));

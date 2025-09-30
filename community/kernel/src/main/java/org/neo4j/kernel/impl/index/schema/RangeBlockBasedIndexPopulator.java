@@ -33,7 +33,6 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.values.ElementIdMapper;
 
 class RangeBlockBasedIndexPopulator extends BlockBasedIndexPopulator<RangeKey> {
-    private final TokenNameLookup tokenNameLookup;
     private final ElementIdMapper elementIdMapper;
 
     RangeBlockBasedIndexPopulator(
@@ -61,8 +60,8 @@ class RangeBlockBasedIndexPopulator extends BlockBasedIndexPopulator<RangeKey> {
                 memoryTracker,
                 monitor,
                 openOptions,
-                logProvider);
-        this.tokenNameLookup = tokenNameLookup;
+                logProvider,
+                tokenNameLookup);
         this.elementIdMapper = elementIdMapper;
     }
 

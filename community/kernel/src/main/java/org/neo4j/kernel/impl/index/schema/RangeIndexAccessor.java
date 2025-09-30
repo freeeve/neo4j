@@ -32,7 +32,6 @@ import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
 
 public class RangeIndexAccessor extends NativeIndexAccessor<RangeKey> {
-    private final TokenNameLookup tokenNameLookup;
     private final ElementIdMapper elementIdMapper;
     private IndexValueValidator validator;
 
@@ -47,8 +46,15 @@ public class RangeIndexAccessor extends NativeIndexAccessor<RangeKey> {
             ImmutableSet<OpenOption> openOptions,
             boolean readOnly,
             LogProvider logProvider) {
-        super(databaseIndexContext, indexFiles, layout, descriptor, openOptions, readOnly, logProvider);
-        this.tokenNameLookup = tokenNameLookup;
+        super(
+                databaseIndexContext,
+                indexFiles,
+                layout,
+                descriptor,
+                openOptions,
+                readOnly,
+                logProvider,
+                tokenNameLookup);
         this.elementIdMapper = elementIdMapper;
         instantiateTree(recoveryCleanupWorkCollector);
     }

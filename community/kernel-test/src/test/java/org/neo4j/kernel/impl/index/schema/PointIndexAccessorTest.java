@@ -51,6 +51,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.index.IndexAccessor;
@@ -114,7 +115,8 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
                 CONFIGURATION,
                 Sets.immutable.empty(),
                 false,
-                logProvider);
+                logProvider,
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
     }
 
     @Override

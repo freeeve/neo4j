@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.kernel.api.StatementConstants;
 import org.neo4j.test.InMemoryTokens;
 import org.neo4j.values.storable.Value;
@@ -45,7 +46,8 @@ class IndexEntryConflictExceptionTest {
     @Test
     void shouldMakeEntryConflicts() {
         LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2);
-        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(schema, 0L, 1L, value);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 0L, 1L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage("Both Node(0) and Node(1) have the label `Label[1]` and property `PropertyKey[2]` = 'hi'");
@@ -60,8 +62,8 @@ class IndexEntryConflictExceptionTest {
     @Test
     void shouldMakeEntryConflictsForOneNode() {
         LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2);
-        IndexEntryConflictException e =
-                IndexEntryConflictException.indexEntryConflict(schema, 0L, StatementConstants.NO_SUCH_NODE, value);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 0L, StatementConstants.NO_SUCH_NODE, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e).hasMessage("Node(0) already exists with label `Label[1]` and property `PropertyKey[2]` = 'hi'");
         assertThat(e.getUserMessage(tokens))
@@ -76,7 +78,11 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeAnonymousEntryConflictsForNewNodeUnknown() {
         LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema, StatementConstants.NO_SUCH_NODE, StatementConstants.NO_SUCH_NODE, value);
+                schema,
+                StatementConstants.NO_SUCH_NODE,
+                StatementConstants.NO_SUCH_NODE,
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
+                value);
 
         assertThat(e).hasMessage("A Node already exists with label `Label[1]` and property `PropertyKey[2]` = 'hi'");
         assertThat(e.getUserMessage(tokens))
@@ -90,8 +96,8 @@ class IndexEntryConflictExceptionTest {
     @Test
     void shouldMakeAnonymousEntryConflictsForNewNodeKnown() {
         LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2);
-        IndexEntryConflictException e =
-                IndexEntryConflictException.indexEntryConflict(schema, StatementConstants.NO_SUCH_NODE, 0L, value);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, StatementConstants.NO_SUCH_NODE, 0L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage(
@@ -108,7 +114,8 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeCompositeEntryConflicts() {
         LabelSchemaDescriptor schema = SchemaDescriptors.forLabel(labelId, 2, 3, 4);
         ValueTuple values = ValueTuple.of(true, "hi", new long[] {6L, 4L});
-        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(schema, 0L, 1L, values);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 0L, 1L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, values);
 
         assertThat(e)
                 .hasMessage(
@@ -125,7 +132,8 @@ class IndexEntryConflictExceptionTest {
     @Test
     void shouldMakeRelEntryConflicts() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
-        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(schema, 0L, 1L, value);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 0L, 1L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage(
@@ -142,7 +150,7 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeEntryConflictsForOneRel() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema, 0L, StatementConstants.NO_SUCH_RELATIONSHIP, value);
+                schema, 0L, StatementConstants.NO_SUCH_RELATIONSHIP, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage(
@@ -159,7 +167,11 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeAnonymousEntryConflictsForNewRelUnknown() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema, StatementConstants.NO_SUCH_RELATIONSHIP, StatementConstants.NO_SUCH_RELATIONSHIP, value);
+                schema,
+                StatementConstants.NO_SUCH_RELATIONSHIP,
+                StatementConstants.NO_SUCH_RELATIONSHIP,
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
+                value);
 
         assertThat(e)
                 .hasMessage(
@@ -176,7 +188,7 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeAnonymousEntryConflictsForNewRelKnown() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2);
         IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
-                schema, StatementConstants.NO_SUCH_RELATIONSHIP, 0L, value);
+                schema, StatementConstants.NO_SUCH_RELATIONSHIP, 0L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, value);
 
         assertThat(e)
                 .hasMessage(
@@ -194,7 +206,8 @@ class IndexEntryConflictExceptionTest {
     void shouldMakeCompositeRelEntryConflicts() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2, 3, 4);
         ValueTuple values = ValueTuple.of(true, "hi", new long[] {6L, 4L});
-        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(schema, 0L, 1L, values);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 0L, 1L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, values);
 
         assertThat(e)
                 .hasMessage(
@@ -212,7 +225,8 @@ class IndexEntryConflictExceptionTest {
     void shouldNotThrowWhenMessageContainsAPercent() {
         SchemaDescriptor schema = SchemaDescriptors.forRelType(typeId, 2, 3, 4);
         ValueTuple values = ValueTuple.of(true, "hi", "100%");
-        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(schema, 0L, 1L, values);
+        IndexEntryConflictException e = IndexEntryConflictException.indexEntryConflict(
+                schema, 0L, 1L, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, values);
 
         assertThat(e)
                 .hasMessage(

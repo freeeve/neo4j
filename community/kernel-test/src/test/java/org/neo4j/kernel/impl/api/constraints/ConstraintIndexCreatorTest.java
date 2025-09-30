@@ -56,6 +56,7 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptor;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.internal.schema.constraints.UniquenessConstraintDescriptor;
 import org.neo4j.kernel.api.Kernel;
@@ -136,8 +137,8 @@ class ConstraintIndexCreatorTest {
         when(indexProxy.getDescriptor()).thenReturn(index);
         when(schemaRead.indexGetForName(constraint.getName())).thenReturn(IndexDescriptor.NO_INDEX, index);
 
-        IndexEntryConflictException cause =
-                IndexEntryConflictException.indexEntryConflict(index.schema(), 2, 1, Values.of("a"));
+        IndexEntryConflictException cause = IndexEntryConflictException.indexEntryConflict(
+                index.schema(), 2, 1, SchemaUserDescription.TOKEN_ID_NAME_LOOKUP, Values.of("a"));
         doThrow(IndexPopulationFailedKernelException.indexPopulationFailed("some index", cause))
                 .when(indexProxy)
                 .awaitStoreScanCompleted(anyLong(), any());

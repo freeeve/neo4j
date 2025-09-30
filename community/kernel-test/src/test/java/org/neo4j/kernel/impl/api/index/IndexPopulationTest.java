@@ -36,6 +36,7 @@ import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.internal.schema.SchemaState;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -115,7 +116,11 @@ class IndexPopulationTest {
                     @Override
                     public void process(IndexEntryUpdate update) throws IndexEntryConflictException {
                         throw IndexEntryConflictException.indexEntryConflict(
-                                SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR, 0, 1, Values.numberValue(0));
+                                SchemaDescriptors.ANY_TOKEN_NODE_SCHEMA_DESCRIPTOR,
+                                0,
+                                1,
+                                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
+                                Values.numberValue(0));
                     }
 
                     @Override

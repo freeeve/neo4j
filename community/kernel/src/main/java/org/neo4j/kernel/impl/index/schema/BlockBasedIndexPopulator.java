@@ -43,6 +43,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.index.internal.gbptree.Seeker;
@@ -142,8 +143,9 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             MemoryTracker memoryTracker,
             Monitor monitor,
             ImmutableSet<OpenOption> openOptions,
-            LogProvider logProvider) {
-        super(databaseIndexContext, indexFiles, layout, descriptor, openOptions);
+            LogProvider logProvider,
+            TokenNameLookup tokenNameLookup) {
+        super(databaseIndexContext, indexFiles, layout, descriptor, openOptions, tokenNameLookup);
         this.archiveFailedIndex = archiveFailedIndex;
         this.memoryTracker = memoryTracker;
         this.mergeFactor = config.get(GraphDatabaseInternalSettings.index_populator_merge_factor);
@@ -394,7 +396,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
                     switch (conflictHandler.indexEntryConflict(firstEntityId, otherEntityId, values)) {
                         case THROW ->
                             throw IndexEntryConflictException.indexEntryConflict(
-                                    descriptor.schema(), firstEntityId, otherEntityId, values);
+                                    descriptor.schema(), firstEntityId, otherEntityId, tokenNameLookup, values);
                         case DELETE -> deleteConflict(seek.key(), cursorContext);
                     }
                 }

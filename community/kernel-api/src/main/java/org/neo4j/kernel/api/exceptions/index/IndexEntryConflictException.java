@@ -33,7 +33,6 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.schema.SchemaDescriptor;
-import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.Value;
@@ -121,18 +120,23 @@ public class IndexEntryConflictException extends KernelException {
     }
 
     public static IndexEntryConflictException indexEntryConflict(
-            SchemaDescriptor schemaDescriptor, long existingEntityId, long addedEntityId, Value... propertyValue) {
-        return indexEntryConflict(schemaDescriptor, existingEntityId, addedEntityId, ValueTuple.of(propertyValue));
+            SchemaDescriptor schemaDescriptor,
+            long existingEntityId,
+            long addedEntityId,
+            TokenNameLookup tokenNameLookup,
+            Value... propertyValue) {
+        return indexEntryConflict(
+                schemaDescriptor, existingEntityId, addedEntityId, tokenNameLookup, ValueTuple.of(propertyValue));
     }
 
     public static IndexEntryConflictException indexEntryConflict(
-            SchemaDescriptor schemaDescriptor, long existingEntityId, long addedEntityId, ValueTuple propertyValues) {
-        var message = buildErrorMessage(
-                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
-                schemaDescriptor,
-                propertyValues,
-                addedEntityId,
-                existingEntityId);
+            SchemaDescriptor schemaDescriptor,
+            long existingEntityId,
+            long addedEntityId,
+            TokenNameLookup tokenNameLookup,
+            ValueTuple propertyValues) {
+        var message =
+                buildErrorMessage(tokenNameLookup, schemaDescriptor, propertyValues, addedEntityId, existingEntityId);
 
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N80)
                 .withParam(GqlParams.StringParam.value, message)

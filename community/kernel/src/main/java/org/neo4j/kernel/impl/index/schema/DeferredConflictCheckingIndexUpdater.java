@@ -27,6 +27,7 @@ import static org.neo4j.storageengine.api.UpdateMode.REMOVED;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -62,13 +63,18 @@ public class DeferredConflictCheckingIndexUpdater implements IndexUpdater {
     private final IndexUpdater actual;
     private final Supplier<ValueIndexReader> readerSupplier;
     private final IndexDescriptor indexDescriptor;
+    private final TokenNameLookup tokenNameLookup;
     private final Set<ValueTuple> touchedTuples = new HashSet<>();
 
     public DeferredConflictCheckingIndexUpdater(
-            IndexUpdater actual, Supplier<ValueIndexReader> readerSupplier, IndexDescriptor indexDescriptor) {
+            IndexUpdater actual,
+            Supplier<ValueIndexReader> readerSupplier,
+            IndexDescriptor indexDescriptor,
+            TokenNameLookup tokenNameLookup) {
         this.actual = actual;
         this.readerSupplier = readerSupplier;
         this.indexDescriptor = indexDescriptor;
+        this.tokenNameLookup = tokenNameLookup;
     }
 
     @Override
@@ -92,7 +98,7 @@ public class DeferredConflictCheckingIndexUpdater implements IndexUpdater {
                         if (client.hasNext()) {
                             long secondEntityId = client.next();
                             throw IndexEntryConflictException.indexEntryConflict(
-                                    indexDescriptor.schema(), firstEntityId, secondEntityId, tuple);
+                                    indexDescriptor.schema(), firstEntityId, secondEntityId, tokenNameLookup, tuple);
                         }
                     }
                 }

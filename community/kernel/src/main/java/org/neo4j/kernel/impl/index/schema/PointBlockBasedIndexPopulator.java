@@ -25,6 +25,7 @@ import java.nio.file.OpenOption;
 import java.util.HashMap;
 import java.util.Map;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -52,7 +53,8 @@ public class PointBlockBasedIndexPopulator extends BlockBasedIndexPopulator<Poin
             MemoryTracker memoryTracker,
             Monitor monitor,
             ImmutableSet<OpenOption> openOptions,
-            LogProvider logProvider) {
+            LogProvider logProvider,
+            TokenNameLookup tokenNameLookup) {
         super(
                 databaseIndexContext,
                 indexFiles,
@@ -64,7 +66,8 @@ public class PointBlockBasedIndexPopulator extends BlockBasedIndexPopulator<Poin
                 memoryTracker,
                 monitor,
                 openOptions,
-                logProvider);
+                logProvider,
+                tokenNameLookup);
         this.spatialSettings = spatialSettings;
         this.configuration = configuration;
     }

@@ -28,6 +28,7 @@ import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;
@@ -66,6 +67,7 @@ class PointAccessorTilesTest extends BaseAccessorTilesTest<PointKey> {
                 configuration,
                 Sets.immutable.empty(),
                 false,
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
     }
 }

@@ -124,7 +124,8 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
                 memoryTracker,
                 BlockBasedIndexPopulator.NO_MONITOR,
                 openOptions,
-                logProvider);
+                logProvider,
+                tokenNameLookup);
     }
 
     @Override
@@ -146,7 +147,8 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
                 configuration,
                 openOptions,
                 readOnly,
-                logProvider);
+                logProvider,
+                tokenNameLookup);
     }
 
     @Override

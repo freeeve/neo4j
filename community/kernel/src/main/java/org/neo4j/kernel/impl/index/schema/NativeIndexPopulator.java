@@ -29,6 +29,7 @@ import java.nio.file.OpenOption;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.index.internal.gbptree.Writer;
@@ -61,6 +62,7 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
     protected final IndexUpdateIgnoreStrategy ignoreStrategy;
     private final KEY treeKey;
     private final UniqueIndexSampler uniqueSampler;
+    protected final TokenNameLookup tokenNameLookup;
 
     private ConflictDetectingValueMerger<KEY, Value[]> mainConflictDetector;
     private ConflictDetectingValueMerger<KEY, Value[]> updatesConflictDetector;
@@ -74,10 +76,12 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
             IndexFiles indexFiles,
             IndexLayout<KEY> layout,
             IndexDescriptor descriptor,
-            ImmutableSet<OpenOption> openOptions) {
+            ImmutableSet<OpenOption> openOptions,
+            TokenNameLookup tokenNameLookup) {
         super(databaseIndexContext, layout, indexFiles, descriptor, openOptions, false);
         this.treeKey = layout.newKey();
         this.uniqueSampler = descriptor.isUnique() ? new UniqueIndexSampler() : null;
+        this.tokenNameLookup = tokenNameLookup;
         this.ignoreStrategy = indexUpdateIgnoreStrategy();
     }
 
@@ -104,10 +108,11 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
 
         // true:  tree uniqueness is (value,entityId)
         // false: tree uniqueness is (value) <-- i.e. more strict
-        mainConflictDetector = new ThrowingConflictDetector<>(!descriptor.isUnique(), descriptor.schema());
+        mainConflictDetector =
+                new ThrowingConflictDetector<>(!descriptor.isUnique(), descriptor.schema(), tokenNameLookup);
         // for updates we have to have uniqueness on (value,entityId) to allow for intermediary violating updates.
         // there are added conflict checks after updates have been applied.
-        updatesConflictDetector = new ThrowingConflictDetector<>(true, descriptor.schema());
+        updatesConflictDetector = new ThrowingConflictDetector<>(true, descriptor.schema(), tokenNameLookup);
     }
 
     @Override
@@ -150,7 +155,7 @@ public abstract class NativeIndexPopulator<KEY extends NativeIndexKey<KEY>> exte
         }
         // The index population detects conflicts on the fly, however for updates coming in we're in a position
         // where we cannot detect conflicts while applying, but instead afterwards.
-        return new DeferredConflictCheckingIndexUpdater(updater, this::newReader, descriptor);
+        return new DeferredConflictCheckingIndexUpdater(updater, this::newReader, descriptor, tokenNameLookup);
     }
 
     @Override

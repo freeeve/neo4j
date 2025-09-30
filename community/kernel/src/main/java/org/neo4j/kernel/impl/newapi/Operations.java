@@ -815,6 +815,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                             index.schema(),
                             allowsReadAllProperties ? existingNodeId : NO_SUCH_NODE,
                             NO_SUCH_NODE,
+                            token,
                             PropertyIndexQuery.asValueTuple(propertyValues)),
                     token);
         }
@@ -916,6 +917,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                             index.schema(),
                             allowsReadAllProperties ? existingRelationshipId : NO_SUCH_RELATIONSHIP,
                             NO_SUCH_RELATIONSHIP,
+                            token,
                             PropertyIndexQuery.asValueTuple(propertyValues)),
                     token);
         }

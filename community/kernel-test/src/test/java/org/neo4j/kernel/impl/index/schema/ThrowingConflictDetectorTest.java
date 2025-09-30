@@ -27,13 +27,14 @@ import static org.neo4j.internal.helpers.ArrayUtil.array;
 import org.junit.jupiter.api.Test;
 import org.neo4j.index.internal.gbptree.ValueMerger.MergeResult;
 import org.neo4j.internal.schema.SchemaDescriptors;
+import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 class ThrowingConflictDetectorTest {
-    private final ThrowingConflictDetector<RangeKey> detector =
-            new ThrowingConflictDetector<>(true, SchemaDescriptors.forLabel(1, 42));
+    private final ThrowingConflictDetector<RangeKey> detector = new ThrowingConflictDetector<>(
+            true, SchemaDescriptors.forLabel(1, 42), SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
 
     @Test
     void shouldReportConflictOnSameValueAndDifferentEntityIds() {

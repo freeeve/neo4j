@@ -25,6 +25,7 @@ import java.nio.file.OpenOption;
 import java.util.HashMap;
 import java.util.Map;
 import org.eclipse.collections.api.set.ImmutableSet;
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -47,8 +48,17 @@ class PointIndexAccessor extends NativeIndexAccessor<PointKey> {
             SpaceFillingCurveConfiguration configuration,
             ImmutableSet<OpenOption> openOptions,
             boolean readOnly,
-            LogProvider logProvider) {
-        super(databaseIndexContext, indexFiles, layout, descriptor, openOptions, readOnly, logProvider);
+            LogProvider logProvider,
+            TokenNameLookup tokenNameLookup) {
+        super(
+                databaseIndexContext,
+                indexFiles,
+                layout,
+                descriptor,
+                openOptions,
+                readOnly,
+                logProvider,
+                tokenNameLookup);
         this.spaceFillingCurveSettings = spaceFillingCurveSettings;
         this.configuration = configuration;
         instantiateTree(recoveryCleanupWorkCollector);

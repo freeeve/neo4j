@@ -36,6 +36,7 @@ import java.util.function.LongPredicate;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.common.Subject;
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.index.internal.gbptree.Seeker;
 import org.neo4j.index.internal.gbptree.TreeInconsistencyException;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
@@ -66,6 +67,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
     private final NativeIndexUpdater<KEY> singleUpdater;
     private final NativeIndexHeaderWriter headerWriter;
     protected final LogProvider logProvider;
+    protected final TokenNameLookup tokenNameLookup;
 
     NativeIndexAccessor(
             DatabaseIndexContext databaseIndexContext,
@@ -74,12 +76,14 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
             IndexDescriptor descriptor,
             ImmutableSet<OpenOption> openOptions,
             boolean readOnly,
-            LogProvider logProvider) {
+            LogProvider logProvider,
+            TokenNameLookup tokenNameLookup) {
         super(databaseIndexContext, layout, indexFiles, descriptor, openOptions, readOnly);
+        this.tokenNameLookup = tokenNameLookup;
         singleUpdater = new NativeIndexUpdater<>(
                 layout.newKey(),
                 indexUpdateIgnoreStrategy(),
-                new ThrowingConflictDetector<>(true, descriptor.schema()));
+                new ThrowingConflictDetector<>(true, descriptor.schema(), tokenNameLookup));
         headerWriter = new NativeIndexHeaderWriter(BYTE_ONLINE);
         this.logProvider = logProvider;
     }
@@ -102,7 +106,8 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                                 indexUpdateIgnoreStrategy(),
                                 new ThrowingConflictDetector<>(
                                         !descriptor.isUnique() || mode.includeEntityIdInUniqueness(),
-                                        descriptor.schema()))
+                                        descriptor.schema(),
+                                        tokenNameLookup))
                         .initialize(tree.writer(cursorContext));
             } else {
                 assert mode.includeEntityIdInUniqueness();
@@ -141,7 +146,11 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                                     switch (conflictHandler.indexEntryConflict(existingNodeId, addedNodeId, toReport)) {
                                         case THROW ->
                                             throw IndexEntryConflictException.indexEntryConflict(
-                                                    descriptor.schema(), existingNodeId, addedNodeId, toReport);
+                                                    descriptor.schema(),
+                                                    existingNodeId,
+                                                    addedNodeId,
+                                                    tokenNameLookup,
+                                                    toReport);
                                         case DELETE -> {
                                             /*then just skip it*/
                                         }
