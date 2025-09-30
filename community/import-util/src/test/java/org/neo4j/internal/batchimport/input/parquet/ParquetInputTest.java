@@ -52,6 +52,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
@@ -114,13 +115,15 @@ class ParquetInputTest {
     private final Group globalGroup = groups.getOrCreate(null);
     private InputChunk chunk;
     private InputIterator referenceData;
-    private int fileCounter;
+    private AtomicInteger parquetCounter = new AtomicInteger();
+    private AtomicInteger headerCounter = new AtomicInteger();
 
     private static final ParquetMonitor MONITOR = new ParquetMonitor(System.out);
 
     @AfterEach
     void cleanup() throws IOException {
-        fileCounter = 0;
+        parquetCounter.set(0);
+        headerCounter.set(0);
         directory.cleanup();
     }
 
@@ -174,6 +177,50 @@ class ParquetInputTest {
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void dontFailOnMultipleFilesWithHeadersForSameTypes() throws Exception {
+        // GIVEN
+        Path nodeFile1 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "USER"}));
+        Path nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "USER"}));
+        Path headerFile1 = createHeaderFile(
+                List.of(":ID", "name", ":Label"),
+                List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
+        Path headerFile2 = createHeaderFile(
+                List.of(":ID", "notaname", ":Label"),
+                List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
+
+        Input input = createParquetInput(
+                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile1, nodeFile1, headerFile2, nodeFile2})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
+            assertNextNode(nodes, 123L, properties("notaname", "Mattias Persson"), labels("HACKER", "USER"));
             assertFalse(chunk.next(visitor));
         }
     }
@@ -348,29 +395,36 @@ class ParquetInputTest {
     }
 
     @Test
-    void failIfNodeHeaderFileIsNotFirstFile() throws Exception {
+    void applyNodeHeaderFileAfterOccurrence() throws Exception {
         // GIVEN
-        Path nodeFile = createParquetFile(
+        Path nodeFile1 = createParquetFile(
                 List.of(
                         Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
                         Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                                 .as(LogicalTypeAnnotation.stringType())
-                                .named("name"),
+                                .named("ignored-column-name")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "USER"}));
+        Path nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
                         Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                                 .as(LogicalTypeAnnotation.stringType())
-                                .named(":Label")),
-                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
-        Path headerFile = createHeaderFile(List.of("should_not_be_applied"), List.of("name"));
+                                .named("ignored-column-name")),
+                List.<Object[]>of(new Object[] {456L, "Mattias Persson"}));
+        Path headerFile = createHeaderFile(List.of(":ID", "name"), List.of(":ID", "ignored-column-name"));
 
-        assertThatThrownBy(() -> createParquetInput(
-                        Map.of(Set.of(), List.<Path[]>of(new Path[] {nodeFile, headerFile})),
-                        Map.of(),
-                        INTEGER,
-                        groups,
-                        MONITOR))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining(
-                        "CSV header file for parquet data import must appear only once, as the first entry");
+        Input input = createParquetInput(
+                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {nodeFile1, headerFile, nodeFile2})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("ignored-column-name", "Mattias Persson"), labels("HACKER"));
+            assertNextNode(nodes, 456L, properties("name", "Mattias Persson"), labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
     }
 
     @Test
@@ -929,9 +983,9 @@ class ParquetInputTest {
     }
 
     @Test
-    void failIfRelationshipHeaderFileIsNotFirstFile() throws Exception {
+    void applyRelationshipHeaderAfterOccurrence() throws Exception {
         // GIVEN
-        Path relationshipFile = createParquetFile(
+        Path relationshipFile1 = createParquetFile(
                 List.of(
                         Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                                 .as(LogicalTypeAnnotation.stringType())
@@ -942,22 +996,42 @@ class ParquetInputTest {
                         Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(":TYPE"),
-                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("since")),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("notsince")),
+                List.of(
+                        new Object[] {"node1", "node2", "KNOWS", 1234567L},
+                        new Object[] {"node2", "node10", "HACKS", 987654L}));
+        Path relationshipFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":START_ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":END_ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":TYPE"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("notsince")),
                 List.of(
                         new Object[] {"node1", "node2", "KNOWS", 1234567L},
                         new Object[] {"node2", "node10", "HACKS", 987654L}));
 
         Path headerFile = createHeaderFile(
-                List.of(":START_ID", ":END_ID", ":Type"), List.of("notstartid", "notendid", "nottype"));
-        assertThatThrownBy(() -> createParquetInput(
-                        Map.of(),
-                        Map.of("", List.<Path[]>of(new Path[] {relationshipFile, headerFile})),
-                        STRING,
-                        groups,
-                        MONITOR))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining(
-                        "CSV header file for parquet data import must appear only once, as the first entry");
+                List.of(":START_ID", ":END_ID", ":Type", "since"),
+                List.of(":START_ID", ":END_ID", ":TYPE", "notsince"));
+        Input input = createParquetInput(
+                Map.of(),
+                Map.of("", List.<Path[]>of(new Path[] {relationshipFile1, headerFile, relationshipFile2})),
+                STRING,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
+            assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("notsince", 1234567L));
+            assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("notsince", 987654L));
+            assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
+            assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
+        }
     }
 
     @Test
@@ -3620,7 +3694,7 @@ class ParquetInputTest {
     }
 
     private Path createParquetFile(List<org.apache.parquet.schema.Type> types, List<Object[]> data) throws Exception {
-        Path path = directory.file("test%d.parquet".formatted(fileCounter++));
+        Path path = directory.file("test%d.parquet".formatted(parquetCounter.getAndIncrement()));
         try (var writer =
                 ParquetWriter.writeFile(new MessageType("something", types), path.toFile(), (record, valueWriter) -> {
                     var recordData = (Object[]) record;
@@ -3646,7 +3720,7 @@ class ParquetInputTest {
 
     private Path createHeaderFile(List<String> columnNames, List<String> originalColumnNames, String delimiter)
             throws Exception {
-        Path path = directory.file("header.csv");
+        Path path = directory.file("header" + headerCounter.getAndIncrement() + ".csv");
         try (var writer = new BufferedWriter(new FileWriter(path.toFile()))) {
             writer.write(String.join(delimiter, columnNames));
             writer.newLine();

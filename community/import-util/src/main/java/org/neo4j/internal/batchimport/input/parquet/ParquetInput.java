@@ -160,7 +160,7 @@ public class ParquetInput implements Input {
         files.forEach((key, allPaths) -> {
             for (var paths : allPaths) {
                 for (var path : paths) {
-                    if (!path.toString().endsWith(".csv")) {
+                    if (!isHeaderFile(path)) {
                         columnData.add(new ParquetData(
                                 keyExtractor.apply(key), path, verifiedColumns.get(path), defaultTimezoneSupplier));
                     }
@@ -178,6 +178,11 @@ public class ParquetInput implements Input {
                 new HashMap<>();
         private final Map<List<Path>, Map<Integer, ParquetColumn.HeaderDefinition>> headerColumnIndexDefinitions =
                 new HashMap<>();
+
+        private void reset() {
+            nodeHeaders.clear();
+            relationshipHeaders.clear();
+        }
 
         private void setHeaderFileExistsFor(Set<String> labels) {
             nodeHeaders.add(labels);
@@ -261,7 +266,7 @@ public class ParquetInput implements Input {
                         && labelsAndNodeFilesEntry.getKey().stream().anyMatch(label -> !label.isBlank());
                 var nodeFiles = labelsAndNodeFilesEntry.getValue().stream()
                         .flatMap(Arrays::stream)
-                        .toList();
+                        .collect(Collectors.toList());
 
                 for (Path nodeFile : nodeFiles) {
                     if (processPotentialHeaderFile(nodeFile, nodeFiles, headerContext)) {
@@ -387,7 +392,7 @@ public class ParquetInput implements Input {
                 // parse all relationship headers and verify all ID spaces
                 var relationshipFileList = typeAndRelationshipFilesEntry.getValue().stream()
                         .flatMap(Arrays::stream)
-                        .toList();
+                        .collect(Collectors.toList());
                 Set<String> mapColumns = new HashSet<>();
                 Set<String> structColumns = new HashSet<>();
                 for (Path relationshipFile : relationshipFileList) {
@@ -487,9 +492,10 @@ public class ParquetInput implements Input {
 
     private boolean processPotentialHeaderFile(Path path, List<Path> paths, HeaderContext headerContext)
             throws IOException {
-        if (!isHeaderFile(path, paths)) {
+        if (!isHeaderFile(path)) {
             return false;
         }
+        headerContext.reset();
         try (var csvInputStream = new BufferedReader(
                 new InputStreamReader(path.getFileSystem().provider().newInputStream(path)))) {
             var lines = csvInputStream.lines().toList();
@@ -515,24 +521,21 @@ public class ParquetInput implements Input {
                         .map(String::trim)
                         .toList();
                 for (int i = 0; i < targetColumnNames.size(); i++) {
-                    headerContext.addHeaderDefinition(
-                            paths,
-                            existingParquetColumns.get(i),
-                            ParquetColumn.HeaderDefinition.from(
-                                    targetColumnNames.get(i), existingParquetColumns.get(i)));
+                    if (existingParquetColumns.size() > i) {
+                        headerContext.addHeaderDefinition(
+                                paths,
+                                existingParquetColumns.get(i),
+                                ParquetColumn.HeaderDefinition.from(
+                                        targetColumnNames.get(i), existingParquetColumns.get(i)));
+                    }
                 }
             }
         }
         return true;
     }
 
-    private boolean isHeaderFile(Path path, List<Path> paths) {
-        boolean isHeaderFile = path.toString().endsWith(".csv");
-        if (isHeaderFile && paths.indexOf(path) != 0) {
-            throw new IllegalArgumentException(
-                    "CSV header file for parquet data import must appear only once, as the first entry");
-        }
-        return isHeaderFile;
+    private static boolean isHeaderFile(Path path) {
+        return path.toString().endsWith(".csv");
     }
 
     @Override
@@ -586,7 +589,7 @@ public class ParquetInput implements Input {
                 for (Path nodePath : nodePaths) {
                     try {
                         // skip obvious csv head
-                        if (nodePath.endsWith("csv")) {
+                        if (isHeaderFile(nodePath)) {
                             continue;
                         }
                         var metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(nodePath));
@@ -621,7 +624,7 @@ public class ParquetInput implements Input {
                 for (Path relationshipPath : relationshipPaths) {
                     try {
                         // skip obvious csv headers
-                        if (relationshipPath.endsWith("csv")) {
+                        if (isHeaderFile(relationshipPath)) {
                             continue;
                         }
                         var metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(relationshipPath));
