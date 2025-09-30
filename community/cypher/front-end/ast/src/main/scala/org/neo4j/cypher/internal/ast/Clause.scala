@@ -1918,6 +1918,7 @@ case class With(
     case ParsedAsLimit   => limit.get.name
     case ParsedAsFilter  => "FILTER"
     case ParsedAsLet     => "LET"
+    case ParsedAsYield   => "YIELD"
     case _               => "WITH"
   }
 

@@ -87,6 +87,7 @@ import org.neo4j.cypher.internal.ast.IfExistsDo
 import org.neo4j.cypher.internal.ast.IfExistsDoNothing
 import org.neo4j.cypher.internal.ast.IfExistsReplace
 import org.neo4j.cypher.internal.ast.LoadPrivilege
+import org.neo4j.cypher.internal.ast.NextStatement
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoResource
 import org.neo4j.cypher.internal.ast.NoWait
@@ -139,6 +140,8 @@ import org.neo4j.cypher.internal.ast.StartDatabase
 import org.neo4j.cypher.internal.ast.StartDatabaseAction
 import org.neo4j.cypher.internal.ast.StopDatabase
 import org.neo4j.cypher.internal.ast.StopDatabaseAction
+import org.neo4j.cypher.internal.ast.TopLevelBraces
+import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.WaitUntilComplete
 import org.neo4j.cypher.internal.ast.With
@@ -172,6 +175,7 @@ import org.neo4j.cypher.internal.logical.plans.PrivilegePlan
 import org.neo4j.cypher.internal.planner.spi.AdministrationPlannerName
 import org.neo4j.cypher.internal.util.EmptyErrorMessageProvider
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
@@ -1679,6 +1683,13 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         }
 
         val unsupportedClauses = q.folder.treeFold(List.empty[String]) {
+          case _: Union         => acc => TraverseChildren(acc :+ "UNION")
+          case _: NextStatement =>
+            // might have been re-written away but let's keep the check for if not
+            acc => TraverseChildren(acc :+ "NEXT")
+          case _: TopLevelBraces =>
+            // might have been re-written away but let's keep the check for if not
+            acc => TraverseChildren(acc :+ TopLevelBraces.name)
           case _: UseGraph   => acc => SkipChildren(acc)
           case _: CallClause => acc => SkipChildren(acc)
           case _: Return     => acc => SkipChildren(acc)
@@ -1687,7 +1698,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
               val name = w.where.map(_ => "WHERE").getOrElse(w.name)
               SkipChildren(acc :+ name)
           case c: Clause => acc => SkipChildren(acc :+ c.name)
-        }
+        }.distinct
         if (unsupportedClauses.nonEmpty) {
           throw InvalidSemanticsException.unsupportedRequestOnSystemDatabase(
             unsupportedClauses.sorted.mkString(", "),
