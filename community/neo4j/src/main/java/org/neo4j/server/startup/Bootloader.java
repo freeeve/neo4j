@@ -319,7 +319,8 @@ public abstract class Bootloader implements AutoCloseable {
                 BootloaderSettings.lib_directory.name(),
                 BootloaderSettings.windows_service_name.name(),
                 BootloaderSettings.windows_tools_directory.name(),
-                BootloaderSettings.pid_file.name());
+                BootloaderSettings.pid_file.name(),
+                GraphDatabaseInternalSettings.log_markers_enabled.name());
     }
 
     protected abstract Map<Setting<?>, Object> overriddenDefaultsValues();

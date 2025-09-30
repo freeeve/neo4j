@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.logging.log4j.LogConfig.DEBUG_JSON_LOG;
 import static org.neo4j.logging.log4j.LogConfig.DEBUG_LOG;
 import static org.neo4j.logging.log4j.LogConfig.SERVER_LOGS_XML;
 import static org.neo4j.test.assertion.Assert.assertEventually;
@@ -38,6 +39,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.status.StatusData;
@@ -48,11 +50,16 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.InternalLog;
+import org.neo4j.logging.Neo4jInternalErrorLogMessage;
 import org.neo4j.logging.internal.LogService;
+import org.neo4j.logging.log4j.Neo4jLogMarkers;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.SuppressOutput;
@@ -259,6 +266,39 @@ class GraphDatabaseInternalLogIT {
         for (StatusData statusDatum : statusData) {
             assertThat(statusDatum.getFormattedStatus()).doesNotContain("ERROR");
         }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldIncludeInternalErrorMarkerWhenSettingEnabled(boolean enabled) throws Exception {
+        // Given
+        managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
+                .setConfig(Map.of(
+                        GraphDatabaseSettings.logs_directory,
+                        testDir.directory("logs").toAbsolutePath(),
+                        GraphDatabaseInternalSettings.log_markers_enabled,
+                        enabled))
+                .build();
+        GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+        InternalLog log = ((GraphDatabaseAPI) db)
+                .getDependencyResolver()
+                .resolveDependency(LogService.class)
+                .getInternalLog(getClass());
+        log.info(new Neo4jInternalErrorLogMessage(
+                Neo4jLogMarkers.KERNEL,
+                "KABOOM!!!! SOMETHING WENT HORRIBLY WRONG!!!",
+                new RuntimeException("ComicRaysFlippedMyBitException")));
+
+        managementService.shutdown();
+        Path internalJsonLog = testDir.directory("logs").resolve(DEBUG_JSON_LOG);
+
+        // Then
+        assertThat(Files.isRegularFile(internalJsonLog)).isEqualTo(true);
+        assertThat(Files.size(internalJsonLog)).isGreaterThan(0L);
+
+        assertEquals(
+                enabled ? 1 : 0,
+                countOccurrences(internalJsonLog, "\"marker\":{\"parents\":[\"INTERNAL_ERROR\"],\"name\":\"KERNEL\"}"));
     }
 
     private static void assertEventuallyContains(Callable<Long> instances) {

@@ -48,17 +48,17 @@ public class Log4jLogProvider implements InternalLogProvider {
 
     @Override
     public Log4jLog getLog(Class<?> loggingClass) {
-        return new Log4jLog(ctx.getLogger(loggingClass));
+        return new Log4jLog(ctx.getLogger(loggingClass), ctx.internalLogMarkersEnabled);
     }
 
     @Override
     public Log4jLog getLog(String name) {
-        return new Log4jLog(ctx.getLogger(name));
+        return new Log4jLog(ctx.getLogger(name), ctx.internalLogMarkersEnabled);
     }
 
     @Override
     public Log4jLog getLog(LoggerTarget target) {
-        return new Log4jLog(ctx.getLogger(target.getTarget()));
+        return new Log4jLog(ctx.getLogger(target.getTarget()), ctx.internalLogMarkersEnabled);
     }
 
     @Override

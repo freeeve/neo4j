@@ -52,6 +52,7 @@ import org.neo4j.logging.LogTimeZone;
 
 public final class LogConfig {
     public static final String DEBUG_LOG = "debug.log";
+    public static final String DEBUG_JSON_LOG = "debug.json.log";
     public static final String USER_LOG = "neo4j.log";
     public static final String QUERY_LOG = "query.log";
     public static final String SECURITY_LOG = "security.log";
@@ -71,6 +72,7 @@ public final class LogConfig {
             getString(LogConfig.class, "DEFAULT_SERVER_LOG", "default-server-logs.xml"),
             Path.of(USER_LOGS_XML),
             "default-user-logs.xml");
+    public static final String MARKERS_ENABLED_SETTING = "internal.server.logs.internal_markers.enabled";
 
     private LogConfig() {}
 
@@ -136,7 +138,16 @@ public final class LogConfig {
                 .withHeaderLogger(headerLogger, headerClassName)
                 .withUseDefaultOnMissingXml(useDefaultOnMissingXml)
                 .withDaemonMode(daemonMode)
+                .withMarkers(markersEnabled(configLookup))
                 .build();
+    }
+
+    private static boolean markersEnabled(Function<String, Object> configLookup) {
+        if (configLookup == null) {
+            return false;
+        }
+        Object apply = configLookup.apply(LogConfig.MARKERS_ENABLED_SETTING);
+        return apply instanceof Boolean bool ? bool : false;
     }
 
     /**
@@ -253,6 +264,7 @@ public final class LogConfig {
         private boolean useDefaultOnMissingXml = false;
         private boolean daemonMode = false;
         private String configSourceInfo = "<programmatically>";
+        private boolean markers;
 
         private Builder(FileSystemAbstraction fileSystemAbstraction, Path xmlConfigFile) {
             this.fileSystemAbstraction = fileSystemAbstraction;
@@ -313,7 +325,7 @@ public final class LogConfig {
                 }
             }
 
-            return new Neo4jLoggerContext(context, outputStream, configSourceInfo);
+            return new Neo4jLoggerContext(context, outputStream, configSourceInfo, markers);
         }
 
         private ConfigurationSource getConfigurationSource() throws IOException {
@@ -347,6 +359,11 @@ public final class LogConfig {
                 throw new IllegalStateException("Missing xml file for " + externalConfigPath);
             }
             return configurationSource;
+        }
+
+        public Builder withMarkers(boolean enabled) {
+            this.markers = enabled;
+            return this;
         }
     }
 

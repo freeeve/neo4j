@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.Set;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.graphdb.config.Setting;
+import org.neo4j.logging.log4j.LogConfig;
 import org.neo4j.memory.HeapEstimatorCacheConfig;
 
 @ServiceProvider
@@ -94,6 +95,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description("Enable duplication of user log messages to debug log.")
     public static final Setting<Boolean> duplication_user_messages = newBuilder(
                     "internal.server.logs.user.duplication_to_debug", BOOL, true)
+            .immutable()
+            .build();
+
+    @Internal
+    @Description("Enable markers in debug log.")
+    public static final Setting<Boolean> log_markers_enabled = newBuilder(
+                    LogConfig.MARKERS_ENABLED_SETTING, BOOL, false)
             .immutable()
             .build();
 

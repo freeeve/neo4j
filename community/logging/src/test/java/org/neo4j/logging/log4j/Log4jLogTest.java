@@ -21,12 +21,16 @@ package org.neo4j.logging.log4j;
 
 import static java.lang.String.format;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.logging.log4j.LogConfig.STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE;
 import static org.neo4j.logging.log4j.LogConfigTest.DATE_PATTERN;
 
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.logging.Level;
+import org.neo4j.logging.Neo4jInternalErrorLogMessage;
+import org.neo4j.logging.log4j.LogConfig.Builder;
 
 class Log4jLogTest extends Log4jLogTestBase {
     @ParameterizedTest(name = "{1}")
@@ -69,6 +73,36 @@ class Log4jLogTest extends Log4jLogTestBase {
             logMethod.log(log, "my message");
 
             assertThat(outContent.toString()).isEmpty();
+        }
+    }
+
+    @Test
+    void shouldPutLogMarkerWhenInternalErrorLogMessageSupplied() {
+        Builder builder = LogConfig.createBuilderToOutputStream(outContent, Level.INFO)
+                .withJsonLayout(STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE);
+        try (Neo4jLoggerContext context = builder.build()) {
+            Neo4jInternalErrorLogMessage message =
+                    new Neo4jInternalErrorLogMessage(Neo4jLogMarkers.KERNEL, "message", new RuntimeException("boom"));
+            Log4jLog log = new Log4jLog(context.getLogger("className"), true);
+            log.info(message);
+            assertThat(outContent.toString())
+                    .contains(message.getMarker().log4jMarker.getName())
+                    .contains("INTERNAL_ERROR");
+        }
+    }
+
+    @Test
+    void shouldNotPutLogMarkerWhenInternalErrorLogMarkerDisabled() {
+        Builder builder = LogConfig.createBuilderToOutputStream(outContent, Level.INFO)
+                .withJsonLayout(STRUCTURED_LOG_JSON_TEMPLATE_WITH_MESSAGE);
+        try (Neo4jLoggerContext context = builder.build()) {
+            Neo4jInternalErrorLogMessage message =
+                    new Neo4jInternalErrorLogMessage(Neo4jLogMarkers.KERNEL, "message", new RuntimeException("boom"));
+            Log4jLog log = new Log4jLog(context.getLogger("className"), false);
+            log.info(message);
+            assertThat(outContent.toString())
+                    .doesNotContain(message.getMarker().log4jMarker.getName())
+                    .doesNotContain("INTERNAL_ERROR");
         }
     }
 }

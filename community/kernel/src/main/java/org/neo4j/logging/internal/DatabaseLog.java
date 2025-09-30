@@ -36,28 +36,7 @@ public class DatabaseLog implements InternalLog {
 
     @Override
     public void debug(Neo4jLogMessage message) {
-        throw new UnsupportedOperationException("");
-    }
-
-    @Override
-    public void info(Neo4jLogMessage message) {
-        throw new UnsupportedOperationException("");
-    }
-
-    @Override
-    public void warn(Neo4jLogMessage message) {
-        throw new UnsupportedOperationException("");
-    }
-
-    @Override
-    public void error(Neo4jLogMessage message) {}
-
-    @Override
-    public void error(Neo4jLogMessage message, Throwable throwable) {}
-
-    @Override
-    public boolean isDebugEnabled() {
-        return delegate.isDebugEnabled();
+        delegate.debug(message);
     }
 
     @Override
@@ -76,6 +55,11 @@ public class DatabaseLog implements InternalLog {
     }
 
     @Override
+    public void info(Neo4jLogMessage message) {
+        delegate.info(message);
+    }
+
+    @Override
     public void info(String message) {
         delegate.info(taggedMessage(message));
     }
@@ -88,6 +72,11 @@ public class DatabaseLog implements InternalLog {
     @Override
     public void info(String format, Object... arguments) {
         delegate.info(taggedMessage(format, arguments));
+    }
+
+    @Override
+    public void warn(Neo4jLogMessage message) {
+        delegate.warn(message);
     }
 
     @Override
@@ -106,6 +95,16 @@ public class DatabaseLog implements InternalLog {
     }
 
     @Override
+    public void error(Neo4jLogMessage message) {
+        delegate.error(message);
+    }
+
+    @Override
+    public void error(Neo4jLogMessage message, Throwable throwable) {
+        delegate.error(message, throwable);
+    }
+
+    @Override
     public void error(String message) {
         delegate.error(taggedMessage(message));
     }
@@ -118,6 +117,11 @@ public class DatabaseLog implements InternalLog {
     @Override
     public void error(String format, Object... arguments) {
         delegate.error(taggedMessage(format, arguments));
+    }
+
+    @Override
+    public boolean isDebugEnabled() {
+        return delegate.isDebugEnabled();
     }
 
     private DatabaseTagLogMessage taggedMessage(String message) {

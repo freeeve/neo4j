@@ -17,14 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.logging;
+package org.neo4j.logging.log4j;
 
-import org.apache.logging.log4j.message.Message;
-import org.neo4j.logging.log4j.Neo4jLogMarker;
+import org.apache.logging.log4j.Marker;
+import org.apache.logging.log4j.MarkerManager;
 
-public interface Neo4jLogMessage extends Message {
-    default Neo4jLogMarker getMarker() {
-        // internal error reporting marker, null if there are no errors to be reported
-        return null;
-    }
+public class Neo4jLogMarkers {
+    private static final Marker INTERNAL_ERROR_PARENT_MARKER = MarkerManager.getMarker("INTERNAL_ERROR");
+    public static final Neo4jLogMarker KERNEL =
+            new Neo4jLogMarker(MarkerManager.getMarker("KERNEL").setParents(INTERNAL_ERROR_PARENT_MARKER));
 }
