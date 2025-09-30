@@ -31,21 +31,29 @@ import org.neo4j.lock.ResourceLocker;
 import org.neo4j.storageengine.api.txstate.validation.TransactionConflictException;
 
 public class VersionValidation {
-    private static final short PAGE_ID_BITS = 54;
+    // This number divides the 64 bits of a long into 49 bits for the page id and 15 bits for the store id.
+    // 49 bits is enough to encode 2^49-1= 562949953421311 as the highest page id.
+    // 15 bits is enough to encode 2^15-1= 32767 as the highest allowed store id.
+    private static final short PAGE_ID_BITS = 49;
+
+    private static final long MAX_PAGE_ID = (1L << PAGE_ID_BITS) - 1;
+    private static final long MAX_STORE_ID = (1L << (Long.SIZE - PAGE_ID_BITS)) - 1;
 
     public static void validatePageVersion(
             DatabaseFile databaseFile,
             long pageId,
             VersionContext versionContext,
             PageCursor pageCursor,
-            long position,
+            long storeId,
             boolean failFast,
             ResourceLocker validationLockClient,
             TransactionMonitor transactionMonitor,
             LockTracer lockTracer)
             throws IOException {
+        assert pageId <= MAX_PAGE_ID;
+        assert storeId <= MAX_STORE_ID;
 
-        long id = pageId | (position << PAGE_ID_BITS);
+        long id = pageId | (storeId << PAGE_ID_BITS);
         if (failFast) {
             if (!validationLockClient.tryExclusiveLock(PAGE, id)) {
                 throw TransactionConflictException.transactionConflict(databaseFile, pageId);

@@ -31,7 +31,9 @@ import org.neo4j.lock.ResourceLocker;
 import org.neo4j.lock.ResourceType;
 
 public class MultiversionResourceLocker implements ResourceLocker {
-    public static final int PAGE_ID_BITS = 54;
+    // See VersionValidation for explanations on this magic number.
+    // Assumption: They should be in sync since VersionValidation is used for both block and record storage engine.
+    public static final int PAGE_ID_BITS = 49;
     public static final long PAGE_ID_MASK = (1L << PAGE_ID_BITS) - 1;
 
     private final ResourceLocker locks;
