@@ -32,9 +32,8 @@ import org.neo4j.genai.dbs.EntityMappingConfig.MappingMode;
 import org.neo4j.genai.dbs.VectorDatabaseProvider.Command;
 import org.neo4j.genai.util.GenAIProcedureException;
 import org.neo4j.genai.util.HttpService;
-import org.neo4j.genai.util.Monitors;
+import org.neo4j.genai.util.monitor.Monitors;
 import org.neo4j.graphdb.Entity;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -62,7 +61,7 @@ public class VectorDatabases {
     private static final IntSet HTTP_OK = IntSets.immutable.of(200);
 
     @Context
-    public GraphDatabaseService graphDatabaseService;
+    public Monitors monitors;
 
     @Context
     public Transaction tx;
@@ -105,7 +104,7 @@ public class VectorDatabases {
             @Sensitive @Name(value = "configuration", defaultValue = "{}") Map<String, Object> configuration) {
 
         var provider = getVectorDatabaseProvider(url);
-        getMonitor().info(provider.getName());
+        monitors.vectorDb().info(provider.getName());
         var finalHost = translateDefaultHost(provider, Command.GET_COLLECTION_METADATA, url, collection, configuration);
         VectorDatabaseRequest<InfoDTO> request = provider.createRequestFor(
                 Command.GET_COLLECTION_METADATA, finalHost, collection, configuration, Map.of());
@@ -156,7 +155,7 @@ public class VectorDatabases {
 
         var additionalArguments = Map.<String, Object>of("similarity", similarity, "size", size);
         var provider = getVectorDatabaseProvider(url);
-        getMonitor().createCollection(provider.getName());
+        monitors.vectorDb().createCollection(provider.getName());
         var finalHost = translateDefaultHost(provider, Command.CREATE_COLLECTION, url, collection, configuration);
 
         VectorDatabaseRequest<StatusDTO> request = provider.createRequestFor(
@@ -194,7 +193,7 @@ public class VectorDatabases {
             @Sensitive @Name(value = "configuration", defaultValue = "{}") Map<String, Object> configuration) {
 
         var provider = getVectorDatabaseProvider(url);
-        getMonitor().deleteCollection(provider.getName());
+        monitors.vectorDb().deleteCollection(provider.getName());
         var finalHost = translateDefaultHost(provider, Command.DELETE_COLLECTION, url, collection, configuration);
 
         VectorDatabaseRequest<StatusDTO> request =
@@ -233,7 +232,7 @@ public class VectorDatabases {
             @Sensitive @Name(value = "configuration", defaultValue = "{}") Map<String, Object> configuration) {
 
         var provider = getVectorDatabaseProvider(url);
-        getMonitor().deleteVector(provider.getName());
+        monitors.vectorDb().deleteVector(provider.getName());
         var finalHost = translateDefaultHost(provider, Command.DELETE, url, collection, configuration);
 
         VectorDatabaseRequest<StatusDTO> request =
@@ -315,7 +314,7 @@ public class VectorDatabases {
         var procedureArguments = ProcedureArguments.of(configuration, procedureCallContext);
 
         var provider = getVectorDatabaseProvider(url);
-        getMonitor().getVector(provider.getName());
+        monitors.vectorDb().getVector(provider.getName());
         var finalHost = translateDefaultHost(provider, Command.GET, url, collection, configuration);
 
         if (provider.supportsMultipleGet()) {
@@ -379,7 +378,7 @@ public class VectorDatabases {
             @Sensitive @Name(value = "configuration", defaultValue = "{}") Map<String, Object> configuration) {
 
         var provider = getVectorDatabaseProvider(url);
-        getMonitor().upsert(provider.getName());
+        monitors.vectorDb().upsert(provider.getName());
         var finalHost = translateDefaultHost(provider, Command.UPSERT, url, collection, configuration);
 
         if (provider.supportsMultipleUpserts()) {
@@ -498,7 +497,7 @@ public class VectorDatabases {
                 "procedureArguments",
                 procedureArguments);
         var provider = getVectorDatabaseProvider(url);
-        getMonitor().query(provider.getName());
+        monitors.vectorDb().query(provider.getName());
         var finalHost = translateDefaultHost(provider, Command.QUERY, url, collection, configuration);
 
         VectorDatabaseRequest<Stream<Map<String, Object>>> request =
@@ -507,10 +506,6 @@ public class VectorDatabases {
         return httpService
                 .request(request.target(), request.requestCustomizer(), request.responseTransformer())
                 .map(m -> toEmbeddingResult(m, procedureArguments, rowMappingConfig, mappingConfig));
-    }
-
-    private VectorDatabaseCallCountersMonitor getMonitor() {
-        return Monitors.getMonitor(graphDatabaseService, VectorDatabaseCallCountersMonitor.class);
     }
 
     @SuppressWarnings("unchecked")

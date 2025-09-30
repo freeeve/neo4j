@@ -33,6 +33,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.neo4j.genai.util.ParametersTest;
+import org.neo4j.genai.util.monitor.Monitors;
 import org.neo4j.genai.vector.VectorEncoding.InternalBatchRow;
 import org.neo4j.genai.vector.VectorEncoding.Provider;
 import org.neo4j.genai.vector.providers.AzureOpenAI;
@@ -40,15 +41,15 @@ import org.neo4j.genai.vector.providers.Bedrock;
 import org.neo4j.genai.vector.providers.OpenAI;
 import org.neo4j.genai.vector.providers.TestProvider;
 import org.neo4j.genai.vector.providers.VertexAI;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.values.storable.Value;
 
 class VectorEncodingTest {
     private static final VectorEncoding VECTOR_ENCODING = new VectorEncoding();
 
     static {
-        VECTOR_ENCODING.graphDatabaseService = Mockito.mock(GraphDatabaseService.class);
-        when(VECTOR_ENCODING.graphDatabaseService.databaseName()).thenReturn("someDatabase");
+        VECTOR_ENCODING.monitors = Mockito.mock(Monitors.class);
+        final var monitor = Mockito.mock(VectorEncodingCallCountersMonitor.class);
+        when(VECTOR_ENCODING.monitors.vectorEnc()).thenReturn(monitor);
     }
 
     @Nested

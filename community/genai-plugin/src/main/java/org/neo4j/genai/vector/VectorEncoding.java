@@ -42,10 +42,9 @@ import org.eclipse.collections.api.map.MutableMap;
 import org.eclipse.collections.impl.collection.mutable.CollectionAdapter;
 import org.neo4j.annotations.service.Service;
 import org.neo4j.genai.util.HttpService;
-import org.neo4j.genai.util.Monitors;
 import org.neo4j.genai.util.Parameters;
 import org.neo4j.genai.util.Parameters.Parameter;
-import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.genai.util.monitor.Monitors;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
@@ -68,7 +67,7 @@ public class VectorEncoding {
             CollectionAdapter.adapt(Services.loadAll(Provider.class)));
 
     @Context
-    public GraphDatabaseService graphDatabaseService;
+    public Monitors monitors;
 
     @Context
     public HttpService httpService;
@@ -158,7 +157,7 @@ public class VectorEncoding {
         requireNonNull(providerName, "'provider' must not be null");
         final var configurationMap = requireNonNullMap(configuration);
         final var provider = getProvider(providerName);
-        getMonitor().encodeFunctionCalled(provider.name());
+        monitors.vectorEnc().encodeFunctionCalled(provider.name());
         if (resource == null) {
             return NO_VALUE;
         } else {
@@ -187,7 +186,7 @@ public class VectorEncoding {
         requireNonNull(providerName, "'provider' must not be null");
         final var configurationMap = requireNonNullMap(configuration);
         final var provider = getProvider(providerName);
-        getMonitor().encodeBatchProcedureCalled(provider.name());
+        monitors.vectorEnc().encodeBatchProcedureCalled(provider.name());
         // Remember all the places where we had nulls and remove them from the requested resources
         final var removedIndexes = IntLists.mutable.empty();
         // We need to make a copy as the List interface doesn't guarantee mutability
@@ -219,10 +218,6 @@ public class VectorEncoding {
         }
 
         return map;
-    }
-
-    private VectorEncodingCallCountersMonitor getMonitor() {
-        return Monitors.getMonitor(graphDatabaseService, VectorEncodingCallCountersMonitor.class);
     }
 
     static Provider<?> getProvider(String name) {
