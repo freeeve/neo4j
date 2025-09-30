@@ -50,12 +50,6 @@ public class SchemaDescriptors {
         return new SchemaDescriptorImplementation(entityType, PARTIAL_ANY_TOKEN, entityTokenIds, propertyKeyIds);
     }
 
-    // todo: APOC uses this method, thus a multi-step change is needed
-    public static SemanticSearchSchemaDescriptor fulltext(
-            EntityType entityType, int[] entityTokenIds, int[] propertyKeyIds) {
-        return forSemanticSearch(entityType, entityTokenIds, propertyKeyIds);
-    }
-
     public static LabelSchemaDescriptor forLabel(int labelId, int... propertyIds) {
         validateLabelIds(labelId);
         validatePropertyIds(propertyIds);
