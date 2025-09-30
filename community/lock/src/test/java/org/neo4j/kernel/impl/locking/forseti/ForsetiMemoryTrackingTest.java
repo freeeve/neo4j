@@ -64,7 +64,7 @@ class ForsetiMemoryTrackingTest {
     private RandomSupport random;
 
     private static final AtomicLong TRANSACTION_ID = new AtomicLong();
-    private static final int ONE_LOCK_SIZE_ESTIMATE = 56;
+    private static final int ONE_LOCK_SIZE_ESTIMATE = Runtime.version().feature() >= 25 ? 40 : 56;
     private GlobalMemoryGroupTracker memoryPool;
     private MemoryTracker memoryTracker;
     private ForsetiLockManager forsetiLockManager;
