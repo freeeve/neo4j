@@ -19,6 +19,10 @@
  */
 package org.neo4j.internal.collector;
 
+import static org.neo4j.memory.HeapEstimator.OBJECT_HEADER_BYTES;
+import static org.neo4j.memory.HeapEstimator.OBJECT_REFERENCE_BYTES;
+import static org.neo4j.memory.HeapEstimator.alignObjectSize;
+
 import java.util.function.Supplier;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.ExecutionPlanDescription;
@@ -55,6 +59,14 @@ import org.neo4j.values.virtual.VirtualValues;
  * to avoid hogging lot's of memory that will be long-lived and likely tenured.
  */
 public class TruncatedQuerySnapshot {
+    private static final ValueTruncater VALUE_TRUNCATER = new ValueTruncater();
+    private static final int MAX_TEXT_PARAMETER_LENGTH = 100;
+    private static final int MAX_PARAMETER_KEY_LENGTH = 1000;
+    // capturing supplier with one field
+    private static final long SUPPLIER_SIZE = alignObjectSize(OBJECT_HEADER_BYTES + OBJECT_REFERENCE_BYTES);
+    private static final long SHALLOW_SIZE =
+            HeapEstimator.shallowSizeOfInstance(TruncatedQuerySnapshot.class) + SUPPLIER_SIZE;
+
     final NamedDatabaseId databaseId;
     final int fullQueryTextHash;
     final String queryText;
@@ -65,9 +77,6 @@ public class TruncatedQuerySnapshot {
     final long startTimestampMillis;
     final long estimatedHeap;
     final CypherVersion queryLanguage;
-
-    static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(TruncatedQuerySnapshot.class)
-            + HeapEstimator.shallowSizeOfInstance(Supplier.class);
 
     public TruncatedQuerySnapshot(
             NamedDatabaseId databaseId,
@@ -92,6 +101,16 @@ public class TruncatedQuerySnapshot {
         this.queryLanguage = queryLanguage;
     }
 
+    @VisibleForTesting
+    public long estimatedHeap() {
+        return estimatedHeap;
+    }
+
+    @VisibleForTesting
+    public MapValue queryParameters() {
+        return queryParameters;
+    }
+
     private static String truncateQueryText(String queryText, int maxLength) {
         return queryText.length() > maxLength ? queryText.substring(0, maxLength) : queryText;
     }
@@ -110,20 +129,6 @@ public class TruncatedQuerySnapshot {
         });
 
         return mapValueBuilder.build();
-    }
-
-    private static final ValueTruncater VALUE_TRUNCATER = new ValueTruncater();
-    private static final int MAX_TEXT_PARAMETER_LENGTH = 100;
-    private static final int MAX_PARAMETER_KEY_LENGTH = 1000;
-
-    @VisibleForTesting
-    public long estimatedHeap() {
-        return estimatedHeap;
-    }
-
-    @VisibleForTesting
-    public MapValue queryParameters() {
-        return queryParameters;
     }
 
     static class ValueTruncater implements ValueMapper<AnyValue> {

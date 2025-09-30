@@ -11,6 +11,9 @@
   <properties>
     <moduleName>org.neo4j.procedure</moduleName>
     <dependency.analyze.failOnWarning>true</dependency.analyze.failOnWarning>
+    <test.runner.jvm.settings.additional>
+    -javaagent:${settings.localRepository}/com/github/jbellis/jamm/${jamm.version}/jamm-${jamm.version}.jar
+    </test.runner.jvm.settings.additional>
   </properties>
 
   <modelVersion>4.0.0</modelVersion>

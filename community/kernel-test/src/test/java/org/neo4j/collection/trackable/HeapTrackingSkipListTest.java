@@ -134,7 +134,8 @@ public class HeapTrackingSkipListTest {
         var mt = new LocalMemoryTracker();
         var skipList = new IntSkipList(mt);
 
-        assertThat(mt.estimatedHeapMemory()).isEqualTo(240);
+        int expectedMemory = Runtime.version().feature() >= 25 ? 224 : 240;
+        assertThat(mt.estimatedHeapMemory()).isEqualTo(expectedMemory);
     }
 
     @Test
@@ -145,7 +146,8 @@ public class HeapTrackingSkipListTest {
 
         skipList.insert(1);
 
-        assertThat(mt.estimatedHeapMemory()).isEqualTo(288L);
+        int expectedMemory = Runtime.version().feature() >= 25 ? 264 : 288;
+        assertThat(mt.estimatedHeapMemory()).isEqualTo(expectedMemory);
     }
 
     @Test
@@ -163,7 +165,7 @@ public class HeapTrackingSkipListTest {
         return new IntSkipList(EmptyMemoryTracker.INSTANCE);
     }
 
-    class IntSkipList extends HeapTrackingSkipList<Integer> {
+    static class IntSkipList extends HeapTrackingSkipList<Integer> {
         private final IntSupplier getLevel;
 
         public IntSkipList(MemoryTracker memoryTracker, IntSupplier getLevel) {

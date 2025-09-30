@@ -19,6 +19,9 @@
  */
 package org.neo4j.internal.collector;
 
+import static org.neo4j.memory.HeapEstimator.OBJECT_HEADER_BYTES;
+import static org.neo4j.memory.HeapEstimator.OBJECT_REFERENCE_BYTES;
+
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -29,6 +32,14 @@ import org.neo4j.util.Preconditions;
  * Implementation of {@link RecentBuffer} using ring buffer.
  */
 public class RingRecentBuffer<T> implements RecentBuffer<T> {
+    // capturing consumer with 1 field
+    private static final long CONSUMER_SIZE =
+            HeapEstimator.alignObjectSize(OBJECT_HEADER_BYTES + OBJECT_REFERENCE_BYTES);
+    private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(RingRecentBuffer.class)
+            + 2 * HeapEstimator.shallowSizeOfInstance(AtomicLong.class)
+            + CONSUMER_SIZE;
+    private static final long VOLATILE_REF_SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(VolatileRef.class);
+
     private final int size;
     private final int mask;
     private final VolatileRef<T>[] data;
@@ -37,18 +48,13 @@ public class RingRecentBuffer<T> implements RecentBuffer<T> {
     private final AtomicLong dropEvents;
     private final Consumer<T> onDiscard;
 
-    private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(RingRecentBuffer.class)
-            + 2 * HeapEstimator.shallowSizeOfInstance(AtomicLong.class);
-    private static final long VOLATILE_REF_SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(VolatileRef.class);
-
     public RingRecentBuffer(int size, Consumer<T> onDiscard) {
-        this.onDiscard = onDiscard;
         if (size > 0) {
             Preconditions.requirePowerOfTwo(size);
         }
-
+        this.onDiscard = onDiscard;
         this.size = size;
-        mask = size - 1;
+        this.mask = size - 1;
 
         //noinspection unchecked
         data = new VolatileRef[size];

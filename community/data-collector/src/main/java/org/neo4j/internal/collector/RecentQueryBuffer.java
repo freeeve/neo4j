@@ -29,11 +29,10 @@ import org.neo4j.util.Preconditions;
  * Bounded buffer containing meta data about the most recent query invocations across the dbms.
  */
 public class RecentQueryBuffer {
+    private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(RecentQueryBuffer.class);
+
     private final RingRecentBuffer<TruncatedQuerySnapshot> queries;
     private final MemoryTracker memoryTracker;
-
-    private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(RecentQueryBuffer.class)
-            + HeapEstimator.shallowSizeOfInstance(Consumer.class);
     private final int bufferSize;
 
     public RecentQueryBuffer(int maxRecentQueryCount, MemoryTracker memoryTracker) {

@@ -21,6 +21,7 @@ package org.neo4j.procedure.impl.memory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.withinPercentage;
+import static org.github.jamm.MemoryMeter.Guess.INSTRUMENTATION_AND_SPECIFICATION;
 
 import java.util.Arrays;
 import org.github.jamm.MemoryMeter;
@@ -34,7 +35,9 @@ import org.neo4j.values.storable.ValueType;
 
 @RandomSupportExtension
 class ProcedureHeapEstimatorTest {
-    private final MemoryMeter meter = MemoryMeter.builder().build();
+    private final MemoryMeter meter = MemoryMeter.builder()
+            .withGuessing(INSTRUMENTATION_AND_SPECIFICATION)
+            .build();
     private final HeapEstimator estimator = ProcedureHeapEstimator.INSTANCE;
 
     @Inject
