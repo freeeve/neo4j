@@ -1191,6 +1191,14 @@ public class InvalidArgumentException extends Neo4jException {
                 "Changing username is not supported when using an authentication or authentication provider apart from native.");
     }
 
+    public static InvalidArgumentException pbacNotSupportedWithSPD() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N71)
+                .withParam(GqlParams.StringParam.feat, "Property Based Access Control")
+                .build();
+        return new InvalidArgumentException(
+                gql, "Property Based Access Control is not supported on a Sharded Database.");
+    }
+
     public static InvalidArgumentException invalidGraphName(String graphName) {
         var msg = String.format(
                 "Failed to parse `%s` as a graph name. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters.\"",

@@ -72,6 +72,7 @@ import org.neo4j.cypher.internal.util.RevokeRoleCommandHasNoEffectNotification
 import org.neo4j.cypher.internal.util.RuntimeUnsatisfiableRelationshipTypeExpression
 import org.neo4j.cypher.internal.util.ServerAlreadyCordoned
 import org.neo4j.cypher.internal.util.ServerAlreadyEnabled
+import org.neo4j.cypher.internal.util.ShardedPerformanceNotification
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.UnboundedShortestPathNotification
 import org.neo4j.cypher.internal.util.UnsatisfiableRelationshipTypeExpression
@@ -445,6 +446,9 @@ object NotificationWrapping {
         graphdb.InputPosition.empty,
         command
       )
+
+    case ShardedPerformanceNotification() =>
+      NotificationCodeWithDescription.shardedPerformance()
 
     case IndexOrConstraintAlreadyExistsNotification(command, conflicting) =>
       NotificationCodeWithDescription.indexOrConstraintAlreadyExists(

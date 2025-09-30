@@ -312,6 +312,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.WARNING,
             "insecure URL protocol",
             NotificationClassification.SECURITY),
+    STATUS_01N73(
+            new GqlStatus("01N73"),
+            "This privilege will severely reduce the performance of queries run on sharded databases. We recommend to exclude sharded databases for now.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.WARNING,
+            "sharded privilege performance",
+            NotificationClassification.SECURITY),
 
     STATUS_01N80(
             new GqlStatus("01N80"),

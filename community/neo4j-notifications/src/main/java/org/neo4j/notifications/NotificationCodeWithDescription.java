@@ -315,6 +315,11 @@ public enum NotificationCodeWithDescription {
             GqlStatusInfoCodes.STATUS_01N71,
             "Use setting `dbms.security.require_local_user` to enable external auth."),
 
+    SHARDED_PRIVILEGE_PERFORMANCE(
+            Status.Security.ExternalAuthNotEnabled,
+            GqlStatusInfoCodes.STATUS_01N73,
+            "This privilege will severely reduce the performance of queries run on sharded databases. We recommend to exclude sharded databases for now."),
+
     SERVER_ALREADY_ENABLED(
             Status.Cluster.ServerAlreadyEnabled,
             GqlStatusInfoCodes.STATUS_00N80,
@@ -808,6 +813,10 @@ public enum NotificationCodeWithDescription {
             InputPosition position, String titleParam, String descriptionParam) {
         return IMPOSSIBLE_REVOKE_COMMAND.notificationWithTitleAndDescriptionDetails(
                 position, titleParam, new String[] {descriptionParam}, new String[] {titleParam, descriptionParam});
+    }
+
+    public static NotificationImplementation shardedPerformance() {
+        return SHARDED_PRIVILEGE_PERFORMANCE.notification(InputPosition.empty);
     }
 
     public static NotificationImplementation serverAlreadyEnabled(InputPosition position, String server) {
