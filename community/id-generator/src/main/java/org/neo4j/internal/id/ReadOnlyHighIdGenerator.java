@@ -20,6 +20,8 @@
 package org.neo4j.internal.id;
 
 import org.neo4j.annotations.documented.ReporterFactory;
+import org.neo4j.collection.PrimitiveLongResourceCollections;
+import org.neo4j.collection.PrimitiveLongResourceIterator;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.id.range.PageIdRange;
 import org.neo4j.io.async.AsyncBlockAccessor;
@@ -67,6 +69,21 @@ class ReadOnlyHighIdGenerator implements IdGenerator {
     @Override
     public long getUnusedIdCount() {
         return 0;
+    }
+
+    @Override
+    public PrimitiveLongResourceIterator notUsedIdsIterator() {
+        return PrimitiveLongResourceCollections.emptyIterator();
+    }
+
+    @Override
+    public PrimitiveLongResourceIterator notUsedIdsIterator(long fromIdInclusive, long toIdExclusive) {
+        return PrimitiveLongResourceCollections.emptyIterator();
+    }
+
+    @Override
+    public PrimitiveLongResourceIterator freeIdsIterator() {
+        return PrimitiveLongResourceCollections.emptyIterator();
     }
 
     @Override

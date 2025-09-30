@@ -22,7 +22,6 @@ package org.neo4j.internal.id;
 import java.io.Closeable;
 import java.io.IOException;
 import org.neo4j.annotations.documented.ReporterFactory;
-import org.neo4j.collection.PrimitiveLongResourceCollections;
 import org.neo4j.collection.PrimitiveLongResourceIterator;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
 import org.neo4j.internal.id.range.PageIdRange;
@@ -168,9 +167,7 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
      * Allows iteration over free or deleted ids in the generator, see {@link #notUsedIdsIterator(long, long)}
      * @throws IOException
      */
-    default PrimitiveLongResourceIterator notUsedIdsIterator() throws IOException {
-        return PrimitiveLongResourceCollections.emptyIterator();
-    }
+    PrimitiveLongResourceIterator notUsedIdsIterator() throws IOException;
 
     /**
      * Allows iteration over free or deleted ids in the generator, up to highId. Items are return in sorted order
@@ -179,17 +176,12 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
      * @return A resource iterator. Not that this needs to be closed!
      * @throws IOException
      */
-    default PrimitiveLongResourceIterator notUsedIdsIterator(long fromIdInclusive, long toIdExclusive)
-            throws IOException {
-        return PrimitiveLongResourceCollections.emptyIterator();
-    }
+    PrimitiveLongResourceIterator notUsedIdsIterator(long fromIdInclusive, long toIdExclusive) throws IOException;
 
     /**
      * Allows iteration over free ids in the generator, see {@link #notUsedIdsIterator(long, long)}
      */
-    default PrimitiveLongResourceIterator freeIdsIterator() throws IOException {
-        return PrimitiveLongResourceCollections.emptyIterator();
-    }
+    PrimitiveLongResourceIterator freeIdsIterator() throws IOException;
 
     /**
      * Marks IDs as being one state or another. A typical chain of interactions:
@@ -462,6 +454,11 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         public PrimitiveLongResourceIterator notUsedIdsIterator(long fromIdInclusive, long toIdExclusive)
                 throws IOException {
             return delegate.notUsedIdsIterator(fromIdInclusive, toIdExclusive);
+        }
+
+        @Override
+        public PrimitiveLongResourceIterator freeIdsIterator() throws IOException {
+            return delegate.freeIdsIterator();
         }
 
         @Override

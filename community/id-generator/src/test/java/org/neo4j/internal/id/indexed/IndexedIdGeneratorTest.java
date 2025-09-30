@@ -1478,6 +1478,22 @@ class IndexedIdGeneratorTest {
         }
 
         @Override
+        public PrimitiveLongResourceIterator notUsedIdsIterator() throws IOException {
+            return withReadLock(() -> leader().notUsedIdsIterator());
+        }
+
+        @Override
+        public PrimitiveLongResourceIterator notUsedIdsIterator(long fromIdInclusive, long toIdExclusive)
+                throws IOException {
+            return withReadLock(() -> leader().notUsedIdsIterator(fromIdInclusive, toIdExclusive));
+        }
+
+        @Override
+        public PrimitiveLongResourceIterator freeIdsIterator() throws IOException {
+            return withReadLock(() -> leader().freeIdsIterator());
+        }
+
+        @Override
         public TransactionalMarker transactionalMarker(CursorContext cursorContext) {
             leaderSwitchLock.readLock().lock();
             var markers = new TransactionalMarker[members.length];
