@@ -59,7 +59,6 @@ import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues
 
 import java.util
-import java.util.UUID
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -238,12 +237,6 @@ class DatabaseListParameterTransformerFunction(
       }
     }
 
-    def primaryById(id: UUID): Option[DatabaseReference] = {
-      val matching = databaseReferences.filter(_.isPrimary).filter(_.id() == id)
-      assertAtMostOne(matching)
-      matching.headOption
-    }
-
     def primaryByNamedDatabaseId(namedDatabaseId: NamedDatabaseId): Option[DatabaseReference] = {
       val matching = databaseReferences.filter(_.isPrimary).filter(_.namedDatabaseId() == namedDatabaseId)
       assertAtMostOne(matching)
@@ -278,7 +271,7 @@ class DatabaseListParameterTransformerFunction(
           case c: DatabaseReferenceImpl.Composite =>
             c.constituents().asScala
               .filter(constituent => constituent.fullName().name().equals(displayName(namespace, name)))
-              .flatMap(dr => primaryById(dr.id()))
+              .flatMap(dr => primaryByNamedDatabaseId(dr.namedDatabaseId()))
           // alias
           case ref: DatabaseReferenceImpl.Internal if ref.fullName().name().equals(displayName(namespace, name)) =>
             primaryByNamedDatabaseId(ref.namedDatabaseId())
