@@ -50,6 +50,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.Config;
 import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
@@ -63,6 +64,7 @@ import org.neo4j.kernel.impl.transaction.log.pruning.LogPruning;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.storageengine.api.ClosedBatchMetadata;
@@ -421,7 +423,9 @@ class CheckPointerImplTest {
                 mutex,
                 new CursorContextFactory(new DefaultPageCacheTracer(), EMPTY_CONTEXT_SUPPLIER),
                 clock,
-                IOController.DISABLED);
+                IOController.DISABLED,
+                EmptyMemoryTracker.INSTANCE,
+                Config.defaults());
     }
 
     private CheckPointerImpl checkPointer() {

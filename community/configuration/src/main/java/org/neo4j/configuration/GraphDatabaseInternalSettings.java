@@ -1144,6 +1144,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.dbms.extra_lock_verification", BOOL, false).build();
 
     @Internal
+    @Description("Use async I/O for page cache. "
+            + "Setting is supported only on x86 Linux and only for a subset of operations.")
+    public static final Setting<Boolean> pagecache_async_io =
+            newBuilder("internal.server.memory.pagecache.async", BOOL, false).build();
+
+    @Internal
     @Description("Let the IO controller consider/ignore external IO")
     public static final Setting<Boolean> io_controller_consider_external_io = newBuilder(
                     "internal.dbms.io.controller.consider.external.enabled", BOOL, false)

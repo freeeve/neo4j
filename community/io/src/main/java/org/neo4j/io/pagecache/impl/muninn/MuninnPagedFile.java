@@ -24,6 +24,7 @@ import static java.util.Arrays.fill;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.internal.helpers.VarHandleUtils.arrayElementVarHandle;
 import static org.neo4j.internal.helpers.VarHandleUtils.getVarHandle;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.util.FeatureToggles.flag;
 import static org.neo4j.util.FeatureToggles.getInteger;
 import static org.neo4j.util.FeatureToggles.getLong;
@@ -374,7 +375,7 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable {
     @Override
     public void flushAndForce(FileFlushEvent flushEvent, AsyncBlockAccessor asyncBlockAccessor) throws IOException {
         try (var buffer = bufferFactory.createBuffer()) {
-            flushAndForceInternal(flushEvent, false, ioController, buffer, true);
+            flushAndForceInternal(flushEvent, asyncBlockAccessor, false, ioController, buffer, true);
         }
         pageCache.clearEvictorException();
     }
@@ -389,7 +390,7 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable {
         }
         try (FileFlushEvent flushEvent = pageCacheTracer.beginFileFlush(swapper);
                 var buffer = bufferFactory.createBuffer()) {
-            flushAndForceInternal(flushEvent, true, ioController, buffer, true);
+            flushAndForceInternal(flushEvent, EMPTY_ASYNC_BLOCK_ACCESSOR, true, ioController, buffer, true);
         }
         pageCache.clearEvictorException();
     }
@@ -502,10 +503,15 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable {
     }
 
     void flushAndForceInternal(
-            FileFlushEvent flushEvent, boolean forClosing, IOController limiter, NativeIOBuffer ioBuffer, boolean force)
+            FileFlushEvent flushEvent,
+            AsyncBlockAccessor asyncBlockAccessor,
+            boolean forClosing,
+            IOController limiter,
+            NativeIOBuffer ioBuffer,
+            boolean force)
             throws IOException {
         try {
-            doFlushAndForceInternal(flushEvent, forClosing, limiter, ioBuffer, force);
+            doFlushAndForceInternal(flushEvent, asyncBlockAccessor, forClosing, limiter, ioBuffer, force);
         } catch (ClosedChannelException e) {
             if (getRefCount() > 0) {
                 // The file is not supposed to be closed, since we have a positive ref-count, yet we got a
@@ -521,7 +527,12 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable {
     }
 
     private void doFlushAndForceInternal(
-            FileFlushEvent flushes, boolean forClosing, IOController limiter, NativeIOBuffer ioBuffer, boolean force)
+            FileFlushEvent flushes,
+            AsyncBlockAccessor asyncBlockAccessor,
+            boolean forClosing,
+            IOController limiter,
+            NativeIOBuffer ioBuffer,
+            boolean force)
             throws IOException {
         // TODO it'd be awesome if, on Linux, we'd call sync_file_range(2) instead of fsync
         long[] pages = new long[TRANSLATION_TABLE_CHUNK_SIZE];
@@ -645,18 +656,18 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable {
                     break;
                 }
                 if (pagesGrabbed > 0) {
-                    vectoredFlush(
+                    flushData(
+                            flushes,
+                            asyncBlockAccessor,
+                            forClosing,
+                            limiter,
                             pages,
                             bufferAddresses,
                             flushStamps,
                             bufferLengths,
                             numberOfBuffers,
                             pagesGrabbed,
-                            mergedPages,
-                            flushes,
-                            forClosing);
-                    flushes.reportIO(numberOfBuffers);
-                    limiter.maybeLimitIO(numberOfBuffers, pagesGrabbed, flushes);
+                            mergedPages);
                     pagesGrabbed = 0;
                     nextSequentialAddress = -1;
                     numberOfBuffers = 0;
@@ -668,26 +679,69 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable {
                 }
             }
             if (pagesGrabbed > 0) {
-                vectoredFlush(
+                flushData(
+                        flushes,
+                        asyncBlockAccessor,
+                        forClosing,
+                        limiter,
                         pages,
                         bufferAddresses,
                         flushStamps,
                         bufferLengths,
                         numberOfBuffers,
                         pagesGrabbed,
-                        mergedPages,
-                        flushes,
-                        forClosing);
-                flushes.reportIO(numberOfBuffers);
-                limiter.maybeLimitIO(numberOfBuffers, pagesGrabbed, flushes);
+                        mergedPages);
                 flushPerChunk++;
             }
             chunkEvent.chunkFlushed(notModifiedPages, flushPerChunk, buffersPerChunk, mergesPerChunk);
         }
 
         if (force) {
+            if (asyncBlockAccessor.isAvailable()) {
+                asyncBlockAccessor.completeSubmitted();
+            }
             swapper.force();
         }
+    }
+
+    private void flushData(
+            FileFlushEvent flushes,
+            AsyncBlockAccessor asyncBlockAccessor,
+            boolean forClosing,
+            IOController limiter,
+            long[] pages,
+            long[] bufferAddresses,
+            long[] flushStamps,
+            int[] bufferLengths,
+            int numberOfBuffers,
+            int pagesGrabbed,
+            int mergedPages)
+            throws IOException {
+        if (!forClosing && asyncBlockAccessor.isAvailable()) {
+            asyncVectoredFlush(
+                    pages,
+                    bufferAddresses,
+                    flushStamps,
+                    bufferLengths,
+                    numberOfBuffers,
+                    pagesGrabbed,
+                    mergedPages,
+                    flushes,
+                    asyncBlockAccessor);
+        } else {
+            vectoredFlush(
+                    pages,
+                    bufferAddresses,
+                    flushStamps,
+                    bufferLengths,
+                    numberOfBuffers,
+                    pagesGrabbed,
+                    mergedPages,
+                    flushes,
+                    forClosing);
+            flushes.reportIO(numberOfBuffers);
+        }
+        limiter.maybeLimitIO(numberOfBuffers, pagesGrabbed, flushes);
     }
 
     private void vectoredFlush(
@@ -733,6 +787,44 @@ final class MuninnPagedFile extends PageList implements PagedFile, Flushable {
                     for (int i = 0; i < pagesToFlush; i++) {
                         unlockFlush(pages[i], flushStamps[i], successful);
                     }
+                }
+            }
+        }
+    }
+
+    private void asyncVectoredFlush(
+            long[] pages,
+            long[] bufferAddresses,
+            long[] flushStamps,
+            int[] bufferLengths,
+            int numberOfBuffers,
+            int pagesToFlush,
+            int pagesMerged,
+            FileFlushEvent flushEvent,
+            AsyncBlockAccessor asyncBlockAccessor)
+            throws IOException {
+        try (var submitEvent = flushEvent.beginAsyncSubmit()) {
+            try {
+                // Write the pages vector
+                long firstPageRef = pages[0];
+                long startFilePageId = getFilePageId(firstPageRef);
+                swapper.asyncWrite(
+                        asyncBlockAccessor,
+                        startFilePageId,
+                        bufferAddresses,
+                        bufferLengths,
+                        numberOfBuffers,
+                        pages,
+                        flushStamps,
+                        pagesToFlush);
+                submitEvent.addSubmittedPages(pagesToFlush);
+                submitEvent.addPagesMerged(pagesMerged);
+            } catch (Exception ioe) {
+                submitEvent.setException(ioe);
+                throw ioe;
+            } finally {
+                for (int i = 0; i < pagesToFlush; i++) {
+                    unlockFlush(pages[i], flushStamps[i], false);
                 }
             }
         }

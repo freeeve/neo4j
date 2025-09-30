@@ -24,6 +24,7 @@ import static java.lang.invoke.MethodHandles.lookup;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.internal.helpers.Numbers.isPowerOfTwo;
 import static org.neo4j.internal.helpers.VarHandleUtils.getVarHandle;
+import static org.neo4j.io.async.AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 import static org.neo4j.io.pagecache.buffer.IOBufferFactory.DISABLED_BUFFER_FACTORY;
 import static org.neo4j.io.pagecache.impl.muninn.AsyncEvictionStatus.EVICTED;
 import static org.neo4j.io.pagecache.impl.muninn.AsyncEvictionStatus.NOT_EVICTED;
@@ -719,7 +720,7 @@ public class MuninnPageCache implements PageCache {
                             "Flushing changes to file '" + file.path().getFileName() + "'"),
                     () -> {
                         try {
-                            flushFile((MuninnPagedFile) file, limiter, force);
+                            flushFile((MuninnPagedFile) file, EMPTY_ASYNC_BLOCK_ACCESSOR, limiter, force);
                         } catch (IOException e) {
                             throw new UncheckedIOException(e);
                         }
@@ -736,10 +737,12 @@ public class MuninnPageCache implements PageCache {
         }
     }
 
-    private void flushFile(MuninnPagedFile muninnPagedFile, IOController limiter, boolean force) throws IOException {
+    private void flushFile(
+            MuninnPagedFile muninnPagedFile, AsyncBlockAccessor asyncBlockAccessor, IOController limiter, boolean force)
+            throws IOException {
         try (FileFlushEvent flushEvent = pageCacheTracer.beginFileFlush(muninnPagedFile.swapper);
                 var buffer = bufferFactory.createBuffer()) {
-            muninnPagedFile.flushAndForceInternal(flushEvent, false, limiter, buffer, force);
+            muninnPagedFile.flushAndForceInternal(flushEvent, asyncBlockAccessor, false, limiter, buffer, force);
         }
     }
 
@@ -989,7 +992,7 @@ public class MuninnPageCache implements PageCache {
             return asyncIOProvider.createAsyncBlockAccessor(
                     ASYNC_EVICTOR_QUEUE_SIZE, this::onPageEvictionComplete, this::onPageEvictionFailure, memoryTracker);
         }
-        return AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
+        return EMPTY_ASYNC_BLOCK_ACCESSOR;
     }
 
     private int parkUntilEvictionRequired(int keepFree, AsyncBlockAccessor blockAccessor) {

@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.pagecache_async_io;
 import static org.neo4j.internal.helpers.Format.duration;
 import static org.neo4j.kernel.impl.transaction.log.checkpoint.LatestCheckpointInfo.UNKNOWN_CHECKPOINT_INFO;
 
@@ -27,13 +28,17 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.function.BooleanSupplier;
+import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.Resource;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.async.AsyncBlockAccessor;
+import org.neo4j.io.async.AsyncIOProvider;
 import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.io.pagecache.impl.muninn.AsyncCheckpointCompletionHandler;
+import org.neo4j.io.pagecache.impl.muninn.AsyncCheckpointFailureHandler;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.database.DatabaseTracers;
@@ -43,11 +48,13 @@ import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.Panic;
 import org.neo4j.storageengine.api.ClosedBatchMetadata;
 import org.neo4j.storageengine.api.LogMetadataProvider;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.time.Stopwatch;
+import org.neo4j.util.VisibleForTesting;
 
 public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
     private static final String CHECKPOINT_TAG = "checkpoint";
@@ -68,6 +75,8 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
     private final CursorContextFactory cursorContextFactory;
     private final Clock clock;
     private final IOController ioController;
+    private final MemoryTracker memoryTracker;
+    private final Config config;
 
     private volatile boolean shutdown;
     private volatile LatestCheckpointInfo latestCheckPointInfo = UNKNOWN_CHECKPOINT_INFO;
@@ -84,7 +93,9 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
             StoreCopyCheckPointMutex mutex,
             CursorContextFactory cursorContextFactory,
             Clock clock,
-            IOController ioController) {
+            IOController ioController,
+            MemoryTracker memoryTracker,
+            Config config) {
         this.checkpointAppender = checkpointAppender;
         this.metadataProvider = metadataProvider;
         this.threshold = threshold;
@@ -97,6 +108,8 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
         this.cursorContextFactory = cursorContextFactory;
         this.clock = clock;
         this.ioController = ioController;
+        this.memoryTracker = memoryTracker;
+        this.config = config;
     }
 
     @Override
@@ -208,6 +221,19 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
                 triggerInfo);
     }
 
+    @VisibleForTesting
+    AsyncBlockAccessor createAsyncBlockAccessor(
+            AsyncIOProvider asyncIOProvider, MemoryTracker memoryTracker, DatabaseFlushEvent flushEvent) {
+        if (config.get(pagecache_async_io)) {
+            return asyncIOProvider.createAsyncBlockAccessor(
+                    128,
+                    new AsyncCheckpointCompletionHandler(flushEvent),
+                    new AsyncCheckpointFailureHandler(flushEvent),
+                    memoryTracker);
+        }
+        return AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
+    }
+
     private long doCheckpoint(
             TransactionId transactionId,
             long appendIndex,
@@ -241,9 +267,10 @@ public class CheckPointerImpl extends LifecycleAdapter implements CheckPointer {
              */
             log.info(checkpointReason + " checkpoint started...");
             Stopwatch startTime = Stopwatch.start();
-            AsyncBlockAccessor asyncBlockAccessor = AsyncBlockAccessor.EMPTY_ASYNC_BLOCK_ACCESSOR;
 
-            try (var flushEvent = checkPointEvent.beginDatabaseFlush()) {
+            try (var flushEvent = checkPointEvent.beginDatabaseFlush();
+                    var asyncBlockAccessor =
+                            createAsyncBlockAccessor(AsyncIOProvider.getInstance(), memoryTracker, flushEvent)) {
                 forceOperation.flushAndForce(flushEvent, asyncBlockAccessor, cursorContext);
                 flushEvent.ioControllerLimit(ioController.configuredLimit());
             }

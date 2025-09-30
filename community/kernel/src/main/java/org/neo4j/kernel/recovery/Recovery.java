@@ -769,7 +769,9 @@ public final class Recovery {
                 new StoreCopyCheckPointMutex(),
                 cursorContextFactory,
                 clock,
-                ioController);
+                ioController,
+                memoryTracker,
+                config);
         recoveryLife.add(indexStatisticsStore);
         recoveryLife.add(storageEngine);
         recoveryLife.add(new MissingTransactionLogsCheck(config, logTailMetadata, recoveryLog));

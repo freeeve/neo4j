@@ -991,7 +991,9 @@ public class Database extends AbstractDatabase {
                 storeCopyCheckPointMutex,
                 cursorContextFactory,
                 clock,
-                ioController);
+                ioController,
+                memoryTracker,
+                databaseConfig);
 
         long recurringPeriod = threshold.checkFrequencyMillis();
         CheckPointScheduler checkPointScheduler = new CheckPointScheduler(
