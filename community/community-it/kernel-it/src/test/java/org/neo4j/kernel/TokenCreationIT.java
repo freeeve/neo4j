@@ -23,6 +23,8 @@ import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphanumeric;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.internal.helpers.collection.Iterables.asSet;
 
 import java.util.ArrayList;
@@ -37,10 +39,12 @@ import java.util.concurrent.locks.LockSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
+import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.util.concurrent.Futures;
@@ -58,7 +62,7 @@ class TokenCreationIT {
     private static final int WORKERS = 10;
 
     @Inject
-    private GraphDatabaseService db;
+    private GraphDatabaseAPI db;
 
     private volatile boolean stop;
     private ExecutorService executorService;
@@ -84,6 +88,17 @@ class TokenCreationIT {
         stop = true;
         latch.await();
         consumeFutures(futures);
+    }
+
+    @Test
+    void shouldNotPanicOrCreateOnInterleavedInvalidToken() {
+        // Block format panics on invalid token. Record format just creates it and moves on
+        try (Transaction tx = db.beginTx()) {
+            assertThrows(IllegalArgumentException.class, () -> tx.createNode(Label.label("foo"), Label.label("\0")));
+            tx.commit();
+        }
+
+        assertTrue(db.isAvailable());
     }
 
     private static void consumeFutures(List<Future<?>> futures) throws ExecutionException {

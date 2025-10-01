@@ -215,8 +215,11 @@ public class KernelToken extends KernelTokenRead implements Token {
             throws KernelException {
         ktx.assertOpen();
         assertSameLength(names, ids);
+        for (String name : names) {
+            checkValidTokenName(name, type);
+        }
         for (int i = 0; i < names.length; i++) {
-            ids[i] = tokenHolder.getIdByName(checkValidTokenName(names[i], type));
+            ids[i] = tokenHolder.getIdByName(names[i]);
             if (ids[i] == TokenConstants.NO_TOKEN) {
                 ktx.securityAuthorizationHandler().assertAllowsTokenCreates(ktx.securityContext(), action);
                 // ensures the registry has all applied transactions before attempting to create any new ones

@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.newapi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -231,6 +232,10 @@ class KernelTokenTest {
 
     @Test
     void invalidTokenNamesAreNotAllowed() {
+        when(labelTokens.getIdByName(any())).thenReturn(TokenConstants.NO_TOKEN);
+        when(relationshipTypeTokens.getIdByName(any())).thenReturn(TokenConstants.NO_TOKEN);
+        when(propertyKeyTokens.getIdByName(any())).thenReturn(TokenConstants.NO_TOKEN);
+
         List<String> invalidNames = List.of("", "\0");
 
         assertThrows(
@@ -260,6 +265,21 @@ class KernelTokenTest {
                     () -> kernelToken.propertyKeyGetOrCreateForName(invalidName),
                     "property key name name should be invalid: '" + invalidName + "'");
         }
+
+        String[] interleavedInvalid = new String[] {"foo", "bar", "", "baz", "\0"};
+        int[] keys = new int[interleavedInvalid.length];
+        assertThrows(
+                IllegalTokenNameException.class,
+                () -> kernelToken.labelGetOrCreateForNames(interleavedInvalid, keys),
+                "label name should be invalid:");
+        assertThrows(
+                IllegalTokenNameException.class,
+                () -> kernelToken.relationshipTypeGetOrCreateForNames(interleavedInvalid, keys),
+                "relationship type name should be invalid:");
+        assertThrows(
+                IllegalTokenNameException.class,
+                () -> kernelToken.propertyKeyGetOrCreateForNames(interleavedInvalid, keys),
+                "property key name name should be invalid:");
     }
 
     @Test
