@@ -372,4 +372,262 @@ class RemoteBatchPropertiesWritePlanningIntegrationTest extends CypherFunSuite
       )
       .build()
   }
+
+  test("SET relationship property should use previously cached node property") {
+    // `lastName` will be fetched for `p1` in the outer query graph
+    // within the CALL subquery the cached version can then be used to set the property for the newly created relationship
+    val query = """MATCH (p1:Person), (p2:Person)
+                  |WHERE p1.lastName = p2.lastName
+                  |CALL (p1, p2) {
+                  |  CREATE (p1)-[x:MAYBE_RELATED]->(p2)
+                  |  SET x.lastName = p1.lastName
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setRelationshipProperty("x", "lastName", "cacheN[p1.lastName]") // use cached property `lastName`
+      .|.create(createRelationship("x", "p1", "MAYBE_RELATED", "p2"))
+      .|.argument("p1", "p2")
+      .valueHashJoin("cacheN[p1.lastName] = cacheN[p2.lastName]")
+      .|.remoteBatchProperties("cacheNFromStore[p2.lastName]")
+      .|.nodeByLabelScan("p2", "Person")
+      .remoteBatchProperties("cacheNFromStore[p1.lastName]") // cache property `lastName`
+      .nodeByLabelScan("p1", "Person")
+      .build()
+  }
+
+  test("SET node property should use previously cached node property") {
+    val query = """MATCH (p1:Person)
+                  |WHERE p1.lastName = "J"
+                  |CALL (p1) {
+                  |  CREATE (x:Entity)
+                  |  SET x.name = p1.lastName
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setNodeProperty("x", "name", "cacheN[p1.lastName]") // use property `lastName`
+      .|.create(createNodeFull("x", labels = Seq("Entity")))
+      .|.argument("p1")
+      .filter("cacheN[p1.lastName] = 'J'")
+      .remoteBatchProperties("cacheNFromStore[p1.lastName]") // cache property `lastName`
+      .nodeByLabelScan("p1", "Person")
+      .build()
+  }
+
+  test("SET relationship property should use previously cached relationship property") {
+    // Fetch properties `since` and `value` from k,
+    // use the cached property when setting the property `confidence` for the newly created relationship.
+    val query = """MATCH (p1:Person)-[k:KNOWS]->(p2:Person)
+                  |WHERE p1.firstName = "J" AND k.since > 2020
+                  |CALL (p1, k, p2) {
+                  |  CREATE (p1)-[x:MAYBE_RELATED]->(p2)
+                  |  SET x.confidence = k.value
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setRelationshipProperty("x", "confidence", "cacheR[k.value]") // use cached property `value``
+      .|.create(createRelationship("x", "p1", "MAYBE_RELATED", "p2"))
+      .|.argument("p1", "k", "p2")
+      .filter("cacheR[k.since] > 2020", "p2:Person")
+      .remoteBatchProperties("cacheRFromStore[k.since]", "cacheRFromStore[k.value]") // cache property `value`
+      .expandAll("(p1)-[k:KNOWS]->(p2)")
+      .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test("SET node property should use previously cached relationship property") {
+    // Fetch properties `since` and `value` from k,
+    // use the cached property when setting the property `confidence` for the newly created relationship.
+    val query = """MATCH (p1:Person)-[k:KNOWS]->(p2:Person)
+                  |WHERE p1.firstName = "J" AND k.since > 2020
+                  |CALL (p1, k, p2) {
+                  |  CREATE (p1)-[x:MAYBE_RELATED]->(p2)
+                  |  SET p1.confidence = k.value
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setNodeProperty("p1", "confidence", "cacheR[k.value]") // use cached property `value``
+      .|.create(createRelationship("x", "p1", "MAYBE_RELATED", "p2"))
+      .|.argument("p1", "k", "p2")
+      .filter("cacheR[k.since] > 2020", "p2:Person")
+      .remoteBatchProperties("cacheRFromStore[k.since]", "cacheRFromStore[k.value]") // cache property `value`
+      .expandAll("(p1)-[k:KNOWS]->(p2)")
+      .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test("SET relationship properties should use previously cached node and relationship properties") {
+    val query = """MATCH (p1:Person)-[k:KNOWS]->(p2:Person)
+                  |WHERE p1.firstName = "J" AND p1.age > 20 AND k.since > 2020
+                  |CALL (p1, k, p2) {
+                  |  CREATE (p1)-[x:MAYBE_RELATED]->(p2)
+                  |  SET x.confidence = k.value, x.fromP1 = p1.prop
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setRelationshipProperties("x", ("confidence", "cacheR[k.value]"), ("fromP1", "cacheN[p1.prop]"))
+      .|.create(createRelationship("x", "p1", "MAYBE_RELATED", "p2"))
+      .|.argument("p1", "k", "p2")
+      .filter("cacheR[k.since] > 2020", "p2:Person")
+      .remoteBatchProperties("cacheRFromStore[k.since]", "cacheRFromStore[k.value]")
+      .expandAll("(p1)-[k:KNOWS]->(p2)")
+      .filter("cacheN[p1.age] > 20")
+      .remoteBatchProperties("cacheNFromStore[p1.age]", "cacheNFromStore[p1.prop]")
+      .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test("SET node properties should use previously cached node and relationship properties") {
+    val query = """MATCH (p1:Person)-[k:KNOWS]->(p2:Person)
+                  |WHERE p1.firstName = "J" AND p1.age > 20 AND k.since > 2020
+                  |CALL (p1, k) {
+                  |  CREATE (x:Entity)
+                  |  SET x.confidence = k.value, x.fromJ = p1.prop
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setNodeProperties(
+        "x",
+        ("confidence", "cacheR[k.value]"),
+        ("fromJ", "cacheN[p1.prop]")
+      ) // use cached `k.value` and `p1.prop`
+      .|.create(createNodeFull("x", labels = Seq("Entity")))
+      .|.argument("p1", "k")
+      .filter("cacheR[k.since] > 2020", "p2:Person")
+      .remoteBatchProperties("cacheRFromStore[k.since]", "cacheRFromStore[k.value]") // cache `k.value`
+      .expandAll("(p1)-[k:KNOWS]->(p2)")
+      .filter("cacheN[p1.age] > 20")
+      .remoteBatchProperties("cacheNFromStore[p1.age]", "cacheNFromStore[p1.prop]") // cache `p1.prop`
+      .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test("SET relationship properties from MAP should use previously cached node and relationship properties") {
+    val query = """MATCH (p1:Person)-[k:KNOWS]->(p2:Person)
+                  |WHERE p1.firstName = "J" AND p1.age > 20 AND k.since > 2020
+                  |CALL (p1, k, p2) {
+                  |  CREATE (p1)-[x:MAYBE_RELATED]->(p2)
+                  |  SET x += {confidence: k.value, fromP1: p1.prop}
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setRelationshipPropertiesFromMap(
+        "x",
+        "{confidence: cacheR[k.value], fromP1: cacheN[p1.prop]}",
+        removeOtherProps = false
+      )
+      .|.create(createRelationship("x", "p1", "MAYBE_RELATED", "p2"))
+      .|.argument("p1", "k", "p2")
+      .filter("cacheR[k.since] > 2020", "p2:Person")
+      .remoteBatchProperties("cacheRFromStore[k.since]", "cacheRFromStore[k.value]")
+      .expandAll("(p1)-[k:KNOWS]->(p2)")
+      .filter("cacheN[p1.age] > 20")
+      .remoteBatchProperties("cacheNFromStore[p1.age]", "cacheNFromStore[p1.prop]")
+      .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test("SET node properties from MAP should use previously cached node and relationship properties") {
+    val query = """MATCH (p1:Person)-[k:KNOWS]->(p2:Person)
+                  |WHERE p1.firstName = "J" AND p1.age > 20 AND k.since > 2020
+                  |CALL (p1, k) {
+                  |  CREATE (x:Entity)
+                  |  SET x += {confidence: k.value, fromJ: p1.prop}
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setNodePropertiesFromMap(
+        "x",
+        "{confidence: cacheR[k.value], fromJ: cacheN[p1.prop]}",
+        removeOtherProps = false
+      ) // use cached `k.value` and `p1.prop`
+      .|.create(createNodeFull("x", labels = Seq("Entity")))
+      .|.argument("p1", "k")
+      .filter("cacheR[k.since] > 2020", "p2:Person")
+      .remoteBatchProperties("cacheRFromStore[k.since]", "cacheRFromStore[k.value]") // cache `k.value`
+      .expandAll("(p1)-[k:KNOWS]->(p2)")
+      .filter("cacheN[p1.age] > 20")
+      .remoteBatchProperties("cacheNFromStore[p1.age]", "cacheNFromStore[p1.prop]") // cache `p1.prop`
+      .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test("SET dynamic property should use previously cached node property") {
+    val query = """MATCH (p1:Person)-[k:KNOWS]->(p2:Person)
+                  |WHERE p1.firstName = "J" AND p1.age > 20 AND k.since > 2020
+                  |CALL (p1, k, p2) {
+                  |  CREATE (p1)-[x:MAYBE_RELATED]->(p2)
+                  |  SET x[$newPropName] = k.since
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.setDynamicProperty("x", "$newPropName", "cacheR[k.since]")
+      .|.create(createRelationship("x", "p1", "MAYBE_RELATED", "p2"))
+      .|.argument("p1", "k", "p2")
+      .eager(ListSet(
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(8))),
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(7))),
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(12))),
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(11))),
+        EagernessReason.UnknownPropertyReadSetConflict.withConflict(EagernessReason.Conflict(Id(3), Id(10)))
+      ))
+      .filter("cacheR[k.since] > 2020", "p2:Person")
+      .remoteBatchProperties("cacheRFromStore[k.since]")
+      .expandAll("(p1)-[k:KNOWS]->(p2)")
+      .filter("cacheN[p1.age] > 20")
+      .remoteBatchProperties("cacheNFromStore[p1.age]")
+      .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
+
+  test("SET properties in CREATE should use previously cached node property") {
+    val query = """MATCH (p1:Person)-[k:KNOWS]->(p2:Person)
+                  |WHERE p1.firstName = "J" AND p1.age > 20 AND k.since > 2020
+                  |CALL (p1, k, p2) {
+                  |  CREATE (p1)-[x:MAYBE_RELATED {newProp: k.since}]->(p2)
+                  |} IN TRANSACTIONS OF 1000 ROWS;""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .emptyResult()
+      .transactionForeach(1000)
+      .|.create(
+        createRelationship("x", "p1", "MAYBE_RELATED", "p2", OUTGOING, Some("{newProp: cacheR[k.since]}"))
+        // Use cached property
+      )
+      .|.argument("p1", "k", "p2")
+      .filter("cacheR[k.since] > 2020", "p2:Person")
+      .remoteBatchProperties("cacheRFromStore[k.since]") // Cache property
+      .expandAll("(p1)-[k:KNOWS]->(p2)")
+      .filter("cacheN[p1.age] > 20")
+      .remoteBatchProperties("cacheNFromStore[p1.age]")
+      .nodeIndexOperator("p1:Person(firstName = 'J')", getValue = Map("firstName" -> DoNotGetValue))
+      .build()
+  }
 }

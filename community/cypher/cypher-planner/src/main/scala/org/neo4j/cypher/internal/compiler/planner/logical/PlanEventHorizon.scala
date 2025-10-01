@@ -454,16 +454,18 @@ case object PlanEventHorizon extends EventHorizonPlanner {
               ))
 
         val subPlan = plannerQueryPlanner.plan(callSubquery, subqueryContext)
+        val subPlanUsingPreviouslyCachedProperties = context.settings.remoteBatchPropertiesStrategy
+          .usePreviouslyCachedProperty(subPlan, subqueryContext)
 
-        val variables = plan.availableSymbols intersect subPlan.availableSymbols
+        val variables = plan.availableSymbols intersect subPlanUsingPreviouslyCachedProperties.availableSymbols
 
         val finalSubPlan = if (optional)
           context.staticComponents.logicalPlanProducer.planOptional(
-            subPlan,
+            subPlanUsingPreviouslyCachedProperties,
             variables,
             subqueryContext
           )
-        else subPlan
+        else subPlanUsingPreviouslyCachedProperties
 
         val projected = context.staticComponents.logicalPlanProducer.planSubquery(
           plan,

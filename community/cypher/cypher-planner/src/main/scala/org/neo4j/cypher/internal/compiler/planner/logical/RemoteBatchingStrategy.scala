@@ -64,6 +64,7 @@ import org.neo4j.cypher.internal.planner.spi.DatabaseMode.SHARDED
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols.CTNode
@@ -133,6 +134,11 @@ sealed trait RemoteBatchingStrategy {
     availableSymbols: Set[LogicalVariable],
     semanticTable: SemanticTable
   ): CachedProperties
+
+  def usePreviouslyCachedProperty(
+    inputPlan: LogicalPlan,
+    context: LogicalPlanningContext
+  ): LogicalPlan
 }
 
 case class RemoteBatchingResult(
@@ -704,6 +710,13 @@ object RemoteBatchingStrategy {
           }.filter(_._2.nonEmpty).toMap
         renameOnLHS ++ renameOnLHS ++ EntityAliases(renamesOnUnionMappings)
     }
+
+    override def usePreviouslyCachedProperty(
+      inputPlan: LogicalPlan,
+      context: LogicalPlanningContext
+    ): LogicalPlan = {
+      inputPlan.endoRewrite(propertyRewriterBasedOnPreviouslyCachedProperty(context))
+    }
   }
 
   private case object SkipRemoteBatching extends RemoteBatchingStrategy {
@@ -773,6 +786,13 @@ object RemoteBatchingStrategy {
       query: SinglePlannerQuery
     ): ContextualPropertyAccess = {
       ContextualPropertyAccess.empty
+    }
+
+    override def usePreviouslyCachedProperty(
+      inputPlan: LogicalPlan,
+      context: LogicalPlanningContext
+    ): LogicalPlan = {
+      inputPlan
     }
   }
 }
