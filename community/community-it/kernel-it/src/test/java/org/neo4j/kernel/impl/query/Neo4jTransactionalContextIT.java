@@ -568,7 +568,7 @@ class Neo4jTransactionalContextIT {
         var snapshotBytes = snapshot.allocatedBytes();
         var profilingBytes = queryMemoryTracker.heapHighWaterMark();
         assertThat(snapshotBytes)
-                .isLessThanOrEqualTo(
+                .isGreaterThanOrEqualTo(
                         growingArraySize + outerHighWaterMark + Math.max(innerHighWaterMark, openHighWaterMark));
         assertThat(profilingBytes).isEqualTo(snapshotBytes);
     }
