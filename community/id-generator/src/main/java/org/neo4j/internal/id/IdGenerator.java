@@ -184,6 +184,11 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
     PrimitiveLongResourceIterator freeIdsIterator() throws IOException;
 
     /**
+     * Allows iteration over used ids in the generator.
+     */
+    PrimitiveLongResourceIterator usedIdsIterator() throws IOException;
+
+    /**
      * Marks IDs as being one state or another. A typical chain of interactions:
      * <ul>Allocating, creating and deleting
      *     <li>ID X allocated from high ID when reserving an ID for an entity</li>
@@ -459,6 +464,11 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         @Override
         public PrimitiveLongResourceIterator freeIdsIterator() throws IOException {
             return delegate.freeIdsIterator();
+        }
+
+        @Override
+        public PrimitiveLongResourceIterator usedIdsIterator() throws IOException {
+            return delegate.usedIdsIterator();
         }
 
         @Override

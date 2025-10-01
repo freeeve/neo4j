@@ -975,6 +975,15 @@ public class IndexedIdGenerator implements IdGenerator {
         return conditionalIdIterator(0, getHighId(), state -> IdRange.IdState.FREE == state);
     }
 
+    @Override
+    public PrimitiveLongResourceIterator usedIdsIterator() throws IOException {
+        // We can't just iterate over the file and filter on IdRange.IdState.USED == state,
+        // as one would expect. This is because used IDs are 0's on disk and not necessarily
+        // iterated over by the seeker at all / or not even present in the tree/file at all
+        // (all-zero ranges are removed). Instead, we iterate over not used IDs and take the complement.
+        return PrimitiveLongResourceCollections.complement(notUsedIdsIterator(), getHighId());
+    }
+
     private PrimitiveLongResourceCollections.AbstractPrimitiveLongBaseResourceIterator conditionalIdIterator(
             long fromIdInclusive, long toIdExclusive, Predicate<IdRange.IdState> idStatePredicate) throws IOException {
         Preconditions.checkArgument(fromIdInclusive <= toIdExclusive, "From Id needs to be lesser than toId");

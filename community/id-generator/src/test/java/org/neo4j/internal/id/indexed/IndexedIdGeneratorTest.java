@@ -384,6 +384,32 @@ class IndexedIdGeneratorTest {
     }
 
     @Test
+    void shouldIterateOverUsedIds() throws IOException {
+        // given
+        open();
+
+        long max = 10 * IDS_PER_ENTRY + 20;
+        LongList free = LongLists.immutable.of(10, 20, 30, IDS_PER_ENTRY + 10, 10 * IDS_PER_ENTRY + 10);
+        MutableLongList used = LongLists.mutable.empty();
+        LongStream.range(0, max).forEach(used::add);
+        used.removeAll(free);
+
+        idGenerator.start(freeIds(free.toArray()), NULL_CONTEXT);
+        idGenerator.setHighId(max);
+        // when/then
+        try (PrimitiveLongResourceIterator usedIds = idGenerator.usedIdsIterator()) {
+            while (used.notEmpty()) {
+                long nextUsed = used.removeAtIndex(0);
+                assertThat(usedIds.hasNext())
+                        .as("Expected more used ids, next is " + nextUsed)
+                        .isTrue();
+                assertThat(usedIds.next()).isEqualTo(nextUsed);
+            }
+            assertFalse(usedIds.hasNext());
+        }
+    }
+
+    @Test
     void shouldHandleNoFreeIdsInIterator() throws IOException {
         // given
         open();
@@ -1491,6 +1517,11 @@ class IndexedIdGeneratorTest {
         @Override
         public PrimitiveLongResourceIterator freeIdsIterator() throws IOException {
             return withReadLock(() -> leader().freeIdsIterator());
+        }
+
+        @Override
+        public PrimitiveLongResourceIterator usedIdsIterator() throws IOException {
+            return withReadLock(() -> leader().usedIdsIterator());
         }
 
         @Override

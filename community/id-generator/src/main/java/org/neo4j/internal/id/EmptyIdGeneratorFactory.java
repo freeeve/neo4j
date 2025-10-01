@@ -206,6 +206,11 @@ public class EmptyIdGeneratorFactory implements IdGeneratorFactory {
         }
 
         @Override
+        public PrimitiveLongResourceIterator usedIdsIterator() {
+            return PrimitiveLongResourceCollections.emptyIterator();
+        }
+
+        @Override
         public long nextId(CursorContext cursorContext) {
             return EMPTY_ID;
         }

@@ -63,6 +63,59 @@ public class PrimitiveLongResourceCollections {
         return new PrimitiveLongConcatenatingResourceIterator(primitiveLongResourceIterators);
     }
 
+    /**
+     * Returns the complement of the given original iterator in the interval [0, max).
+     * It assumes that the original iterator is sorted in ascending order, and contains no duplicates.
+     * The returned iterator will also be sorted in ascending order, and contain no duplicates.
+     */
+    public static PrimitiveLongResourceIterator complement(
+            final PrimitiveLongResourceIterator original, final long max) {
+        return new PrimitiveLongResourceCollections.AbstractPrimitiveLongBaseResourceIterator(original) {
+            // current candidate in [0, limit)
+            private long current;
+            // lazy "peek" of original
+            private boolean originalHasNext;
+            private long originalNext;
+
+            // advance original until originalNext >= minNeeded, or original exhausted
+            private void ensureOriginalAtLeast(long minNeeded) {
+                while (true) {
+                    if (!originalHasNext) {
+                        if (!original.hasNext()) {
+                            return; // exhausted
+                        }
+                        originalNext = original.next();
+                        originalHasNext = true;
+                    }
+                    if (originalNext >= minNeeded) {
+                        return; // good position
+                    }
+                    // originalNext < minNeeded -> advance original
+                    originalHasNext = false; // consume and continue
+                }
+            }
+
+            @Override
+            protected boolean fetchNext() {
+                while (current < max) {
+                    // Skip negatives in original and position it to >= current (if any left)
+                    ensureOriginalAtLeast(current);
+
+                    if (originalHasNext && originalNext == current) {
+                        // current is present in original -> skip it in the inverse
+                        current++;
+                        originalHasNext = false; // consume that value
+                        continue;
+                    }
+
+                    // Either original is exhausted, or originalNext > current, so current is missing -> emit it
+                    return next(current++);
+                }
+                return false; // finished [0, limit)
+            }
+        };
+    }
+
     public static long[] asArray(PrimitiveLongResourceIterator iterator) throws IOException {
         try (iterator) {
             return PrimitiveLongCollections.asArray(iterator);

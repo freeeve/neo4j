@@ -87,6 +87,11 @@ class ReadOnlyHighIdGenerator implements IdGenerator {
     }
 
     @Override
+    public PrimitiveLongResourceIterator usedIdsIterator() {
+        return PrimitiveLongResourceCollections.emptyIterator();
+    }
+
+    @Override
     public TransactionalMarker transactionalMarker(CursorContext cursorContext) {
         throw new UnsupportedOperationException("Should not be required");
     }
