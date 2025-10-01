@@ -1623,33 +1623,40 @@ class EnvelopeWriteChannelTest {
             assertThatThrownBy(() -> channel.insertStartOffset(-1))
                     .as("trying to use a negative size for offset will be rejected")
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(HEADER_SIZE));
+                    .hasMessage(
+                            EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(-1, HEADER_SIZE));
             assertThatThrownBy(() -> channel.insertStartOffset(0))
                     .isInstanceOf(IllegalArgumentException.class)
                     .as("trying to use a zero size for offset will be rejected")
-                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(HEADER_SIZE));
+                    .hasMessage(
+                            EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(0, HEADER_SIZE));
             assertThatThrownBy(() -> channel.insertStartOffset(HEADER_SIZE - 1))
                     .as("trying to use less than or equal to the size of an envelope header will be rejected")
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(HEADER_SIZE));
+                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(
+                            HEADER_SIZE - 1, HEADER_SIZE));
             assertThatThrownBy(() -> channel.insertStartOffset(HEADER_SIZE))
                     .as("trying to use less than or equal to the size of an envelope header will be rejected")
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(HEADER_SIZE));
+                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL.formatted(
+                            HEADER_SIZE, HEADER_SIZE));
 
             // Upper bounds
             assertThatThrownBy(() -> channel.insertStartOffset(segmentSize * 3 / 2))
                     .as("trying to use an offset size that is bigger than segment will be rejected")
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE.formatted(segmentSize));
+                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE.formatted(
+                            segmentSize * 3 / 2, segmentSize));
             assertThatThrownBy(() -> channel.insertStartOffset(segmentSize))
                     .as("trying to offset size the whole segment will be rejected")
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE.formatted(segmentSize));
+                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE.formatted(
+                            segmentSize, segmentSize));
             assertThatThrownBy(() -> channel.insertStartOffset(segmentSize - HEADER_SIZE))
                     .as("trying to offset without leaving enough space for another envelope will be rejected")
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE.formatted(segmentSize));
+                    .hasMessage(EnvelopeWriteChannel.ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE.formatted(
+                            segmentSize - HEADER_SIZE, segmentSize));
 
             channel.prepareForFlush();
             assertThat(channel.position())

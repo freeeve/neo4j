@@ -86,11 +86,11 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
 
     @VisibleForTesting
     static final String ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL =
-            "offset size must be at least envelope header size (%d).";
+            "offset size (%d) must be at least envelope header size (%d).";
 
     @VisibleForTesting
     static final String ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE =
-            "offset cannot be bigger than the segment size (%d) and must leave enough space for at least one "
+            "offset size (%d) cannot be bigger than the segment size (%d) and must leave enough space for at least one "
                     + "envelope after it.";
 
     @VisibleForTesting
@@ -690,9 +690,12 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
      *             and must leave enough space for another envelope to be added after it in the current segment.
      */
     public void insertStartOffset(int size) throws IOException {
-        checkArgument(size > HEADER_SIZE, ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL, HEADER_SIZE);
+        checkArgument(size > HEADER_SIZE, ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_SMALL, size, HEADER_SIZE);
         checkArgument(
-                size < segmentBlockSize - HEADER_SIZE, ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE, segmentBlockSize);
+                size < segmentBlockSize - HEADER_SIZE,
+                ERROR_MSG_TEMPLATE_OFFSET_SIZE_TOO_LARGE,
+                size,
+                segmentBlockSize);
         checkState(
                 (currentEnvelopeStart == 0 || currentEnvelopeStart == segmentBlockSize)
                         && channel.position() == segmentBlockSize,
