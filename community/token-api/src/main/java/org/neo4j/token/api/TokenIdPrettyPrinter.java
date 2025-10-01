@@ -21,6 +21,7 @@ package org.neo4j.token.api;
 
 import java.util.StringJoiner;
 import java.util.function.IntFunction;
+import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
 
 public final class TokenIdPrettyPrinter {
@@ -38,16 +39,16 @@ public final class TokenIdPrettyPrinter {
         return id == TokenConstants.ANY_RELATIONSHIP_TYPE ? "" : ("[:type=" + id + "]");
     }
 
-    public static String niceQuotedProperties(TokenNameLookup tokenNameLookup, int[] propertyIds) {
-        return niceProperties(tokenNameLookup, propertyIds, '(', ')', true);
+    public static String niceQuotedProperties(TokenNameLookup tokenNameLookup, int... propertyIds) {
+        return niceProperties(tokenNameLookup, true, '(', ')', propertyIds);
     }
 
-    public static String niceProperties(TokenNameLookup tokenNameLookup, int[] propertyIds, char prefix, char suffix) {
-        return niceProperties(tokenNameLookup, propertyIds, prefix, suffix, false);
+    public static String niceProperties(TokenNameLookup tokenNameLookup, int... propertyIds) {
+        return niceProperties(tokenNameLookup, false, '{', '}', propertyIds);
     }
 
     private static String niceProperties(
-            TokenNameLookup tokenNameLookup, int[] propertyIds, char prefix, char suffix, boolean alwaysQuote) {
+            TokenNameLookup tokenNameLookup, boolean alwaysQuote, char prefix, char suffix, int... propertyIds) {
         StringBuilder out = new StringBuilder();
         out.append(prefix);
         format(out, "", ", ", alwaysQuote, tokenNameLookup::propertyKeyGetName, propertyIds);
@@ -55,10 +56,13 @@ public final class TokenIdPrettyPrinter {
         return out.toString();
     }
 
-    public static String niceEntityLabels(IntFunction<String> lookup, int[] labelIds) {
-        StringJoiner entityJoiner = new StringJoiner(":", ":", "");
+    public static String niceEntityTokens(TokenNameLookup tokenNameLookup, EntityType entityType, int... tokenIds) {
+        IntFunction<String> lookup = entityType == EntityType.NODE
+                ? tokenNameLookup::labelGetName
+                : tokenNameLookup::relationshipTypeGetName;
+        StringJoiner entityJoiner = new StringJoiner("|", ":", "");
         entityJoiner.setEmptyValue("");
-        for (int id : labelIds) {
+        for (int id : tokenIds) {
             String name = lookup.apply(id);
             if (name.contains(":")) {
                 name = '`' + name + "`";
@@ -74,7 +78,7 @@ public final class TokenIdPrettyPrinter {
             String separator,
             boolean alwaysQuote,
             IntFunction<String> lookup,
-            int[] ids) {
+            int... ids) {
         for (int id : ids) {
             String name = lookup.apply(id);
             out.append(prefix);

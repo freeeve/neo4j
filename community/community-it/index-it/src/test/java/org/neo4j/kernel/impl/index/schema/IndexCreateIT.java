@@ -104,7 +104,7 @@ public class IndexCreateIT extends KernelIntegrationTest {
         assertThat(e.gqlStatus()).isEqualTo("22N76");
         assertThat(e.statusDescription())
                 .isEqualTo(
-                        "error: data exception - index contains duplicated tokens. The index specified by '(:Label0:Label1:Label2:Label1:Label3 {property})' includes a label, relationship type, or property key with name 'Label1' more than once.");
+                        "error: data exception - index contains duplicated tokens. The index specified by '(:Label0|Label1|Label2|Label1|Label3 {property})' includes a label, relationship type, or property key with name 'Label1' more than once.");
     }
 
     @Test
@@ -132,7 +132,7 @@ public class IndexCreateIT extends KernelIntegrationTest {
         assertThat(e.gqlStatus()).isEqualTo("22N76");
         assertThat(e.statusDescription())
                 .isEqualTo(
-                        "error: data exception - index contains duplicated tokens. The index specified by '()-[:RELATIONSHIP0:RELATIONSHIP1:RELATIONSHIP2:RELATIONSHIP1:RELATIONSHIP3 {property}]-()' includes a label, relationship type, or property key with name 'RELATIONSHIP1' more than once.");
+                        "error: data exception - index contains duplicated tokens. The index specified by '()-[:RELATIONSHIP0|RELATIONSHIP1|RELATIONSHIP2|RELATIONSHIP1|RELATIONSHIP3 {property}]-()' includes a label, relationship type, or property key with name 'RELATIONSHIP1' more than once.");
     }
 
     @Test

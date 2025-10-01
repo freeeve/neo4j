@@ -19,11 +19,9 @@
  */
 package org.neo4j.internal.schema;
 
-import static org.neo4j.common.EntityType.NODE;
 import static org.neo4j.common.EntityType.RELATIONSHIP;
 
 import java.util.StringJoiner;
-import java.util.function.IntFunction;
 import org.neo4j.common.EntityType;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
@@ -47,10 +45,8 @@ public final class SchemaUserDescription {
             return prefix + entityTokenType + suffix;
         }
 
-        IntFunction<String> lookup =
-                entityType == NODE ? tokenNameLookup::labelGetName : tokenNameLookup::relationshipTypeGetName;
-        return prefix + TokenIdPrettyPrinter.niceEntityLabels(lookup, entityTokens) + " "
-                + TokenIdPrettyPrinter.niceProperties(tokenNameLookup, propertyKeyIds, '{', '}') + suffix;
+        return prefix + TokenIdPrettyPrinter.niceEntityTokens(tokenNameLookup, entityType, entityTokens) + " "
+                + TokenIdPrettyPrinter.niceProperties(tokenNameLookup, propertyKeyIds) + suffix;
     }
 
     static String forPrototype(

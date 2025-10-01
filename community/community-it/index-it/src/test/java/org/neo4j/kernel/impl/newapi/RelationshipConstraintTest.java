@@ -163,7 +163,7 @@ public class RelationshipConstraintTest extends ConstraintTestBase<WriteTestSupp
             assertThat(e.gqlStatus()).isEqualTo("22N75");
             assertThat(e.statusDescription())
                     .isEqualTo(
-                            "error: data exception - constraint contains duplicated tokens. The constraint specified by '()-[:RELATIONSHIP0:RELATIONSHIP1:RELATIONSHIP2:RELATIONSHIP1:RELATIONSHIP3 {property}]-()' includes a label, relationship type, or property key with name 'RELATIONSHIP1' more than once.");
+                            "error: data exception - constraint contains duplicated tokens. The constraint specified by '()-[:RELATIONSHIP0|RELATIONSHIP1|RELATIONSHIP2|RELATIONSHIP1|RELATIONSHIP3 {property}]-()' includes a label, relationship type, or property key with name 'RELATIONSHIP1' more than once.");
         }
     }
 

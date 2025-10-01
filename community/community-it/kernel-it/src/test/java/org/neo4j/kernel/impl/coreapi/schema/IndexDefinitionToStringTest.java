@@ -148,7 +148,7 @@ class IndexDefinitionToStringTest {
                     fulltextLabelsProperties,
                     "IndexDefinition[labels:Label,otherLabel on:prop,otherProp] "
                             + "(Index( id=%d, name='fulltextLabelPropertiesIndex', type='FULLTEXT', "
-                            + "schema=(:Label:otherLabel {prop, otherProp}), indexProvider='fulltext-2.0' ))");
+                            + "schema=(:Label|otherLabel {prop, otherProp}), indexProvider='fulltext-2.0' ))");
             assertIndexString(
                     textLabelProperty,
                     "IndexDefinition[label:Label on:prop] "
@@ -179,7 +179,7 @@ class IndexDefinitionToStringTest {
                     fulltextRelTypesProperties,
                     "IndexDefinition[relationship types:TYPE,OTHER_TYPE on:prop,otherProp] "
                             + "(Index( id=%d, name='fulltextRelTypesPropertiesIndex', type='FULLTEXT', "
-                            + "schema=()-[:TYPE:OTHER_TYPE {prop, otherProp}]-(), indexProvider='fulltext-2.0' ))");
+                            + "schema=()-[:TYPE|OTHER_TYPE {prop, otherProp}]-(), indexProvider='fulltext-2.0' ))");
             assertIndexString(
                     textRelTypeProperty,
                     "IndexDefinition[relationship type:TYPE on:prop] "

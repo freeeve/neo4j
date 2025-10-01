@@ -303,10 +303,10 @@ class SchemaRuleTest {
                 "Index( type='RANGE', schema=()-[:Type1 {prop2, prop3}]-(), indexProvider='Undecided-0' )",
                 rangeRelTypeUniquePrototype);
         assertUserDescription(
-                "Index( type='FULLTEXT', schema=(:Label1:Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
+                "Index( type='FULLTEXT', schema=(:Label1|Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
                 nodeFtsPrototype);
         assertUserDescription(
-                "Index( type='FULLTEXT', schema=()-[:Type1:Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
+                "Index( type='FULLTEXT', schema=()-[:Type1|Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
                 relFtsPrototype);
         assertUserDescription(
                 "Index( type='LOOKUP', schema=(:<any-labels>), indexProvider='Undecided-0' )", allLabelsPrototype);
@@ -324,13 +324,13 @@ class SchemaRuleTest {
                 "Index( type='POINT', schema=()-[:Type1 {prop2}]-(), indexProvider='Undecided-0' )",
                 pointRelTypePrototype);
         assertUserDescription(
-                "Index( type='VECTOR', schema=(:Label1:Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
+                "Index( type='VECTOR', schema=(:Label1|Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
                 vectorLabelPrototype);
         assertUserDescription(
-                "Index( type='VECTOR', schema=()-[:Type1:Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
+                "Index( type='VECTOR', schema=()-[:Type1|Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
                 vectorRelTypePrototype);
         assertUserDescription(
-                "Index( type='VECTOR', schema=(:`La:bel`:Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
+                "Index( type='VECTOR', schema=(:`La:bel`|Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
                 vectorLabelPrototype2);
         assertUserDescription(
                 "Constraint( type='NODE PROPERTY EXISTENCE', schema=(:Label1 {prop2, prop3}) )", existsLabelConstraint);
@@ -338,7 +338,7 @@ class SchemaRuleTest {
                 "Constraint( type='RELATIONSHIP PROPERTY EXISTENCE', schema=()-[:Type1 {prop2, prop3}]-() )",
                 existsRelTypeConstraint);
         assertUserDescription(
-                "Index( type='FULLTEXT', schema=(:`La:bel`:Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
+                "Index( type='FULLTEXT', schema=(:`La:bel`|Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
                 nodeFtsPrototype2);
         assertUserDescription(
                 "Constraint( type='NODE PROPERTY UNIQUENESS', schema=(:`La:bel` {`prop:erty`, prop1}) )",
@@ -377,13 +377,13 @@ class SchemaRuleTest {
                 "Index( name='rangeRelTypeUniquePrototypeNamed', type='RANGE', schema=()-[:Type1 {prop2, prop3}]-(), indexProvider='Undecided-0' )",
                 rangeRelTypeUniquePrototypeNamed);
         assertUserDescription(
-                "Index( name='nodeFtsPrototypeNamed', type='FULLTEXT', schema=(:Label1:Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
+                "Index( name='nodeFtsPrototypeNamed', type='FULLTEXT', schema=(:Label1|Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
                 nodeFtsPrototypeNamed);
         assertUserDescription(
-                "Index( name='relFtsPrototypeNamed', type='FULLTEXT', schema=()-[:Type1:Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
+                "Index( name='relFtsPrototypeNamed', type='FULLTEXT', schema=()-[:Type1|Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
                 relFtsPrototypeNamed);
         assertUserDescription(
-                "Index( name='nodeFtsPrototype2Named', type='FULLTEXT', schema=(:`La:bel`:Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
+                "Index( name='nodeFtsPrototype2Named', type='FULLTEXT', schema=(:`La:bel`|Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
                 nodeFtsPrototype2Named);
         assertUserDescription(
                 "Index( name='allLabelsPrototypeNamed', type='LOOKUP', schema=(:<any-labels>), indexProvider='Undecided-0' )",
@@ -404,13 +404,13 @@ class SchemaRuleTest {
                 "Index( name='pointRelTypePrototypeNamed', type='POINT', schema=()-[:Type1 {prop2}]-(), indexProvider='Undecided-0' )",
                 pointRelTypePrototypeNamed);
         assertUserDescription(
-                "Index( name='vectorLabelPrototypeNamed', type='VECTOR', schema=(:Label1:Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
+                "Index( name='vectorLabelPrototypeNamed', type='VECTOR', schema=(:Label1|Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
                 vectorLabelPrototypeNamed);
         assertUserDescription(
-                "Index( name='vectorLabelPrototype2Named', type='VECTOR', schema=(:`La:bel`:Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
+                "Index( name='vectorLabelPrototype2Named', type='VECTOR', schema=(:`La:bel`|Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
                 vectorLabelPrototype2Named);
         assertUserDescription(
-                "Index( name='vectorRelTypePrototypeNamed', type='VECTOR', schema=()-[:Type1:Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
+                "Index( name='vectorRelTypePrototypeNamed', type='VECTOR', schema=()-[:Type1|Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
                 vectorRelTypePrototypeNamed);
         assertUserDescription(
                 "Index( id=1, name='rangeLabelIndexNamed', type='RANGE', schema=(:Label1 {prop2, prop3}), indexProvider='Undecided-0' )",
@@ -428,13 +428,13 @@ class SchemaRuleTest {
                 "Index( id=5, name='rangeRelTypeUniqueIndexNamed', type='RANGE', schema=()-[:Type1 {prop2, prop3}]-(), indexProvider='Undecided-0' )",
                 rangeRelTypeUniqueIndexNamed);
         assertUserDescription(
-                "Index( id=6, name='nodeFtsIndexNamed', type='FULLTEXT', schema=(:Label1:Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
+                "Index( id=6, name='nodeFtsIndexNamed', type='FULLTEXT', schema=(:Label1|Label2 {prop1, prop2}), indexProvider='Undecided-0' )",
                 nodeFtsIndexNamed);
         assertUserDescription(
-                "Index( id=7, name='relFtsIndexNamed', type='FULLTEXT', schema=()-[:Type1:Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
+                "Index( id=7, name='relFtsIndexNamed', type='FULLTEXT', schema=()-[:Type1|Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
                 relFtsIndexNamed);
         assertUserDescription(
-                "Index( id=8, name='nodeFtsIndex2Named', type='FULLTEXT', schema=(:`La:bel`:Label1 {`prop:erty`, prop1}), "
+                "Index( id=8, name='nodeFtsIndex2Named', type='FULLTEXT', schema=(:`La:bel`|Label1 {`prop:erty`, prop1}), "
                         + "indexProvider='Undecided-0' )",
                 nodeFtsIndex2Named);
         assertUserDescription(
@@ -460,16 +460,16 @@ class SchemaRuleTest {
                         + "indexProvider='Undecided-0', owningConstraint=1 )",
                 indexBelongingToConstraint);
         assertUserDescription(
-                "Index( id=16, name='vectorLabelIndexNamed', type='VECTOR', schema=(:Label1:Label2 {prop1, prop2}), "
+                "Index( id=16, name='vectorLabelIndexNamed', type='VECTOR', schema=(:Label1|Label2 {prop1, prop2}), "
                         + "indexProvider='Undecided-0' )",
                 vectorLabelIndexNamed);
         assertUserDescription(
                 "Index( id=17, name='vectorLabelIndex2Named', type='VECTOR', "
-                        + "schema=(:`La:bel`:Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
+                        + "schema=(:`La:bel`|Label1 {`prop:erty`, prop1}), indexProvider='Undecided-0' )",
                 vectorLabelIndex2Named);
         assertUserDescription(
                 "Index( id=18, name='vectorRelTypeIndexNamed', type='VECTOR', "
-                        + "schema=()-[:Type1:Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
+                        + "schema=()-[:Type1|Type2 {prop1, prop2}]-(), indexProvider='Undecided-0' )",
                 vectorRelTypeIndexNamed);
         assertUserDescription(
                 "Constraint( id=1, name='uniqueLabelConstraintNamed', type='NODE PROPERTY UNIQUENESS', schema=(:Label1 {prop2, prop3}), ownedIndex=1 )",

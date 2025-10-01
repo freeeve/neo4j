@@ -206,7 +206,7 @@ public class NodeConstraintTest extends ConstraintTestBase<WriteTestSupport> {
             assertThat(e.gqlStatus()).isEqualTo("22N75");
             assertThat(e.statusDescription())
                     .isEqualTo(
-                            "error: data exception - constraint contains duplicated tokens. The constraint specified by '(:Label0:Label1:Label2:Label1:Label3 {property})' includes a label, relationship type, or property key with name 'Label1' more than once.");
+                            "error: data exception - constraint contains duplicated tokens. The constraint specified by '(:Label0|Label1|Label2|Label1|Label3 {property})' includes a label, relationship type, or property key with name 'Label1' more than once.");
         }
     }
 
