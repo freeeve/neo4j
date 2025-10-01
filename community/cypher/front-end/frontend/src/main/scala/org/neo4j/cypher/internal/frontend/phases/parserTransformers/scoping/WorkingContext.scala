@@ -179,9 +179,6 @@ case class PatternIncomingContext(
   @inline def amendedWithTopologicalConstant(amendment: Set[LogicalVariable]): PatternIncomingContext =
     PatternIncomingContext(topologicalConstants union amendment, predicateConstants, pathConstants)
 
-  @inline def amendedWithPredicateConstant(amendment: LogicalVariable): PatternIncomingContext =
-    PatternIncomingContext(topologicalConstants + amendment, predicateConstants, pathConstants)
-
   @inline def removePathConstants(): PatternIncomingContext =
     PatternIncomingContext(topologicalConstants, predicateConstants, unitVariables)
 

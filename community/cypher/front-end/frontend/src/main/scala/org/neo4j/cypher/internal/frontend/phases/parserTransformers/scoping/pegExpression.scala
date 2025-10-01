@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.IterablePredicateExpression
 import org.neo4j.cypher.internal.expressions.ListComprehension
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.ReduceExpression
 import org.neo4j.cypher.internal.expressions.ReduceScope
 import org.neo4j.cypher.internal.expressions.Variable
@@ -111,6 +112,25 @@ object pegExpression {
         val declared = Declarations(Seq(variable), Seq.empty)
         collect(incoming.expressionResultScope(lc, children, referenced, declared))
 
+      case pc @ PatternComprehension(optVar, pattern, innerPredicate, projection) =>
+        val patternResult = pegPattern(pattern.element, incoming)
+        val variables = optVar match {
+          case Some(value) => Seq(value) ++ patternResult.declared.variables
+          case None        => patternResult.declared.variables
+        }
+        val innerIncoming = incoming.amendedWithConstant(variables.toSet)
+        val innerResult = Seq(innerPredicate, Some(projection)).flatMap {
+          case Some(ex) => Some(apply(ex, innerIncoming))
+          case None     => None
+        }
+        val children = patternResult +: innerResult
+        val referenced = {
+          val innerReferenced = WorkingScope.referencedInChildren(innerResult) diff variables.toSet
+          val patternReferenced = patternResult.referenced
+          Some(innerReferenced union patternReferenced)
+        }
+        val declared = Declarations(variables, Seq.empty)
+        collect(incoming.expressionResultScope(pc, children, referenced, declared))
       case iter: IterablePredicateExpression =>
         val FilterScope(variable, innerPredicate) = iter.scope
         val innerIncoming = incoming.amendedWithConstant(variable)

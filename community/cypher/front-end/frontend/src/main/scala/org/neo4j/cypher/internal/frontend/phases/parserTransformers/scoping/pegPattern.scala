@@ -79,6 +79,16 @@ object pegPattern {
     scopePatternPart(patternPart, patternIncomingContext)
   }
 
+  def apply(patternElement: PatternElement, incoming: RegularContext): WorkingScope = {
+    val patternIncomingContext = PatternIncomingContext(
+      topologicalConstants = incoming.constants,
+      predicateConstants =
+        incoming.constants union (collectVisibleVariablesOfPatternElement(patternElement) diff incoming.constants),
+      pathConstants = Set.empty
+    )
+    scopePatternElement(patternElement, patternIncomingContext)
+  }
+
   private def scopePatternPart(patternPart: PatternPart, incoming: PatternIncomingContext): PatternScope = {
     implicit val astNode: ASTNode = patternPart
     patternPart match {
@@ -150,7 +160,7 @@ object pegPattern {
     implicit val astNode: ASTNode = patternAtom
     patternAtom match {
       case NodePattern(variableOpt, labelExpressionOpt, propertiesOpt, predicateOpt) =>
-        val predicateIncoming = variableOpt.map(v => incoming.amendedWithPredicateConstant(v)).getOrElse(incoming)
+        val predicateIncoming = variableOpt.map(v => incoming.amendedWithTopologicalConstant(v)).getOrElse(incoming)
         val labelExpressionScopeOpt =
           labelExpressionOpt.map(labelExpression => scopePredicate(labelExpression, predicateIncoming))
         val propertiesScopeOpt =
@@ -167,11 +177,10 @@ object pegPattern {
           if (varLengthOpt.isEmpty) incoming
           else PatternIncomingContext.unit
         val predicateIncoming =
-          variableOpt.map(v => varLengthIncoming.amendedWithPredicateConstant(v)).getOrElse(varLengthIncoming)
+          variableOpt.map(v => varLengthIncoming.amendedWithTopologicalConstant(v)).getOrElse(varLengthIncoming)
         val labelExpressionScopeOpt =
           labelExpressionOpt.map(labelExpression => scopePredicate(labelExpression, predicateIncoming))
-        val propertiesScopeOpt =
-          propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming))
+        val propertiesScopeOpt = propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming))
         val predicateScopeOpt = predicateOpt.map(predicate => scopePredicate(predicate, predicateIncoming))
         val (boundVariables, newVariables) = variableOpt.partition(v => incoming.topologicalConstants contains v)
         val columns = variableOpt.toSeq

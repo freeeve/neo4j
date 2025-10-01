@@ -199,9 +199,24 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `n` not defined.")
   }
 
+  test("""MATCH (n {p: n.p})
+         |RETURN n""".stripMargin) {
+    passes()
+  }
+
   test("""CREATE (n {p: 1})-[:R]->({p: n.p})
          |RETURN n""".stripMargin) {
     error("42N62", "Variable `n` not defined.")
+  }
+
+  test("""MATCH (n {p: 1})-[:R]->({p: n.p})
+         |RETURN n""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (n {p: 1})-[r:R WHERE r.p > 1]->()
+         |RETURN n""".stripMargin) {
+    passes()
   }
 
   test("""CREATE (n {p: n.p})-[:R]->({p: 1})
@@ -424,6 +439,27 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
       |WHERE any(prefix in ["a", "b", "c"] WHERE n.name = prefix)
       |RETURN n.name""".stripMargin
   ) {
+    passes()
+  }
+
+  test("""MATCH (n)
+         |RETURN [x=(n)-->() | head(nodes(x))] AS p""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (n)
+         |RETURN [(n)-->() | n.name] AS p""".stripMargin) {
+    passes()
+  }
+
+  test("""WITH 1 AS x
+         |MATCH (a:A WHERE a.prop > x)-[r]-(b:B)
+         |RETURN a, r, b""".stripMargin) {
+    passes()
+  }
+
+  test("""WITH 1 AS x
+         |RETURN [(a:A WHERE a.prop > x)-[r]-(b:B) | a.prop] AS result""".stripMargin) {
     passes()
   }
 

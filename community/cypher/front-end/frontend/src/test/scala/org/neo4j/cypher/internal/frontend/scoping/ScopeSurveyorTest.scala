@@ -3047,6 +3047,82 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
     )
   }
 
+  test("""LET x = 1
+         |RETURN [(a:A WHERE a.prop > x)-[r]-(b:B) | a.prop] AS result""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET x = 1
+              |RETURN [(a:A WHERE a.prop > x)-[r]-(b:B) | a.prop] AS result""".stripMargin),
+        Outgoing(variables = Set("result")),
+        ExpectedResult.TableResult("result"),
+        ExpectedWorkingScope(
+          Ast("LET x = 1"),
+          Declared(variables = Seq("x")),
+          Outgoing(variables = Set("x")),
+          ExpectedWorkingScope.constExp("1")
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN [(a:A WHERE a.prop > x)-[r]-(b:B) | a.prop] AS result"),
+          Incoming(variables = Set("x")),
+          Outgoing(variables = Set("result")),
+          Referenced(Set("x")),
+          ExpectedResult.TableResult("result"),
+          ExpectedWorkingScope(
+            Ast("[(a:A WHERE a.prop > x)-[r]-(b:B) | a.prop]"),
+            Incoming(constants = Set("x")),
+            Declared(constants = Seq("a", "r", "b")),
+            Referenced(Set("x")),
+            ExpectedWorkingScope(
+              Ast("(a:A WHERE a.prop > x)-[r]-(b:B)"),
+              PatternIncoming(topology = Set("x"), predicate = Set("x", "a", "r", "b")),
+              Declared(variables = Seq("a", "r", "b")),
+              Outgoing(variables = Set("a", "r", "b")),
+              ExpectedResult.TableResult("a", "r", "b"),
+              Referenced(Set("x")),
+              ExpectedWorkingScope(
+                Ast("(a:A WHERE a.prop > x)"),
+                PatternIncoming(topology = Set("x"), predicate = Set("x", "a", "r", "b")),
+                ExpectedResult.TableResult("a"),
+                Declared(variables = Seq("a")),
+                Outgoing(variables = Set("a")),
+                Referenced(Set("x")),
+                ExpectedWorkingScope.constExp("A", Set("x", "a", "r", "b")),
+                ExpectedWorkingScope(
+                  Ast("a.prop > x"),
+                  Incoming(constants = Set("x", "a", "r", "b")),
+                  Referenced(Set("a", "x")),
+                  ExpectedWorkingScope.varExp("a", Set("x", "a", "r", "b")),
+                  ExpectedWorkingScope.varExp("x", Set("x", "a", "r", "b"))
+                )
+              ),
+              ExpectedWorkingScope(
+                Ast("-[r]-"),
+                PatternIncoming(topology = Set("x", "a"), predicate = Set("x", "a", "r", "b")),
+                Declared(variables = Seq("r")),
+                Outgoing(variables = Set("r")),
+                ExpectedResult.TableResult("r")
+              ),
+              ExpectedWorkingScope(
+                Ast("(b:B)"),
+                PatternIncoming(topology = Set("x", "a", "r"), predicate = Set("x", "a", "r", "b")),
+                Declared(variables = Seq("b")),
+                Outgoing(variables = Set("b")),
+                ExpectedResult.TableResult("b"),
+                ExpectedWorkingScope.constExp("B", Set("x", "a", "r", "b"))
+              )
+            ),
+            ExpectedWorkingScope(
+              Ast("a.prop"),
+              Incoming(constants = Set("x", "a", "r", "b")),
+              Referenced(Set("a")),
+              ExpectedWorkingScope.varExp("a", Set("x", "a", "r", "b"))
+            )
+          )
+        )
+      )
+    )
+  }
+
   test("""LET a = 10
          |RETURN allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10) AS red""".stripMargin) {
     hasScope(
