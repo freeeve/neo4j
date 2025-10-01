@@ -23,13 +23,13 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.coerceToPredicate
+import org.neo4j.cypher.internal.notification.AggregationSkippedNull
+import org.neo4j.cypher.internal.notification.DeprecatedBooleanCoercion
+import org.neo4j.cypher.internal.notification.RuntimeUnsatisfiableRelationshipTypeExpression
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RecordingRuntimeResult
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
-import org.neo4j.cypher.internal.util.AggregationSkippedNull
-import org.neo4j.cypher.internal.util.DeprecatedBooleanCoercion
-import org.neo4j.cypher.internal.util.RuntimeUnsatisfiableRelationshipTypeExpression
 import org.neo4j.graphdb.RelationshipType
 
 object RuntimeNotificationsTestBase

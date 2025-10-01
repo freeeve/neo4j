@@ -22,12 +22,12 @@ package org.neo4j.cypher.internal
 import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig
 import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
+import org.neo4j.cypher.internal.frontend.notification.InternalNotificationStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.planning.CypherPlanner
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
-import org.neo4j.cypher.internal.util.InternalNotificationStats
 import org.neo4j.kernel.GraphDatabaseQueryService
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.logging.InternalLog

@@ -21,10 +21,10 @@ package org.neo4j.cypher.internal.javacompat;
 
 import java.util.Set;
 import org.neo4j.cypher.internal.frontend.phases.BaseState;
+import org.neo4j.cypher.internal.notification.InternalNotification;
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
 import org.neo4j.cypher.internal.preparser.PreParsedQuery;
 import org.neo4j.cypher.internal.runtime.InputDataStream;
-import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.kernel.impl.query.QueryExecution;
 import org.neo4j.kernel.impl.query.QueryExecutionEngine;
 import org.neo4j.kernel.impl.query.QueryExecutionKernelException;

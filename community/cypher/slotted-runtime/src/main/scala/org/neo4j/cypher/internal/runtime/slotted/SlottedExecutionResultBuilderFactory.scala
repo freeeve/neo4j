@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.slotted
 
 import org.neo4j.cypher.internal.config.MemoryTrackingController
 import org.neo4j.cypher.internal.ir.IndexComparatorFactory
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.ParameterMapping
 import org.neo4j.cypher.internal.runtime.QueryContext
@@ -35,7 +36,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState.createDefaultInCache
 import org.neo4j.cypher.internal.runtime.interpreted.profiler.InterpretedProfileInformation
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue

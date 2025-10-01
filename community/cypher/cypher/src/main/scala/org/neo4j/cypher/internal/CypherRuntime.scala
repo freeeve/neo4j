@@ -23,6 +23,9 @@ import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
 import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.ir.IndexComparatorFactory
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.RecordingNotificationLogger
+import org.neo4j.cypher.internal.notification.RuntimeUnsupportedNotification
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
@@ -33,8 +36,6 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.RuntimeUnsupportedException
@@ -44,7 +45,6 @@ import org.neo4j.kernel.api.AssertOpen
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.logging.InternalLog
-import org.neo4j.notifications.RuntimeUnsupportedNotification
 
 import java.time.Clock
 

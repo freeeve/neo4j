@@ -42,12 +42,12 @@ import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.notification.ExhaustiveShortestPathForbiddenNotification
 import org.neo4j.cypher.internal.rewriting.rewriters.ProjectNamedPaths
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.topDown
 import org.neo4j.exceptions.ExhaustiveShortestPathForbiddenException.exhaustiveShortestPath
-import org.neo4j.notifications.ExhaustiveShortestPathForbiddenNotification
 
 case object planShortestRelationships {
 

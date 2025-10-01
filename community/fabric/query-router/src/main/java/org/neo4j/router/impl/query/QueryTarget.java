@@ -21,7 +21,7 @@ package org.neo4j.router.impl.query;
 
 import java.util.HashSet;
 import java.util.Set;
-import org.neo4j.cypher.internal.util.InternalNotification;
+import org.neo4j.cypher.internal.notification.InternalNotification;
 import org.neo4j.kernel.database.DatabaseReference;
 
 public record QueryTarget(DatabaseReference reference, Set<InternalNotification> routingNotifications) {

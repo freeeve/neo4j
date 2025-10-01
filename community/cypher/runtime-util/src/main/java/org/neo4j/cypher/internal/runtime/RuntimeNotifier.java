@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime;
 
-import org.neo4j.cypher.internal.util.InternalNotification;
+import org.neo4j.cypher.internal.notification.InternalNotification;
 
 public interface RuntimeNotifier {
     void newRuntimeNotification(InternalNotification notification);

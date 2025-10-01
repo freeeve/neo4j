@@ -24,11 +24,11 @@ import org.neo4j.csv.reader.CharSeekers
 import org.neo4j.csv.reader.Configuration
 import org.neo4j.csv.reader.Extractors
 import org.neo4j.csv.reader.Mark
+import org.neo4j.cypher.internal.notification.InsecureProtocol
 import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExternalCSVResource
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LoadCsvIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.internal.util.InsecureProtocol
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.LoadExternalResourceException
 import org.neo4j.graphdb.security.AuthorizationViolationException

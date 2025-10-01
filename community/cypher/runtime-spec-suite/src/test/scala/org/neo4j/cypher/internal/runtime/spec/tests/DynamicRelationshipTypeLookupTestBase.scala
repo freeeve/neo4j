@@ -32,11 +32,11 @@ import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
+import org.neo4j.cypher.internal.notification.RuntimeUnsatisfiableRelationshipTypeExpression
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RecordingRuntimeResult
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
-import org.neo4j.cypher.internal.util.RuntimeUnsatisfiableRelationshipTypeExpression
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.internal.kernel.api.exceptions.schema.IllegalTokenNameException

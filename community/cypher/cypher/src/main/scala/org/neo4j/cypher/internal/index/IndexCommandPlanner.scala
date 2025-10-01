@@ -37,6 +37,9 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Type
+import org.neo4j.cypher.internal.notification.IndexOrConstraintAlreadyExistsNotification
+import org.neo4j.cypher.internal.notification.IndexOrConstraintDoesNotExistNotification
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.optionsmap.CreateFulltextIndexOptionsConverter
 import org.neo4j.cypher.internal.optionsmap.CreateIndexProviderOnlyOptions
 import org.neo4j.cypher.internal.optionsmap.CreateIndexWithFullOptions
@@ -58,9 +61,6 @@ import org.neo4j.cypher.internal.procs.SchemaExecutionResult
 import org.neo4j.cypher.internal.procs.SuccessResult
 import org.neo4j.cypher.internal.runtime.IndexInformation
 import org.neo4j.cypher.internal.runtime.QueryContext
-import org.neo4j.cypher.internal.util.IndexOrConstraintAlreadyExistsNotification
-import org.neo4j.cypher.internal.util.IndexOrConstraintDoesNotExistNotification
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.graphdb.schema.IndexType
 import org.neo4j.graphdb.schema.IndexType.POINT
 import org.neo4j.graphdb.schema.IndexType.RANGE

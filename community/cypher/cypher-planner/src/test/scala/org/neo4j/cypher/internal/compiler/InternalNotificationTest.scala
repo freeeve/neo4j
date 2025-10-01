@@ -19,8 +19,8 @@
  */
 package org.neo4j.cypher.internal.compiler
 
-import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.InternalNotifications
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.InternalNotifications
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.reflections.Reflections
 import org.reflections.scanners.Scanners

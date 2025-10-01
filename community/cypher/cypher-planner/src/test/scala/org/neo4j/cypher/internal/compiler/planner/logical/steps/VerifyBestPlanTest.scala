@@ -48,9 +48,11 @@ import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.UnionQuery
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.notification.IndexHintUnfulfillableNotification
+import org.neo4j.cypher.internal.notification.JoinHintUnfulfillableNotification
+import org.neo4j.cypher.internal.notification.RecordingNotificationLogger
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
@@ -58,11 +60,10 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.HintException
 import org.neo4j.exceptions.IndexHintException
+import org.neo4j.exceptions.IndexHintException.IndexHintIndexType
 import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.InvalidHintException
 import org.neo4j.exceptions.JoinHintException
-import org.neo4j.notifications.IndexHintUnfulfillableNotification
-import org.neo4j.notifications.JoinHintUnfulfillableNotification
 
 class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport {
 
@@ -285,7 +286,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       "User",
       Seq("name"),
       EntityType.NODE,
-      UsingAnyIndexType
+      IndexHintIndexType.ANY
     ))
   }
 
@@ -308,7 +309,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       "User",
       Seq("name"),
       EntityType.RELATIONSHIP,
-      UsingAnyIndexType
+      IndexHintIndexType.ANY
     ))
   }
 
@@ -331,7 +332,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       "User",
       Seq("name"),
       EntityType.NODE,
-      UsingTextIndexType
+      IndexHintIndexType.TEXT
     ))
   }
 
@@ -354,7 +355,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       "User",
       Seq("name"),
       EntityType.RELATIONSHIP,
-      UsingTextIndexType
+      IndexHintIndexType.TEXT
     ))
   }
 
@@ -377,7 +378,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       "User",
       Seq("name"),
       EntityType.NODE,
-      UsingRangeIndexType
+      IndexHintIndexType.RANGE
     ))
   }
 
@@ -400,7 +401,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       "User",
       Seq("name"),
       EntityType.RELATIONSHIP,
-      UsingRangeIndexType
+      IndexHintIndexType.RANGE
     ))
   }
 

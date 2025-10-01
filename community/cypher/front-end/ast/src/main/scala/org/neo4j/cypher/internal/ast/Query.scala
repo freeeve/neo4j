@@ -44,9 +44,9 @@ import org.neo4j.cypher.internal.ast.semantics.Symbol
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.notification.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.gqlstatus.GqlHelper
 

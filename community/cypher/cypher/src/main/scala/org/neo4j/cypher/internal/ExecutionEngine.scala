@@ -25,6 +25,9 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.InternalNotificationLogger
+import org.neo4j.cypher.internal.notification.RecordingNotificationLogger
 import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.planning.CompilationException
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
@@ -35,9 +38,6 @@ import org.neo4j.cypher.internal.runtime.NoInput
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.tracing.CompilationTracer
 import org.neo4j.cypher.internal.tracing.CompilationTracer.QueryCompilationEvent
-import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.InternalNotificationLogger
-import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject

@@ -22,13 +22,13 @@ package org.neo4j.fabric.planning
 import org.neo4j.cypher.internal.CypherDeprecationNotificationsProvider
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.frontend.notification.NotificationWrapping
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.ObfuscationMetadata
 import org.neo4j.fabric.planning.FabricPlan.DebugOptions
 import org.neo4j.notifications.NotificationImplementation
-import org.neo4j.notifications.NotificationWrapping
 
 case class FabricPlan(
   query: Fragment,

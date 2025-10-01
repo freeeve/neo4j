@@ -194,6 +194,11 @@
       <artifactId>cypher-parser-ast-common</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-internal-notifications</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <!-- scala -->
 

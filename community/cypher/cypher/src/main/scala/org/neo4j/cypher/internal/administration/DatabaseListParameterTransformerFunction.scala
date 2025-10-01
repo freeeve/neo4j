@@ -36,10 +36,10 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.STORE_COL
 import org.neo4j.cypher.internal.ast.SingleNamedDatabaseScope
 import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.procs.ParameterTransformer.ParameterTransformerOutput
 import org.neo4j.cypher.internal.procs.ParameterTransformerFunction
 import org.neo4j.cypher.internal.util.AssertionRunner
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.dbms.database.DatabaseDetails
 import org.neo4j.dbms.database.DatabaseDetails.STATUS_MIXED
 import org.neo4j.dbms.database.TopologyInfoService

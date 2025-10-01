@@ -22,12 +22,12 @@ package org.neo4j.cypher.internal.procs
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.RuntimeName
 import org.neo4j.cypher.internal.SystemCommandRuntimeName
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.plandescription.Argument
 import org.neo4j.cypher.internal.procs.PredicateExecutionPlan.AccessModeChanger
 import org.neo4j.cypher.internal.procs.PredicateExecutionPlan.NoAccessModeChange
 import org.neo4j.cypher.internal.runtime.ExecutionMode
 import org.neo4j.cypher.internal.runtime.QueryStatistics
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.result.EmptyQuerySubscription
 import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.cypher.result.RuntimeResult

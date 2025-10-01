@@ -19,12 +19,12 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.cypher.internal.frontend.notification.NotificationWrapping
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.graphdb.Notification
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.query.DeprecationNotificationsProvider
-import org.neo4j.notifications.NotificationWrapping
 
 import java.util.function.BiConsumer
 

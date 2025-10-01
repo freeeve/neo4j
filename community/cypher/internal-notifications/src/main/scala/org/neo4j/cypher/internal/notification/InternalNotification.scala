@@ -2,19 +2,26 @@
  * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [https://neo4j.com]
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This file is part of Neo4j.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.util
+package org.neo4j.cypher.internal.notification
+
+import org.neo4j.common.EntityType
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.exceptions.IndexHintException.IndexHintIndexType
 
 import java.lang
 
@@ -24,13 +31,13 @@ import scala.jdk.CollectionConverters.ListHasAsScala
 /**
  * Describes a notification
  */
-trait InternalNotification {
+sealed trait InternalNotification {
   def notificationName: String = this.getClass.getSimpleName.stripSuffix("$")
 }
 
 object InternalNotifications {
 
-  val allNotifications: Set[String] = Set(
+  def allNotifications: Set[String] = Set(
     "CartesianProductNotification",
     "UnboundedShortestPathNotification",
     "DeprecatedFunctionNotification",
@@ -235,3 +242,60 @@ case class WaitServerUnavailable(serverName: String) extends InternalNotificatio
 case class WaitServerCatchingUp(serverName: String, boltAddress: String) extends InternalNotification {}
 case class WaitServerFailed(serverName: String, boltAddress: String, message: String) extends InternalNotification {}
 case class WaitServerCaughtUp(serverName: String, boltAddress: String) extends InternalNotification {}
+
+case class RuntimeUnsupportedNotification(
+  failingRuntimeConf: String,
+  fallbackRuntimeConf: String,
+  msg: String
+) extends InternalNotification
+
+case class IndexHintUnfulfillableNotification(
+  variableName: String,
+  labelOrRelType: String,
+  propertyKeys: Seq[String],
+  entityType: EntityType,
+  indexType: IndexHintIndexType
+) extends InternalNotification
+
+case class JoinHintUnfulfillableNotification(identified: Seq[String]) extends InternalNotification
+
+case class NodeIndexLookupUnfulfillableNotification(labels: Set[String]) extends InternalNotification
+
+case class RelationshipIndexLookupUnfulfillableNotification(labels: Set[String]) extends InternalNotification
+
+case object EagerLoadCsvNotification extends InternalNotification
+
+case class LargeLabelWithLoadCsvNotification(labelName: String) extends InternalNotification
+
+case class MissingLabelNotification(position: InputPosition, label: String, db: String) extends InternalNotification
+
+case class MissingRelTypeNotification(position: InputPosition, relType: String, db: String) extends InternalNotification
+
+case class MissingPropertyNameNotification(position: InputPosition, name: String, db: String)
+    extends InternalNotification
+
+case class ExhaustiveShortestPathForbiddenNotification(position: InputPosition, pathPredicates: Set[String])
+    extends InternalNotification
+
+case class DeprecatedProcedureNotification(position: InputPosition, oldName: String, newName: Option[String])
+    extends InternalNotification
+
+case class ProcedureWarningNotification(position: InputPosition, procedure: String, warning: String)
+    extends InternalNotification
+
+case class DeprecatedProcedureReturnFieldNotification(position: InputPosition, procedure: String, field: String)
+    extends InternalNotification
+
+case class DeprecatedProcedureFieldNotification(position: InputPosition, procedure: String, field: String)
+    extends InternalNotification
+
+case class DeprecatedFunctionFieldNotification(position: InputPosition, procedure: String, field: String)
+    extends InternalNotification
+
+case class MissingParametersNotification(parameters: Seq[String]) extends InternalNotification
+
+case class CodeGenerationFailedNotification(
+  failingRuntimeConf: String,
+  fallbackRuntimeConf: String,
+  msg: String
+) extends InternalNotification

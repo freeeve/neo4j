@@ -24,8 +24,8 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuite.initialStateWithQuery
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
-import org.neo4j.cypher.internal.util.DeprecatedFunctionNotification
-import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.cypher.internal.notification.DeprecatedFunctionNotification
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N57
 import org.scalatest.exceptions.TestFailedException

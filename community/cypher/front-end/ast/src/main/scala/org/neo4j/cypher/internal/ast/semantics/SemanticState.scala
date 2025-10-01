@@ -32,10 +32,10 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.CrossCompilation
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.helpers.TreeElem

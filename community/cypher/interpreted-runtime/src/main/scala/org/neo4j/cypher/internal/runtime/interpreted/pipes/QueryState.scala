@@ -22,6 +22,8 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.neo4j.cypher.internal.GQLExceptionsHelper.requireImplicitTransaction
 import org.neo4j.cypher.internal.ir.IndexComparatorFactory
 import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.notification.AggregationSkippedNull
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.MapCypherRow
@@ -38,8 +40,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.profiler.InterpretedProfile
 import org.neo4j.cypher.internal.runtime.interpreted.profiler.Profiler
 import org.neo4j.cypher.internal.runtime.memory.MemoryTrackerForOperatorProvider
 import org.neo4j.cypher.internal.runtime.memory.QueryMemoryTracker
-import org.neo4j.cypher.internal.util.AggregationSkippedNull
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel
 import org.neo4j.internal.kernel.api.IndexReadSession

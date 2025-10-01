@@ -21,8 +21,8 @@ package org.neo4j.cypher.internal.procs
 
 import ParameterTransformer.ParameterConversionFunction
 import ParameterTransformer.ParameterTransformerOutput
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.procs.ParameterTransformer.ParameterGenerationFunction
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.graphdb.Transaction
 import org.neo4j.internal.kernel.api.security.SecurityContext

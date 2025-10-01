@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.InterpretedRuntime.InterpretedExecutionPlan
 import org.neo4j.cypher.internal.InterpretedRuntime.calculateTransactionMode
 import org.neo4j.cypher.internal.SlottedRuntime.NO_METADATA
 import org.neo4j.cypher.internal.SlottedRuntime.NO_WARNINGS
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlan
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanner
@@ -43,7 +44,6 @@ import org.neo4j.cypher.internal.runtime.slotted.SlottedPipelineBreakingPolicy
 import org.neo4j.cypher.internal.runtime.slotted.expressions.MaterializedEntitiesExpressionConverter
 import org.neo4j.cypher.internal.runtime.slotted.expressions.SlottedExpressionConverters
 import org.neo4j.cypher.internal.util.CypherException
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 

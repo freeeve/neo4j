@@ -33,7 +33,7 @@ import org.neo4j.cypher.internal.logical.plans.AsDynamicPropertyNonSeekable
 import org.neo4j.cypher.internal.logical.plans.AsStringRangeNonSeekable
 import org.neo4j.cypher.internal.logical.plans.AsValueRangeNonSeekable
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 

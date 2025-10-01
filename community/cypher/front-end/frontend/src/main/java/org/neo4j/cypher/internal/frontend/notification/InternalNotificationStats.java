@@ -14,10 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.util;
+package org.neo4j.cypher.internal.frontend.notification;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
+import org.neo4j.cypher.internal.notification.InternalNotification;
 
 public class InternalNotificationStats {
     private final ConcurrentHashMap<String, LongAdder> notificationCounts = new ConcurrentHashMap<>();

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.NumberLiteral
+import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy
 import org.neo4j.cypher.internal.parser.ast.AntlrAstParser
 import org.neo4j.cypher.internal.parser.ast.AstBuildingAntlrParser
@@ -31,7 +32,6 @@ import org.neo4j.cypher.internal.parser.ast.SyntaxChecker
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 
 import scala.collection.immutable.ArraySeq

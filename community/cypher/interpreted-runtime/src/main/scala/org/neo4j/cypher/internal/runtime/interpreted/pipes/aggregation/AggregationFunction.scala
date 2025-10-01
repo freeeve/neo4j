@@ -19,9 +19,9 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation
 
+import org.neo4j.cypher.internal.notification.AggregationSkippedNull
 import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.internal.util.AggregationSkippedNull
 import org.neo4j.values.AnyValue
 
 /**

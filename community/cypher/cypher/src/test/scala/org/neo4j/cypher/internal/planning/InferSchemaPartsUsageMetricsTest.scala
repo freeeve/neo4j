@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.NO_TRACI
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsImpl
 import org.neo4j.cypher.internal.frontend.phases.SchemaInferenceUsageMetricKey
+import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
@@ -54,7 +55,6 @@ import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.logging.NullLog

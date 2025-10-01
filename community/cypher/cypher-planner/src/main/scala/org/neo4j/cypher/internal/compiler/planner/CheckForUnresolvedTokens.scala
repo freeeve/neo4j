@@ -32,15 +32,15 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.Compilat
 import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.ir.PlannerQuery
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.MissingLabelNotification
+import org.neo4j.cypher.internal.notification.MissingPropertyNameNotification
+import org.neo4j.cypher.internal.notification.MissingRelTypeNotification
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
-import org.neo4j.notifications.MissingLabelNotification
-import org.neo4j.notifications.MissingPropertyNameNotification
-import org.neo4j.notifications.MissingRelTypeNotification
 
 /**
  * Find labels, relationships types and property keys that do not exist in the db and issue warnings.

@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Monitors
+import org.neo4j.cypher.internal.notification.devNullLogger
 import org.neo4j.cypher.internal.util._
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.NamedDatabaseId

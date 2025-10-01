@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.logical.plans.Prober
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.TestSubscriber
@@ -46,7 +47,6 @@ import org.neo4j.cypher.internal.runtime.spec.execution.RuntimeTestSupportExecut
 import org.neo4j.cypher.internal.runtime.spec.matcher.RuntimeResultMatchers
 import org.neo4j.cypher.internal.runtime.spec.resolver.RuntimeTestResolver
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.TestPlanCombinationRewriterHint
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.result.RuntimeResult

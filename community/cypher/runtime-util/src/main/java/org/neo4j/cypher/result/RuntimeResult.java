@@ -20,7 +20,7 @@
 package org.neo4j.cypher.result;
 
 import java.util.Set;
-import org.neo4j.cypher.internal.util.InternalNotification;
+import org.neo4j.cypher.internal.notification.InternalNotification;
 import org.neo4j.graphdb.QueryStatistics;
 import org.neo4j.kernel.impl.query.QuerySubscription;
 import org.neo4j.memory.HeapHighWaterMarkTracker;

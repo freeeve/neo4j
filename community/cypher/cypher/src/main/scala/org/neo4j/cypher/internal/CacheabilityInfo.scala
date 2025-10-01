@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal
 
-import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.cypher.internal.notification.InternalNotification
 
 /**
  * This trait is just there to give the ability to hold caching information

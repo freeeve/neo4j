@@ -23,6 +23,7 @@ import org.mockito.Mockito.RETURNS_DEEP_STUBS
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.neo4j.cypher.internal.javacompat.ResultSubscriber
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionBuilder
 import org.neo4j.cypher.internal.result.StandardInternalExecutionResult.NoOuterCloseable
 import org.neo4j.cypher.internal.runtime.InternalQueryType
@@ -32,7 +33,6 @@ import org.neo4j.cypher.internal.runtime.READ_ONLY
 import org.neo4j.cypher.internal.runtime.READ_WRITE
 import org.neo4j.cypher.internal.runtime.SCHEMA_WRITE
 import org.neo4j.cypher.internal.runtime.WRITE
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.cypher.result.RuntimeResult

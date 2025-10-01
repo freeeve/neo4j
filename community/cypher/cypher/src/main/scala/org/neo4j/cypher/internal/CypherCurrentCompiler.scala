@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.cache.CypherQueryCaches.CachedExecutionPlan
 import org.neo4j.cypher.internal.cache.CypherQueryCaches.ExecutionPlanCacheKey
 import org.neo4j.cypher.internal.compiler.phases.CachableLogicalPlanState
 import org.neo4j.cypher.internal.frontend.PlannerName
+import org.neo4j.cypher.internal.frontend.notification.NotificationWrapping.asKernelNotification
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.ProcedureDbmsAccess
@@ -38,6 +39,8 @@ import org.neo4j.cypher.internal.logical.plans.SchemaLabelIndexUsage
 import org.neo4j.cypher.internal.logical.plans.SchemaLogicalPlan
 import org.neo4j.cypher.internal.logical.plans.SchemaRelationshipIndexUsage
 import org.neo4j.cypher.internal.macros.AssertMacros
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionBuilder
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
@@ -78,8 +81,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContex
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionalContextWrapper
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.exceptions.InternalException
@@ -100,7 +101,6 @@ import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.monitoring.Monitors
 import org.neo4j.notifications.NotificationImplementation
-import org.neo4j.notifications.NotificationWrapping.asKernelNotification
 import org.neo4j.values.virtual.MapValue
 
 import java.util.function.Supplier

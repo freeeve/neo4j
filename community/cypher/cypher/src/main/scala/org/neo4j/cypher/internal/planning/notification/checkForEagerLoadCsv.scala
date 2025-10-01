@@ -22,10 +22,10 @@ package org.neo4j.cypher.internal.planning.notification
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.notification.EagerLoadCsvNotification
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
-import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.notifications.EagerLoadCsvNotification
 
 object checkForEagerLoadCsv extends NotificationChecker {
 

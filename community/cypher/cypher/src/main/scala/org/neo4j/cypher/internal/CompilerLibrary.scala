@@ -20,11 +20,11 @@
 package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.options.CypherPlannerOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.planning.CypherPlanner
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.values.virtual.MapValue
 
 import java.util.concurrent.ConcurrentHashMap

@@ -21,16 +21,16 @@ import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.DEPRECATION_WARNINGS
-import org.neo4j.cypher.internal.util.DeprecatedFunctionNotification
+import org.neo4j.cypher.internal.notification.DeprecatedFunctionFieldNotification
+import org.neo4j.cypher.internal.notification.DeprecatedFunctionNotification
+import org.neo4j.cypher.internal.notification.DeprecatedProcedureFieldNotification
+import org.neo4j.cypher.internal.notification.DeprecatedProcedureNotification
+import org.neo4j.cypher.internal.notification.DeprecatedProcedureReturnFieldNotification
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.ProcedureWarningNotification
+import org.neo4j.cypher.internal.notification.RedundantOptionalProcedure
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
-import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.RedundantOptionalProcedure
 import org.neo4j.exceptions.InternalException
-import org.neo4j.notifications.DeprecatedFunctionFieldNotification
-import org.neo4j.notifications.DeprecatedProcedureFieldNotification
-import org.neo4j.notifications.DeprecatedProcedureNotification
-import org.neo4j.notifications.DeprecatedProcedureReturnFieldNotification
-import org.neo4j.notifications.ProcedureWarningNotification
 
 /**
  * Find calls to deprecated procedures and functions and generate warnings for them.

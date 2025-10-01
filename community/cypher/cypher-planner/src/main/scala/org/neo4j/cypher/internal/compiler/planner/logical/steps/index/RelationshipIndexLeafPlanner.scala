@@ -42,10 +42,10 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
+import org.neo4j.cypher.internal.notification.RelationshipIndexLookupUnfulfillableNotification
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.RelTypeId
-import org.neo4j.notifications.RelationshipIndexLookupUnfulfillableNotification
 
 case class RelationshipIndexLeafPlanner(
   planProviders: Seq[RelationshipIndexPlanProvider],

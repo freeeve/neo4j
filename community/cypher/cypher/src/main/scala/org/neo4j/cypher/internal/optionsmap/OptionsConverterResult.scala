@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.optionsmap
 
-import org.neo4j.cypher.internal.util.InternalNotification
+import org.neo4j.cypher.internal.notification.InternalNotification
 
 sealed trait OptionsConverterResult[+T] {
   def get: T

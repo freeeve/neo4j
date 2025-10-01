@@ -45,6 +45,9 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.notification.IndexOrConstraintAlreadyExistsNotification
+import org.neo4j.cypher.internal.notification.IndexOrConstraintDoesNotExistNotification
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.optionsmap.IndexBackedConstraintsOptionsConverter
 import org.neo4j.cypher.internal.optionsmap.PropertyExistenceOrTypeConstraintOptionsConverter
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.prettyOptions
@@ -56,9 +59,6 @@ import org.neo4j.cypher.internal.procs.SchemaExecutionResult
 import org.neo4j.cypher.internal.procs.SuccessResult
 import org.neo4j.cypher.internal.runtime.ConstraintInformation
 import org.neo4j.cypher.internal.runtime.QueryContext
-import org.neo4j.cypher.internal.util.IndexOrConstraintAlreadyExistsNotification
-import org.neo4j.cypher.internal.util.IndexOrConstraintDoesNotExistNotification
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.graphdb.security.AuthorizationViolationException
 import org.neo4j.internal.schema.ConstraintDescriptor

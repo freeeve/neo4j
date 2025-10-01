@@ -2,86 +2,99 @@
  * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [https://neo4j.com]
  *
- * This file is part of Neo4j.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package org.neo4j.notifications
+package org.neo4j.cypher.internal.frontend.notification
 
-import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingAnyIndexType
-import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingPointIndexType
-import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingRangeIndexType
-import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingTextIndexType
-import org.neo4j.cypher.internal.util.AggregationSkippedNull
-import org.neo4j.cypher.internal.util.AssignPrivilegeCommandHasNoEffectNotification
-import org.neo4j.cypher.internal.util.AuthProviderNotDefined
-import org.neo4j.cypher.internal.util.CartesianProductNotification
-import org.neo4j.cypher.internal.util.CordonedServersExistedDuringAllocation
-import org.neo4j.cypher.internal.util.DeprecatedBooleanCoercion
-import org.neo4j.cypher.internal.util.DeprecatedConnectComponentsPlannerPreParserOption
-import org.neo4j.cypher.internal.util.DeprecatedEagerAnalyzerPreParserOption
-import org.neo4j.cypher.internal.util.DeprecatedExistingDataOption
-import org.neo4j.cypher.internal.util.DeprecatedFunctionNotification
-import org.neo4j.cypher.internal.util.DeprecatedGraphReferenceNotification
-import org.neo4j.cypher.internal.util.DeprecatedIdentifierUnicode
-import org.neo4j.cypher.internal.util.DeprecatedIdentifierWhitespaceUnicode
-import org.neo4j.cypher.internal.util.DeprecatedImportingWithInSubqueryCall
-import org.neo4j.cypher.internal.util.DeprecatedIndexProviderOption
-import org.neo4j.cypher.internal.util.DeprecatedKeywordVariableInWhenOperand
-import org.neo4j.cypher.internal.util.DeprecatedNodesOrRelationshipsInSetClauseNotification
-import org.neo4j.cypher.internal.util.DeprecatedOptionInOptionMap
-import org.neo4j.cypher.internal.util.DeprecatedPrecedenceOfLabelExpressionPredicate
-import org.neo4j.cypher.internal.util.DeprecatedPropertyReferenceInCreate
-import org.neo4j.cypher.internal.util.DeprecatedPropertyReferenceInMerge
-import org.neo4j.cypher.internal.util.DeprecatedRelTypeSeparatorNotification
-import org.neo4j.cypher.internal.util.DeprecatedRuntimeNotification
-import org.neo4j.cypher.internal.util.DeprecatedSeedingOption
-import org.neo4j.cypher.internal.util.DeprecatedStoreFormat
-import org.neo4j.cypher.internal.util.DeprecatedTextIndexProvider
-import org.neo4j.cypher.internal.util.DeprecatedWhereVariableInNodePattern
-import org.neo4j.cypher.internal.util.DeprecatedWhereVariableInRelationshipPattern
-import org.neo4j.cypher.internal.util.ExternalAuthNotEnabled
-import org.neo4j.cypher.internal.util.FixedLengthRelationshipInShortestPath
-import org.neo4j.cypher.internal.util.GrantRoleCommandHasNoEffectNotification
-import org.neo4j.cypher.internal.util.HomeDatabaseNotPresent
-import org.neo4j.cypher.internal.util.ImpossibleRevokeCommandWarning
-import org.neo4j.cypher.internal.util.IndexOrConstraintAlreadyExistsNotification
-import org.neo4j.cypher.internal.util.IndexOrConstraintDoesNotExistNotification
+import org.neo4j.cypher.internal.notification.AggregationSkippedNull
+import org.neo4j.cypher.internal.notification.AssignPrivilegeCommandHasNoEffectNotification
+import org.neo4j.cypher.internal.notification.AuthProviderNotDefined
+import org.neo4j.cypher.internal.notification.CartesianProductNotification
+import org.neo4j.cypher.internal.notification.CodeGenerationFailedNotification
+import org.neo4j.cypher.internal.notification.CordonedServersExistedDuringAllocation
+import org.neo4j.cypher.internal.notification.DeprecatedBooleanCoercion
+import org.neo4j.cypher.internal.notification.DeprecatedConnectComponentsPlannerPreParserOption
+import org.neo4j.cypher.internal.notification.DeprecatedEagerAnalyzerPreParserOption
+import org.neo4j.cypher.internal.notification.DeprecatedExistingDataOption
+import org.neo4j.cypher.internal.notification.DeprecatedFunctionFieldNotification
+import org.neo4j.cypher.internal.notification.DeprecatedFunctionNotification
+import org.neo4j.cypher.internal.notification.DeprecatedGraphReferenceNotification
+import org.neo4j.cypher.internal.notification.DeprecatedIdentifierUnicode
+import org.neo4j.cypher.internal.notification.DeprecatedIdentifierWhitespaceUnicode
+import org.neo4j.cypher.internal.notification.DeprecatedImportingWithInSubqueryCall
+import org.neo4j.cypher.internal.notification.DeprecatedIndexProviderOption
+import org.neo4j.cypher.internal.notification.DeprecatedKeywordVariableInWhenOperand
+import org.neo4j.cypher.internal.notification.DeprecatedNodesOrRelationshipsInSetClauseNotification
+import org.neo4j.cypher.internal.notification.DeprecatedOptionInOptionMap
+import org.neo4j.cypher.internal.notification.DeprecatedPrecedenceOfLabelExpressionPredicate
+import org.neo4j.cypher.internal.notification.DeprecatedProcedureFieldNotification
+import org.neo4j.cypher.internal.notification.DeprecatedProcedureNotification
+import org.neo4j.cypher.internal.notification.DeprecatedProcedureReturnFieldNotification
+import org.neo4j.cypher.internal.notification.DeprecatedPropertyReferenceInCreate
+import org.neo4j.cypher.internal.notification.DeprecatedPropertyReferenceInMerge
+import org.neo4j.cypher.internal.notification.DeprecatedRelTypeSeparatorNotification
+import org.neo4j.cypher.internal.notification.DeprecatedRuntimeNotification
+import org.neo4j.cypher.internal.notification.DeprecatedSeedingOption
+import org.neo4j.cypher.internal.notification.DeprecatedStoreFormat
+import org.neo4j.cypher.internal.notification.DeprecatedTextIndexProvider
+import org.neo4j.cypher.internal.notification.DeprecatedWhereVariableInNodePattern
+import org.neo4j.cypher.internal.notification.DeprecatedWhereVariableInRelationshipPattern
+import org.neo4j.cypher.internal.notification.EagerLoadCsvNotification
+import org.neo4j.cypher.internal.notification.ExhaustiveShortestPathForbiddenNotification
+import org.neo4j.cypher.internal.notification.ExternalAuthNotEnabled
+import org.neo4j.cypher.internal.notification.FixedLengthRelationshipInShortestPath
+import org.neo4j.cypher.internal.notification.GrantRoleCommandHasNoEffectNotification
+import org.neo4j.cypher.internal.notification.HomeDatabaseNotPresent
+import org.neo4j.cypher.internal.notification.ImpossibleRevokeCommandWarning
+import org.neo4j.cypher.internal.notification.IndexHintUnfulfillableNotification
+import org.neo4j.cypher.internal.notification.IndexOrConstraintAlreadyExistsNotification
+import org.neo4j.cypher.internal.notification.IndexOrConstraintDoesNotExistNotification
+import org.neo4j.cypher.internal.notification.InsecureProtocol
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.JoinHintUnfulfillableNotification
+import org.neo4j.cypher.internal.notification.LargeLabelWithLoadCsvNotification
+import org.neo4j.cypher.internal.notification.MissingLabelNotification
+import org.neo4j.cypher.internal.notification.MissingParametersNotification
+import org.neo4j.cypher.internal.notification.MissingPropertyNameNotification
+import org.neo4j.cypher.internal.notification.MissingRelTypeNotification
+import org.neo4j.cypher.internal.notification.NoDatabasesReallocated
+import org.neo4j.cypher.internal.notification.NodeIndexLookupUnfulfillableNotification
+import org.neo4j.cypher.internal.notification.ProcedureWarningNotification
+import org.neo4j.cypher.internal.notification.RedundantOptionalProcedure
+import org.neo4j.cypher.internal.notification.RedundantOptionalSubquery
+import org.neo4j.cypher.internal.notification.RelationshipIndexLookupUnfulfillableNotification
+import org.neo4j.cypher.internal.notification.RepeatedRelationshipReference
+import org.neo4j.cypher.internal.notification.RepeatedVarLengthRelationshipReference
+import org.neo4j.cypher.internal.notification.RequestedTopologyMatchedCurrentTopology
+import org.neo4j.cypher.internal.notification.RevokePrivilegeCommandHasNoEffectNotification
+import org.neo4j.cypher.internal.notification.RevokeRoleCommandHasNoEffectNotification
+import org.neo4j.cypher.internal.notification.RuntimeUnsatisfiableRelationshipTypeExpression
+import org.neo4j.cypher.internal.notification.RuntimeUnsupportedNotification
+import org.neo4j.cypher.internal.notification.ServerAlreadyCordoned
+import org.neo4j.cypher.internal.notification.ServerAlreadyEnabled
+import org.neo4j.cypher.internal.notification.ShardedPerformanceNotification
+import org.neo4j.cypher.internal.notification.SubqueryVariableShadowing
+import org.neo4j.cypher.internal.notification.UnboundedShortestPathNotification
+import org.neo4j.cypher.internal.notification.UnsatisfiableRelationshipTypeExpression
+import org.neo4j.cypher.internal.notification.WaitServerCatchingUp
+import org.neo4j.cypher.internal.notification.WaitServerCaughtUp
+import org.neo4j.cypher.internal.notification.WaitServerFailed
+import org.neo4j.cypher.internal.notification.WaitServerUnavailable
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.InsecureProtocol
-import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.NoDatabasesReallocated
-import org.neo4j.cypher.internal.util.RedundantOptionalProcedure
-import org.neo4j.cypher.internal.util.RedundantOptionalSubquery
-import org.neo4j.cypher.internal.util.RepeatedRelationshipReference
-import org.neo4j.cypher.internal.util.RepeatedVarLengthRelationshipReference
-import org.neo4j.cypher.internal.util.RequestedTopologyMatchedCurrentTopology
-import org.neo4j.cypher.internal.util.RevokePrivilegeCommandHasNoEffectNotification
-import org.neo4j.cypher.internal.util.RevokeRoleCommandHasNoEffectNotification
-import org.neo4j.cypher.internal.util.RuntimeUnsatisfiableRelationshipTypeExpression
-import org.neo4j.cypher.internal.util.ServerAlreadyCordoned
-import org.neo4j.cypher.internal.util.ServerAlreadyEnabled
-import org.neo4j.cypher.internal.util.ShardedPerformanceNotification
-import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
-import org.neo4j.cypher.internal.util.UnboundedShortestPathNotification
-import org.neo4j.cypher.internal.util.UnsatisfiableRelationshipTypeExpression
-import org.neo4j.cypher.internal.util.WaitServerCatchingUp
-import org.neo4j.cypher.internal.util.WaitServerCaughtUp
-import org.neo4j.cypher.internal.util.WaitServerFailed
-import org.neo4j.cypher.internal.util.WaitServerUnavailable
-import org.neo4j.exceptions.IndexHintException.IndexHintIndexType
 import org.neo4j.graphdb
+import org.neo4j.notifications.NotificationCodeWithDescription
+import org.neo4j.notifications.NotificationDetail
+import org.neo4j.notifications.NotificationImplementation
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsJava
@@ -111,16 +124,10 @@ object NotificationWrapping {
         cause
       )
     case IndexHintUnfulfillableNotification(variableName, label, propertyKeys, entityType, indexType) =>
-      val indexHintType = indexType match {
-        case UsingAnyIndexType   => IndexHintIndexType.ANY
-        case UsingTextIndexType  => IndexHintIndexType.TEXT
-        case UsingRangeIndexType => IndexHintIndexType.RANGE
-        case UsingPointIndexType => IndexHintIndexType.POINT
-      }
       NotificationCodeWithDescription.indexHintUnfulfillable(
         graphdb.InputPosition.empty,
-        NotificationDetail.indexHint(entityType, indexHintType, variableName, label, propertyKeys: _*),
-        NotificationDetail.index(indexHintType, label, propertyKeys.asJava)
+        NotificationDetail.indexHint(entityType, indexType, variableName, label, propertyKeys: _*),
+        NotificationDetail.index(indexType, label, propertyKeys.asJava)
       )
     case JoinHintUnfulfillableNotification(variables) =>
       val javaVariables = variables.asJava
@@ -510,8 +517,6 @@ object NotificationWrapping {
       NotificationCodeWithDescription.waitServerFailed(serverName, serverAddress, error)
     case WaitServerCaughtUp(serverName, serverAddress) =>
       NotificationCodeWithDescription.waitServerCaughtUp(serverName, serverAddress)
-
-    case _ => throw new IllegalStateException("Missing mapping for notification detail.")
   }
 
   implicit private class ConvertibleCompilerInputPosition(pos: InputPosition) {

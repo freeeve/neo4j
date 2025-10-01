@@ -27,15 +27,15 @@ import org.neo4j.cypher.internal.cache.CacheSize
 import org.neo4j.cypher.internal.cache.CacheTracer
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
 import org.neo4j.cypher.internal.compiler.helpers.ParameterValueTypeHelper
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.MissingLabelNotification
+import org.neo4j.cypher.internal.notification.MissingPropertyNameNotification
+import org.neo4j.cypher.internal.notification.MissingRelTypeNotification
 import org.neo4j.cypher.internal.options.CypherReplanOption
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 import org.neo4j.kernel.api.AssertOpen
 import org.neo4j.kernel.api.query.ExecutingQuery
 import org.neo4j.kernel.impl.query.TransactionalContext
-import org.neo4j.notifications.MissingLabelNotification
-import org.neo4j.notifications.MissingPropertyNameNotification
-import org.neo4j.notifications.MissingRelTypeNotification
 import org.neo4j.token.api.TokenConstants
 import org.neo4j.values.virtual.MapValue
 

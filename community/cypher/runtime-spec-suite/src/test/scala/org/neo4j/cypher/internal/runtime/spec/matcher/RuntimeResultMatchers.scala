@@ -21,9 +21,9 @@ package org.neo4j.cypher.internal.runtime.spec.matcher
 
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.plans.Prober
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.spec._
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.graphdb.QueryStatistics
 import org.neo4j.kernel.impl.util.ValueUtils

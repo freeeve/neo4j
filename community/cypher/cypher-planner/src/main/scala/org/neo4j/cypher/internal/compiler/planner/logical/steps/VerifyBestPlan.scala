@@ -44,6 +44,8 @@ import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.notification.IndexHintUnfulfillableNotification
+import org.neo4j.cypher.internal.notification.JoinHintUnfulfillableNotification
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
@@ -57,8 +59,6 @@ import org.neo4j.exceptions.JoinHintException
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.messages.MessageUtil
 import org.neo4j.messages.MessageUtil.Numerus
-import org.neo4j.notifications.IndexHintUnfulfillableNotification
-import org.neo4j.notifications.JoinHintUnfulfillableNotification
 
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
@@ -253,16 +253,11 @@ object VerifyBestPlan {
         hint.labelOrRelType.name,
         hint.properties.map(_.name),
         entityType,
-        hint.indexType
+        MissingIndexHint.toIndexHintIndexType(hint.indexType)
       )
 
     def toException: IndexHintException = {
-      val exceptionIndexType = hint.indexType match {
-        case UsingAnyIndexType   => IndexHintIndexType.ANY
-        case UsingTextIndexType  => IndexHintIndexType.TEXT
-        case UsingRangeIndexType => IndexHintIndexType.RANGE
-        case UsingPointIndexType => IndexHintIndexType.POINT
-      }
+      val exceptionIndexType = MissingIndexHint.toIndexHintIndexType(hint.indexType)
       val formattedIndex = IndexHintException.indexFormatString(
         hint.variable.name,
         hint.labelOrRelType.name,
@@ -278,6 +273,16 @@ object VerifyBestPlan {
         exceptionIndexType,
         formattedIndex
       )
+    }
+  }
+
+  private object MissingIndexHint {
+
+    private def toIndexHintIndexType(indexType: UsingIndexHintType): IndexHintIndexType = indexType match {
+      case UsingAnyIndexType   => IndexHintIndexType.ANY
+      case UsingTextIndexType  => IndexHintIndexType.TEXT
+      case UsingRangeIndexType => IndexHintIndexType.RANGE
+      case UsingPointIndexType => IndexHintIndexType.POINT
     }
   }
 

@@ -24,6 +24,10 @@ import org.antlr.v4.runtime.CommonTokenStream
 import org.neo4j.cypher.internal.PreParser.queryOptions
 import org.neo4j.cypher.internal.cache.LFUCache
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.notification.DeprecatedConnectComponentsPlannerPreParserOption
+import org.neo4j.cypher.internal.notification.DeprecatedEagerAnalyzerPreParserOption
+import org.neo4j.cypher.internal.notification.InternalNotification
+import org.neo4j.cypher.internal.notification.InternalNotificationLogger
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
 import org.neo4j.cypher.internal.options.CypherEagerAnalyzerOption
 import org.neo4j.cypher.internal.options.CypherExecutionMode
@@ -41,11 +45,7 @@ import org.neo4j.cypher.internal.preparser.PreparserCypherLexer
 import org.neo4j.cypher.internal.preparser.PreparserUtil
 import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.preparser.StatefulPreparserListener
-import org.neo4j.cypher.internal.util.DeprecatedConnectComponentsPlannerPreParserOption
-import org.neo4j.cypher.internal.util.DeprecatedEagerAnalyzerPreParserOption
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.InternalNotification
-import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.exceptions.InvalidCypherOption
 import org.neo4j.exceptions.SyntaxException

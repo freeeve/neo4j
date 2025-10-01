@@ -19,13 +19,13 @@
  */
 package org.neo4j.cypher.internal
 
-import org.neo4j.cypher.internal.util.CartesianProductNotification
-import org.neo4j.cypher.internal.util.DeprecatedFunctionNotification
-import org.neo4j.cypher.internal.util.DeprecatedPropertyReferenceInMerge
-import org.neo4j.cypher.internal.util.DeprecatedRelTypeSeparatorNotification
-import org.neo4j.cypher.internal.util.DeprecatedTextIndexProvider
+import org.neo4j.cypher.internal.notification.CartesianProductNotification
+import org.neo4j.cypher.internal.notification.DeprecatedFunctionNotification
+import org.neo4j.cypher.internal.notification.DeprecatedPropertyReferenceInMerge
+import org.neo4j.cypher.internal.notification.DeprecatedRelTypeSeparatorNotification
+import org.neo4j.cypher.internal.notification.DeprecatedTextIndexProvider
+import org.neo4j.cypher.internal.notification.UnboundedShortestPathNotification
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.UnboundedShortestPathNotification
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class CypherDeprecationNotificationsProviderTest extends CypherFunSuite {

@@ -21,9 +21,9 @@ package org.neo4j.cypher.internal.optionsmap
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.MapValueOps.Ops
+import org.neo4j.cypher.internal.notification.DeprecatedIndexProviderOption
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
-import org.neo4j.cypher.internal.util.DeprecatedIndexProviderOption
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.graphdb.schema.IndexSetting
 import org.neo4j.graphdb.schema.IndexSettingImpl.FULLTEXT_ANALYZER
 import org.neo4j.graphdb.schema.IndexSettingImpl.FULLTEXT_EVENTUALLY_CONSISTENT

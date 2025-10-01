@@ -20,9 +20,9 @@
 package org.neo4j.cypher.internal.runtime.spec
 
 import org.neo4j.cypher.internal.NonFatalCypherError
+import org.neo4j.cypher.internal.notification.InternalNotification
 import org.neo4j.cypher.internal.result.AsyncCleanupOnClose
 import org.neo4j.cypher.internal.runtime.ResourceManager
-import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.exceptions.QueryExecutionTimeoutException
