@@ -3097,4 +3097,93 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
       )
     )
   }
+
+  test("SHOW USERS YIELD user, suspended RETURN count(user) as custom, suspended") {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("SHOW USERS YIELD user, suspended RETURN count(user) AS custom, suspended"),
+        Referenced(Set("suspended", "user")),
+        Outgoing(variables = Set("custom", "suspended")),
+        ExpectedResult.TableResult("custom", "suspended"),
+        ExpectedWorkingScope(
+          Ast("SHOW USERS"),
+          Declared(variables = Seq("user", "roles", "passwordChangeRequired", "suspended", "home")),
+          Outgoing(variables = Set("user", "roles", "passwordChangeRequired", "suspended", "home")),
+          ExpectedResult.TableResult("user", "roles", "passwordChangeRequired", "suspended", "home")
+        ),
+        ExpectedWorkingScope(
+          Ast("YIELD user, suspended"),
+          Incoming(variables = Set("suspended", "user", "roles", "passwordChangeRequired", "home")),
+          Referenced(Set("suspended", "user")),
+          Outgoing(variables = Set("suspended", "user")),
+          ExpectedResult.TableResult("suspended", "user"),
+          ExpectedWorkingScope.varExp("user", Set("suspended", "user", "roles", "passwordChangeRequired", "home")),
+          ExpectedWorkingScope.varExp("suspended", Set("suspended", "user", "roles", "passwordChangeRequired", "home"))
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN count(user) AS custom, suspended"),
+          Incoming(variables = Set("suspended", "user")),
+          Referenced(Set("suspended", "user")),
+          Outgoing(variables = Set("custom", "suspended")),
+          ExpectedResult.TableResult("custom", "suspended"),
+          ExpectedWorkingScope.varExp("suspended", Set("suspended", "user")),
+          ExpectedWorkingScope(
+            Ast("count(user)"),
+            Incoming(constants = Set("suspended"), variables = Set("user")),
+            Referenced(Set("user")),
+            ExpectedWorkingScope.varExp("user", Set("suspended", "user"))
+          )
+        )
+      )
+    )
+  }
+
+  test("SHOW ALL ROLES WHERE role = \"PUBLIC\"") {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("SHOW ALL ROLES WHERE role = \"PUBLIC\""),
+        Referenced(Set("role")),
+        Outgoing(variables = Set("role")),
+        ExpectedResult.TableResult("role"),
+        ExpectedWorkingScope(
+          Ast("SHOW ALL ROLES"),
+          Declared(variables = Seq("role")),
+          Outgoing(variables = Set("role")),
+          ExpectedResult.TableResult("role")
+        ),
+        ExpectedWorkingScope(
+          Ast("role = \"PUBLIC\""),
+          Incoming(constants = Set("role")),
+          Referenced(Set("role")),
+          ExpectedWorkingScope.varExp("role", Set("role"))
+        )
+      )
+    )
+  }
+
+  test("SHOW ALIAS $alias FOR DATABASE YIELD *") {
+    val aliasCols =
+      Seq("name", "composite", "database", "location", "url", "user", "driver", "defaultLanguage", "properties")
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("SHOW ALIAS $alias FOR DATABASE YIELD *"),
+        Referenced(variables = aliasCols.toSet),
+        Outgoing(variables = aliasCols.toSet),
+        ExpectedResult.TableResult(aliasCols: _*),
+        ExpectedWorkingScope(
+          Ast("SHOW ALIAS $alias FOR DATABASE"),
+          Declared(variables = aliasCols),
+          Outgoing(variables = aliasCols.toSet),
+          ExpectedResult.TableResult(aliasCols: _*)
+        ),
+        ExpectedWorkingScope(
+          Ast("YIELD *"),
+          Incoming(variables = aliasCols.toSet),
+          Referenced(variables = aliasCols.toSet),
+          Outgoing(variables = aliasCols.toSet),
+          ExpectedResult.TableResult(aliasCols: _*)
+        )
+      )
+    )
+  }
 }

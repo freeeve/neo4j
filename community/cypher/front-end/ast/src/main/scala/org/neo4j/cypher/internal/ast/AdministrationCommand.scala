@@ -142,6 +142,9 @@ sealed trait ReadAdministrationCommand extends AdministrationCommand {
 
   def defaultColumnNames: List[String] = defaultColumnSet.map(_.name)
 
+  // Needed for scoping information
+  def defaultColumnVariables: List[LogicalVariable] = defaultColumnSet.map(_.variable)
+
   def yieldOrWhere: YieldOrWhere = None
   def yields: Option[Yield] = yieldOrWhere.flatMap(yw => yw.left.toOption.map { case (y, _) => y })
   def returns: Option[Return] = yieldOrWhere.flatMap(yw => yw.left.toOption.flatMap { case (_, r) => r })

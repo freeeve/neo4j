@@ -245,150 +245,145 @@ object pegClause {
   private def scopeProjectionClause(projectionClause: ProjectionClause, incoming: RegularContext): WorkingScope = {
     implicit val astNode: ASTNode = projectionClause
 
-    if (projectionClause.isInstanceOf[Yield]) {
-      UnexpectedAstNodeScopingError(projectionClause, incoming)
-    } else {
-      val (isWith, distinct, projectionType, items, orderByOpt, whereOpt, withTypeOpt) =
-        projectionClause match {
-          case With(distinct, ReturnItems(projectionType, items, _), orderByOpt, _, _, whereOpt, withType) =>
-            (true, distinct, projectionType, items, orderByOpt, whereOpt, Some(withType))
-          case Return(distinct, ReturnItems(projectionType, items, _), orderByOpt, _, _, _, _, _) =>
-            (false, distinct, projectionType, items, orderByOpt, None, None)
-          case _ =>
-            new IllegalStateException("Yield is dealt with before")
-            ???
-        }
-      val variableItems = withTypeOpt match {
-        case Some(DefaultWith) => items.filterNot(ri =>
-            // removes item "c" and "c AS c" where c is a constant — a special case Cypher historically allows
-            ri.alias.exists(v => ri.isPassThrough && (incoming.constants contains v))
-          )
-        case _ => items
+    val (isWith, distinct, projectionType, items, orderByOpt, whereOpt, withTypeOpt) =
+      projectionClause match {
+        case With(distinct, ReturnItems(projectionType, items, _), orderByOpt, _, _, whereOpt, withType) =>
+          (true, distinct, projectionType, items, orderByOpt, whereOpt, Some(withType))
+        case Return(distinct, ReturnItems(projectionType, items, _), orderByOpt, _, _, _, _, _) =>
+          (false, distinct, projectionType, items, orderByOpt, None, None)
+        case Yield(ReturnItems(projectionType, items, _), orderByOpt, _, _, whereOpt) =>
+          (false, false, projectionType, items, orderByOpt, whereOpt, None)
       }
-      val newVariables = returnItemAliases(variableItems)
-      val declared = Declarations(Seq.empty, newVariables)
-      val notShadowed = incoming.variables.filterNot(v => newVariables contains v)
-      val includedIncomingVariables =
-        if (projectionType == FreeProjection) {
-          Set.empty[LogicalVariable]
-        } else {
-          notShadowed
-        }
-
-      val (aggregationItems, groupingItems) = items.partition(pi => pi.expression.containsAggregate)
-      if (aggregationItems.isEmpty && !distinct) {
-        /*
-         * without aggregation
-         */
-        val projectionItemIncoming = incoming.constantChildContext()
-        // NOTE: this could also be "variableItems.map(...)" depending on how we like to think about constants pass through
-        val projectionItemScopes = items.map(item => pegExpression(item.expression, projectionItemIncoming))
-        val sortItemIncoming = incoming.replaceWith(notShadowed union newVariables.toSet).constantChildContext()
-        val sortItemScopes = orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item =>
-          pegExpression(item.expression, sortItemIncoming)
+    val variableItems = withTypeOpt match {
+      case Some(DefaultWith) => items.filterNot(ri =>
+          // removes item "c" and "c AS c" where c is a constant — a special case Cypher historically allows
+          ri.alias.exists(v => ri.isPassThrough && (incoming.constants contains v))
         )
-        val whereExpIncoming = incoming.replaceWith(notShadowed union newVariables.toSet).constantChildContext()
-        val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
-          pegExpression(expression, whereExpIncoming)
-        )
-
-        val children = projectionItemScopes ++ sortItemScopes ++ whereExpScopes
-        val resultColumns = includedIncomingVariables.toSeq ++ newVariables
-        val referencedInChildren = WorkingScope.referencedInChildren(projectionItemScopes ++ whereExpScopes) union
-          (WorkingScope.referencedInChildren(sortItemScopes) intersect notShadowed)
-        val starNotReferencing =
-          (withTypeOpt contains ParsedAsOrderBy) ||
-            (withTypeOpt contains ParsedAsSkip) ||
-            (withTypeOpt contains ParsedAsLimit) ||
-            (withTypeOpt contains ParsedAsFilter) ||
-            (withTypeOpt contains ParsedAsLet)
-        val referenced = Some(referencedInChildren union (
-          if (starNotReferencing) Set.empty
-          else includedIncomingVariables
-        ))
-        if (isWith) {
-          // WITH
-          val outgoing = RegularContext(constants = incoming.constants, variables = resultColumns.toSet)
-          incoming.noResultScope(outgoing, children, referenced, declared = declared)
-        } else {
-          // RETURN
-          val outgoing = RegularContext(constants = unitVariables, variables = resultColumns.toSet)
-          incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced)
-        }
+      case _ => items
+    }
+    val newVariables = returnItemAliases(variableItems)
+    val declared = Declarations(Seq.empty, newVariables)
+    val notShadowed = incoming.variables.filterNot(v => newVariables contains v)
+    val includedIncomingVariables =
+      if (projectionType == FreeProjection) {
+        Set.empty[LogicalVariable]
       } else {
-        /*
-         * with aggregation
-         */
-        // grouping key expressions see all symbols as constants
-        val groupingItemIncoming = incoming.constantChildContext()
-        // NOTE: this could also be "variableItems.map(...)" depending on how we like to think about constants pass through
-        val groupingItemScopes = groupingItems.map(item => pegExpression(item.expression, groupingItemIncoming))
-        val referencedInGroupingItems = WorkingScope.referencedInChildren(groupingItemScopes)
-        val groupingKeyVariables = groupingItems.map(_.expression).collect {
-          case v: Variable => v
-        }.toSet[LogicalVariable] union includedIncomingVariables
-        val newVariablesFromGrouping = returnItemAliases(groupingItems)
-        val notShadowedGroupingKeyVariables = groupingKeyVariables.filterNot(v => newVariablesFromGrouping contains v)
+        notShadowed
+      }
 
-        // aggregation expressions see
-        val aggregationItemIncoming = {
-          // as constants: incoming constants and grouping key variables
-          val constants = incoming.constants union groupingKeyVariables
-          // as variables: the remaining variables
-          val variables = incoming.variables diff constants
-          RegularContext(constants, variables)
-        }
-        val aggregationItemScopes =
-          aggregationItems.map(item => pegExpression(item.expression, aggregationItemIncoming))
-        val referencedInAggregationItems = WorkingScope.referencedInChildren(aggregationItemScopes)
-        val newVariablesFromAggregation = returnItemAliases(aggregationItems)
-        val notShadowedAggregationVariables =
-          aggregationItemIncoming.variables.filterNot(v => newVariablesFromAggregation contains v)
+    val (aggregationItems, groupingItems) = items.partition(pi => pi.expression.containsAggregate)
+    if (aggregationItems.isEmpty && !distinct) {
+      /*
+       * without aggregation
+       */
+      val projectionItemIncoming = incoming.constantChildContext()
+      // NOTE: this could also be "variableItems.map(...)" depending on how we like to think about constants pass through
+      val projectionItemScopes = items.map(item => pegExpression(item.expression, projectionItemIncoming))
+      val sortItemIncoming = incoming.replaceWith(notShadowed union newVariables.toSet).constantChildContext()
+      val sortItemScopes = orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item =>
+        pegExpression(item.expression, sortItemIncoming)
+      )
+      val whereExpIncoming = incoming.replaceWith(notShadowed union newVariables.toSet).constantChildContext()
+      val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
+        pegExpression(expression, whereExpIncoming)
+      )
 
-        // sort key expressions see
-        val sortItemIncoming = {
-          // as constants: incoming constants and grouping key variables (potentially shadowed) and grouping key aliases and aggregation aliases
-          val constants = incoming.constants union notShadowedGroupingKeyVariables union
-            newVariablesFromGrouping.toSet union newVariablesFromAggregation.toSet
-          // as variables: the remaining variables (potentially shadowed)
-          val variables = notShadowedAggregationVariables
-          RegularContext(constants, variables)
-        }
-        val sortItemScopes =
-          orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item => pegExpression(item.expression, sortItemIncoming))
-        val referencedInSortItems = WorkingScope.referencedInChildren(sortItemScopes)
+      val children = projectionItemScopes ++ sortItemScopes ++ whereExpScopes
+      val resultColumns = includedIncomingVariables.toSeq ++ newVariables
+      val referencedInChildren = WorkingScope.referencedInChildren(projectionItemScopes ++ whereExpScopes) union
+        (WorkingScope.referencedInChildren(sortItemScopes) intersect notShadowed)
+      val starNotReferencing =
+        (withTypeOpt contains ParsedAsOrderBy) ||
+          (withTypeOpt contains ParsedAsSkip) ||
+          (withTypeOpt contains ParsedAsLimit) ||
+          (withTypeOpt contains ParsedAsFilter) ||
+          (withTypeOpt contains ParsedAsLet)
+      val referenced = Some(referencedInChildren union (
+        if (starNotReferencing) Set.empty
+        else includedIncomingVariables
+      ))
+      if (isWith) {
+        // WITH
+        val outgoing = RegularContext(constants = incoming.constants, variables = resultColumns.toSet)
+        incoming.noResultScope(outgoing, children, referenced, declared = declared)
+      } else {
+        // RETURN
+        val outgoing = RegularContext(constants = unitVariables, variables = resultColumns.toSet)
+        incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced)
+      }
+    } else {
+      /*
+       * with aggregation
+       */
+      // grouping key expressions see all symbols as constants
+      val groupingItemIncoming = incoming.constantChildContext()
+      // NOTE: this could also be "variableItems.map(...)" depending on how we like to think about constants pass through
+      val groupingItemScopes = groupingItems.map(item => pegExpression(item.expression, groupingItemIncoming))
+      val referencedInGroupingItems = WorkingScope.referencedInChildren(groupingItemScopes)
+      val groupingKeyVariables = groupingItems.map(_.expression).collect {
+        case v: Variable => v
+      }.toSet[LogicalVariable] union includedIncomingVariables
+      val newVariablesFromGrouping = returnItemAliases(groupingItems)
+      val notShadowedGroupingKeyVariables = groupingKeyVariables.filterNot(v => newVariablesFromGrouping contains v)
 
-        // where expression sees
-        val whereExpIncoming = {
-          // as constants: incoming constants and grouping key variables (potentially shadowed) and grouping key aliases and aggregation aliases
-          val constants = incoming.constants union notShadowedGroupingKeyVariables union
-            newVariablesFromGrouping.toSet union newVariablesFromAggregation.toSet
-          // as variables: the remaining variables (potentially shadowed)
-          val variables = notShadowedAggregationVariables
-          RegularContext(constants, variables)
-        }
-        val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
-          pegExpression(expression, whereExpIncoming)
-        )
-        val referencedInWhereExp = WorkingScope.referencedInChildren(whereExpScopes)
+      // aggregation expressions see
+      val aggregationItemIncoming = {
+        // as constants: incoming constants and grouping key variables
+        val constants = incoming.constants union groupingKeyVariables
+        // as variables: the remaining variables
+        val variables = incoming.variables diff constants
+        RegularContext(constants, variables)
+      }
+      val aggregationItemScopes =
+        aggregationItems.map(item => pegExpression(item.expression, aggregationItemIncoming))
+      val referencedInAggregationItems = WorkingScope.referencedInChildren(aggregationItemScopes)
+      val newVariablesFromAggregation = returnItemAliases(aggregationItems)
+      val notShadowedAggregationVariables =
+        aggregationItemIncoming.variables.filterNot(v => newVariablesFromAggregation contains v)
 
-        val referenced = Some(referencedInGroupingItems union referencedInAggregationItems union (
-          referencedInSortItems intersect (notShadowedGroupingKeyVariables union notShadowedAggregationVariables)
-        ) union (
-          referencedInWhereExp intersect (notShadowedGroupingKeyVariables union notShadowedAggregationVariables)
-        ))
-        val resultColumns = includedIncomingVariables.toSeq ++ returnItemAliases(items) // to maintain order
-        val children = groupingItemScopes ++ aggregationItemScopes ++ sortItemScopes ++ whereExpScopes
+      // sort key expressions see
+      val sortItemIncoming = {
+        // as constants: incoming constants and grouping key variables (potentially shadowed) and grouping key aliases and aggregation aliases
+        val constants = incoming.constants union notShadowedGroupingKeyVariables union
+          newVariablesFromGrouping.toSet union newVariablesFromAggregation.toSet
+        // as variables: the remaining variables (potentially shadowed)
+        val variables = notShadowedAggregationVariables
+        RegularContext(constants, variables)
+      }
+      val sortItemScopes =
+        orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item => pegExpression(item.expression, sortItemIncoming))
+      val referencedInSortItems = WorkingScope.referencedInChildren(sortItemScopes)
 
-        if (isWith) {
-          // WITH
-          val outgoing = RegularContext(constants = incoming.constants, variables = resultColumns.toSet)
-          incoming.noResultScope(outgoing, children, referenced, declared = declared)
-        } else {
-          // RETURN
-          val outgoing = RegularContext(constants = unitVariables, variables = resultColumns.toSet)
-          incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced)
-        }
+      // where expression sees
+      val whereExpIncoming = {
+        // as constants: incoming constants and grouping key variables (potentially shadowed) and grouping key aliases and aggregation aliases
+        val constants = incoming.constants union notShadowedGroupingKeyVariables union
+          newVariablesFromGrouping.toSet union newVariablesFromAggregation.toSet
+        // as variables: the remaining variables (potentially shadowed)
+        val variables = notShadowedAggregationVariables
+        RegularContext(constants, variables)
+      }
+      val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
+        pegExpression(expression, whereExpIncoming)
+      )
+      val referencedInWhereExp = WorkingScope.referencedInChildren(whereExpScopes)
+
+      val referenced = Some(referencedInGroupingItems union referencedInAggregationItems union (
+        referencedInSortItems intersect (notShadowedGroupingKeyVariables union notShadowedAggregationVariables)
+      ) union (
+        referencedInWhereExp intersect (notShadowedGroupingKeyVariables union notShadowedAggregationVariables)
+      ))
+      val resultColumns = includedIncomingVariables.toSeq ++ returnItemAliases(items) // to maintain order
+      val children = groupingItemScopes ++ aggregationItemScopes ++ sortItemScopes ++ whereExpScopes
+
+      if (isWith) {
+        // WITH
+        val outgoing = RegularContext(constants = incoming.constants, variables = resultColumns.toSet)
+        incoming.noResultScope(outgoing, children, referenced, declared = declared)
+      } else {
+        // RETURN
+        val outgoing = RegularContext(constants = unitVariables, variables = resultColumns.toSet)
+        incoming.resultScope(outgoing, TableResult(resultColumns), children, referenced)
       }
     }
   }

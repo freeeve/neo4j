@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.NextStatement
@@ -84,6 +85,7 @@ object pegStatement {
         }
       case TopLevelBraces(query, _) => apply(query, incoming)
 
+      case command: AdministrationCommand => pegCommand(command, incoming)
       // TODO other query forms and admin commands
 
       /**
