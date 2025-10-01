@@ -47,10 +47,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.consistency.ConsistencyCheckService;
 import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -62,6 +64,7 @@ import org.neo4j.graphdb.schema.IndexType;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
@@ -86,6 +89,10 @@ import org.neo4j.values.storable.Values;
 @TestDirectoryExtension
 @RandomSupportExtension
 class FulltextIndexConsistencyCheckIT {
+
+    private static final KernelVersion KERNEL_VERSION = KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED;
+    private static final DbmsRuntimeVersion DBMS_RUNTIME_VERSION = DbmsRuntimeVersion.fromKernelVersion(KERNEL_VERSION);
+
     @Inject
     private TestDirectory testDirectory;
 
@@ -980,14 +987,21 @@ class FulltextIndexConsistencyCheckIT {
     }
 
     private GraphDatabaseAPI createDatabase() {
-        managementService = builder.build();
+        managementService = builder.setConfig(
+                        GraphDatabaseInternalSettings.latest_kernel_version, KERNEL_VERSION.version())
+                .setConfig(GraphDatabaseInternalSettings.latest_runtime_version, DBMS_RUNTIME_VERSION.getVersion())
+                .build();
         database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         databaseLayout = database.databaseLayout();
         return database;
     }
 
     private ConsistencyCheckService.Result checkConsistency() throws ConsistencyCheckIncompleteException {
-        Config config = Config.defaults(GraphDatabaseSettings.logs_directory, databaseLayout.databaseDirectory());
+        Config config = Config.newBuilder()
+                .set(GraphDatabaseSettings.logs_directory, databaseLayout.databaseDirectory())
+                .set(GraphDatabaseInternalSettings.latest_kernel_version, KERNEL_VERSION.version())
+                .set(GraphDatabaseInternalSettings.latest_runtime_version, DBMS_RUNTIME_VERSION.getVersion())
+                .build();
         return new ConsistencyCheckService(databaseLayout).with(config).runFullConsistencyCheck();
     }
 
