@@ -20,11 +20,12 @@
 package org.neo4j.internal.recordstorage.id;
 
 import org.neo4j.internal.id.IdSequence;
+import org.neo4j.internal.id.IdSequenceProvider;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.store.StoreType;
 
-public class TransactionIdSequenceProvider implements IdSequenceProvider {
+public class TransactionIdSequenceProvider implements IdSequenceProvider<StoreType> {
     private final NeoStores neoStores;
 
     public TransactionIdSequenceProvider(NeoStores neoStores) {

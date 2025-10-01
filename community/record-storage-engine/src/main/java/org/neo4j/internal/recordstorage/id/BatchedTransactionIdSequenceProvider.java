@@ -24,6 +24,7 @@ import static org.neo4j.kernel.impl.store.StoreType.STORE_TYPES;
 import java.util.Arrays;
 import org.neo4j.internal.id.IdGenerator;
 import org.neo4j.internal.id.IdSequence;
+import org.neo4j.internal.id.IdSequenceProvider;
 import org.neo4j.internal.id.range.PageIdRange;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.store.NeoStores;
@@ -34,7 +35,7 @@ import org.neo4j.kernel.impl.store.StoreType;
  * Sequence provided by this provider instead of allocating individual ids on each #nextId calls
  * will use underlying range. On close of batch sequence any leftovers will be released back to id generator.
  */
-public class BatchedTransactionIdSequenceProvider implements IdSequenceProvider {
+public class BatchedTransactionIdSequenceProvider implements IdSequenceProvider<StoreType> {
     private final NeoStores neoStores;
     private final BatchedIdSequence[] transactionSequences = new BatchedIdSequence[STORE_TYPES.length];
 

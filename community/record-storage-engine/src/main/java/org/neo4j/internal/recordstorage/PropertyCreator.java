@@ -20,8 +20,8 @@
 package org.neo4j.internal.recordstorage;
 
 import org.neo4j.internal.id.IdSequence;
+import org.neo4j.internal.id.IdSequenceProvider;
 import org.neo4j.internal.recordstorage.RecordAccess.RecordProxy;
-import org.neo4j.internal.recordstorage.id.IdSequenceProvider;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.store.DynamicRecordAllocator;
 import org.neo4j.kernel.impl.store.PropertyStore;
