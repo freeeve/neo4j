@@ -3046,4 +3046,55 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
       )
     )
   }
+
+  test("""LET a = 10
+         |RETURN allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10) AS red""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""LET a = 10
+              |RETURN allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10) AS red""".stripMargin),
+        Outgoing(variables = Set("red")),
+        ExpectedResult.TableResult("red"),
+        ExpectedWorkingScope(
+          Ast("LET a = 10"),
+          Declared(variables = Seq("a")),
+          Outgoing(variables = Set("a")),
+          ExpectedWorkingScope.constExp("10")
+        ),
+        ExpectedWorkingScope(
+          Ast("RETURN allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10) AS red"),
+          Incoming(variables = Set("a")),
+          Referenced(Set("a")),
+          Outgoing(variables = Set("red")),
+          ExpectedResult.TableResult("red"),
+          ExpectedWorkingScope(
+            Ast("allReduce(acc = 0, x IN [1, 3, a] | acc + x, acc < 10)"),
+            Incoming(constants = Set("a")),
+            Referenced(Set("a")),
+            Declared(constants = Seq("acc", "x")),
+            ExpectedWorkingScope.constExp("0", Set("a")),
+            ExpectedWorkingScope(
+              Ast("[1, 3, a]"),
+              Incoming(constants = Set("a")),
+              Referenced(Set("a")),
+              ExpectedWorkingScope.varExp("a", Set("a"))
+            ),
+            ExpectedWorkingScope(
+              Ast("acc + x"),
+              Incoming(constants = Set("a", "acc", "x")),
+              Referenced(Set("acc", "x")),
+              ExpectedWorkingScope.varExp("acc", Set("a", "acc", "x")),
+              ExpectedWorkingScope.varExp("x", Set("a", "acc", "x"))
+            ),
+            ExpectedWorkingScope(
+              Ast("acc < 10"),
+              Incoming(constants = Set("a", "acc")),
+              Referenced(Set("acc")),
+              ExpectedWorkingScope.varExp("acc", Set("a", "acc"))
+            )
+          )
+        )
+      )
+    )
+  }
 }

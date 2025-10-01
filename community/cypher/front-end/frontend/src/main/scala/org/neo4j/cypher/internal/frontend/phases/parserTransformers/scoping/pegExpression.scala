@@ -17,6 +17,9 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
+import org.neo4j.cypher.internal.expressions.AllReducePredicate
+import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
+import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepScope
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ExtractScope
@@ -135,6 +138,29 @@ object pegExpression {
           Some(innerReferenced union expressionReferenced)
         }
         val declared = Declarations(Seq(accumulator, variable), Seq.empty)
+        collect(incoming.expressionResultScope(r, children, referenced, declared))
+
+      case r @ AllReducePredicate(
+          AllReduceScope(accumulator, ReductionStepScope(reductionStepVariable, reductionStep), predicate),
+          init,
+          list
+        ) =>
+        val reductionStepResult =
+          apply(reductionStep, incoming.amendedWithConstant(Set(accumulator, reductionStepVariable)))
+        val predicateResult = apply(predicate, incoming.amendedWithConstant(Set(accumulator)))
+        val initResult = apply(init, incoming)
+        val listResult = apply(list, incoming)
+
+        val children = Seq(initResult, listResult, reductionStepResult, predicateResult)
+        val referenced = {
+          val innerReferenced = WorkingScope.referencedInChildren(Seq(
+            reductionStepResult,
+            predicateResult
+          )) excl accumulator excl reductionStepVariable
+          val expressionReferenced = WorkingScope.referencedInChildren(Seq(initResult, listResult))
+          Some(innerReferenced union expressionReferenced)
+        }
+        val declared = Declarations(Seq(accumulator, reductionStepVariable), Seq.empty)
         collect(incoming.expressionResultScope(r, children, referenced, declared))
     }
   }

@@ -389,18 +389,10 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N62", "Variable `b` not defined.")
   }
 
-  test(
-    """UNWIND [1, 2, 3] AS a
-      |WITH *, 1 AS b
-      |CALL (a, b) {
-      |  CALL (a, b) {
-      |    RETURN 1 AS res
-      |  }
-      |  RETURN res
-      |}
-      |RETURN res""".stripMargin
-  ) {
-    passes()
+  test("""MATCH (a)-[r]->+(b)
+         |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop, rel.prop = 5)
+         |RETURN a, b""".stripMargin) {
+    error("42N62", "Variable `rel` not defined.")
   }
 
   test(
