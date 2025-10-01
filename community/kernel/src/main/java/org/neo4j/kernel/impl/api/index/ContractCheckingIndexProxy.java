@@ -37,7 +37,7 @@ import org.neo4j.util.VisibleForTesting;
  *
  * @see org.neo4j.kernel.impl.api.index.IndexProxy
  */
-class ContractCheckingIndexProxy extends DelegatingIndexProxy {
+public class ContractCheckingIndexProxy extends DelegatingIndexProxy {
     /**
      * State machine for {@link IndexProxy proxies}
      *
