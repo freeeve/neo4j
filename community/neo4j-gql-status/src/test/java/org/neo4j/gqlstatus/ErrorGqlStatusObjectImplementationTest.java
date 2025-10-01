@@ -23,7 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Map;
 import org.apache.commons.lang3.SerializationUtils;
 import org.junit.jupiter.api.Test;
 
@@ -118,5 +120,187 @@ class ErrorGqlStatusObjectImplementationTest {
         // On line > 1, offset must be at least as big as column
         assertThrows(AssertionError.class, () -> errorBuilder.atPosition(6, 2, 7));
         assertThrows(AssertionError.class, () -> errorBuilder.atPosition(0, 5, 1));
+    }
+
+    @Test
+    void shouldPropagatePositionToCauses() {
+        ErrorGqlStatusObject error = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(2, 1, 3)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA0)
+                                .build())
+                        .build())
+                .build();
+
+        var expectedPosition = Map.of("offset", 2, "line", 1, "column", 3);
+        var cause = (ErrorGqlStatusObjectImplementation) error.cause().get();
+        var innerCause = (ErrorGqlStatusObjectImplementation) cause.cause().get();
+
+        assertEquals(expectedPosition, ((ErrorGqlStatusObjectImplementation) error).diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, innerCause.diagnosticRecord.getPositionMap());
+    }
+
+    @Test
+    void shouldPropagatePositionToTop() {
+        ErrorGqlStatusObject error = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA0)
+                                .atPosition(42, 3, 17)
+                                .build())
+                        .build())
+                .build();
+
+        var expectedPosition = Map.of("offset", 42, "line", 3, "column", 17);
+        var cause = (ErrorGqlStatusObjectImplementation) error.cause().get();
+        var innerCause = (ErrorGqlStatusObjectImplementation) cause.cause().get();
+
+        assertEquals(expectedPosition, ((ErrorGqlStatusObjectImplementation) error).diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, innerCause.diagnosticRecord.getPositionMap());
+    }
+
+    @Test
+    void shouldPropagateWithDifferentPositions() {
+        ErrorGqlStatusObject error = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                        .atPosition(2, 1, 3)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA0)
+                                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA1)
+                                        .atPosition(42, 3, 17)
+                                        .withCause(
+                                                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA2)
+                                                        .build())
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        var expectedPosition1 = Map.of("offset", 2, "line", 1, "column", 3);
+        var expectedPosition2 = Map.of("offset", 42, "line", 3, "column", 17);
+
+        var cause1 = (ErrorGqlStatusObjectImplementation) error.cause().get();
+        var cause2 = (ErrorGqlStatusObjectImplementation) cause1.cause().get();
+        var cause3 = (ErrorGqlStatusObjectImplementation) cause2.cause().get();
+        var cause4 = (ErrorGqlStatusObjectImplementation) cause3.cause().get();
+
+        assertEquals(expectedPosition1, ((ErrorGqlStatusObjectImplementation) error).diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition1, cause1.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition2, cause2.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition2, cause3.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition2, cause4.diagnosticRecord.getPositionMap());
+    }
+
+    @Test
+    void shouldPropagatePositionToCausesOnSetCause() {
+        ErrorGqlStatusObject error = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(2, 1, 3)
+                .build();
+
+        ((ErrorGqlStatusObjectImplementation) error)
+                .setCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA0)
+                                .build())
+                        .build());
+
+        var expectedPosition = Map.of("offset", 2, "line", 1, "column", 3);
+        var cause = (ErrorGqlStatusObjectImplementation) error.cause().get();
+        var innerCause = (ErrorGqlStatusObjectImplementation) cause.cause().get();
+
+        assertEquals(expectedPosition, ((ErrorGqlStatusObjectImplementation) error).diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, innerCause.diagnosticRecord.getPositionMap());
+    }
+
+    @Test
+    void shouldPropagatePositionFromCausesOnSetCause() {
+        ErrorGqlStatusObject error = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .build();
+
+        ((ErrorGqlStatusObjectImplementation) error)
+                .setCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA0)
+                                .atPosition(2, 1, 3)
+                                .build())
+                        .build());
+
+        var expectedPosition = Map.of("offset", 2, "line", 1, "column", 3);
+        var cause = (ErrorGqlStatusObjectImplementation) error.cause().get();
+        var innerCause = (ErrorGqlStatusObjectImplementation) cause.cause().get();
+
+        assertEquals(expectedPosition, ((ErrorGqlStatusObjectImplementation) error).diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, innerCause.diagnosticRecord.getPositionMap());
+    }
+
+    @Test
+    void shouldPropagatePositionToCausesOnInsertCause() {
+        ErrorGqlStatusObject error = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(2, 1, 3)
+                .build();
+
+        ((ErrorGqlStatusObjectImplementation) error)
+                .insertCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA0)
+                                .build())
+                        .buildImpl());
+
+        var expectedPosition = Map.of("offset", 2, "line", 1, "column", 3);
+        var cause = (ErrorGqlStatusObjectImplementation) error.cause().get();
+        var innerCause = (ErrorGqlStatusObjectImplementation) cause.cause().get();
+
+        assertEquals(expectedPosition, ((ErrorGqlStatusObjectImplementation) error).diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, innerCause.diagnosticRecord.getPositionMap());
+    }
+
+    @Test
+    void shouldPropagatePositionFromCausesOnInsertCause() {
+        ErrorGqlStatusObject error = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .build();
+
+        ((ErrorGqlStatusObjectImplementation) error)
+                .insertCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA0)
+                                .atPosition(2, 1, 3)
+                                .build())
+                        .buildImpl());
+
+        var expectedPosition = Map.of("offset", 2, "line", 1, "column", 3);
+        var cause = (ErrorGqlStatusObjectImplementation) error.cause().get();
+        var innerCause = (ErrorGqlStatusObjectImplementation) cause.cause().get();
+
+        assertEquals(expectedPosition, ((ErrorGqlStatusObjectImplementation) error).diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, innerCause.diagnosticRecord.getPositionMap());
+    }
+
+    @Test
+    void positionPropagationShouldNotCauseStackOverflow() {
+        final var ex1 = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .build();
+        final var ex2 = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                .build();
+        final var ex3 = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA0)
+                .build();
+        ((ErrorGqlStatusObjectImplementation) ex1).setCause(ex2);
+        ((ErrorGqlStatusObjectImplementation) ex2).setCause(ex3);
+        ((ErrorGqlStatusObjectImplementation) ex3).setCause(ex1);
+
+        ErrorGqlStatusObject error = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB8)
+                .atPosition(2, 1, 3)
+                .withCause(ex1)
+                .build();
+
+        var expectedPosition = Map.of("offset", 2, "line", 1, "column", 3);
+        var cause1 = (ErrorGqlStatusObjectImplementation) error.cause().get();
+        var cause2 = (ErrorGqlStatusObjectImplementation) cause1.cause().get();
+        var cause3 = (ErrorGqlStatusObjectImplementation) cause2.cause().get();
+
+        assertEquals(expectedPosition, ((ErrorGqlStatusObjectImplementation) error).diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause1.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause2.diagnosticRecord.getPositionMap());
+        assertEquals(expectedPosition, cause3.diagnosticRecord.getPositionMap());
+        assertTrue(cause3.cause().isEmpty());
     }
 }

@@ -21,6 +21,7 @@ package org.neo4j.gqlstatus;
 
 import static java.util.stream.Collectors.toMap;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +81,12 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
 
     public void setCause(ErrorGqlStatusObject cause) {
         this.cause = cause;
+        removeLoops(cause);
+        propagatePositions(this.diagnosticRecord, cause);
+    }
+
+    private void removeCause() {
+        this.cause = null;
     }
 
     public ErrorGqlStatusObject insertCause(ErrorGqlStatusObjectImplementation newCause) {
@@ -233,13 +240,57 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         public ErrorGqlStatusObject build() {
             diagnosticRecordBuilder.withClassification(gqlStatusInfoCode.getClassification());
             DiagnosticRecord diagnosticRecord = diagnosticRecordBuilder.build();
+            /*
+             * Theoretically, it would be enough to run removeLoops() and propagatePositions() when we are on the
+             * top-level error, but there is no way to know if we are constructing a cause or a top-level error.
+             * As errors seldom have more than 3 causes,
+             * we can live with the inefficiency of running them on every step.
+             */
+            removeLoops(cause);
+            propagatePositions(diagnosticRecord, cause);
             return new ErrorGqlStatusObjectImplementation(gqlStatusInfoCode, paramMap, cause, diagnosticRecord);
         }
 
         public ErrorGqlStatusObjectImplementation buildImpl() {
-            diagnosticRecordBuilder.withClassification(gqlStatusInfoCode.getClassification());
-            DiagnosticRecord diagnosticRecord = diagnosticRecordBuilder.build();
-            return new ErrorGqlStatusObjectImplementation(gqlStatusInfoCode, paramMap, cause, diagnosticRecord);
+            return (ErrorGqlStatusObjectImplementation) build();
+        }
+    }
+
+    private static void removeLoops(ErrorGqlStatusObject cause) {
+        ErrorGqlStatusObject currentCause = cause;
+        final List<ErrorGqlStatusObject> list = new ArrayList<>();
+        while (currentCause != null) {
+            if (list.contains(currentCause)) {
+                ((ErrorGqlStatusObjectImplementation) list.getLast()).removeCause();
+                break;
+            } else {
+                list.add(currentCause);
+                currentCause = currentCause.cause().orElse(null);
+            }
+        }
+    }
+
+    private static void propagatePositions(
+            DiagnosticRecord currentDiagnosticRecord, ErrorGqlStatusObject currentCause) {
+        if (currentCause instanceof ErrorGqlStatusObjectImplementation c) {
+            // The current error has no position but its cause has one => propagate cause position to current error
+            if (!currentDiagnosticRecord.hasPosition() && c.diagnosticRecord.hasPosition()) {
+                var position = c.diagnosticRecord.getPositionMap();
+                currentDiagnosticRecord.updatePosition(
+                        position.getOrDefault("offset", -1),
+                        position.getOrDefault("line", -1),
+                        position.getOrDefault("column", -1));
+            }
+            // The current error has a position but its cause does not => propagate current error position to cause
+            else if (currentDiagnosticRecord.hasPosition() && !c.diagnosticRecord.hasPosition()) {
+                var position = currentDiagnosticRecord.getPositionMap();
+                c.diagnosticRecord.updatePosition(
+                        position.getOrDefault("offset", -1),
+                        position.getOrDefault("line", -1),
+                        position.getOrDefault("column", -1));
+            }
+            // Continue down the chain of causes
+            propagatePositions(c.diagnosticRecord, c.cause);
         }
     }
 }
