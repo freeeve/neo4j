@@ -99,11 +99,14 @@ public class InteractiveShellRunner implements ShellRunner, UserInterruptHandler
         printer.printIfVerbose(userMessagesHandler.getWelcomeMessage());
 
         while (running) {
+            String currentStatement = null;
             try {
                 for (ParsedStatement statement : readUntilStatement()) {
                     currentlyExecuting.set(true);
+                    currentStatement = statement.statement();
                     executer.execute(statement);
                     currentlyExecuting.set(false);
+                    currentStatement = null;
                 }
             } catch (ExitException e) {
                 log.info("ExitException code=" + e.getCode() + ", message=" + e.getMessage());
@@ -115,7 +118,11 @@ public class InteractiveShellRunner implements ShellRunner, UserInterruptHandler
                 running = false;
             } catch (Throwable e) {
                 log.error(e);
-                printer.printError(e);
+                if (currentStatement != null) {
+                    printer.printError(e, currentStatement);
+                } else {
+                    printer.printError(e);
+                }
             } finally {
                 currentlyExecuting.set(false);
             }

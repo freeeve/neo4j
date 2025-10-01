@@ -1716,6 +1716,41 @@ class MainIntegrationTest extends TestHarness {
     }
 
     @Test
+    void errorFormatGqlWithPosition() throws Exception {
+        final String expected;
+        if (isAtLeastVersion("5.27.0")) {
+            expected =
+                    """
+                    42N62: syntax error or access rule violation - variable not defined. Variable `m` not defined. (line 2, column 9 (offset: 19))
+                    " RETURN m"
+                             ^
+                      42001: syntax error or access rule violation - invalid syntax
+
+                    """;
+        } else {
+            expected =
+                    """
+                    Variable `m` not defined. (line 2, column 9 (offset: 19))
+                    " RETURN m"
+                             ^
+                    """;
+        }
+        buildTest()
+                .addArgs("-u", USER, "-p", PASSWORD, "--error-format", "gql")
+                .userInputLines("MATCH (n) \n RETURN m;", ":exit")
+                .run()
+                .assertSuccess(false)
+                .assertThatOutput(
+                        contains(
+                                """
+                                neo4j@neo4j> MATCH (n)\s
+                                              RETURN m;
+                                neo4j@neo4j> :exit"""))
+                .errorOutputSatisfies(err ->
+                        assertThat(err).as("serverVersion=%s", serverVersion).isEqualTo(expected));
+    }
+
+    @Test
     void errorFormatLegacy() throws Exception {
         buildTest()
                 .addArgs("-u", USER, "-p", PASSWORD, "--error-format", "legacy")

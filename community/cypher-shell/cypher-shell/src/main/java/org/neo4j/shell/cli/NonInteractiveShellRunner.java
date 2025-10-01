@@ -72,8 +72,11 @@ public class NonInteractiveShellRunner implements ShellRunner {
 
         int exitCode = EXIT_SUCCESS;
 
+        String currentStatement = null;
+
         for (var statement : statements) {
             try {
+                currentStatement = statement.statement();
                 executer.execute(statement);
             } catch (ExitException e) {
                 log.info("ExitException code=" + e.getCode() + ": " + e.getMessage());
@@ -82,7 +85,11 @@ public class NonInteractiveShellRunner implements ShellRunner {
             } catch (Throwable e) {
                 exitCode = EXIT_FAILURE;
                 log.error(e);
-                printer.printError(e);
+                if (currentStatement != null) {
+                    printer.printError(e, currentStatement);
+                } else {
+                    printer.printError(e);
+                }
                 if (FailBehavior.FAIL_AT_END != failBehavior) {
                     return exitCode;
                 }

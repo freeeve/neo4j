@@ -157,7 +157,8 @@ class InteractiveShellRunnerTest {
         verify(cmdExecuter, times(6)).lastNeo4jErrorCode();
         verifyNoMoreInteractions(cmdExecuter);
 
-        verify(printer, times(2)).printError(badLineError);
+        verify(printer, times(1)).printError(badLineError, "bad1");
+        verify(printer, times(1)).printError(badLineError, "bad2");
     }
 
     @Test
@@ -178,7 +179,7 @@ class InteractiveShellRunnerTest {
         verify(cmdExecuter, times(4)).lastNeo4jErrorCode();
         verifyNoMoreInteractions(cmdExecuter);
 
-        verify(printer).printError(badLineError);
+        verify(printer).printError(badLineError, "bad1");
     }
 
     @Test

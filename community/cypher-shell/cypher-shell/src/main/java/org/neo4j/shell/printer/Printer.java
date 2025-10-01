@@ -31,6 +31,14 @@ public interface Printer extends LinePrinter {
     void printError(Throwable throwable);
 
     /**
+     * Print a sanitized cause of the specified error. If debug mode is enabled, a full stacktrace should be printed as well.
+     *
+     * @param throwable to print to the error stream
+     * @param query the query which was executed when the error occurred
+     */
+    void printError(Throwable throwable, String query);
+
+    /**
      * Print the designated text to configured error stream.
      *
      * @param text to print to the error stream

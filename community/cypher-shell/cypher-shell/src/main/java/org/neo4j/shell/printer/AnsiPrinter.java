@@ -23,16 +23,19 @@ import static java.lang.System.lineSeparator;
 import static org.fusesource.jansi.internal.CLibrary.STDERR_FILENO;
 import static org.fusesource.jansi.internal.CLibrary.STDOUT_FILENO;
 import static org.fusesource.jansi.internal.CLibrary.isatty;
+import static org.neo4j.exceptions.SyntaxException.findErrorLine;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.fusesource.jansi.Ansi;
 import org.fusesource.jansi.AnsiConsole;
 import org.neo4j.driver.exceptions.ClientException;
 import org.neo4j.driver.exceptions.DiscoveryException;
 import org.neo4j.driver.exceptions.Neo4jException;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
+import org.neo4j.driver.internal.value.MapValue;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.shell.cli.ErrorFormat;
 import org.neo4j.shell.cli.Format;
@@ -99,7 +102,12 @@ public class AnsiPrinter implements Printer {
 
     @Override
     public void printError(Throwable throwable) {
-        printError(getFormattedMessage(throwable));
+        printError(getFormattedMessage(throwable, Optional.empty()));
+    }
+
+    @Override
+    public void printError(Throwable throwable, String query) {
+        printError(getFormattedMessage(throwable, Optional.of(query)));
     }
 
     @Override
@@ -115,7 +123,7 @@ public class AnsiPrinter implements Printer {
     /**
      * Formatting for Bolt exceptions.
      */
-    public String getFormattedMessage(final Throwable e) {
+    public String getFormattedMessage(final Throwable e, Optional<String> query) {
         AnsiFormattedText msg = AnsiFormattedText.s().brightRed();
 
         if (e instanceof AnsiFormattedException ae) {
@@ -139,7 +147,7 @@ public class AnsiPrinter implements Printer {
                 if (!first) msg.append("  ");
                 msg.append(gqlError.gqlStatus())
                         .append(": ")
-                        .append(trimStatusDesc(gqlError.statusDescription()))
+                        .append(trimStatusDesc(formatStatusDescriptionWithPositionQueryAndOffset(gqlError, query)))
                         .append(lineSeparator());
                 first = false;
             }
@@ -183,5 +191,45 @@ public class AnsiPrinter implements Printer {
             if (in.startsWith(toTrim)) return in.substring(toTrim.length());
         }
         return in;
+    }
+
+    private static String formatStatusDescriptionWithPositionQueryAndOffset(Neo4jException ex, Optional<String> query) {
+        String statusDescr = ex.statusDescription();
+
+        // We only want to log the position, query and caret on the last case
+        if (query.isPresent() && ex.gqlCause().isEmpty()) {
+            // The position should always exist and be a map, but use default values in case it doesn't
+            int line = -1;
+            int column = -1;
+            int offset = -1;
+
+            if (ex.diagnosticRecord().get("_position") instanceof MapValue position) {
+                if (position.containsKey("line")) {
+                    line = position.get("line").asInt();
+                }
+                if (position.containsKey("column")) {
+                    column = position.get("column").asInt();
+                }
+                if (position.containsKey("offset")) {
+                    offset = position.get("offset").asInt();
+                }
+            }
+
+            if (offset >= 0) {
+                // split can be empty if query = '\n'
+                var split = query.get().split("\n");
+                String errorLine;
+
+                try {
+                    errorLine = lineSeparator() + findErrorLine(offset, split.length != 0 ? split : new String[] {""});
+                } catch (Exception e) {
+                    // In case the findErrorLine() function would fail, we are just leaving out the query and caret
+                    errorLine = "";
+                }
+
+                return "%s (line %d, column %d (offset: %d))%s".formatted(statusDescr, line, column, offset, errorLine);
+            }
+        }
+        return statusDescr;
     }
 }

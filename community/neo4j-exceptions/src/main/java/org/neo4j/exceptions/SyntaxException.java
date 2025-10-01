@@ -35,6 +35,7 @@ public class SyntaxException extends Neo4jException {
 
     private final transient Integer offset;
     private final String query;
+    private String positionString = "";
 
     public static final String QUOTE_MISMATCH_ERROR_MESSAGE =
             "Failed to parse string literal. The query must contain an even number of non-escaped quotes.";
@@ -49,6 +50,14 @@ public class SyntaxException extends Neo4jException {
 
     public SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message, String query, int offset) {
         this(gqlStatusObject, message, query, offset, null);
+    }
+
+    public SyntaxException(
+            ErrorGqlStatusObject gqlStatusObject, String message, String query, String adjustedPosition, int offset) {
+        this(gqlStatusObject, message, query, offset, null);
+        if (nonNull(adjustedPosition)) {
+            this.positionString = String.format(" (%s)", adjustedPosition);
+        }
     }
 
     protected SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
@@ -211,25 +220,28 @@ public class SyntaxException extends Neo4jException {
 
     @Override
     public String getMessage() {
-        return formatMessageWithQueryAndOffset(super.getMessage());
+        return formatMessageWithPositionQueryAndOffset(super.getMessage());
     }
 
     @Override
     public String legacyMessage() {
-        return formatMessageWithQueryAndOffset(super.legacyMessage());
+        return formatMessageWithPositionQueryAndOffset(super.legacyMessage());
     }
 
-    private String formatMessageWithQueryAndOffset(String message) {
+    public String formatMessageWithPositionQueryAndOffset(String message) {
         if (nonNull(offset)) {
             // split can be empty if query = '\n'
             var split = query.split("\n");
-            return message + lineSeparator() + findErrorLine(offset, split.length != 0 ? split : new String[] {""});
+            return message
+                    + positionString
+                    + lineSeparator()
+                    + findErrorLine(offset, split.length != 0 ? split : new String[] {""});
         } else {
             return message;
         }
     }
 
-    private static String findErrorLine(int offset, String[] message) {
+    public static String findErrorLine(int offset, String[] message) {
         int currentOffset = offset;
         if (message.length == 0) {
             throw new IllegalArgumentException("message converted to empty list");

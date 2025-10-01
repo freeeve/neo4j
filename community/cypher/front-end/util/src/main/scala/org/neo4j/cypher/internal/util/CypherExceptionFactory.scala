@@ -464,8 +464,9 @@ case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Optio
 
     new SyntaxException(
       gqlWithAdjustedPosition,
-      s"$message ($adjustedPosition)",
+      message,
       queryText,
+      adjustedPosition.toString,
       adjustedPosition.offset
     )
   }

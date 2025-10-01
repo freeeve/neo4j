@@ -97,7 +97,7 @@ class NonInteractiveShellRunnerTest {
         int code = runner.runUntilEnd();
 
         assertEquals(1, code, "Exit code incorrect");
-        verify(printer).printError(badLineError);
+        verify(printer).printError(badLineError, "bad");
     }
 
     @Test
@@ -119,7 +119,7 @@ class NonInteractiveShellRunnerTest {
         int code = runner.runUntilEnd();
 
         assertEquals(1, code, "Exit code incorrect");
-        verify(printer, times(2)).printError(badLineError);
+        verify(printer, times(2)).printError(badLineError, "bad");
     }
 
     @Test

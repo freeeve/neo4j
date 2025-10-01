@@ -45,6 +45,11 @@ public class StringLinePrinter implements Printer {
     }
 
     @Override
+    public void printError(Throwable throwable, String query) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void printError(String text) {
         throw new UnsupportedOperationException();
     }
