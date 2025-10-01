@@ -71,7 +71,7 @@ public enum KernelVersion {
     V2025_07((byte) 23), // 2025_07. Block MVCC index commands
     V2025_08((byte) 24), // 2025_08. No actual change; however, a new version enables rollout of envelopes for more DBs
     V2025_09((byte) 25), // 2025_09. Introduced Lucene 10 and bumped the lucene index providers
-    V2025_10((byte) 26),
+    V2025_10((byte) 26), // 2025_10. Introduce vector types
 
     // An unreleased future version.
     // This version is meant to be used when developing a new feature
@@ -112,9 +112,9 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_PARTITIONED_BLOCK_TOKENS = V5_25;
     public static final KernelVersion VERSION_SPDFORMAT_INTRODUCED = V5_25;
     public static final KernelVersion VERSION_CDC_USE_NAME_INTRODUCED = V2025_04;
-    public static final KernelVersion VERSION_VECTOR_TYPE_INTRODUCED = GLORIOUS_FUTURE;
     public static final KernelVersion VERSION_UPGRADE_CONTAINS_LOG_FORMAT = V2025_05;
     public static final KernelVersion VERSION_LUCENE_10_INTRODUCED = V2025_09;
+    public static final KernelVersion VERSION_VECTOR_TYPE_INTRODUCED = V2025_10;
     public static final KernelVersion VERSION_VECTOR_INDEX_SINGLE_STAGE_FILTERING = GLORIOUS_FUTURE;
     // Keep updated each time there is an new schema rule added
     // related to IntegrityValidator
