@@ -110,8 +110,9 @@ class DefaultTopologyInfoServiceTest {
         assertThat(systemDetails.actualSecondariesCount()).isZero();
         assertThat(systemDetails.type()).isEqualTo(TYPE_SYSTEM);
         assertThat(systemDetails.namedDatabaseId()).isEqualTo(NAMED_SYSTEM_DATABASE_ID);
-        assertThat(systemDetails.txCommitLag()).hasValue(0L);
         assertThat(systemDetails.lastCommittedTxId()).isEmpty();
+        assertThat(systemDetails.txCommitLag()).hasValue(0L);
+        assertThat(systemDetails.shardCommitLag()).isEmpty();
         assertThat(systemDetails.storeId()).hasValue(systemStoreId);
         assertThat(systemDetails.externalStoreId()).hasValue(systemExternalStoreId);
         assertThat(systemDetails.serverId()).hasValue(serverId);
@@ -130,8 +131,9 @@ class DefaultTopologyInfoServiceTest {
         assertThat(userDetails.actualSecondariesCount()).isZero();
         assertThat(userDetails.type()).isEqualTo(TYPE_STANDARD);
         assertThat(userDetails.namedDatabaseId()).isEqualTo(databaseId);
-        assertThat(userDetails.txCommitLag()).hasValue(0L);
         assertThat(userDetails.lastCommittedTxId()).isEmpty();
+        assertThat(userDetails.txCommitLag()).hasValue(0L);
+        assertThat(userDetails.shardCommitLag()).isEmpty();
         assertThat(userDetails.storeId()).hasValue(userStoreId);
         assertThat(userDetails.externalStoreId()).hasValue(userExternalStoreId);
         assertThat(userDetails.serverId()).hasValue(serverId);

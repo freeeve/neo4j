@@ -109,6 +109,7 @@ public class DefaultTopologyInfoService implements TopologyInfoService {
                 stateService.causeOfFailure(id).map(Throwable::getMessage).orElse(""),
                 Optional.empty(),
                 Optional.of(0L),
+                Optional.empty(),
                 id,
                 id.isSystemDatabase() ? TYPE_SYSTEM : TYPE_STANDARD,
                 Collections.emptyMap(),

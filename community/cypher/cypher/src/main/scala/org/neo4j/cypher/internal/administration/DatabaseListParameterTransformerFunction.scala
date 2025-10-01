@@ -129,7 +129,7 @@ class DatabaseListParameterTransformerFunction(
     val spdMetadata: List[AnyValue] = filteredReferences.collect {
       case ref: DatabaseReferenceImpl.VirtualSPD
         if ref.isPrimary && securityContext.databaseAccessMode().canSeeDatabase(ref) =>
-        val spd = DatabaseIdFactory.from(ref.alias().name(), ref.id())
+        val spdId = DatabaseIdFactory.from(ref.alias().name(), ref.id())
         val graphShardInfos =
           allDbInfos.asScala.filter(info => ref.graphShard().namedDatabaseId().equals(info.namedDatabaseId()))
         val propertyShardDatabaseIds = ref.graphShard().propertyShards().values().asScala.map(_.namedDatabaseId()).toSet
@@ -156,9 +156,12 @@ class DatabaseListParameterTransformerFunction(
             statusMessage,
             Option.empty.toJava,
             Option.empty.toJava,
+            Option.empty.toJava,
             // database level values - will be the same for all members
-            spd, // replace with spd
+            spdId,
+            // replace with spd
             DatabaseDetails.TYPE_STANDARD,
+            // this is not great as these are the options of the graph shard which is not the same as the options of spd
             databaseDetails.options,
             Option.empty.toJava,
             databaseDetails.externalStoreId(),

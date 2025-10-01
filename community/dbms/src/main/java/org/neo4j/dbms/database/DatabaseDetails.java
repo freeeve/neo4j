@@ -40,6 +40,7 @@ public record DatabaseDetails(
         String statusMessage,
         Optional<Long> lastCommittedTxId,
         Optional<Long> txCommitLag,
+        Optional<Long> shardCommitLag,
         // database level values - will be the same for all members
         NamedDatabaseId namedDatabaseId,
         String type,
