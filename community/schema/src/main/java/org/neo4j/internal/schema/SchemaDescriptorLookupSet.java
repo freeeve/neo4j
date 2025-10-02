@@ -25,10 +25,9 @@ import static org.neo4j.internal.schema.SchemaPatternMatchingType.PARTIAL_ANY_TO
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
+import org.neo4j.collection.RetainLatestUniqueValueCollection;
 
 /**
  * Collects and provides efficient access to {@link SchemaDescriptor}, based on complete list of entity tokens and partial or complete list of property keys.
@@ -213,9 +212,10 @@ public class SchemaDescriptorLookupSet<T extends SchemaDescriptorSupplier> {
      * </pre>
      */
     private class PropertyMultiSet {
-        private final Set<T> descriptors = new HashSet<>();
+        private final RetainLatestUniqueValueCollection<T> descriptors = new RetainLatestUniqueValueCollection<>();
         private final MutableIntObjectMap<PropertySet> next = IntObjectMaps.mutable.empty();
-        private final MutableIntObjectMap<Set<T>> byAnyProperty = IntObjectMaps.mutable.empty();
+        private final MutableIntObjectMap<RetainLatestUniqueValueCollection<T>> byAnyProperty =
+                IntObjectMaps.mutable.empty();
 
         void add(T schemaDescriptor) {
             // Add optimized path for when property list is fully known
@@ -242,7 +242,9 @@ public class SchemaDescriptorLookupSet<T extends SchemaDescriptorSupplier> {
 
             // Add fall-back path for when property list is only partly known
             for (int keyId : propertyKeyIds) {
-                byAnyProperty.getIfAbsentPut(keyId, HashSet::new).add(schemaDescriptor);
+                byAnyProperty
+                        .getIfAbsentPut(keyId, RetainLatestUniqueValueCollection::new)
+                        .add(schemaDescriptor);
             }
         }
 
@@ -277,7 +279,7 @@ public class SchemaDescriptorLookupSet<T extends SchemaDescriptorSupplier> {
 
             // Remove from the fall-back path
             for (int keyId : propertyKeyIds) {
-                Set<T> byProperty = byAnyProperty.get(keyId);
+                RetainLatestUniqueValueCollection<T> byProperty = byAnyProperty.get(keyId);
                 if (byProperty != null) {
                     byProperty.remove(schemaDescriptor);
                     if (byProperty.isEmpty()) {
@@ -299,7 +301,7 @@ public class SchemaDescriptorLookupSet<T extends SchemaDescriptorSupplier> {
 
         void collectForPartialListOfProperties(Collection<T> descriptors, int[] sortedProperties) {
             for (int propertyKeyId : sortedProperties) {
-                Set<T> propertyDescriptors = byAnyProperty.get(propertyKeyId);
+                RetainLatestUniqueValueCollection<T> propertyDescriptors = byAnyProperty.get(propertyKeyId);
                 if (propertyDescriptors != null) {
                     descriptors.addAll(propertyDescriptors);
                 }
@@ -322,7 +324,7 @@ public class SchemaDescriptorLookupSet<T extends SchemaDescriptorSupplier> {
      * like {@link PropertyMultiSet} has.
      */
     private class PropertySet {
-        private final Set<T> fullDescriptors = new HashSet<>();
+        private final RetainLatestUniqueValueCollection<T> fullDescriptors = new RetainLatestUniqueValueCollection<>();
         private final MutableIntObjectMap<PropertySet> next = IntObjectMaps.mutable.empty();
 
         void add(T schemaDescriptor, int[] propertyKeyIds, int cursor) {

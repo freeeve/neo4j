@@ -21,6 +21,7 @@ package org.neo4j.internal.schema;
 
 import static java.util.Arrays.stream;
 import static org.apache.commons.lang3.ArrayUtils.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.schema.SchemaPatternMatchingType.COMPLETE_ALL_TOKENS;
@@ -129,6 +130,30 @@ class SchemaDescriptorLookupSetTest {
     @Test
     void shouldAddRemoveAndLookupRandomDescriptorsWithIdempotentOperations() {
         shouldAddRemoveAndLookupRandomDescriptors(true);
+    }
+
+    @Test
+    void shouldUpdateToIndexWithOwningConstraintId() {
+        SchemaDescriptorLookupSet<SchemaDescriptorSupplier> set = new SchemaDescriptorLookupSet<>();
+
+        var indexNoOwningConstraint = new IndexDescriptor(
+                1,
+                IndexPrototype.uniqueForSchema(SchemaDescriptors.forLabel(1, 2)).withName("index"));
+        set.add(indexNoOwningConstraint);
+        Set<SchemaDescriptorSupplier> result1 = new HashSet<>();
+        set.matchingDescriptorsForCompleteListOfProperties(result1, entityTokens(1), properties(2));
+        assertThat(result1).hasSize(1);
+        var index1 = (IndexDescriptor) result1.iterator().next();
+        assertThat(index1.getOwningConstraintId()).isEmpty();
+
+        // The index should replace the previous one since it is equal except for added owning constraint id
+        var indexWithConstraint = indexNoOwningConstraint.withOwningConstraintId(42);
+        set.add(indexWithConstraint);
+        Set<SchemaDescriptorSupplier> result2 = new HashSet<>();
+        set.matchingDescriptorsForCompleteListOfProperties(result2, entityTokens(1), properties(2));
+        assertThat(result2).hasSize(1);
+        var index2 = (IndexDescriptor) result2.iterator().next();
+        assertThat(index2.getOwningConstraintId()).isPresent().hasValue(42);
     }
 
     private void shouldAddRemoveAndLookupRandomDescriptors(boolean includeIdempotentAddsAndRemoves) {

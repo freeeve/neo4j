@@ -40,6 +40,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.SchemaRead;
@@ -1738,6 +1739,8 @@ public abstract class SchemaReadWriteTestBase<G extends KernelAPIWriteTestSuppor
 
         void createDataInconsistentWithExistenceConstraintOnSchema(KernelTransaction tx, int entityToken)
                 throws KernelException;
+
+        org.neo4j.common.EntityType getRealEntityType();
     }
 
     public enum EntityType implements EntityControl {
@@ -1777,6 +1780,11 @@ public abstract class SchemaReadWriteTestBase<G extends KernelAPIWriteTestSuppor
                 long node = write.nodeCreate();
                 write.nodeAddLabel(node, entityToken);
             }
+
+            @Override
+            public org.neo4j.common.EntityType getRealEntityType() {
+                return org.neo4j.common.EntityType.NODE;
+            }
         },
         RELATIONSHIP {
             @Override
@@ -1813,6 +1821,11 @@ public abstract class SchemaReadWriteTestBase<G extends KernelAPIWriteTestSuppor
                 Write write = tx.dataWrite();
                 long node = write.nodeCreate();
                 write.relationshipCreate(node, entityToken, node);
+            }
+
+            @Override
+            public org.neo4j.common.EntityType getRealEntityType() {
+                return org.neo4j.common.EntityType.RELATIONSHIP;
             }
         }
     }
