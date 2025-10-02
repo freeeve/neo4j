@@ -125,7 +125,8 @@ public class CommunityCypherEngineProvider extends QueryEngineProvider {
             return new SnapshotExecutionEngine(
                     queryService, spi.databaseConfig(), queryCaches, spi.logProvider(), compilerFactory);
         }
-        if ("multiversion".equals(spi.databaseConfig().get(GraphDatabaseSettings.db_format))) {
+        String dbFormat = spi.databaseConfig().get(GraphDatabaseSettings.db_format);
+        if (dbFormat != null && dbFormat.contains("multiversion")) {
             return new MultiVersionExecutionEngine(
                     queryService, spi.databaseConfig(), queryCaches, spi.logProvider(), compilerFactory);
         }
