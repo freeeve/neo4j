@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.frontend.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
+
 class ScopeSurveyorTest extends VariableCheckingTestSuite {
 
   test("RETURN 1") {
@@ -3260,6 +3262,25 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
           ExpectedResult.TableResult(aliasCols: _*)
         )
       )
+    )
+  }
+
+  test("""CREATE DATABASE slow WAIT 5 SECONDS""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""CREATE DATABASE slow WAIT 5 SECONDS""".stripMargin),
+        ExpectedResult.OmittedResult
+      )
+    )
+
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""CREATE DATABASE slow WAIT 5 SECONDS""".stripMargin),
+        Declared(constants = Seq.empty, variables = Seq("address", "state", "message", "success")),
+        Outgoing(variables = Set("address", "state", "message", "success")),
+        ExpectedResult.TableResult("address", "state", "message", "success")
+      ),
+      version = CypherVersion.Cypher5
     )
   }
 }

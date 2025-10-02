@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
@@ -41,12 +42,12 @@ import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 
 object pegExpression {
 
-  def apply(labelExpression: LabelExpression, incoming: RegularContext): WorkingScope = {
+  def apply(labelExpression: LabelExpression, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     def collect(scope: WorkingScope): Seq[WorkingScope] => FoldingBehavior[Seq[WorkingScope]] =
       acc => SkipChildren(acc :+ scope)
 
     val children = labelExpression.folder.treeFold(Seq[WorkingScope]()) {
-      case DynamicLeaf(leafExpression, _) => collect(apply(leafExpression.expression, incoming))
+      case DynamicLeaf(leafExpression, _) => collect(apply(leafExpression.expression, incoming, version))
     }
     onlyChildIfSelfOrElse(
       children,
@@ -55,12 +56,16 @@ object pegExpression {
     )
   }
 
-  def apply(expression: Expression, incoming: RegularContext): WorkingScope = {
-    val children = scopeExpression(expression, incoming)
+  def apply(expression: Expression, incoming: RegularContext, version: CypherVersion): WorkingScope = {
+    val children = scopeExpression(expression, incoming, version)
     onlyChildIfSelfOrElse(children, expression, () => incoming.expressionResultScope(expression, children))
   }
 
-  private def scopeExpression(expression: Expression, incoming: RegularContext): Seq[ExpressionScope] = {
+  private def scopeExpression(
+    expression: Expression,
+    incoming: RegularContext,
+    version: CypherVersion
+  ): Seq[ExpressionScope] = {
     def collect(scope: ExpressionScope)
       : Seq[ExpressionScope] => FoldingBehavior[Seq[ExpressionScope]] =
       acc => SkipChildren(acc :+ scope)
@@ -82,14 +87,14 @@ object pegExpression {
         collect(incoming.expressionResultScope(cntStar, Seq.empty))
       case fi @ FunctionInvocation(_, _, args, _, false) if fi.function.isInstanceOf[AggregatingFunction] =>
         val argIncoming = incoming.constantChildContext()
-        val children = args.map(arg => apply(arg, argIncoming))
+        val children = args.map(arg => apply(arg, argIncoming, version))
         collect(incoming.expressionResultScope(fi, children))
 
       /**
        * Scalar subqueries
        */
       case fse: FullSubqueryExpression =>
-        val child = ScopeSurveyor.scope(fse.query, incoming)
+        val child = ScopeSurveyor.scope(fse.query, incoming, version)
         val children = Seq(child)
         collect(incoming.expressionResultScope(fse, children))
 
@@ -99,10 +104,10 @@ object pegExpression {
       case lc @ ListComprehension(ExtractScope(variable, innerPredicate, extractExpression), expression) =>
         val innerIncoming = incoming.amendedWithConstant(variable)
         val innerResult = Seq(innerPredicate, extractExpression).flatMap {
-          case Some(ex) => Some(apply(ex, innerIncoming))
+          case Some(ex) => Some(apply(ex, innerIncoming, version))
           case None     => None
         }
-        val expressionResult = apply(expression, incoming)
+        val expressionResult = apply(expression, incoming, version)
         val children = expressionResult +: innerResult
         val referenced = {
           val innerReferenced = WorkingScope.referencedInChildren(innerResult) excl variable
@@ -113,14 +118,14 @@ object pegExpression {
         collect(incoming.expressionResultScope(lc, children, referenced, declared))
 
       case pc @ PatternComprehension(optVar, pattern, innerPredicate, projection) =>
-        val patternResult = pegPattern(pattern.element, incoming)
+        val patternResult = pegPattern(pattern.element, incoming, version)
         val variables = optVar match {
           case Some(value) => Seq(value) ++ patternResult.declared.variables
           case None        => patternResult.declared.variables
         }
         val innerIncoming = incoming.amendedWithConstant(variables.toSet)
         val innerResult = Seq(innerPredicate, Some(projection)).flatMap {
-          case Some(ex) => Some(apply(ex, innerIncoming))
+          case Some(ex) => Some(apply(ex, innerIncoming, version))
           case None     => None
         }
         val children = patternResult +: innerResult
@@ -134,8 +139,8 @@ object pegExpression {
       case iter: IterablePredicateExpression =>
         val FilterScope(variable, innerPredicate) = iter.scope
         val innerIncoming = incoming.amendedWithConstant(variable)
-        val innerResult = innerPredicate.fold(Seq.empty[WorkingScope]) { ex => Seq(apply(ex, innerIncoming)) }
-        val expressionResult = apply(iter.expression, incoming)
+        val innerResult = innerPredicate.fold(Seq.empty[WorkingScope]) { ex => Seq(apply(ex, innerIncoming, version)) }
+        val expressionResult = apply(iter.expression, incoming, version)
         val children = expressionResult +: innerResult
         val referenced = {
           val innerReferenced = WorkingScope.referencedInChildren(innerResult) excl variable
@@ -147,9 +152,9 @@ object pegExpression {
 
       case r @ ReduceExpression(ReduceScope(accumulator, variable, expression), init, list) =>
         val innerIncoming = incoming.amendedWithConstant(Set(accumulator, variable))
-        val innerResult = apply(expression, innerIncoming)
-        val initResult = apply(init, incoming)
-        val listResult = apply(list, incoming)
+        val innerResult = apply(expression, innerIncoming, version)
+        val initResult = apply(init, incoming, version)
+        val listResult = apply(list, incoming, version)
 
         val children = Seq(initResult, listResult, innerResult)
         val referenced = {
@@ -166,10 +171,10 @@ object pegExpression {
           list
         ) =>
         val reductionStepResult =
-          apply(reductionStep, incoming.amendedWithConstant(Set(accumulator, reductionStepVariable)))
-        val predicateResult = apply(predicate, incoming.amendedWithConstant(Set(accumulator)))
-        val initResult = apply(init, incoming)
-        val listResult = apply(list, incoming)
+          apply(reductionStep, incoming.amendedWithConstant(Set(accumulator, reductionStepVariable)), version)
+        val predicateResult = apply(predicate, incoming.amendedWithConstant(Set(accumulator)), version)
+        val initResult = apply(init, incoming, version)
+        val listResult = apply(list, incoming, version)
 
         val children = Seq(initResult, listResult, reductionStepResult, predicateResult)
         val referenced = {

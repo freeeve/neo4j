@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
@@ -45,7 +46,7 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
   val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
-    val workingContextOfStatement = scope(from.statement(), RegularContext.unit)
+    val workingContextOfStatement = scope(from.statement(), RegularContext.unit, context.cypherVersion)
     from.withWorkingScope(workingContextOfStatement)
   }
 
@@ -64,30 +65,30 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
 
   override def postConditions: Set[StepSequencer.Condition] = Set(BaseContains[WorkingScope]())
 
-  def scope(astNode: ASTNode, incoming: RegularContext): WorkingScope = {
+  def scope(astNode: ASTNode, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     astNode match {
 
       /**
        * Statement
        */
-      case statement: Statement => pegStatement(statement, incoming)
+      case statement: Statement => pegStatement(statement, incoming, version)
 
       /**
        * Clause
        */
-      case clause: Clause => pegClause(clause, incoming)
+      case clause: Clause => pegClause(clause, incoming, version)
 
       /**
        * Expression
        */
-      case expression: Expression           => pegExpression(expression, incoming)
-      case labelExpression: LabelExpression => pegExpression(labelExpression, incoming)
+      case expression: Expression           => pegExpression(expression, incoming, version)
+      case labelExpression: LabelExpression => pegExpression(labelExpression, incoming, version)
 
       /**
        * Pattern
        */
-      case pattern: Pattern         => pegPattern(pattern, incoming)
-      case patternPart: PatternPart => pegPattern(patternPart, incoming)
+      case pattern: Pattern         => pegPattern(pattern, incoming, version)
+      case patternPart: PatternPart => pegPattern(patternPart, incoming, version)
 
       /**
        * To make match exhaustive

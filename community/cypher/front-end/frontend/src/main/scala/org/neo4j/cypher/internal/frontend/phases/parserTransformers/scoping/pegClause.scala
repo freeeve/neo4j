@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.DefaultWith
@@ -71,7 +72,7 @@ import org.neo4j.cypher.internal.util.ASTNode
 
 object pegClause {
 
-  def apply(clause: Clause, incoming: RegularContext): WorkingScope = {
+  def apply(clause: Clause, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     implicit val astNode: ASTNode = clause
     clause match {
 
@@ -90,7 +91,8 @@ object pegClause {
           importedVariableSet,
           innerQueryIncoming,
           innerQuery,
-          inTransactionsParameters
+          inTransactionsParameters,
+          version
         )
 
       case call @ ScopeClauseSubqueryCall(innerQuery, isImportingAll, importedVariables, inTransactionsParameters, _) =>
@@ -104,13 +106,16 @@ object pegClause {
           importedVariableSet,
           innerQueryIncoming,
           innerQuery,
-          inTransactionsParameters
+          inTransactionsParameters,
+          version
         )
 
       // named call
       case UnresolvedCall(_, _, declaredArguments, declaredResult, _, _) =>
         val children =
-          declaredArguments.map(_.map(arg => pegExpression(arg, incoming.constantChildContext()))).getOrElse(Seq.empty)
+          declaredArguments.map(
+            _.map(arg => pegExpression(arg, incoming.constantChildContext(), version))
+          ).getOrElse(Seq.empty)
         val referenced = Some(WorkingScope.referencedInChildren(children))
         if (declaredResult.isEmpty) {
           // standalone call without YIELD or with YIELD *
@@ -125,14 +130,18 @@ object pegClause {
         }
       // query clauses
       case Unwind(expression, variable) =>
-        val children = Seq(pegExpression(expression, incoming.constantChildContext()))
+        val children = Seq(pegExpression(expression, incoming.constantChildContext(), version))
         val declared = Declarations(Seq.empty, Seq(variable))
         incoming.noResultScope(outgoing = incoming.amendedWith(variable), children, declared = declared)
 
       case Match(_, _, pattern, _, whereOpt) =>
-        val patternScope = pegPattern(pattern, incoming.constantChildContext())
+        val patternScope = pegPattern(pattern, incoming.constantChildContext(), version)
         val whereScopeOpt = whereOpt.map(where =>
-          pegExpression(where.expression, incoming.amendedWith(patternScope.outgoing.variables).constantChildContext())
+          pegExpression(
+            where.expression,
+            incoming.amendedWith(patternScope.outgoing.variables).constantChildContext(),
+            version
+          )
         )
         val children = Seq(Some(patternScope), whereScopeOpt).flatten
         val referenced = Some(WorkingScope.referencedInChildren(children) intersect incoming.constantsAndVariables)
@@ -142,33 +151,33 @@ object pegClause {
 
       // load clause
       case LoadCSV(_, expression, variable, _) =>
-        val children = Seq(pegExpression(expression, incoming.constantChildContext()))
+        val children = Seq(pegExpression(expression, incoming.constantChildContext(), version))
         val declared = Declarations(Seq.empty, Seq(variable))
         incoming.noResultScope(outgoing = incoming.amendedWith(variable), children, declared = declared)
 
       // update clauses
       case Create(pattern) =>
-        val patternScope = pegPattern(pattern, incoming.constantChildContext())
+        val patternScope = pegPattern(pattern, incoming.constantChildContext(), version)
         val children = Seq(patternScope)
         val declared = patternScope.declared
         val outgoing = incoming.amendedWith(patternScope.outgoing.variables)
         incoming.omittedResultScope(outgoing, children, declared = declared)
       case Insert(pattern) =>
-        val patternScope = pegPattern(pattern, incoming.constantChildContext())
+        val patternScope = pegPattern(pattern, incoming.constantChildContext(), version)
         val children = Seq(patternScope)
         val declared = patternScope.declared
         val outgoing = incoming.amendedWith(patternScope.outgoing.variables)
         incoming.omittedResultScope(outgoing, children, declared = declared)
 
       case Merge(pattern, actions, whereOpt) =>
-        val patternScope = pegPattern(pattern, incoming.constantChildContext())
+        val patternScope = pegPattern(pattern, incoming.constantChildContext(), version)
         // note that the `where` attribute of merge is only populated by rewriters
         // but is populated with predicate that see the variable bound by the pattern
         val inner = incoming.amendedWith(patternScope.outgoing.variables)
         val whereScopeOpt = whereOpt.map(where =>
-          pegExpression(where.expression, inner.constantChildContext())
+          pegExpression(where.expression, inner.constantChildContext(), version)
         )
-        actions.map(ma => apply(ma.action, inner))
+        actions.map(ma => apply(ma.action, inner, version))
         val children = Seq(Some(patternScope), whereScopeOpt).flatten
         val declared = patternScope.declared
         incoming.omittedResultScope(patternScope.outgoing, children, declared = declared)
@@ -176,42 +185,58 @@ object pegClause {
       case SetClause(items) =>
         val expressionIncoming = incoming.constantChildContext()
         val children = items.flatMap {
-          case SetLabelItem(variable, _, _, _) => Seq(pegExpression(variable, expressionIncoming))
+          case SetLabelItem(variable, _, _, _) => Seq(pegExpression(variable, expressionIncoming, version))
           case SetPropertyItem(property, expression) =>
-            Seq(pegExpression(property, expressionIncoming), pegExpression(expression, expressionIncoming))
+            Seq(
+              pegExpression(property, expressionIncoming, version),
+              pegExpression(expression, expressionIncoming, version)
+            )
           case SetPropertyItems(container, items) =>
-            pegExpression(container, expressionIncoming) +: items.map { case (_, expression) =>
-              pegExpression(expression, expressionIncoming)
+            pegExpression(container, expressionIncoming, version) +: items.map { case (_, expression) =>
+              pegExpression(expression, expressionIncoming, version)
             }
           case SetExactPropertiesFromMapItem(variable, expression, _) =>
-            Seq(pegExpression(variable, expressionIncoming), pegExpression(expression, expressionIncoming))
+            Seq(
+              pegExpression(variable, expressionIncoming, version),
+              pegExpression(expression, expressionIncoming, version)
+            )
           case SetIncludingPropertiesFromMapItem(variable, expression, _) =>
-            Seq(pegExpression(variable, expressionIncoming), pegExpression(expression, expressionIncoming))
+            Seq(
+              pegExpression(variable, expressionIncoming, version),
+              pegExpression(expression, expressionIncoming, version)
+            )
           case SetDynamicPropertyItem(dynamicPropertyLookup, expression) =>
-            Seq(pegExpression(dynamicPropertyLookup, expressionIncoming), pegExpression(expression, expressionIncoming))
+            Seq(
+              pegExpression(dynamicPropertyLookup, expressionIncoming, version),
+              pegExpression(expression, expressionIncoming, version)
+            )
         }
         incoming.forwardWithOmittedResult(children)
 
       case Remove(items) =>
         val expressionIncoming = incoming.constantChildContext()
         val children = items.flatMap {
-          case RemoveLabelItem(variable, _, _, _) => Seq(pegExpression(variable, expressionIncoming))
-          case RemovePropertyItem(property)       => Seq(pegExpression(property, expressionIncoming))
+          case RemoveLabelItem(variable, _, _, _) => Seq(pegExpression(variable, expressionIncoming, version))
+          case RemovePropertyItem(property)       => Seq(pegExpression(property, expressionIncoming, version))
           case RemoveDynamicPropertyItem(dynamicPropertyLookup) =>
-            Seq(pegExpression(dynamicPropertyLookup, expressionIncoming))
+            Seq(pegExpression(dynamicPropertyLookup, expressionIncoming, version))
         }
         incoming.forwardWithOmittedResult(children)
 
       case Delete(items, _) =>
         val expressionIncoming = incoming.constantChildContext()
-        val children = items.map(item => pegExpression(item, expressionIncoming))
+        val children = items.map(item => pegExpression(item, expressionIncoming, version))
         incoming.forwardWithOmittedResult(children)
 
       case Foreach(variable, expression, updates) =>
         val expressionIncoming = incoming.constantChildContext()
-        val expressionScope = pegExpression(expression, expressionIncoming)
+        val expressionScope = pegExpression(expression, expressionIncoming, version)
         val subqueryScope =
-          pegStatement(SingleQuery(updates)(updates.head.position), expressionIncoming.amendedWithConstant(variable))
+          pegStatement(
+            SingleQuery(updates)(updates.head.position),
+            expressionIncoming.amendedWithConstant(variable),
+            version
+          )
         val children = Seq(expressionScope, subqueryScope)
         val referenced = {
           val subqueryReferenced = subqueryScope.referenced excl variable
@@ -231,7 +256,7 @@ object pegClause {
         val vars = variables.toSet[LogicalVariable]
         incoming.noResultScope(incoming.amendedWith(vars), Seq.empty, declared = Declarations(Seq.empty, variables))
 
-      case projectionClause: ProjectionClause => scopeProjectionClause(projectionClause, incoming)
+      case projectionClause: ProjectionClause => scopeProjectionClause(projectionClause, incoming, version)
 
       // TODO other clause, specifically admin clauses
 
@@ -242,7 +267,11 @@ object pegClause {
     }
   }
 
-  private def scopeProjectionClause(projectionClause: ProjectionClause, incoming: RegularContext): WorkingScope = {
+  private def scopeProjectionClause(
+    projectionClause: ProjectionClause,
+    incoming: RegularContext,
+    version: CypherVersion
+  ): WorkingScope = {
     implicit val astNode: ASTNode = projectionClause
 
     val (isWith, distinct, projectionType, items, orderByOpt, whereOpt, withTypeOpt) =
@@ -278,14 +307,14 @@ object pegClause {
        */
       val projectionItemIncoming = incoming.constantChildContext()
       // NOTE: this could also be "variableItems.map(...)" depending on how we like to think about constants pass through
-      val projectionItemScopes = items.map(item => pegExpression(item.expression, projectionItemIncoming))
+      val projectionItemScopes = items.map(item => pegExpression(item.expression, projectionItemIncoming, version))
       val sortItemIncoming = incoming.replaceWith(notShadowed union newVariables.toSet).constantChildContext()
       val sortItemScopes = orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item =>
-        pegExpression(item.expression, sortItemIncoming)
+        pegExpression(item.expression, sortItemIncoming, version)
       )
       val whereExpIncoming = incoming.replaceWith(notShadowed union newVariables.toSet).constantChildContext()
       val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
-        pegExpression(expression, whereExpIncoming)
+        pegExpression(expression, whereExpIncoming, version)
       )
 
       val children = projectionItemScopes ++ sortItemScopes ++ whereExpScopes
@@ -318,7 +347,7 @@ object pegClause {
       // grouping key expressions see all symbols as constants
       val groupingItemIncoming = incoming.constantChildContext()
       // NOTE: this could also be "variableItems.map(...)" depending on how we like to think about constants pass through
-      val groupingItemScopes = groupingItems.map(item => pegExpression(item.expression, groupingItemIncoming))
+      val groupingItemScopes = groupingItems.map(item => pegExpression(item.expression, groupingItemIncoming, version))
       val referencedInGroupingItems = WorkingScope.referencedInChildren(groupingItemScopes)
       val groupingKeyVariables = groupingItems.map(_.expression).collect {
         case v: Variable => v
@@ -335,7 +364,7 @@ object pegClause {
         RegularContext(constants, variables)
       }
       val aggregationItemScopes =
-        aggregationItems.map(item => pegExpression(item.expression, aggregationItemIncoming))
+        aggregationItems.map(item => pegExpression(item.expression, aggregationItemIncoming, version))
       val referencedInAggregationItems = WorkingScope.referencedInChildren(aggregationItemScopes)
       val newVariablesFromAggregation = returnItemAliases(aggregationItems)
       val notShadowedAggregationVariables =
@@ -351,7 +380,9 @@ object pegClause {
         RegularContext(constants, variables)
       }
       val sortItemScopes =
-        orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item => pegExpression(item.expression, sortItemIncoming))
+        orderByOpt.map(_.sortItems).getOrElse(Seq.empty).map(item =>
+          pegExpression(item.expression, sortItemIncoming, version)
+        )
       val referencedInSortItems = WorkingScope.referencedInChildren(sortItemScopes)
 
       // where expression sees
@@ -364,7 +395,7 @@ object pegClause {
         RegularContext(constants, variables)
       }
       val whereExpScopes = whereOpt.map(w => Seq(w.expression)).getOrElse(Seq.empty).map(expression =>
-        pegExpression(expression, whereExpIncoming)
+        pegExpression(expression, whereExpIncoming, version)
       )
       val referencedInWhereExp = WorkingScope.referencedInChildren(whereExpScopes)
 
@@ -397,13 +428,14 @@ object pegClause {
     importedVariables: Set[LogicalVariable],
     innerQueryIncoming: RegularContext,
     innerQuery: Query,
-    inTransactionsParameters: Option[InTransactionsParameters]
+    inTransactionsParameters: Option[InTransactionsParameters],
+    version: CypherVersion
   ) = {
     implicit val astNode: ASTNode = callClause
 
-    val innerQueryScope = pegStatement(innerQuery, innerQueryIncoming)
+    val innerQueryScope = pegStatement(innerQuery, innerQueryIncoming, version)
     val (inTransactionsChildren, declaredInTransactionsVariables) =
-      scopeInTransactionParameters(inTransactionsParameters)
+      scopeInTransactionParameters(inTransactionsParameters, version)
     val (outgoing, declaredVariables) = innerQueryScope.result match {
       case TableResult(columns) => (incoming.amendedWith((columns ++ declaredInTransactionsVariables).toSet), columns)
       case TableResultWithNotYetKnownColumns => (incoming.amendedWith(declaredInTransactionsVariables.toSet), Seq.empty)
@@ -421,22 +453,25 @@ object pegClause {
     incoming.noResultScope(outgoing, children, referenced, declared)
   }
 
-  @inline private def scopeInTransactionParameters(inTransactionsParameters: Option[InTransactionsParameters])
+  @inline private def scopeInTransactionParameters(
+    inTransactionsParameters: Option[InTransactionsParameters],
+    version: CypherVersion
+  )
     : (Seq[WorkingScope], Seq[LogicalVariable]) = {
     inTransactionsParameters match {
       case None => (Seq.empty, Seq.empty)
       case Some(InTransactionsParameters(batchParams, concurrencyParams, errorParams, reportParams)) =>
         val batchParamsChild = batchParams.toSeq.map {
-          case InTransactionsBatchParameters(batchSize) => pegExpression(batchSize, RegularContext.unit)
+          case InTransactionsBatchParameters(batchSize) => pegExpression(batchSize, RegularContext.unit, version)
         }
         val concurrencyParamsChild = concurrencyParams.toSeq.flatMap {
           case InTransactionsConcurrencyParameters(Some(concurrency)) =>
-            Some(pegExpression(concurrency, RegularContext.unit))
+            Some(pegExpression(concurrency, RegularContext.unit, version))
           case _ => None
         }
         val errorParamsChild = errorParams.toSeq.flatMap {
           case InTransactionsErrorParameters(_, Some(InTransactionsRetryParameters(Some(timeout)))) =>
-            Some(pegExpression(timeout, RegularContext.unit))
+            Some(pegExpression(timeout, RegularContext.unit, version))
           case _ => None
         }
         val reportVariable = reportParams.toSeq.map {

@@ -16,13 +16,16 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
+import org.neo4j.cypher.internal.ast.WaitableAdministrationCommand
+import org.neo4j.cypher.internal.ast.WriteAdministrationCommand
 import org.neo4j.cypher.internal.util.ASTNode
 
 object pegCommand {
 
-  def apply(command: AdministrationCommand, incoming: RegularContext): WorkingScope = {
+  def apply(command: AdministrationCommand, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     implicit val astNode: ASTNode = command
     command match {
 
@@ -42,13 +45,13 @@ object pegCommand {
         )
 
         val yieldOrWhereScopes = read.yieldOrWhere match {
-          case Some(Left((yieldClause, None))) => Seq(pegClause(yieldClause, declaringScope.outgoing))
+          case Some(Left((yieldClause, None))) => Seq(pegClause(yieldClause, declaringScope.outgoing, version))
           case Some(Left((yieldClause, optReturn))) =>
-            val yieldScope = pegClause(yieldClause, declaringScope.outgoing)
-            val returnScope = optReturn.map(pegClause(_, yieldScope.outgoing))
+            val yieldScope = pegClause(yieldClause, declaringScope.outgoing, version)
+            val returnScope = optReturn.map(pegClause(_, yieldScope.outgoing, version))
             Seq(yieldScope) ++ returnScope
           case Some(Right(whereClause)) =>
-            Seq(pegExpression(whereClause.expression, declaringScope.outgoing.constantChildContext()))
+            Seq(pegExpression(whereClause.expression, declaringScope.outgoing.constantChildContext(), version))
           case None => Seq.empty
         }
 
@@ -58,6 +61,21 @@ object pegCommand {
         val result = if (hasYield) children.last.result else children.head.result
 
         incoming.resultScope(outgoing, result, children, None)
+
+      /**
+       * WriteAdministrationCommand
+       */
+      case wait: WaitableAdministrationCommand if version == CypherVersion.Cypher5 =>
+        val defaultCols = wait.returnColumns
+        incoming.resultScope(
+          incoming.amendedWith(defaultCols.toSet),
+          TableResult(defaultCols),
+          WorkingScope.noChildren,
+          None,
+          Declarations(Seq.empty, defaultCols)
+        )
+      case _: WriteAdministrationCommand =>
+        incoming.omittedResultScope(RegularContext.unit, Seq.empty)
 
       /**
        * To make match exhaustive

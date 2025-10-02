@@ -189,8 +189,11 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
-  private def runQuery(query: String, skipVariableChecker: Boolean = false): Either[BaseState, Seq[SemanticError]] = {
-    val version = CypherVersion.Cypher25
+  private def runQuery(
+    query: String,
+    version: CypherVersion,
+    skipVariableChecker: Boolean = false
+  ): Either[BaseState, Seq[SemanticError]] = {
     val context =
       new ErrorCollectingContext(version, isComposite = false, defaultDatabaseName, query, Seq(ScopeQueries)) {
         override def errorMessageProvider: ErrorMessageProvider = messageProvider
@@ -206,9 +209,9 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
-  def passes(): Unit = {
+  def passes(version: CypherVersion = CypherVersion.Cypher25): Unit = {
     val query = testName
-    runQuery(query) match {
+    runQuery(query, version) match {
       case Left(state) =>
         state.maybeWorkingScope should not be empty
 
@@ -236,7 +239,11 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
-  def error(expectedGqlStatusCode: String, msgContains: String): Unit = {
+  def error(
+    expectedGqlStatusCode: String,
+    msgContains: String,
+    version: CypherVersion = CypherVersion.Cypher25
+  ): Unit = {
     val query = testName
 
     @tailrec
@@ -249,7 +256,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
         }
     }
 
-    runQuery(query) match {
+    runQuery(query, version) match {
       case Left(_) =>
         fail(
           s"""Query:
@@ -295,9 +302,13 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
     }
   }
 
-  def hasScope(expected: ExpectedWorkingScope, skipVariableChecker: Boolean = false): Unit = {
+  def hasScope(
+    expected: ExpectedWorkingScope,
+    version: CypherVersion = CypherVersion.Cypher25,
+    skipVariableChecker: Boolean = false
+  ): Unit = {
     val query = testName
-    runQuery(query, skipVariableChecker) match {
+    runQuery(query, version, skipVariableChecker) match {
       case Left(state) =>
         state.maybeWorkingScope should not be empty
         val ws = state.maybeWorkingScope.get

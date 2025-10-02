@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.NodePattern
@@ -40,7 +41,7 @@ import scala.annotation.tailrec
 
 object pegPattern {
 
-  def apply(pattern: Pattern, incoming: RegularContext): WorkingScope = {
+  def apply(pattern: Pattern, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     implicit val astNode: ASTNode = pattern
     val patternIncomingContext = PatternIncomingContext(
       topologicalConstants = incoming.constants,
@@ -59,7 +60,7 @@ object pegPattern {
         case (precedingPartsScope, currentPart) =>
           val newIncoming =
             precedingPartsScope.patternIncoming.amendedWithTopologicalConstant(precedingPartsScope.outgoing.variables)
-          scopePatternPart(currentPart, newIncoming)
+          scopePatternPart(currentPart, newIncoming, version)
       }.tail
     if (children.size == 1) {
       children.head
@@ -70,34 +71,38 @@ object pegPattern {
     }
   }
 
-  def apply(patternPart: PatternPart, incoming: RegularContext): WorkingScope = {
+  def apply(patternPart: PatternPart, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     val patternIncomingContext = PatternIncomingContext(
       topologicalConstants = incoming.constants,
       predicateConstants = incoming.constants,
       pathConstants = Set.empty
     )
-    scopePatternPart(patternPart, patternIncomingContext)
+    scopePatternPart(patternPart, patternIncomingContext, version)
   }
 
-  def apply(patternElement: PatternElement, incoming: RegularContext): WorkingScope = {
+  def apply(patternElement: PatternElement, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     val patternIncomingContext = PatternIncomingContext(
       topologicalConstants = incoming.constants,
       predicateConstants =
         incoming.constants union (collectVisibleVariablesOfPatternElement(patternElement) diff incoming.constants),
       pathConstants = Set.empty
     )
-    scopePatternElement(patternElement, patternIncomingContext)
+    scopePatternElement(patternElement, patternIncomingContext, version)
   }
 
-  private def scopePatternPart(patternPart: PatternPart, incoming: PatternIncomingContext): PatternScope = {
+  private def scopePatternPart(
+    patternPart: PatternPart,
+    incoming: PatternIncomingContext,
+    version: CypherVersion
+  ): PatternScope = {
     implicit val astNode: ASTNode = patternPart
     patternPart match {
       case PatternPartWithSelector(selector, patternPart) =>
         selector match {
-          case AllPaths() => scopePatternPart(patternPart, incoming)
+          case AllPaths() => scopePatternPart(patternPart, incoming, version)
           case _ =>
             val patternPartIncoming = incoming.removePathConstants()
-            val patternPartScope = scopePatternPart(patternPart, patternPartIncoming)
+            val patternPartScope = scopePatternPart(patternPart, patternPartIncoming, version)
             val children = Seq(patternPartScope)
             incoming.resultScope(
               patternPartScope.result,
@@ -106,19 +111,20 @@ object pegPattern {
             )
         }
       case NamedPatternPart(variable, patternPart) =>
-        val child = scopePatternPart(patternPart, incoming)
+        val child = scopePatternPart(patternPart, incoming, version)
         val declared = Declarations(Seq.empty, variable +: child.declared.variables)
         val columns = variable +: child.result.columns
         incoming.resultScope(TableResult(columns), Seq(child), declared)
-      case PathPatternPart(element) => scopePatternElement(element, incoming)
+      case PathPatternPart(element) => scopePatternElement(element, incoming, version)
       case sppp @ ShortestPathsPatternPart(element, _) =>
-        scopePatternElement(element, incoming).withAstNode(sppp)
+        scopePatternElement(element, incoming, version).withAstNode(sppp)
     }
   }
 
   private def scopePatternElement(
     patternElement: PatternElement,
-    incoming: PatternIncomingContext
+    incoming: PatternIncomingContext,
+    version: CypherVersion
   ): PatternScope = {
     implicit val astNode: ASTNode = patternElement
     patternElement match {
@@ -129,17 +135,17 @@ object pegPattern {
               precedingFactorsScope.patternIncoming.amendedWithTopologicalConstant(
                 precedingFactorsScope.outgoing.variables
               )
-            scopePatternElement(currentFactor, newIncoming)
+            scopePatternElement(currentFactor, newIncoming, version)
         }.tail
         val declared = collectDeclaredFromChildren(children)
         val columns = collectColumnsFromChildren(children)
         incoming.resultScope(TableResult(columns), children, declared = declared)
       case quantifiedPath: QuantifiedPath =>
-        scopeQuantifiedPath(quantifiedPath, incoming)
+        scopeQuantifiedPath(quantifiedPath, incoming, version)
       case parenthesizedPath: ParenthesizedPath =>
-        scopeParenthesizedPath(parenthesizedPath, incoming)
+        scopeParenthesizedPath(parenthesizedPath, incoming, version)
       case nodePattern: NodePattern =>
-        scopePatternAtom(nodePattern, incoming)
+        scopePatternAtom(nodePattern, incoming, version)
       case relationshipChain: RelationshipChain =>
         val patternAtoms = collectPatternAtoms(relationshipChain)
         val children =
@@ -148,7 +154,7 @@ object pegPattern {
               val newIncoming = precedingAtomsScope.patternIncoming.amendedWithTopologicalConstant(
                 precedingAtomsScope.outgoing.variables
               )
-              scopePatternAtom(currentAtom, newIncoming)
+              scopePatternAtom(currentAtom, newIncoming, version)
           }.tail
         val declared = collectDeclaredFromChildren(children)
         val columns = collectColumnsFromChildren(children)
@@ -156,16 +162,20 @@ object pegPattern {
     }
   }
 
-  private def scopePatternAtom(patternAtom: PatternAtom, incoming: PatternIncomingContext): PatternScope = {
+  private def scopePatternAtom(
+    patternAtom: PatternAtom,
+    incoming: PatternIncomingContext,
+    version: CypherVersion
+  ): PatternScope = {
     implicit val astNode: ASTNode = patternAtom
     patternAtom match {
       case NodePattern(variableOpt, labelExpressionOpt, propertiesOpt, predicateOpt) =>
         val predicateIncoming = variableOpt.map(v => incoming.amendedWithTopologicalConstant(v)).getOrElse(incoming)
         val labelExpressionScopeOpt =
-          labelExpressionOpt.map(labelExpression => scopePredicate(labelExpression, predicateIncoming))
+          labelExpressionOpt.map(labelExpression => scopePredicate(labelExpression, predicateIncoming, version))
         val propertiesScopeOpt =
-          propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming))
-        val predicateScopeOpt = predicateOpt.map(predicate => scopePredicate(predicate, predicateIncoming))
+          propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming, version))
+        val predicateScopeOpt = predicateOpt.map(predicate => scopePredicate(predicate, predicateIncoming, version))
         val (boundVariables, newVariables) = variableOpt.partition(v => incoming.topologicalConstants contains v)
         val columns = variableOpt.toSeq
         val children = Seq(labelExpressionScopeOpt, propertiesScopeOpt, predicateScopeOpt).flatten
@@ -179,30 +189,31 @@ object pegPattern {
         val predicateIncoming =
           variableOpt.map(v => varLengthIncoming.amendedWithTopologicalConstant(v)).getOrElse(varLengthIncoming)
         val labelExpressionScopeOpt =
-          labelExpressionOpt.map(labelExpression => scopePredicate(labelExpression, predicateIncoming))
-        val propertiesScopeOpt = propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming))
-        val predicateScopeOpt = predicateOpt.map(predicate => scopePredicate(predicate, predicateIncoming))
+          labelExpressionOpt.map(labelExpression => scopePredicate(labelExpression, predicateIncoming, version))
+        val propertiesScopeOpt = propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming, version))
+        val predicateScopeOpt = predicateOpt.map(predicate => scopePredicate(predicate, predicateIncoming, version))
         val (boundVariables, newVariables) = variableOpt.partition(v => incoming.topologicalConstants contains v)
         val columns = variableOpt.toSeq
         val children = Seq(labelExpressionScopeOpt, propertiesScopeOpt, predicateScopeOpt).flatten
         val declared = Declarations(Seq.empty, newVariables.toSeq)
         incoming.resultScope(TableResult(columns), children, declared, boundVariables)
 
-      case parenthesizedPath: ParenthesizedPath => scopeParenthesizedPath(parenthesizedPath, incoming)
-      case quantifiedPath: QuantifiedPath       => scopeQuantifiedPath(quantifiedPath, incoming)
+      case parenthesizedPath: ParenthesizedPath => scopeParenthesizedPath(parenthesizedPath, incoming, version)
+      case quantifiedPath: QuantifiedPath       => scopeQuantifiedPath(quantifiedPath, incoming, version)
     }
   }
 
   private def scopeParenthesizedPath(
     parenthesizedPath: ParenthesizedPath,
-    incoming: PatternIncomingContext
+    incoming: PatternIncomingContext,
+    version: CypherVersion
   ): PatternScope = {
     implicit val astNode: ASTNode = parenthesizedPath
     val ParenthesizedPath(patternPart, whereExpressionOpt) = parenthesizedPath
     val newIncoming = incoming.removePathConstants()
-    val patternPartScope = scopePatternPart(patternPart, newIncoming)
+    val patternPartScope = scopePatternPart(patternPart, newIncoming, version)
     val whereExpressionScopes = whereExpressionOpt.map(whereExpression =>
-      Seq(scopePredicate(whereExpression, newIncoming))
+      Seq(scopePredicate(whereExpression, newIncoming, version))
     ).getOrElse(Seq.empty[WorkingScope])
     val children = patternPartScope +: whereExpressionScopes
     incoming.resultScope(
@@ -214,14 +225,15 @@ object pegPattern {
 
   private def scopeQuantifiedPath(
     quantifiedPath: QuantifiedPath,
-    incoming: PatternIncomingContext
+    incoming: PatternIncomingContext,
+    version: CypherVersion
   ): PatternScope = {
     implicit val astNode: ASTNode = quantifiedPath
     val QuantifiedPath(patternPart, _, whereExpressionOpt, _) = quantifiedPath
     val newIncoming = incoming.removePathConstants()
-    val patternPartScope = scopePatternPart(patternPart, newIncoming)
+    val patternPartScope = scopePatternPart(patternPart, newIncoming, version)
     val whereExpressionScopes = whereExpressionOpt.map(whereExpression =>
-      Seq(scopePredicate(whereExpression, newIncoming))
+      Seq(scopePredicate(whereExpression, newIncoming, version))
     ).getOrElse(Seq.empty[WorkingScope])
     val children = patternPartScope +: whereExpressionScopes
     incoming.resultScope(
@@ -231,14 +243,20 @@ object pegPattern {
     )
   }
 
-  @inline private def scopePredicate(astNode: ASTNode, incoming: PatternIncomingContext): WorkingScope =
+  @inline private def scopePredicate(
+    astNode: ASTNode,
+    incoming: PatternIncomingContext,
+    version: CypherVersion
+  ): WorkingScope = {
     ScopeSurveyor.scope(
       astNode,
       RegularContext(
         constants = incoming.predicateConstants union incoming.pathConstants,
         variables = ScopeSurveyor.unitVariables
-      )
+      ),
+      version
     )
+  }
 
   private def collectPathVariables(pattern: Pattern): Set[LogicalVariable] = {
     // path variable can only be assigned at the top
