@@ -1414,12 +1414,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Dump transaction visibility boundaries in multi versioned database.")
-    public static final Setting<Boolean> multi_version_dump_transaction_visibility_boundaries = newBuilder(
-                    "internal.db.multiversion.transaction.visibility.boundaries.dump", BOOL, false)
-            .build();
-
-    @Internal
     @Description("Allow transaction visibility refresh on all types of transactions regardless of origin.")
     public static final Setting<Boolean> multi_version_transaction_visibility_refresh_all = newBuilder(
                     "internal.db.multiversion.transaction.visibility.refresh_all.enabled", BOOL, false)
