@@ -48,11 +48,18 @@ import org.neo4j.driver.summary.Plan;
 import org.neo4j.driver.summary.ProfiledPlan;
 import org.neo4j.driver.summary.SummaryCounters;
 import org.neo4j.driver.types.Entity;
+import org.neo4j.driver.types.Float32Vector;
+import org.neo4j.driver.types.Float64Vector;
+import org.neo4j.driver.types.Int16Vector;
+import org.neo4j.driver.types.Int32Vector;
+import org.neo4j.driver.types.Int64Vector;
+import org.neo4j.driver.types.Int8Vector;
 import org.neo4j.driver.types.Node;
 import org.neo4j.driver.types.Path;
 import org.neo4j.driver.types.Relationship;
 import org.neo4j.driver.types.Type;
 import org.neo4j.driver.types.TypeSystem;
+import org.neo4j.driver.types.Vector;
 import org.neo4j.server.queryapi.exception.UnknownTypeException;
 import org.neo4j.values.storable.DurationValue;
 
@@ -469,11 +476,60 @@ public final class DefaultResponseModule extends SimpleModule {
                 json.writeEndArray();
             } else if (value.hasType(typeSystem.POINT())) {
                 json.writeString(CypherTypes.Point.getWriter().apply(value));
+            } else if (value.hasType(typeSystem.VECTOR())) {
+                var vector = value.as(Vector.class);
+                json.writeStartArray();
+                writeVector(json, vector);
+                json.writeEndArray();
             } else {
                 throw new UnknownTypeException(
                         value.toString(),
                         typeToNames.keySet().stream().map(Type::name).toList(),
                         value.type().name());
+            }
+        }
+
+        private static void writeVector(JsonGenerator json, Vector vector) throws IOException {
+            switch (vector) {
+                case Int8Vector byteVector -> {
+                    var arr = byteVector.toArray();
+                    for (var n : arr) {
+                        json.writeNumber(n);
+                    }
+                }
+                case Int16Vector shortVector -> {
+                    var arr = shortVector.toArray();
+                    for (var n : arr) {
+                        json.writeNumber(n);
+                    }
+                }
+                case Int32Vector intVector -> {
+                    var arr = intVector.toArray();
+                    for (var n : arr) {
+                        json.writeNumber(n);
+                    }
+                }
+                case Int64Vector longVector -> {
+                    var arr = longVector.toArray();
+                    for (var n : arr) {
+                        json.writeNumber(n);
+                    }
+                }
+                case Float32Vector floatVector -> {
+                    var arr = floatVector.toArray();
+                    for (var n : arr) {
+                        json.writeNumber(n);
+                    }
+                }
+                case Float64Vector doubleVector -> {
+                    var arr = doubleVector.toArray();
+                    for (var n : arr) {
+                        json.writeNumber(n);
+                    }
+                }
+                default ->
+                    throw new UnsupportedOperationException(
+                            "Unsupported vector type: " + vector.getClass().getName());
             }
         }
 
