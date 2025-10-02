@@ -21,12 +21,12 @@ package org.neo4j.genai.vector;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.Test;
-import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.genai.vector.providers.TestProvider;
 import org.neo4j.graphdb.Result;
@@ -36,18 +36,22 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
 @DbmsExtension(configurationCallback = "configure")
-class VectorEncodingArgumentIT extends VectorEncodingArgumentBase {
+class VectorEncodingArgumentIT extends VectorEncodingArgumentBase implements GenAITestExtension {
 
     @Inject
     private GraphDatabaseAPI database;
 
+    @Inject
+    TestDirectory testDirectory;
+
     @ExtensionCallback
-    public void configure(TestDatabaseManagementServiceBuilder builder) {
-        builder.addExtension(new GenAITestExtension()).addExtension(new GenAiPluginExtension());
+    public void configure(TestDatabaseManagementServiceBuilder builder) throws IOException {
+        installPlugin(testDirectory);
     }
 
     static Value singleResultItem(Result result) {

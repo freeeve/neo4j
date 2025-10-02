@@ -22,10 +22,10 @@ package org.neo4j.genai.vector;
 import static java.lang.String.CASE_INSENSITIVE_ORDER;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.neo4j.genai.GenAiPluginExtension;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.genai.vector.providers.TestProvider;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -33,15 +33,19 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.utils.TestDirectory;
 
 @DbmsExtension(configurationCallback = "configure")
-public class VectorEncodingIT {
+public class VectorEncodingIT implements GenAITestExtension {
     @Inject
     private GraphDatabaseAPI database;
 
+    @Inject
+    TestDirectory testDirectory;
+
     @ExtensionCallback
-    public void configure(TestDatabaseManagementServiceBuilder builder) {
-        builder.addExtension(new GenAITestExtension()).addExtension(new GenAiPluginExtension());
+    public void configure(TestDatabaseManagementServiceBuilder builder) throws IOException {
+        installPlugin(testDirectory);
     }
 
     @Test

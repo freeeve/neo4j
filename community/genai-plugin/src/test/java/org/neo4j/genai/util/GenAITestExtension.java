@@ -19,37 +19,18 @@
  */
 package org.neo4j.genai.util;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import org.neo4j.genai.dbs.VectorDatabases;
 import org.neo4j.genai.vector.VectorEncoding;
-import org.neo4j.kernel.api.procedure.GlobalProcedures;
-import org.neo4j.kernel.extension.ExtensionFactory;
-import org.neo4j.kernel.extension.context.ExtensionContext;
-import org.neo4j.kernel.lifecycle.Lifecycle;
-import org.neo4j.kernel.lifecycle.LifecycleAdapter;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.jar.JarBuilder;
+import org.neo4j.test.utils.TestDirectory;
 
-/**
- * Can be used with {@link TestDatabaseManagementServiceBuilder#addExtension(ExtensionFactory)}
- * to register the GenAI plugin procedures and functions.
- */
-public class GenAITestExtension extends ExtensionFactory<GenAITestExtension.Dependencies> {
-    interface Dependencies {
-        GlobalProcedures procedures();
-    }
+public interface GenAITestExtension {
 
-    public GenAITestExtension() {
-        super("GenAI-Test");
-    }
-
-    @Override
-    public Lifecycle newInstance(ExtensionContext context, Dependencies dependencies) {
-        return new LifecycleAdapter() {
-            @Override
-            public void start() throws Exception {
-                final var procedures = dependencies.procedures();
-
-                procedures.registerProcedure(VectorEncoding.class);
-                procedures.registerFunction(VectorEncoding.class);
-            }
-        };
+    default void installPlugin(TestDirectory testDirectory) throws IOException {
+        final var path = testDirectory.directory("plugins").resolve("genai.jar");
+        Files.createDirectories(path.getParent());
+        JarBuilder.createJarFor(path, VectorEncoding.class, VectorDatabases.class);
     }
 }

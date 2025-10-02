@@ -66,7 +66,7 @@ public interface Monitors {
             return new LifecycleAdapter() {
 
                 @Override
-                public void start() {
+                public void init() {
                     final var monitorCache = new MonitorCache(); // Shared globally
                     dependencies
                             .procedures()

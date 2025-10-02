@@ -22,34 +22,35 @@ package org.neo4j.genai.security;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import inet.ipaddr.IPAddressString;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
-import org.neo4j.genai.GenAiPluginExtension;
-import org.neo4j.genai.dbs.VectorDatabasesExtension;
 import org.neo4j.genai.util.GenAITestExtension;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.utils.TestDirectory;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
-public class GenAiPluginSecurityIT {
+public class GenAiPluginSecurityIT implements GenAITestExtension {
     @Inject
     private GraphDatabaseAPI db;
 
+    @Inject
+    TestDirectory testDirectory;
+
     @ExtensionCallback
-    public void configure(TestDatabaseManagementServiceBuilder builder) {
-        builder.addExtension(new GenAITestExtension())
-                .addExtension(new GenAiPluginExtension())
-                .addExtension(new VectorDatabasesExtension())
-                // Block all ip addresses
-                .setConfig(
-                        GraphDatabaseInternalSettings.cypher_ip_blocklist,
-                        List.of(new IPAddressString("0.0.0.0/0"), new IPAddressString("::/0")));
+    public void configure(TestDatabaseManagementServiceBuilder builder) throws IOException {
+        installPlugin(testDirectory);
+        // Block all ip addresses
+        builder.setConfig(
+                GraphDatabaseInternalSettings.cypher_ip_blocklist,
+                List.of(new IPAddressString("0.0.0.0/0"), new IPAddressString("::/0")));
     }
 
     // Note, this test will make DNS requests for external hosts.
