@@ -24,8 +24,8 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.map.ImmutableMap;
 import org.eclipse.collections.impl.map.mutable.ConcurrentHashMap;
+import org.neo4j.graphdb.Vector.CoordinateType;
 import org.neo4j.graphdb.schema.PropertyType;
-import org.neo4j.values.storable.Vector.CoordinateType;
 import org.neo4j.values.storable.VectorValue;
 
 public final class VectorType implements ConstrainableType {

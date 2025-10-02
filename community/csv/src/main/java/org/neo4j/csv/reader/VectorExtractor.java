@@ -26,9 +26,9 @@ import static org.neo4j.values.storable.VectorValue.MIN_VECTOR_DIMENSIONS;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import org.neo4j.graphdb.Vector;
 import org.neo4j.values.storable.CSVHeaderInformation;
 import org.neo4j.values.storable.Values;
-import org.neo4j.values.storable.Vector;
 import org.neo4j.values.storable.VectorValue;
 
 ///  An extractor of vector values

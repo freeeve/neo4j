@@ -56,6 +56,7 @@ import org.neo4j.collection.factory.CollectionsFactory;
 import org.neo4j.collection.factory.OnHeapCollectionsFactory;
 import org.neo4j.collection.trackable.HeapTrackingArrayList;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.kernel.api.Upgrade;
 import org.neo4j.internal.kernel.api.exceptions.DeletedNodeStillHasRelationshipsException;
@@ -88,7 +89,6 @@ import org.neo4j.storageengine.api.txstate.memory.TxStateMemoryConsumer;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
-import org.neo4j.values.storable.Vector;
 
 /**
  * This class contains transaction-local changes to the graph. These changes can then be used to augment reads from the

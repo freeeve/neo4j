@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
+import org.neo4j.graphdb.Vector.CoordinateType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.neo4j.internal.schema.constraints.PropertyTypeSet
 import org.neo4j.internal.schema.constraints.SchemaValueType.BOOLEAN
@@ -63,7 +64,6 @@ import org.neo4j.internal.schema.constraints.SchemaValueType.POINT
 import org.neo4j.internal.schema.constraints.SchemaValueType.STRING
 import org.neo4j.internal.schema.constraints.SchemaValueType.ZONED_DATETIME
 import org.neo4j.internal.schema.constraints.SchemaValueType.ZONED_TIME
-import org.neo4j.values.storable.Vector.CoordinateType
 
 object PropertyTypeMapper {
 

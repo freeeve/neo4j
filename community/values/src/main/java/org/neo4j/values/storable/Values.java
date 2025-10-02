@@ -42,6 +42,7 @@ import java.time.temporal.TemporalAmount;
 import java.util.Arrays;
 import java.util.Objects;
 import org.apache.commons.lang3.ArrayUtils;
+import org.neo4j.graphdb.Vector;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Point;
 

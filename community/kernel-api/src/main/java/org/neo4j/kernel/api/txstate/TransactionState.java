@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.txstate;
 
+import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.kernel.api.Upgrade;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -27,7 +28,6 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.txstate.ReadableTransactionState;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
-import org.neo4j.values.storable.Vector;
 
 /**
  * Kernel transaction state, please see {@link org.neo4j.kernel.impl.api.state.TxState} for implementation details.

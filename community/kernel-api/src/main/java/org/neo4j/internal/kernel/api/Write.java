@@ -22,11 +22,11 @@ package org.neo4j.internal.kernel.api;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
-import org.neo4j.values.storable.Vector;
 
 /**
  * Defines the write operations of the Kernel API.

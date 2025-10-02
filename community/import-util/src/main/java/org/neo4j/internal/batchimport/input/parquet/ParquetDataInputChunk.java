@@ -36,6 +36,7 @@ import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.InputEntityVisitor;
 import org.neo4j.csv.reader.VectorExtractor;
 import org.neo4j.exceptions.TemporalParseException;
+import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.values.storable.DateTimeValue;
@@ -46,7 +47,6 @@ import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Values;
-import org.neo4j.values.storable.Vector;
 import org.neo4j.values.storable.VectorValue;
 
 /**

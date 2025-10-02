@@ -368,6 +368,19 @@ org.neo4j.graphdb.TransactionTerminatedException::TransactionTerminatedException
 org.neo4j.graphdb.TransactionTerminatedException::TransactionTerminatedException(org.neo4j.kernel.api.exceptions.Status) void public
 org.neo4j.graphdb.TransactionTerminatedException::TransactionTerminatedException(org.neo4j.kernel.api.exceptions.Status, java.lang.String) void protected
 org.neo4j.graphdb.TransactionTerminatedException::status() org.neo4j.kernel.api.exceptions.Status public
+org.neo4j.graphdb.Vector public abstract interface
+org.neo4j.graphdb.Vector.CoordinateType public static final enum extends java.lang.Enum<org.neo4j.graphdb.Vector.CoordinateType>
+org.neo4j.graphdb.Vector.CoordinateType::FLOAT32 org.neo4j.graphdb.Vector.CoordinateType public static final
+org.neo4j.graphdb.Vector.CoordinateType::FLOAT64 org.neo4j.graphdb.Vector.CoordinateType public static final
+org.neo4j.graphdb.Vector.CoordinateType::INTEGER16 org.neo4j.graphdb.Vector.CoordinateType public static final
+org.neo4j.graphdb.Vector.CoordinateType::INTEGER32 org.neo4j.graphdb.Vector.CoordinateType public static final
+org.neo4j.graphdb.Vector.CoordinateType::INTEGER64 org.neo4j.graphdb.Vector.CoordinateType public static final
+org.neo4j.graphdb.Vector.CoordinateType::INTEGER8 org.neo4j.graphdb.Vector.CoordinateType public static final
+org.neo4j.graphdb.Vector.CoordinateType::normalizedCypherString() java.lang.String public
+org.neo4j.graphdb.Vector.CoordinateType::valueOf(java.lang.String) org.neo4j.graphdb.Vector.CoordinateType public static
+org.neo4j.graphdb.Vector.CoordinateType::values() org.neo4j.graphdb.Vector.CoordinateType[] public static
+org.neo4j.graphdb.Vector::coordinateType() org.neo4j.graphdb.Vector.CoordinateType public abstract
+org.neo4j.graphdb.Vector::dimensions() int public abstract
 org.neo4j.graphdb.config.Configuration public abstract interface
 org.neo4j.graphdb.config.Configuration::<T extends java.lang.Object>get(org.neo4j.graphdb.config.Setting<T>) #T public abstract
 org.neo4j.graphdb.config.Configuration::EMPTY org.neo4j.graphdb.config.Configuration public static final

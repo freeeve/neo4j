@@ -20,7 +20,7 @@
 package org.neo4j.storageengine;
 
 import org.neo4j.exceptions.KernelException;
-import org.neo4j.values.storable.Vector;
+import org.neo4j.graphdb.Vector;
 
 public interface VectorStoreCreator {
     VectorStoreCreator FAILING = new FailingVectorStoreCreator();

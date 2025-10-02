@@ -28,11 +28,11 @@ import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.util.Arrays;
 import java.util.StringJoiner;
+import org.neo4j.graphdb.Vector.CoordinateType;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.Values;
-import org.neo4j.values.storable.Vector.CoordinateType;
 import org.neo4j.values.storable.VectorValue;
 
 /** The vector key represents vectors for Range indexes.

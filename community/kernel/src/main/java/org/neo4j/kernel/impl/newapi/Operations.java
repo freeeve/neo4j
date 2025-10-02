@@ -71,6 +71,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.ThrowingLongConsumer;
+import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.EntityCursor;
@@ -166,7 +167,6 @@ import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.txstate.TransactionStateBehaviour;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.values.storable.Value;
-import org.neo4j.values.storable.Vector;
 
 /**
  * Collects all Kernel API operations and guards them from being used outside of transaction.

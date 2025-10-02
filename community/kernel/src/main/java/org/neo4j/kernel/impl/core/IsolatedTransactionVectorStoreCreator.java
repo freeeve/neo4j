@@ -23,11 +23,11 @@ import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
 
 import java.util.function.Supplier;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.graphdb.Vector;
 import org.neo4j.kernel.api.Kernel;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.KernelTransaction.Type;
 import org.neo4j.storageengine.VectorStoreCreator;
-import org.neo4j.values.storable.Vector;
 
 /// Vector store are created dynamically. We discover the need to create a missing vector store
 /// when generating commands for writing a vector property to a store that does not yet exist.

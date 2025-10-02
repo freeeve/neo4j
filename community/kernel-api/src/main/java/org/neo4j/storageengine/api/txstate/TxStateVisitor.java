@@ -23,13 +23,13 @@ import java.util.function.Function;
 import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.graphdb.Vector;
 import org.neo4j.internal.kernel.api.Upgrade;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.values.storable.ValueTuple;
-import org.neo4j.values.storable.Vector;
 
 /**
  * A visitor for visiting the changes that have been made in a transaction.

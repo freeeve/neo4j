@@ -35,8 +35,8 @@ import org.neo4j.annotations.api.PublicApi;
  * <p>
  * Properties are key-value pairs. The keys are always strings. Valid property
  * value types are all the Java primitives (<code>int</code>, <code>byte</code>,
- * <code>float</code>, etc), <code>java.lang.String</code>s, the <em>Spatial</em>
- * and <em>Temporal</em> types and arrays of any of these.
+ * <code>float</code>, etc), <code>java.lang.String</code>s, the <em>spatial</em>
+ * and <em>temporal</em> types, <em>vectors</em> and arrays of any of these, except vectors.
  * <p>
  * The complete list of currently supported property types is:
  * <ul>
@@ -50,6 +50,7 @@ import org.neo4j.annotations.api.PublicApi;
  * <li><code>char</code></li>
  * <li><code>java.lang.String</code></li>
  * <li><code>org.neo4j.graphdb.spatial.Point</code></li>
+ * <li><code>org.neo4j.graphdb.Vector</code></li>
  * <li><code>java.time.LocalDate</code></li>
  * <li><code>java.time.OffsetTime</code></li>
  * <li><code>java.time.LocalTime</code></li>
@@ -64,7 +65,7 @@ import org.neo4j.annotations.api.PublicApi;
  * type. This means loss of type information, so properties of this type, when read back using
  * {@link #getProperty(String) getProperty} will be only of type <code>java.time.temporal.TemporalAmount</code>.</div>
  * </li>
- * <li>Arrays of any of the above types, for example <code>int[]</code>, <code>String[]</code> or <code>LocalTime[]</code></li>
+ * <li>Arrays of any of the above types, except vectors, for example <code>int[]</code>, <code>String[]</code> or <code>LocalTime[]</code></li>
  * </ul>
  * <p>
  * <b>Please note</b> that Neo4j does NOT accept arbitrary objects as property
@@ -109,7 +110,8 @@ public interface Entity {
      * Returns the property value associated with the given key. The value is of
      * one of the valid property types, i.e. a Java primitive,
      * a {@link String String}, a {@link org.neo4j.graphdb.spatial.Point Point},
-     * a valid temporal type, or an array of any of the valid types.
+     * a {@link org.neo4j.graphdb.Vector Vector},
+     * a valid temporal type, or an array of any of the valid types, except vectors.
      * See the {@link Entity the class description}
      * for a full list of known types.
      * <p>
@@ -130,7 +132,8 @@ public interface Entity {
      * Returns the property value associated with the given key, or a default
      * value. The value is of one of the valid property types, i.e. a Java primitive,
      * a {@link String String}, a {@link org.neo4j.graphdb.spatial.Point Point},
-     * a valid temporal type, or an array of any of the valid types.
+     * a {@link org.neo4j.graphdb.Vector Vector},
+     * a valid temporal type, or an array of any of the valid types, except vectors.
      * See the {@link Entity the class description}
      * for a full list of known types.
      *
@@ -145,7 +148,8 @@ public interface Entity {
      * Sets the property value for the given key to <code>value</code>. The
      * property value must be one of the valid property types, i.e. a Java primitive,
      * a {@link String String}, a {@link org.neo4j.graphdb.spatial.Point Point},
-     * a valid temporal type, or an array of any of the valid types.
+     * a {@link org.neo4j.graphdb.Vector Vector},
+     * a valid temporal type, or an array of any of the valid types, except vectors.
      * See the {@link Entity the class description}
      * for a full list of known types.
      * <p>
