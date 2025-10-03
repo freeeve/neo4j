@@ -1730,7 +1730,7 @@ class MainIntegrationTest extends TestHarness {
         } else {
             expected =
                     """
-                    Variable `m` not defined. (line 2, column 9 (offset: 19))
+                    Variable `m` not defined (line 2, column 9 (offset: 19))
                     " RETURN m"
                              ^
                     """;

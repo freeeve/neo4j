@@ -19,6 +19,7 @@
  */
 package org.neo4j.shell.printer;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -139,86 +140,76 @@ class AnsiPrinterTest {
 
     @Test
     void testGqlError() {
-        assertEquals(
-                "\u001B[91m42XXX: status descr\n\u001B[m",
-                logger.getFormattedMessage(
-                        new Neo4jException(
-                                "42XXX",
-                                "status descr",
-                                "code",
-                                "message",
-                                Map.of(),
-                                new NullPointerException("yahoo")),
-                        Optional.empty()));
+        final var actual = logger.getFormattedMessage(
+                new Neo4jException(
+                        "42XXX", "status descr", "code", "message", Map.of(), new NullPointerException("yahoo")),
+                Optional.empty());
+        assertThat(actual).isEqualToNormalizingNewlines("\u001B[91m42XXX: status descr\n\u001B[m");
     }
 
     @Test
-    void testGqlErrorWIthQuery() {
-        assertEquals(
-                """
-                \u001B[91m42XXX: status descr
-                \u001B[m""",
-                logger.getFormattedMessage(
-                        new Neo4jException(
-                                "42XXX",
-                                "status descr",
-                                "code",
-                                "message",
-                                Map.of(),
-                                new NullPointerException("yahoo")),
-                        Optional.of("my query")));
+    void testGqlErrorWithQuery() {
+        final var actual = logger.getFormattedMessage(
+                new Neo4jException(
+                        "42XXX", "status descr", "code", "message", Map.of(), new NullPointerException("yahoo")),
+                Optional.of("my query"));
+        assertThat(actual).isEqualToNormalizingNewlines("""
+        \u001B[91m42XXX: status descr
+        \u001B[m""");
     }
 
     @Test
     void testGqlErrorWithPosition() {
-        assertEquals(
-                """
+        final var actual = logger.getFormattedMessage(
+                new Neo4jException(
+                        "42XXX",
+                        "status descr",
+                        "code",
+                        "message",
+                        Map.of(
+                                "_position",
+                                new MapValue(Map.of(
+                                        "offset",
+                                        new IntegerValue(3),
+                                        "line",
+                                        new IntegerValue(1),
+                                        "column",
+                                        new IntegerValue(4)))),
+                        new NullPointerException("yahoo")),
+                Optional.empty());
+        assertThat(actual)
+                .isEqualToNormalizingNewlines(
+                        """
                 \u001B[91m42XXX: status descr
-                \u001B[m""",
-                logger.getFormattedMessage(
-                        new Neo4jException(
-                                "42XXX",
-                                "status descr",
-                                "code",
-                                "message",
-                                Map.of(
-                                        "_position",
-                                        new MapValue(Map.of(
-                                                "offset",
-                                                new IntegerValue(3),
-                                                "line",
-                                                new IntegerValue(1),
-                                                "column",
-                                                new IntegerValue(4)))),
-                                new NullPointerException("yahoo")),
-                        Optional.empty()));
+                \u001B[m""");
     }
 
     @Test
     void testGqlErrorWithQueryAndPosition() {
-        assertEquals(
-                """
+        final var actual = logger.getFormattedMessage(
+                new Neo4jException(
+                        "42XXX",
+                        "status descr",
+                        "code",
+                        "message",
+                        Map.of(
+                                "_position",
+                                new MapValue(Map.of(
+                                        "offset",
+                                        new IntegerValue(3),
+                                        "line",
+                                        new IntegerValue(1),
+                                        "column",
+                                        new IntegerValue(4)))),
+                        new NullPointerException("yahoo")),
+                Optional.of("my query"));
+        assertThat(actual)
+                .isEqualToNormalizingNewlines(
+                        """
                 \u001B[91m42XXX: status descr (line 1, column 4 (offset: 3))
                 "my query"
                     ^
-                \u001B[m""",
-                logger.getFormattedMessage(
-                        new Neo4jException(
-                                "42XXX",
-                                "status descr",
-                                "code",
-                                "message",
-                                Map.of(
-                                        "_position",
-                                        new MapValue(Map.of(
-                                                "offset",
-                                                new IntegerValue(3),
-                                                "line",
-                                                new IntegerValue(1),
-                                                "column",
-                                                new IntegerValue(4)))),
-                                new NullPointerException("yahoo")),
-                        Optional.of("my query")));
+                \u001B[m""");
     }
 
     @Test
