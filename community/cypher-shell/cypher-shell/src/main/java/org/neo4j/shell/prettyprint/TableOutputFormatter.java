@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.internal.InternalRecord;
@@ -158,8 +159,9 @@ public class TableOutputFormatter implements OutputFormatter {
         }
         for (Record record : data) {
             for (int i = 0; i < columns.length; i++) {
-                int len = columnLengthForValue(record.get(i), moreDataAfterSamples);
-                if (columnSizes[i] < len) {
+                final var currentColumnSize = columnSizes[i];
+                final int len = columnLengthForValue(record.get(i), moreDataAfterSamples, currentColumnSize);
+                if (currentColumnSize < len) {
                     columnSizes[i] = len;
                 }
             }
@@ -178,13 +180,25 @@ public class TableOutputFormatter implements OutputFormatter {
      *
      * @param value                the value to calculate the length for
      * @param moreDataAfterSamples if there is more data that should be written into the table after `data`
+     * @param currentColSize       current size of this column
      * @return the column size for this value.
      */
-    private int columnLengthForValue(Value value, boolean moreDataAfterSamples) {
+    private int columnLengthForValue(Value value, boolean moreDataAfterSamples, int currentColSize) {
         if (value instanceof NumberValueAdapter && moreDataAfterSamples) {
             return 19; // The number of digits of Long.Max
         } else {
-            return formatValue(value).length();
+            final var formatted = formatValue(value);
+            final var length = formatted.length();
+            if (length < currentColSize || !StringUtils.containsAny(formatted, '\n', '\r')) {
+                return length;
+            } else if (wrap) {
+                // With wrapping we need the max line length.
+                // Not optimised, but not expected to come here that often.
+                return formatted.lines().mapToInt(String::length).max().orElse(0);
+            } else {
+                // With no wrapping we only display the first line.
+                return StringUtils.indexOfAny(formatted, '\n', '\r');
+            }
         }
     }
 
@@ -219,9 +233,10 @@ public class TableOutputFormatter implements OutputFormatter {
         boolean remainder = false;
         for (int i = 0; i < row.length; i++) {
             sb.append(" ");
-            int length = columnSizes[i];
-            String txt = row[i];
+            final int length = columnSizes[i];
+            final var txt = row[i];
             if (txt != null) {
+                final var txtLength = txt.length();
                 int offset = 0; // char offset in the string
                 int codePointCount = 0; // UTF code point counter (one code point can be multiple chars)
 
@@ -234,7 +249,7 @@ public class TableOutputFormatter implements OutputFormatter {
                  * which can lead to invalid characters in output when
                  * wrapping.
                  */
-                while (codePointCount < length && offset < txt.length()) {
+                while (codePointCount < length && offset < txtLength) {
                     final int codepoint = txt.codePointAt(offset);
 
                     // Stop at line breaks. Note that we skip the line break later in nextLineStart.
@@ -247,7 +262,7 @@ public class TableOutputFormatter implements OutputFormatter {
                     ++codePointCount;
                 }
 
-                if (offset < txt.length())
+                if (offset < txtLength)
                 // Content did not fit column
                 {
                     if (wrap) {
