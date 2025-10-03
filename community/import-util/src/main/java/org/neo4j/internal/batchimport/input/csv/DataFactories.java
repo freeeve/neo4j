@@ -396,7 +396,7 @@ public class DataFactories {
 
         // The options
         {
-            int optionsStartIndex = rawHeaderField.indexOf('{');
+            int optionsStartIndex = rawHeaderField.lastIndexOf('{');
             if (optionsStartIndex != -1) {
                 int optionsEndIndex = rawHeaderField.lastIndexOf('}');
                 Preconditions.checkState(
@@ -410,10 +410,12 @@ public class DataFactories {
             }
         }
 
+        int typeIndex = rawHeaderField.lastIndexOf(':');
+
         // The group
         {
-            int groupStartIndex = rawHeaderField.indexOf('(');
-            if (groupStartIndex != -1) {
+            int groupStartIndex = rawHeaderField.lastIndexOf('(');
+            if (groupStartIndex != -1 && typeIndex != -1 && groupStartIndex > typeIndex) {
                 int groupEndIndex = rawHeaderField.lastIndexOf(')');
                 Preconditions.checkState(
                         groupEndIndex != -1 && groupEndIndex > groupStartIndex, "Expected a closing ')'");
@@ -424,7 +426,6 @@ public class DataFactories {
 
         // The type
         {
-            int typeIndex = rawHeaderField.lastIndexOf(':');
             if (typeIndex != -1) {
                 type = rawHeaderField.substring(typeIndex + 1);
                 rawHeaderField = rawHeaderField.substring(0, typeIndex);

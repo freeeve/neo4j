@@ -28,7 +28,9 @@ import static org.neo4j.internal.batchimport.input.csv.DataFactories.defaultForm
 import static org.neo4j.internal.batchimport.input.csv.DataFactories.defaultFormatRelationshipFileHeader;
 import static org.neo4j.internal.helpers.ArrayUtil.array;
 
+import java.io.IOException;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
@@ -467,6 +469,72 @@ public class DataFactoriesTest {
                         entry(null, Type.ID, globalGroup, extractors.string()),
                         entry(null, Type.LABEL, extractors.stringArray()),
                         entry(null, Type.REMOVE_LABEL, extractors.stringArray())));
+    }
+
+    @Test
+    public void shouldParseColumnNamesWithParentheses() throws Exception {
+        assertParsedHeader(
+                "location (name):String\tlocation (detail):Point{crs:WGS-84}", extractors -> new Header.Entry[] {
+                    entry("location (name)", Type.PROPERTY, extractors.string()),
+                    entry(
+                            "location (detail)",
+                            Type.PROPERTY,
+                            extractors.point(),
+                            Map.of("crs", "WGS-84"),
+                            PointValue.parseHeaderInformation("{crs:WGS-84}"))
+                });
+        assertParsedHeader("location (name):ID(MyGroup1)", extractors ->
+                new Header.Entry[] {entry("location (name)", Type.ID, groups.get("MyGroup1"), extractors.long_())});
+        assertParsedHeader("location (detail):ID(MyGroup2){opt:foo}", extractors -> new Header.Entry[] {
+            entry("location (detail)", Type.ID, groups.get("MyGroup2"), extractors.long_(), Map.of("opt", "foo"), null)
+        });
+        assertParsedHeader(
+                "commentId:ID(Comment):ID(n;0<p;0_0>){id-type:long}\tcreationDate:datetime:datetime\tlocationIP:string:string\tbrowserUsed:string:string\tcontent:string:string\tlength:int:long",
+                extractors -> new Header.Entry[] {
+                    entry(
+                            "commentId:ID(Comment)",
+                            Type.ID,
+                            groups.get("n;0<p;0_0>"),
+                            extractors.long_(),
+                            Map.of("id-type", "long"),
+                            null),
+                    entry("creationDate:datetime", Type.PROPERTY, extractors.dateTime()),
+                    entry("locationIP:string", Type.PROPERTY, extractors.string()),
+                    entry("browserUsed:string", Type.PROPERTY, extractors.string()),
+                    entry("content:string", Type.PROPERTY, extractors.string()),
+                    entry("length:int", Type.PROPERTY, extractors.long_()),
+                });
+        assertParsedHeader(
+                "commentId:ID(Comment):ID(n@0<p@0_0>){id-type:long}\tcreationDate:datetime:datetime\tlocationIP:string:string\tbrowserUsed:string:string\tcontent:string:string\tlength:int:long",
+                extractors -> new Header.Entry[] {
+                    entry(
+                            "commentId:ID(Comment)",
+                            Type.ID,
+                            groups.get("n@0<p@0_0>"),
+                            extractors.long_(),
+                            Map.of("id-type", "long"),
+                            null),
+                    entry("creationDate:datetime", Type.PROPERTY, extractors.dateTime()),
+                    entry("locationIP:string", Type.PROPERTY, extractors.string()),
+                    entry("browserUsed:string", Type.PROPERTY, extractors.string()),
+                    entry("content:string", Type.PROPERTY, extractors.string()),
+                    entry("length:int", Type.PROPERTY, extractors.long_()),
+                });
+    }
+
+    private void assertParsedHeader(String headerString, Function<Extractors, Header.Entry[]> entries)
+            throws IOException {
+        // GIVEN
+        try (CharSeeker seeker = seeker(headerString)) {
+            Extractors extractors = new Extractors();
+
+            // WHEN
+            Header header = defaultFormatNodeFileHeader().create(seeker, TABS, IdType.ACTUAL, groups);
+
+            // THEN
+            Header.Entry[] apply = entries.apply(extractors);
+            assertThat(header.entries()).isEqualTo(apply);
+        }
     }
 
     private static final Configuration SEEKER_CONFIG =
