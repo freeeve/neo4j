@@ -83,14 +83,16 @@ abstract class OptionalExpandIntoSlottedPipe(
           ClosingIterator.single(withNulls(inputRow))
         } else {
           val traversalCursor = query.traversalCursor()
-          val nodeCursor = query.nodeCursor()
+          val fromCursor = query.nodeCursor()
+          val toCursor = query.nodeCursor()
           try {
-            val selectionCursor =
-              expandInto.connectingRelationships(nodeCursor, traversalCursor, fromNode, lazyTypes.types(query), toNode)
-            val relationships = if (selectionCursor != null) {
+            query.singleNode(fromNode, fromCursor)
+            query.singleNode(toNode, toCursor)
+            val relationships = if (fromCursor.next() && toCursor.next()) {
+              val selectionCursor =
+                expandInto.connectingRelationships(fromCursor, toCursor, traversalCursor, lazyTypes.types(query))
               traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
               new RelationshipCursorIterator(selectionCursor, traversalCursor)
-
             } else {
               traversalCursor.close()
               emptyClosingRelationshipIterator
@@ -100,7 +102,8 @@ abstract class OptionalExpandIntoSlottedPipe(
             if (matchIterator.isEmpty) ClosingIterator.single(withNulls(inputRow))
             else matchIterator
           } finally {
-            nodeCursor.close()
+            fromCursor.close()
+            toCursor.close()
           }
         }
     }.closing(expandInto)

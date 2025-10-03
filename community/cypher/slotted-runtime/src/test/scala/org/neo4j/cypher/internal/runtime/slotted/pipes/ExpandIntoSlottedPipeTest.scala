@@ -74,11 +74,13 @@ class ExpandIntoSlottedPipeTest extends CypherFunSuite {
     val monitor = QueryStateHelper.trackClosedMonitor
     val resourceManager = new ResourceManager(monitor)
     val state = QueryStateHelper.emptyWithResourceManager(resourceManager)
-    val nodeCursor = new StubNodeCursor(false)
-      .withNode(10).withNode(10).withDegree(25)
+    val fromCursor = new StubNodeCursor(false)
+      .withNode(10).withDegree(25)
+    val toCursor = new StubNodeCursor(false)
+      .withNode(20).withDegree(25)
     val relCursor = new StubRelationshipCursor(new TestRelationshipChain(10).outgoing(1, 20, 0))
     Mockito.when(state.query.traversalCursor()).thenReturn(relCursor)
-    Mockito.when(state.query.nodeCursor()).thenReturn(nodeCursor)
+    Mockito.when(state.query.nodeCursor()).thenReturn(fromCursor).thenReturn(toCursor)
 
     val slots = SlotConfigurationBuilder.empty
       .newLong("a", nullable = false, CTNode)

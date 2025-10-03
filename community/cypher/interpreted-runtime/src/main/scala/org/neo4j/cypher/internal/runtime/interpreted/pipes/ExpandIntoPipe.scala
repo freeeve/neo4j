@@ -31,7 +31,6 @@ import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.RelationshipCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.DirectionConverter.toGraphDb
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.getRowNode
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.relationshipSelectionCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExpandIntoPipe.traceRelationshipSelectionCursor
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
@@ -90,19 +89,16 @@ case class ExpandIntoPipe(
               case IsNoValue() => ClosingIterator.empty
               case n: VirtualNodeValue =>
                 val traversalCursor = query.traversalCursor()
-                val nodeCursor = query.nodeCursor()
+                val fromCursor = query.nodeCursor()
+                val toCursor = query.nodeCursor()
                 try {
-                  val selectionCursor = expandInto.connectingRelationships(
-                    nodeCursor,
-                    traversalCursor,
-                    fromNode.id(),
-                    lazyTypes.types(query),
-                    n.id()
-                  )
-
-                  val relationships = if (selectionCursor != null) {
+                  query.singleNode(fromNode.id(), fromCursor)
+                  query.singleNode(n.id(), toCursor)
+                  val relationships = if (fromCursor.next() && toCursor.next()) {
+                    val selectionCursor =
+                      expandInto.connectingRelationships(fromCursor, toCursor, traversalCursor, lazyTypes.types(query))
                     traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
-                    relationshipSelectionCursorIterator(selectionCursor, traversalCursor)
+                    new RelationshipCursorIterator(selectionCursor, traversalCursor)
                   } else {
                     traversalCursor.close()
                     emptyClosingRelationshipIterator
@@ -126,7 +122,8 @@ case class ExpandIntoPipe(
                       ).getOrElse(row)
                   )
                 } finally {
-                  nodeCursor.close()
+                  fromCursor.close()
+                  toCursor.close()
                 }
               case value: Value =>
                 throw ParameterWrongTypeException.expectedNodeAtFoundInstead(

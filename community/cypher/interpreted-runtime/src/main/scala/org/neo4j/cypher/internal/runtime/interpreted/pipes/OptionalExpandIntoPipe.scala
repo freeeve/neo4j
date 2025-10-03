@@ -76,23 +76,21 @@ case class OptionalExpandIntoPipe(
                 ClosingIterator.single(row)
               case n: VirtualNodeValue =>
                 val traversalCursor = query.traversalCursor()
-                val nodeCursor = query.nodeCursor()
+                val fromCursor = query.nodeCursor()
+                val toCursor = query.nodeCursor()
                 try {
-                  val selectionCursor = expandInto.connectingRelationships(
-                    nodeCursor,
-                    traversalCursor,
-                    fromNode.id(),
-                    types.types(query),
-                    n.id()
-                  )
-                  val relationships = if (selectionCursor != null) {
+                  query.singleNode(fromNode.id(), fromCursor)
+                  query.singleNode(n.id(), toCursor)
+                  val relationships = if (fromCursor.next() && toCursor.next()) {
+                    val selectionCursor =
+                      expandInto.connectingRelationships(fromCursor, toCursor, traversalCursor, types.types(query))
                     traceRelationshipSelectionCursor(query.resources, selectionCursor, traversalCursor)
-                    query.resources.trace(selectionCursor)
                     relationshipSelectionCursorIterator(selectionCursor, traversalCursor)
                   } else {
                     traversalCursor.close()
                     emptyClosingRelationshipIterator
                   }
+
                   val filteredRows = ListBuffer.empty[CypherRow]
                   // This is exhausting relationships directly, thus we do not need to return
                   // a ClosingIterator in this flatMap.
@@ -120,7 +118,8 @@ case class OptionalExpandIntoPipe(
                     ClosingIterator.single(row)
                   } else filteredRows.asClosingIterator
                 } finally {
-                  nodeCursor.close()
+                  fromCursor.close()
+                  toCursor.close()
                 }
 
               case x =>
