@@ -23,7 +23,7 @@ import org.neo4j.annotations.api.PublicApi;
 
 /**
  * A vector is defined by a list of coordinates of a certain {@link CoordinateType}.
- * <p/>
+ * <p>
  * A vector is different from a {@link org.neo4j.graphdb.spatial.Geometry}:
  * <ul>
  *  <li>A vector must always have at least one dimension and can have up to the maximum number of dimensions supported by this specific neo4j version.</li>
