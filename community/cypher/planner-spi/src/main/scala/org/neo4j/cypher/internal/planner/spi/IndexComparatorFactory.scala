@@ -17,26 +17,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.cypher.internal.ir
+package org.neo4j.cypher.internal.planner.spi
 
-import org.neo4j.internal.schema.IndexDescriptor
+import org.neo4j.internal.schema
 
 import java.util.Comparator
 
 trait IndexComparatorFactory {
-  def createComparator(): Comparator[IndexDescriptor]
+  def createComparator(): Comparator[schema.IndexDescriptor]
 }
 
 object NoPreferenceIndexComparatorFactory extends IndexComparatorFactory {
 
-  override def createComparator(): Comparator[IndexDescriptor] = {
-    (a: IndexDescriptor, b: IndexDescriptor) => a.hashCode().compareTo(b.hashCode())
+  override def createComparator(): Comparator[schema.IndexDescriptor] = {
+    (a: schema.IndexDescriptor, b: schema.IndexDescriptor) => a.hashCode().compareTo(b.hashCode())
   }
 }
 
 object ThrowingIndexComparatorFactory extends IndexComparatorFactory {
 
-  override def createComparator(): Comparator[IndexDescriptor] = {
+  override def createComparator(): Comparator[schema.IndexDescriptor] = {
     throw new NotImplementedError(
       "Index comparator for dynamic lookups is not supported here; supply a real comparator to make it work."
     )

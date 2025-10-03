@@ -24,8 +24,8 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.Mockito.when
 import org.mockito.invocation.InvocationOnMock
-import org.neo4j.cypher.internal.ir.IndexComparatorFactory
-import org.neo4j.cypher.internal.ir.NoPreferenceIndexComparatorFactory
+import org.neo4j.cypher.internal.planner.spi.IndexComparatorFactory
+import org.neo4j.cypher.internal.planner.spi.NoPreferenceIndexComparatorFactory
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.NoInput
