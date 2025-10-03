@@ -240,6 +240,14 @@ public class CsvInput implements Input {
     }
 
     @Override
+    public boolean containsVectorData() {
+        // CSV cannot prove to have vector data until `validateAndEstimate` has been called.
+        // But since that already samples data and throws, there is no point in even capturing if
+        // this contains vector data at this point.
+        return false;
+    }
+
+    @Override
     public InputIterable nodes(Collector badCollector) {
         Preconditions.checkState(hasBeenValidated, "must call validateAndEstimate before calling nodes");
         return () -> stream(nodeDataFactory, nodeHeaderFactory, badCollector);

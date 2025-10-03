@@ -573,6 +573,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", expectedList, "name", "Mattias Persson"), labels("HACKER"));
@@ -601,6 +602,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", List.of(), "name", "Mattias Persson"), labels("HACKER"));
@@ -615,6 +617,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -629,6 +632,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -647,6 +651,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -662,6 +667,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -692,6 +698,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -706,6 +713,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -720,6 +728,7 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aMap.x", "abcd", "name", "Mattias Persson"), labels("HACKER"));
@@ -751,6 +760,7 @@ class ParquetInputTest {
         System.out.println(nodeFile.toAbsolutePath());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -770,6 +780,7 @@ class ParquetInputTest {
         System.out.println(nodeFile.toAbsolutePath());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -1290,6 +1301,7 @@ class ParquetInputTest {
                         new Object[] {1, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2 } "}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1411,6 +1423,7 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", 1.1d}, new Object[] {1, "Johan", 2.2d}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1432,6 +1445,7 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", 1.1f}, new Object[] {1, "Johan", 2.2f}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1456,6 +1470,7 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", "2018-02-27"}, new Object[] {1, "Johan", "2018-03-01"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1479,6 +1494,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1503,6 +1519,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1527,6 +1544,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2319,6 +2337,7 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", "P3MT13H37M"}, new Object[] {1, "Johan", "P-1YT4H20M"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertFalse(input.containsVectorData());
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -2725,6 +2744,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
@@ -2751,6 +2771,7 @@ class ParquetInputTest {
                 groups,
                 MONITOR,
                 Configuration.newBuilder().withDelimiter(';').build());
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
@@ -2774,6 +2795,7 @@ class ParquetInputTest {
                 groups,
                 MONITOR,
                 Configuration.newBuilder().withArrayDelimiter('§').build());
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", Values.int32Vector(1, 23)), labels());
@@ -2797,6 +2819,7 @@ class ParquetInputTest {
                 groups,
                 MONITOR,
                 Configuration.newBuilder().withVectorDelimiter('§').build());
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", Values.int32Vector(1, 23)), labels());
@@ -2826,6 +2849,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -2845,6 +2869,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -2864,6 +2889,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -2883,6 +2909,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, "1;23"}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -2917,6 +2944,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -2946,6 +2974,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, ""}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -2966,6 +2995,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -2986,6 +3016,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -3006,6 +3037,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -3037,6 +3069,7 @@ class ParquetInputTest {
                 Collections.singletonList(new Object[] {1, stringValue}));
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 1L, properties("vprop", expectedValue), labels());
@@ -3056,6 +3089,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -3076,6 +3110,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))
@@ -3097,6 +3132,7 @@ class ParquetInputTest {
 
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        assertTrue(input.containsVectorData());
 
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertThatThrownBy(() -> readNext(nodes))

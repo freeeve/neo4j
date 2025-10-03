@@ -90,6 +90,7 @@ public class ParquetInput implements Input {
     private final String arrayDelimiter;
     private final String vectorDelimiter;
     private final String csvDelimiter;
+    private final boolean containsVectorData;
 
     public ParquetInput(
             Map<Set<String>, List<Path[]>> nodeFiles,
@@ -110,6 +111,7 @@ public class ParquetInput implements Input {
         this.schemaCommands = schemaCommands;
 
         this.verifiedColumns = verifyColumns(nodeFiles, relationshipFiles);
+        this.containsVectorData = containsVectorData(verifiedColumns);
         this.nodeDatas = nodeData(verifiedColumns, nodeFiles);
         this.relationshipDatas = relationshipData(verifiedColumns, relationshipFiles);
     }
@@ -137,6 +139,11 @@ public class ParquetInput implements Input {
     @Override
     public List<SchemaCommand> schemaCommands() {
         return schemaCommands;
+    }
+
+    @Override
+    public boolean containsVectorData() {
+        return containsVectorData;
     }
 
     private static List<ParquetData> nodeData(
@@ -490,7 +497,19 @@ public class ParquetInput implements Input {
         return columnInfo;
     }
 
-    private boolean processPotentialHeaderFile(Path path, List<Path> paths, HeaderContext headerContext)
+    private static boolean containsVectorData(Map<Path, List<ParquetColumn>> verifiedColumns) {
+        for (List<ParquetColumn> columns : verifiedColumns.values()) {
+            for (ParquetColumn column : columns) {
+                if (column.logicalColumnType() == ParquetLogicalColumnType.PROPERTY
+                        && column.columnType() == ParquetColumnType.VECTOR) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean processPotentialHeaderFile(Path path, List<Path> paths, ParquetInput.HeaderContext headerContext)
             throws IOException {
         if (!isHeaderFile(path)) {
             return false;

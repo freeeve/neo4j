@@ -202,6 +202,7 @@
     <!-- there is a non-standard behaviour of map merge in the 13.0 version can't upgrade for now-->
     <eclipse-collections.version>11.1.0</eclipse-collections.version>
     <parquet-floor.version>1.59</parquet-floor.version>
+    <parquet-column.version>1.16.0</parquet-column.version>
     <picocli.version>4.7.7</picocli.version>
     <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
     <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
@@ -1458,6 +1459,12 @@
         <groupId>blue.strategic.parquet</groupId>
         <artifactId>parquet-floor</artifactId>
         <version>${parquet-floor.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.parquet</groupId>
+        <artifactId>parquet-column</artifactId>
+        <version>${parquet-column.version}</version>
       </dependency>
 
       <!-- testing -->

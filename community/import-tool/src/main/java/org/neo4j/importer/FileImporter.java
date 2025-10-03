@@ -186,6 +186,13 @@ public class FileImporter {
         }
     }
 
+    private void abortIfVectorsUnsupported(Input input) {
+        if (!storageEngineFactory.supportsVectorData() && input.containsVectorData()) {
+            throw new UnsupportedOperationException("Provided input is known to contain vector value data, "
+                    + "which is not supported by the target storage engine.");
+        }
+    }
+
     private Input importInput(
             Iterable<DataFactory> nodeData, Supplier<ZoneId> defaultTimeZone, Iterable<DataFactory> relationshipsData) {
         return switch (fileImportType) {
@@ -202,8 +209,8 @@ public class FileImporter {
                         new CsvInput.PrintingMonitor(stdOut),
                         new Groups(),
                         memoryTracker);
-            case PARQUET ->
-                new ParquetInput(
+            case PARQUET -> {
+                var input = new ParquetInput(
                         nodeFiles,
                         relationshipFiles,
                         schemaCommands,
@@ -211,6 +218,10 @@ public class FileImporter {
                         csvConfig,
                         new Groups(),
                         new ParquetMonitor(stdOut));
+                // For Parquet: Abort if vectors are unsupported.
+                abortIfVectorsUnsupported(input);
+                yield input;
+            }
         };
     }
 

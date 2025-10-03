@@ -140,6 +140,11 @@ public class LenientStoreInput implements Input {
     }
 
     @Override
+    public boolean containsVectorData() {
+        return false;
+    }
+
+    @Override
     public void close() {
         neoStores.close();
     }

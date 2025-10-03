@@ -219,6 +219,10 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                         contextFactory,
                         tailMetadata);
                 life) {
+            if (!targetStorageEngine.supportsVectorData() && fromInput.containsVectorData()) {
+                throw new UnsupportedOperationException("Provided input is known to contain vector value data, "
+                        + "which is not supported by the target storage engine.");
+            }
             importer.doImport(fromInput);
         }
 

@@ -337,6 +337,11 @@ public class EmptyStoreSeeder implements StoreGenerator, StoreSeeder {
         public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) throws IOException {
             return new Estimates(0, 0, 0, 0, 0, 0, 0, false, false);
         }
+
+        @Override
+        public boolean containsVectorData() {
+            return false;
+        }
     }
 
     private static class NoInputIterable implements InputIterable, InputIterator, InputChunk {

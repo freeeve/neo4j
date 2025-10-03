@@ -141,6 +141,12 @@ public class DataGeneratorInput implements Input {
     }
 
     @Override
+    public boolean containsVectorData() {
+        // unknown as it is generated; however, will note if it is possible
+        return randomConfig.includeVectorTypes();
+    }
+
+    @Override
     public IdType idType() {
         return idType;
     }

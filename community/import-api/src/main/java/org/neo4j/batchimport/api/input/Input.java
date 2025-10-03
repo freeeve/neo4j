@@ -129,6 +129,11 @@ public interface Input extends AutoCloseable {
         return SchemaTokens.collect(schemaCommands());
     }
 
+    /**
+     * @return if the {@link Input} is known to contain any vector data
+     */
+    boolean containsVectorData();
+
     @Override
     default void close() {}
 
@@ -137,7 +142,8 @@ public interface Input extends AutoCloseable {
             InputIterable relationships,
             IdType idType,
             Estimates estimates,
-            ReadableGroups groups) {
+            ReadableGroups groups,
+            boolean containsVectorData) {
         return new Input() {
             @Override
             public InputIterable relationships(Collector badCollector) {
@@ -162,6 +168,11 @@ public interface Input extends AutoCloseable {
             @Override
             public Estimates validateAndEstimate(PropertySizeCalculator valueSizeCalculator) {
                 return estimates;
+            }
+
+            @Override
+            public boolean containsVectorData() {
+                return containsVectorData;
             }
         };
     }
@@ -248,6 +259,16 @@ public interface Input extends AutoCloseable {
         @Override
         public List<SchemaCommand> schemaCommands() {
             return delegate.schemaCommands();
+        }
+
+        @Override
+        public SchemaTokens schemaTokens() {
+            return delegate.schemaTokens();
+        }
+
+        @Override
+        public boolean containsVectorData() {
+            return delegate.containsVectorData();
         }
 
         @Override

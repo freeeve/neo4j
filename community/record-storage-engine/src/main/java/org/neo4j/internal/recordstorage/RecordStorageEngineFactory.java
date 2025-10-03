@@ -847,6 +847,11 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
+    public boolean supportsVectorData() {
+        return false;
+    }
+
+    @Override
     public LockManager createLockManager(Config config, SystemNanoClock clock) {
         return new ForsetiLockManager(config, clock, ResourceType.values());
     }

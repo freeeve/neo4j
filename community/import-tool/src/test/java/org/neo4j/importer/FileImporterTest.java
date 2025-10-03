@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
+import blue.strategic.parquet.ParquetWriter;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -36,12 +37,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 import org.apache.commons.io.output.NullPrintStream;
+import org.apache.parquet.schema.LogicalTypeAnnotation;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
+import org.apache.parquet.schema.Type;
+import org.apache.parquet.schema.Types;
+import org.assertj.core.api.AbstractThrowableAssert;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.csv.reader.Configuration;
+import org.neo4j.importer.FileImporter.FileInputType;
 import org.neo4j.internal.batchimport.input.InputException;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
@@ -171,6 +183,111 @@ class FileImporterTest {
                 .hasRootCauseInstanceOf(InputException.class)
                 .hasMessageContaining("Too many bad entries");
     }
+
+    @ParameterizedTest
+    @MethodSource
+    void shouldPreventImportIfVectorDataExists(VectorDataContext context) throws IOException {
+        var nodeFile = context.writeVectorData(testDir);
+
+        var importerBuilder = importerBuilder()
+                .withDatabaseConfig(Config.defaults(GraphDatabaseSettings.neo4j_home, testDir.homePath()))
+                .withFileInputType(FileInputType.PARQUET)
+                .withStdOut(NullPrintStream.INSTANCE)
+                .withStdErr(NullPrintStream.INSTANCE)
+                .withReportFile(testDir.file("report.txt"))
+                .addNodeFiles(emptySet(), new Path[] {nodeFile.toAbsolutePath()})
+                .withBadTolerance(4)
+                .withSkipDuplicateNodes(true);
+        context.configure(importerBuilder);
+        var importer = importerBuilder.build();
+
+        var throwableAssert = assertThatThrownBy(() -> importer.doImport(fullImport()));
+        context.assertException(throwableAssert);
+    }
+
+    static Stream<Named<VectorDataContext>> shouldPreventImportIfVectorDataExists() {
+        return Stream.of(Named.of("csv", CSV_VECTOR_DATA_CONTEXT), Named.of("parquet", PARQUET_VECTOR_DATA_CONTEXT));
+    }
+
+    private interface VectorDataContext {
+        Path writeVectorData(TestDirectory testDirectory) throws IOException;
+
+        void configure(FileImporter.Builder builder);
+
+        void assertException(AbstractThrowableAssert<?, ? extends Throwable> throwableAssert);
+    }
+
+    private static final VectorDataContext CSV_VECTOR_DATA_CONTEXT = new VectorDataContext() {
+        @Override
+        public Path writeVectorData(TestDirectory testDirectory) throws IOException {
+            var path = testDirectory.file("embeddings.csv");
+            try (var out = new PrintStream(testDirectory.getFileSystem().openAsOutputStream(path, false))) {
+                out.println(":ID,\"embedding:vector{coordinateType:float,dimensions:2}\"");
+                out.println("1,1;23");
+            }
+            return path;
+        }
+
+        @Override
+        public void configure(FileImporter.Builder builder) {
+            builder.withFileInputType(FileInputType.CSV);
+        }
+
+        @Override
+        public void assertException(AbstractThrowableAssert<?, ? extends Throwable> throwableAssert) {
+            // CSV can only check after having processed the headers. But, at the same time, we also
+            // sample data already, which also provides for an early abort, but with a different exception.
+            // Here, we get the more concrete message that aligned does not support vectors.
+            throwableAssert
+                    .isInstanceOf(FileImporter.CsvImportException.class)
+                    .hasMessageContaining("storing properties of type vector is not supported in aligned store format");
+        }
+    };
+
+    private static final FileImporterTest.VectorDataContext PARQUET_VECTOR_DATA_CONTEXT = new VectorDataContext() {
+        @Override
+        public Path writeVectorData(TestDirectory testDirectory) throws IOException {
+            var path = testDirectory.file("embeddings.parquet");
+            var fields = List.<Type>of(
+                    Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID"),
+                    Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                            .as(LogicalTypeAnnotation.stringType())
+                            .named("embedding:vector{coordinateType:float,dimensions:2}"));
+            var data = Collections.singletonList(new Object[] {1, "1;23"});
+
+            try (var writer = ParquetWriter.writeFile(
+                    new MessageType("something", fields), path.toFile(), (record, valueWriter) -> {
+                        var recordData = (Object[]) record;
+                        for (int i = 0; i < fields.size(); i++) {
+                            Type type = fields.get(i);
+                            Object value = recordData[i];
+                            if (value != null) {
+                                valueWriter.write(type.getName(), value);
+                            }
+                        }
+                    })) {
+                for (Object[] datum : data) {
+                    writer.write(datum);
+                }
+            }
+            return path;
+        }
+
+        @Override
+        public void configure(FileImporter.Builder builder) {
+            builder.withFileInputType(FileInputType.PARQUET);
+        }
+
+        @Override
+        public void assertException(AbstractThrowableAssert<?, ? extends Throwable> throwableAssert) {
+            // Parquet can check early, just be looking at the headers. It will not process any data and get the
+            // more generic exception from FileImporter.
+            throwableAssert
+                    .isInstanceOf(UnsupportedOperationException.class)
+                    .hasMessage(
+                            "Provided input is known to contain vector value data, which is not supported by the target storage engine.");
+        }
+    };
 
     private Path writeFileWithLines(String fileName, String... lines) throws IOException {
         var path = testDir.file(fileName);

@@ -27,6 +27,7 @@ import static org.neo4j.batchimport.api.Configuration.DEFAULT;
 import static org.neo4j.batchimport.api.Monitor.NO_MONITOR;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.index_population_queue_threshold;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.configuration.GraphDatabaseSettings.db_format;
 import static org.neo4j.configuration.GraphDatabaseSettings.neo4j_home;
 import static org.neo4j.internal.batchimport.DefaultAdditionalIds.EMPTY;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
@@ -92,6 +93,7 @@ import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 
 /**
  * Idea is to test a {@link MultipleIndexPopulator} with a bunch of indexes, some of which can fail randomly.
@@ -372,9 +374,7 @@ class MultipleIndexPopulationStressIT {
         try (RandomDataInput input = new RandomDataInput(
                         nodeCount,
                         relCount,
-                        RandomValues.newConfigurationBuilder()
-                                .includeVectorTypes(false)
-                                .build() /* Record engine does not support vectors. */);
+                        RandomValuesUtils.selectStorageEngineDependentConfiguration(config.get(db_format)));
                 JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
             RecordDatabaseLayout layout = RecordDatabaseLayout.of(config);
             IndexImporterFactory indexImporterFactory = new IndexImporterFactoryImpl();
@@ -475,6 +475,12 @@ class MultipleIndexPopulationStressIT {
             long relPropSize = relPropCount * Long.BYTES;
             return Input.knownEstimates(
                     nodeCount, relCount, nodePropCount, relPropCount, nodePropSize, relPropSize, labelCount);
+        }
+
+        @Override
+        public boolean containsVectorData() {
+            // unknown as it is generated; however, will note if it is possible
+            return config.includeVectorTypes();
         }
 
         @Override

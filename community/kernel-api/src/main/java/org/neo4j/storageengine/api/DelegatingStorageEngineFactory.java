@@ -484,6 +484,11 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
     }
 
     @Override
+    public boolean supportsVectorData() {
+        return delegate.supportsVectorData();
+    }
+
+    @Override
     public LockManager createLockManager(Config config, SystemNanoClock clock) {
         return delegate.createLockManager(config, clock);
     }

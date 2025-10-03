@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.storemigration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -35,15 +36,18 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.neo4j.batchimport.api.BatchImporter;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.Monitor;
+import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -116,6 +120,10 @@ class AcrossEngineMigrationParticipantTest {
                         anyInt(),
                         any()))
                 .thenReturn(importer);
+        var input = mock(Input.class);
+        when(sourceSef.asBatchImporterInput(
+                        any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any()))
+                .thenReturn(input);
     }
 
     @AfterEach
@@ -232,6 +240,69 @@ class AcrossEngineMigrationParticipantTest {
         } else {
             assertThat(monitorCaptor.getValue()).isNotEqualTo(Monitor.NO_MONITOR);
             assertThat(progressOutputCaptor.getValue()).isNotEqualTo(System.out);
+        }
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void shouldHandleVectorData(ShouldHandleVectorData context) {
+        // given
+        var input = mock(Input.class);
+        when(input.containsVectorData()).thenReturn(context.sourceHasVectorData());
+        when(sourceSef.asBatchImporterInput(
+                        any(), any(), any(), any(), any(), any(), any(), anyBoolean(), any(), any()))
+                .thenReturn(input);
+        when(targetSef.supportsVectorData()).thenReturn(context.targetSupportsVectorData());
+
+        var participant = new AcrossEngineMigrationParticipant(
+                fs,
+                pageCache,
+                NULL,
+                defaults(),
+                NullLogService.getInstance(),
+                scheduler,
+                NULL_CONTEXT_FACTORY,
+                INSTANCE,
+                sourceSef,
+                targetSef,
+                false,
+                false,
+                mebiBytes(80),
+                System.out,
+                false);
+
+        // when
+        var migrateAssert = assertThatCode(() -> participant.migrate(
+                fromLayout,
+                toLayout,
+                NONE,
+                mock(StoreVersion.class),
+                mock(StoreVersion.class),
+                new IndexImporterFactoryImpl(),
+                mock(LogTailMetadata.class)));
+
+        // then
+        if (context.shouldMigrate()) {
+            migrateAssert.doesNotThrowAnyException();
+        } else {
+            migrateAssert
+                    .isInstanceOf(UnsupportedOperationException.class)
+                    .hasMessage(
+                            "Provided input is known to contain vector value data, which is not supported by the target storage engine.");
+        }
+    }
+
+    static Stream<ShouldHandleVectorData> shouldHandleVectorData() {
+        return Stream.of(
+                new ShouldHandleVectorData(false, false),
+                new ShouldHandleVectorData(false, true),
+                new ShouldHandleVectorData(true, false),
+                new ShouldHandleVectorData(true, true));
+    }
+
+    private record ShouldHandleVectorData(boolean sourceHasVectorData, boolean targetSupportsVectorData) {
+        boolean shouldMigrate() {
+            return !sourceHasVectorData || targetSupportsVectorData;
         }
     }
 }

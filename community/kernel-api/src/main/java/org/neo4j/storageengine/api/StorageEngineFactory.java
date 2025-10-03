@@ -459,6 +459,8 @@ public interface StorageEngineFactory {
             int numShards,
             DependencyResolver storageSpecificArguments);
 
+    boolean supportsVectorData();
+
     LockManager createLockManager(Config config, SystemNanoClock clock);
 
     /**

@@ -394,7 +394,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
                     propertyStoreSize / 2,
                     propertyStoreSize / 2,
                     0 /*node labels left as 0 for now*/);
-            importer.doImport(Input.input(nodes, relationships, IdType.ACTUAL, estimates, ReadableGroups.EMPTY));
+            importer.doImport(Input.input(nodes, relationships, IdType.ACTUAL, estimates, ReadableGroups.EMPTY, false));
 
             // During migration the batch importer doesn't necessarily writes all entities, depending on
             // which stores needs migration. Node, relationship, relationship group stores are always written

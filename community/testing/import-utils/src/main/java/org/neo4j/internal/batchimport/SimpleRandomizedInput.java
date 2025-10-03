@@ -179,6 +179,11 @@ public class SimpleRandomizedInput implements Input {
         return actual.referencedNodeSchema(tokenHolders);
     }
 
+    @Override
+    public boolean containsVectorData() {
+        return actual.containsVectorData();
+    }
+
     public void verify(GraphDatabaseService db) throws IOException {
         verify(db, false);
     }
