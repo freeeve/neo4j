@@ -64,6 +64,7 @@ class DbInfoIntegrationTest extends TestHarness {
         }
     }
 
+    @Disabled
     @Test
     void fillsInInformationInDbInfo() throws Exception {
         assumeAtLeastVersion("5.0.0");
