@@ -29,7 +29,6 @@ import static org.neo4j.kernel.impl.storemigration.StoreMigratorFileOperation.fi
 import java.io.IOException;
 import java.util.List;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.id.IdGeneratorFactory;
@@ -190,10 +189,7 @@ public class SchemaStoreMigration {
                     var srcCursors = new CachedStoreCursors(srcStore, cursorContext)) {
                 TokenHolders srcTokenHolders = createTokenHolders(srcStore, srcCursors, memoryTracker);
                 org.neo4j.internal.recordstorage.SchemaStorage schemaStorage =
-                        new org.neo4j.internal.recordstorage.SchemaStorage(
-                                srcStore.getSchemaStore(),
-                                srcTokenHolders,
-                                srcStore.getConfig().get(GraphDatabaseSettings.db_format));
+                        new org.neo4j.internal.recordstorage.SchemaStorage(srcStore.getSchemaStore(), srcTokenHolders);
 
                 schemaRules = Iterables.asList(schemaStorage.getAll(srcCursors, memoryTracker));
             }

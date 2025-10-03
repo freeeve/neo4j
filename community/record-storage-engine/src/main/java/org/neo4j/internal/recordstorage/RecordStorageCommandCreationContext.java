@@ -25,7 +25,6 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.id.IdSequenceProvider;
 import org.neo4j.internal.recordstorage.RecordAccess.LoadMonitor;
 import org.neo4j.internal.recordstorage.id.BatchedTransactionIdSequenceProvider;
@@ -52,6 +51,7 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
     private final NeoStores neoStores;
     private final Config config;
     private final boolean multiVersioned;
+    private final String format;
     private final TokenNameLookup tokenNameLookup;
     private final InternalLogProvider logProvider;
     private final int denseNodeThreshold;
@@ -73,13 +73,15 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
             InternalLogProvider logProvider,
             int denseNodeThreshold,
             Config config,
-            boolean multiVersioned) {
+            boolean multiVersioned,
+            String format) {
         this.tokenNameLookup = tokenNameLookup;
         this.logProvider = logProvider;
         this.denseNodeThreshold = denseNodeThreshold;
         this.neoStores = neoStores;
         this.config = config;
         this.multiVersioned = multiVersioned;
+        this.format = format;
         this.idSequenceProvider = createIdSequenceProvider(neoStores, multiVersioned);
         this.dynamicAllocatorProvider = new TransactionDynamicAllocatorProvider(neoStores, idSequenceProvider);
     }
@@ -108,7 +110,7 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
                 propertyTraverser,
                 idSequenceProvider,
                 cursorContext,
-                config.get(GraphDatabaseSettings.db_format));
+                format);
     }
 
     @Override

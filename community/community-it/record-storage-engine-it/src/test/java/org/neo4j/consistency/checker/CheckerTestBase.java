@@ -193,7 +193,7 @@ class CheckerTestBase {
         relationshipStore = neoStores.getRelationshipStore();
         schemaStore = neoStores.getSchemaStore();
         tokenHolders = dependencies.resolveDependency(TokenHolders.class);
-        schemaStorage = new SchemaStorage(schemaStore, tokenHolders, "db-format-2000");
+        schemaStorage = new SchemaStorage(schemaStore, tokenHolders);
         byteArray = NumberArrayFactories.OFF_HEAP.newDynamicByteArray(10_000, new byte[MAX_BYTES], INSTANCE);
         cacheAccess = new DefaultCacheAccess(byteArray);
         cacheAccess.setCacheSlotSizes(DEFAULT_SLOT_SIZES);

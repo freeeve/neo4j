@@ -561,7 +561,7 @@ class FulltextIndexProviderTest {
                             StoreTokens.readOnlyTokenHolders(neoStores, storeCursors, EmptyMemoryTracker.INSTANCE);
                     var allocatorProvider = DynamicAllocatorProviders.nonTransactionalAllocator(neoStores);
                     SchemaStore schemaStore = neoStores.getSchemaStore();
-                    SchemaStorage storage = new SchemaStorage(schemaStore, tokens, "db-format-2000");
+                    SchemaStorage storage = new SchemaStorage(schemaStore, tokens);
                     IndexDescriptor index = (IndexDescriptor)
                             storage.loadSingleSchemaRule(indexId, storeCursors, EmptyMemoryTracker.INSTANCE);
                     Map<String, Value> indexConfigMap =

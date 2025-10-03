@@ -168,6 +168,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     private final boolean parallelIndexUpdatesApply;
     private final InternalLog log;
     private final PagePrefetcher pagePrefetcher;
+    private final String format;
     private IndexUpdatesWorkSync indexUpdatesSync;
     private final IdGeneratorFactory idGeneratorFactory;
     private final LogMetadataProvider logMetadataProvider;
@@ -238,6 +239,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                         false,
                         storeIdGenerator)
                 .openAllNeoStores();
+        this.format = this.neoStores.getRecordFormats().name();
         this.multiVersion = neoStores.getOpenOptions().contains(PageCacheOpenOptions.MULTI_VERSIONED);
         this.lockVerificationFactory = LockVerificationFactory.select(config, multiVersion);
         this.idGeneratorWorkSyncs = new IdGeneratorUpdatesWorkSync(false);
@@ -429,7 +431,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     @Override
     public RecordStorageCommandCreationContext newCommandCreationContext(boolean multiVersioned) {
         return new RecordStorageCommandCreationContext(
-                neoStores, tokenHolders, internalLogProvider, denseNodeThreshold, config, multiVersioned);
+                neoStores, tokenHolders, internalLogProvider, denseNodeThreshold, config, multiVersioned, format);
     }
 
     @Override
@@ -518,7 +520,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                 multiVersion,
                 memoryTracker,
                 tokenHolders.lookupWithIds(),
-                config.get(GraphDatabaseSettings.db_format));
+                format);
         CountsRecordState countsRecordState = new CountsRecordState(serialization);
         txStateVisitor = additionalTxStateVisitor.apply(txStateVisitor);
         RecordState indexRecordState = RecordState.EMPTY_RECORD_STATE;

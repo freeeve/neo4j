@@ -121,7 +121,7 @@ class SchemaStorageReadAndWriteTest {
         tokenIdCounter.set(Math.max(tokenIdCounter.get(), tokens.labelTokens().size()));
         tokenIdCounter.set(
                 Math.max(tokenIdCounter.get(), tokens.relationshipTypeTokens().size()));
-        storage = new SchemaStorage(neoStores.getSchemaStore(), tokens, "db-format-2000");
+        storage = new SchemaStorage(neoStores.getSchemaStore(), tokens);
     }
 
     @AfterAll

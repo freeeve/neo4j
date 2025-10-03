@@ -697,4 +697,8 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
     public Config getNeo4jConfig() {
         return neo4jConfig;
     }
+
+    public RecordFormats getRecordFormats() {
+        return recordFormats;
+    }
 }

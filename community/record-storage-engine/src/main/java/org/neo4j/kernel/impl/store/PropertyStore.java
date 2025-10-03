@@ -159,6 +159,8 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
     private final PropertyKeyTokenStore propertyKeyTokenStore;
     private final DynamicArrayStore arrayStore;
 
+    private final RecordFormats recordFormats;
+
     public PropertyStore(
             FileSystemAbstraction fileSystem,
             Path path,
@@ -194,6 +196,7 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
         this.stringStore = stringPropertyStore;
         this.propertyKeyTokenStore = propertyKeyTokenStore;
         this.arrayStore = arrayPropertyStore;
+        this.recordFormats = recordFormats;
     }
 
     public DynamicStringStore getStringStore() {
@@ -343,7 +346,7 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
             DynamicRecordAllocator arrayAllocator,
             CursorContext cursorContext,
             MemoryTracker memoryTracker,
-            String storeFormat) {
+            String storeFormatForFeatureUnsupportedException) {
         if (value instanceof ArrayValue) {
             Object asObject = value.asObject();
 
@@ -366,7 +369,12 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
             block.setValueRecords(arrayRecords);
         } else {
             value.writeTo(new PropertyBlockValueWriter(
-                    block, keyId, stringAllocator, cursorContext, memoryTracker, storeFormat));
+                    block,
+                    keyId,
+                    stringAllocator,
+                    cursorContext,
+                    memoryTracker,
+                    storeFormatForFeatureUnsupportedException));
         }
     }
 
@@ -443,7 +451,7 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
         private final DynamicRecordAllocator stringAllocator;
         private final CursorContext cursorContext;
         private final MemoryTracker memoryTracker;
-        private final String storeFormat;
+        private final String storeFormatForFeatureUnsupportedException;
 
         PropertyBlockValueWriter(
                 PropertyBlock block,
@@ -451,13 +459,13 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
                 DynamicRecordAllocator stringAllocator,
                 CursorContext cursorContext,
                 MemoryTracker memoryTracker,
-                String storeFormat) {
+                String storeFormatForFeatureUnsupportedException) {
             this.block = block;
             this.keyId = keyId;
             this.stringAllocator = stringAllocator;
             this.cursorContext = cursorContext;
             this.memoryTracker = memoryTracker;
-            this.storeFormat = storeFormat;
+            this.storeFormatForFeatureUnsupportedException = storeFormatForFeatureUnsupportedException;
         }
 
         @Override
@@ -597,32 +605,38 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
 
         @Override
         public void writeInt8Vector(byte[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+                    storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeInt16Vector(short[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+                    storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeInt32Vector(int[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+                    storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeInt64Vector(long[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+                    storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeFloat32Vector(float[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+                    storeFormatForFeatureUnsupportedException);
         }
 
         @Override
         public void writeFloat64Vector(double[] values) throws RuntimeException {
-            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(storeFormat);
+            throw FeatureUnsupportedOnStoreFormatException.vectorsUnsupportedInRecordFormat(
+                    storeFormatForFeatureUnsupportedException);
         }
     }
 
@@ -728,5 +742,9 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
                 return type.createArray(length, bits, requiredBits);
             }
         }
+    }
+
+    public RecordFormats getRecordFormats() {
+        return recordFormats;
     }
 }

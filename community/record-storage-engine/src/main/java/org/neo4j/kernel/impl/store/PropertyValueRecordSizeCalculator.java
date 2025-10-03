@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.store;
 
 import org.neo4j.batchimport.api.input.PropertySizeCalculator;
-import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.id.BatchingIdSequence;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.store.record.PropertyBlock;
@@ -37,7 +36,7 @@ public class PropertyValueRecordSizeCalculator implements PropertySizeCalculator
     private final DynamicRecordAllocator stringRecordCounter;
     private final BatchingIdSequence arrayRecordIds = new BatchingIdSequence();
     private final DynamicRecordAllocator arrayRecordCounter;
-    private String storeFormat;
+    private final String storeFormat;
 
     private final long propertyRecordSize;
     private final long stringRecordSize;
@@ -50,7 +49,7 @@ public class PropertyValueRecordSizeCalculator implements PropertySizeCalculator
                 propertyStore.getStringStore().getRecordDataSize(),
                 propertyStore.getArrayStore().getRecordSize(),
                 propertyStore.getArrayStore().getRecordDataSize(),
-                propertyStore.getConfiguration().get(GraphDatabaseSettings.db_format));
+                propertyStore.getRecordFormats().name());
     }
 
     public PropertyValueRecordSizeCalculator(
