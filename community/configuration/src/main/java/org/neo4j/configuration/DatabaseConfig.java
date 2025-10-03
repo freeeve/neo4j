@@ -28,7 +28,6 @@ import org.neo4j.kernel.lifecycle.Lifecycle;
 public class DatabaseConfig extends LocalConfig implements Lifecycle {
     private final Map<Setting<?>, Object> databaseSpecificSettings;
     private final Config globalConfig;
-    private final Map<Setting<?>, Object> overriddenSettings;
 
     public DatabaseConfig(Config globalConfig) {
         this(emptyMap(), globalConfig);
@@ -38,18 +37,10 @@ public class DatabaseConfig extends LocalConfig implements Lifecycle {
         super(globalConfig);
         this.databaseSpecificSettings = databaseSpecificSettings;
         this.globalConfig = globalConfig;
-        overriddenSettings = null;
     }
 
     @Override
     public <T> T get(Setting<T> setting) {
-        if (overriddenSettings != null) {
-            Object o = overriddenSettings.get(setting);
-            if (o != null) {
-                //noinspection unchecked
-                return (T) o;
-            }
-        }
         Object dbSpecific = databaseSpecificSettings.get(setting);
         if (dbSpecific != null) {
             return (T) dbSpecific;
@@ -59,8 +50,7 @@ public class DatabaseConfig extends LocalConfig implements Lifecycle {
 
     @Override
     public <T> ValueSource getValueSource(Setting<T> setting) {
-        boolean overridden = overriddenSettings != null && overriddenSettings.containsKey(setting)
-                || databaseSpecificSettings != null && databaseSpecificSettings.containsKey(setting);
+        boolean overridden = databaseSpecificSettings != null && databaseSpecificSettings.containsKey(setting);
         return overridden ? ValueSource.SYSTEM : super.getValueSource(setting);
     }
 
