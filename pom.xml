@@ -198,7 +198,7 @@
     <awaitility.version>4.3.0</awaitility.version>
     <log4j.version>2.24.3</log4j.version>
     <slf4j.version>2.0.17</slf4j.version>
-    <neo4j-java-driver.version>6.0.0-RC1</neo4j-java-driver.version>
+    <neo4j-java-driver.version>6.0.0</neo4j-java-driver.version>
     <!-- there is a non-standard behaviour of map merge in the 13.0 version can't upgrade for now-->
     <eclipse-collections.version>11.1.0</eclipse-collections.version>
     <parquet-floor.version>1.59</parquet-floor.version>
