@@ -109,7 +109,8 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
             .immutable()
             .build();
 
-    @Description("Name of the default database")
+    @Description(
+            "Specifies the default database name before the first DBMS startup. After the initial default database is created, changing this setting has no effect.")
     public static final Setting<String> initial_default_database = newBuilder(
                     "initial.dbms.default_database", DATABASENAME, DEFAULT_DATABASE_NAME)
             .build();
