@@ -24,7 +24,6 @@ import static java.lang.String.format;
 import java.util.Arrays;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
-import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.storable.Value;
 
 public final class ValueIndexEntryUpdate extends IndexEntryUpdate {
@@ -131,14 +130,10 @@ public final class ValueIndexEntryUpdate extends IndexEntryUpdate {
         if (values != null) {
             for (Value value : values) {
                 if (value != null) {
-                    size += heapSizeOf(value);
+                    size += value.estimatedHeapUsage();
                 }
             }
         }
         return size;
-    }
-
-    private static long heapSizeOf(Value value) {
-        return HeapEstimator.sizeOf(value.asObject());
     }
 }

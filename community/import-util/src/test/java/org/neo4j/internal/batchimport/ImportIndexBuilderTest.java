@@ -93,7 +93,7 @@ class ImportIndexBuilderTest {
     void shouldFlushIndexAdditionsOnFullBatchIfSmall() throws IOException, IndexEntryConflictException {
         // given
         var indexProviders = mockedIndexProviders();
-        long maxBatchByteSize = kibiBytes(100);
+        long maxBatchByteSize = kibiBytes(120);
         List<IndexEntryUpdate> expectedUpdates = new ArrayList<>();
         try (var indexBuilder = indexBuilder(indexProviders, maxBatchByteSize)) {
             // when
@@ -133,7 +133,7 @@ class ImportIndexBuilderTest {
     void shouldFlushIndexChangesOnFullBatchIfSmall() throws IOException {
         // given
         var indexProviders = mockedIndexProviders();
-        long maxBatchByteSize = kibiBytes(100);
+        long maxBatchByteSize = kibiBytes(200);
         try (var indexBuilder = indexBuilder(indexProviders, maxBatchByteSize)) {
             // when
             for (int i = 0; i < ImportIndexBuilder.BATCH_SIZE; i++) {
