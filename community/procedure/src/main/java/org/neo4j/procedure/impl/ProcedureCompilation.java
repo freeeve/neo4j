@@ -103,6 +103,7 @@ import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeValue;
 import org.neo4j.values.storable.LongValue;
+import org.neo4j.values.storable.NoValue;
 import org.neo4j.values.storable.NumberValue;
 import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TextValue;
@@ -1051,7 +1052,14 @@ public final class ProcedureCompilation {
     private static Expression fromAnyValue(
             Class<?> expectedType, Expression expression, CodeBlock block, Expression context) {
         if (AnyValue.class.isAssignableFrom(expectedType)) {
-            return cast(expectedType, expression);
+            if (expectedType.isAssignableFrom(NoValue.class)) {
+                // Note! Here null will be represented as NoValue.
+                return cast(expectedType, expression);
+            } else {
+                // Note! Here null will be represented as java null.
+                // This is a workaround to be able to use Neo4j values as procedure argument and still support nulls.
+                return noValueCheck(expression, cast(expectedType, expression));
+            }
         }
 
         String type = expectedType.getCanonicalName();

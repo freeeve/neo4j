@@ -108,9 +108,13 @@ public class Cypher5TypeCheckers {
     private static final DefaultValueConverter TO_ANY = new DefaultValueConverter(NTAny, PARSE_ANY);
     private static final DefaultValueConverter TO_STRING = new DefaultValueConverter(NTString, PARSE_STRING);
     private static final DefaultValueConverter TO_INTEGER = new DefaultValueConverter(NTInteger, PARSE_INTEGER);
+    private static final DefaultValueConverter TO_BOXED_INTEGER = TO_INTEGER.orNull();
     private static final DefaultValueConverter TO_FLOAT = new DefaultValueConverter(NTFloat, PARSE_FLOAT);
+    private static final DefaultValueConverter TO_BOXED_FLOAT = TO_FLOAT.orNull();
     private static final DefaultValueConverter TO_NUMBER = new DefaultValueConverter(NTNumber, PARSE_NUMBER);
+    private static final DefaultValueConverter TO_BOXED_NUMBER = TO_NUMBER.orNull();
     private static final DefaultValueConverter TO_BOOLEAN = new DefaultValueConverter(NTBoolean, PARSE_BOOLEAN);
+    private static final DefaultValueConverter TO_BOXED_BOOLEAN = TO_BOOLEAN.orNull();
     private static final DefaultValueConverter TO_MAP = new DefaultValueConverter(NTMap, PARSE_MAP);
     private static final DefaultValueConverter TO_LIST = toList(TO_ANY, Object.class);
     private final DefaultValueConverter TO_BYTE_ARRAY = new DefaultValueConverter(NTByteArray, PARSE_BYTE_ARRAY);
@@ -132,16 +136,16 @@ public class Cypher5TypeCheckers {
         registerType(String.class, TO_STRING);
         registerType(TextValue.class, TO_STRING);
         registerType(long.class, TO_INTEGER);
-        registerType(Long.class, TO_INTEGER);
-        registerType(IntegralValue.class, TO_INTEGER);
+        registerType(Long.class, TO_BOXED_INTEGER);
+        registerType(IntegralValue.class, TO_BOXED_INTEGER);
         registerType(double.class, TO_FLOAT);
-        registerType(Double.class, TO_FLOAT);
-        registerType(FloatingPointValue.class, TO_FLOAT);
-        registerType(Number.class, TO_NUMBER);
+        registerType(Double.class, TO_BOXED_FLOAT);
+        registerType(FloatingPointValue.class, TO_BOXED_FLOAT);
+        registerType(Number.class, TO_BOXED_NUMBER);
         registerType(NumberValue.class, TO_NUMBER);
         registerType(boolean.class, TO_BOOLEAN);
-        registerType(Boolean.class, TO_BOOLEAN);
-        registerType(BooleanValue.class, TO_BOOLEAN);
+        registerType(Boolean.class, TO_BOXED_BOOLEAN);
+        registerType(BooleanValue.class, TO_BOXED_BOOLEAN);
         registerType(Map.class, TO_MAP);
         registerType(MapValue.class, TO_MAP);
         registerType(List.class, TO_LIST);
@@ -280,15 +284,25 @@ public class Cypher5TypeCheckers {
             }
         }
 
+        protected DefaultValueConverter orNull() {
+            final Function<String, DefaultParameterValue> newParser =
+                    s -> isNull(s) ? nullValue(type) : parser.apply(s);
+            return new DefaultValueConverter(type, newParser);
+        }
+
         private static Function<String, DefaultParameterValue> nullParser(Neo4jTypes.AnyType neoType) {
             return s -> {
-                if (s.equalsIgnoreCase("null")) {
+                if (isNull(s)) {
                     return nullValue(neoType);
                 } else {
                     throw new IllegalArgumentException(
                             String.format("A %s can only have a `defaultValue = \"null\"", neoType.toString()));
                 }
             };
+        }
+
+        private static boolean isNull(String value) {
+            return "null".equalsIgnoreCase(value);
         }
     }
 }

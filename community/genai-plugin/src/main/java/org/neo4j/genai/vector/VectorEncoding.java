@@ -209,7 +209,7 @@ public class VectorEncoding {
     }
 
     private static MapValue requireNonNullMap(AnyValue configuration) {
-        if (configuration == NO_VALUE) {
+        if (configuration == NO_VALUE || configuration == null) {
             throw new IllegalArgumentException("'configuration' must not be null");
         }
 

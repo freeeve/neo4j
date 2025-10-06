@@ -27,15 +27,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.of;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTAny;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTBoolean;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTDate;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTDateTime;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTDuration;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTFloat;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTInteger;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTList;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTLocalDateTime;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTLocalTime;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTMap;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTNumber;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTString;
+import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTTime;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetTime;
+import java.time.ZonedDateTime;
+import java.time.temporal.TemporalAmount;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -114,7 +126,17 @@ class Cypher5TypeCheckersTest {
                 of(String.class, "foo", DefaultParameterValue.ntString("foo")),
                 of(String.class, "{foo: 'bar'}", DefaultParameterValue.ntString("{foo: 'bar'}")),
                 of(String.class, "['foo', 42, true]", DefaultParameterValue.ntString("['foo', 42, true]")),
-                of(String.class, "[1, 3, 3, 7, 42]", DefaultParameterValue.ntString("[1, 3, 3, 7, 42]")));
+                of(String.class, "[1, 3, 3, 7, 42]", DefaultParameterValue.ntString("[1, 3, 3, 7, 42]")),
+                of(Boolean.class, "null", DefaultParameterValue.nullValue(NTBoolean)),
+                of(Long.class, "null", DefaultParameterValue.nullValue(NTInteger)),
+                of(Double.class, "null", DefaultParameterValue.nullValue(NTFloat)),
+                of(Number.class, "null", DefaultParameterValue.nullValue(NTNumber)),
+                of(TemporalAmount.class, "null", DefaultParameterValue.nullValue(NTDuration)),
+                of(LocalDateTime.class, "null", DefaultParameterValue.nullValue(NTLocalDateTime)),
+                of(OffsetTime.class, "null", DefaultParameterValue.nullValue(NTTime)),
+                of(ZonedDateTime.class, "null", DefaultParameterValue.nullValue(NTDateTime)),
+                of(LocalDate.class, "null", DefaultParameterValue.nullValue(NTDate)),
+                of(LocalTime.class, "null", DefaultParameterValue.nullValue(NTLocalTime)));
     }
 
     private static Stream<Arguments> defaultValuesNegative() {
@@ -130,7 +152,7 @@ class Cypher5TypeCheckersTest {
                 of(byte[].class, "false"),
                 of(boolean.class, "[]"),
                 of(boolean.class, "{}"),
-                of(Boolean.class, "null"),
+                of(boolean.class, "null"),
                 of(Boolean.class, "3.14"),
                 of(long.class, "3.14"),
                 of(long.class, "[]"),
@@ -140,7 +162,6 @@ class Cypher5TypeCheckersTest {
                 of(Long.class, "3.14"),
                 of(Long.class, "[]"),
                 of(Long.class, "{}"),
-                of(Long.class, "null"),
                 of(Long.class, "true"),
                 of(double.class, "[]"),
                 of(double.class, "{}"),
@@ -148,13 +169,17 @@ class Cypher5TypeCheckersTest {
                 of(double.class, "false"),
                 of(Double.class, "[]"),
                 of(Double.class, "{}"),
-                of(Double.class, "null"),
                 of(Double.class, "true"),
                 of(Number.class, "[]"),
                 of(Number.class, "{}"),
-                of(Number.class, "null"),
                 of(Number.class, "true"),
-                of(Number.class, "foo"));
+                of(Number.class, "foo"),
+                of(TemporalAmount.class, "duration('PT1S')"),
+                of(LocalDateTime.class, "localdatetime('2025-07-01T06:36:37.154')"),
+                of(OffsetTime.class, "time('06:37:52.449Z')"),
+                of(ZonedDateTime.class, "datetime('2025-07-01T06:36:37.154')"),
+                of(LocalDate.class, "date('2025-07-01')"),
+                of(LocalTime.class, "time('06:37:52')"));
     }
 
     private static final Type listOfListOfMap = typeOf("listOfListOfMap");
