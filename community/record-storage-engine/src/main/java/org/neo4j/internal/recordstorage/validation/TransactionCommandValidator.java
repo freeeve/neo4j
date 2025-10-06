@@ -19,7 +19,6 @@
  */
 package org.neo4j.internal.recordstorage.validation;
 
-import static java.util.Collections.emptyMap;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_version_dump_transaction_validation_page_locks;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_version_transaction_validation_fail_fast;
 import static org.neo4j.internal.recordstorage.RecordStorageCommandHandling.handleRecordStorageCommands;
@@ -29,9 +28,7 @@ import static org.neo4j.kernel.impl.store.StoreType.STORE_TYPES;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.neo4j.configuration.Config;
@@ -67,10 +64,10 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
     private final MutableLongSet[] checkedPages;
     private LockManager.Client validationLockClient;
     private LockTracer lockTracer;
+    private ValidationLockDumper validationLockDumper;
     private CursorContext cursorContext;
     private boolean dumpLocks;
     private boolean failFast;
-    private Map<PageEntry, Long> observedPageVersions;
 
     public TransactionCommandValidator(NeoStores neoStores, Config config, TransactionMonitor transactionMonitor) {
         this.neoStores = neoStores;
@@ -91,7 +88,7 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
             if (commands.isEmpty()) {
                 return;
             }
-            initValidation(cursorContext, lockTracer, validationLockClient);
+            initValidation(cursorContext, lockTracer, validationLockClient, lockDumper);
 
             cursorContext.getVersionContext().resetObsoleteHeadState();
             handleRecordStorageCommands(commands, c -> c.handle(this), ThrowingConsumer.noop());
@@ -105,12 +102,15 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
     }
 
     private void initValidation(
-            CursorContext cursorContext, LockTracer lockTracer, LockManager.Client validationLockClient) {
+            CursorContext cursorContext,
+            LockTracer lockTracer,
+            LockManager.Client validationLockClient,
+            ValidationLockDumper validationLockDumper) {
         this.cursorContext = cursorContext;
         this.lockTracer = lockTracer;
+        this.validationLockDumper = validationLockDumper;
         this.dumpLocks = config.get(multi_version_dump_transaction_validation_page_locks);
         this.failFast = config.get(multi_version_transaction_validation_fail_fast);
-        this.observedPageVersions = dumpLocks ? new HashMap<>() : emptyMap();
         this.validationLockClient = validationLockClient;
     }
 
@@ -177,17 +177,17 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
     }
 
     @Override
-    public boolean visitRelationshipTypeTokenCommand(Command.RelationshipTypeTokenCommand command) throws IOException {
+    public boolean visitRelationshipTypeTokenCommand(Command.RelationshipTypeTokenCommand command) {
         return false;
     }
 
     @Override
-    public boolean visitLabelTokenCommand(Command.LabelTokenCommand command) throws IOException {
+    public boolean visitLabelTokenCommand(Command.LabelTokenCommand command) {
         return false;
     }
 
     @Override
-    public boolean visitPropertyKeyTokenCommand(Command.PropertyKeyTokenCommand command) throws IOException {
+    public boolean visitPropertyKeyTokenCommand(Command.PropertyKeyTokenCommand command) {
         return false;
     }
 
@@ -244,8 +244,8 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
             checkedStorePages = LongSets.mutable.empty();
             checkedPages[position] = checkedStorePages;
         }
-        long pageId =
-                pageIdForRecord(recordId, neoStores.getRecordStore(storeType).getRecordsPerPage());
+        var store = neoStores.getRecordStore(storeType);
+        long pageId = pageIdForRecord(recordId, store.getRecordsPerPage());
         if (checkedStorePages.contains(pageId)) {
             return;
         }
@@ -264,16 +264,12 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
         checkedStorePages.add(pageId);
 
         if (dumpLocks) {
-            storePageInfo(storeType, pageId, versionContext);
+            storePageInfo(storeType, pageId, store.getRecordsPerPage(), versionContext);
         }
     }
 
-    private void storePageInfo(StoreType storeType, long pageId, VersionContext versionContext) {
+    private void storePageInfo(StoreType storeType, long pageId, int unitPerPage, VersionContext versionContext) {
         long chainHead = versionContext.chainHeadVersion();
-        observedPageVersions.put(new PageEntry(pageId, storeType), chainHead);
-    }
-
-    Map<PageEntry, Long> getObservedPageVersions() {
-        return observedPageVersions;
+        validationLockDumper.add(pageId, unitPerPage, storeType.name(), chainHead);
     }
 }

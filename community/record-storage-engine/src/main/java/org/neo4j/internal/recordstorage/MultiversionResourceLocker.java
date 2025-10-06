@@ -20,6 +20,7 @@
 package org.neo4j.internal.recordstorage;
 
 import static org.neo4j.kernel.impl.store.RecordPageLocationCalculator.pageIdForRecord;
+import static org.neo4j.storageengine.util.VersionValidation.PAGE_ID_BITS;
 
 import java.util.Collection;
 import org.neo4j.kernel.impl.store.RelationshipStore;
@@ -31,11 +32,6 @@ import org.neo4j.lock.ResourceLocker;
 import org.neo4j.lock.ResourceType;
 
 public class MultiversionResourceLocker implements ResourceLocker {
-    // See VersionValidation for explanations on this magic number.
-    // Assumption: They should be in sync since VersionValidation is used for both block and record storage engine.
-    public static final int PAGE_ID_BITS = 49;
-    public static final long PAGE_ID_MASK = (1L << PAGE_ID_BITS) - 1;
-
     private final ResourceLocker locks;
     private final int recordsPerPage;
     // tryExclusiveLock is used in the chain locking of relationships and if we failed to lock any of requested

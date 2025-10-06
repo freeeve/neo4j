@@ -170,8 +170,7 @@ public final class ChunkCommitter implements TransactionCommitter {
                     // transaction chunk commit completed
                     transactionPayload = transaction;
 
-                    validationLockDumper.dumpLocks(
-                            transactionValidator, lockClient, chunkNumber, transactionPayload.transactionId());
+                    validationLockDumper.dumpLocks(lockClient, chunkNumber, transactionPayload.transactionId());
                     transactionWriteEvent.chunkAppended(
                             chunkNumber, ktx.getTransactionSequenceNumber(), transactionPayload.transactionId());
                 } catch (TransactionConflictException tce) {

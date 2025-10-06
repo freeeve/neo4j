@@ -50,7 +50,7 @@ public class TransactionCommandValidatorFactory implements TransactionValidatorF
     @Override
     public ValidationLockDumper createValidationLockDumper() {
         return config.get(multi_version_dump_transaction_validation_page_locks)
-                ? new VerboseValidationLogDumper(logProvider, neoStores)
+                ? new VerboseValidationLogDumper(logProvider)
                 : ValidationLockDumper.EMPTY_DUMPER;
     }
 }
