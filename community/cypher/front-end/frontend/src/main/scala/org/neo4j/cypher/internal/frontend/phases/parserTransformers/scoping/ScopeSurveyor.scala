@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransfor
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 
@@ -46,7 +47,8 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
   val unitVariables: Set[LogicalVariable] = Set.empty[LogicalVariable]
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
-    val workingContextOfStatement = scope(from.statement(), RegularContext.unit, context.cypherVersion)
+    val anonVarGen = new AnonymousVariableNameGenerator
+    val workingContextOfStatement = scope(from.statement(), RegularContext.unit, anonVarGen, context.cypherVersion)
     from.withWorkingScope(workingContextOfStatement)
   }
 
@@ -65,30 +67,36 @@ case object ScopeSurveyor extends Phase[BaseContext, BaseState, BaseState] with 
 
   override def postConditions: Set[StepSequencer.Condition] = Set(BaseContains[WorkingScope]())
 
-  def scope(astNode: ASTNode, incoming: RegularContext, version: CypherVersion): WorkingScope = {
+  def scope(
+    astNode: ASTNode,
+    incoming: RegularContext,
+    anonVarGen: AnonymousVariableNameGenerator,
+    version: CypherVersion
+  ): WorkingScope = {
     astNode match {
 
       /**
        * Statement
        */
-      case statement: Statement => pegStatement(statement, incoming, version)
+      case statement: Statement => pegStatement(anonVarGen)(statement, incoming, version: CypherVersion)
 
       /**
        * Clause
        */
-      case clause: Clause => pegClause(clause, incoming, version)
+      case clause: Clause => pegClause(anonVarGen)(clause, incoming, version: CypherVersion)
 
       /**
        * Expression
        */
-      case expression: Expression           => pegExpression(expression, incoming, version)
-      case labelExpression: LabelExpression => pegExpression(labelExpression, incoming, version)
+      case expression: Expression => pegExpression(anonVarGen)(expression, incoming, version: CypherVersion)
+      case labelExpression: LabelExpression =>
+        pegExpression(anonVarGen)(labelExpression, incoming, version: CypherVersion)
 
       /**
        * Pattern
        */
-      case pattern: Pattern         => pegPattern(pattern, incoming, version)
-      case patternPart: PatternPart => pegPattern(patternPart, incoming, version)
+      case pattern: Pattern         => pegPattern(anonVarGen)(pattern, incoming, version: CypherVersion)
+      case patternPart: PatternPart => pegPattern(anonVarGen)(patternPart, incoming, version: CypherVersion)
 
       /**
        * To make match exhaustive

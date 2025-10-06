@@ -17,6 +17,9 @@
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.NodePattern
+import org.neo4j.cypher.internal.expressions.PatternAtom
+import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.InputPosition
@@ -124,6 +127,28 @@ case class PatternScope(
   override def withChildren(children: Seq[WorkingScope]): PatternScope = copy(children = children)
   override def withReferenced(referenced: Set[LogicalVariable]): PatternScope = copy(referenced = referenced)
   override def withDeclared(declared: Declarations): PatternScope = copy(declared = declared)
+}
+
+object PatternScope {
+
+  object PatternVariable {
+
+    def unapply(elem: PatternAtom): Option[LogicalVariable] = elem match {
+      case NodePattern(variable, _, _, _)               => variable
+      case RelationshipPattern(variable, _, _, _, _, _) => variable
+      case _                                            => None
+    }
+  }
+
+  object Topo {
+
+    def unapply(elem: PatternIncomingContext): Option[Set[LogicalVariable]] = Some(elem.topologicalConstants)
+  }
+
+  object Group {
+
+    def unapply(elem: PatternIncomingContext): Option[Set[LogicalVariable]] = Some(elem.groupConstants)
+  }
 }
 
 case class UnexpectedAstNodeScopingError(astNode: ASTNode, incoming: RegularContext) extends WorkingScope {

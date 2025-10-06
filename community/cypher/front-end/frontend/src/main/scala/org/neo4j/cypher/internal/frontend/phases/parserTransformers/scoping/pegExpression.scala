@@ -37,10 +37,11 @@ import org.neo4j.cypher.internal.expressions.functions.AggregatingFunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Foldable.FoldingBehavior
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 
-object pegExpression {
+case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
 
   def apply(labelExpression: LabelExpression, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     def collect(scope: WorkingScope): Seq[WorkingScope] => FoldingBehavior[Seq[WorkingScope]] =
@@ -94,7 +95,7 @@ object pegExpression {
        * Scalar subqueries
        */
       case fse: FullSubqueryExpression =>
-        val child = ScopeSurveyor.scope(fse.query, incoming, version)
+        val child = ScopeSurveyor.scope(fse.query, incoming, anonVarGen, version)
         val children = Seq(child)
         collect(incoming.expressionResultScope(fse, children))
 
@@ -118,7 +119,7 @@ object pegExpression {
         collect(incoming.expressionResultScope(lc, children, referenced, declared))
 
       case pc @ PatternComprehension(optVar, pattern, innerPredicate, projection) =>
-        val patternResult = pegPattern(pattern.element, incoming, version)
+        val patternResult = pegPattern(anonVarGen)(pattern.element, incoming, version)
         val variables = optVar match {
           case Some(value) => Seq(value) ++ patternResult.declared.variables
           case None        => patternResult.declared.variables

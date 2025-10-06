@@ -35,11 +35,13 @@ import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
+import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 
 import scala.annotation.tailrec
 
-object pegPattern {
+case class pegPattern(anonVarGen: AnonymousVariableNameGenerator) {
 
   def apply(pattern: Pattern, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     implicit val astNode: ASTNode = pattern
@@ -52,6 +54,10 @@ object pegPattern {
       }),
       pathConstants = pattern match {
         case _: ForMatch  => collectPathVariables(pattern)
+        case _: ForUpdate => Set.empty
+      },
+      groupConstants = pattern match {
+        case _: ForMatch  => collectGroupVariables(pattern)
         case _: ForUpdate => Set.empty
       }
     )
@@ -75,7 +81,8 @@ object pegPattern {
     val patternIncomingContext = PatternIncomingContext(
       topologicalConstants = incoming.constants,
       predicateConstants = incoming.constants,
-      pathConstants = Set.empty
+      pathConstants = Set.empty,
+      groupConstants = Set.empty
     )
     scopePatternPart(patternPart, patternIncomingContext, version)
   }
@@ -85,7 +92,8 @@ object pegPattern {
       topologicalConstants = incoming.constants,
       predicateConstants =
         incoming.constants union (collectVisibleVariablesOfPatternElement(patternElement) diff incoming.constants),
-      pathConstants = Set.empty
+      pathConstants = Set.empty,
+      groupConstants = Set.empty
     )
     scopePatternElement(patternElement, patternIncomingContext, version)
   }
@@ -177,9 +185,12 @@ object pegPattern {
           propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming, version))
         val predicateScopeOpt = predicateOpt.map(predicate => scopePredicate(predicate, predicateIncoming, version))
         val (boundVariables, newVariables) = variableOpt.partition(v => incoming.topologicalConstants contains v)
+        val newVariablesWithAnon =
+          if (variableOpt.isEmpty) Seq(Variable(anonVarGen.nextName)(patternAtom.position, isIsolated = false))
+          else newVariables.toSeq
         val columns = variableOpt.toSeq
         val children = Seq(labelExpressionScopeOpt, propertiesScopeOpt, predicateScopeOpt).flatten
-        val declared = Declarations(Seq.empty, newVariables.toSeq)
+        val declared = Declarations(Seq.empty, newVariablesWithAnon)
         incoming.resultScope(TableResult(columns), children, declared, boundVariables)
 
       case RelationshipPattern(variableOpt, labelExpressionOpt, varLengthOpt, propertiesOpt, predicateOpt, _) =>
@@ -193,9 +204,12 @@ object pegPattern {
         val propertiesScopeOpt = propertiesOpt.map(expression => scopePredicate(expression, predicateIncoming, version))
         val predicateScopeOpt = predicateOpt.map(predicate => scopePredicate(predicate, predicateIncoming, version))
         val (boundVariables, newVariables) = variableOpt.partition(v => incoming.topologicalConstants contains v)
+        val newVariablesWithAnon =
+          if (variableOpt.isEmpty) Seq(Variable(anonVarGen.nextName)(patternAtom.position, isIsolated = false))
+          else newVariables.toSeq
         val columns = variableOpt.toSeq
         val children = Seq(labelExpressionScopeOpt, propertiesScopeOpt, predicateScopeOpt).flatten
-        val declared = Declarations(Seq.empty, newVariables.toSeq)
+        val declared = Declarations(Seq.empty, newVariablesWithAnon)
         incoming.resultScope(TableResult(columns), children, declared, boundVariables)
 
       case parenthesizedPath: ParenthesizedPath => scopeParenthesizedPath(parenthesizedPath, incoming, version)
@@ -254,6 +268,7 @@ object pegPattern {
         constants = incoming.predicateConstants union incoming.pathConstants,
         variables = ScopeSurveyor.unitVariables
       ),
+      anonVarGen,
       version
     )
   }
@@ -268,6 +283,30 @@ object pegPattern {
         case _ => Set.empty
       }
     }.toSet
+
+    pattern.patternParts.flatMap(pp => collectPathVariablesOfPatternPart(pp)).toSet
+  }
+
+  private def collectGroupVariables(pattern: Pattern): Set[LogicalVariable] = {
+    def collectGroupsFromElement(element: PatternElement): Set[LogicalVariable] = {
+      element match {
+        case PathConcatenation(factors) => factors.flatMap(collectGroupsFromElement).toSet
+        case QuantifiedPath(part, _, _, variableGroupings) =>
+          collectPathVariablesOfPatternPart(part) union variableGroupings.map(_.singleton)
+        case ParenthesizedPath(part, _) => collectPathVariablesOfPatternPart(part)
+        case _                          => Set.empty
+      }
+    }
+
+    @tailrec
+    def collectPathVariablesOfPatternPart(patternPart: PatternPart): Set[LogicalVariable] = {
+      patternPart match {
+        case NamedPatternPart(_, anon)               => collectPathVariablesOfPatternPart(anon)
+        case PatternPartWithSelector(_, patternPart) => collectPathVariablesOfPatternPart(patternPart)
+        case PathPatternPart(element)                => collectGroupsFromElement(element)
+        case _                                       => Set.empty
+      }
+    }
 
     pattern.patternParts.flatMap(pp => collectPathVariablesOfPatternPart(pp)).toSet
   }
@@ -340,4 +379,18 @@ object pegPattern {
     // no duplicates in declared
     Declarations(Seq.empty, children.flatMap(_.declared.variables))
   }
+
+//  private def collectAnonDeclaredFromChildren(children: Seq[PatternScope], removeAll: Boolean): Declarations = {
+//    // no duplicates in declared
+//    Declarations(
+//      Seq.empty,
+//      children.flatMap {
+//        case PatternScope(_, _, _, declared, result, _) if removeAll =>
+//          declared.variables.filter(v => result.columns.exists(_.name == v.name))
+//        case PatternScope(_: NodePattern, _, _, declared, result, _) =>
+//          declared.variables.filter(v => result.columns.exists(_.name == v.name))
+//        case x => x.declared.variables
+//      }
+//    )
+//  }
 }

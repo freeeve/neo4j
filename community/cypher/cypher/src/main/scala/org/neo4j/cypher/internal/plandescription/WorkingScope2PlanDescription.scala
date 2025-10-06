@@ -170,9 +170,9 @@ object WorkingScope2PlanDescription {
           IncomingConstants(renderVariableSet(constants)),
           IncomingVariables(renderVariableSet(variables))
         )
-      case PatternIncomingContext(topology, prediate, path) => Seq(
+      case PatternIncomingContext(topology, predicate, path, _) => Seq(
           IncomingTopology(renderVariableSet(topology)),
-          IncomingPredicate(renderVariableSet(prediate)),
+          IncomingPredicate(renderVariableSet(predicate)),
           IncomingPath(renderVariableSet(path))
         )
     }

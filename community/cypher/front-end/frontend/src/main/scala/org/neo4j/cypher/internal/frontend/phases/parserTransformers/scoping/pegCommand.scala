@@ -22,8 +22,9 @@ import org.neo4j.cypher.internal.ast.ReadAdministrationCommand
 import org.neo4j.cypher.internal.ast.WaitableAdministrationCommand
 import org.neo4j.cypher.internal.ast.WriteAdministrationCommand
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 
-object pegCommand {
+case class pegCommand(anonVarGen: AnonymousVariableNameGenerator) {
 
   def apply(command: AdministrationCommand, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     implicit val astNode: ASTNode = command
@@ -45,13 +46,18 @@ object pegCommand {
         )
 
         val yieldOrWhereScopes = read.yieldOrWhere match {
-          case Some(Left((yieldClause, None))) => Seq(pegClause(yieldClause, declaringScope.outgoing, version))
+          case Some(Left((yieldClause, None))) =>
+            Seq(pegClause(anonVarGen)(yieldClause, declaringScope.outgoing, version))
           case Some(Left((yieldClause, optReturn))) =>
-            val yieldScope = pegClause(yieldClause, declaringScope.outgoing, version)
-            val returnScope = optReturn.map(pegClause(_, yieldScope.outgoing, version))
+            val yieldScope = pegClause(anonVarGen)(yieldClause, declaringScope.outgoing, version)
+            val returnScope = optReturn.map(pegClause(anonVarGen)(_, yieldScope.outgoing, version))
             Seq(yieldScope) ++ returnScope
           case Some(Right(whereClause)) =>
-            Seq(pegExpression(whereClause.expression, declaringScope.outgoing.constantChildContext(), version))
+            Seq(pegExpression(anonVarGen)(
+              whereClause.expression,
+              declaringScope.outgoing.constantChildContext(),
+              version
+            ))
           case None => Seq.empty
         }
 

@@ -18,6 +18,8 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers.scoping
 
 import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
+import org.neo4j.cypher.internal.ast.CreateOrInsert
+import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.ProjectionClause
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
@@ -32,7 +34,9 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.ScopeQueries
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.NamedPatternPart
 import org.neo4j.cypher.internal.expressions.RelationshipChain
+import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
@@ -71,7 +75,18 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
     },
     // variable already declared
     {
-      case StatementScope(astNode, incoming, _, d @ Declarations(constants, variables), outgoing, _, children)
+      case StatementScope(_: CreateOrInsert | _: Merge, _, ref, declared, _, _, _) if declared.isEmpty =>
+        ref.map(v => SemanticError.variableAlreadyDeclared(v.name, v.position)).toSeq
+      case StatementScope(_: CreateOrInsert | _: Merge, _, _, _, _, _, children) => children.flatMap { workingScope =>
+          workingScope.folder.treeCollect {
+            case PatternScope(RelationshipPattern(Some(variable), _, _, _, _, _), _, referenced, _, _, _)
+              if referenced.exists(_.name == variable.name) =>
+              SemanticError.variableAlreadyDeclared(variable.name, variable.position)
+          }
+        }
+    },
+    {
+      case StatementScope(astNode, incoming, ref, d @ Declarations(constants, variables), _, _, children)
         if !d.isEmpty &&
           // expressions only declare for inner operands and allow shadowing
           !astNode.isInstanceOf[Expression] =>
@@ -103,7 +118,14 @@ case object VariableChecker extends Phase[BaseContext, BaseState, BaseState] wit
           }
         }
         redeclarationOfConstants ++ redeclarationOfVariables ++ multipleDeclarations
+      case PatternScope(NamedPatternPart(path, _), PatternScope.Topo(topo), _, Declarations(_, variables), _, _) =>
+        (topo.filter(_.name == path.name) ++ variables.filter(x => x.name == path.name && x.position != path.position))
+          .map(_ => SemanticError.variableAlreadyDeclared(path.name, path.position)).toSeq
+      case PatternScope(PatternScope.PatternVariable(v), PatternScope.Group(group), ref, _, _, _)
+        if ref.intersect(group).exists(_.name == v.name) =>
+        Seq(SemanticError.variableAlreadyDeclared(v.name, v.position))
     },
+
     // multiple return columns
     {
       case StatementScope(w: With, _, _, Declarations(_, variables), _, _, _) =>

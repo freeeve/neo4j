@@ -390,7 +390,7 @@ trait VariableCheckingTestSuite extends CypherFunSuite with TestName with Before
               (constants.map(_.name) intersect variables.map(_.name)) shouldBe empty
             }
           }
-        case PatternScope(_, PatternIncomingContext(topology, predicate, path), _, _, _, _) =>
+        case PatternScope(_, PatternIncomingContext(topology, predicate, path, _), _, _, _, _) =>
           withClue("[pattern incoming]") {
             withClue("[topology]") {
               topology.map(_.name) should contain theSameElementsAs patternIncoming.topology

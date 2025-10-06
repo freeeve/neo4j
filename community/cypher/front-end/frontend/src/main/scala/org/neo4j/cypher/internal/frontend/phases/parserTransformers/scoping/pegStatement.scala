@@ -27,8 +27,9 @@ import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.Union
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.util.ASTNode
+import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 
-object pegStatement {
+case class pegStatement(anonVarGen: AnonymousVariableNameGenerator) {
 
   def apply(statement: Statement, incoming: RegularContext, version: CypherVersion): WorkingScope = {
     implicit val astNode: ASTNode = statement
@@ -53,7 +54,8 @@ object pegStatement {
         val branchIncoming = incoming.constantChildContext()
         val children = allBranched.map {
           case branch @ ConditionalQueryBranch(predicateOpt, query) =>
-            val predicateScopeOpt = predicateOpt.map(predicate => pegExpression(predicate, branchIncoming, version))
+            val predicateScopeOpt =
+              predicateOpt.map(predicate => pegExpression(anonVarGen)(predicate, branchIncoming, version))
             val queryScope = apply(query, branchIncoming, version)
             val branchChildren = Seq(predicateScopeOpt, Some(queryScope)).flatten
             val referenced =
@@ -64,13 +66,13 @@ object pegStatement {
         incoming.resultScope(children.head.outgoing, children.head.result, children)
       case SingleQuery(clauses) =>
         if (clauses.size == 1 && clauses.head.isInstanceOf[UnresolvedCall]) {
-          val child = pegClause(clauses.head, incoming, version)
+          val child = pegClause(anonVarGen)(clauses.head, incoming, version)
           val referenced =
             Some(WorkingScope.referencedInChildren(Seq(child)) intersect incoming.constantsAndVariables)
           incoming.resultScope(child.outgoing, child.result, Seq(child), referenced)
         } else {
           val children = clauses.scanLeft(WorkingScope.apriori(incoming)) {
-            case (previous, clause) => pegClause(clause, previous.outgoing, version) match {
+            case (previous, clause) => pegClause(anonVarGen)(clause, previous.outgoing, version) match {
                 // adjusting for in-query calls to have no result
                 case ws @ StatementScope(_: UnresolvedCall, _, _, _, _, TableResult(_), _) =>
                   ws.copy(result = NoResult)
@@ -87,7 +89,7 @@ object pegStatement {
       case TopLevelBraces(query, _) => apply(query, incoming, version)
 
       // TODO other query forms and admin commands
-      case command: AdministrationCommand => pegCommand(command, incoming, version)
+      case command: AdministrationCommand => pegCommand(anonVarGen)(command, incoming, version)
 
       /**
        * To make match exhaustive

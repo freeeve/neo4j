@@ -169,18 +169,39 @@ object RegularContext {
 case class PatternIncomingContext(
   topologicalConstants: Set[LogicalVariable],
   predicateConstants: Set[LogicalVariable],
-  pathConstants: Set[LogicalVariable]
+  pathConstants: Set[LogicalVariable],
+  groupConstants: Set[LogicalVariable]
 ) extends WorkingContext {
-  override def allSymbols: Set[LogicalVariable] = topologicalConstants union predicateConstants union pathConstants
+
+  override def allSymbols: Set[LogicalVariable] =
+    topologicalConstants union predicateConstants union pathConstants union groupConstants
 
   @inline def amendedWithTopologicalConstant(amendment: LogicalVariable): PatternIncomingContext =
-    PatternIncomingContext(topologicalConstants + amendment, predicateConstants, pathConstants)
+    PatternIncomingContext(
+      topologicalConstants + amendment,
+      predicateConstants,
+      pathConstants,
+      groupConstants
+    )
 
   @inline def amendedWithTopologicalConstant(amendment: Set[LogicalVariable]): PatternIncomingContext =
-    PatternIncomingContext(topologicalConstants union amendment, predicateConstants, pathConstants)
+    PatternIncomingContext(
+      topologicalConstants union amendment,
+      predicateConstants,
+      pathConstants,
+      groupConstants
+    )
+
+  @inline def amendedWithPredicateConstant(amendment: LogicalVariable): PatternIncomingContext =
+    PatternIncomingContext(
+      topologicalConstants + amendment,
+      predicateConstants,
+      pathConstants,
+      groupConstants
+    )
 
   @inline def removePathConstants(): PatternIncomingContext =
-    PatternIncomingContext(topologicalConstants, predicateConstants, unitVariables)
+    PatternIncomingContext(topologicalConstants, predicateConstants, unitVariables, groupConstants)
 
   @inline def resultScope(
     result: TableResult,
@@ -202,5 +223,8 @@ case class PatternIncomingContext(
 }
 
 object PatternIncomingContext {
-  def unit: PatternIncomingContext = PatternIncomingContext(unitVariables, unitVariables, unitVariables)
+
+  def unit: PatternIncomingContext =
+    PatternIncomingContext(unitVariables, unitVariables, unitVariables, unitVariables)
+
 }

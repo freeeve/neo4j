@@ -757,4 +757,99 @@ class VariableCheckerTest extends VariableCheckingTestSuite {
     error("42N66", "relationship variable already bound")
   }
 
+  /**
+   * Pattern checks
+   */
+
+  test("""CREATE (a:A {name: 'a'}),
+         |       (b1:X {name: 'b1'})
+         |CREATE (a)-[:KNOWS]->(b1)""".stripMargin) {
+    passes()
+  }
+
+  test(
+    """CREATE (:A)-[m:R {p:'hello'}]->(:B)
+      |CREATE (c:C {t:type(m), p:m.p}) RETURN m, c""".stripMargin
+  ) {
+    passes()
+  }
+
+  test("""UNWIND [1, 2] as i
+         |CREATE (:A)
+         |CREATE (n:B {id: i, count: COUNT { MATCH (:A) } })
+         |RETURN n""".stripMargin) {
+    passes()
+  }
+
+  test("""UNWIND range(1, 10) AS i
+         |CALL {
+         |  WITH i
+         |  UNWIND [1, 2] AS j
+         |  CREATE (n:N {i: i, j: j})
+         |} IN TRANSACTIONS
+         |  OF 10 ROWS
+         |  ON ERROR FAIL""".stripMargin) {
+    passes()
+  }
+
+  test(
+    """CREATE ()-[:R]->()""".stripMargin
+  ) {
+    passes()
+  }
+
+  test("""MATCH ()-[r]->()
+         |CREATE ()-[r]->()""".stripMargin) {
+    error("42N59", "Variable `r` already declared.")
+  }
+
+  test("""MATCH ()-[r:R]->()
+         |CREATE ()-[:R]->()-[r]->()""".stripMargin) {
+    error("42N59", "Variable `r` already declared.")
+  }
+
+  test("""MATCH (n)
+         |CREATE (n)-[r:R]->(n)""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (n)
+         |CREATE (n)""".stripMargin) {
+    error("42N59", "Variable `n` already declared.")
+  }
+
+  test("""MATCH (n)
+         |CREATE ({p:n.p})""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (n)
+         |MERGE ({p:n.p})""".stripMargin) {
+    passes()
+  }
+
+  test("""MATCH (n)
+         |MERGE (n {p:n.p})""".stripMargin) {
+    error("42N59", "Variable `n` already declared.")
+  }
+
+  test("""FOREACH(v IN [null] | CREATE ({property: v}))""".stripMargin) {
+    passes()
+  }
+
+  test("""FOREACH(x IN [1, 2, 3] | MERGE ({property: x}))""".stripMargin) {
+    passes()
+  }
+
+  test("""UNWIND [1, 2, 3] AS i
+         |WITH i ORDER BY i DESC
+         |CALL (i) {
+         |  MATCH (n {value: i})
+         |  CREATE (m {value: i - 1})
+         |  FINISH
+         |}
+         |RETURN count(*) as count""".stripMargin) {
+    passes()
+  }
+
 }

@@ -154,8 +154,8 @@ object WorkingScopeStringRenderer {
   private def renderWorkingContext(workingContext: WorkingContext): String = workingContext match {
     case RegularContext(constants, variables) =>
       s"Const: ${renderVariableSet(constants)}; Var: ${renderVariableSet(variables)}"
-    case PatternIncomingContext(topologicalConstants, predicateConstants, pathConstants) =>
-      s"Topo: ${renderVariableSet(topologicalConstants)}; Pred: ${renderVariableSet(predicateConstants)}; Path: ${renderVariableSet(pathConstants)}"
+    case PatternIncomingContext(topologicalConstants, predicateConstants, pathConstants, groupConstants) =>
+      s"Topo: ${renderVariableSet(topologicalConstants)}; Pred: ${renderVariableSet(predicateConstants)}; Path: ${renderVariableSet(pathConstants)}; Group: ${renderVariableSet(groupConstants)}"
   }
 
   private def renderVariableSet(variables: Set[LogicalVariable]): String = {
