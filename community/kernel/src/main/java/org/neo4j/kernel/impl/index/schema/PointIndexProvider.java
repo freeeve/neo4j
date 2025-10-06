@@ -110,14 +110,15 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
             MemoryTracker memoryTracker,
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
-            ImmutableSet<OpenOption> openOptions) {
+            ImmutableSet<OpenOption> openOptions,
+            IndexPopulator.Configuration configuration) {
         return new PointBlockBasedIndexPopulator(
                 databaseIndexContext,
                 indexFiles,
                 layout,
                 descriptor,
                 layout.getSpaceFillingCurveSettings(),
-                configuration,
+                this.configuration,
                 archiveFailedIndex,
                 bufferFactory,
                 config,
@@ -125,7 +126,8 @@ public class PointIndexProvider extends NativeIndexProvider<PointKey, PointLayou
                 BlockBasedIndexPopulator.NO_MONITOR,
                 openOptions,
                 logProvider,
-                tokenNameLookup);
+                tokenNameLookup,
+                configuration);
     }
 
     @Override

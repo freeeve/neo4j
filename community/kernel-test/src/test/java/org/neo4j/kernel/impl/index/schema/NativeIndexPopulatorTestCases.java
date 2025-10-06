@@ -28,6 +28,7 @@ import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.values.ElementIdMapper;
 
@@ -50,7 +51,8 @@ class NativeIndexPopulatorTestCases {
                         ElementIdMapper.PLACEHOLDER,
                         BlockBasedIndexPopulator.NO_MONITOR,
                         Sets.immutable.empty(),
-                        NullLogProvider.getInstance());
+                        NullLogProvider.getInstance(),
+                        IndexPopulator.DEFAULT_CONFIGURATION);
     }
 
     @FunctionalInterface

@@ -236,7 +236,8 @@ public class FulltextIndexProvider extends IndexProvider {
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            IndexPopulator.Configuration configuration) {
         if (isReadOnly()) {
             throw WriteOperationsNotAllowedException.noWriteOperationAllowed();
         }

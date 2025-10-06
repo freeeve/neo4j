@@ -126,12 +126,24 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     private final AtomicLong numberOfIndexUpdatesSinceSample = new AtomicLong();
     private IndexValueValidator validator;
 
+    private final int threadSharingFactor;
+    private ThreadLocalBlockStorage currentThreadSharingBlockStorage;
+    private int currentThreadSharingCount;
+
     // progress state
     private final AtomicLong numberOfAppliedScanUpdates = new AtomicLong();
     private final AtomicLong numberOfAppliedExternalUpdates = new AtomicLong();
 
     protected final LogProvider logProvider;
 
+    /**
+     * @param configuration {@link Configuration#threadSharingFactor()}:  the factor which threads share internal {@link BlockStorage} instances
+     * basically. For {@code 1} there's a 1-to-1 mapping from thread to {@link BlockStorage} instance,
+     * i.e. no sharing. For e.g. {@code 2} then two threads will share one {@link BlockStorage} instance.
+     * This results in fewer resulting files, however when running {@link #scanCompleted(PhaseTracker, PopulationWorkScheduler, IndexEntryConflictHandler, CursorContext)}
+     * this factor is reversed so that each file will be logically split into {@code threadSharingFactor}
+     * parts and each part treated as if it was a physical part.
+     */
     BlockBasedIndexPopulator(
             DatabaseIndexContext databaseIndexContext,
             IndexFiles indexFiles,
@@ -144,12 +156,14 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
             Monitor monitor,
             ImmutableSet<OpenOption> openOptions,
             LogProvider logProvider,
-            TokenNameLookup tokenNameLookup) {
+            TokenNameLookup tokenNameLookup,
+            IndexPopulator.Configuration configuration) {
         super(databaseIndexContext, indexFiles, layout, descriptor, openOptions, tokenNameLookup);
         this.archiveFailedIndex = archiveFailedIndex;
         this.memoryTracker = memoryTracker;
         this.mergeFactor = config.get(GraphDatabaseInternalSettings.index_populator_merge_factor);
         this.monitor = monitor;
+        this.threadSharingFactor = configuration.threadSharingFactor();
         this.scanUpdates = ThreadLocal.withInitial(this::newThreadLocalBlockStorage);
         this.bufferFactory = bufferFactory;
         this.logProvider = logProvider;
@@ -158,13 +172,21 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     private synchronized ThreadLocalBlockStorage newThreadLocalBlockStorage() {
         Preconditions.checkState(!cancellation.cancelled(), "Already closed");
         Preconditions.checkState(!scanCompleted, "Scan has already been completed");
-        try {
-            int id = allScanUpdates.size();
-            ThreadLocalBlockStorage blockStorage = new ThreadLocalBlockStorage(id);
-            allScanUpdates.add(blockStorage);
-            return blockStorage;
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+
+        int count = currentThreadSharingCount;
+        currentThreadSharingCount = (currentThreadSharingCount + 1) % threadSharingFactor;
+        if (count == 0) {
+            try {
+                int id = allScanUpdates.size();
+                ThreadLocalBlockStorage blockStorage = new ThreadLocalBlockStorage(id);
+                allScanUpdates.add(blockStorage);
+                currentThreadSharingBlockStorage = blockStorage;
+                return blockStorage;
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        } else {
+            return currentThreadSharingBlockStorage;
         }
     }
 
@@ -200,6 +222,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {
         if (!updates.isEmpty()) {
             BlockStorage<KEY, NullValue> blockStorage = null;
+            List<BlockEntry<KEY, NullValue>> entries = new ArrayList<>();
             for (var update : updates) {
                 var valueUpdate = (ValueIndexEntryUpdate) update;
                 if (ignoreStrategy.ignore(valueUpdate.values())) {
@@ -213,20 +236,24 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
                 if (blockStorage == null) {
                     blockStorage = scanUpdates.get().blockStorage;
                 }
-                storeUpdate(update.getEntityId(), valueUpdate.values(), blockStorage);
+                entries.add(new BlockEntry<>(
+                        generateUpdateKey(update.getEntityId(), valueUpdate.values()), NullValue.INSTANCE));
+            }
+            if (!entries.isEmpty()) {
+                try {
+                    blockStorage.addAll(entries);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
             }
         }
     }
 
-    private void storeUpdate(long entityId, Value[] values, BlockStorage<KEY, NullValue> blockStorage) {
-        try {
-            validator.validate(entityId, values);
-            KEY key = layout.newKey();
-            initializeKeyFromUpdate(key, entityId, values);
-            blockStorage.add(key, NullValue.INSTANCE);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    private KEY generateUpdateKey(long entityId, Value[] values) {
+        validator.validate(entityId, values);
+        KEY key = layout.newKey();
+        initializeKeyFromUpdate(key, entityId, values);
+        return key;
     }
 
     private synchronized boolean markMergeStarted() {

@@ -48,6 +48,7 @@ import org.neo4j.values.storable.Value;
  */
 public interface IndexPopulator extends MinimalIndexAccessor {
     IndexPopulator EMPTY = new Adapter();
+    Configuration DEFAULT_CONFIGURATION = new Configuration(1);
 
     /**
      * Remove all data in the index and paves the way for populating an index.
@@ -302,4 +303,6 @@ public interface IndexPopulator extends MinimalIndexAccessor {
             return delegate.indexConfig();
         }
     }
+
+    record Configuration(int threadSharingFactor) {}
 }

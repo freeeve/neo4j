@@ -185,6 +185,14 @@ public interface Configuration {
         return databaseDirectory.resolve("temp");
     }
 
+    /**
+     * Helps calculation of memory consumption for index population. This value is an indication of number of
+     * importers operating concurrently within the same import, each potentially having its own set of indexes to build.
+     */
+    default int indexPopulationBufferCountAmplification() {
+        return 1;
+    }
+
     Configuration DEFAULT = new Configuration() {};
 
     /**
@@ -284,6 +292,26 @@ public interface Configuration {
         @Override
         public IndexConfig indexConfig() {
             return defaults.indexConfig();
+        }
+
+        @Override
+        public Path tempDirectory(Path databaseDirectory) {
+            return defaults.tempDirectory(databaseDirectory);
+        }
+
+        @Override
+        public int maxQueueSize() {
+            return defaults.maxQueueSize();
+        }
+
+        @Override
+        public boolean strictNodeCheck() {
+            return defaults.strictNodeCheck();
+        }
+
+        @Override
+        public int indexPopulationBufferCountAmplification() {
+            return defaults.indexPopulationBufferCountAmplification();
         }
     }
 

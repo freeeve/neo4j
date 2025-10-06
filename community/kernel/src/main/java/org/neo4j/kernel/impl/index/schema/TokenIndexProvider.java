@@ -103,7 +103,8 @@ public class TokenIndexProvider extends IndexProvider {
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            IndexPopulator.Configuration configuration) {
         if (databaseIndexContext.readOnlyChecker.isReadOnly()) {
             throw WriteOperationsNotAllowedException.noWriteOperationAllowed();
         }

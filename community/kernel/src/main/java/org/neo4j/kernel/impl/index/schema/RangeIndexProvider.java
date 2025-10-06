@@ -145,7 +145,8 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
             MemoryTracker memoryTracker,
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
-            ImmutableSet<OpenOption> openOptions) {
+            ImmutableSet<OpenOption> openOptions,
+            IndexPopulator.Configuration configuration) {
         return new RangeBlockBasedIndexPopulator(
                 databaseIndexContext,
                 indexFiles,
@@ -159,7 +160,8 @@ public class RangeIndexProvider extends NativeIndexProvider<RangeKey, RangeLayou
                 elementIdMapper,
                 databaseIndexContext.monitors.newMonitor(BlockBasedIndexPopulator.Monitor.class),
                 openOptions,
-                logProvider);
+                logProvider,
+                configuration);
     }
 
     @Override

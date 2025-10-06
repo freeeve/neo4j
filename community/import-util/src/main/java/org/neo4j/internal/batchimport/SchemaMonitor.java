@@ -27,7 +27,7 @@ import org.neo4j.batchimport.api.input.ApplicationMode;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.values.storable.Value;
 
-public interface SchemaMonitor {
+public interface SchemaMonitor extends AutoCloseable {
     ExistingPropertyKeysLookup NO_EXISTING_PROPERTY_KEYS_LOOKUP = (entityId, keysToLookup) -> IntSets.immutable.empty();
 
     SchemaMonitor NO_MONITOR = new SchemaMonitor() {
@@ -65,6 +65,9 @@ public interface SchemaMonitor {
 
         @Override
         public void reset() {}
+
+        @Override
+        public void close() {}
     };
 
     void applicationMode(ApplicationMode mode);
@@ -92,6 +95,9 @@ public interface SchemaMonitor {
     void indexUpdate(IndexEntryUpdate indexUpdate);
 
     void reset();
+
+    @Override
+    void close();
 
     interface ViolationVisitor {
         void accept(long entityId, IntList tokens, IntObjectMap<Value> properties, String constraintDescription);

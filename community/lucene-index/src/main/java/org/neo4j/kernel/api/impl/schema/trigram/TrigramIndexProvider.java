@@ -96,7 +96,8 @@ public class TrigramIndexProvider extends AbstractTextIndexProvider {
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            IndexPopulator.Configuration configuration) {
         IndexWriterConfigBuilder writerConfigBuilder =
                 new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT_POPULATION, config);
         DatabaseIndex<ValueIndexReader> luceneIndex = TrigramIndexBuilder.create(

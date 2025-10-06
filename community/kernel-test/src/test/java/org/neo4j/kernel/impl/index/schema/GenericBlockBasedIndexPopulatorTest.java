@@ -40,6 +40,7 @@ import org.neo4j.index.internal.gbptree.Seeker;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.memory.UnsafeDirectByteBufferAllocator;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -54,7 +55,8 @@ abstract class GenericBlockBasedIndexPopulatorTest<KEY extends GenericKey<KEY>>
         // given
         ByteBufferFactory bufferFactory =
                 new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, SUFFICIENTLY_LARGE_BUFFER_SIZE);
-        BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, INSTANCE);
+        BlockBasedIndexPopulator<KEY> populator =
+                instantiatePopulator(NO_MONITOR, bufferFactory, INSTANCE, IndexPopulator.DEFAULT_CONFIGURATION);
         try {
             int size = populator.tree.keyValueSizeCap();
             Layout<KEY, NullValue> layout = layout();
@@ -90,7 +92,8 @@ abstract class GenericBlockBasedIndexPopulatorTest<KEY extends GenericKey<KEY>>
         // given
         try (ByteBufferFactory bufferFactory =
                 new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, SUFFICIENTLY_LARGE_BUFFER_SIZE)) {
-            BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, INSTANCE);
+            BlockBasedIndexPopulator<KEY> populator =
+                    instantiatePopulator(NO_MONITOR, bufferFactory, INSTANCE, IndexPopulator.DEFAULT_CONFIGURATION);
             try {
                 int size = populator.tree.keyValueSizeCap();
                 Layout<KEY, NullValue> layout = layout();

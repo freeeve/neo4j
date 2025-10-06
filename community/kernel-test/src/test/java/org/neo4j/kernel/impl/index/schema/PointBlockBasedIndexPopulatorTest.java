@@ -43,6 +43,7 @@ import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaUserDescription;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
 import org.neo4j.logging.NullLogProvider;
@@ -79,7 +80,10 @@ public class PointBlockBasedIndexPopulatorTest extends BlockBasedIndexPopulatorT
 
     @Override
     PointBlockBasedIndexPopulator instantiatePopulator(
-            BlockBasedIndexPopulator.Monitor monitor, ByteBufferFactory bufferFactory, MemoryTracker memoryTracker)
+            BlockBasedIndexPopulator.Monitor monitor,
+            ByteBufferFactory bufferFactory,
+            MemoryTracker memoryTracker,
+            IndexPopulator.Configuration configuration)
             throws IOException {
         final var populator = new PointBlockBasedIndexPopulator(
                 databaseIndexContext,
@@ -95,7 +99,8 @@ public class PointBlockBasedIndexPopulatorTest extends BlockBasedIndexPopulatorT
                 monitor,
                 Sets.immutable.empty(),
                 NullLogProvider.getInstance(),
-                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
+                IndexPopulator.DEFAULT_CONFIGURATION);
         populator.create();
         return populator;
     }

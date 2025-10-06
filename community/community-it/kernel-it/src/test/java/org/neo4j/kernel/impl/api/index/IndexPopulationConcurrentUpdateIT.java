@@ -263,7 +263,8 @@ public class IndexPopulationConcurrentUpdateIT {
                         TokenNameLookup tokenNameLookup,
                         ElementIdMapper elementIdMapper,
                         ImmutableSet<OpenOption> openOptions,
-                        StorageEngineIndexingBehaviour indexingBehaviour) {
+                        StorageEngineIndexingBehaviour indexingBehaviour,
+                        IndexPopulator.Configuration configuration) {
                     return new IndexPopulator.Adapter() {
                         @Override
                         public void add(Collection<? extends IndexEntryUpdate> updates, CursorContext cursorContext) {

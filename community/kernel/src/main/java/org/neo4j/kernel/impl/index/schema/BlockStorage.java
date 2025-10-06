@@ -26,6 +26,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.function.IntConsumer;
 import org.eclipse.collections.api.list.MutableList;
@@ -91,15 +92,23 @@ class BlockStorage<KEY, VALUE> implements Closeable {
         resetBufferedEntries();
     }
 
-    public void add(KEY key, VALUE value) throws IOException {
+    synchronized void add(KEY key, VALUE value) throws IOException {
         Preconditions.checkState(!doneAdding, "Cannot add more after done adding");
+        internalAdd(key, value);
+    }
 
+    synchronized void addAll(Collection<BlockEntry<KEY, VALUE>> entries) throws IOException {
+        Preconditions.checkState(!doneAdding, "Cannot add more after done adding");
+        for (var entry : entries) {
+            internalAdd(entry.key(), entry.value());
+        }
+    }
+
+    private void internalAdd(KEY key, VALUE value) throws IOException {
         int entrySize = BlockEntry.entrySize(layout, key, value);
 
         if (currentBufferSize + entrySize > blockSize) {
-            // append buffer to file and clear buffers
             flushAndResetBuffer();
-            numberOfBlocksInCurrentFile++;
         }
 
         bufferedEntries.add(new BlockEntry<>(key, value));
@@ -107,10 +116,13 @@ class BlockStorage<KEY, VALUE> implements Closeable {
         monitor.entryAdded(entrySize);
     }
 
-    void doneAdding() throws IOException {
+    synchronized void doneAdding() throws IOException {
+        if (doneAdding) {
+            return;
+        }
+
         if (!bufferedEntries.isEmpty()) {
             flushAndResetBuffer();
-            numberOfBlocksInCurrentFile++;
         }
         doneAdding = true;
         storeChannel.close();
@@ -142,6 +154,7 @@ class BlockStorage<KEY, VALUE> implements Closeable {
         // Append to file
         monitor.blockFlushed(bufferedEntries.size(), currentBufferSize, storeChannel.position());
         resetBufferedEntries();
+        numberOfBlocksInCurrentFile++;
     }
 
     /**
@@ -159,7 +172,7 @@ class BlockStorage<KEY, VALUE> implements Closeable {
      * was cancelled meaning that the result will not be used for anything other than deletion.
      * @throws IOException If something goes wrong when reading from file.
      */
-    public void merge(int mergeFactor, Cancellation cancellation) throws IOException {
+    void merge(int mergeFactor, Cancellation cancellation) throws IOException {
         monitor.mergeStarted(
                 entryCount,
                 calculateNumberOfEntriesWrittenDuringMerges(entryCount, numberOfBlocksInCurrentFile, mergeFactor));

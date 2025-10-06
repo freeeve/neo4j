@@ -56,7 +56,7 @@ import org.neo4j.values.ElementIdMapper;
  *
  * When an index rule is added, the IndexingService is notified. It will, in turn, ask
  * your {@link IndexProvider} for a
- * {@link #getPopulator(IndexDescriptor, IndexSamplingConfig, ByteBufferFactory, MemoryTracker, TokenNameLookup, ElementIdMapper, ImmutableSet)} batch index writer}.
+ * {@link #getPopulator(IndexDescriptor, IndexSamplingConfig, ByteBufferFactory, MemoryTracker, TokenNameLookup, ElementIdMapper, ImmutableSet, StorageEngineIndexingBehaviour)} batch index writer}.
  *
  * A background index job is triggered, and all existing data that applies to the new rule, as well as new data
  * from the "outside", will be inserted using the writer. You are guaranteed that usage of this writer,
@@ -101,7 +101,7 @@ import org.neo4j.values.ElementIdMapper;
  * <h3>Online operation</h3>
  *
  * Once the index is online, the database will move to using the
- * {@link #getOnlineAccessor(IndexDescriptor, IndexSamplingConfig, TokenNameLookup, ElementIdMapper, ImmutableSet) online accessor} to
+ * {@link #getOnlineAccessor(IndexDescriptor, IndexSamplingConfig, TokenNameLookup, ElementIdMapper, ImmutableSet, StorageEngineIndexingBehaviour) online accessor} to
  * write to the index.
  */
 public abstract class IndexProvider extends LifecycleAdapter implements IndexConfigCompleter {
@@ -167,7 +167,8 @@ public abstract class IndexProvider extends LifecycleAdapter implements IndexCon
                         TokenNameLookup tokenNameLookup,
                         ElementIdMapper elementIdMapper,
                         ImmutableSet<OpenOption> openOptions,
-                        StorageEngineIndexingBehaviour indexingBehaviour) {
+                        StorageEngineIndexingBehaviour indexingBehaviour,
+                        IndexPopulator.Configuration configuration) {
                     return singlePopulator;
                 }
 
@@ -242,7 +243,29 @@ public abstract class IndexProvider extends LifecycleAdapter implements IndexCon
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour);
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            IndexPopulator.Configuration configuration);
+
+    public final IndexPopulator getPopulator(
+            IndexDescriptor descriptor,
+            IndexSamplingConfig samplingConfig,
+            ByteBufferFactory bufferFactory,
+            MemoryTracker memoryTracker,
+            TokenNameLookup tokenNameLookup,
+            ElementIdMapper elementIdMapper,
+            ImmutableSet<OpenOption> openOptions,
+            StorageEngineIndexingBehaviour indexingBehaviour) {
+        return getPopulator(
+                descriptor,
+                samplingConfig,
+                bufferFactory,
+                memoryTracker,
+                tokenNameLookup,
+                elementIdMapper,
+                openOptions,
+                indexingBehaviour,
+                IndexPopulator.DEFAULT_CONFIGURATION);
+    }
 
     /**
      * Used for updating an index once initial population has completed.
@@ -374,7 +397,8 @@ public abstract class IndexProvider extends LifecycleAdapter implements IndexCon
                 TokenNameLookup tokenNameLookup,
                 ElementIdMapper elementIdMapper,
                 ImmutableSet<OpenOption> openOptions,
-                StorageEngineIndexingBehaviour indexingBehaviour) {
+                StorageEngineIndexingBehaviour indexingBehaviour,
+                IndexPopulator.Configuration configuration) {
             return provider.getPopulator(
                     descriptor,
                     samplingConfig,
@@ -383,7 +407,8 @@ public abstract class IndexProvider extends LifecycleAdapter implements IndexCon
                     tokenNameLookup,
                     elementIdMapper,
                     openOptions,
-                    indexingBehaviour);
+                    indexingBehaviour,
+                    configuration);
         }
 
         @Override

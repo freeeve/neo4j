@@ -105,6 +105,7 @@ public class ImportIndexBuilder implements Closeable {
     private final Predicate<IndexDescriptor> excludedIndexes;
     private final IndexSamplingConfig indexSamplingConfig;
     private final long maxBatchByteSize;
+    private final IndexPopulator.Configuration indexPopulatorConfiguration;
 
     public ImportIndexBuilder(
             FileSystemAbstraction fileSystem,
@@ -119,7 +120,8 @@ public class ImportIndexBuilder implements Closeable {
             IndexStatisticsStore indexStatisticsStore,
             StorageEngineIndexingBehaviour indexingBehaviour,
             Predicate<IndexDescriptor> excludedIndexes,
-            Config config) {
+            Config config,
+            IndexPopulator.Configuration indexPopulatorConfiguration) {
         this.fileSystem = fileSystem;
         this.indexProviderMap = indexProviderMap;
         this.tempIndexes = tempIndexes;
@@ -136,6 +138,7 @@ public class ImportIndexBuilder implements Closeable {
                 UnsafeDirectByteBufferAllocator::new,
                 config.get(index_populator_block_size).intValue());
         this.maxBatchByteSize = config.get(index_population_batch_max_byte_size);
+        this.indexPopulatorConfiguration = indexPopulatorConfiguration;
         this.indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
     }
 
@@ -210,7 +213,8 @@ public class ImportIndexBuilder implements Closeable {
                 tokenNameLookup,
                 ElementIdMapper.PLACEHOLDER,
                 openOptions,
-                indexingBehaviour);
+                indexingBehaviour,
+                indexPopulatorConfiguration);
         try {
             populator.create();
         } catch (IOException e) {
@@ -231,7 +235,7 @@ public class ImportIndexBuilder implements Closeable {
         for (var population : indexBuilders.entrySet()) {
             // Complete the population of the increment index
             var builder = population.getValue();
-            builder.flush();
+            builder.flushAll();
             var populator = builder.populator;
             scheduler.accept(() -> {
                 var conflictHandler = new RecordingIndexEntryConflictHandler(
@@ -442,6 +446,15 @@ public class ImportIndexBuilder implements Closeable {
         return properties;
     }
 
+    /**
+     * Flushes all changes and additions made by this thread to all its affected indexes.
+     */
+    public void flushOnSchemaMonitorClose() {
+        for (var indexBuilder : indexBuilders.values()) {
+            indexBuilder.flush();
+        }
+    }
+
     private record RecordingIndexEntryConflictHandler(
             Collector badCollector,
             MutableLongSet violatingEntities,
@@ -494,7 +507,11 @@ public class ImportIndexBuilder implements Closeable {
             return true;
         }
 
-        boolean flush() {
+        void flush() {
+            changes.get().flush();
+        }
+
+        boolean flushAll() {
             boolean hasChanges = false;
             for (IndexUpdatesBatch batch : allChanges) {
                 hasChanges |= batch.flush();
@@ -504,7 +521,7 @@ public class ImportIndexBuilder implements Closeable {
 
         @Override
         public void close() {
-            flush();
+            flushAll();
             accessor.force(FileFlushEvent.NULL, EMPTY_ASYNC_BLOCK_ACCESSOR, NULL_CONTEXT);
             accessor.close();
         }

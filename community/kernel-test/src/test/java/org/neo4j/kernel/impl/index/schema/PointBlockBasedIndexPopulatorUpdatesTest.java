@@ -100,7 +100,8 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
                 BlockBasedIndexPopulator.NO_MONITOR,
                 Sets.immutable.empty(),
                 NullLogProvider.getInstance(),
-                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP);
+                SchemaUserDescription.TOKEN_ID_NAME_LOOKUP,
+                IndexPopulator.DEFAULT_CONFIGURATION);
         populator.create();
         return populator;
     }

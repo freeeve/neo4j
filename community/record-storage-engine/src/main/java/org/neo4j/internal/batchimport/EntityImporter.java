@@ -247,6 +247,7 @@ abstract class EntityImporter extends InputEntityVisitor.Adapter {
         propertyUpdateCursor.close();
         storeCursors.close();
         tempStoreCursors.close();
+        schemaMonitor.close();
     }
 
     void freeUnusedIds() {

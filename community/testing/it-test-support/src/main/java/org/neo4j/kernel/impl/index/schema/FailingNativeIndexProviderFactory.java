@@ -97,7 +97,8 @@ public class FailingNativeIndexProviderFactory extends BuiltInDelegatingIndexPro
                     TokenNameLookup tokenNameLookup,
                     ElementIdMapper elementIdMapper,
                     ImmutableSet<OpenOption> openOptions,
-                    StorageEngineIndexingBehaviour indexingBehaviour) {
+                    StorageEngineIndexingBehaviour indexingBehaviour,
+                    IndexPopulator.Configuration configuration) {
                 IndexPopulator actualPopulator = actualProvider.getPopulator(
                         descriptor,
                         samplingConfig,

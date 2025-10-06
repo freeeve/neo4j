@@ -99,7 +99,8 @@ public class ControlledPopulationIndexProvider extends BaseTestingIndexProvider 
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            IndexPopulator.Configuration configuration) {
         populatorCallCount.incrementAndGet();
         return mockedPopulator;
     }

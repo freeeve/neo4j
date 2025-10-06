@@ -92,7 +92,8 @@ public class TextIndexProvider extends AbstractTextIndexProvider {
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            IndexPopulator.Configuration configuration) {
         final var writerConfigBuilder = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT_POPULATION, config);
         final var index = TextIndexBuilder.create(descriptor, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)

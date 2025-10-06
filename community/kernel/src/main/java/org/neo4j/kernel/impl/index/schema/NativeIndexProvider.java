@@ -117,7 +117,8 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            IndexPopulator.Configuration configuration) {
         if (databaseIndexContext.readOnlyChecker.isReadOnly()) {
             throw WriteOperationsNotAllowedException.noWriteOperationAllowed();
         }
@@ -131,7 +132,8 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
                 memoryTracker,
                 tokenNameLookup,
                 elementIdMapper,
-                openOptions);
+                openOptions,
+                configuration);
     }
 
     protected abstract IndexPopulator newIndexPopulator(
@@ -142,7 +144,8 @@ abstract class NativeIndexProvider<KEY extends NativeIndexKey<KEY>, LAYOUT exten
             MemoryTracker memoryTracker,
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
-            ImmutableSet<OpenOption> openOptions);
+            ImmutableSet<OpenOption> openOptions,
+            IndexPopulator.Configuration configuration);
 
     @Override
     public IndexAccessor getOnlineAccessor(

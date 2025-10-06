@@ -116,7 +116,8 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
             TokenNameLookup tokenNameLookup,
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
-            StorageEngineIndexingBehaviour indexingBehaviour) {
+            StorageEngineIndexingBehaviour indexingBehaviour,
+            IndexPopulator.Configuration configuration) {
         final var vectorIndexConfig =
                 settingsValidator.trustIsValidToVectorIndexConfig(new IndexConfigAccessor(descriptor.getIndexConfig()));
         final var dimensions = vectorIndexConfig.dimensions();

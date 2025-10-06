@@ -28,6 +28,7 @@ import org.eclipse.collections.api.factory.Sets;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.values.ElementIdMapper;
 
@@ -54,7 +55,8 @@ class RangeBlockBasedIndexPopulatorUpdatesTest extends GenericBlockBasedIndexPop
                 ElementIdMapper.PLACEHOLDER,
                 BlockBasedIndexPopulator.NO_MONITOR,
                 Sets.immutable.empty(),
-                NullLogProvider.getInstance());
+                NullLogProvider.getInstance(),
+                IndexPopulator.DEFAULT_CONFIGURATION);
         populator.create();
         return populator;
     }

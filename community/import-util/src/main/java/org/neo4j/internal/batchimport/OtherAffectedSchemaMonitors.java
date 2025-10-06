@@ -51,6 +51,7 @@ import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.internal.schema.constraints.TypeRepresentation;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.api.index.IndexAccessor;
+import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -102,7 +103,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             StorageEngineIndexingBehaviour indexingBehaviour,
             boolean generateNonUniqueIndexUpdates,
             Predicate<IndexDescriptor> excludedIndexes,
-            Config config) {
+            Config config,
+            IndexPopulator.Configuration indexPopulatorConfiguration) {
         this.schemaCache = schemaCache;
         this.entityType = entityType;
         this.indexedEntityIdConverter = indexedEntityIdConverter;
@@ -122,7 +124,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
                 indexStatisticsStore,
                 indexingBehaviour,
                 excludedIndexes,
-                config);
+                config,
+                indexPopulatorConfiguration);
     }
 
     /**
@@ -322,6 +325,11 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             removedEntityTokens.clear();
             mode = null;
             identifierPropertyKeys.clear();
+        }
+
+        @Override
+        public void close() {
+            indexBuilder.flushOnSchemaMonitorClose();
         }
 
         private void generateIndexUpdatesForCreatedEntity(long entityId) {

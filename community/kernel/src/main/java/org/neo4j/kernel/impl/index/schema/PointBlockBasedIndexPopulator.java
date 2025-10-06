@@ -30,6 +30,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurveConfiguration;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.memory.ByteBufferFactory;
+import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexValueValidator;
 import org.neo4j.kernel.impl.index.schema.config.IndexSpecificSpaceFillingCurveSettings;
 import org.neo4j.logging.LogProvider;
@@ -54,7 +55,8 @@ public class PointBlockBasedIndexPopulator extends BlockBasedIndexPopulator<Poin
             Monitor monitor,
             ImmutableSet<OpenOption> openOptions,
             LogProvider logProvider,
-            TokenNameLookup tokenNameLookup) {
+            TokenNameLookup tokenNameLookup,
+            IndexPopulator.Configuration populatorConfiguration) {
         super(
                 databaseIndexContext,
                 indexFiles,
@@ -67,7 +69,8 @@ public class PointBlockBasedIndexPopulator extends BlockBasedIndexPopulator<Poin
                 monitor,
                 openOptions,
                 logProvider,
-                tokenNameLookup);
+                tokenNameLookup,
+                populatorConfiguration);
         this.spatialSettings = spatialSettings;
         this.configuration = configuration;
     }

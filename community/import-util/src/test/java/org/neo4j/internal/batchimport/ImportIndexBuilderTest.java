@@ -161,14 +161,15 @@ class ImportIndexBuilderTest {
                 mock(IndexStatisticsStore.class),
                 StorageEngineIndexingBehaviour.EMPTY,
                 index -> false,
-                Config.defaults(index_population_batch_max_byte_size, maxBatchByteSize));
+                Config.defaults(index_population_batch_max_byte_size, maxBatchByteSize),
+                IndexPopulator.DEFAULT_CONFIGURATION);
     }
 
     private IndexProviderMap mockedIndexProviders() throws IOException {
         var indexProviders = mock(IndexProviderMap.class);
         var indexProvider = mock(IndexProvider.class);
         when(indexProviders.lookup(any(IndexProviderDescriptor.class))).thenReturn(indexProvider);
-        when(indexProvider.getPopulator(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(indexProvider.getPopulator(any(), any(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(populator);
         when(indexProvider.getOnlineAccessor(any(), any(), any(), any(), any(), any()))
                 .thenReturn(accessor);
