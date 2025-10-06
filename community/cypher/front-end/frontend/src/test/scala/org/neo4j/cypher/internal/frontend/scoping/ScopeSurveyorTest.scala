@@ -1427,6 +1427,84 @@ class ScopeSurveyorTest extends VariableCheckingTestSuite {
     )
   }
 
+  test("""MATCH (n)
+         |CREATE (n)-[r:R]->(n)
+         |SET n.p = 1""".stripMargin) {
+    hasScope(
+      ExpectedWorkingScope(
+        Ast("""MATCH (n)
+              |CREATE (n)-[r:R]->(n)
+              |SET n.p = 1""".stripMargin),
+        Outgoing(variables = Set("n", "r")),
+        ExpectedResult.OmittedResult,
+        ExpectedWorkingScope(
+          Ast("MATCH (n)"),
+          Declared(variables = Seq("n")),
+          Outgoing(variables = Set("n")),
+          ExpectedWorkingScope(
+            Ast("(n)"),
+            PatternIncoming(predicate = Set("n")),
+            Declared(variables = Seq("n")),
+            Outgoing(variables = Set("n")),
+            ExpectedResult.TableResult("n")
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("CREATE (n)-[r:R]->(n)"),
+          Incoming(variables = Set("n")),
+          Referenced(Set("n")),
+          Declared(variables = Seq("r")),
+          Outgoing(variables = Set("n", "r")),
+          ExpectedResult.OmittedResult,
+          ExpectedWorkingScope(
+            Ast("(n)-[r:R]->(n)"),
+            PatternIncoming(topology = Set("n"), predicate = Set("n")),
+            Referenced(Set("n")),
+            Declared(variables = Seq("r")),
+            Outgoing(variables = Set("n", "r")),
+            ExpectedResult.TableResult("n", "r"),
+            ExpectedWorkingScope(
+              Ast("(n)"),
+              PatternIncoming(topology = Set("n"), predicate = Set("n")),
+              Referenced(Set("n")),
+              Outgoing(variables = Set("n")),
+              ExpectedResult.TableResult("n")
+            ),
+            ExpectedWorkingScope(
+              Ast("-[r:R]->"),
+              PatternIncoming(topology = Set("n"), predicate = Set("n")),
+              Declared(variables = Seq("r")),
+              Outgoing(variables = Set("r")),
+              ExpectedWorkingScope.constExp("R", Set("n")),
+              ExpectedResult.TableResult("r")
+            ),
+            ExpectedWorkingScope(
+              Ast("(n)"),
+              PatternIncoming(topology = Set("n", "r"), predicate = Set("n")),
+              Referenced(Set("n")),
+              Outgoing(variables = Set("n")),
+              ExpectedResult.TableResult("n")
+            )
+          )
+        ),
+        ExpectedWorkingScope(
+          Ast("SET n.p = 1"),
+          Incoming(variables = Set("n", "r")),
+          Referenced(Set("n")),
+          Outgoing(variables = Set("n", "r")),
+          ExpectedResult.OmittedResult,
+          ExpectedWorkingScope(
+            Ast("n.p"),
+            Incoming(constants = Set("n", "r")),
+            Referenced(Set("n")),
+            ExpectedWorkingScope.varExp("n", Set("n", "r"))
+          ),
+          ExpectedWorkingScope.constExp("1", Set("n", "r"))
+        )
+      )
+    )
+  }
+
   test("""LET a = 10
          |RETURN reduce(acc = a, x IN [1, a, 3] | acc * x + 5) AS red""".stripMargin) {
     hasScope(
