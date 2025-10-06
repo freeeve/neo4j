@@ -86,6 +86,28 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
     resultShouldBeInOrder(expected)
   }
 
+  Then("""the result should be, in order \(or any order if executed in parallel):""") { (expected: DataTable) =>
+    resultShouldBeInOrderUnlessParallel(expected)
+  }
+
+  Then("""the result should be, in order \(or any order ignoring element order for lists if executed in parallel):""") {
+    (expected: DataTable) =>
+      resultShouldBeInOrderIgnoringListOrderIfParallel(expected)
+  }
+
+  Then(
+    """the result should be, in order \(or any order if executed in parallel) \(ignoring element order for lists):"""
+  ) { (expected: DataTable) =>
+    resultShouldBeInOrderUnlessParallelIgnoringListOrder(expected)
+  }
+
+  Then(
+    """the result should be, in any order \(and ignoring element order for lists if executed in parallel):"""
+  ) {
+    (expected: DataTable) =>
+      resultShouldBeInAnyOrderIgnoringListOrderIfParallel(expected)
+  }
+
   Then("the result should be, in any order:") { (expected: DataTable) =>
     resultShouldBeInAnyOrder(expected)
   }
@@ -151,6 +173,10 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
   def executingControlQuery(cypher: String): Unit
   def resultShouldBeInAnyOrder(expected: DataTable): Unit
   def resultShouldBeInOrder(expected: DataTable): Unit
+  def resultShouldBeInOrderUnlessParallel(expected: DataTable): Unit
+  def resultShouldBeInOrderIgnoringListOrderIfParallel(expected: DataTable): Unit
+  def resultShouldBeInOrderUnlessParallelIgnoringListOrder(expected: DataTable): Unit
+  def resultShouldBeInAnyOrderIgnoringListOrderIfParallel(expected: DataTable): Unit
   def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit
   def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit
   def sideEffectsShouldBe(expected: DataTable): Unit

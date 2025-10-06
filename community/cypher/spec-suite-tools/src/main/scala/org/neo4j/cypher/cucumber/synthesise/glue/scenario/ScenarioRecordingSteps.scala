@@ -73,6 +73,10 @@ final class ScenarioRecordingSteps @Inject() (
   override def executingControlQuery(cypher: String): Unit = add(ExecuteControl(cypher))
   override def resultShouldBeInAnyOrder(expected: DataTable): Unit = add(AssertResults(expected, AnyOrder))
   override def resultShouldBeInOrder(expected: DataTable): Unit = add(AssertResults(expected, Order))
+  override def resultShouldBeInOrderUnlessParallel(expected: DataTable): Unit = {}
+  override def resultShouldBeInOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {}
+  override def resultShouldBeInOrderUnlessParallelIgnoringListOrder(expected: DataTable): Unit = {}
+  override def resultShouldBeInAnyOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {}
   override def sideEffectsShouldBe(expected: DataTable): Unit = add(SideEffects(expected))
   override def errorShouldBeRaised(expected: ExpectedError): Unit = add(AssertError(expected))
   override def errorShouldBeRaised(expected: ExpectedGqlError): Unit = add(AssertGqlError(expected))

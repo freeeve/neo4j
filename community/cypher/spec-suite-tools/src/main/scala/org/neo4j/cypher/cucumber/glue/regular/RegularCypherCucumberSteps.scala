@@ -204,6 +204,38 @@ final class RegularCypherCucumberSteps @Inject() (
     case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
+  override def resultShouldBeInOrderUnlessParallel(expected: DataTable): Unit = {
+    if (conf.preparserOptions.getOrElse("runtime", "") == "parallel") {
+      resultShouldBeInAnyOrder(expected)
+    } else {
+      resultShouldBeInOrder(expected)
+    }
+  }
+
+  override def resultShouldBeInOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {
+    if (conf.preparserOptions.getOrElse("runtime", "") == "parallel") {
+      resultShouldBeInOrderIgnoringListOrder(expected)
+    } else {
+      resultShouldBeInOrder(expected)
+    }
+  }
+
+  override def resultShouldBeInOrderUnlessParallelIgnoringListOrder(expected: DataTable): Unit = {
+    if (conf.preparserOptions.getOrElse("runtime", "") == "parallel") {
+      resultShouldBeInAnyOrderIgnoringListOrder(expected)
+    } else {
+      resultShouldBeInOrderIgnoringListOrder(expected)
+    }
+  }
+
+  override def resultShouldBeInAnyOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {
+    if (conf.preparserOptions.getOrElse("runtime", "") == "parallel") {
+      resultShouldBeInAnyOrderIgnoringListOrder(expected)
+    } else {
+      resultShouldBeInAnyOrder(expected)
+    }
+  }
+
   override def resultShouldBeInAnyOrder(expected: DataTable): Unit = lastResult match {
     case actual: QueryResults =>
       val actualRows = actual.results.rows

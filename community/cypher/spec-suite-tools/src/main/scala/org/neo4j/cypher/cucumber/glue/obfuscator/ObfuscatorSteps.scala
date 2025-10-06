@@ -194,6 +194,10 @@ final class ObfuscatorSteps @Inject() (
   // We don't check regular assertions here
   override def resultShouldBeInAnyOrder(expected: DataTable): Unit = {}
   override def resultShouldBeInOrder(expected: DataTable): Unit = {}
+  override def resultShouldBeInOrderUnlessParallel(expected: DataTable): Unit = {}
+  override def resultShouldBeInOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {}
+  override def resultShouldBeInOrderUnlessParallelIgnoringListOrder(expected: DataTable): Unit = {}
+  override def resultShouldBeInAnyOrderIgnoringListOrderIfParallel(expected: DataTable): Unit = {}
   override def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit = {}
   override def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit = {}
   override def sideEffectsShouldBe(expected: DataTable): Unit = {}
