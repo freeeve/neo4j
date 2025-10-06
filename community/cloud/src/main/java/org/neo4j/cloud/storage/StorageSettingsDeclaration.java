@@ -38,7 +38,9 @@ import org.neo4j.graphdb.config.Setting;
 
 public abstract class StorageSettingsDeclaration implements SettingsDeclaration {
 
-    public static final long DOWNLOAD_CHUNK_SIZE = mebiBytes(8);
+    public static final long CHUNK_SIZE = mebiBytes(8);
+
+    public static final int MINIMUM_INFLIGHT_WRITE_REQUESTS = 3;
 
     public static final String READ_IS_FOR_SAMPLING_FLAG = "cloud.storage.read.sampling";
 
@@ -94,7 +96,7 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
     }
 
     protected static Setting<Long> pushQueueChunkSize(String scheme) {
-        return queueOption(scheme, "push", "chunk", BYTES, DOWNLOAD_CHUNK_SIZE)
+        return queueOption(scheme, "push", "chunk", BYTES, CHUNK_SIZE)
                 .addConstraint(CHUNK_RANGE)
                 .build();
     }
@@ -106,7 +108,7 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
     }
 
     protected static Setting<Long> pullQueueChunkSize(String scheme) {
-        return queueOption(scheme, "pull", "chunk", BYTES, DOWNLOAD_CHUNK_SIZE)
+        return queueOption(scheme, "pull", "chunk", BYTES, CHUNK_SIZE)
                 .addConstraint(CHUNK_RANGE)
                 .build();
     }
@@ -119,6 +121,11 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
     protected static <S> SettingBuilder<S> internalOption(
             String scheme, String optionName, SettingValueParser<S> parser, S defaultValue) {
         return newBuilder("%s.%s.%s".formatted(INTERNAL_CONFIG_PREFIX, scheme, optionName), parser, defaultValue);
+    }
+
+    protected static int maxInflightRequestsBasedOffMaxHeap(int defaultWriteChunkSize) {
+        final var maxMemory = Runtime.getRuntime().maxMemory() * 0.5; // leave some heap available
+        return Math.max(MINIMUM_INFLIGHT_WRITE_REQUESTS, (int) (maxMemory / defaultWriteChunkSize));
     }
 
     private static <S> SettingBuilder<S> queueOption(

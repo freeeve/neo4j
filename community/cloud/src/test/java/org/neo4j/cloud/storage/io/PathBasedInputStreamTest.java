@@ -21,19 +21,13 @@ package org.neo4j.cloud.storage.io;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.neo4j.io.ByteUnit.kibiBytes;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -69,7 +63,7 @@ class PathBasedInputStreamTest {
     void transferToChannel() throws IOException {
         final var outPath = directory.file("transfer");
         try (var input = new PathBasedInputStream(inputPath)) {
-            try (var output = new TestWriteableChannel(outPath)) {
+            try (var output = new AbstractTestWriteableChannel(outPath)) {
                 assertThat(input.transferTo(output)).isGreaterThan(0);
                 assertThat(output.transferred).isTrue();
             }
@@ -99,7 +93,7 @@ class PathBasedInputStreamTest {
     @Test
     void cannotReadIfAlreadyTransferring() throws IOException {
         try (var input = new PathBasedInputStream(inputPath)) {
-            try (var output = new TestWriteableChannel(directory.file("transfer"))) {
+            try (var output = new AbstractTestWriteableChannel(directory.file("transfer"))) {
                 assertThat(input.transferTo(output)).isGreaterThan(0);
             }
 
@@ -118,57 +112,6 @@ class PathBasedInputStreamTest {
             assertThatThrownBy(() -> input.transferTo(output))
                     .isInstanceOf(IOException.class)
                     .hasMessage("Stream is already closed");
-        }
-    }
-
-    private static class TestWriteableChannel extends WriteableChannel {
-
-        private final FileChannel channel;
-
-        private boolean transferred;
-
-        protected TestWriteableChannel(Path path) throws IOException {
-            super((int) kibiBytes(8), EmptyMemoryTracker.INSTANCE);
-            this.channel = FileChannel.open(path, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
-        }
-
-        @Override
-        public long transferFrom(Path path) throws IOException {
-            transferred = true;
-            return super.transferFrom(path);
-        }
-
-        @Override
-        protected long internalGetSize() {
-            try {
-                return channel.size();
-            } catch (IOException ex) {
-                throw new UncheckedIOException(ex);
-            }
-        }
-
-        @Override
-        protected void completeWriteProcess() throws IOException {
-            if (buffer.hasRemaining()) {
-                //noinspection ResultOfMethodCallIgnored
-                channel.write(buffer.flip());
-            }
-            channel.close();
-        }
-
-        @Override
-        protected void doBufferWrite(ByteBuffer data) {
-            buffer.put(data);
-        }
-
-        @Override
-        protected void reportChunksWritten(long chunks) {
-            // no-op
-        }
-
-        @Override
-        protected boolean hasBeenReplicated() {
-            return false;
         }
     }
 }

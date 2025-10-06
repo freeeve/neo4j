@@ -31,33 +31,50 @@ import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import org.neo4j.cloud.storage.StorageSystemProvider;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.memory.MemoryTracker;
 
-public abstract class WriteableChannel extends OutputStream implements WritableByteChannel {
+public abstract class WriteableChannel extends OutputStream implements WritableByteChannel, IoErrorTracker {
+
+    private static final int SPINS_BEFORE_SLEEP = 100000;
+    private static final int MAX_SLEEP_BEFORE_SPIN = 500;
 
     private final AtomicReference<IOException> ioError = new AtomicReference<>();
+
+    private final AtomicLong inflightWrites = new AtomicLong();
 
     protected final MemoryTracker memoryTracker;
 
     protected final ByteBuffer buffer;
 
+    private final int maxInFlightRequests;
+
     protected long writtenChunks = 0;
 
     private boolean closed;
 
-    protected WriteableChannel(int bufferSize, MemoryTracker memoryTracker) {
-        this.memoryTracker = memoryTracker;
+    protected WriteableChannel(int bufferSize, int maxInFlightRequests, MemoryTracker memoryTracker) {
         this.buffer = ByteBuffers.allocateDirect(bufferSize, ByteOrder.LITTLE_ENDIAN, memoryTracker);
+        this.maxInFlightRequests = maxInFlightRequests;
+        this.memoryTracker = memoryTracker;
     }
 
     protected abstract long internalGetSize();
 
     protected abstract void completeWriteProcess() throws IOException;
 
-    protected abstract void doBufferWrite(ByteBuffer buffer) throws IOException;
+    /**
+     * @param buffer the buffer to write to the underlying storage system. The aim is to return immediately from this
+     *               call, so if the write process is asynchronous, the implementation should take a copy of this buffer
+     *               to allow this channel to continue to populate its buffer with more updates.
+     * @param completionHandler handler to call when the write process completes. <strong>IMPORTANT</strong> this
+     *                          <i>must always</i> be called, even in the result of a failure.
+     * @throws IOException if unable to write to the underlying storage
+     */
+    protected abstract void doBufferWrite(ByteBuffer buffer, Runnable completionHandler) throws IOException;
 
     protected abstract void reportChunksWritten(long chunks);
 
@@ -138,6 +155,26 @@ public abstract class WriteableChannel extends OutputStream implements WritableB
     }
 
     @Override
+    public void ensureNoErrors() throws IOException {
+        final var error = ioError.get();
+        if (error != null) {
+            throw error;
+        }
+    }
+
+    @Override
+    public IOException updateErrors(IOException ex) {
+        return ioError.updateAndGet(prev -> {
+            if (prev == null) {
+                return ex;
+            } else {
+                prev.addSuppressed(ex);
+                return prev;
+            }
+        });
+    }
+
+    @Override
     public void close() throws IOException {
         if (closed) {
             return;
@@ -157,23 +194,45 @@ public abstract class WriteableChannel extends OutputStream implements WritableB
         }
     }
 
-    protected void ensureOk() throws IOException {
+    private void ensureOk() throws IOException {
         ensureOpen();
         if (hasBeenReplicated()) {
             throw new IOException("Cannot write to a channel that has been used in a copyFrom");
         }
 
-        final var error = ioError.get();
-        if (error != null) {
-            throw error;
-        }
+        ensureNoErrors();
     }
 
     private void checkBufferIsFull() throws IOException {
         if (!buffer.hasRemaining()) {
-            doBufferWrite(buffer.flip());
+            checkInflightRequests();
+            inflightWrites.incrementAndGet();
+            doBufferWrite(buffer.flip(), inflightWrites::decrementAndGet);
             reportChunksWritten(++writtenChunks);
             buffer.clear();
         }
+    }
+
+    private void checkInflightRequests() throws IOException {
+        var spinCount = 0;
+        var sleepMs = 10;
+        while (inflightWrites.get() >= maxInFlightRequests) {
+            if (spinCount++ > SPINS_BEFORE_SLEEP) {
+                ensureNoErrors();
+                try {
+                    //noinspection BusyWait
+                    Thread.sleep(sleepMs);
+                } catch (InterruptedException ex) {
+                    throw new IOException("Interrupted whilst waiting for inflight write requests to decrease", ex);
+                }
+
+                spinCount = 0;
+                sleepMs = Math.min(MAX_SLEEP_BEFORE_SPIN, sleepMs * 2);
+            } else {
+                Thread.onSpinWait();
+            }
+        }
+
+        ensureNoErrors();
     }
 }
