@@ -539,6 +539,7 @@ org.neo4j.graphdb.schema.PropertyType::LOCAL_DATETIME org.neo4j.graphdb.schema.P
 org.neo4j.graphdb.schema.PropertyType::LOCAL_TIME org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::POINT org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::STRING org.neo4j.graphdb.schema.PropertyType public static final
+org.neo4j.graphdb.schema.PropertyType::VECTOR org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::ZONED_DATETIME org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::ZONED_TIME org.neo4j.graphdb.schema.PropertyType public static final
 org.neo4j.graphdb.schema.PropertyType::valueOf(java.lang.String) org.neo4j.graphdb.schema.PropertyType public static

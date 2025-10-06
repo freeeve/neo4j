@@ -50,4 +50,12 @@ public enum PropertyType {
     LIST_ZONED_DATETIME_NOT_NULL,
     LIST_DURATION_NOT_NULL,
     LIST_POINT_NOT_NULL,
+    /**
+     * Property type constraints with vectors must be created through Cypher.
+     * Passing this value to {@link ConstraintCreator#assertPropertyHasType(String, PropertyType...)}
+     * is not supported.
+     * This value can be returned from {@link ConstraintDefinition#getPropertyType()}. It does not specify the
+     * coordinate type and dimension. If that information is needed, Cypher must be used.
+     */
+    VECTOR
 }

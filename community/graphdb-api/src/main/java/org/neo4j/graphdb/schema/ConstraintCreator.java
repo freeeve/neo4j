@@ -96,7 +96,8 @@ public interface ConstraintCreator {
      * the property has to be of a type matching the given propertyType.
      *
      * @param propertyKey property to impose the property type constraint for.
-     * @param propertyType type to impose on the property.
+     * @param propertyType type to impose on the property. Note that {@link PropertyType#VECTOR} is not allowed here.
+     *                     Property type constraints with vectors must be created through Cypher.
      * @return a {@link ConstraintCreator} instance to be used for further interaction.
      */
     ConstraintCreator assertPropertyHasType(String propertyKey, PropertyType... propertyType);

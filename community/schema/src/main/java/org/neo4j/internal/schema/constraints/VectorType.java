@@ -20,7 +20,6 @@
 package org.neo4j.internal.schema.constraints;
 
 import java.util.regex.Pattern;
-import org.apache.commons.lang3.NotImplementedException;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.map.ImmutableMap;
 import org.eclipse.collections.impl.map.mutable.ConcurrentHashMap;
@@ -100,7 +99,7 @@ public final class VectorType implements ConstrainableType {
 
     @Override
     public PropertyType toPublicApi() {
-        throw new NotImplementedException("Vectors are not yet represented in Public API");
+        return PropertyType.VECTOR;
     }
 
     private static Ordering toOrdering(CoordinateType type) {
