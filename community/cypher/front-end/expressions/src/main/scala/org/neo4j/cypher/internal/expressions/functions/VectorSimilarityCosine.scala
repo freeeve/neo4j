@@ -57,7 +57,7 @@ case object VectorSimilarityCosine extends Function {
           "b" -> "A vector or list value representing the second vector."
         ),
       scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType")
+      semanticFeature = Set("VectorType") // Consider to scope the signature above to Cypher 5 when this is removed
     )
   )
 }

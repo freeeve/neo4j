@@ -49,7 +49,7 @@ case object ToFloatList extends Function {
       category = Category.LIST,
       argumentDescriptions = Map("input" -> "A list of values or vector to be converted into a list of floats."),
       scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType")
+      semanticFeature = Set("VectorType") // Consider to scope the signature above to Cypher 5 when this is removed
     )
   )
 }

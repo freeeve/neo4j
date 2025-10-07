@@ -4082,6 +4082,37 @@
     ]
   },
   {
+    "name": "size",
+    "category": "Scalar",
+    "description": "Returns the number of items in a `LIST<ANY>`, the number of Unicode characters in a `STRING` or the dimension of a `VECTOR`.",
+    "signature": "size(input :: STRING | VECTOR | LIST<ANY>) :: INTEGER",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description": "A value whose length is to be calculated.",
+        "type": "STRING | VECTOR | LIST<ANY>",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "INTEGER",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
+      25
+    ]
+  },
+  {
     "name": "split",
     "category": "String",
     "description": "Returns a `LIST<STRING>` resulting from the splitting of the given `STRING` around matches of the given delimiter(s).",
@@ -4858,6 +4889,37 @@
     ]
   },
   {
+    "name": "toFloatList",
+    "category": "List",
+    "description": "Converts a `LIST<ANY> | VECTOR` to a `LIST<FLOAT>` values. If any values are not convertible to `FLOAT` they will be null in the `LIST<FLOAT>` returned.",
+    "signature": "toFloatList(input :: VECTOR | LIST<ANY>) :: LIST<FLOAT>",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description": "A list of values or vector to be converted into a list of floats.",
+        "type": "VECTOR | LIST<ANY>",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "LIST<FLOAT>",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
+      25
+    ]
+  },
+  {
     "name": "toFloatOrNull",
     "category": "Scalar",
     "description": "Converts a value to a `FLOAT` value, or null if the value cannot be converted.",
@@ -4950,6 +5012,37 @@
     "deprecatedBy": null,
     "cypherVersionScope": [
       5,
+      25
+    ]
+  },
+  {
+    "name": "toIntegerList",
+    "category": "List",
+    "description": "Converts a `LIST<ANY> | VECTOR` to a `LIST<INTEGER>` values. If any values are not convertible to `INTEGER` they will be null in the `LIST<INTEGER>` returned.",
+    "signature": "toIntegerList(input :: VECTOR | LIST<ANY>) :: LIST<INTEGER>",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description": "A list of values or vector to be converted into a list of integers.",
+        "type": "VECTOR | LIST<ANY>",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "LIST<INTEGER>",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
       25
     ]
   },
@@ -5324,6 +5417,49 @@
     ]
   },
   {
+    "name": "vector",
+    "category": "Scalar",
+    "description": "Constructs a `VECTOR` value.",
+    "signature": "vector(vectorValue :: STRING | LIST<INTEGER | FLOAT>, dimension :: INTEGER, coordinateType :: [INTEGER64, INTEGER32, INTEGER16, INTEGER8, FLOAT64, FLOAT32]) :: VECTOR",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "vectorValue",
+        "description": "The numeric values to create the vector coordinates from.",
+        "type": "STRING | LIST<INTEGER | FLOAT>",
+        "isDeprecated": false
+      },
+      {
+        "name": "dimension",
+        "description": "The dimension (number of coordinates) of the vector.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      },
+      {
+        "name": "coordinateType",
+        "description": "The type of each coordinate in the vector.",
+        "type": "[INTEGER64, INTEGER32, INTEGER16, INTEGER8, FLOAT64, FLOAT32]",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "VECTOR",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
+      25
+    ]
+  },
+  {
     "name": "vector.similarity.cosine",
     "category": "Vector",
     "description": "Returns a `FLOAT` representing the similarity between the argument vectors based on their cosine.",
@@ -5362,6 +5498,43 @@
     ]
   },
   {
+    "name": "vector.similarity.cosine",
+    "category": "Vector",
+    "description": "Returns a `FLOAT` representing the similarity between the argument vectors based on their cosine.",
+    "signature": "vector.similarity.cosine(a :: VECTOR | LIST<INTEGER | FLOAT>, b :: VECTOR | LIST<INTEGER | FLOAT>) :: FLOAT",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "a",
+        "description": "A vector or list value representing the first vector.",
+        "type": "VECTOR | LIST<INTEGER | FLOAT>",
+        "isDeprecated": false
+      },
+      {
+        "name": "b",
+        "description": "A vector or list value representing the second vector.",
+        "type": "VECTOR | LIST<INTEGER | FLOAT>",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "FLOAT",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
+      25
+    ]
+  },
+  {
     "name": "vector.similarity.euclidean",
     "category": "Vector",
     "description": "Returns a `FLOAT` representing the similarity between the argument vectors based on their Euclidean distance.",
@@ -5396,6 +5569,154 @@
     "deprecatedBy": null,
     "cypherVersionScope": [
       5,
+      25
+    ]
+  },
+  {
+    "name": "vector.similarity.euclidean",
+    "category": "Vector",
+    "description": "Returns a `FLOAT` representing the similarity between the argument vectors based on their Euclidean distance.",
+    "signature": "vector.similarity.euclidean(a :: VECTOR | LIST<INTEGER | FLOAT>, b :: VECTOR | LIST<INTEGER | FLOAT>) :: FLOAT",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "a",
+        "description": "A vector or list value representing the first vector.",
+        "type": "VECTOR | LIST<INTEGER | FLOAT>",
+        "isDeprecated": false
+      },
+      {
+        "name": "b",
+        "description": "A vector or list value representing the second vector.",
+        "type": "VECTOR | LIST<INTEGER | FLOAT>",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "FLOAT",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
+      25
+    ]
+  },
+  {
+    "name": "vector_dimension_count",
+    "category": "Vector",
+    "description": "Returns the dimension of a `VECTOR`.",
+    "signature": "vector_dimension_count(input :: VECTOR) :: INTEGER",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description": "The vector to calculate the dimension of.",
+        "type": "VECTOR",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "INTEGER",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
+      25
+    ]
+  },
+  {
+    "name": "vector_distance",
+    "category": "Vector",
+    "description": "Returns a `FLOAT` representing the distance between the two vector values based on the selected `vectorDistanceMetric` algorithm.",
+    "signature": "vector_distance(vector1 :: VECTOR, vector2 :: VECTOR, coordinateType :: [EUCLIDEAN, EUCLIDEAN_SQUARED, MANHATTAN, COSINE, DOT, HAMMING]) :: FLOAT",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "vector1",
+        "description": "The first vector.",
+        "type": "VECTOR",
+        "isDeprecated": false
+      },
+      {
+        "name": "vector2",
+        "description": "The second vector.",
+        "type": "VECTOR",
+        "isDeprecated": false
+      },
+      {
+        "name": "vectorDistanceMetric",
+        "description": "The vector distance algorithm to calculate the distance by.",
+        "type": "[EUCLIDEAN, EUCLIDEAN_SQUARED, MANHATTAN, COSINE, DOT, HAMMING]",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "FLOAT",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
+      25
+    ]
+  },
+  {
+    "name": "vector_norm",
+    "category": "Vector",
+    "description": "Returns a `FLOAT` representing the distance between the given vector and an origin vector, which is a vector with the same dimension with all coordinates set to zero, calculated using the specified `vectorDistanceMetric`.",
+    "signature": "vector_norm(vector1 :: VECTOR, vector2 :: VECTOR, coordinateType :: [EUCLIDEAN, EUCLIDEAN_SQUARED, MANHATTAN, COSINE, DOT, HAMMING]) :: FLOAT",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "vector",
+        "description": "A vector for which the norm to the origin vector will be computed.",
+        "type": "VECTOR",
+        "isDeprecated": false
+      },
+      {
+        "name": "vectorDistanceMetric",
+        "description": "The vector distance algorithm to calculate the distance by.",
+        "type": "[EUCLIDEAN, MANHATTAN]",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "FLOAT",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [
       25
     ]
   }

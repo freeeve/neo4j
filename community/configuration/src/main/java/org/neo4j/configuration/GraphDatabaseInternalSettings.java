@@ -380,7 +380,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Internal
     @Description("Set this to enable the use of the new Vector Type.")
     public static final Setting<Boolean> cypher_enable_vector_type =
-            newBuilder("internal.cypher.enable_vector_type", BOOL, false).build();
+            newBuilder("internal.cypher.enable_vector_type", BOOL, true).build();
 
     @Internal
     @Description("Set this to enable the use of the SCOPE queries.")

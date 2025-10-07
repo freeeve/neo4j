@@ -49,7 +49,7 @@ case object Size extends Function {
       category = Category.SCALAR,
       argumentDescriptions = Map("input" -> "A value whose length is to be calculated."),
       scopes = Set(CypherVersion.Cypher25),
-      semanticFeature = Set("VectorType")
+      semanticFeature = Set("VectorType") // Consider to scope the signature above to Cypher 5 when this is removed
     )
   )
 }
