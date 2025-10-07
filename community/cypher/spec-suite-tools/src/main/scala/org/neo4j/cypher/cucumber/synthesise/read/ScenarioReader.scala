@@ -24,7 +24,7 @@ import io.cucumber.junit.platform.engine.Constants.JUNIT_PLATFORM_LONG_NAMING_ST
 import io.cucumber.junit.platform.engine.Constants.JUNIT_PLATFORM_NAMING_STRATEGY_PROPERTY_NAME
 import io.cucumber.junit.platform.engine.Constants.OBJECT_FACTORY_PROPERTY_NAME
 import io.cucumber.junit.platform.engine.Constants.PARALLEL_EXECUTION_ENABLED_PROPERTY_NAME
-import org.junit.platform.engine.discovery.DiscoverySelectors.selectClasspathResource
+import org.junit.platform.engine.discovery.DiscoverySelectors.selectPackage
 import org.junit.platform.launcher.EngineFilter
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
 import org.junit.platform.launcher.core.LauncherFactory
@@ -44,7 +44,7 @@ class ScenarioReader {
 
     val request = featurePaths
       .foldLeft(LauncherDiscoveryRequestBuilder.request()) {
-        case (request, path) => request.selectors(selectClasspathResource(path))
+        case (request, path) => request.selectors(selectPackage(path))
       }
       .filters(EngineFilter.includeEngines("cucumber"))
       .configurationParameter(GLUE_PROPERTY_NAME, classOf[ScenarioRecordingSteps].getPackageName)

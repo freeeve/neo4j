@@ -58,7 +58,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
   test("cucumber based cypher tests can fail and pass in various ways") {
     val request = LauncherDiscoveryRequestBuilder.request()
       .filters(EngineFilter.includeEngines("cucumber"))
-      .selectors(DiscoverySelectors.selectClasspathResource("test/features"))
+      .selectors(DiscoverySelectors.selectPackage("test.features"))
       .configurationParameter(GLUE_PROPERTY_NAME, CypherCucumber.Glue.IgnoreFailTaggedScenarios)
       .configurationParameter(JUNIT_PLATFORM_NAMING_STRATEGY_PROPERTY_NAME, "long")
       .configurationParameter(JUNIT_PLATFORM_LONG_NAMING_STRATEGY_EXAMPLE_NAME_PROPERTY_NAME, "number")
