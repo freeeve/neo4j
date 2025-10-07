@@ -189,21 +189,9 @@ public class LazyProcedures implements GlobalProcedures, Consumer<Supplier<Globa
         }
 
         @Override
-        public UserFunctionSignature functionSignature(int id) throws ProcedureException {
-            initView();
-            return view.functionSignature(id);
-        }
-
-        @Override
         public UserFunctionHandle function(QualifiedName name, QueryLanguage scope) {
             initView();
             return view.function(name, scope);
-        }
-
-        @Override
-        public <T extends CallableUserFunction> boolean isFunctionInstanceOf(int id, Class<T> functionType) {
-            initView();
-            return view.isFunctionInstanceOf(id, functionType);
         }
 
         @Override

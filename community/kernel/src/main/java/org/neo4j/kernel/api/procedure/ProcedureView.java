@@ -38,11 +38,7 @@ public interface ProcedureView {
 
     ProcedureSignature procedureSignature(int id) throws ProcedureException;
 
-    UserFunctionSignature functionSignature(int id) throws ProcedureException;
-
     UserFunctionHandle function(QualifiedName name, QueryLanguage scope);
-
-    <T extends CallableUserFunction> boolean isFunctionInstanceOf(int id, Class<T> functionType);
 
     UserFunctionHandle aggregationFunction(QualifiedName name, QueryLanguage scope);
 

@@ -19,7 +19,6 @@
  */
 package org.neo4j.procedure.impl;
 
-import java.util.Arrays;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.neo4j.collection.ResourceRawIterator;
@@ -34,7 +33,6 @@ import org.neo4j.internal.kernel.api.procs.UserFunctionHandle;
 import org.neo4j.internal.kernel.api.procs.UserFunctionSignature;
 import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.ResourceMonitor;
-import org.neo4j.kernel.api.procedure.CallableUserFunction;
 import org.neo4j.kernel.api.procedure.Context;
 import org.neo4j.kernel.api.procedure.ProcedureView;
 import org.neo4j.string.Globbing;
@@ -113,23 +111,12 @@ public class ProcedureViewImpl implements ProcedureView {
 
     @Override
     public ProcedureSignature procedureSignature(int id) throws ProcedureException {
-        return registry.procedureSignatureFromId(id);
-    }
-
-    @Override
-    public UserFunctionSignature functionSignature(int id) throws ProcedureException {
-        return registry.functionSignatureFromId(id);
+        return registry.signatureFromId(id);
     }
 
     @Override
     public UserFunctionHandle function(QualifiedName name, QueryLanguage scope) {
         return registry.function(name, scope);
-    }
-
-    @Override
-    public <T extends CallableUserFunction> boolean isFunctionInstanceOf(int id, Class<T> functionType) {
-        int[] idsOfFunctionsMatchingType = registry.getIdsOfFunctionsMatching(functionType::isInstance);
-        return Arrays.stream(idsOfFunctionsMatchingType).anyMatch(i -> i == id);
     }
 
     @Override
