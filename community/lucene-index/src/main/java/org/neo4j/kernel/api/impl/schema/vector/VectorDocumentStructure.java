@@ -23,4 +23,14 @@ public abstract class VectorDocumentStructure {
     public static final String ENTITY_ID_KEY = "id";
 
     public abstract String vectorValueKeyFor(int dimensions);
+
+    public abstract String booleanValueKeyFor(int propertyIndex);
+
+    public abstract String integralValueKeyFor(int propertyIndex);
+
+    public abstract String floatingValueKeyFor(int propertyIndex);
+
+    public abstract String textValueKeyFor(int propertyIndex);
+
+    public abstract String temporalValueKeyFor(int propertyIndex);
 }

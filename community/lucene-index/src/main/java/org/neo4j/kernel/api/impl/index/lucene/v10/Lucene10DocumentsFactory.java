@@ -19,15 +19,32 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene.v10;
 
+import java.time.temporal.ChronoField;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexOptions;
+import org.apache.lucene.index.IndexableField;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.BooleanField;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleDoubleField;
+import org.neo4j.kernel.api.impl.index.lucene.v10.Lucene10ValueFields.SingleLongField;
 import org.neo4j.kernel.api.impl.schema.vector.Neo4jVectorSimilarityFunction;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 import org.neo4j.util.Preconditions;
+import org.neo4j.values.storable.BooleanValue;
+import org.neo4j.values.storable.ByteValue;
+import org.neo4j.values.storable.DoubleValue;
+import org.neo4j.values.storable.FloatValue;
+import org.neo4j.values.storable.IntValue;
+import org.neo4j.values.storable.LongValue;
+import org.neo4j.values.storable.ShortValue;
+import org.neo4j.values.storable.TemporalValue;
+import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
@@ -70,19 +87,55 @@ public class Lucene10DocumentsFactory implements LuceneDocumentsFactory {
             Neo4jVectorSimilarityFunction similarityFunction,
             Value[] values) {
         Preconditions.checkArgument(
-                values != null && values.length == 1,
-                "%s vector documents can only receive a single value",
+                values != null && values.length >= 1,
+                "%s vector document has no values",
                 getClass().getSimpleName());
         float[] vector = LuceneDocumentsFactory.maybeVectorFromValues(values, similarityFunction);
         if (vector == null) {
             return null;
         }
 
-        LuceneDocument document = new Lucene10Document();
+        Lucene10Document document = new Lucene10Document();
         document.addStringField(ENTITY_ID_KEY, Long.toString(id), false);
         document.addNumericField(ENTITY_ID_KEY, id);
         document.addKnnFloatVectorField(
                 vectorDocumentStructure.vectorValueKeyFor(vector.length), vector, similarityFunction);
+
+        for (int i = 1; i < values.length; i++) {
+            Value value = values[i];
+            IndexableField field =
+                    switch (value) {
+                        case BooleanValue bv ->
+                            new BooleanField(vectorDocumentStructure.booleanValueKeyFor(i), bv.booleanValue());
+                        case ByteValue bv ->
+                            new SingleLongField(vectorDocumentStructure.integralValueKeyFor(i), bv.intValue());
+                        case ShortValue sv ->
+                            new SingleLongField(vectorDocumentStructure.integralValueKeyFor(i), sv.intValue());
+                        case IntValue iv ->
+                            new SingleLongField(vectorDocumentStructure.integralValueKeyFor(i), iv.value());
+                        case LongValue lv ->
+                            new SingleLongField(vectorDocumentStructure.integralValueKeyFor(i), lv.value());
+                        case FloatValue fv ->
+                            new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(i), fv.value());
+                        case DoubleValue dv ->
+                            new SingleDoubleField(vectorDocumentStructure.floatingValueKeyFor(i), dv.value());
+                        case TextValue tv ->
+                            new StringField(vectorDocumentStructure.textValueKeyFor(i), tv.stringValue(), Store.NO);
+                        case TemporalValue<?, ?> tv ->
+                            new LongPoint(
+                                    vectorDocumentStructure.temporalValueKeyFor(i),
+                                    tv.getLong(ChronoField.EPOCH_DAY),
+                                    tv.getLong(ChronoField.NANO_OF_DAY),
+                                    tv.getLong(ChronoField.OFFSET_SECONDS));
+                        default -> null;
+                    };
+            if (field == null) {
+                // value type not supported for metadata filter
+                continue;
+            }
+            document.document.add(field);
+        }
+
         return document;
     }
 

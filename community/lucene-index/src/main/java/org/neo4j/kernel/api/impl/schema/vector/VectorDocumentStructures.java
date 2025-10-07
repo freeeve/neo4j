@@ -36,6 +36,31 @@ class VectorDocumentStructures {
         public String vectorValueKeyFor(int dimensions) {
             return VECTOR_VALUE_KEY;
         }
+
+        @Override
+        public String booleanValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
+
+        @Override
+        public String integralValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
+
+        @Override
+        public String floatingValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
+
+        @Override
+        public String textValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
+
+        @Override
+        public String temporalValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V1 does not support single stage filtering");
+        }
     };
 
     private static final VectorDocumentStructure V2 = new VectorDocumentStructure() {
@@ -45,6 +70,31 @@ class VectorDocumentStructures {
         public String vectorValueKeyFor(int dimensions) {
             return dimensions + VECTOR_VALUE_KEY_SUFFIX;
         }
+
+        @Override
+        public String booleanValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String integralValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String floatingValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String textValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
+
+        @Override
+        public String temporalValueKeyFor(int propertyIndex) {
+            throw new UnsupportedOperationException("V2 does not support single stage filtering");
+        }
     };
 
     private static final VectorDocumentStructure V3 = new VectorDocumentStructure() {
@@ -53,6 +103,31 @@ class VectorDocumentStructures {
         @Override
         public String vectorValueKeyFor(int dimensions) {
             return dimensions + VECTOR_VALUE_KEY_SUFFIX;
+        }
+
+        @Override
+        public String booleanValueKeyFor(int propertyIndex) {
+            return "boolean-" + propertyIndex;
+        }
+
+        @Override
+        public String integralValueKeyFor(int propertyIndex) {
+            return "integral-" + propertyIndex;
+        }
+
+        @Override
+        public String floatingValueKeyFor(int propertyIndex) {
+            return "floating-" + propertyIndex;
+        }
+
+        @Override
+        public String textValueKeyFor(int propertyIndex) {
+            return "text-" + propertyIndex;
+        }
+
+        @Override
+        public String temporalValueKeyFor(int propertyIndex) {
+            return "temporal-" + propertyIndex;
         }
     };
 }
