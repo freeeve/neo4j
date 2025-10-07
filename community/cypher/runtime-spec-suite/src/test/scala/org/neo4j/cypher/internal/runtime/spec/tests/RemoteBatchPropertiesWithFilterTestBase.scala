@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extract
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
+import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -715,6 +716,61 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
         )))
       }
     }
+  }
+
+  test("should work with projected point values") {
+
+    givenGraph {
+      nodePropertyGraph(
+        10,
+        { case i => Map("prop" -> PointValue.parse(s"{x:$i, y:${i + 1}}")) },
+        "Foo"
+      )
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("count")
+      .aggregation(Seq(), Seq("count(cache[n.prop]) AS count"))
+      .remoteBatchPropertiesWithFilter("cache[n.prop]")("n.prop = value")
+      .apply()
+      .|.nodeByLabelScan("n", "Foo", IndexOrderNone, "value")
+      .unwind("[point({x: $x, y: $y })] AS value")
+      .argument()
+      .build()
+
+    val result = execute(query, runtime, Map("x" -> 4, "y" -> 5))
+
+    result should beColumns("count").withSingleRow(1)
+  }
+
+  test("should work with projected list of point values") {
+
+    givenGraph {
+      nodePropertyGraph(
+        10,
+        { case i => Map("prop" -> PointValue.parse(s"{x:$i, y:${i + 1}}")) },
+        "Foo"
+      )
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("count")
+      .aggregation(Seq(), Seq("count(prop) AS count"))
+      .distinct("cache[n.prop] as prop")
+      .remoteBatchPropertiesWithFilter("cache[n.prop]")("n.prop IN nestedPointArray")
+      .apply()
+      .|.nodeByLabelScan("n", "Foo", IndexOrderNone, "nestedPointArray")
+      .unwind(
+        "[[point({x: 4, y: 5 }), point({x: 5, y: 6})], " +
+          "[point({x: 5, y: 6}), point({x: 1, y: 2})], " +
+          "[point({x: 5, y: 6}), point({x: 3, y: 2})]] AS nestedPointArray"
+      )
+      .argument()
+      .build()
+
+    val result = execute(query, runtime)
+
+    result should beColumns("count").withSingleRow(3)
   }
 
   // -------------------------------------------------------
