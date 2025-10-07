@@ -19,20 +19,41 @@
  */
 package org.neo4j.genai;
 
+import java.util.function.Supplier;
+import org.eclipse.collections.api.list.ImmutableList;
 import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.function.ThrowingFunction;
+import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.util.HttpService;
+import org.neo4j.genai.util.provider.GlobalProviders;
+import org.neo4j.genai.util.provider.NamedProvider;
+import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
+import org.neo4j.kernel.api.procedure.Context;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.extension.ExtensionFactory;
 import org.neo4j.kernel.extension.ExtensionType;
 import org.neo4j.kernel.extension.context.ExtensionContext;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.service.Services;
+import org.neo4j.util.VisibleForTesting;
 
 @ServiceProvider
 public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.Dependencies> {
+    private final Supplier<GlobalProviders> providersSupplier;
 
     public GenAiPluginExtension() {
+        this(new ServiceLoadedGlobalProviders());
+    }
+
+    @VisibleForTesting
+    public GenAiPluginExtension(NamedProvider... providers) {
+        this(() -> GlobalProviders.from(providers));
+    }
+
+    private GenAiPluginExtension(final Supplier<GlobalProviders> providersSupplier) {
         super(ExtensionType.GLOBAL, "gen-ai-plugin-extension");
+        this.providersSupplier = providersSupplier;
     }
 
     @Override
@@ -40,14 +61,50 @@ public class GenAiPluginExtension extends ExtensionFactory<GenAiPluginExtension.
         return new LifecycleAdapter() {
             @Override
             public void init() {
-                dependencies
-                        .procedures()
-                        .registerComponent(HttpService.class, (ctx) -> new HttpService(ctx.urlAccessChecker()), true);
+                final var providers = providersSupplier.get();
+                final var httpService = new HttpServiceProvider();
+
+                registerSafe(HttpService.class, httpService);
+                registerSafe(TextCompletion.Providers.class, TxtCompProv.from(httpService, providers));
+
+                // This component is used by metrics, can't use context.
+                // It is registered without a context, so it can be accessed by the metrics module.
+                dependencies.procedures().registerComponent(GlobalProviders.class, (ctx) -> providers, false);
+            }
+
+            private <T> void registerSafe(Class<T> cls, ProcedureProvider<T> provider) {
+                dependencies.procedures().registerComponent(cls, provider, true);
             }
         };
     }
 
     public interface Dependencies {
         GlobalProcedures procedures();
+    }
+}
+
+final class ServiceLoadedGlobalProviders implements Supplier<GlobalProviders> {
+    @Override
+    public GlobalProviders get() {
+        return GlobalProviders.from(Services.loadAll(NamedProvider.class).toArray(NamedProvider[]::new));
+    }
+}
+
+interface ProcedureProvider<T> extends ThrowingFunction<Context, T, ProcedureException> {}
+
+class HttpServiceProvider implements ProcedureProvider<HttpService> {
+    public HttpService apply(Context ctx) throws ProcedureException {
+        return new HttpService(ctx.urlAccessChecker());
+    }
+}
+
+record TxtCompProv(HttpServiceProvider httpService, ImmutableList<TextCompletion.Provider> providers)
+        implements ProcedureProvider<TextCompletion.Providers> {
+    public TextCompletion.Providers apply(Context context) throws ProcedureException {
+        return new TextCompletion.Providers.Impl(providers, httpService.apply(context));
+    }
+
+    public static TxtCompProv from(HttpServiceProvider httpService, GlobalProviders globalProviders) {
+        return new TxtCompProv(httpService, globalProviders.providers(TextCompletion.Provider.class));
     }
 }

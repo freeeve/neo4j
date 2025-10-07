@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
@@ -47,6 +46,7 @@ import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.set.primitive.ImmutableIntSet;
 import org.eclipse.collections.api.set.primitive.IntSet;
+import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.genai.vector.VectorEncoding;
 import org.neo4j.graphdb.security.URLAccessChecker;
 import org.neo4j.graphdb.security.URLAccessValidationError;
@@ -78,7 +78,7 @@ public final class HttpService {
      * @param outputStreamConsumer a consumer for the output-stream
      * @return the usable {@link BodyPublisher}
      */
-    public static BodyPublisher pipe(Consumer<OutputStream> outputStreamConsumer) {
+    public static BodyPublisher pipe(ThrowingConsumer<OutputStream, IOException> outputStreamConsumer) {
         return HttpRequest.BodyPublishers.ofInputStream(() -> {
             var in = new PipedInputStream();
             var out = new PipedOutputStream();
@@ -96,6 +96,10 @@ public final class HttpService {
             });
             return in;
         });
+    }
+
+    public static HttpRequest.BodyPublisher jsonBody(Object payload) {
+        return HttpService.pipe(out -> JsonUtils.getObjectMapper().writeValue(out, payload));
     }
 
     record Response<R, T>(R value, T error) {}

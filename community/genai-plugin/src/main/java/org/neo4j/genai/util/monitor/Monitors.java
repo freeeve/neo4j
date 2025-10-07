@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.genai.ai.text.completion.TextCompletionCallCountersMonitor;
 import org.neo4j.genai.dbs.VectorDatabaseCallCountersMonitor;
 import org.neo4j.genai.util.GenAIMonitor;
 import org.neo4j.genai.vector.VectorEncodingCallCountersMonitor;
@@ -51,6 +52,10 @@ public interface Monitors {
 
     default VectorEncodingCallCountersMonitor vectorEnc() {
         return ofType(VectorEncodingCallCountersMonitor.class);
+    }
+
+    default TextCompletionCallCountersMonitor textCompletion() {
+        return ofType(TextCompletionCallCountersMonitor.class);
     }
 
     @ServiceProvider

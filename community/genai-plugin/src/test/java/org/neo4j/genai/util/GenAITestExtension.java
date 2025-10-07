@@ -21,8 +21,16 @@ package org.neo4j.genai.util;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.List;
+import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
+import org.assertj.core.api.InstanceOfAssertFactory;
+import org.assertj.core.api.MapAssert;
+import org.neo4j.genai.ai.text.completion.TextCompletion;
 import org.neo4j.genai.dbs.VectorDatabases;
 import org.neo4j.genai.vector.VectorEncoding;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.ResultTransformer;
 import org.neo4j.test.jar.JarBuilder;
 import org.neo4j.test.utils.TestDirectory;
 
@@ -31,6 +39,19 @@ public interface GenAITestExtension {
     default void installPlugin(TestDirectory testDirectory) throws IOException {
         final var path = testDirectory.directory("plugins").resolve("genai.jar");
         Files.createDirectories(path.getParent());
-        JarBuilder.createJarFor(path, VectorEncoding.class, VectorDatabases.class);
+        JarBuilder.createJarFor(path, VectorEncoding.class, VectorDatabases.class, TextCompletion.class);
+    }
+
+    default ResultTransformer<List<Map<String, Object>>> consume() {
+        return new ResultTransformer<List<Map<String, Object>>>() {
+            @Override
+            public List<Map<String, Object>> apply(Result result) {
+                return result.stream().toList();
+            }
+        };
+    }
+
+    default InstanceOfAssertFactory<Map, MapAssert<String, Object>> resultMap() {
+        return InstanceOfAssertFactories.map(String.class, Object.class);
     }
 }

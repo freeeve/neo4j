@@ -1,0 +1,121 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.genai.ai.text.completion;
+
+import static java.util.Objects.requireNonNull;
+
+import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import org.eclipse.collections.api.list.ImmutableList;
+import org.neo4j.genai.util.HttpService;
+import org.neo4j.genai.util.monitor.Monitors;
+import org.neo4j.genai.util.provider.NamedProvider;
+import org.neo4j.genai.util.provider.ProviderRow;
+import org.neo4j.genai.vector.VectorEncoding;
+import org.neo4j.kernel.api.QueryLanguage;
+import org.neo4j.kernel.api.procedure.QueryLanguageScope;
+import org.neo4j.procedure.Context;
+import org.neo4j.procedure.Description;
+import org.neo4j.procedure.Internal;
+import org.neo4j.procedure.Name;
+import org.neo4j.procedure.Procedure;
+import org.neo4j.procedure.Sensitive;
+import org.neo4j.procedure.UserFunction;
+import org.neo4j.values.virtual.MapValue;
+
+public class TextCompletion {
+    private static final String CONF_DESC =
+            "Provider specific configuration, use `CALL ai.text.completion.providers()` to find the configuration needed for each provider.";
+
+    @Context
+    public Providers providers;
+
+    @Context
+    public Monitors monitors;
+
+    @Internal // Internal until the final name and signature is decided. Update completionDocsAreUpToDate when removing.
+    @UserFunction(name = "ai.text.completion")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
+    @Description("Complete the specified prompt.")
+    public String complete(
+            @Name(value = "prompt", description = "The prompt to complete.") String prompt,
+            @Name(value = "provider", description = "The identifier of the provider: 'OpenAI'.") String providerName,
+            @Sensitive @Name(value = "configuration", defaultValue = "{}", description = CONF_DESC)
+                    MapValue configuration) {
+        requireNonNull(providerName, "'provider' must not be null");
+        requireNonNull(configuration, "'configuration' must not be null");
+        final var provider = providers.byName(providerName);
+        monitors.textCompletion().textCompletionFunctionCalled(provider.name());
+        return prompt == null ? null : provider.complete(prompt, configuration);
+    }
+
+    @Internal // Internal until the final name and signature is decided. Update completionDocsAreUpToDate when removing.
+    @Procedure(name = "ai.text.completion")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
+    @Description("Complete the specified prompts.")
+    public Stream<BatchRow> completeBatch(
+            @Name(value = "prompts", description = "The prompts to complete.") List<String> prompts,
+            @Name(value = "provider", description = "The identifier of the provider: 'OpenAI'.") String providerName,
+            @Sensitive @Name(value = "configuration", defaultValue = "{}", description = CONF_DESC)
+                    MapValue configuration) {
+        requireNonNull(prompts, "'prompts' must not be null");
+        requireNonNull(providerName, "'provider' must not be null");
+        requireNonNull(configuration, "'configuration' must not be null");
+        final var provider = providers.byName(providerName);
+        monitors.textCompletion().textCompletionProcedureCalled(provider.name());
+
+        // TODO Optimise to be a single network call, if possible. Remember to handle nulls.
+        return IntStream.range(0, prompts.size()).mapToObj(i -> {
+            final var prompt = prompts.get(i);
+            final var completion = prompt == null ? null : provider.complete(prompt, configuration);
+            return new BatchRow(i, completion);
+        });
+    }
+
+    @Internal // Internal until the final name and signature is decided. Update completionDocsAreUpToDate when removing.
+    @Procedure(name = "ai.text.completion.providers")
+    @QueryLanguageScope(scope = {QueryLanguage.CYPHER_25})
+    @Description("Lists the available text completion providers.")
+    public Stream<VectorEncoding.ProviderRow> listCompletionProviders() {
+        return providers.providers().stream().map(ProviderRow::from);
+    }
+
+    public interface Provider extends NamedProvider {
+        Implementation implementation(HttpService httpService);
+
+        interface Implementation extends NamedProvider.Implementation {
+            String complete(String prompt, MapValue parameters);
+        }
+    }
+
+    public interface Providers extends NamedProvider.Lookup<Provider, Provider.Implementation> {
+        record Impl(ImmutableList<Provider> providers, HttpService httpService) implements Providers {
+            @Override
+            public Provider.Implementation implementation(Provider provider) {
+                return provider.implementation(httpService);
+            }
+        }
+    }
+
+    public record BatchRow(
+            @Description("The index of the corresponding element in the input list.") long index,
+            @Description("The text completion.") String completion) {}
+}

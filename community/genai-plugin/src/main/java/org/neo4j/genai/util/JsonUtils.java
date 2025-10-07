@@ -48,13 +48,7 @@ public final class JsonUtils {
             InputStream inputStream,
             int[] nullIndexes)
             throws MalformedGenAIResponseException {
-        final JsonNode tree;
-        final ObjectMapper objectMapper = getObjectMapper();
-        try {
-            tree = objectMapper.readTree(inputStream);
-        } catch (IOException e) {
-            throw new MalformedGenAIResponseException("Unexpected error occurred while parsing the API response", e);
-        }
+        final JsonNode tree = readTree(inputStream);
 
         final var predictions = getExpectedFrom(name, tree, topLevelKey);
         if (!predictions.isArray()) {
@@ -76,7 +70,7 @@ public final class JsonUtils {
                 if (!embedding.isArray()) {
                     throw new MalformedGenAIResponseException("Expected embedding to be an array");
                 }
-                try (final var parser = embedding.traverse(objectMapper)) {
+                try (final var parser = embedding.traverse(getObjectMapper())) {
                     return new BatchRow(index, resources.get(offsetIndex), parser.readValueAs(TYPE_REF_FLOAT_VECTOR));
                 } catch (IOException e) {
                     throw new MalformedGenAIResponseException(
@@ -105,6 +99,14 @@ public final class JsonUtils {
             }
         }
         return objectMapper;
+    }
+
+    public static JsonNode readTree(InputStream inputStream) {
+        try {
+            return getObjectMapper().readTree(inputStream);
+        } catch (IOException e) {
+            throw new MalformedGenAIResponseException("Unexpected error occurred while parsing the API response", e);
+        }
     }
 
     public static JsonNode getExpectedFrom(String provider, JsonNode json, String property)

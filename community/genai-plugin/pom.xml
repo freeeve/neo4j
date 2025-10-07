@@ -90,6 +90,11 @@
             <version>${pinecone-client.version}</version>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-standalone</artifactId>
+            <version>3.13.1</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
