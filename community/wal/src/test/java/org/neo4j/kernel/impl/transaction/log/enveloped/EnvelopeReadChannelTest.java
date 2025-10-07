@@ -45,12 +45,15 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.configuration.Config;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.io.fs.ChecksumMismatchException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
+import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.memory.NativeScopedBuffer;
+import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -62,7 +65,12 @@ import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
+import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.memory.MemoryTracker;
+import org.neo4j.storageengine.api.CommandReader;
+import org.neo4j.storageengine.api.CommandReaderFactory;
+import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -1213,6 +1221,46 @@ class EnvelopeReadChannelTest {
             assertThatThrownBy(channel::getShort)
                     .isInstanceOf(IncompleteEnvelopeReadException.class)
                     .hasMessageContaining("Entry underflow. 2 bytes was requested but only 1 are available.");
+        }
+    }
+
+    @Test
+    void shouldFailForReadsThatHasPassedEnvelopeBoundary() throws Exception {
+        // Hacked command reader factory to take us over an envelope boundary. In the real world it could
+        // potentially happen if starting to read a tx in a middle/end envelope and bytes happen to match
+        // valid type codes.
+        CommandReaderFactory commandReaderFactory = version -> new CommandReader() {
+            @Override
+            public StorageCommand read(ReadableChannel channel, MemoryTracker memoryTracker) throws IOException {
+                channel.getLong(); // Read that goes past envelope boundary
+                channel.get(); // The following read that triggers the exception
+                return null;
+            }
+
+            @Override
+            public KernelVersion kernelVersion() {
+                return null;
+            }
+        };
+
+        int segmentSize = 128;
+        byte[] bytes = new byte[] {3, 0, 0}; // valid command type and some bytes to not read second header on first get
+
+        writeSomeData(buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            int checksum = writeHeaderAndPayload(buffer, EnvelopeType.MIDDLE, BASE_TX_CHECKSUM, bytes, START_INDEX);
+            writeHeaderAndPayload(buffer, EnvelopeType.MIDDLE, checksum, new byte[50], START_INDEX + 1);
+        });
+
+        try (var channel = new EnvelopeReadChannel(
+                logChannel(), segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            VersionAwareLogEntryReader logEntryReader = new VersionAwareLogEntryReader(
+                    commandReaderFactory,
+                    new BinarySupportedKernelVersions(Config.defaults()),
+                    EmptyMemoryTracker.INSTANCE);
+            assertThatThrownBy(() -> logEntryReader.readLogEntry(channel))
+                    .isInstanceOf(InvalidLogEnvelopeReadException.class)
+                    .hasMessageContaining("Read has gone past an envelope boundary");
         }
     }
 

@@ -134,7 +134,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                             positionMarker,
                             commandReaderFactory,
                             memoryTracker);
-        } catch (ReadPastEndException | IncompleteEnvelopeReadException e) {
+        } catch (ReadPastEndException | IncompleteEnvelopeReadException | InvalidLogEnvelopeReadException e) {
             // Make these exceptions slip by straight out to the outer handler
             throw e;
         } catch (Exception e) { // Tag all other exceptions with log position and other useful information

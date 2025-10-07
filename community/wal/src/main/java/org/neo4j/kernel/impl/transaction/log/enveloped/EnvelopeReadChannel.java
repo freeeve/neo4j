@@ -667,8 +667,12 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         }
     }
 
-    protected boolean checkForEndOfEnvelope() {
-        assert buffer.position() <= payloadEndOffset : "Should not read past envelope";
+    protected boolean checkForEndOfEnvelope() throws InvalidLogEnvelopeReadException {
+        if (buffer.position() > payloadEndOffset) {
+            throw new InvalidLogEnvelopeReadException(
+                    "Read has gone past an envelope boundary at position %d of segment %d. payloadEndOffset %d, Envelope type %s"
+                            .formatted(buffer.position(), currentSegment, payloadEndOffset, payloadType));
+        }
         return buffer.position() == payloadEndOffset;
     }
 
