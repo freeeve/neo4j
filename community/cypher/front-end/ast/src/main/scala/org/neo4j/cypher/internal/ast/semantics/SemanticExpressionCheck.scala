@@ -958,11 +958,11 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
                     x.reductionStep,
                     TypeMismatchContext.ACCUMULATOR,
                     AccumulatorReductionTypeMismatchMessageGenerator
-                  )
-              } chain
-              check(ctx, x.predicate) chain
-              expectType(CTBoolean.covariant, x.predicate) chain
-              specifyType(CTBoolean, x)
+                  ) chain
+                  check(ctx, x.predicate) chain
+                  expectType(CTBoolean.covariant, x.predicate) chain
+                  specifyType(CTBoolean, x)
+              }
           }
 
       // FALLBACK

@@ -35,8 +35,6 @@ import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
-import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
-import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepScope
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
@@ -724,14 +722,14 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     val reductionStep = ctxChild(ctx, 10).ast[Expression]()
     val predicate = ctxChild(ctx, 12).ast[Expression]()
     ctx.ast = AllReducePredicate(
-      AllReduceScope(
-        accumulator,
-        ReductionStepScope(reductionStepVariable, reductionStep)(pos(ctx)),
-        predicate
-      )(pos(ctx)),
-      init,
-      list
-    )(pos(ctx))
+      accumulator = accumulator,
+      init = init,
+      reductionStepVariable = reductionStepVariable,
+      list = list,
+      reductionStep = reductionStep,
+      predicate = predicate,
+      pos = pos(ctx)
+    )
   }
 
   // Capture an invalid syntax for the all reduce expression

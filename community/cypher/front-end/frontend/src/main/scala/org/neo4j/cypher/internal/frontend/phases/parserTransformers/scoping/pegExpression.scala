@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
 import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
-import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepScope
+import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepVariableScope
 import org.neo4j.cypher.internal.expressions.CountStar
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ExtractScope
@@ -167,7 +167,7 @@ case class pegExpression(anonVarGen: AnonymousVariableNameGenerator) {
         collect(incoming.expressionResultScope(r, children, referenced, declared))
 
       case r @ AllReducePredicate(
-          AllReduceScope(accumulator, ReductionStepScope(reductionStepVariable, reductionStep), predicate),
+          AllReduceScope(accumulator, ReductionStepVariableScope(reductionStepVariable, reductionStep, predicate)),
           init,
           list
         ) =>

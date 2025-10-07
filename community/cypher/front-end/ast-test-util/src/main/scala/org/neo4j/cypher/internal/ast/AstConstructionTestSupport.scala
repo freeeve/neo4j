@@ -23,8 +23,6 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
-import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
-import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepScope
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
@@ -732,17 +730,14 @@ trait AstConstructionTestSupport {
     allReducePredicate: Expression
   ): AllReducePredicate = {
     AllReducePredicate(
-      scope = AllReduceScope(
-        accumulator = accumulator,
-        reductionStepScope = ReductionStepScope(
-          reductionStepVariable = reductionStepVariable,
-          reductionStep = allReduceStepExpression
-        )(pos),
-        predicate = allReducePredicate
-      )(pos),
+      accumulator = accumulator,
       init = init,
-      list = list
-    )(pos)
+      reductionStepVariable = reductionStepVariable,
+      list = list,
+      reductionStep = allReduceStepExpression,
+      predicate = allReducePredicate,
+      pos = pos
+    )
   }
 
   def allReduceFallBack(

@@ -20,7 +20,6 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.AllReducePredicate
-import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
@@ -44,18 +43,17 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
   test("allReduce(acc = [], iter in r | acc + iter, size(acc) <= $hops)") {
     parsesIn[Expression] {
       case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
-      case _ => _.toAstPositioned(AllReducePredicate(
-          AllReduceScope(
+      case _ => _.toAstPositioned(
+          AllReducePredicate(
             accumulator = v"acc",
-            reductionStepScope = AllReducePredicate.ReductionStepScope(
-              reductionStepVariable = v"iter",
-              reductionStep = add(v"acc", v"iter")
-            )(pos),
-            predicate = lessThanOrEqual(size(v"acc"), parameter("hops", CTAny))
-          )(pos),
-          init = listOf(),
-          list = v"r"
-        )(pos))
+            init = listOf(),
+            reductionStepVariable = v"iter",
+            list = v"r",
+            reductionStep = add(v"acc", v"iter"),
+            predicate = lessThanOrEqual(size(v"acc"), parameter("hops", CTAny)),
+            pos = pos
+          )
+        )
     }
   }
 
@@ -64,29 +62,25 @@ class AllReducePredicateParserTest extends AstParsingTestBase {
   ) {
     parsesIn[Expression] {
       case Cypher5 => _.withSyntaxErrorContaining("Invalid input '|': expected an expression, ')' or ','")
-      case _ => _.toAstPositioned(AllReducePredicate(
-          AllReduceScope(
+      case _ => _.toAstPositioned(
+          AllReducePredicate(
             accumulator = v"acc",
-            reductionStepScope = AllReducePredicate.ReductionStepScope(
-              reductionStepVariable = v"iter",
-              reductionStep = add(v"acc", literalInt(1))
-            )(pos),
+            init = literalInt(0),
+            reductionStepVariable = v"iter",
+            list = v"r",
+            reductionStep = add(v"acc", literalInt(1)),
             predicate = AllReducePredicate(
-              AllReduceScope(
-                accumulator = v"nestedAcc",
-                reductionStepScope = AllReducePredicate.ReductionStepScope(
-                  reductionStepVariable = v"nestedIter",
-                  reductionStep = add(v"nestedAcc", literalInt(2))
-                )(pos),
-                predicate = lessThan(v"acc", v"nestedAcc")
-              )(pos),
+              accumulator = v"nestedAcc",
               init = v"acc",
-              list = v"r"
-            )(pos)
-          )(pos),
-          init = literalInt(0),
-          list = v"r"
-        )(pos))
+              reductionStepVariable = v"nestedIter",
+              list = v"r",
+              reductionStep = add(v"nestedAcc", literalInt(2)),
+              predicate = lessThan(v"acc", v"nestedAcc"),
+              pos = pos
+            ),
+            pos = pos
+          )
+        )
     }
   }
 

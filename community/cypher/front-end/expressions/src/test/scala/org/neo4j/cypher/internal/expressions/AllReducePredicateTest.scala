@@ -17,7 +17,7 @@
 package org.neo4j.cypher.internal.expressions
 
 import org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope
-import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepScope
+import org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepVariableScope
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -38,14 +38,14 @@ class AllReducePredicateTest extends CypherFunSuite {
     val expr = AllReducePredicate(
       scope = AllReduceScope(
         accumulator = acc,
-        reductionStepScope = ReductionStepScope(
+        reductionStepScope = ReductionStepVariableScope(
           reductionStepVariable = stepVariable.copyId,
           reductionStep = Add(
             Add(acc.copyId, Property(stepVariable.copyId, PropertyKeyName("prop")(pos))(pos))(pos),
             external
-          )(pos)
-        )(pos),
-        predicate = LessThan(acc.copyId, threshold)(pos)
+          )(pos),
+          predicate = LessThan(acc.copyId, threshold)(pos)
+        )(pos)
       )(pos),
       init = init,
       list = list

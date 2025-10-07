@@ -513,12 +513,19 @@ object extractQppPredicates {
               allReduce.reductionStepVariable,
               singletonVariableInQpp
             )
+        val newPredicate =
+          scope.reductionStepScope
+            .predicate
+            .replaceAllOccurrencesBy(
+              allReduce.reductionStepVariable,
+              singletonVariableInQpp
+            )
         ExtractedPredicate(
           allReduce,
           AllReduceSingletonPredicate(
             scope.accumulator,
             newReductionStep,
-            scope.predicate
+            newPredicate
           )(allReduce.position)
         )
     }

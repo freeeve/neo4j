@@ -533,13 +533,13 @@ class AllReducePredicateSemanticAnalysisTest extends CypherFunSuite with Semanti
     ).hasNoErrors
   }
 
-  test("should not allow reduction step variable in predicate") {
+  test("should allow reduction step variable in predicate") {
     run25(
       """MATCH (a)-[r]->+(b)
         |WHERE allReduce(acc = 0, rel IN r | acc + rel.prop, rel.prop = 5)
         |RETURN a, b
         |""".stripMargin
-    ).hasErrorMessages("Variable `rel` not defined")
+    ).hasNoErrors
   }
 
   test("should not allow using reduction step variable to initialize accumulator") {

@@ -96,4 +96,39 @@ class AllReduceFallbackTest extends CypherFunSuite with AstConstructionTestSuppo
     // Test that allReduce gets correctly translated to reduce with CASE and ListLiteral
     AllReduceFallback(new AnonymousVariableNameGenerator()).rewriteAllReduce(allReducePred) shouldBe allReduceFallback
   }
+
+  test("allReduce translation to reduce - step variable in predicate") {
+    // allReduce(acc = 1, step IN n | acc * step.x + 1, acc < step.otherProp)
+    val allReducePred = allReduce(
+      accumulator = v"acc",
+      init = literalInt(1),
+      reductionStepVariable = v"step",
+      list = v"n",
+      allReduceStepExpression = add(multiply(v"acc", prop(v"step", "x")), literalInt(1)),
+      allReducePredicate = lessThan(v"acc", prop(v"step", "otherProp"))
+    )
+
+    QueryRenderer.pretty(
+      allReducePred
+    ) shouldBe "allReduce(acc = 1, step IN n | acc * step.x + 1, acc < step.otherProp)"
+
+    val allReduceFallback = allReduceFallBack(
+      accumulator = v"acc",
+      init = literalInt(1),
+      stepVariable = v"step",
+      groupVariable = v"n",
+      allReduceStepExpression = add(multiply(v"acc", prop(v"step", "x")), literalInt(1)),
+      allReducePredicate = lessThan(v"acc", prop(v"step", "otherProp")),
+      nextAnonymousVariable = v"  UNNAMED0"
+    )
+
+    QueryRenderer.pretty(allReduceFallback) shouldBe
+      """reduce(acc = {accumulator: 1, result: true}, step IN n | CASE
+        |  WHEN acc.result = false THEN acc
+        |  ELSE [`  UNNAMED0` IN [acc.accumulator * step.x + 1] | {accumulator: `  UNNAMED0`, result: acc.result AND `  UNNAMED0` < step.otherProp}][0]
+        |END).result""".stripMargin
+
+    // Test that allReduce gets correctly translated to reduce with CASE and ListLiteral
+    AllReduceFallback(new AnonymousVariableNameGenerator()).rewriteAllReduce(allReducePred) shouldBe allReduceFallback
+  }
 }

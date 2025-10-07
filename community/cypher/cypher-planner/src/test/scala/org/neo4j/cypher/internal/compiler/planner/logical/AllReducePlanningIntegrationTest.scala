@@ -1338,4 +1338,61 @@ class AllReducePlanningIntegrationTest extends CypherFunSuite with LogicalPlanni
         .build()
     )
   }
+
+  test("should inline allReduce when step variable is used in predicate") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)((left)-[rel]->(right))+(b)
+        |  WHERE allReduce(acc = 0, rel IN rel | acc + rel.prop, acc < rel.otherProp)
+        |RETURN rel""".stripMargin
+    ).stripProduceResults
+
+    val `((left)-[rel]->(right))+ WITH acc = 0` = TrailParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "left",
+      innerEnd = "right",
+      groupNodes = Set(),
+      groupRelationships = Set(("rel", "rel")),
+      innerRelationships = Set("rel"),
+      previouslyBoundRelationships = Set(),
+      previouslyBoundRelationshipGroups = Set(),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll,
+      accumulators = Set(("0", "acc", "acc"))
+    )
+
+    plan shouldEqual planner.subPlanBuilder()
+      .repeatTrail(`((left)-[rel]->(right))+ WITH acc = 0`)
+      .|.filterExpressionOrString("rel.otherProp > acc", isRepeatTrailUnique("rel"))
+      .|.projection("acc + rel.prop AS acc")
+      .|.expandAll("(left)-[rel]->(right)")
+      .|.argument("left", "acc")
+      .nodeByLabelScan("a", "N", IndexOrderNone)
+      .build()
+  }
+
+  test("should support non-inlined allReduce when step variable is used in predicate") {
+    val plan = planner.plan(
+      CypherVersion.Cypher25,
+      """MATCH (a:N)((left)-[rel]->(right))+(b)
+        |RETURN allReduce(acc = 0, r IN rel | acc + r.prop, acc < r.otherProp) AS res""".stripMargin
+    ).stripProduceResults
+
+    plan shouldEqual planner.subPlanBuilder()
+      .projection(Map("res" -> allReduceFallBack(
+        accumulator = v"acc",
+        init = literalInt(0),
+        stepVariable = v"r",
+        groupVariable = v"rel",
+        allReduceStepExpression = add(v"acc", prop(v"r", "prop")),
+        allReducePredicate = greaterThan(prop(v"r", "otherProp"), v"acc"),
+        nextAnonymousVariable = v"anon_0"
+      )))
+      .expandAll("(a)-[rel*1..]->()")
+      .nodeByLabelScan("a", "N", IndexOrderNone)
+      .build()
+  }
 }

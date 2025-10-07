@@ -97,7 +97,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.ast.VectorValueConstructor",
     "org.neo4j.cypher.internal.expressions.AllReduceAccumulator",
     "org.neo4j.cypher.internal.expressions.AllReducePredicate.AllReduceScope",
-    "org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepScope",
+    "org.neo4j.cypher.internal.expressions.AllReducePredicate.ReductionStepVariableScope",
     "org.neo4j.cypher.internal.expressions.AllReduceSingletonPredicate",
     "org.neo4j.cypher.internal.expressions.AndedPropertyInequalities",
     "org.neo4j.cypher.internal.expressions.AndsReorderable",

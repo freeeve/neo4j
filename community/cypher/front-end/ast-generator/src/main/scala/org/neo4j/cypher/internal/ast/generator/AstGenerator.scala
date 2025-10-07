@@ -996,17 +996,14 @@ class AstGenerator(
     list <- _expression
   } yield {
     AllReducePredicate(
-      scope = AllReducePredicate.AllReduceScope(
-        accumulator = accumulator,
-        reductionStepScope = AllReducePredicate.ReductionStepScope(
-          reductionStepVariable = reductionStepVariable,
-          reductionStep = reductionStep
-        )(pos),
-        predicate = predicate
-      )(pos),
+      accumulator = accumulator,
       init = init,
-      list = list
-    )(pos)
+      reductionStepVariable = reductionStepVariable,
+      list = list,
+      reductionStep = reductionStep,
+      predicate = predicate,
+      pos = pos
+    )
   }
 
   // Arithmetic
